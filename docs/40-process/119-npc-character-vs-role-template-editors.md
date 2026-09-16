@@ -1,6 +1,8 @@
 # 119 · 工区 vs 人物编辑器（无职业身份）
 
 > 日期：2026-08-15
+>
+> 生命周期：本节所述 `WorkAreaEditor`／`CharacterNpcEditor` 均为 **Active**（[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）。
 
 ## Prefab 策略
 

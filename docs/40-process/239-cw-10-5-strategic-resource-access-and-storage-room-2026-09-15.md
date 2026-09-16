@@ -1,5 +1,8 @@
 # 239｜CW-10.5 战略物资访问与储藏室（2026-09-15）
 
+> 状态：**Implementation Completed / Producer Acceptance Pending**｜优先级：P0｜最后更新：2026-09-15
+> 后续仍有 StorageRoom authored materialization／preview 接线、world object pick bounds、Snapshot shell rehydrate 顺序修正（见 [42 devlog](42-devlog.md) 2026-09-15 各条）；**整体尚未收到制作人正常玩法验收**，不得自行写成 Accepted。
+
 ## 目标与 authority
 
 本轮在既有据点经济上闭合玩家资源访问层，不新增第三份持久库存：

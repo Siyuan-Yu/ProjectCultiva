@@ -4,6 +4,8 @@
 > 正式决策：[ADR-0031 Continuous Outdoor World Surface Architecture](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)
 > 关联：`2K`、`2J`、`24`、`41-roadmap`、ADR-0021、ADR-0025、ADR-0026、ADR-0027
 > **本页锁定目标架构方向，但不授权 Runtime、Content、Schema、Scene、Prefab、地图、Travel 或存档迁移。**
+>
+> **2026-09-15 补注（不改写到当时历史）：** 本页文内「Surface Chunk 是 authoring／storage 基本单位」「Chunk 是 authoring boundary」等旧表述已被 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede：Runtime Chunk 只保留 runtime 技术分区职责，**不是 authoring 单位**。地图 authoring 与旧 Content 迁移见 [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)；同时注意 Continuous Outdoor runtime 已存在，本页「NOT IMPLEMENTED」指未完成的 authoring／de-Hex 迁移，不是整个 Continuous Surface 不存在。
 
 ---
 

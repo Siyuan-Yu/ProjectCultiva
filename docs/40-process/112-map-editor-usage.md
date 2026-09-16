@@ -1,6 +1,19 @@
 # 112 · MapEditor 用法（格点地图）
 
-> 状态：**可用（WPF／Windows）**｜日期：2026-08-11  
+> ## ⚠️ LEGACY COMPATIBILITY（2026-09-15）
+>
+> **本工具不再用于制作新的 Outdoor World。**
+>
+> - **当前用途**：维护既有 `mapLayout` / LocalMap Content（旧 mapLayout／LocalMap 格点内容）。
+> - **不应继续作为新的 Outdoor authoring format**：新 Outdoor World 制作方向见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。
+> - **Planned Replacement**：`FineEditor`。
+> - **可复用**：grid／pan／zoom／selection 等纯 UI 交互经验；**新 FineEditor 不继承 `mapLayout` authority**，禁止原地把 `mapLayout` schema 扩成新地图超级格式。
+> - 生命周期、退役顺序与旧 Content 迁移分类见 [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。旧 Editor 当前不物理删除。
+
+> 状态：**可用（WPF／Windows）**｜日期：2026-08-11
+>
+> 生命周期：**Legacy Compatibility**（[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/MapEditor/`  
 > 编辑：`type = mapLayout`  
 > 计划：[106](106-content-authoring-editors-plan-v0.1.md)

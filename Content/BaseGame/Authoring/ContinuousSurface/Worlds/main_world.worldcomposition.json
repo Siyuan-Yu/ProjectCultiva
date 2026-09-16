@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 3,
+  "compositionId": "main_world",
+  "displayName": "当前项目大世界",
+  "surfaceWidthCells": 1900,
+  "surfaceHeightCells": 850,
+  "worldEditorCellSize": 10,
+  "worldSeed": 1,
+  "defaultBaseTerrain": "Plain",
+  "runtimeSurface": {
+    "surfaceId": "base:surface_main_wilderness_v1",
+    "originWorldX": -1.4,
+    "originWorldY": -1.4,
+    "surfaceCellWorldSize": 0.028
+  },
+  "legacyMigration": {
+    "mainSurfaceRelativePath": "BaseGame/Data/Worlds/main_wilderness_surface_v1.json",
+    "geographyRelativePath": "BaseGame/Data/Worlds/w2a_surface_geography_baked_v1.json"
+  },
+  "coarseTerrainSources": [],
+  "coarseFeatureSources": [],
+  "rivers": [
+    {
+      "pathId": "w2a:river:jade_run",
+      "widthCells": 20,
+      "controlPoints": [
+        {
+          "x": 482.1428571428571,
+          "y": 400.00000000000006,
+          "widthCells": null
+        },
+        {
+          "x": 482.1428571428571,
+          "y": 650,
+          "widthCells": null
+        }
+      ]
+    }
+  ],
+  "roads": [
+    {
+      "pathId": "w2a:road:bank_bridge_road",
+      "roadClass": "Road",
+      "controlPoints": [
+        {
+          "x": 375,
+          "y": 448.2142857142857,
+          "widthCells": null
+        },
+        {
+          "x": 433.92857142857144,
+          "y": 462.50000000000006,
+          "widthCells": null
+        },
+        {
+          "x": 460,
+          "y": 575.7142857142858,
+          "widthCells": null
+        },
+        {
+          "x": 504.28571428571433,
+          "y": 575.7142857142858,
+          "widthCells": null
+        },
+        {
+          "x": 572.1428571428571,
+          "y": 478.57142857142856,
+          "widthCells": null
+        }
+      ]
+    }
+  ],
+  "crossings": [
+    {
+      "riverPathId": "w2a:river:jade_run",
+      "roadPathId": "w2a:road:bank_bridge_road",
+      "x": 482.14285714285717,
+      "y": 588.370401356323,
+      "resolution": "Bridge"
+    }
+  ],
+  "worldSiteBlueprintPlacements": [
+    {
+      "placementId": "huangcun",
+      "blueprintId": "base:site_huangcun",
+      "sourcePath": "../Blueprints/huangcun.worldsiteblueprint.json",
+      "surfaceCellX": 204,
+      "surfaceCellY": 392,
+      "rotationQuarterTurns": 0
+    }
+  ],
+  "detailPatchPlacements": [
+    {
+      "placementId": "w2a_geography_detail",
+      "patchId": "w2a_geography_detail",
+      "sourcePath": "../Patches/w2a_geography_detail.detailpatch.json",
+      "surfaceCellX": 350,
+      "surfaceCellY": 400
+    }
+  ],
+  "worldObjectPlacements": [
+    {
+      "placementId": "w2a:bridge:north_crossing",
+      "kindId": "bridge",
+      "worldSurfaceX": 463,
+      "worldSurfaceY": 570,
+      "widthCells": 38,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "compatibilityMask": "w2a_geography_detail",
+        "riverPathId": "w2a:river:jade_run",
+        "roadPathId": "w2a:road:bank_bridge_road"
+      }
+    },
+    {
+      "placementId": "w2a:solid:west_road_rock",
+      "kindId": "rock",
+      "worldSurfaceX": 417,
+      "worldSurfaceY": 453,
+      "widthCells": 26,
+      "heightCells": 24,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "compatibilityMask": "w2a_geography_detail"
+      }
+    }
+  ]
+}

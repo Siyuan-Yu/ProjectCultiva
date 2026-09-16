@@ -15,20 +15,25 @@
 - UI 与文档：中文，取本表 中文 列
 - 禁止同义词混用（例如不要 Cultivation / Practice / Training 混着指同一件事）
 
-## 连续世界制作方向（已锁定／未实现）
+## 连续世界术语（Current vs Future）
 
-> 真源：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。这些术语锁定 future 方向，**不表示 MAP-01 或去 Hex 迁移已实施**。
+> 真源：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图与去 Hex 产品方向）／[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧地图 Content 迁移方向）／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。
+>
+> - **Current（已存在）**：Continuous Surface runtime 已存在并承担正常 Outdoor 物理空间；Runtime Chunk 当前为 50×50 Surface Cells；Actual Administrative Control 已是 world-space；WorldMap 仍有 Hex shell，`mapLayout`／`localPlaceSet`／`hexWorld`／`worldRegion`／W2A／fallback 仍是现行 compatibility Content。
+> - **Future（未实现）**：World Composer／Fine Editor、World Editor Cell 10×10、Blueprint／DetailPatch、Authoring Source 与 Runtime Content 分离、WorldMap Surface LOD、Final Continuous Surface bake 与完整 de-Hex／de-LocalMap；**MAP-01 未开始**。下表术语锁定方向，**不表示已实施**。
+> - **Authoring Source ≠ Runtime Content**：地图 authoring 源（Composer／FineEditor 编辑）与 bake 后的 runtime 产物不是同一类 JSON；见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §10～§13。
+> - **150×150 Surface Cells** 只表示 Level 1 SiteCore 的**理论行政控制范围**，**不是** Runtime Chunk、World Editor Cell、WorldSite Blueprint 或地图 authoring 最小尺寸。
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
-| 连续世界格 | SurfaceCell | 最小最终户外 terrain、walkability、footprint、水、道路与精修单位 | 1×1；早期 local tile 的正式后继 |
-| 运行块 | RuntimeChunk | 户外 streaming、materialization 与 navigation cache 技术分区 | 当前 50×50 Surface Cells；不是 authoring / Site / 行政单位 |
-| 大地图编辑格 | WorldEditorCell | World Composer 的宏观地理制作格 | 固定 10×10 Surface Cells；runtime 不读取 |
-| 据点蓝图 | WorldSiteBlueprint | 固定 WorldSite 的细粒度布局 authoring 输入 | 可跨 Chunk；一 SiteId／一 WorldSite／一 SiteCore |
-| 精修块 | DetailPatch | 任意尺寸的 Surface Cell 级局部地形／环境覆盖 | 覆盖 Terrain Expansion 输出；不是 runtime map piece |
-| 世界合成器 | WorldComposer | 未来大陆尺度 macro terrain、overlay、Blueprint 与预览工具 | 未实现 |
-| 精细编辑器 | FineEditor | 未来 Surface Cell 精度的 Blueprint / Detail Patch 编辑工具 | 未实现 |
-| 最终连续世界面 | FinalContinuousSurface | composition bake 后供 runtime 唯一读取的普通户外地理 | 一大陆一张；不保留 authoring pieces |
+| 连续世界格 | SurfaceCell | 最小真实连续世界地形格：terrain、walkability、footprint、水、道路与精修单位 | 1×1；早期 local tile 的正式后继 |
+| 运行块 | RuntimeChunk | 当前 50×50 Surface Cells 的 Streaming／materialization 技术分区 | 当前 50×50 Surface Cells；**不是制作／authoring 单位**，也不是 Site／行政单位 |
+| 大地图编辑格 | WorldEditorCell | 10×10 Surface Cells 的宏观地理制作格；只属于 Authoring | runtime 不读取；Future（WorldComposer） |
+| 据点蓝图 | WorldSiteBlueprint | 任意尺寸 Surface Cell 布局的 WorldSite 精细 authoring 源 | 可跨任意多个 World Editor Cell／Runtime Chunk；Future |
+| 精修块 | DetailPatch | 任意尺寸（最小 1×1 Surface Cell）的局部地形／环境精修覆盖 | 覆盖 Terrain Expansion 输出；不是 runtime map piece；Future |
+| 世界合成器 | WorldComposer | 未来整张大陆粗地形／Blueprint／Patch／Composition 编辑器 | 未实现 |
+| 精细编辑器 | FineEditor | 未来 1×1 Surface Cell 精度精细编辑器 | 未实现 |
+| 最终连续世界面 | FinalContinuousSurface | Bake 后唯一 Outdoor Runtime 空间真源 | 一大陆一张；不保留 authoring pieces；Future |
 | 地形／细节确定性展开 | TerrainDetailDeterministicExpansion | 将制作人宏观意图稳定展开成局部地形与环境细节 | 不是 runtime Procedural World Generation |
 
 ## 建造系统 V1
@@ -149,12 +154,12 @@
 | 后台角色 | Background Character | 非 Party、非 FormalArmy 的真实角色 | 可后台旅行／战斗；WorldMap 不常驻可手操头像；组织类型本身不决定政治接管资格 |
 | 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
 | 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生战略查询结果**，不落盘为位置真源 | 普通户外不经 Site LocalMap mapping，也不 clamp 到 Site Footprint；见 2K／ADR-0031 |
-| 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
+| 连续 Hex 世界 | Continuous Hex World | HexWorld 一度被定义为唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | **Legacy Compatibility**：当前仍有正常 compatibility consumers（WorldMap Hex shell、`hexWorld` Content、`DerivedPresenceHex` 等），但 future product authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede；非必须 Unity 无缝开放世界 |
 | 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
-| 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**；不是当前 Runtime 类型，不等于已实现 Streaming；见 203 |
-| 连续室外世界表面 | Continuous Outdoor World Surface | 一个大陆内普通 Outdoor Geography 的真实连续物理世界 | **Future Architecture / NOT IMPLEMENTED**；Indoor / Cave 等独立 Space 不在其中；见 ADR-0031 |
+| 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**（仅指这个泛化概念本身）；它与已实现的 `Continuous Outdoor World Surface` 不是同一个东西；见 203 |
+| 连续室外世界表面 | Continuous Outdoor World Surface | 一个大陆内普通 Outdoor Geography 的真实连续物理世界 | **Current：runtime 已存在并承担正常 Outdoor 物理空间**（ADR-0031）；Indoor / Cave 等独立 Space 不在其中。**Future：新的 World Authoring／Composition／完整 de-Hex 与 Final Surface bake 尚未实现**（ADR-0036／ADR-0037）；不得再把「未实现」读成整个 Continuous Surface 不存在 |
 | 世界空间标识 | WorldSpaceId | 标识一个独立 Physical World Space（例如一块大陆或特殊独立世界） | 长期 Outdoor Physical Position = `WorldSpaceId + WorldPosition`；Future 架构 |
-| 表面区块 | Surface Chunk | 连续世界中制作、存储与 Runtime Streaming 的基本单位 | **不是 Gameplay Boundary**；不等于 Strategic Hex；大小、技术与迁移方式 Deferred；见 ADR-0031 |
+| 表面区块 | Surface Chunk（现称 RuntimeChunk） | 连续世界中 Runtime Streaming／materialization 的技术单位 | **不是 Gameplay Boundary，也不是地图制作／authoring 基本单位**；不等于 Strategic Hex；当前 50×50 Surface Cells，未来是否迁 100×100 待 profiling（Open）；见 ADR-0031 |
 | 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |
 | 地表出口触发区 | Surface Exit Trigger Zone | 可触发 Hex／Site 边缘过渡的固定几何 ∩ 运行时合法性 | Geometry 固定；Availability 可变；见 2K §5.8.7 |
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
@@ -162,7 +167,7 @@
 | 地点定位 | WorldSite Location Context | 全体 WorldSite（1-Hex／Multi）站内 = `AtSite(SiteId)`；WorldMap 投影 = **CanonicalWorldSurfacePosition**（SiteSpatialMapping 派生，不跳 Anchor） | ADR-0027 取代旧 Aggregated 固定 PresenceHex 投影 |
 | 连续世界目标 | PreciseWorldDestination / Continuous Destination | 有效地面点击经统一 WorldMap→Surface 投影得到的 `WorldPosition` 目标 | 复用既有位置真源；同 Hex 不同点击可为不同目标；不是第二套坐标 |
 | 世界存在 | World Presence | Character／Party／Army 在 HexWorld 上的存在状态 | Party／Background／Army 分层 |
-| 自动旅行 | Auto Travel | WorldMap 选 **Hex／WorldSite** 后进入 `MovementState.AutoTravel`；以 Continuous WorldPosition 真实移动（非传送） | Phase 2C 契约（Party）；见 2K §5.8 |
+| 自动旅行 | Auto Travel | **Current**：WorldMap 选 **Hex／WorldSite** 后进入 `MovementState.AutoTravel`，以 Continuous WorldPosition 真实移动（非传送）；WorldMap 仍有 Hex compatibility wrapper。**Future**：WorldMap 以 exact Surface WorldPosition／WorldSite destination 为目标，退出 Hex 选择 authority（ADR-0036） | Phase 2C 契约（Party）；见 2K §5.8 |
 | 手动介入 | Manual Intervention | 玩家实际参与现场遭遇或按有限关系／守备规则介入 | 不由 `HexDistance ≤1` 或 FormalArmy 类型授予；见 23 |
 | 队内自动接替 | Active Replacement | 当前 Active 失能时按 Party 固定顺序切换到下一名可控成员 | 不按战力排序，不等同势力继承 |
 | 势力继承控制 | Faction Succession | 仅 Party 全员真正死亡后，自动选择玩家势力存活可控且战力最高者 | 在继承者原位置继续；空势力终局延期；见 2K §4 |
@@ -268,7 +273,7 @@
 | 户外表面空间元数据 | Outdoor Surface Spatial Metric/Coverage | Core 持有的完整 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage | 只回答 Surface 存在、尺度与 membership；不包含河桥、地形或 walkability |
 | 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
 | 地点核心 | SiteCore | WorldSite 唯一行政核心；预设议政厅或玩家建立的势力旗 | 议政厅不可拆但可接管；另立旗产生新 Site |
-| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位 |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位。Level 1 = 150×150 Surface Cells，只表示理论行政控制范围，**不是** Runtime Chunk／World Editor Cell／WorldSite Blueprint 或地图 authoring 最小尺寸 |
 | 实际行政控制 | WorldSiteAdministrativeControl | 由 Surface 精确位置、当前理论范围与领土取得历史唯一解析出的管理 Site；政治 Owner 从该 Site 读取 | 扩张不得追溯夺取他方或同势力其他 Site 的既有控制；Hex/Region 只是投影 |
 | 领土取得记录 | TerritoryClaim | 某 Site 在某 Surface 上一次不可改写的矩形范围取得历史，按 AcquiredOrder 决定重叠位置优先级 | 不保存 Faction Owner；核心失效时保留但不参与解析，恢复后沿用原优先级 |
 | 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |

@@ -1,6 +1,16 @@
 # 109 · 区域／地点编辑器用法（RegionEditor）
 
-> 状态：**可用（WPF／Windows）**｜日期：2026-08-10  
+> ## ⚠️ LEGACY COMPATIBILITY（2026-09-15）
+>
+> - 仍用于旧 `worldRegion` / `locations` graph Content。
+> - Continuous Outdoor 新内容**不再采用**这套空间模型。
+> - 等 Outdoor `worldRegion`/`location` consumers 全部迁完后退休；**当前不立即物理删除**。
+> - 方向与生命周期见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
+
+> 状态：**可用（WPF／Windows）**｜日期：2026-08-10
+>
+> 生命周期：**Legacy Compatibility**（[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/RegionEditor/`  
 > 编辑：`worldRegion` + `locations[]`（**逻辑地点表**，不是格点画布）  
 > 格点设施地图请用：[112 MapEditor](112-map-editor-usage.md)  

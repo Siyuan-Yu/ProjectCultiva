@@ -139,11 +139,13 @@ PlayerParty
 
 ### 5.1 HexWorld = 世界本身
 
-Pure Hex **保留**。正式定义：
+Pure Hex **保留**（**Legacy Compatibility**）。正式定义：
 
-> **HexWorld 是整个游戏唯一的世界地理拓扑。**
+> **HexWorld 是整个游戏唯一的世界地理拓扑。**（历史／compatibility 定义；future product authority 见下方 2026-09-15 补注）
 
 2026-09-12 修订：此处“拓扑”指 Hex 的战略叠加／摘要职责。普通户外物理世界以 Continuous Outdoor World Surface 和连续 `WorldPosition` 为准；Hex 不规定真实河桥、Site 精确边界或战场裁切。
+
+**2026-09-15 补注（Legacy Compatibility）：** 本节定义属 legacy；WorldMap Hex shell、`hexWorld` Content、`DerivedPresenceHex` 等 current consumers 仍在运行，但 future 地图 authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede（工具链与旧 Content 迁移见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）。
 
 不再仅理解为 FormalArmy 战略棋盘。
 
@@ -151,7 +153,7 @@ Pure Hex **保留**。正式定义：
 
 | 概念 | 定义 |
 |------|------|
-| **HexWorld** | 唯一世界空间 / 世界拓扑 |
+| **HexWorld** | 唯一世界空间 / 世界拓扑（Legacy Compatibility；见 §5.1 补注） |
 | **WorldMap** | HexWorld 的缩略观察与旅行视图 |
 | **LocalMap** | 某个世界位置的 RPG 近景展开 |
 
@@ -205,7 +207,7 @@ PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTrave
 
 | 概念 | 唯一职责 |
 |------|----------|
-| **HexWorld** | **唯一**世界拓扑（邻接、距离、Footprint、路径图） |
+| **HexWorld** | **唯一**世界拓扑（邻接、距离、Footprint、路径图）（Legacy Compatibility；见 §5.1） |
 | **WorldMap** | HexWorld 的**总览／AutoTravel UI** |
 | **LocalMap** | 某一世界位置的 **RPG 近景** |
 

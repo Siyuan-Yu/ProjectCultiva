@@ -6,6 +6,8 @@
 
 > **2026-09-13 当前状态：** 最新建设范围与 SiteCore 生命周期见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。CW-03 已接通“正常建筑入口→Continuous 鼠标真实落点→材料与新 Site／唯一旗核心一次提交→表现／地图→存读档→拆旗失效”；复杂重叠扩张与资产管理接续仍后置。制作人尚未验收 CW-03。
 
+> **2026-09-15 Legacy 语境：** 本文的 Construction／SiteCore／旗核心规则仍是现行规则，但「LocalMap」作为普通 Outdoor WorldSite 的空间载体属 **Legacy Compatibility**（ADR-0036／ADR-0037）。普通 Outdoor 未来退出 `LocalPlaceSet → LocalMap` 路线；真 Interior／Cave／Dungeon 仍保留独立空间。
+
 ## 1. 边界
 
 Construction 是独立于 Inventory 的 RPG 建筑入口。建筑不是物品；Inventory 仅提供材料。V1 只开放默认解锁的“势力控制建筑”，但目录与服务按建筑列表设计。

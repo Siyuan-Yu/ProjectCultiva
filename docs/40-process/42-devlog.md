@@ -1,5 +1,60 @@
 # 开发日志
 
+## 2026-09-16 — MAP-01.5 WorldComposer / FineEditor Production Usability Hardening
+
+- **WorldComposer 性能收口**：移除 `DrawSurface()` 内逐帧 `CompositionEngine` 构造和逐 Surface Cell WPF Rectangle；默认 1900×850 世界改为后台生成 `1 cell = 1 pixel` 的 `WriteableBitmap`，WPF render 只做缓存位图缩放/平移及路径、选择、hover、grid 等轻量 overlay。连续修改使用 revision/cancellation，旧计算不能覆盖新 source。
+- **Dirty Region**：Base/Feature stroke 期间保留缓存预览和轻量修改区域提示，mouse-up 后只重算实际受影响大地图编辑格及外围一格；River/Road 控制点拖动只更新 vector overlay，mouse-up 后再重建 preview。普通 mouse move 不再无条件重绘；Brush/Pen/palette 改为复用 frozen 资源。
+- **Prepared Composition**：`CompositionEngine` 构造时把平滑 River/Road 按原距离语义栅格化为坐标 HashSet/Dictionary；`Resolve(x,y)` 改为 O(1) lookup，Preview 与 Bake 继续共用同一 resolver 语义。
+- **FineEditor 性能收口**：sparse override 建立 `(x,y)` dictionary，load/open 时重建、paint/add/remove 时同步、提交时按坐标稳定排序回写 source list；显示改为缓存 raster，grid 只画可见范围，render/paint 不再 `Cells.FirstOrDefault(...)`。
+- **全中文 UI**：两个 Editor 的按钮、工具、面板、字段、状态栏、弹窗、文件筛选、validation severity/message 与 BaseTerrain/TerrainFeature/RoadClass 显示全部中文化；exe、project、class、enum、JSON property/schema/file extension 以及序列化 enum value 保持英文稳定。
+- 本轮未开始 Legacy Import，未修改 Content、Gameplay、Runtime 或旧世界，未打开 Unity，未运行 Unity Test/Shared.Tests，未提交。状态：**Implementation Completed / Producer Acceptance Pending**。
+
+## 2026-09-16 — MAP-01 WorldComposer + FineEditor Production V1
+
+- `SurfaceAuthoring.Core` source schema 升至 v2：基础地形、Forest/Mountain 密度特征、河流/道路/Bridge/Ford、Blueprint/Detail Patch 相对链接、sparse fine overrides 与通用 Blueprint object placement；v1 loader 在内存升级，新保存写 v2。
+- `WorldComposer` 完成宏观笔刷、Fill/Eraser、连续 stroke、框选、路径控制点、道路/河流交叉口、Blueprint/Detail Patch 链接放置、精确位置/旋转、链接刷新、Problems、最终 composition 预览和 Bake。
+- `FineEditor` 完成 Blueprint/Detail Patch 的逐 Surface Cell sparse terrain 编辑，以及 Blueprint 对象的放置、拖动、旋转、复制、删除与精确 inspector。
+- Preview/Bake 共用确定性 `CompositionEngine`；`FinalContinuousSurfaceBake` 写 source hash、逐行 RLE 地形/特征/路径结果、crossing、Blueprint instance 与解析后的对象。实现与边界见 [242](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)。
+- 本轮没有修改 Content、Gameplay、Runtime、旧地图编辑器或 Unity 工程配置；未打开 Unity、未运行 Unity Test/Shared.Tests、未提交。状态：**Implementation Completed / Producer Acceptance Pending**。
+
+## 2026-09-15 — MAP-01A Continuous Surface Authoring Foundation
+
+- 新增独立 `SurfaceAuthoring.Core`、极小 `SurfaceAuthoring.EditorCommon`、`WorldComposer` 与 `FineEditor`；它们不引用旧 Shared、Hex、MapEditor 或 WorldGraphEditor model。
+- 新增 WorldComposition、WorldSiteBlueprint、DetailPatch Source schema V1 与 deterministic JSON / validation。Source 坐标锁定为 Runtime-aligned 左下原点、Y 向上；WPF 仅显示转换。Runtime Chunk 不进入 Source schema。
+- WorldComposer 与 FineEditor 当前只提供 document、空 grid、pan/zoom、Save/Open 与基础 history。未开始 MAP-01B；未迁移 Content 或青石荒村，未改 Gameplay/Runtime，未打开 Unity，未提交。
+
+## 2026-09-15 — Editor Toolchain Cleanup
+
+- 修复制作人验收发现的 Build All Windows 兼容与目录残留：`编译-所有编辑器.cmd` 改为 CRLF、ASCII 控制流、显式 `powershell.exe`、PowerShell/.NET preflight、成功与失败 `pause`；新增每次覆盖的 gitignored `build-all.log`。
+- `publish.ps1` 现无论成功或能够完成 rollback 的失败都会删除整个 `.build/`，因此日常只长期保留正式平铺 `Apps/`；rollback 本身失败时才保留 backup 以保护旧 Apps。
+- 实施 `ExternalTools/ContentAuthoring` 的唯一 Build All：新增 `编译-所有编辑器.cmd`，删除旧的等价 `发布-所有编辑器.cmd`；制作人日常不再直接运行 PowerShell。
+- 新增 `EditorManifest.json` 作为 10 个 Editor 的工程路径、生命周期、默认发布、替代方向和说明的单一真源。6 个 Active 与 4 个 Legacy Compatibility 均继续 `PublishByDefault=true`；启动器从 manifest 显示 Legacy Compatibility 提示，exe 缺失时只提示先运行唯一 Build All，不再隐式 publish。
+- `publish.ps1` 改为 `.build` staging → 全部 10 个 self-contained/single-file publish 成功 → 整体替换平铺 `Apps/`，切换异常尽力回滚；成功时清理本轮 staging/backup，正式路径统一为 `Apps/<EditorName>.exe`，也会清除 manifest 已退出 Editor 的 stale exe。
+- 更新 ContentAuthoring README 与 [240 工具链清理记录](240-editor-toolchain-cleanup-2026-09-15.md)。未开始 MAP-01，没有修改 Content、Gameplay、Unity Runtime、Scene 或 Prefab；未提交。
+
+## 2026-09-15 — Documentation Consistency Cleanup（仅文档）
+
+- 本轮只做 ADR-0036／ADR-0037 的一致性清理：不新增 ADR、不重设地图方向、不锁定仍 Open 的问题。范围仅 `docs/`，**未提交**。
+- **Glossary**（[03-glossary](../00-project/03-glossary.md)）：消除并行两套现行空间定义。`Continuous Outdoor World Surface` 改为 Current（runtime 已存在并承担正常 Outdoor 物理空间）／Future（新 World Authoring／Composition／完整 de-Hex 未实现）；`RuntimeChunk` 明确为 Streaming／materialization 技术单位、**不是制作／authoring 单位**；`Continuous Hex World` 标 **Legacy Compatibility**（仍有 compatibility consumers，future authority 由 ADR-0036 supersede）；`Auto Travel` 分 Current（WorldMap 仍选 Hex／WorldSite）／Future（exact Surface WorldPosition／WorldSite destination）；补 150×150 只表示 Level 1 SiteCore 理论行政控制范围。
+- **旧 Editor Banner**：[112 MapEditor](112-map-editor-usage.md)／[128 WorldGraphEditor](128-world-graph-editor-usage.md)／[109 RegionEditor](109-content-studio-region-editor-usage.md) 标 **LEGACY COMPATIBILITY**，[130 LocalPlaceEditor](130-local-place-editor-usage.md) 标 **LEGACY / TRANSITIONAL**，[113](113-world-graph-local-map-architecture-revision-v0.1.md) 加 Legacy 注记（只加标记，不改写历史）。要点：不再用于新 Outdoor 制作、Planned Replacement = WorldComposer／FineEditor、禁止新增 Hex/Q/R authority、不继承 `mapLayout` authority、Faction／Opening Diplomacy 须先迁出。Active（PackageBrowser／CharacterNpcEditor／ManualArtEditor／QuestEditor／EventEditor／WorkAreaEditor）**不被错误退休**；[106](106-content-authoring-editors-plan-v0.1.md) 去掉「五个独立程序／五个 exe」等过期数字，改按 Active／Legacy 分组。
+- **Current Status 对齐**：[41 roadmap](41-roadmap.md)、[00-overview](../00-project/00-overview.md)、[04-reading-guide](../00-project/04-reading-guide.md)、[20-systems README](../20-systems/README.md) 不再停在 CW-10 Pending：CW-10（237）／CW-10.5（239）为 Implementation Completed / Producer Acceptance Pending，[238](238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；明确 Editor Toolchain Cleanup 未实现、MAP-01 未启动、当前未使用 WorldComposer／FineEditor。238 追加 Subsequently Producer Accepted / Sealed（保留原「未运行 Unity」离线验证事实）；[239](239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 补正式状态头。
+- **Content Architecture**：[36](../30-tech/36-content-package-and-mod-architecture.md) 补 ADR-0037 cross-reference 与 §2.3 **Authoring Source ≠ Runtime Generated Content**（Authoring Source → baker；Runtime Loader 只读 Final Continuous Surface output）。ADR-0037 内「`Apps/` 实测 10 个 exe／154MB」等瞬时状态改为「审查时观察到」。
+- **保持 Open**：Road／River grid-spline-hybrid、Terrain Expansion variation、Blueprint rotation、Detail/POI generation、Chunk 是否迁 100、Editor manifest 格式、StrategicEditor 命名、FineEditor／WorkAreaEditor 整合程度。
+- **验证**：Markdown 相对链接检查（1557 项，5 项为既有历史断链，未改）、冲突术语／旧推荐语搜索、`git diff --check`（通过）、`git diff --name-only`（仅 `docs/`）。未编译、未运行 Unity／TestRunner／Content validation／Bake。**No commit created；changes remain uncommitted for producer review。**
+
+## 2026-09-15 — External Editor 工具链与旧地图 Content 迁移方向文档收口（仅文档）
+
+- 新增 [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)：锁定 External Content Authoring **工具链**与**旧地图 Content 迁移**方向（**Accepted Design Direction / Not Implemented**）。它补充 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 已锁定的地图方向，**不建立第二份地图 authority**。
+- **工具链方向**：正式只允许一个日常构建入口（`编译-所有编辑器.cmd`，现 `发布-所有编辑器.cmd` 为其当前形态）；正式发布目录锁定为 `ExternalTools/ContentAuthoring/Apps/` 且 **exe 平铺**（`Apps/<EditorName>.exe`，不再要求 `Apps/MapEditor/MapEditor.exe`）；Build All 必须 **staging → 全部成功 → 统一替换**（all-or-nothing），同名 Editor 永远覆盖同一 exe，禁止时间戳目录／`publish-2`／`release-new`，并按 manifest 清理 stale exe；`Apps/` 与 `.build/` 契约化为 generated + gitignored（`Apps/` 可整体删除后由唯一入口重建，`.build/` 只是 bin/obj/staging，不得作为启动位置或交付路径）。
+- **Editor manifest 与生命周期**：未来建立单一 Editor metadata source（EditorName／LifecycleStatus／PublishByDefault／Replacement／Notes），禁止 `publish.ps1`／sln／README／启动脚本各写一份漂移列表；生命周期正式分 **Active / Legacy Compatibility / Planned Replacement**，且 `Lifecycle=Legacy ≠ 不能运行`（仍在修兼容 Content 时就仍由 Build All 编译发布）。
+- **各 Editor 命运**：`PackageBrowser`／`CharacterNpcEditor`／`ManualArtEditor`／`QuestEditor`／`EventEditor` 长期 Active；`WorkAreaEditor` 规则编辑 Active（空间 placement 未来可能由 FineEditor 吸收，**当前不得删除**）；`WorldGraphEditor` = Legacy Compatibility（replacement `WorldComposer`，**禁止**原地把 HexDocument/HexViewport/Hex content model 改造成新 Composer；其中 `FactionManagerWindow`／`OpeningStrategicEditorWindow` 等战略 Content 功能必须在退休前迁出为 `StrategicEditor`，能力不得丢失）；`MapEditor` = Legacy Compatibility（replacement `FineEditor`，**禁止**原地把 `mapLayout` schema 扩成新地图超级格式）；`RegionEditor` = Legacy Compatibility（Outdoor worldRegion/location consumers 迁完后删除）；`LocalPlaceEditor` = 保留兼容并收窄为 Interior／Isolated Surface authoring（是否改名 `InteriorPlaceEditor` 为 Open）。旧 Editor **当前一律不物理删除**，顺序固定为 Replacement usable → migrate source Content → production path 不再需要 → 才删除。
+- **复用边界**：可参考／提取 pan／zoom／viewport／selection／undo 等**纯 UI interaction**，未来建议建 `Shared.EditorFramework`（只放 UI primitives，不放 Hex／mapLayout／gameplay 业务）；但新工具**禁止**依赖 `HexCoord`／`HexWorldEditorDocument`／Hex site footprint model 或旧 `mapLayout` document 作为正式数据模型。`Shared/HexWorld/*` 在 `WorldGraphEditor` 退休后可整体删除，且不得成为新工具隐藏依赖。
+- **Authoring Source ≠ Runtime Content**：地图 Content 正式分为「Authoring Source（Composer/FineEditor 编辑，只有 baker 消费）」与「Runtime Generated Content（bake 产生，runtime 只读）」，不得继续混在同一手改 JSON；authoring source 推荐移出 `Content/BaseGame/Data` 到独立 authoring root（现存先例 `ContentAuthoring/Worlds/w2a_surface_geography_source_v1.json` → bake → `Content/BaseGame/Data/Worlds/w2a_surface_geography_baked_v1.json`）；概念类型为 SurfaceWorldComposition／WorldSiteBlueprint／DetailPatch（schema 未锁）。`base:surface_main_wilderness_v1` 未来等价物是纯 bake runtime output，`siteRegions`／`sourceLocalMapId` 属 legacy compatibility 并最终退出。
+- **旧 Content 迁移分类**：`mapLayout` 分 A Outdoor WorldSite（→ Blueprint，迁完删除）／B 真 Interior-Cave-Dungeon（保留为独立 Interior Surface／Blueprint，不得因 Outdoor de-LocalMap 删除）／C fallback-stub-obsolete test maps（Final Surface 成立后删除）；`localPlaceSet` 普通 Outdoor 不再作空间 authority、内容拆入 WorkArea／Housing／Spawn／SiteCore／object placement／scenario anchor，Interior 另立局部 marker；`hexWorld`＋`openingHexWorldId`、`worldRegion`＋`openingWorldRegionId` 现在不能删、最终退出正常 authority；W2A 的道路／水／桥／solid「authoring → bake → 同时服务 runtime navigation 与 WorldMap」原则保留但临时文件格式不永久；业务 Content（人物／势力／任务等）**不重写**，只迁其中的 Hex／LocalMap／Location／WorldRegion 空间引用；WorkArea 规则与空间 placement 分离。
+- **迁移阶段（方向，未开工）**：`Editor Toolchain Cleanup → MAP-01 WorldComposer/FineEditor + 青石荒村 pilot → MAP-02 WorldMap Surface LOD → MAP-03 产品链退出 Hex/LocalMap authority → MAP-04 legacy content/editor 退休`；MAP-01 第一迁移样本选**青石荒村**（当前唯一有完整 authored 复杂度：68/77 placements、12 places、全部 18 条 opening anchors，且是 NPC 日程／人口反复人工复验的场景，可做 A/B 对照），pilot 期新旧 source 允许并存但**必须避免 runtime 双重 materialize**，确认新路径后才删旧源。
+- **本轮实测现状（写入 ADR，避免把方向误读为已实现）**：External Editor 为 10 个独立工程 + Shared + Shared.Tests（12 csproj），`publish.ps1` 硬编码 10 项 app 列表并输出多层 `Apps/<Editor>/<Editor>.exe`（实测 10 个 exe，均 2026-08-23、约 154MB），`.build/` 已积累 18 个子目录（含 `JobWorkAreaEditor`／`NpcEditor`／`RoleTemplateEditor`／`TmpValidateHuangcun`／`_check_cne` 等已删工程与临时目录残留），README 仍写「六个独立工程」且漏列 `WorldGraphEditor`（**属 ExternalTools，本轮不改，已记为 Toolchain Cleanup 交付项**）；Content 侧 37 mapLayout／35 localPlaceSet／2 hexWorld／1 worldRegion／2 outdoorSurface／1 outdoorSurfaceGeography，主 Surface 646 chunks 的 source **全部**是 `base:map_wilderness_plain_fallback`，6 siteRegions／77 sitePlacements／17 sitePlaces／18 openingEntityAnchors。
+- **范围纪律**：本轮**只改 `docs/`**，未改 `ExternalTools/ContentAuthoring` 任何代码／脚本／csproj、`Assets/Scripts`、Content JSON、Scene／Prefab、MapEditor 实现或 runtime；未开始 Editor Toolchain Cleanup／MAP-01／WorldComposer／FineEditor／Content migration；未运行 dotnet build／publish、Unity 编译或 MAP bake。同步更新 [41 路线图](41-roadmap.md)（新增未开工的工具链＋MAP 分期）、[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) §8（Authoring/Runtime 边界）、总览、通读指南、系统索引与 [ADR 索引](43-decisions/README.md)。**未提交（no commit created）。**
+
 ## 2026-09-15 — 连续世界制作与去 Hex 产品方向文档收口（仅文档）
 
 - 新增 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 与 [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)，分别记录已采纳但未实现的 Continuous Surface World Authoring、Final Surface、WorldMap LOD、World Composer/Fine Editor 与 de-Hex 方向。
@@ -4651,5 +4706,20 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - `WorldSiteStorageRoomBoard` 从 Content 与 runtime assets 重建，不保存库存；占领/失去/inactive 通过实时 Site Owner/Core 状态自动让同一 Public Stock 加入或退出网络。
 - 顶部 HUD 分别显示“战略物资/随身物资”，背包容量与 Inventory Panel 仍只反映真实背包；建筑、技能突破、敛息草及对应 have/need 已统一资源访问规则，任务和非 resource item 保持 bag-only。
 - 严格 Content 与定向离线测试 4/4 通过；离线编译 0 error、18 条既有 warning，`git diff --check` 通过；未运行 Unity、PlayMode、batchmode 或 Bake。
+
+## 2026-09-16 — MAP-01 Authoring 语义收口与 Legacy Migration Bridge
+
+- Continuous Surface Authoring source 升级到 schema v3：基础地形收口为 Plain/Mountain/Water，Feature 只保留可通行 Forest；旧 v1/v2 值在反序列化前迁移。River 最终解析为 Water，并增加显式 WorldObjectPlacement 与桥绑定。
+- WorldComposer 主工具收口为九项，选项按当前工具显示，并补齐中文动态操作提示；FineEditor 同步收口地形选项、森林水域约束与中文提示。
+- 新增“导入当前项目世界”：从真实 Main Surface 推导 1900×850 尺寸，导入 W2A 水域/道路/桥/阻挡物，生成 82×66 的黄村 Blueprint（72 个权威输入，71 个对象，zoneForest 转 432 个森林覆盖格）并写入 `Content/BaseGame/Authoring/ContinuousSurface/`。
+- 新增只写独立目录的 Runtime Compatibility Candidate 导出；保留原 surface metrics、chunk registry、未迁移 Site、siteRegions、sitePlaces 与 opening anchors，不修改 `Content/BaseGame/Data/**`，不做 Runtime cutover。
+- 仅执行 WPF/Core compile、schema upgrade、导入解析与两次候选哈希一致性检查；未启动 Unity，未运行 Unity Test 或完整测试套件。
+
+## 2026-09-16 — WorldComposer / FineEditor 启动可靠性修复
+
+- Windows 事件日志确认失败产物因缺少单文件 WPF 原生库而在 `HwndSubclass` 初始化时抛出 `DllNotFoundException`；根因是 Build All 后又用缺少 `IncludeNativeLibrariesForSelfExtract` 的增量 publish 覆盖了最终 exe。两项目现把完整单文件发布契约固化在 csproj，避免发布入口参数遗漏。
+- 两个 WinExe 改为显式、受保护地创建主窗口，并统一记录 Dispatcher、AppDomain 与未观察 Task 异常；fatal exception 写入 Apps 同目录 crash log并尽力显示中文提示。
+- 首次文档与预览初始化推迟到窗口 Loaded 后；WorldComposer preview 的 clone、region、后台计算与 WriteableBitmap 更新全部纳入异常边界，预览失败只降级为空画布和状态栏错误。
+- 未修改 Content、Gameplay 或 Legacy Migration；未启动 Unity，也未运行 Unity Test 或完整测试套件。
 
 ---

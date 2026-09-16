@@ -1,6 +1,16 @@
 # 130 · 场景地点登记（LocalPlaceEditor）
 
-> 状态：**可用（WPF／Windows）**｜日期：2026-08-16  
+> ## ⚠️ LEGACY / TRANSITIONAL（2026-09-15）
+>
+> - 普通 Outdoor WorldSite 未来退出 `LocalPlaceSet`。
+> - 当前为兼容旧 Content 保留。
+> - 未来可能收窄为 Interior / Cave / Dungeon authoring（是否改名 `InteriorPlaceEditor` 为 Open）。
+> - **不再推荐用于创建新的普通 Outdoor Site**；新 Outdoor 制作方向见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
+
+> 状态：**可用（WPF／Windows）**｜日期：2026-08-16
+>
+> 生命周期：**Legacy / Transitional**（[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/LocalPlaceEditor/`  
 > 编辑：`type = localPlaceSet`  
 > 相关：[112 MapEditor](112-map-editor-usage.md)｜[128 WorldGraph](128-world-graph-editor-usage.md)｜[109 RegionEditor（旧）](109-content-studio-region-editor-usage.md)
@@ -30,4 +40,4 @@
 4. 「+ 隐藏洞口模板」可预填一行
 5. **保存到磁盘**
 
-旧 `RegionEditor` 仍编 `worldRegion`（青石等遗留）；新场景用本工具。
+旧 `RegionEditor` 仍编 `worldRegion`（青石等遗留）。本工具当前可继续用于**兼容既有 Content** 以及 Interior / Cave / Dungeon 类局部地点登记；但**新的普通 Outdoor WorldSite 不再走 LocalPlaceSet → LocalMap 这条路线**。

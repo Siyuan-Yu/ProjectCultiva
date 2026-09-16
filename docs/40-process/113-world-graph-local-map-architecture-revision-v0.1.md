@@ -1,5 +1,10 @@
 # 113 · World Graph + Local Map 架构修订 v0.1
 
+> ## ⚠️ LEGACY COMPATIBILITY（2026-09-15，仅加注记，不改写历史）
+>
+> 本文描述的「宏观世界是节点图 + 实体玩法只发生在按需加载 LocalMap」空间模型，已被 [ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)（Continuous Outdoor）与地图方向 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede 为普通 Outdoor 的 future authority。
+> 本文保留为**旧 `worldGraph`／`worldRegion`／LocalMap Content 的历史与兼容说明**；**不再是新 Outdoor 制作的依据**。工具链生命周期与迁移分期见 [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)；相关编辑器用法见 [128](128-world-graph-editor-usage.md)（Legacy Compatibility）。
+
 > 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做／G 战略接战见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)**｜日期：2026-08-17；**2026-08-22 正式 Army 目标见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)**  
 > 一句话：**宏观世界是 Civilization／RimWorld 式节点图；实体玩法只发生在按需加载的 LocalMap 上。**  
 > **正式战略单位目标模型（2026-08-22）：** Character 不能直接跨 Node；必须先进入 Army（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）。当前已实现的 `PartyWorldPresence` 为 **Prototype**；是否被 ArmyPresence 取代、复用或桥接 — **本轮不决定**。  

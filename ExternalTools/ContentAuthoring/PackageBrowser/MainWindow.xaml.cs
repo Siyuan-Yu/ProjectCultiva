@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using ContentAuthoring.Shared;
 using Microsoft.Win32;

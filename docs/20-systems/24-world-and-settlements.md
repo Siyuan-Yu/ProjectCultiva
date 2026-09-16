@@ -5,9 +5,9 @@
 > 状态：Continuous Outdoor 与 SiteCore 最终设计已确认；实现部分存在、迁移／核查及制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
-> **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**
-> 下文 §2「Region = 较大连续区域」已被 113 取代：宏观为 WorldNode＋WorldRoute，实体玩法只在按需 LocalMap。历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。
-> **⚠️ 2026-08-24 Pure Hex supersede：** 战略空间真源 = **HexWorld + WorldSite.FootprintHexes**（ADR-0025、155）。Multi-Hex Site、TerritoryRegion、Fixed/Dynamic WorldSite 规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**；Node／Route 不再作 Territory／Site 空间真源。
+> **世界结构（历史实现说明，现为 Legacy Compatibility）：** [113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) 描述的节／路由／按需 LocalMap 模型已被 [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)与 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede；113 页已加 Legacy 注记，不再是新 Outdoor 制作依据。
+> 下文 §2「Region = 较大连续区域」已被 113 取代：历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。
+> **⚠️ 2026-08-24 Pure Hex supersede（Legacy Compatibility）：** 战略空间曾以 **HexWorld + WorldSite.FootprintHexes**（ADR-0025、155）为真源；Multi-Hex Site、TerritoryRegion、Fixed/Dynamic WorldSite 规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**。**当前仍有 Hex compatibility consumers，但 future product authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede。**
 > **⚠️ 2026-09-12 当前目标：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 的 Continuous Outdoor 已从 Future 入口提升为正式目标；SiteCore 与范围见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。下方旧 World／Region／LocalMap 内容仅作历史实现说明。
 
 ## 1. 这个系统解决什么问题

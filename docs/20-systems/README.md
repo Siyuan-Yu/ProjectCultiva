@@ -1,12 +1,13 @@
 # 系统设计索引
 
 > **MAP Direction（2026-09-15）：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 与 [2N](2N-continuous-surface-world-authoring-and-composition.md) 已锁定 Continuous Surface World Composer / Fine Editor / WorldMap LOD / de-Hex 产品方向；**MAP-01 尚未开始，未改运行时。**
+> **Editor Toolchain / Legacy Content Direction（2026-09-15）：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 已锁定 External Editor 工具链／生命周期、Authoring Source ≠ Runtime Content 边界与旧地图 Content 迁移分期；**Accepted Design Direction / Not Implemented**，未改任何 Editor 或 Content。
 
-> 最后更新：2026-09-12（Continuous World 最终设计文档已对齐；实现与制作人验收仍待完成）
+> 最后更新：2026-09-15（ADR-0036／ADR-0037 生命周期与术语一致性清理；实现与制作人验收按各页状态）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：2026-09-12 最终设计已确认并完成文档对齐；实现部分存在、其余待迁移／核查，制作人验收待完成。** 当前状态与依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`；[163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) 仅为旧阶段路线。
+> **当前阶段：CW-04～CW-09.5 与 [238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；[CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)／[CW-10.5](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending。地图方向已锁定、MAP-01 未开始；旧 Editor 生命周期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。** 当前状态与依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`；[163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) 仅为旧阶段路线。
 
 ## 规则
 

@@ -1,0 +1,1 @@
+<Window x:Class="WorldComposer.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="WorldComposer · 大世界拼装编辑器" Width="1200" Height="780" WindowStartupLocation="CenterScreen" />

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using ContentAuthoring.Shared;

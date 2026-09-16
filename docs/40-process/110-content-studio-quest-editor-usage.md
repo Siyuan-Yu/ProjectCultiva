@@ -1,6 +1,9 @@
 # 110 · 任务编辑器用法（QuestEditor）
 
-> 状态：**可用（WPF v2 · 可视化条件）**｜日期：2026-08-14  
+> 状态：**可用（WPF v2 · 可视化条件）**｜日期：2026-08-14
+>
+> 生命周期：**Active**（长期正式工具；[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/QuestEditor/`  
 > 编辑：`type = quest`  
 > 计划：[106](106-content-authoring-editors-plan-v0.1.md)

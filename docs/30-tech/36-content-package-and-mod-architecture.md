@@ -2,6 +2,8 @@
 
 > **2026-09-15 Future Direction / Not Implemented：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 规定 future World Composer / Fine Editor 的 authoring input 经 deterministic composition bake 为 Final Continuous Surface，再作为 ContentPackage 的运行时地理输入。本页不据此定义或实现 schema、loader、Mod patch、编辑器或迁移；现有 Content JSON 与 LocalMap/Hex compatibility 保持现状。
 
+> **2026-09-15 Editor 工具链／旧地图 Content 迁移方向：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 补充 **Authoring Source ≠ Runtime Generated Content** 契约（见 §2.3）：`WorldComposition`／`WorldSiteBlueprint`／`DetailPatch` 是 Authoring Source，由 bake 产出的 Final Continuous Surface 才是 Runtime Content。**不要让 Authoring JSON 自动成为正常 runtime DefinitionRegistry authority。**
+
 > 状态：**已冻结（v0.1 形状；对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
 > **Core M1 只建基础结构，不做 Mods/ 文件夹加载（ADR-0022）。**
 
@@ -47,6 +49,19 @@ Content/
 - `Art/`
 - `Audio/`
 - `Maps/`
+
+### 2.3 地图 Content：Authoring Source ≠ Runtime Generated Content
+
+> 真源：[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §10～§13（契约）；地图比例与合成层见 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。**Future Direction / Not Implemented。**
+
+| 类别 | 谁编辑 | 谁消费 | 内容（概念名，schema 未锁） |
+|---|---|---|---|
+| **Authoring Source** | WorldComposer／FineEditor | 只有 baker | `WorldComposition`／`WorldSiteBlueprint`／`DetailPatch` |
+| **Runtime Generated Content** | Bake 产生 | game runtime loader（只读） | Final Continuous Surface、Runtime Chunk、final terrain／geography、object placements、WorldSite 位置与 content、navigation input、WorldMap LOD／cache input |
+
+- **Authoring Source ≠ Runtime Content**：地图 authoring 源**不应**继续直接塞进 `Content/BaseGame/Data` 并被 runtime loader 当作正式 gameplay definition 加载；推荐独立 authoring root（现存先例：`ContentAuthoring/Worlds/w2a_surface_geography_source_v1.json` → bake → `Content/BaseGame/Data/Worlds/w2a_surface_geography_baked_v1.json`）。
+- **Runtime Loader 只读 Final Continuous Surface runtime output**；它不需要知道某个位置来自哪个 Blueprint／Detail Patch／旧 LocalMap。
+- 现有 `mapLayout`／`localPlaceSet`／`hexWorld`／`worldRegion` 与 W2A／fallback 的逐个迁移分类见 ADR-0037；本页不定义 schema、loader、Mod patch 或迁移。
 
 ## 3. DefinitionId 命名空间
 

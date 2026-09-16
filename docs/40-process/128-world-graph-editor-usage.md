@@ -1,6 +1,20 @@
 # 128 · WorldGraph 编辑器用法（WorldGraphEditor）
 
-> 状态：**可用（WPF／可视化节点）**｜日期：2026-08-16  
+> ## ⚠️ LEGACY COMPATIBILITY（2026-09-15）
+>
+> **本工具不再用于制作新的 Outdoor World。**
+>
+> - 仍用于修旧 Hex Content。
+> - 不再用于制作新的 Outdoor World。
+> - **Planned Replacement** = `WorldComposer`。
+> - 新 MAP authoring **禁止**新增 Hex／Q／R authority；禁止把本工具的 `HexDocument`／`HexViewport`／Hex content model 原地改造成新 `WorldComposer`。
+> - 其中的 Faction／Opening Diplomacy 功能（`FactionManagerWindow`／`OpeningStrategicEditorWindow`）**必须先在未来迁出**（推荐 `StrategicEditor`）后，本工具才能完整退休；不得因为 WorldGraph 退休而丢失势力／开局外交 authoring 能力。
+> - 方向与分期：[ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)／[2N map authoring direction](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。
+
+> 状态：**可用（WPF／可视化节点）**｜日期：2026-08-16
+>
+> 生命周期：**Legacy Compatibility**（[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/WorldGraphEditor/`  
 > 编辑：`type = worldGraph`（节点＋道路）  
 > 真源：[113](113-world-graph-local-map-architecture-revision-v0.1.md)

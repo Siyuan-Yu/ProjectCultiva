@@ -1,6 +1,9 @@
 # 133 · 功法／斗技轻量编辑器＋非正式内容清理（2026-08-16）
 
-> 状态：**已落地**｜日期：2026-08-16  
+> 状态：**已落地**｜日期：2026-08-16
+>
+> 生命周期：**Active**（长期正式工具；[ADR-0037 §6](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)）
+>
 > 工程：`ExternalTools/ContentAuthoring/ManualArtEditor/`｜启动：`启动-ManualArtEditor.cmd`
 
 ---

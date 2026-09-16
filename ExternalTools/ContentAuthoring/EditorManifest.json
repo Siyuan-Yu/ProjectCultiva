@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "editors": [
+    { "EditorName": "PackageBrowser", "ProjectPath": "PackageBrowser/PackageBrowser.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "包总览与校验。" },
+    { "EditorName": "CharacterNpcEditor", "ProjectPath": "CharacterNpcEditor/CharacterNpcEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "人物与 NPC 规则。" },
+    { "EditorName": "ManualArtEditor", "ProjectPath": "ManualArtEditor/ManualArtEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "功法与斗技。" },
+    { "EditorName": "QuestEditor", "ProjectPath": "QuestEditor/QuestEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "任务。" },
+    { "EditorName": "EventEditor", "ProjectPath": "EventEditor/EventEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "事件。" },
+    { "EditorName": "WorkAreaEditor", "ProjectPath": "WorkAreaEditor/WorkAreaEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "工区规则、容量与权限；空间放置未来另行迁移。" },
+    { "EditorName": "WorldComposer", "ProjectPath": "WorldComposer/WorldComposer.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "MAP-01 Production V1：Continuous Surface composition、路径、链接放置、预览与 Bake。" },
+    { "EditorName": "FineEditor", "ProjectPath": "FineEditor/FineEditor.csproj", "LifecycleStatus": "Active", "PublishByDefault": true, "Replacement": null, "Notes": "MAP-01 Production V1：WorldSite Blueprint / Detail Patch 逐 Surface Cell 精修与对象放置。" },
+    { "EditorName": "LocalPlaceEditor", "ProjectPath": "LocalPlaceEditor/LocalPlaceEditor.csproj", "LifecycleStatus": "Legacy Compatibility", "PublishByDefault": true, "Replacement": null, "Notes": "仅用于维护旧 LocalPlace Content；未来职责是否收窄为 Interior authoring 尚未锁定。" },
+    { "EditorName": "MapEditor", "ProjectPath": "MapEditor/MapEditor.csproj", "LifecycleStatus": "Legacy Compatibility", "PublishByDefault": true, "Replacement": "FineEditor", "Notes": "仅用于维护旧 mapLayout、LocalMap 与 Outdoor compatibility Content。" },
+    { "EditorName": "RegionEditor", "ProjectPath": "RegionEditor/RegionEditor.csproj", "LifecycleStatus": "Legacy Compatibility", "PublishByDefault": true, "Replacement": null, "Notes": "仅用于维护旧 worldRegion 与 navigation Content。" },
+    { "EditorName": "WorldGraphEditor", "ProjectPath": "WorldGraphEditor/WorldGraphEditor.csproj", "LifecycleStatus": "Legacy Compatibility", "PublishByDefault": true, "Replacement": "WorldComposer", "Notes": "仅用于维护旧 Hex 与 WorldGraph Content。" }
+  ]
+}

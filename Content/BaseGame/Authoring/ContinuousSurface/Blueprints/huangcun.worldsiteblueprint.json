@@ -1,0 +1,5572 @@
+{
+  "schemaVersion": 3,
+  "blueprintId": "base:site_huangcun",
+  "displayName": "黄村",
+  "widthCells": 82,
+  "heightCells": 66,
+  "fineTerrainSources": [
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 2,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 3,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 4,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 5,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 6,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 7,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 8,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 9,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 10,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 11,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 12,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 13,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 14,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 15,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 16,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 17,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 18,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 19,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 20,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 21,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 22,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 23,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 24,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 25,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 26,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 27,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 28,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 29,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 30,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 31,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 32,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 33,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 34,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 35,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 36,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 2,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 3,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 4,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 5,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 6,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 7,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 8,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 9,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 10,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 11,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 12,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    },
+    {
+      "surfaceCellX": 13,
+      "surfaceCellY": 37,
+      "baseTerrainOverride": null,
+      "featureOverride": "Forest",
+      "featureDensity": 0.85,
+      "compatibilityGlyph": null
+    }
+  ],
+  "objectPlacements": [
+    {
+      "placementId": "base:site_huangcun:block_supervisor_mansion",
+      "kindId": "controlCore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 53,
+      "widthCells": 8,
+      "heightCells": 11,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "boundLocationId": "base:loc_ref_road_hub",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "议政厅（城镇控制核心）",
+        "legacyWorldHeight": "0.28",
+        "legacyWorldWidth": "0.17321",
+        "legacyWorldX": "6.01888",
+        "legacyWorldY": "11.075",
+        "localPlaceKind": "Village",
+        "localPlaceName": "议政厅",
+        "localPlaceTags": "[\"hub\",\"patrol\",\"controlCore\",\"defense\"]",
+        "referenceMapPlacementId": "block_supervisor_mansion",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "8",
+        "sourceCellsW": "8",
+        "sourceGridX": "78",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_cave_170829991",
+      "kindId": "cave",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 12,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_cave",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "废弃洞府入口（灵泉东·勘查显形）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "6.45189",
+        "legacyWorldY": "9.92",
+        "localPlaceKind": "Opportunity",
+        "localPlaceName": "废弃洞府",
+        "localPlaceTags": "[\"cave\",\"opportunity\",\"entrance\"]",
+        "referenceMapPlacementId": "place_cave_170829991",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "4",
+        "sourceGridX": "98",
+        "sourceGridY": "12"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_cushion_234726740",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 64,
+      "localSurfaceY": 38,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "蒲团 1×1（可修炼）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "6.10548",
+        "legacyWorldY": "10.655",
+        "referenceMapPlacementId": "place_cushion_234726740",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "1",
+        "sourceGridX": "82",
+        "sourceGridY": "33"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_cushion_234732596",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 38,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "蒲团 1×1（可修炼）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "6.17043",
+        "legacyWorldY": "10.655",
+        "referenceMapPlacementId": "place_cushion_234732596",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "1",
+        "sourceGridX": "85",
+        "sourceGridY": "33"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_cushion_234734971",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 64,
+      "localSurfaceY": 36,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "蒲团 1×1（可修炼）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "6.10548",
+        "legacyWorldY": "10.585",
+        "referenceMapPlacementId": "place_cushion_234734971",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "1",
+        "sourceGridX": "82",
+        "sourceGridY": "31"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_cushion_234737587",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 36,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "蒲团 1×1（可修炼）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "6.17043",
+        "legacyWorldY": "10.585",
+        "referenceMapPlacementId": "place_cushion_234737587",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "1",
+        "sourceGridX": "85",
+        "sourceGridY": "31"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_234917059",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 23,
+      "localSurfaceY": 22,
+      "widthCells": 5,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "4.97965",
+        "legacyWorldY": "10.2",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_234917059",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "30",
+        "sourceGridY": "20"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_235504495",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 23,
+      "localSurfaceY": 14,
+      "widthCells": 5,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "4.97965",
+        "legacyWorldY": "9.99",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_235504495",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "30",
+        "sourceGridY": "14"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_235506687",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 30,
+      "localSurfaceY": 22,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "5.15285",
+        "legacyWorldY": "10.2",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_235506687",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "38",
+        "sourceGridY": "20"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_235509329",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 30,
+      "localSurfaceY": 14,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "5.15285",
+        "legacyWorldY": "9.99",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_235509329",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "38",
+        "sourceGridY": "14"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_235512636",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 14,
+      "widthCells": 5,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "5.32606",
+        "legacyWorldY": "9.99",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_235512636",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "46",
+        "sourceGridY": "14"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_grainField_235514826",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 22,
+      "widthCells": 5,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_labor_yard",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "农田区（可耕作）",
+        "legacyWorldHeight": "0.14",
+        "legacyWorldWidth": "0.10825",
+        "legacyWorldX": "5.32606",
+        "legacyWorldY": "10.2",
+        "localPlaceKind": "Settlement",
+        "localPlaceName": "农田杂役区",
+        "localPlaceTags": "[\"farm\",\"grain\",\"work\"]",
+        "referenceMapPlacementId": "place_grainField_235514826",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "4",
+        "sourceCellsW": "5",
+        "sourceGridX": "46",
+        "sourceGridY": "20"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_herbField_234905155",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 47,
+      "localSurfaceY": 21,
+      "widthCells": 6,
+      "heightCells": 7,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_herb_field",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "药田区（可耕作）",
+        "legacyWorldHeight": "0.175",
+        "legacyWorldWidth": "0.15155",
+        "legacyWorldX": "5.62917",
+        "legacyWorldY": "10.165",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "药田",
+        "localPlaceTags": "[\"herb\",\"farm\",\"work\"]",
+        "referenceMapPlacementId": "place_herbField_234905155",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "5",
+        "sourceCellsW": "7",
+        "sourceGridX": "60",
+        "sourceGridY": "19"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_herbField_235721557",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 47,
+      "localSurfaceY": 12,
+      "widthCells": 6,
+      "heightCells": 7,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_herb_field",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "药田区（可耕作）",
+        "legacyWorldHeight": "0.175",
+        "legacyWorldWidth": "0.15155",
+        "legacyWorldX": "5.62917",
+        "legacyWorldY": "9.92",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "药田",
+        "localPlaceTags": "[\"herb\",\"farm\",\"work\"]",
+        "referenceMapPlacementId": "place_herbField_235721557",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "5",
+        "sourceCellsW": "7",
+        "sourceGridX": "60",
+        "sourceGridY": "12"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_herbField_235723679",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 12,
+      "widthCells": 6,
+      "heightCells": 7,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_herb_field",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "药田区（可耕作）",
+        "legacyWorldHeight": "0.175",
+        "legacyWorldWidth": "0.15155",
+        "legacyWorldX": "5.82402",
+        "legacyWorldY": "9.92",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "药田",
+        "localPlaceTags": "[\"herb\",\"farm\",\"work\"]",
+        "referenceMapPlacementId": "place_herbField_235723679",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "5",
+        "sourceCellsW": "7",
+        "sourceGridX": "69",
+        "sourceGridY": "12"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_herbField_235725691",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 21,
+      "widthCells": 6,
+      "heightCells": 7,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_herb_field",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "药田区（可耕作）",
+        "legacyWorldHeight": "0.175",
+        "legacyWorldWidth": "0.15155",
+        "legacyWorldX": "5.82402",
+        "legacyWorldY": "10.165",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "药田",
+        "localPlaceTags": "[\"herb\",\"farm\",\"work\"]",
+        "referenceMapPlacementId": "place_herbField_235725691",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "5",
+        "sourceCellsW": "7",
+        "sourceGridX": "69",
+        "sourceGridY": "19"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233945981",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 47,
+      "widthCells": 2,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.56828",
+        "legacyWorldY": "10.9",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233945981",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "11",
+        "sourceGridY": "40"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233947755",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 47,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "10.9",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233947755",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "8",
+        "sourceGridY": "40"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233947996",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 47,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "10.9",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233947996",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "40"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233948259",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 51,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "11.005",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233948259",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233954089",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 51,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "11.005",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233954089",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "8",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_233955496",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 51,
+      "widthCells": 2,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.56828",
+        "legacyWorldY": "11.005",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_233955496",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "11",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_234005826",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 54,
+      "widthCells": 2,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.56828",
+        "legacyWorldY": "11.11",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_234005826",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "11",
+        "sourceGridY": "46"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_234007406",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 54,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "11.11",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_234007406",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "8",
+        "sourceGridY": "46"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_ore_234009233",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 54,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿石 2×2（可采）",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "11.11",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_ore_234009233",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "46"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_rally_party",
+      "kindId": "rallyPoint",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 33,
+      "localSurfaceY": 39,
+      "widthCells": 2,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_party_rally",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "集合点·测试",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "5.23945",
+        "legacyWorldY": "10.69",
+        "localPlaceKind": "Village",
+        "localPlaceName": "集合点",
+        "localPlaceTags": "[\"rally\",\"hub\"]",
+        "referenceMapPlacementId": "place_rally_party",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "42",
+        "sourceGridY": "34"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeL_234950832",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 12,
+      "widthCells": 4,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "大树 3×3",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "9.92",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeL_234950832",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "8",
+        "sourceGridY": "12"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeL_234953475",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 6,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "7",
+        "label": "大树 3×3",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "9.745",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeL_234953475",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "8",
+        "sourceGridY": "7"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeL_234956228",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 18,
+      "widthCells": 4,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "大树 3×3",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "10.095",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeL_234956228",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "8",
+        "sourceGridY": "17"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeL_234957915",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 24,
+      "widthCells": 4,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "大树 3×3",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "10.27",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeL_234957915",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "8",
+        "sourceGridY": "22"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeL_235000804",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 6,
+      "localSurfaceY": 31,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "大树 3×3",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "4.50333",
+        "legacyWorldY": "10.445",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeL_235000804",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "8",
+        "sourceGridY": "27"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234926838",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 33,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "10.515",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234926838",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "29"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234930188",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 29,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "10.41",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234930188",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "26"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234932210",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 26,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "10.305",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234932210",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "23"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234934628",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 22,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "10.2",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234934628",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "20"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234936440",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 18,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "10.095",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234936440",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "17"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234942819",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 14,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "9.99",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234942819",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "14"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234944567",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 11,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "9.885",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234944567",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "11"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234945951",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 7,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "7",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "9.78",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234945951",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "8"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_234947144",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 3,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "7",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.58993",
+        "legacyWorldY": "9.675",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_234947144",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "12",
+        "sourceGridY": "5"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235004947",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 33,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "10.515",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235004947",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "29"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235007367",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 28,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "10.375",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235007367",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "25"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235009181",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 24,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "10.27",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235009181",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "22"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235011240",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 19,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "10.13",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235011240",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "18"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235013384",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 14,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "9.99",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235013384",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "14"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235018907",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 9,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "9.85",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235018907",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "10"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_treeM_235020365",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 4,
+      "localSurfaceY": 4,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_forest",
+        "chunkX": "4",
+        "chunkY": "7",
+        "label": "中树 2×2",
+        "legacyWorldHeight": "0.07",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "4.43838",
+        "legacyWorldY": "9.71",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "树林",
+        "localPlaceTags": "[\"wild\",\"patrol\",\"work\"]",
+        "referenceMapPlacementId": "place_treeM_235020365",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "5",
+        "sourceGridY": "6"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_040107346",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 51,
+      "widthCells": 2,
+      "heightCells": 13,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.35",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.39101",
+        "legacyWorldY": "11.005",
+        "referenceMapPlacementId": "place_wall_040107346",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "10",
+        "sourceCellsW": "1",
+        "sourceGridX": "49",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_040115676",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 39,
+      "localSurfaceY": 62,
+      "widthCells": 8,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "9",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.19486",
+        "legacyWorldX": "5.41266",
+        "legacyWorldY": "11.32",
+        "referenceMapPlacementId": "place_wall_040115676",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "9",
+        "sourceGridX": "50",
+        "sourceGridY": "52"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_040120440",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 51,
+      "widthCells": 2,
+      "heightCells": 13,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.35",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.60751",
+        "legacyWorldY": "11.005",
+        "referenceMapPlacementId": "place_wall_040120440",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "10",
+        "sourceCellsW": "1",
+        "sourceGridX": "59",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_040130496",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 39,
+      "localSurfaceY": 51,
+      "widthCells": 4,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "5.41266",
+        "legacyWorldY": "11.005",
+        "referenceMapPlacementId": "place_wall_040130496",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "4",
+        "sourceGridX": "50",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_040134006",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 43,
+      "localSurfaceY": 51,
+      "widthCells": 4,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "5.52091",
+        "legacyWorldY": "11.005",
+        "referenceMapPlacementId": "place_wall_040134006",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "4",
+        "sourceGridX": "55",
+        "sourceGridY": "43"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_043709244",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 55,
+      "localSurfaceY": 61,
+      "widthCells": 4,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "9",
+        "label": "墙 1×n（默认挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "5.86732",
+        "legacyWorldY": "11.285",
+        "referenceMapPlacementId": "place_wall_043709244",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "4",
+        "sourceGridX": "71",
+        "sourceGridY": "51"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_043713463",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 53,
+      "widthCells": 2,
+      "heightCells": 10,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "墙 1×n（默认挡路）",
+        "legacyWorldHeight": "0.245",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.84567",
+        "legacyWorldY": "11.075",
+        "referenceMapPlacementId": "place_wall_043713463",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "7",
+        "sourceCellsW": "1",
+        "sourceGridX": "70",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_043726359",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 55,
+      "localSurfaceY": 53,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "墙 1×n（默认挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.86732",
+        "legacyWorldY": "11.075",
+        "referenceMapPlacementId": "place_wall_043726359",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "1",
+        "sourceGridX": "71",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_043732861",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 53,
+      "widthCells": 2,
+      "heightCells": 10,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "墙 1×n（默认挡路）",
+        "legacyWorldHeight": "0.245",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.95392",
+        "legacyWorldY": "11.075",
+        "referenceMapPlacementId": "place_wall_043732861",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "7",
+        "sourceCellsW": "1",
+        "sourceGridX": "75",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_043742321",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 57,
+      "localSurfaceY": 53,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "墙 1×n（默认挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0433",
+        "legacyWorldX": "5.91062",
+        "legacyWorldY": "11.075",
+        "referenceMapPlacementId": "place_wall_043742321",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "2",
+        "sourceGridX": "73",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_235031705",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 57,
+      "widthCells": 8,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.19486",
+        "legacyWorldX": "4.87139",
+        "legacyWorldY": "11.18",
+        "referenceMapPlacementId": "place_wall_235031705",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "9",
+        "sourceGridX": "25",
+        "sourceGridY": "48"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_235035500",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 46,
+      "widthCells": 1,
+      "heightCells": 13,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.35",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "4.84974",
+        "legacyWorldY": "10.865",
+        "referenceMapPlacementId": "place_wall_235035500",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "10",
+        "sourceCellsW": "1",
+        "sourceGridX": "24",
+        "sourceGridY": "39"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_235041729",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 46,
+      "widthCells": 5,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "4.87139",
+        "legacyWorldY": "10.865",
+        "referenceMapPlacementId": "place_wall_235041729",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "4",
+        "sourceGridX": "25",
+        "sourceGridY": "39"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_235044853",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 46,
+      "widthCells": 2,
+      "heightCells": 13,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.35",
+        "legacyWorldWidth": "0.02165",
+        "legacyWorldX": "5.06625",
+        "legacyWorldY": "10.865",
+        "referenceMapPlacementId": "place_wall_235044853",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "10",
+        "sourceCellsW": "1",
+        "sourceGridX": "34",
+        "sourceGridY": "39"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_wall_235057933",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 23,
+      "localSurfaceY": 46,
+      "widthCells": 4,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "墙 1×n（挡路）",
+        "legacyWorldHeight": "0.035",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "4.97965",
+        "legacyWorldY": "10.865",
+        "referenceMapPlacementId": "place_wall_235057933",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "1",
+        "sourceCellsW": "4",
+        "sourceGridX": "30",
+        "sourceGridY": "39"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_zoneHousing_043644596",
+      "kindId": "zoneHousing",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 47,
+      "widthCells": 8,
+      "heightCells": 11,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_houses",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "凡人住房区",
+        "legacyWorldHeight": "0.28",
+        "legacyWorldWidth": "0.19486",
+        "legacyWorldX": "4.87139",
+        "legacyWorldY": "10.9",
+        "localPlaceKind": "Village",
+        "localPlaceName": "凡人住房区",
+        "localPlaceTags": "[\"home\",\"rest\",\"mortal\"]",
+        "referenceMapPlacementId": "place_zoneHousing_043644596",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "8",
+        "sourceCellsW": "9",
+        "sourceGridX": "25",
+        "sourceGridY": "40"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_zoneHousing_043650779",
+      "kindId": "zoneHousing",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 39,
+      "localSurfaceY": 52,
+      "widthCells": 8,
+      "heightCells": 11,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_guard_housing",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "巡卫住房区",
+        "legacyWorldHeight": "0.28",
+        "legacyWorldWidth": "0.19486",
+        "legacyWorldX": "5.41266",
+        "legacyWorldY": "11.04",
+        "localPlaceKind": "Village",
+        "localPlaceName": "巡卫住房区",
+        "localPlaceTags": "[\"home\",\"rest\",\"guard\"]",
+        "referenceMapPlacementId": "place_zoneHousing_043650779",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "8",
+        "sourceCellsW": "9",
+        "sourceGridX": "50",
+        "sourceGridY": "44"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_zoneHousing_043659238",
+      "kindId": "zoneHousing",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 55,
+      "localSurfaceY": 54,
+      "widthCells": 4,
+      "heightCells": 8,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_supervisor_housing",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "主管住房区",
+        "legacyWorldHeight": "0.175",
+        "legacyWorldWidth": "0.0866",
+        "legacyWorldX": "5.86732",
+        "legacyWorldY": "11.11",
+        "localPlaceKind": "Village",
+        "localPlaceName": "主管住房区",
+        "localPlaceTags": "[\"home\",\"rest\",\"supervisor\"]",
+        "referenceMapPlacementId": "place_zoneHousing_043659238",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "5",
+        "sourceCellsW": "4",
+        "sourceGridX": "71",
+        "sourceGridY": "46"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:place_zoneMine_233921010",
+      "kindId": "zoneMine",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 3,
+      "localSurfaceY": 46,
+      "widthCells": 9,
+      "heightCells": 13,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_mine",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "矿区",
+        "legacyWorldHeight": "0.35",
+        "legacyWorldWidth": "0.21651",
+        "legacyWorldX": "4.41673",
+        "legacyWorldY": "10.865",
+        "localPlaceKind": "Wild",
+        "localPlaceName": "矿洞",
+        "localPlaceTags": "[\"mine\",\"work\"]",
+        "referenceMapPlacementId": "place_zoneMine_233921010",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "10",
+        "sourceCellsW": "10",
+        "sourceGridX": "4",
+        "sourceGridY": "39"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:recovery_spot_1",
+      "kindId": "recoverySpot",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 30,
+      "localSurfaceY": 52,
+      "widthCells": 2,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "荒村恢复处·西",
+        "legacyWorldHeight": "0.07000",
+        "legacyWorldWidth": "0.04330",
+        "legacyWorldX": "5.15285",
+        "legacyWorldY": "11.04",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "38",
+        "sourceGridY": "44"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:recovery_spot_2",
+      "kindId": "recoverySpot",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 33,
+      "localSurfaceY": 52,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "4",
+        "chunkY": "8",
+        "label": "荒村恢复处·中",
+        "legacyWorldHeight": "0.07000",
+        "legacyWorldWidth": "0.04330",
+        "legacyWorldX": "5.26110",
+        "legacyWorldY": "11.04",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "43",
+        "sourceGridY": "44"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:recovery_spot_3",
+      "kindId": "recoverySpot",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 48,
+      "localSurfaceY": 52,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "荒村恢复处·东",
+        "legacyWorldHeight": "0.07000",
+        "legacyWorldWidth": "0.04330",
+        "legacyWorldX": "5.67245",
+        "legacyWorldY": "11.04",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "2",
+        "sourceCellsW": "2",
+        "sourceGridX": "62",
+        "sourceGridY": "44"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:storage_room",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 67,
+      "localSurfaceY": 53,
+      "widthCells": 4,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "荒村储藏室",
+        "legacyWorldHeight": "0.105",
+        "legacyWorldWidth": "0.06495",
+        "legacyWorldX": "6.21373",
+        "legacyWorldY": "11.075",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "3",
+        "sourceCellsW": "3",
+        "sourceGridX": "87",
+        "sourceGridY": "45"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:zone_spring",
+      "kindId": "spring",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 29,
+      "widthCells": 11,
+      "heightCells": 16,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "boundLocationId": "base:loc_ref_spring",
+        "chunkX": "5",
+        "chunkY": "8",
+        "label": "灵泉",
+        "legacyWorldHeight": "0.42",
+        "legacyWorldWidth": "0.25981",
+        "legacyWorldX": "6.01888",
+        "legacyWorldY": "10.41",
+        "localPlaceKind": "Opportunity",
+        "localPlaceName": "灵泉",
+        "localPlaceTags": "[\"spirit\",\"inspect\"]",
+        "referenceMapPlacementId": "zone_spring",
+        "siteId": "base:site_huangcun",
+        "sourceCellsH": "12",
+        "sourceCellsW": "12",
+        "sourceGridX": "78",
+        "sourceGridY": "26"
+      }
+    }
+  ]
+}
