@@ -1,16 +1,17 @@
 # ADR-0037：External Content Authoring 工具链与旧地图 Content 迁移方向
 
 > 日期：2026-09-15
-> 状态：**Accepted Direction；MAP-01 / MAP-02 已 Producer Accepted / Sealed；后续迁移 Pending**
+> 状态：**Accepted Direction；MAP-01 / MAP-02 / MAP-03 已 Producer Accepted / Sealed；MAP-04 未开始**
 > 决策者：制作人
 > 关联：[ADR-0036 连续世界制作与去 Hex 产品方向](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)、[2N 连续世界制作与合成](../../20-systems/2N-continuous-surface-world-authoring-and-composition.md)、[36 ContentPackage／Mod Ready](../../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../41-roadmap.md)、[106 Content Authoring Editors Plan](../106-content-authoring-editors-plan-v0.1.md)、[112 MapEditor 用法](../112-map-editor-usage.md)、[128 WorldGraphEditor 用法](../128-world-graph-editor-usage.md)、[130 LocalPlaceEditor 用法](../130-local-place-editor-usage.md)、[215 W2A Surface Geography](../215-surface-geography-w2a-handoff-2026-09-11.md)
 > **本 ADR 只负责两件事：External Editor 工具链／生命周期，以及旧地图 Content 的迁移方向。地图架构与去 Hex 产品方向由 [ADR-0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定，本 ADR 不重写、不建立第二份地图 authority。**
 
-## 实施状态（2026-09-16）
+## 实施状态（2026-09-17）
 
 - **MAP-01 已验收／封板：** WorldComposer、FineEditor、schema v3、Legacy Migration Bridge 与 compatibility publish 已落地；实现范围见 [242](../242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)。
 - **MAP-02 已验收／封板：** compatibility publish 额外生成并发布 Continuous Surface WorldMap cache，runtime 以该 cache 驱动主 Surface 的 strategic view；验收与兼容边界见 [243](../243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)。
-- **仍未实施：** MAP-03 的 product consumer de-Hex/de-LocalMap，以及 MAP-04 的 legacy content/editor retirement。本 ADR 下方的“未实施”描述是 2026-09-15 的设计时 Context，不覆盖本节状态。
+- **MAP-03 已验收／封板：** 主 Continuous Outdoor 正常玩法已退出 Hex／Outdoor LocalMap authority；旧路径继续留作 legacy／derived compatibility。验收与 MAP-04 候选见 [244](../244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
+- **仍未实施：** MAP-04 的 legacy content/editor physical retirement。本 ADR 下方的“未实施”描述是 2026-09-15 的设计时 Context，不覆盖本节状态。
 
 ## Context
 

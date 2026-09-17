@@ -1,5 +1,10 @@
 # 开发日志
 
+## 2026-09-17 — MAP-03 制作人验收通过／正式封板
+
+- 制作人已在 Unity 中人工验收 MAP-03 并正式通过；New Game continuous opening、exact Surface travel 与旅行中 Save→Load 续行、Outdoor Site 不切旧 Outdoor LocalMap、农田／储藏室／恢复处、FactionFlag 精确位置与控制、NPC／Squad 移动与遭遇、BattleOffer／独立战场／战后精确回归、residual／downed、Interior／Cave 以及 Surface WorldMap 均纳入验收。WorldMap 的 WorkArea 空地点选、Fit／裁剪、固定 Header／按需情报浮层、Actual Control、Site／Flag marker 和永久 Site Core 热修亦已通过。具体边界见 [244](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
+- 主 Continuous Outdoor 的正常 authority 现为 exact WorldPosition、SurfaceId、SurfaceGroundNavigation、Continuous SiteCore、Actual Control 与 Continuous asset placement；Hex／Outdoor LocalMap 残留只作 legacy／derived compatibility。MAP-04 仅建立候选清单，尚未实施；需先做 consumer audit。本轮封板同步 2N、roadmap 和索引，并提交已验收的正式状态。
+
 ## 2026-09-16 — MAP-02 Continuous Surface WorldMap
 
 - MAP-02 开始将主产品地图切换到 Surface Mode：新增不依赖 Hex 的 `SurfaceWorldMapViewportProjection`，镜头 bounds / fit / clamp 直接使用 `SurfaceGroundNavigation` 的 Origin、Max、CellSize 与尺寸；Surface 存在时不再绘制或拾取 Hex grid，左键显示 exact world coordinate，右键直接提交 continuous physical destination，水域/solid 继续由 `SurfaceGroundNavigation.IsWalkable` 拒绝。

@@ -119,6 +119,7 @@ Desktop.ini
 /local/
 *.tmp
 *.bak
+/Content/BaseGame/_backups/
 
 # ---- Added: local test/compile artifacts ----
 /TestResults/

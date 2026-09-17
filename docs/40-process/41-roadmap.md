@@ -1,8 +1,8 @@
 # 路线图
 
-> **2026-09-16 地图进度：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md) 与 [MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 已 **Producer Accepted / Sealed**；[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 正常玩法 Surface authority cutover 已实现、待制作人验收。Hex/LocalMap 旧路径仍保留为 legacy/derived compatibility；MAP-04 未开始。
+> **2026-09-17 地图进度：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理未开始，须先审计消费者。
 
-> **Editor 工具链／旧 Content 迁移：** [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 已锁定方向，MAP-01/MAP-02 已完成；下列为后续边界，而非本轮开工授权：
+> **Editor 工具链／旧 Content 迁移：** [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 已锁定方向，MAP-01/MAP-02/MAP-03 已完成；下列为后续边界，而非本轮开工授权：
 >
 > ```
 > Editor Toolchain Cleanup          // 唯一 Build All、Apps/ 平铺输出、staging all-or-nothing、
@@ -23,13 +23,13 @@
 
 > 状态：CW-10 与 CW-10.5 均为 **Implementation Completed / Producer Acceptance Pending**（CW-10.5 后续仍有 StorageRoom materialization／picker／shell rehydrate 修正）。保持既有编号，不重排 CW-06 / CW-07。
 >
-> **工具链与地图方向：** MAP-01/MAP-02 已验收；MAP-03 已实现、待制作人验收；MAP-04（legacy content/editor retirement）未开始。旧 MapEditor／WorldGraphEditor／RegionEditor／LocalPlaceEditor 仍维护未迁移 Content，不能因 MAP-03 实施而退役。
+> **工具链与地图方向：** MAP-01/MAP-02/MAP-03 已验收并封板；MAP-04（legacy content/editor retirement）未开始。旧 MapEditor／WorldGraphEditor／RegionEditor／LocalPlaceEditor 仍维护未迁移 Content，不能因 MAP-03 封板而直接退役。
 
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
 - **下一步：** 制作人按 237／239 的正常玩法路线验收青石荒村接管前后 NPC 劳作、公库变化、战略物资访问与储藏室，以及 Save/Load。后续只记录更完整仓储物流、税赋、跨 Site 运输和离屏生产设计，不在本轮预实现。
-- **地图后续：** MAP-03 等待制作人人工验收；MAP-04 legacy content/editor retirement 尚未开工。边界见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
+- **地图后续：** MAP-03 已由制作人人工验收；MAP-04 legacy content/editor retirement 尚未开工，先按 [244 的 cleanup candidates](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 审计消费者。方向边界见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
 
 - **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；NPC 自动攻城与普通建筑战争。
 

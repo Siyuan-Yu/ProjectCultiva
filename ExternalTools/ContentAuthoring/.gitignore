@@ -1,6 +1,7 @@
 .build/
 Apps/
 build-all.log
+*-crash.log
 publish/
 bin/
 obj/

@@ -1,17 +1,19 @@
 # 连续世界制作、合成与去 Hex 产品方向
 
-> 状态：**MAP-01 / MAP-02 Producer Accepted / Sealed；MAP-03 Implementation Complete / Producer Acceptance Pending**｜优先级：P0｜最后更新：2026-09-16
+> 状态：**MAP-01 / MAP-02 / MAP-03 Implemented / Producer Accepted；MAP-04 未开始**｜优先级：P0｜最后更新：2026-09-17
 > 上级：[总览](../00-project/00-overview.md)｜决策：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图方向）、[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧 Content 迁移方向）
 > 关联：[24 世界与据点](24-world-and-settlements.md)、[2J Hex Territory](2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../40-process/41-roadmap.md)
 > **本页是 World Composer、Fine Editor、Final Continuous Surface 与 de-Hex 产品方向的系统真源。** MAP-01 实现范围见 [242](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)，MAP-02 验收与残余兼容边界见 [243](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)。Editor 工具链／生命周期与旧 Content 迁移分期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
 
 ## 1. 状态边界
 
+当前阶段结论：MAP-01 的 WorldComposer／FineEditor、migration bridge 与 compatibility publish 已完成；MAP-02 Continuous Surface WorldMap 已完成；MAP-03 正常 Gameplay Surface authority cutover 已完成并由制作人验收，普通 Outdoor LocalMap 和 Hex 不再承担正常 authority。下一阶段 MAP-04 仅规划 physical legacy cleanup，尚未实施。
+
 ### Current Implementation
 
 - Continuous Outdoor runtime、Surface Cell、Runtime Chunk streaming 与 Canonical WorldPosition 已经存在。
 - Actual Control 已使用连续 world-space；MAP-02 已使主 Surface 的 WorldMap 使用 Continuous Surface strategic view、exact world projection 与 Surface terrain/forest cache。HexWorld 仅为未迁出的 compatibility consumer。
-- MAP-03 已把主 Surface 的 PlayerParty、WorldSite、FactionFlag、NPC/Squad/FormalArmy、BattleAnchor 与 residual 正常位置改为 continuous world-space first；Hex/LocalMap 字段仍为 derived compatibility、旧存档或独立区域路径。实施和待验收边界见 [244](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
+- MAP-03 已把主 Surface 的 PlayerParty、WorldSite、FactionFlag、NPC/Squad/FormalArmy、BattleAnchor 与 residual 正常位置改为 continuous world-space authority；Outdoor LocalMap 与 Hex 的正常 authority 已退出。Hex/LocalMap 字段仍服务 derived compatibility、旧存档或独立区域路径。实施及制作人验收边界见 [244](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
 - 多数 wilderness surface chunk 仍是 fallback，不能把当前 Surface content coverage 当作完整大陆制作链。
 - External `WorldComposer` 与 `FineEditor` 已完成 MAP-01 Production V1，并经制作人验收；Legacy Migration Bridge 已把当前 Main Surface、W2A geography 与黄村空间内容导入独立 Authoring Source。MAP-02 已发布并加载同源的 Surface WorldMap cache；现有 `Data/**` 仍为 runtime authority。
 
@@ -110,4 +112,4 @@ MAP-01 当前交付：
 
 MAP-02 令主 Continuous Surface 的 WorldMap 直接消费同源地图 cache，按 exact `WorldPosition` 投影、反投影与点选；Surface 模式不再把画面、点击或路线目标降格为 Hex center。Surface terrain、森林与既有 Site／party／路线呈现在同一 world-space 中；旧 Hex WorldMap 分支仅保留给尚未迁出的 compatibility world。
 
-MAP-02 本身不是完整去 Hex；MAP-03 已实施正常 gameplay consumer cutover，但仍待制作人验收。`PlayerPartyHexTravelService` 的旧 Hex 路线、Site `PresenceHex`、Flag strategic anchor 和 LocalMap/Outdoor compatibility 仍保留给 legacy/derived 用途，不能把它们描述为已从代码删除。
+MAP-02 本身不是完整去 Hex；MAP-03 正常 gameplay consumer cutover 已完成并于 2026-09-17 通过制作人人工验收。`PlayerPartyHexTravelService` 的旧 Hex 路线、Site `PresenceHex`、Flag strategic anchor 和 LocalMap/Outdoor compatibility 仍保留给 legacy/derived 用途，不能把它们描述为已从代码删除。下一阶段 MAP-04 是物理 legacy cleanup，须先完成 consumer audit，本轮未开工。
