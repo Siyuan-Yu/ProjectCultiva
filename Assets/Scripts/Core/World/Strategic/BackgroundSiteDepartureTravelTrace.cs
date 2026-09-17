@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System.Diagnostics;
 using System.Text;
 using XianXia.Core.Domain.Ids;

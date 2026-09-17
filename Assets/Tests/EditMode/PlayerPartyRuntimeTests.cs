@@ -158,7 +158,7 @@ namespace XianXia.Tests
             entity.AddComponent(loc);
             world.Entities.AddExisting(entity);
 
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = locationId,
                 LocalMapId = string.Empty

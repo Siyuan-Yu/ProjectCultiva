@@ -164,17 +164,14 @@ namespace XianXia.Data.Content
         }
 
         /// <summary>
-        /// chunk → 其 authored source MapLayout；同时校验 source 必须精确填满 chunk metric
-        /// （否则 seam 会静默变成 gameplay 边界）。
+        /// A streaming chunk must be covered by the published presentation and navigation grids.
         /// </summary>
-        public static bool TryResolveChunkSource(
+        public static bool TryValidateChunkData(
             DefinitionRegistry registry,
             OutdoorWorldSurfaceDefinition surface,
             SurfaceChunkCoord coord,
-            out MapLayoutDefinition layout,
             out string failure)
         {
-            layout = null;
             failure = string.Empty;
             if (surface == null)
             {
@@ -188,158 +185,37 @@ namespace XianXia.Data.Content
                 failure = "ResolvedChunk=" + coord + " ChunkExists=false";
                 return false;
             }
-            if (string.IsNullOrWhiteSpace(chunk.SourceMapLayoutId))
+            if (registry == null || !registry.TryGetContinuousSurfaceWorldMap(surface.SurfaceId, out var map) || map == null)
             {
-                failure = "ResolvedChunk=" + coord + " SourceMapLayoutId=empty";
+                failure = "ResolvedChunk=" + coord + " PresentationMissing";
                 return false;
             }
-
-            var parsed = DefinitionId.Parse(chunk.SourceMapLayoutId);
-            if (!parsed.IsSuccess || registry == null ||
-                !registry.TryGetMapLayout(parsed.Value, out layout) || layout == null)
+            if (map.CellSize <= 0f)
             {
-                failure = "ResolvedChunk=" + coord + " SourceResolved=false SourceMapLayoutId=" +
-                          chunk.SourceMapLayoutId;
-                layout = null;
+                failure = "ResolvedChunk=" + coord + " PresentationMetricInvalid";
                 return false;
             }
-
-            var sourceWidth = layout.Width * surface.CellSize;
-            var sourceHeight = layout.Height * surface.CellSize;
-            if (Math.Abs(sourceWidth - surface.ChunkWidth) > 0.0001f ||
-                Math.Abs(sourceHeight - surface.ChunkHeight) > 0.0001f)
+            if (!registry.TryGetOutdoorSurfaceGeography(surface.SurfaceId, out var geography) || geography?.Navigation == null ||
+                !geography.CoverageChunks.Contains(coord))
             {
-                failure = "ResolvedChunk=" + coord + " SourceMetricMismatch SourceMapLayoutId=" +
-                          chunk.SourceMapLayoutId;
-                layout = null;
+                failure = "ResolvedChunk=" + coord + " GeographyMissing";
                 return false;
             }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Site 的 Outdoor source MapLayout（<c>siteRegions[].sourceLocalMapId</c>）。
-        /// Opening placement bake 与 SitePlacements 必须共用这一张 source map（§2 同一 truth）。
-        /// </summary>
-        public static bool TryResolveSiteSourceLayout(
-            DefinitionRegistry registry,
-            OutdoorWorldSurfaceDefinition surface,
-            string siteId,
-            out MapLayoutDefinition layout,
-            out string failure)
-        {
-            layout = null;
-            failure = string.Empty;
-            if (surface?.SiteRegions == null || string.IsNullOrEmpty(siteId))
+            var left = surface.OriginWorldX + coord.X * surface.ChunkWidth;
+            var bottom = surface.OriginWorldY + coord.Y * surface.ChunkHeight;
+            var x = (int)Math.Round((left - map.OriginWorldX) / map.CellSize);
+            var y = (int)Math.Round((bottom - map.OriginWorldY) / map.CellSize);
+            var width = (int)Math.Round(surface.ChunkWidth / map.CellSize);
+            var height = (int)Math.Round(surface.ChunkHeight / map.CellSize);
+            if (width <= 0 || height <= 0 || x < 0 || y < 0 ||
+                x + width > map.WidthCells || y + height > map.HeightCells ||
+                map.BaseTerrainRows.Count != map.HeightCells || map.ForestRows.Count != map.HeightCells)
             {
-                failure = "SiteSourceLayoutUnresolved site=" + (siteId ?? string.Empty);
-                return false;
-            }
-
-            string sourceLocalMapId = null;
-            for (var i = 0; i < surface.SiteRegions.Count; i++)
-            {
-                var region = surface.SiteRegions[i];
-                if (region == null || !string.Equals(region.SiteId, siteId, StringComparison.Ordinal))
-                    continue;
-                sourceLocalMapId = region.SourceLocalMapId;
-                break;
-            }
-
-            if (string.IsNullOrWhiteSpace(sourceLocalMapId))
-            {
-                failure = "SiteSourceLayoutUnresolved site=" + siteId + " sourceLocalMapId=empty";
-                return false;
-            }
-
-            var parsed = DefinitionId.Parse(sourceLocalMapId);
-            if (!parsed.IsSuccess || registry == null ||
-                !registry.TryGetMapLayout(parsed.Value, out layout) || layout == null)
-            {
-                failure = "SiteSourceLayoutUnresolved site=" + siteId +
-                          " sourceLocalMapId=" + sourceLocalMapId;
-                layout = null;
+                failure = "ResolvedChunk=" + coord + " PresentationCoverageMismatch";
                 return false;
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Site 的 source LocalMap 对应的 checked-in LocalPlaceSet（<c>mapLayoutId</c> 唯一匹配）。
-        ///
-        /// <para>
-        /// closing the loop：opening placement 的 authored 真源必须在 **Content** 里，
-        /// 而不是运行时 <c>WorldRegion</c> 板 —— Continuous Outdoor 正常运行时**不会**加载
-        /// legacy WorldRegion place set（这正是迁移的目的），启动 invariant 若依赖它就会误报
-        /// 「authored place missing from WorldRegion」。
-        /// </para>
-        /// </summary>
-        public static bool TryResolveSiteSourcePlaceSet(
-            DefinitionRegistry registry,
-            OutdoorWorldSurfaceDefinition surface,
-            string siteId,
-            out LocalPlaceSetDefinition placeSet,
-            out string failure)
-        {
-            placeSet = null;
-            failure = string.Empty;
-            if (!TryResolveSiteSourceLayout(registry, surface, siteId, out var layout, out failure))
-                return false;
-
-            var sourceMapId = layout.Id.ToString();
-            LocalPlaceSetDefinition matched = null;
-            var matches = 0;
-            foreach (var entry in registry.LocalPlaceSets)
-            {
-                var candidate = entry.Value;
-                if (candidate == null ||
-                    !string.Equals(candidate.MapLayoutId, sourceMapId, StringComparison.Ordinal))
-                    continue;
-                matched = candidate;
-                matches++;
-            }
-
-            if (matches == 1 && matched != null)
-            {
-                placeSet = matched;
-                return true;
-            }
-
-            failure = matches == 0
-                ? "SiteSourcePlaceSetUnresolved site=" + siteId + " mapLayoutId=" + sourceMapId
-                : "SiteSourcePlaceSetAmbiguous site=" + siteId + " mapLayoutId=" + sourceMapId +
-                  " matches=" + matches;
-            return false;
-        }
-
-        /// <summary>
-        /// Content-side authored presentation of a location（LocalMap 世界单位）。
-        /// <c>WorldRegion</c> 只是运行时镜像，因此这里以 checked-in LocalPlaceSet 为准。
-        /// </summary>
-        public static bool TryResolvePlaceLocalPosition(
-            LocalPlaceSetDefinition placeSet,
-            string locationId,
-            out float localX,
-            out float localZ)
-        {
-            localX = 0f;
-            localZ = 0f;
-            if (placeSet?.Locations == null || string.IsNullOrWhiteSpace(locationId))
-                return false;
-            for (var i = 0; i < placeSet.Locations.Count; i++)
-            {
-                var location = placeSet.Locations[i];
-                if (location == null ||
-                    !string.Equals(location.Id, locationId, StringComparison.Ordinal))
-                    continue;
-                localX = location.PresentationX;
-                localZ = location.PresentationZ;
-                return true;
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -376,7 +252,7 @@ namespace XianXia.Data.Content
                 var coord = new SurfaceChunkCoord(center.X + dx, center.Y + dy);
                 if (!IsChunkPresent(surface, coord))
                     continue;
-                if (!TryResolveChunkSource(registry, surface, coord, out _, out failure))
+                if (!TryValidateChunkData(registry, surface, coord, out failure))
                     return false;
                 present++;
             }

@@ -86,6 +86,9 @@ namespace XianXia.Core.World.Strategic
             if (normalOutdoorSite)
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "NPC Site has no authored Continuous Surface arrival.");
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "NPC destination has no valid Continuous Surface route.");
             if (!world.HexWorld.HasGrid)
                 return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
 

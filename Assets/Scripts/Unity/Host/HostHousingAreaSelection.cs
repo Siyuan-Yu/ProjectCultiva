@@ -153,7 +153,7 @@ namespace XianXia.Unity.Host
                  _inspect.Kind == WorldObjectInspectKind.WorkArea) &&
                 bootstrap.Session.World.TryGetWorkArea(_inspect.WorkAreaId, out var area) &&
                 (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) ||
-                 bootstrap.Session.World.WorldRegion.TryGet(area.LocationId, out loc)))
+                 bootstrap.Session.World.LocalPlaces.TryGet(area.LocationId, out loc)))
             {
                 var houseCenter = HostPresentationSpace.FromPresentation(
                     loc.PresentationX + area.OffsetX,

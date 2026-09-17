@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using XianXia.Core.Attributes;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
@@ -29,9 +30,9 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
-            if (!world.WorldRegion.TryGet(targetLocationId, out var target))
+            if (!world.LocalPlaces.TryGet(targetLocationId, out var target))
                 return Result.Failure(ErrorCode.NotFound, "Target location missing.", targetLocationId);
-            if (!world.WorldRegion.AreAdjacent(loc.LocationId, targetLocationId))
+            if (!world.LocalPlaces.AreAdjacent(loc.LocationId, targetLocationId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Target location not adjacent.", targetLocationId);
 
             if (!ContentConditionEvaluator.AllPass(world, subject, target.EnterConditions))
@@ -67,7 +68,7 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.InvalidArgument, "Location required.");
             if (!world.Entities.TryGet(subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
-            if (!world.WorldRegion.TryGet(locationId, out var location))
+            if (!world.LocalPlaces.TryGet(locationId, out var location))
                 return Result.Failure(ErrorCode.NotFound, "Location missing.", locationId);
 
             if (setLocation)
@@ -101,7 +102,7 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
-            if (!world.WorldRegion.TryGet(loc.LocationId, out var location))
+            if (!world.LocalPlaces.TryGet(loc.LocationId, out var location))
                 return Result.Failure(ErrorCode.NotFound, "Current location missing.", loc.LocationId);
 
             var foundAnything = false;
@@ -172,7 +173,7 @@ namespace XianXia.Core.Exploration
 
             var entranceId = string.IsNullOrWhiteSpace(entranceLocationId) ? loc.LocationId : entranceLocationId.Trim();
             var fromContinuousOutdoor = world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance);
-            if (!fromContinuousOutdoor && !world.WorldRegion.TryGet(entranceId, out entrance))
+            if (!fromContinuousOutdoor && !world.LocalPlaces.TryGet(entranceId, out entrance))
                 return Result.Failure(ErrorCode.NotFound, "Entrance location missing.", entranceId);
             if (string.IsNullOrEmpty(entrance.EnterLocalMapId) || string.IsNullOrEmpty(entrance.EnterSpawnLocationId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Location is not a LocalMap entrance.", entranceId);
@@ -196,8 +197,8 @@ namespace XianXia.Core.Exploration
             }
 
             if (fromContinuousOutdoor)
-                world.ContinuousOutdoorMaterialization.CopyPlacesTo(world.WorldRegion);
-            if (!world.WorldRegion.TryGet(entrance.EnterSpawnLocationId, out _) &&
+                world.ContinuousOutdoorMaterialization.CopyPlacesTo(world.LocalPlaces);
+            if (!world.LocalPlaces.TryGet(entrance.EnterSpawnLocationId, out _) &&
                 !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entrance.EnterSpawnLocationId, out _))
                 return Result.Failure(ErrorCode.NotFound, "Spawn location missing.", entrance.EnterSpawnLocationId);
 
@@ -243,7 +244,7 @@ namespace XianXia.Core.Exploration
             if (string.IsNullOrEmpty(session.OverworldMapLayoutId) && !session.HasContinuousOutdoorReturn)
                 return Result.Failure(ErrorCode.InvalidOperation, "Overworld map missing.");
             if (string.IsNullOrEmpty(session.ReturnLocationId) ||
-                !world.WorldRegion.TryGet(session.ReturnLocationId, out _))
+                !world.LocalPlaces.TryGet(session.ReturnLocationId, out _))
                 return Result.Failure(ErrorCode.NotFound, "Return location missing.", session.ReturnLocationId);
 
             var returnId = session.ReturnLocationId;
@@ -254,7 +255,7 @@ namespace XianXia.Core.Exploration
             session.ClearOccupants();
             if (session.HasContinuousOutdoorReturn && world.PlayerPartyTravel != null)
             {
-                var position = new XianXia.Core.World.Hex.WorldVec2(
+                var position = new XianXia.Core.World.WorldVec2(
                     session.ContinuousOutdoorReturnX, session.ContinuousOutdoorReturnY);
                 var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
                 var hex = XianXia.Core.World.Hex.HexMath.WorldToHex(position.X, position.Y, size);
@@ -316,7 +317,7 @@ namespace XianXia.Core.Exploration
                     maxR = probes[i].Radius;
             }
 
-            foreach (var kv in world.WorldRegion.Locations)
+            foreach (var kv in world.LocalPlaces.Locations)
             {
                 var entrance = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(entrance))
@@ -422,7 +423,7 @@ namespace XianXia.Core.Exploration
 
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return false;
-            if (!world.WorldRegion.TryGet(loc.LocationId, out var place))
+            if (!world.LocalPlaces.TryGet(loc.LocationId, out var place))
                 return false;
             probes.Add(new SurveyProbe
             {
@@ -534,7 +535,7 @@ namespace XianXia.Core.Exploration
         {
             if (world == null || string.IsNullOrEmpty(locationId) || string.IsNullOrEmpty(interiorMapLayoutId))
                 return false;
-            return world.WorldRegion.TryGet(locationId, out var place) &&
+            return world.LocalPlaces.TryGet(locationId, out var place) &&
                    !string.IsNullOrEmpty(place.LocalMapId) &&
                    string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal);
         }

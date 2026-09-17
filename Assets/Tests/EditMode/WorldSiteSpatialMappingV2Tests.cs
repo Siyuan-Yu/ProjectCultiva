@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,8 +27,8 @@ namespace XianXia.Tests
 
         const float HexSize = 1f;
 
-        static string WorldJsonPath => Path.Combine(BaseGamePath, "Data", "Worlds", "ch01_hex_world.json");
-        static string ReferenceMapJsonPath => Path.Combine(BaseGamePath, "Data", "Maps", "ch01_reference_map.json");
+        static string WorldJsonPath => Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_hex_world.json");
+        static string ReferenceMapJsonPath => Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_reference_map.json");
 
         static WorldSite LoadSite(string siteId)
         {

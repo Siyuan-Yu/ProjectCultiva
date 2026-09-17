@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.World.Hex;
@@ -42,6 +43,35 @@ namespace XianXia.Data.Content
 
     public static class ContinuousOutdoorOpeningAnchorResolver
     {
+        /// <summary>Finds the unique opening spawn across the whole Surface, before its Site is known.</summary>
+        public static bool TryFindOpeningEntityAnchor(
+            OutdoorWorldSurfaceDefinition surface, string spawnKey, string definitionId,
+            out WorldSiteOpeningEntityAnchorDefinition anchor, out string failure)
+        {
+            anchor = null;
+            failure = "Missing";
+            if (surface?.OpeningEntityAnchors == null || string.IsNullOrWhiteSpace(spawnKey) ||
+                string.IsNullOrWhiteSpace(definitionId))
+                return false;
+            foreach (var candidate in surface.OpeningEntityAnchors)
+            {
+                if (candidate == null ||
+                    !string.Equals(candidate.SpawnKey, spawnKey, StringComparison.Ordinal) ||
+                    !string.Equals(candidate.DefinitionId, definitionId, StringComparison.Ordinal))
+                    continue;
+                if (anchor != null)
+                {
+                    anchor = null;
+                    failure = "Ambiguous";
+                    return false;
+                }
+                anchor = candidate;
+            }
+            if (anchor == null) return false;
+            failure = string.Empty;
+            return true;
+        }
+
         public static float EnvelopeMargin(OutdoorWorldSurfaceDefinition surface) =>
             surface == null ? 0.1f : Math.Max(surface.CellSize * 3f, 0.05f);
 

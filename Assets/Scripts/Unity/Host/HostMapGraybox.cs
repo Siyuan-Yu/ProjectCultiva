@@ -43,7 +43,7 @@ namespace XianXia.Unity.Host
                 demoMap.Rebuild(session);
             }
 
-            var locations = session.World.WorldRegion.Locations;
+            var locations = session.World.LocalPlaces.Locations;
             foreach (var kv in locations)
             {
                 // 洞府内室等只属于洞内图：地表不画标签（MapEditor 里也不会出现）

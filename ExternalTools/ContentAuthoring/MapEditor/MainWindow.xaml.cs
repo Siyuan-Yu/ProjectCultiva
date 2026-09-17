@@ -512,7 +512,6 @@ public partial class MainWindow : Window
         OriginYBox.Text = JsonEdit.GetDouble(_layout.Raw, "originY", -25).ToString("0.###");
         CellSizeBox.Text = JsonEdit.GetDouble(_layout.Raw, "cellSize", 1).ToString("0.###");
         NameBox.Text = JsonEdit.GetString(_layout.Raw, "name");
-        RegionIdBox.Text = JsonEdit.GetString(_layout.Raw, "worldRegionId");
         _placements.Clear();
         if (_layout.Raw["placements"] is JsonArray arr)
         {
@@ -1286,7 +1285,7 @@ public partial class MainWindow : Window
             return false;
 
         _layout.Raw["name"] = NameBox.Text ?? "";
-        JsonEdit.SetString(_layout.Raw, "worldRegionId", RegionIdBox.Text);
+        _layout.Raw.Remove("worldRegionId");
         _layout.Raw["originX"] = ox;
         _layout.Raw["originY"] = oy;
         _layout.Raw["cellSize"] = cs;

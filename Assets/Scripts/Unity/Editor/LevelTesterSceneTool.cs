@@ -14,7 +14,7 @@ namespace XianXia.Unity.EditorTools
     public static class LevelTesterSceneTool
     {
         public const string ScenePath = "Assets/Scenes/LevelTester.unity";
-        public const string DefaultMapLayoutPath = "Content/BaseGame/Data/Maps/ch01_reference_map.json";
+        public const string DefaultMapLayoutPath = "Content/BaseGame/Data/Maps/ch01_cave_map.json";
 
         [MenuItem("XianXia/Level Tester/Create Or Update Level Tester Scene")]
         public static void CreateOrUpdateScene()
@@ -57,7 +57,7 @@ namespace XianXia.Unity.EditorTools
 
             var bootstrapSo = new SerializedObject(bootstrap);
             bootstrapSo.FindProperty("openingScenarioId").stringValue = "base:scenario_ch01_reference";
-            bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_reference";
+            bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_cave";
             bootstrapSo.FindProperty("mapLayoutFilePath").stringValue = DefaultMapLayoutPath;
             bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 1f;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
@@ -219,10 +219,10 @@ namespace XianXia.Unity.EditorTools
 
             EditorGUILayout.Space(6);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("用默认第一章地图"))
+            if (GUILayout.Button("用默认洞府地图"))
             {
                 pathProp.stringValue = LevelTesterSceneTool.DefaultMapLayoutPath;
-                idProp.stringValue = "base:map_ch01_reference";
+                idProp.stringValue = "base:map_ch01_cave";
                 if (string.IsNullOrWhiteSpace(scenarioProp.stringValue))
                     scenarioProp.stringValue = "base:scenario_ch01_reference";
             }

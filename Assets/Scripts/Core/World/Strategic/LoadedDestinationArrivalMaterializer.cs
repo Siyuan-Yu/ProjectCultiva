@@ -627,9 +627,9 @@ namespace XianXia.Core.World.Strategic
                 return ApplyWildernessPresentationOverride(world, characterId, savedX, savedY);
             }
 
-            var startId = world.WorldRegion?.StartLocationId ?? string.Empty;
+            var startId = world.LocalPlaces?.StartLocationId ?? string.Empty;
             if (!string.IsNullOrEmpty(startId) &&
-                world.WorldRegion.TryGet(startId, out var startLoc) &&
+                world.LocalPlaces.TryGet(startId, out var startLoc) &&
                 startLoc != null)
             {
                 return ApplyWildernessPresentationOverride(

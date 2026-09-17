@@ -35,6 +35,8 @@ namespace XianXia.Data.Content
         /// 以 null 为 presence authority（(0,0) 也是合法 hex）。
         /// </summary>
         public FormalArmyInitialHexDefinition InitialHex { get; set; }
+        /// <summary>Authored continuous wilderness deployment; takes precedence over legacy initialHex.</summary>
+        public FormalArmyInitialSurfacePositionDefinition InitialSurfacePosition { get; set; }
 
         public List<FormalArmyMemberDefinition> Members { get; set; }
             = new List<FormalArmyMemberDefinition>();
@@ -45,6 +47,13 @@ namespace XianXia.Data.Content
     {
         public int Q { get; set; }
         public int R { get; set; }
+    }
+
+    public sealed class FormalArmyInitialSurfacePositionDefinition
+    {
+        public string SurfaceId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
     }
 
     public sealed class FormalArmyMemberDefinition

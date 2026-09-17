@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 

@@ -810,6 +810,7 @@ namespace XianXia.Data.Content
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
                 OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
                 OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
+                OpeningSurfaceId = item.GetString("openingSurfaceId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
             if (item.TryGetProperty("startingInventory", out var inventoryNode))
@@ -1092,6 +1093,23 @@ namespace XianXia.Data.Content
                 FactionId = item.GetString("factionId", string.Empty),
                 AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
             };
+
+            if (item.TryGetProperty("initialSurfacePosition", out var surfaceNode))
+            {
+                if (surfaceNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.initialSurfacePosition must be object.", id.ToString());
+                    return;
+                }
+                DefinitionSchema.RejectUnknownFields(surfaceNode,
+                    DefinitionSchema.FormalArmyInitialSurfacePositionFields, report, id + ".initialSurfacePosition");
+                def.InitialSurfacePosition = new FormalArmyInitialSurfacePositionDefinition
+                {
+                    SurfaceId = surfaceNode.GetString("surfaceId", string.Empty),
+                    WorldX = ReadFloat(surfaceNode, "worldX", 0f),
+                    WorldY = ReadFloat(surfaceNode, "worldY", 0f)
+                };
+            }
 
             if (item.TryGetProperty("initialHex", out var hexNode))
             {
@@ -2236,10 +2254,9 @@ namespace XianXia.Data.Content
                 DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorSurfaceChunkFields, report, id + ".chunk");
                 var stableChunkId = node.GetString("id", string.Empty);
                 var coord = new XianXia.Core.World.Surface.SurfaceChunkCoord(ReadInt(node, "x", 0), ReadInt(node, "y", 0));
-                var sourceMapLayoutId = node.GetString("sourceMapLayoutId", string.Empty);
-                if (string.IsNullOrWhiteSpace(stableChunkId) || string.IsNullOrWhiteSpace(sourceMapLayoutId))
+                if (string.IsNullOrWhiteSpace(stableChunkId))
                 {
-                    report.Add(ErrorCode.MissingRequiredField, "outdoorSurface chunk id and sourceMapLayoutId required.", id + ".chunk");
+                    report.Add(ErrorCode.MissingRequiredField, "outdoorSurface chunk id required.", id + ".chunk");
                     continue;
                 }
                 if (!usedChunkIds.Add(stableChunkId) || !usedCoords.Add(coord))
@@ -2251,7 +2268,6 @@ namespace XianXia.Data.Content
                 {
                     StableChunkId = stableChunkId,
                     Coord = coord,
-                    SourceMapLayoutId = sourceMapLayoutId,
                     Width = surface.ChunkWidth, Height = surface.ChunkHeight
                 });
             }
@@ -2263,8 +2279,28 @@ namespace XianXia.Data.Content
                     surface.SiteRegions.Add(new WorldSitePhysicalRegionDefinition
                     {
                         SiteId = node.GetString("siteId", string.Empty), SurfaceId = node.GetString("surfaceId", id.ToString()),
-                        SourceLocalMapId = node.GetString("sourceLocalMapId", string.Empty),
+                        DisplayName = node.GetString("displayName", string.Empty),
+                        SiteType = node.GetString("siteType", string.Empty),
+                        OwnerFactionId = node.GetString("ownerFactionId", string.Empty),
+                        TerritoryRegionId = node.GetString("territoryRegionId", string.Empty),
                         ArrivalWorldX = ReadFloat(node, "arrivalWorldX", 0f), ArrivalWorldY = ReadFloat(node, "arrivalWorldY", 0f)
+                    });
+                }
+            if (item.TryGetProperty("factionFlags", out var flags) && flags.Kind == JsonValueKind.Array)
+                foreach (var node in flags.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.SurfaceFactionFlagFields, report, id + ".factionFlag");
+                    surface.FactionFlags.Add(new SurfaceFactionFlagDefinition
+                    {
+                        FlagId = node.GetString("flagId", string.Empty),
+                        FactionId = node.GetString("factionId", string.Empty),
+                        WorldX = ReadFloat(node, "worldX", 0f),
+                        WorldY = ReadFloat(node, "worldY", 0f),
+                        EstablishedOrder = (long)node.GetNumber("establishedOrder", 0),
+                        CreatesWorldSite = node.GetBool("createsWorldSite", false),
+                        SiteDisplayName = node.GetString("siteDisplayName", string.Empty),
+                        SiteType = node.GetString("siteType", string.Empty),
+                        CoreLevel = (int)node.GetNumber("coreLevel", 1)
                     });
                 }
             if (item.TryGetProperty("sitePlacements", out var placements) && placements.Kind == JsonValueKind.Array)
@@ -2329,7 +2365,7 @@ namespace XianXia.Data.Content
             var placementIds = new HashSet<string>(StringComparer.Ordinal);
             var placeIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var region in surface.SiteRegions)
-                if (string.IsNullOrWhiteSpace(region.SiteId) || string.IsNullOrWhiteSpace(region.SourceLocalMapId) ||
+                if (string.IsNullOrWhiteSpace(region.SiteId) ||
                     !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId))
                     report.Add(ErrorCode.InvalidArgument, "Invalid or duplicate Outdoor WorldSite physical region.", id + ".siteRegions");
             foreach (var placement in surface.SitePlacements)

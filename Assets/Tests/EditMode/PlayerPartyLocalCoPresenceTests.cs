@@ -239,9 +239,9 @@ namespace XianXia.Tests
 
         static void RegisterPlace(SimulationWorld world, string locationId, string localMapId)
         {
-            if (world.WorldRegion.TryGet(locationId, out _))
+            if (world.LocalPlaces.TryGet(locationId, out _))
                 return;
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = locationId,
                 LocalMapId = localMapId

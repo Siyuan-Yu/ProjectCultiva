@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
@@ -13,7 +13,7 @@ namespace XianXia.Tests
         public void Ch01ReferenceMap_BuildsBlockedGrid_AndPathsAroundHouse()
         {
             var path = Path.GetFullPath(Path.Combine(
-                Application.dataPath, "..", "Content", "BaseGame", "Data", "Maps", "ch01_reference_map.json"));
+                Application.dataPath, "Tests", "Fixtures", "LegacyWorld", "ch01_reference_map.json"));
             Assert.IsTrue(File.Exists(path), path);
 
             var loaded = MapLayoutJsonLoader.LoadFromFile(path);

@@ -458,7 +458,7 @@ namespace XianXia.Unity.Host
                 return false;
 
             // 地点不在当前地点表（例如已从荒村切到保底节点）：必须隐藏，禁止残留旧场景 NPC
-            if (!world.WorldRegion.TryGet(loc.LocationId, out var place))
+            if (!world.LocalPlaces.TryGet(loc.LocationId, out var place))
                 return false;
 
             return IsLocationOnActiveMap(world, place);
@@ -676,7 +676,7 @@ namespace XianXia.Unity.Host
                 return false;
             if (!string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal))
                 return false;
-            // 仅遭遇图实例（base:map_world_node_stub + 活跃 Encounter 状态）
+            // 仅独立遭遇战术图实例（且有活跃 Encounter 状态）
             // 禁止把青石荒村等普LocalMap 误判为遭遇图（否AtSite 村民会被 Participant 过滤隐藏）
             return IsEncounterMapInstance(world, mapId);
         }

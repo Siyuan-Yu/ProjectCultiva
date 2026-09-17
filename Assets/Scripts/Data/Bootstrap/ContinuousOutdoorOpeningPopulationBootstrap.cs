@@ -101,6 +101,10 @@ namespace XianXia.Data.Bootstrap
             WorldSite openingSite = null;
             if (!string.IsNullOrEmpty(openingSiteId))
                 world.Strategic?.Sites.TryGet(openingSiteId, out openingSite);
+            OutdoorWorldSurfaceDefinition openingSurface = null;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) && openingSite != null)
+                ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                    registry, openingSiteId, out openingSurface, out _);
 
             var entities = new List<Entity>(world.Entities.All);
             for (var i = 0; i < entities.Count; i++)
@@ -129,6 +133,25 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 }
 
+                if (openingSurface != null)
+                {
+                    var anchorFailure = string.Empty;
+                    if (world.OpeningSpawnIdentities.TryGetSpawnKey(entity.Id, out _) &&
+                        ContinuousOpeningSpawnPresenceResolver.TryApply(
+                            world, openingSurface, entity.Id, entity.DefinitionId.ToString(),
+                            string.Empty, out anchorFailure))
+                    {
+                        report.NormalizedAtSiteWithAnchor++;
+                        continue;
+                    }
+                    report.Unresolved++;
+                    var reason = world.OpeningSpawnIdentities.TryGetSpawnKey(entity.Id, out _)
+                        ? anchorFailure : "Entity has no opening SpawnKey: " + entity.DefinitionId;
+                    report.Ambiguities.Add(reason);
+                    diagnostics?.Add("[OpeningPopulationAnchorFailure] " + reason);
+                    continue;
+                }
+
                 if (IsCaveBound(entity))
                 {
                     report.SkippedIndependentSpace++;
@@ -138,12 +161,6 @@ namespace XianXia.Data.Bootstrap
                 var loc = default(EntityLocationComponent);
                 var hasLocation = entity.TryGet<EntityLocationComponent>(out loc) && loc != null;
                 var locationId = hasLocation && loc.HasLocation ? loc.LocationId : string.Empty;
-                var sourceMapId = string.Empty;
-                if (!string.IsNullOrEmpty(locationId) &&
-                    world.WorldRegion.TryGet(locationId, out var placeState) && placeState != null &&
-                    !string.IsNullOrEmpty(placeState.LocalMapId))
-                    sourceMapId = placeState.LocalMapId;
-
                 WorldSite site = null;
                 var ambiguity = string.Empty;
                 if (!string.IsNullOrEmpty(locationId))
@@ -153,11 +170,7 @@ namespace XianXia.Data.Bootstrap
                 // §9 opening character contract：opening character（未写 worldSiteId → 默认开局 Site）
                 // 若因任何原因没有 presence，这里补上；同伴因此仍是 Background AtSite，不进 PlayerParty。
                 if (site == null && isCharacter && openingSite != null)
-                {
-                    if (string.IsNullOrEmpty(sourceMapId) ||
-                        string.Equals(sourceMapId, openingSite.LocalMapId, StringComparison.Ordinal))
-                        site = openingSite;
-                }
+                    site = openingSite;
 
                 if (site == null)
                 {
@@ -171,27 +184,8 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 }
 
-                var anchored = false;
-                if (hasLocation && loc.HasPresentationOverride)
-                {
-                    var layout = ResolveSourceLayout(registry, site);
-                    if (layout != null &&
-                        ContinuousOutdoorSpawnPresenceResolver.TryResolveCanonicalAnchor(
-                            world, site, layout, loc.PresentationOverrideX, loc.PresentationOverrideZ,
-                            out var anchor))
-                    {
-                        world.WorldPresence.SetAtSiteWithAnchor(entity.Id, site.SiteId, anchor);
-                        report.NormalizedAtSiteWithAnchor++;
-                        report.NormalizedAtSite++;
-                        anchored = true;
-                    }
-                }
-
-                if (!anchored)
-                {
-                    world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
-                    report.NormalizedAtSite++;
-                }
+                world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
+                report.NormalizedAtSite++;
             }
 
             return report;
@@ -243,16 +237,6 @@ namespace XianXia.Data.Bootstrap
             }
 
             return census;
-        }
-
-        static MapLayoutDefinition ResolveSourceLayout(DefinitionRegistry registry, WorldSite site)
-        {
-            if (registry == null || site == null || string.IsNullOrEmpty(site.LocalMapId))
-                return null;
-            var parsed = DefinitionId.Parse(site.LocalMapId);
-            if (parsed.IsFailure)
-                return null;
-            return registry.TryGetMapLayout(parsed.Value, out var layout) ? layout : null;
         }
 
         static bool IsCaveBound(Entity entity)

@@ -40,13 +40,13 @@ namespace XianXia.Tests
             // 洞口 (10,0)；在 (0,0) 距离 10。神识3→半径6（+padding2.5=8.5）仍够不着
             Assert.IsTrue(exploration.SurveyEntrance(world, subject.Id, "0,0").IsSuccess);
             Assert.IsFalse(OpportunityEntranceRules.IsRevealed(
-                world, world.WorldRegion.Locations["base:loc_ref_cave"]));
+                world, world.LocalPlaces.Locations["base:loc_ref_cave"]));
 
             // 神识5→半径10（+padding）可命中；或显式探针半径
             subject.Get<AttributesComponent>().SetBase(AttributeId.SpiritSense, 5);
             Assert.IsTrue(exploration.SurveyEntrance(world, subject.Id, "0,0").IsSuccess);
             Assert.IsTrue(OpportunityEntranceRules.IsRevealed(
-                world, world.WorldRegion.Locations["base:loc_ref_cave"]));
+                world, world.LocalPlaces.Locations["base:loc_ref_cave"]));
             Assert.IsTrue(exploration.EnterLocalMap(world, subject.Id).IsSuccess);
         }
 
@@ -59,7 +59,7 @@ namespace XianXia.Tests
             Assert.IsTrue(new ExplorationService().SurveyEntrance(
                 world, subject.Id, "0,0,1;9,0,3").IsSuccess);
             Assert.IsTrue(OpportunityEntranceRules.IsRevealed(
-                world, world.WorldRegion.Locations["base:loc_ref_cave"]));
+                world, world.LocalPlaces.Locations["base:loc_ref_cave"]));
         }
 
         [Test]
@@ -69,7 +69,7 @@ namespace XianXia.Tests
             subject.Get<AttributesComponent>().SetBase(AttributeId.SpiritSense, 99);
             Assert.IsTrue(new ExplorationService().ExploreHere(world, subject.Id).IsSuccess);
             Assert.IsFalse(OpportunityEntranceRules.IsRevealed(
-                world, world.WorldRegion.Locations["base:loc_ref_cave"]));
+                world, world.LocalPlaces.Locations["base:loc_ref_cave"]));
         }
 
         [Test]
@@ -152,7 +152,7 @@ namespace XianXia.Tests
                 nameKey: "site.abandoned_cave",
                 description: "test"));
 
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "base:loc_ref_cave",
                 Name = "废弃洞府",
@@ -162,7 +162,7 @@ namespace XianXia.Tests
                 PresentationX = 10f,
                 PresentationZ = 0f
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "base:loc_cave_chamber",
                 Name = "洞府内室",

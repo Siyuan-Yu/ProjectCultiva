@@ -14,6 +14,38 @@ namespace XianXia.Core.Persistence
     /// <summary>??? Snapshot v6 ??????Pure Hex?? node/route DTO??</summary>
     public static class StrategicSnapshotHelper
     {
+        /// <summary>Current-version saved personal spatial state must survive restore unchanged.</summary>
+        public static Result ValidateRestoredCharacterWorldPresences(
+            SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            if (world == null || dto?.CharacterWorldPresences == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Character world presence snapshot missing.");
+            var seen = new HashSet<ulong>();
+            foreach (var saved in dto.CharacterWorldPresences)
+            {
+                if (saved == null || saved.CharacterId == 0 || !seen.Add(saved.CharacterId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Invalid or duplicate CharacterWorldPresence snapshot.");
+                var id = new EntityId(saved.CharacterId);
+                if (!world.Entities.TryGet(id, out _) ||
+                    !world.WorldPresence.TryGet(id, out var actual) || actual == null ||
+                    (int)actual.Mode != saved.Mode ||
+                    !string.Equals(actual.SiteId, saved.SiteId ?? string.Empty, StringComparison.Ordinal) ||
+                    !string.Equals(actual.PersonalSurfaceId, saved.PersonalSurfaceId ?? string.Empty,
+                        StringComparison.Ordinal) ||
+                    actual.HasContinuousWorldPosition != saved.HasWorldPosition ||
+                    (saved.HasWorldPosition &&
+                     (float.IsNaN(saved.WorldX) || float.IsInfinity(saved.WorldX) ||
+                      float.IsNaN(saved.WorldY) || float.IsInfinity(saved.WorldY) ||
+                      Math.Abs(actual.WorldPosX - saved.WorldX) > 0.0001f ||
+                      Math.Abs(actual.WorldPosY - saved.WorldY) > 0.0001f)))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Restored CharacterWorldPresence differs from snapshot.",
+                        "CharacterId=" + saved.CharacterId);
+            }
+            return Result.Success();
+        }
+
         /// <summary>
         /// 静态 Hex／Site／Territory shell 建立后覆盖当前政治状态。
         /// Restore 本身不是新 Capture：不得发事件、重置 Core 或重套开局。
@@ -638,6 +670,22 @@ namespace XianXia.Core.Persistence
                         p.HexR != int.MinValue)
                     {
                         var hex = new HexCoord(p.HexQ, p.HexR);
+                        if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                        {
+                            WorldVec2 migrated;
+                            if (p.HasWorldPosition)
+                                migrated = new WorldVec2(p.WorldX, p.WorldY);
+                            else
+                            {
+                                HexMath.ToWorldPosition(hex, 1f, out var x, out var y);
+                                migrated = new WorldVec2(x, y);
+                            }
+                            if (world.SurfaceGround.TryResolveContaining(migrated, out var surface))
+                            {
+                                world.WorldPresence.SetAtWorldPosition(id, migrated, hex, surface.SurfaceId);
+                                continue;
+                            }
+                        }
                         if (p.HasWorldPosition)
                         {
                             // 精确连续落点（Local Combat 倒下时 EntityView local → surface mapping）
@@ -1345,6 +1393,15 @@ namespace XianXia.Core.Persistence
                     world.WorldPresence.SetAtWorldPosition(id, pos, derived);
                 }
 
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                {
+                    if (t.IsTraveling && !t.IsSurfaceRoute &&
+                        !string.IsNullOrEmpty(t.DestinationSiteId))
+                        BackgroundCharacterTravelService.BeginTravelToWorldSite(
+                            world, id, t.DestinationSiteId);
+                    continue;
+                }
+
                 if (t.IsSurfaceRoute || !t.IsTraveling || t.HexPath == null || t.HexPath.Count < 2)
                     continue;
 
@@ -1399,11 +1456,17 @@ namespace XianXia.Core.Persistence
             if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(travel.SiteId))
             {
+                var sitePosition = new WorldVec2(travel.WorldX, travel.WorldY);
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                    !world.SurfaceGround.TryResolveContaining(sitePosition, out _) &&
+                    world.Strategic.Sites.TryGet(travel.SiteId, out var authoredSite) &&
+                    authoredSite != null)
+                    sitePosition = new WorldVec2(authoredSite.CoreWorldX, authoredSite.CoreWorldY);
                 // Snapshot 的 AtWorldSite WorldX/Y 是 Site 内连续 Canonical 位置；不能用
                 // PresenceHex center 覆盖，否则 Load 后 LocalVisible 出口路径会以错误起点重建。
                 motion.RestoreIdleAtWorldSite(
                     travel.SiteId,
-                    new WorldVec2(travel.WorldX, travel.WorldY),
+                    sitePosition,
                     new HexCoord(travel.CurrentHexQ, travel.CurrentHexR));
                 if (travel.IsMoving && travel.HasContinuousPhysicalDestination &&
                     ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
@@ -1420,6 +1483,17 @@ namespace XianXia.Core.Persistence
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                ((travel.WorldX == 0f && travel.WorldY == 0f &&
+                  (travel.CurrentHexQ != 0 || travel.CurrentHexR != 0)) ||
+                 !world.SurfaceGround.TryResolveContaining(pos, out _)))
+            {
+                HexMath.ToWorldPosition(new HexCoord(travel.CurrentHexQ, travel.CurrentHexR),
+                    hexSize, out var migratedX, out var migratedY);
+                var migrated = new WorldVec2(migratedX, migratedY);
+                if (world.SurfaceGround.TryResolveContaining(migrated, out _))
+                    pos = migrated;
+            }
             var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
             motion.SetAtWorldPosition(pos, derived);
             if (travel.IsMoving && travel.HasContinuousPhysicalDestination)

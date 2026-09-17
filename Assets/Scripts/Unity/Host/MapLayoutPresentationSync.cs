@@ -12,7 +12,7 @@ namespace XianXia.Unity.Host
     {
         public static int Apply(PlayableHostSession session)
         {
-            if (session?.World?.WorldRegion?.Locations == null)
+            if (session?.World?.LocalPlaces?.Locations == null)
                 return 0;
             if (!MapLayoutPick.TryGet(session, out var layout) || layout?.Placements == null)
                 return 0;
@@ -23,7 +23,7 @@ namespace XianXia.Unity.Host
             {
                 if (p == null || string.IsNullOrWhiteSpace(p.BoundLocationId))
                     continue;
-                if (!session.World.WorldRegion.Locations.ContainsKey(p.BoundLocationId))
+                if (!session.World.LocalPlaces.Locations.ContainsKey(p.BoundLocationId))
                     continue;
 
                 var pw = p.W < 1 ? 1 : p.W;
@@ -46,7 +46,7 @@ namespace XianXia.Unity.Host
             var applied = 0;
             foreach (var kv in sums)
             {
-                if (!session.World.WorldRegion.Locations.TryGetValue(kv.Key, out var loc) ||
+                if (!session.World.LocalPlaces.Locations.TryGetValue(kv.Key, out var loc) ||
                     loc == null ||
                     kv.Value.N <= 0)
                     continue;

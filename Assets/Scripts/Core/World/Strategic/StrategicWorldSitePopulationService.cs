@@ -222,7 +222,11 @@ namespace XianXia.Core.World.Strategic
             if (army == null || site == null)
                 return false;
 
-            if (army.UsesHexStrategicPosition)
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return army.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
+                       string.Equals(army.WorldMotion.SiteId, site.SiteId, StringComparison.Ordinal);
+
+            if (army.UsesHexStrategicPosition && world?.HexWorld?.HasGrid == true)
                 return site.OccupiesHex(army.CurrentHex);
 
             return false;

@@ -496,7 +496,7 @@ namespace XianXia.Unity.Host
                 active.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
                 loc.HasLocation && !string.IsNullOrEmpty(loc.LocationId))
                 return loc.LocationId;
-            return world.WorldRegion.StartLocationId ?? string.Empty;
+            return world.LocalPlaces.StartLocationId ?? string.Empty;
         }
 
         /// <summary>Legacy／compatibility anchor：读旧 layout 的 authored 坐标再映射成 canonical WorldPosition。</summary>
@@ -530,18 +530,18 @@ namespace XianXia.Unity.Host
                 else if (loc.HasLocation &&
                          TryResolveAuthoredLocationCenter(layout, loc.LocationId, out px, out py))
                     hasAuthoredStart = true;
-                else if (loc.HasLocation && world.WorldRegion.TryGet(loc.LocationId, out var authored))
+                else if (loc.HasLocation && world.LocalPlaces.TryGet(loc.LocationId, out var authored))
                 {
                     px = authored.PresentationX;
                     py = authored.PresentationZ;
                     hasAuthoredStart = true;
                 }
             }
-            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.WorldRegion.StartLocationId) &&
-                TryResolveAuthoredLocationCenter(layout, world.WorldRegion.StartLocationId, out px, out py))
+            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.LocalPlaces.StartLocationId) &&
+                TryResolveAuthoredLocationCenter(layout, world.LocalPlaces.StartLocationId, out px, out py))
                 hasAuthoredStart = true;
-            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.WorldRegion.StartLocationId) &&
-                world.WorldRegion.TryGet(world.WorldRegion.StartLocationId, out var start))
+            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.LocalPlaces.StartLocationId) &&
+                world.LocalPlaces.TryGet(world.LocalPlaces.StartLocationId, out var start))
             {
                 px = start.PresentationX;
                 py = start.PresentationZ;
@@ -1782,7 +1782,7 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
+            var places = InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
                 world, _session.Registry, targetMap);
             if (places.IsFailure)
                 Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
@@ -2037,7 +2037,7 @@ namespace XianXia.Unity.Host
             }
 
             // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
-            var startId = world.WorldRegion.StartLocationId;
+            var startId = world.LocalPlaces.StartLocationId;
             var encounter = world.Strategic?.Encounter;
             var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
             // Wilderness AtWorldPosition：Materialize 已按 WorldPosition 投影，禁止再吸回 startLocation。
@@ -2056,7 +2056,7 @@ namespace XianXia.Unity.Host
                     skipStartSnapForWilderness,
                     skipStartSnapForSavedPlacements) &&
                 !string.IsNullOrEmpty(startId) &&
-                world.WorldRegion.TryGet(startId, out var syncedStart))
+                world.LocalPlaces.TryGet(startId, out var syncedStart))
             {
                 for (var i = 0; i < _session.CharacterIds.Count; i++)
                 {
@@ -2179,7 +2179,7 @@ namespace XianXia.Unity.Host
             FormalArmy focusArmy = null;
             if (!string.IsNullOrEmpty(focusArmyId))
                 world.Strategic?.FormalArmies?.TryGet(focusArmyId, out focusArmy);
-            var startId = world.WorldRegion.StartLocationId;
+            var startId = world.LocalPlaces.StartLocationId;
             var encounter = world.Strategic?.Encounter;
             var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
             for (var i = 0; i < _session.CharacterIds.Count; i++)
@@ -2232,7 +2232,7 @@ namespace XianXia.Unity.Host
                     ent.AddComponent(loc);
                 }
 
-                if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var startLoc))
+                if (!string.IsNullOrEmpty(startId) && world.LocalPlaces.TryGet(startId, out var startLoc))
                 {
                     loc.LocationId = startId;
                     loc.SetPresentationOverride(startLoc.PresentationX, startLoc.PresentationZ);
@@ -2452,7 +2452,7 @@ namespace XianXia.Unity.Host
         {
             if (!_session.IsInitialized)
                 return;
-            WorldRegionBootstrap.ActivatePlacesForMapLayout(_session.World, _session.Registry, string.Empty);
+            InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(_session.World, _session.Registry, string.Empty);
             mapGraybox?.Clear();
             interactSpotPresenter?.Clear();
             surfaceExitZonePresenter?.Clear();
@@ -2620,12 +2620,6 @@ namespace XianXia.Unity.Host
                 Debug.LogError("[PlayableHost] " + tick.Error, this);
                 return;
             }
-
-            // Phase 5S-B2-3.5：PlayerParty pursuit tick（Core 无 party runtime，故在 Host 驱动）。
-            // TickOnce 内 ArmyHexTravelService.AdvanceAll 与 PlayerPartyHexTravelService.AdvanceAll
-            // 均已推进 → target.CurrentHex 为最新；先检查 contact（进入 SupportArea 即接战），
-            // 未接触则 target 移动 / Player 停下时自动 retarget。
-            PlayerPartyHexPursuitService.AfterTravelTick(_session.World, _session.PlayerParty);
 
             // Phase 5S-B2-3.1：FormalArmy 世界旅行在 TickOnce 内推进 → 移入 / 移出当前 Hex
             // 后下一 tick 战略人口自动出现 / 消失（只 changed 才刷新视图）。
@@ -3149,6 +3143,23 @@ namespace XianXia.Unity.Host
                         Path.GetFileName(path));
                     if (File.Exists(mapsSibling))
                         path = mapsSibling;
+                }
+
+                // Old scene components can still serialize an Outdoor LocalMap override
+                // after its file has been removed. A Surface opening has its own checked-in
+                // position authority, so the absent override must not block NewGame.
+                var scenarioId = DefinitionId.Parse(string.IsNullOrWhiteSpace(openingScenarioId)
+                    ? "base:scenario_ch01_reference"
+                    : openingScenarioId.Trim());
+                if (!File.Exists(path) && scenarioId.IsSuccess &&
+                    _session.Registry.TryGetOpeningScenario(scenarioId.Value, out var opening) &&
+                    !string.IsNullOrWhiteSpace(opening.OpeningSurfaceId))
+                {
+                    Debug.LogWarning("[PlayableHost] Ignoring missing mapLayout override for Surface opening: " + path,
+                        this);
+                    mapLayoutFilePath = string.Empty;
+                    preferredMapLayoutId = string.Empty;
+                    return true;
                 }
 
                 loaded = MapLayoutJsonLoader.LoadFromFile(path, preferredMapLayoutId);

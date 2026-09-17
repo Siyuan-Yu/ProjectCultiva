@@ -167,7 +167,7 @@ namespace XianXia.Unity.Host
                     worldCamera, bootstrap.Session.World, layout,
                     bootstrap.ContinuousOutdoorSurfaceRuntime, out var entranceId) &&
                 (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance) ||
-                 bootstrap.Session.World.WorldRegion.TryGet(entranceId, out entrance)))
+                 bootstrap.Session.World.LocalPlaces.TryGet(entranceId, out entrance)))
             {
                 _actor = actor;
                 _targetNpc = EntityId.None;

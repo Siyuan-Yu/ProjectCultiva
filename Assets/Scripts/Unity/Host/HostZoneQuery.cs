@@ -13,20 +13,13 @@ namespace XianXia.Unity.Host
 
         public static string FindWorkLocation(SimulationWorld world, Vector3 worldPoint, float centerRadius = DefaultCenterRadius)
         {
-            if (world?.WorldRegion == null)
+            if (world?.LocalPlaces == null)
                 return null;
 
             if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out var spot, 3.5f, world))
                 return spot.LocationId;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
-            // 色带命中硬编码荒村 loc：仅当前地图确为荒村参考关时才启用
-            var band = IsCh01ReferenceMap(world) ? ResolveWorkBand(p.x, p.y) : null;
-            if (!string.IsNullOrEmpty(band) &&
-                world.WorldRegion.TryGet(band, out var bandLoc) &&
-                HasWorkResource(bandLoc))
-                return band;
-
             return FindNearest(
                 world,
                 p,
@@ -55,7 +48,7 @@ namespace XianXia.Unity.Host
             Vector3 worldPoint,
             float centerRadius = 2.75f)
         {
-            if (world?.WorldRegion == null)
+            if (world?.LocalPlaces == null)
                 return null;
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             return FindNearest(world, p, centerRadius, loc => HasWorkResource(loc));
@@ -66,19 +59,13 @@ namespace XianXia.Unity.Host
             Vector3 worldPoint,
             float centerRadius = DefaultCenterRadius)
         {
-            if (world?.WorldRegion == null)
+            if (world?.LocalPlaces == null)
                 return null;
 
             if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out var spot, 3.5f, world))
                 return spot.LocationId;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var band = IsCh01ReferenceMap(world) ? ResolveSpiritBand(p.x, p.y) : null;
-            if (!string.IsNullOrEmpty(band) &&
-                world.WorldRegion.TryGet(band, out var bandLoc) &&
-                bandLoc.Kind == LocationKind.Opportunity)
-                return band;
-
             return FindNearest(
                 world,
                 p,
@@ -92,7 +79,7 @@ namespace XianXia.Unity.Host
             Vector3 worldPoint,
             float centerRadius = 2.75f)
         {
-            if (world?.WorldRegion == null)
+            if (world?.LocalPlaces == null)
                 return null;
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             return FindNearest(world, p, centerRadius, loc => loc.Kind == LocationKind.Opportunity);
@@ -124,42 +111,6 @@ namespace XianXia.Unity.Host
             !string.IsNullOrEmpty(loc.ResourceOnExploreId) &&
             loc.ResourceOnExploreAmount > 0;
 
-        static bool IsCh01ReferenceMap(SimulationWorld world)
-        {
-            if (world?.LocalMap == null || world.WorldRegion == null)
-                return false;
-            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
-            if (string.Equals(active, "base:map_ch01_reference", System.StringComparison.Ordinal))
-                return true;
-            // 开局尚未写入 ActiveMap：仅当地点表已是荒村时允许色带（EditMode／旧路径）
-            return string.IsNullOrEmpty(active) &&
-                   world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _);
-        }
-
-        /// <summary>
-        /// 旧大片农田／药田色带已删：田区只认 map 上的 grainField／herbField，
-        /// 勿再把绿草矩形当成工区。仅保留林／矿色带（无格点物件时的回落）。
-        /// </summary>
-        static string ResolveWorkBand(float x, float y)
-        {
-            if (x <= -28f)
-                return y >= 5f ? "base:loc_ref_mine" : "base:loc_ref_forest";
-            return null;
-        }
-
-        static string ResolveSpiritBand(float x, float y)
-        {
-            if (x >= 24f && y <= -10f)
-            {
-                // 洞府略靠右下，灵泉略靠左；按点击再细分。
-                if (x >= 26f && y <= -13f)
-                    return "base:loc_ref_cave";
-                return "base:loc_ref_spring";
-            }
-
-            return null;
-        }
-
         static string FindNearest(
             SimulationWorld world,
             Vector2 p,
@@ -182,7 +133,7 @@ namespace XianXia.Unity.Host
                     best = loc.Id;
                 }
             }
-            foreach (var kv in world.WorldRegion.Locations)
+            foreach (var kv in world.LocalPlaces.Locations)
             {
                 var loc = kv.Value;
                 if (world.ContinuousOutdoorMaterialization.PlacesByLocationId.ContainsKey(kv.Key))

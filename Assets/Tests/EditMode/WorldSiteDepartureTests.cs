@@ -29,7 +29,7 @@ namespace XianXia.Tests
         static readonly WildernessLocalWorldProjection.WildernessLocalMapBounds TestBounds =
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
 
-        static string WorldJsonPath => Path.Combine(BaseGamePath, "Data", "Worlds", "ch01_hex_world.json");
+        static string WorldJsonPath => Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_hex_world.json");
 
         static WorldSite LoadHuangcun()
         {

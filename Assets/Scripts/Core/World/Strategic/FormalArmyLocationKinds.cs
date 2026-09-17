@@ -19,6 +19,7 @@ namespace XianXia.Core.World.Strategic
         TravelToHex = 1,
         TravelToWorldSite = 2,
         AttackFormalArmy = 3,
+        TravelToWorldPosition = 4,
     }
 
     public enum FormalArmyRouteKind

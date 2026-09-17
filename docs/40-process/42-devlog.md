@@ -1,5 +1,27 @@
 # 开发日志
 
+## 2026-09-17 — MAP-04 荒村山匪野外部署修复（待制作人复验）
+
+- 三支 FormalArmy 保留荒村 assembly Site，分别 authored 到村西 `(3.990, 10.542)`、村北 `(5.446, 11.606)`、村东南 `(6.594, 10.038)` 的主 Continuous Surface 位置；成员与战力定义不变。
+- 使用现有 exact Surface 部署与 Snapshot WorldMotion authority；WorldMap marker 优先读取 current Continuous `WorldMotion`，恢复军队 motion 时保留 SurfaceId。三点均在范围内、可步行、Ground、不碰荒村 blocking SitePlacement；Content validator 0 error，离线 Save/Load 异地军队位置与 marker 均保留。未改普通 NPC opening anchor 或物化逻辑；待 Unity 人工验收，MAP-04 状态不变。
+
+## 2026-09-17 — MAP-04 Restore / Presentation 稳定性修复（待制作人复验）
+
+- 以 MAP-03 accepted checkpoint `b04920b` 对照，恢复 Surface WorldMap 全屏不透明 planning overlay、输入门禁、LocalVisible 旅行冻结／恢复及相关 UI 生命周期，不恢复 Hex 地图。
+- Snapshot presence 逐实体校验 exact authority；只有缺 presence DTO 的旧档 opening entity 才按自己的 anchor 迁移。首次 Surface rebuild 禁止 View→Domain capture，清理旧 presentation override，exact chunk 控制物化范围；FormalArmy 站点归属和个人位置捕获 owner 已收紧，新增空间泄漏诊断。
+- 离线 Host 编译 0 error、BaseGame validator 0 error、Ch01 anchor/presence 24/24、snapshot round-trip 及 mismatch 检测通过；未运行 Unity，MAP-04 继续 Implementation In Progress / Producer Acceptance Pending。
+
+## 2026-09-17 — MAP-04 开局 NPC 消失回归热修（待制作人复验）
+
+- 制作人确认 New Game 可进入 Continuous Surface，但 15 名未写 `worldSiteId`／`localLocationId` 的 Ch01 NPC 中有 14 名因旧 WorldRegion 初始化退役而没有 `WorldPresence`；主管由 FormalArmy bootstrap 单独取得 Army presence。Normal Surface opening 现按稳定 SpawnKey + DefinitionId 在 checked-in `openingEntityAnchors` 中唯一解析 Site 与精确位置，并将 `SourceLocationId` 写入逻辑 `EntityLocation.LocationId`，不恢复旧 LocalPlace 物理权威。
+- Opening population 防御归一化复用 anchor 解析；启动校验从当前场景 spawn + Surface anchor 构造独立 expected set，缺实体、identity、presence、Site 或精确位置即失败。FormalArmy 成员继续由 Army population pass 去重。Ch01 离线 sanity 为 24/24 presence、missing 0、wrong Site 0、missing position 0；BaseGame Content validation 0 error。未运行 Unity，待制作人仅复验 NPC 回归。
+
+## 2026-09-17 — MAP-04 物理清理实施中
+
+- 真实消费者审计后，先解除 Chunk 对 MapLayout 的正常运行时依赖：主 Surface 646 个 Chunk 去 `sourceMapLayoutId`，发布器不再写回；terrain cache 按加载 Chunk 绘制，WalkGrid 直接由 Surface metric 建立，保留 Geography / Site / 运行时障碍叠加。Surface 外边界停止步行，不再 handoff Hex wilderness。
+- 青石外援 `initialHex` 一次性迁到精确 `initialSurfacePosition`；旧 parser 留给兼容。WorldGraphEditor、RegionEditor、Shared/HexWorld 及专属测试已移除，Build All 发布 10 个 Editor。
+- NewGame Site 初始化、opening source LocalMap 几何与 WorldMap Hex 分支仍有正常消费者，因此 HexWorld JSON、Outdoor source maps 和 `world_regions.json` 尚不能安全物理删除。状态与余项见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)；未进行 Unity 人工验收，修改未提交。
+
 ## 2026-09-17 — MAP-03 制作人验收通过／正式封板
 
 - 制作人已在 Unity 中人工验收 MAP-03 并正式通过；New Game continuous opening、exact Surface travel 与旅行中 Save→Load 续行、Outdoor Site 不切旧 Outdoor LocalMap、农田／储藏室／恢复处、FactionFlag 精确位置与控制、NPC／Squad 移动与遭遇、BattleOffer／独立战场／战后精确回归、residual／downed、Interior／Cave 以及 Surface WorldMap 均纳入验收。WorldMap 的 WorkArea 空地点选、Fit／裁剪、固定 Header／按需情报浮层、Actual Control、Site／Flag marker 和永久 Site Core 热修亦已通过。具体边界见 [244](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。

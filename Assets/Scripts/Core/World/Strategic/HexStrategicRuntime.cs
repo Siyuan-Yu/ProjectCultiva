@@ -7,7 +7,6 @@ namespace XianXia.Core.World.Strategic
     public static class HexStrategicRuntime
     {
         public static bool IsActive(SimulationWorld world) =>
-            HexStrategicMapBootstrap.UseHexStrategicMap &&
             world?.HexWorld != null &&
             world.HexWorld.HasGrid;
     }

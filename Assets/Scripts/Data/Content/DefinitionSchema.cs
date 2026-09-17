@@ -24,13 +24,13 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId",
-            "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
+            "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingSurfaceId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
             "initialFormalArmyIds", "strategicOpening", "startingInventory"
         };
 
         public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "members"
+            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "initialSurfacePosition", "members"
         };
 
         public static readonly HashSet<string> StrategicFactionFields = new HashSet<string>(StringComparer.Ordinal)
@@ -41,6 +41,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> FormalArmyInitialHexFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "q", "r"
+        };
+
+        public static readonly HashSet<string> FormalArmyInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "surfaceId", "worldX", "worldY"
         };
 
         public static readonly HashSet<string> FormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
@@ -117,7 +122,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
-            "siteRegions", "sitePlacements", "sitePlaces", "openingEntityAnchors"
+            "siteRegions", "factionFlags", "sitePlacements", "sitePlaces", "openingEntityAnchors"
         };
         public static readonly HashSet<string> WorldSpatialRulesFields = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -137,7 +142,7 @@ namespace XianXia.Data.Content
         };
         public static readonly HashSet<string> OutdoorSurfaceChunkFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "x", "y", "sourceMapLayoutId"
+            "id", "x", "y", "sourceMapLayoutId" // accepted from older packages, ignored by runtime
         };
 
         public static readonly HashSet<string> OutdoorSurfaceGeographyFields = new HashSet<string>(StringComparer.Ordinal)
@@ -190,7 +195,9 @@ namespace XianXia.Data.Content
             "localMapId", "ownerFactionId", "territoryRegionId", "controlEstablishedOrder", "continuousOutdoor"
         };
         public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)
-        { "siteId", "surfaceId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
+        { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "territoryRegionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
+        public static readonly HashSet<string> SurfaceFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
+        { "flagId", "factionId", "worldX", "worldY", "establishedOrder", "createsWorldSite", "siteDisplayName", "siteType", "coreLevel" };
         public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)
         { "stableId", "siteId", "chunkX", "chunkY", "worldX", "worldY", "worldWidth", "worldHeight", "sourceGridX", "sourceGridY", "sourceCellsW", "sourceCellsH", "kind", "blocksMovement", "boundLocationId", "label", "lootItemId", "spawnTableId", "spawnCount" };
         public static readonly HashSet<string> WorldSitePlaceFields = new HashSet<string>(StringComparer.Ordinal)

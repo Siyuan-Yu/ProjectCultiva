@@ -1,7 +1,7 @@
 <Window x:Class="LocalPlaceEditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="XianXia · 场景地点登记（LocalPlace）" Height="820" Width="1400"
+        Title="LocalPlaceEditor · 室内 / 洞穴地点编辑器" Height="820" Width="1400"
         WindowStartupLocation="CenterScreen">
   <DockPanel Margin="10">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">

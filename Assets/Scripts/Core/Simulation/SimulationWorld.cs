@@ -59,7 +59,7 @@ namespace XianXia.Core.Simulation
             ActiveActions = new Dictionary<ActionId, IAction>();
             Relationships = new RelationshipLedger();
             SocialBonds = new SocialBondBoard();
-            WorldRegion = new WorldRegionBoard();
+            LocalPlaces = new LocalPlaceBoard();
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             SurfaceGround = new SurfaceGroundAuthority();
             SurfaceSpatial = new OutdoorSurfaceSpatialAuthority();
@@ -122,7 +122,7 @@ namespace XianXia.Core.Simulation
         /// <summary>VS0.8 settlement board (session-only; not in Snapshot v1).</summary>
 
         /// <summary>村内地点表（历史名 worldRegion；非正式大世界）。</summary>
-        public WorldRegionBoard WorldRegion { get; }
+        public LocalPlaceBoard LocalPlaces { get; }
 
         /// <summary>Loaded continuous outdoor sites, places and entity presentation membership.</summary>
         public ContinuousOutdoorMaterializationBoard ContinuousOutdoorMaterialization { get; }

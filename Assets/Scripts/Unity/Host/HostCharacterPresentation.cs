@@ -116,7 +116,7 @@ namespace XianXia.Unity.Host
                 return "荒野" + hex;
             }
             if (entity.TryGet<EntityLocationComponent>(out var location) && location.HasLocation &&
-                session.World.WorldRegion.TryGet(location.LocationId, out var place))
+                session.World.LocalPlaces.TryGet(location.LocationId, out var place))
                 return string.IsNullOrEmpty(place.Name) ? place.Id : place.Name;
             return "未知";
         }

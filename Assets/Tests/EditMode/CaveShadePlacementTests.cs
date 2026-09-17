@@ -54,7 +54,7 @@ namespace XianXia.Tests
                 XianXia.Unity.Host.LocalMapVisibility.IsEntityVisible(world, shade.Id),
                 "残影在地表图应不可见");
 
-            Assert.IsTrue(world.WorldRegion.TryGet("base:loc_cave_chamber", out var chamber));
+            Assert.IsTrue(world.LocalPlaces.TryGet("base:loc_cave_chamber", out var chamber));
             Assert.IsTrue(
                 XianXia.Unity.Host.LocalMapVisibility.IsInteriorOnlyLocation(chamber));
             Assert.IsTrue(world.Flags.Has(

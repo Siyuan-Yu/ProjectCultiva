@@ -55,7 +55,6 @@ namespace XianXia.Unity.Host
         static readonly Dictionary<string, List<HostInteractSpot>> DynamicByOwner =
             new Dictionary<string, List<HostInteractSpot>>(System.StringComparer.Ordinal);
         static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
-        static bool _layoutRebuilt;
         static bool _flattenDirty;
         static string _currentOwner = string.Empty;
 
@@ -64,20 +63,6 @@ namespace XianXia.Unity.Host
         /// 是否过期（而不是每帧重算 interact spot）。
         /// </summary>
         public static int LayoutGeneration { get; private set; }
-
-        // 农田／药田已改成 map 上的 grainField／herbField 格，勿再放旧大片绿区上的麦垄／药畦热点。
-        static readonly HostInteractSpot[] LegacyFallback =
-        {
-            new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -34f, 0f, "古树"),
-            new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -32f, -3f, "柴堆"),
-            new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -36f, 2f, "林缘"),
-            new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -30f, 8f, "洞口"),
-            new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -28f, 6f, "矿堆"),
-            new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 27f, -11f, "泉眼"),
-            new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 29f, -13f, "泉畔石"),
-            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Explore, 24f, -14f, "洞口"),
-            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Explore, 26f, -15f, "洞口石径"),
-        };
 
         public static bool HasDynamicPlots
         {
@@ -88,25 +73,13 @@ namespace XianXia.Unity.Host
         public static int LoadedSpotCount => Dynamic.Count;
 
         /// <summary>
-        /// 有动态地块用动态；地图已 Rebuild 但无软热点则空（勿回落 Legacy 麦垄，否则田区周围又变可交互）。
-        /// 仅未 Rebuild 的旧路径才用 Legacy。
+        /// 只返回当前 Surface 或独立 LocalMap 已生成的交互点。
         /// </summary>
         public static IReadOnlyList<HostInteractSpot> GetSpots(SimulationWorld world)
         {
             EnsureFlattened();
             if (Dynamic.Count > 0)
                 return Dynamic;
-            if (_layoutRebuilt)
-                return Empty;
-            if (world?.LocalMap == null || world.WorldRegion == null)
-                return Empty;
-            if (!world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _))
-                return Empty;
-            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
-            if (string.Equals(active, "base:map_ch01_reference", System.StringComparison.Ordinal))
-                return LegacyFallback;
-            if (string.IsNullOrEmpty(active))
-                return LegacyFallback;
             return Empty;
         }
 
@@ -119,7 +92,6 @@ namespace XianXia.Unity.Host
         {
             Dynamic.Clear();
             DynamicByOwner.Clear();
-            _layoutRebuilt = true;
             _flattenDirty = false;
             _currentOwner = string.Empty;
             LayoutGeneration++;

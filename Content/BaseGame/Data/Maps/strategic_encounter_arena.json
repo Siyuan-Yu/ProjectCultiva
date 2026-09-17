@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_strategic_encounter_arena",
+      "type": "mapLayout",
+      "name": "战略遭遇·开阔场地",
+      "originX": -75,
+      "originY": -40,
+      "cellSize": 1,
+      "width": 150,
+      "height": 80,
+      "placements": []
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System.Collections.Generic;
 using XianXia.Core.Bootstrap;
 using XianXia.Core.Domain.Ids;
@@ -128,13 +129,39 @@ namespace XianXia.Data.Bootstrap
             // Optional authored wilderness deployment：initialHex != null 时把
             // FormalArmy 部署到该 Hex（FormalArmy.WorldMotion = Hex authority）。
             // 绝不直接改 stack.CurrentHex / member.WorldPresence 绕过 WorldMotion。
-            if (def.InitialHex != null)
+            if (def.InitialSurfacePosition != null)
+            {
+                var deploy = DeployArmyToInitialSurfacePosition(world, registry, created.Value, def);
+                if (deploy.IsFailure)
+                    return deploy;
+            }
+            else if (def.InitialHex != null)
             {
                 var deploy = DeployArmyToInitialHex(world, created.Value, def);
                 if (deploy.IsFailure)
                     return deploy;
             }
 
+            return Result.Success();
+        }
+
+        static Result DeployArmyToInitialSurfacePosition(
+            SimulationWorld world, DefinitionRegistry registry, FormalArmy army, FormalArmyDefinition def)
+        {
+            var authored = def.InitialSurfacePosition;
+            if (string.IsNullOrWhiteSpace(authored.SurfaceId) ||
+                !registry.TryGetOutdoorSurfaceGeography(authored.SurfaceId, out var geography) ||
+                geography?.Navigation == null ||
+                !geography.Navigation.IsWalkable(authored.WorldX, authored.WorldY))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "formalArmy.initialSurfacePosition must be walkable on the authored Surface.",
+                    def.Id.ToString());
+            var point = new WorldVec2(authored.WorldX, authored.WorldY);
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            FormalArmyContinuousTravelService.InitializeAtWorldPosition(
+                world, army, point, HexMath.WorldToHex(point.X, point.Y, hexSize), authored.SurfaceId);
+            if (world.Strategic.Armies.TryGet(def.RuntimeStackId, out var linked) && linked != null)
+                ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, linked);
             return Result.Success();
         }
 

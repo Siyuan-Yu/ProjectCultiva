@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Persistence;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -13,12 +16,15 @@ using XianXia.Data.Content;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Snapshot Restore 后补全 Content Shell（HexWorld／WorldRegion／PartyWorld），不 respawn Character。
+    /// Snapshot Restore 后补全 Surface、Site、独立 LocalMap 与 PartyWorld；不 respawn Character。
     /// </summary>
     public static class HostSnapshotSessionRehydration
     {
+        public static int LastLegacyAnchorMigrated { get; private set; }
+
         public static Result RehydrateAfterRestore(PlayableHostBootstrap bootstrap)
         {
+            LastLegacyAnchorMigrated = 0;
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return Result.Failure(ErrorCode.InvalidOperation, "Snapshot session is not initialized.");
 
@@ -96,10 +102,15 @@ namespace XianXia.Unity.Host
             }
 
             {
-                var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
-                if (hex.IsFailure)
+                var surfaceSites = StrategicContentBootstrap.ApplySurfaceSites(world, registry, scenario);
+                if (surfaceSites.IsFailure)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "HexWorld snapshot shell rehydrate failed.", hex.Error.ToString());
+                        "Surface Site snapshot shell rehydrate failed.", surfaceSites.Error.ToString());
+
+                var openingMigration = RestoreMissingLegacyOpeningPresences(
+                    world, registry, scenario, politicalSnapshot);
+                if (openingMigration.IsFailure)
+                    return openingMigration;
 
                 var fixedCores = ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(world, registry);
                 if (fixedCores.IsFailure)
@@ -131,14 +142,30 @@ namespace XianXia.Unity.Host
             ResolvePartyWorldFromActiveControlledCharacter(world, session.PlayerParty);
 
             var mapId = world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty;
+            if (mapId == "base:map_world_node_stub")
+            {
+                mapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+                world.PartyWorld.LocalMapId = mapId;
+            }
+            if (IsRetiredOutdoorMapId(mapId))
+            {
+                if (!world.PlayerPartyTravel.HasPosition ||
+                    !world.SurfaceGround.TryResolveContaining(world.PlayerPartyTravel.WorldPosition, out _))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Legacy Outdoor LocalMap cannot be migrated to a valid Surface position.", mapId);
+                world.PartyWorld.ClearSiteFocus();
+                world.PartyWorld.LocalMapId = string.Empty;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                mapId = string.Empty;
+            }
             if (!string.IsNullOrEmpty(mapId))
             {
                 session.PreferredMapLayoutId = mapId;
                 bootstrap.ConfigurePreferredMapLayout(mapId);
-                var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(world, registry, mapId);
+                var places = InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(world, registry, mapId);
                 if (places.IsFailure)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "WorldRegion snapshot shell rehydrate failed.", places.Error.ToString());
+                        "Interior LocalPlace snapshot shell rehydrate failed.", places.Error.ToString());
                 RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
             }
 
@@ -148,8 +175,74 @@ namespace XianXia.Unity.Host
             CharacterEncounterService.BindRuntime(world);
             if (!string.IsNullOrEmpty(mapId))
                 WorldTravelService.ApplyLocalMapSessionFromFocus(world);
+            var presenceInvariant = StrategicSnapshotHelper.ValidateRestoredCharacterWorldPresences(
+                world, politicalSnapshot);
+            if (presenceInvariant.IsFailure)
+                return presenceInvariant;
             session.ConsumePendingRestoredStrategicSnapshot();
             session.RefreshViewableEntityIds();
+            return Result.Success();
+        }
+
+        static bool IsRetiredOutdoorMapId(string mapId) =>
+            !string.IsNullOrEmpty(mapId) &&
+            (mapId == "base:map_ch01_reference" ||
+             mapId == "base:map_player_camp" ||
+             mapId == "base:map_huangcun_01" ||
+             mapId.StartsWith("base:map_site_", System.StringComparison.Ordinal) ||
+             mapId.StartsWith("base:map_wilderness_", System.StringComparison.Ordinal));
+
+        /// <summary>Only a missing saved DTO authorizes old-save opening anchor migration.</summary>
+        static Result RestoreMissingLegacyOpeningPresences(
+            SimulationWorld world, DefinitionRegistry registry, OpeningScenarioDefinition scenario,
+            StrategicSnapshotDto saved)
+        {
+            if (scenario?.Spawns == null || string.IsNullOrWhiteSpace(scenario.OpeningSurfaceId) ||
+                !DefinitionId.TryParse(scenario.OpeningSurfaceId, out var surfaceId) ||
+                !registry.TryGetOutdoorSurface(surfaceId, out var surface) || surface == null)
+                return Result.Success();
+            var savedIds = new HashSet<ulong>();
+            if (saved?.CharacterWorldPresences != null)
+                foreach (var presence in saved.CharacterWorldPresences)
+                    if (presence != null) savedIds.Add(presence.CharacterId);
+            var ordinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var spawn in scenario.Spawns)
+            {
+                if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId)) continue;
+                var definitionId = spawn.DefinitionId.Trim();
+                ordinals.TryGetValue(definitionId, out var ordinal);
+                ordinals[definitionId] = ordinal + 1;
+                var matching = EntityId.None;
+                var matches = 0;
+                foreach (var entity in world.Entities.All)
+                    if (entity != null &&
+                        string.Equals(entity.DefinitionId.ToString(), definitionId, StringComparison.Ordinal))
+                    {
+                        matching = entity.Id;
+                        matches++;
+                    }
+                if (matches == 0) continue; // The old save may have removed this entity.
+                if (matches != 1)
+                {
+                    if (!savedIds.Contains(matching.Value))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Old-save opening spawn identity is ambiguous.", definitionId);
+                    continue;
+                }
+                world.OpeningSpawnIdentities.Register(
+                    matching, OpeningSpawnIdentityBoard.BuildStableKey(definitionId, ordinal));
+                if (savedIds.Contains(matching.Value) ||
+                    world.WorldPresence.TryGet(matching, out _) ||
+                    ArmyService.TryGetArmyForCharacter(world, matching, out _))
+                    continue;
+                if (!ContinuousOpeningSpawnPresenceResolver.TryApply(
+                        world, surface, matching, definitionId, spawn.WorldSiteId, out var failure))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Old-save opening anchor migration failed.", failure);
+                Debug.Log("[SnapshotOpeningAnchorMigrated] Entity=" + matching.Value +
+                          " SpawnKey=" + definitionId);
+                LastLegacyAnchorMigrated++;
+            }
             return Result.Success();
         }
 

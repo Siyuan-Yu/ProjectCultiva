@@ -101,7 +101,7 @@ namespace XianXia.Tests.EditMode
             if (!world.Entities.TryGet(id, out var entity) ||
                 !entity.TryGet<EntityLocationComponent>(out var loc) || loc == null ||
                 !loc.HasLocation ||
-                !world.WorldRegion.TryGet(loc.LocationId, out var location) || location == null)
+                !world.LocalPlaces.TryGet(loc.LocationId, out var location) || location == null)
                 return false;
             px = location.PresentationX + (stackIndex % 3) * 0.85f - 0.85f;
             py = location.PresentationZ + (stackIndex / 3) * 0.85f;

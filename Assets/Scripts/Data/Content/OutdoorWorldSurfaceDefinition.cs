@@ -19,6 +19,7 @@ namespace XianXia.Data.Content
         public bool AcceptanceOnly { get; set; }
         public List<OutdoorSurfaceChunkDefinition> Chunks { get; set; } = new List<OutdoorSurfaceChunkDefinition>();
         public List<WorldSitePhysicalRegionDefinition> SiteRegions { get; set; } = new List<WorldSitePhysicalRegionDefinition>();
+        public List<SurfaceFactionFlagDefinition> FactionFlags { get; set; } = new List<SurfaceFactionFlagDefinition>();
         public List<OutdoorSurfacePlacementDefinition> SitePlacements { get; set; } = new List<OutdoorSurfacePlacementDefinition>();
         public List<WorldSitePlaceDefinition> SitePlaces { get; set; } = new List<WorldSitePlaceDefinition>();
         /// <summary>
@@ -34,8 +35,6 @@ namespace XianXia.Data.Content
     {
         public string StableChunkId { get; set; }
         public SurfaceChunkCoord Coord { get; set; }
-        /// <summary>Legacy authored-source bridge only; it does not mean Chunk equals LocalMap or Hex.</summary>
-        public string SourceMapLayoutId { get; set; }
         public float Width { get; set; }
         public float Height { get; set; }
     }
@@ -44,9 +43,25 @@ namespace XianXia.Data.Content
     {
         public string SiteId { get; set; }
         public string SurfaceId { get; set; }
-        public string SourceLocalMapId { get; set; }
+        public string DisplayName { get; set; }
+        public string SiteType { get; set; }
+        public string OwnerFactionId { get; set; }
+        public string TerritoryRegionId { get; set; }
         public float ArrivalWorldX { get; set; }
         public float ArrivalWorldY { get; set; }
+    }
+
+    public sealed class SurfaceFactionFlagDefinition
+    {
+        public string FlagId { get; set; }
+        public string FactionId { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public long EstablishedOrder { get; set; }
+        public bool CreatesWorldSite { get; set; }
+        public string SiteDisplayName { get; set; }
+        public string SiteType { get; set; }
+        public int CoreLevel { get; set; } = 1;
     }
 
     public sealed class OutdoorSurfacePlacementDefinition

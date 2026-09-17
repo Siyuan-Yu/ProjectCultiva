@@ -49,7 +49,7 @@ public partial class MainWindow:Window
     private UIElement BuildUi()
     {
         var root=new DockPanel{Background=new SolidColorBrush(Color.FromRgb(47,51,58))};
-        var top=new WrapPanel{Margin=new(8)};Add(top,"新建",New);Add(top,"打开",Open);Add(top,"保存",Save);Add(top,"另存为",SaveAs);Add(top,"调整世界尺寸…",ResizeWorld);Add(top,"撤销",Undo);Add(top,"重做",Redo);Add(top,"检查问题",Validate);Add(top,"烘焙连续世界",Bake);Add(top,"导入当前项目世界…",ImportCurrentWorld);Add(top,"导出运行时兼容候选包…",ExportCandidate);Add(top,"发布到当前项目（兼容模式）…",PublishCompatibility);Add(top,"恢复上一次运行时发布…",()=>RestoreCompatibility(false));Add(top,"恢复首次迁移前版本…",()=>RestoreCompatibility(true));Add(top,"刷新引用资源",RefreshLinks);Add(top,"在精细编辑器中打开",OpenInFineEditor);Add(top,"放大",_canvas.ZoomIn);Add(top,"缩小",_canvas.ZoomOut);Add(top,"100%",_canvas.ActualSize);Add(top,"适应窗口",_canvas.Fit);DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
+        var top=new WrapPanel{Margin=new(8)};Add(top,"新建",New);Add(top,"打开",Open);Add(top,"保存",Save);Add(top,"另存为",SaveAs);Add(top,"调整世界尺寸…",ResizeWorld);Add(top,"撤销",Undo);Add(top,"重做",Redo);Add(top,"检查问题",Validate);Add(top,"烘焙连续世界",Bake);Add(top,"导入当前项目世界…",ImportCurrentWorld);Add(top,"导出运行时兼容候选包…",ExportCandidate);Add(top,"发布到当前项目…",PublishCompatibility);Add(top,"恢复上一次运行时发布…",()=>RestoreCompatibility(false));Add(top,"恢复首次迁移前版本…",()=>RestoreCompatibility(true));Add(top,"刷新引用资源",RefreshLinks);Add(top,"在精细编辑器中打开",OpenInFineEditor);Add(top,"放大",_canvas.ZoomIn);Add(top,"缩小",_canvas.ZoomOut);Add(top,"100%",_canvas.ActualSize);Add(top,"适应窗口",_canvas.Fit);DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
         var bottom=new Border{Padding=new(8),Child=_status,Background=Brushes.Black};_status.Foreground=Brushes.White;DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
         var columns=new Grid();columns.ColumnDefinitions.Add(new(){Width=new(190)});columns.ColumnDefinitions.Add(new(){Width=new GridLength(1,GridUnitType.Star)});columns.ColumnDefinitions.Add(new(){Width=new(290)});root.Children.Add(columns);
         var left=new StackPanel{Margin=new(8)};Grid.SetColumn(left,0);columns.Children.Add(left);left.Children.Add(Header("工具"));foreach(var t in Enum.GetValues<ComposerTool>()){var captured=t;Add(left,ToolText(captured),()=>SelectTool(captured));}left.Children.Add(Header("当前工具说明"));left.Children.Add(_help);left.Children.Add(Header("工具选项"));left.Children.Add(_toolOptions);
@@ -150,10 +150,10 @@ public partial class MainWindow:Window
             if(_path==null||_dirty){MessageBox.Show("发布前请先保存当前 WorldComposition。","WorldComposer");return;}
             var contentRoot=FindContentRoot(_path);if(contentRoot==null){MessageBox.Show("无法从当前世界组合路径定位 Content 根目录。","WorldComposer");return;}
             _linked=LinkedSourceLoader.Load(_document,_path);var summary=CompatibilityPublisher.Prepare(_document,_linked,contentRoot);
-            var message=$"当前 Composition：{summary.CompositionId}\nSurface 尺寸：{summary.WidthCells}×{summary.HeightCells}\nChunk 数量：{summary.ChunkCount}\nWater 格：{summary.WaterCells}\nRiver：{summary.RiverCount}\nRoad：{summary.RoadCount}\nBridge：{summary.BridgeCount}\nWorldObject：{summary.WorldObjectCount}\nHuangcun Blueprint 对象：{summary.HuangcunObjectCount}\n\n将替换：\n{summary.MainRuntimePath}\n{summary.GeographyRuntimePath}\n\n备份位置：\n{summary.BackupRoot}\n\n确认发布到当前项目旧 Runtime schema？";
-            if(MessageBox.Show(message,"发布到当前项目（兼容模式）",MessageBoxButton.OKCancel,MessageBoxImage.Warning)!=MessageBoxResult.OK)return;
+            var message=$"当前 Composition：{summary.CompositionId}\nSurface 尺寸：{summary.WidthCells}×{summary.HeightCells}\nChunk 数量：{summary.ChunkCount}\nWater 格：{summary.WaterCells}\nRiver：{summary.RiverCount}\nRoad：{summary.RoadCount}\nBridge：{summary.BridgeCount}\nWorldObject：{summary.WorldObjectCount}\nHuangcun Blueprint 对象：{summary.HuangcunObjectCount}\n\n将替换：\n{summary.MainRuntimePath}\n{summary.GeographyRuntimePath}\n\n备份位置：\n{summary.BackupRoot}\n\n确认发布到当前项目 Runtime Content？";
+            if(MessageBox.Show(message,"发布到当前项目",MessageBoxButton.OKCancel,MessageBoxImage.Warning)!=MessageBoxResult.OK)return;
             CompatibilityPublisher.Publish(_document,_linked,contentRoot);
-            MessageBox.Show("兼容发布完成。当前 Unity Runtime schema 未改变。","WorldComposer");
+            MessageBox.Show("发布完成。请在项目中执行 Content Validation。","WorldComposer");
         }catch(Exception ex){Error(ex);}
     }
     private void RestoreCompatibility(bool original)

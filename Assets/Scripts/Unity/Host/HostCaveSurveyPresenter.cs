@@ -67,7 +67,7 @@ namespace XianXia.Unity.Host
             string nearestHint = null;
             var bestHint = float.MaxValue;
 
-            foreach (var kv in session.World.WorldRegion.Locations)
+            foreach (var kv in session.World.LocalPlaces.Locations)
             {
                 var loc = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
@@ -166,7 +166,7 @@ namespace XianXia.Unity.Host
                     maxSense = probes[i].Sense;
             }
 
-            foreach (var kv in session.World.WorldRegion.Locations)
+            foreach (var kv in session.World.LocalPlaces.Locations)
             {
                 var entrance = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(entrance))
@@ -285,7 +285,7 @@ namespace XianXia.Unity.Host
             }
             else if (entity.TryGet<EntityLocationComponent>(out var loc) &&
                      loc.HasLocation &&
-                     session.World.WorldRegion.TryGet(loc.LocationId, out var place))
+                     session.World.LocalPlaces.TryGet(loc.LocationId, out var place))
             {
                 px = place.PresentationX;
                 pz = place.PresentationZ;
@@ -316,10 +316,10 @@ namespace XianXia.Unity.Host
 
         static int CountRevealedEntrances(PlayableHostSession session)
         {
-            if (session?.World?.WorldRegion?.Locations == null)
+            if (session?.World?.LocalPlaces?.Locations == null)
                 return 0;
             var n = 0;
-            foreach (var kv in session.World.WorldRegion.Locations)
+            foreach (var kv in session.World.LocalPlaces.Locations)
             {
                 if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
                     OpportunityEntranceRules.IsRevealed(session.World, kv.Value))

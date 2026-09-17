@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Content;
@@ -198,7 +199,7 @@ namespace XianXia.Data.Bootstrap
                         string.IsNullOrWhiteSpace(region.SurfaceId)
                             ? surface.SurfaceId : region.SurfaceId,
                         region.SiteId,
-                        new XianXia.Core.World.Hex.WorldVec2(
+                        new XianXia.Core.World.WorldVec2(
                             region.ArrivalWorldX, region.ArrivalWorldY));
                 }
             }

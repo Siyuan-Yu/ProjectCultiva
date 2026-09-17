@@ -124,10 +124,10 @@ namespace XianXia.Tests
         {
             if (engaged == null || engaged.Count == 0)
                 return;
-            var startId = world.WorldRegion.StartLocationId;
+            var startId = world.LocalPlaces.StartLocationId;
             WorldLocationState startLoc = null;
             var hasStart = !string.IsNullOrEmpty(startId) &&
-                           world.WorldRegion.TryGet(startId, out startLoc);
+                           world.LocalPlaces.TryGet(startId, out startLoc);
             for (var i = 0; i < engaged.Count; i++)
             {
                 var id = engaged[i];

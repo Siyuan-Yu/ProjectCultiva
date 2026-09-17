@@ -31,14 +31,6 @@ namespace XianXia.Unity.Host
             foreach (var kv in session.Registry.MapLayouts)
             {
                 layout = kv.Value;
-                if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
-                    kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    return true;
-            }
-
-            foreach (var kv in session.Registry.MapLayouts)
-            {
-                layout = kv.Value;
                 return layout != null;
             }
 

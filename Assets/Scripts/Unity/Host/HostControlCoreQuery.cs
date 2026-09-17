@@ -185,7 +185,7 @@ namespace XianXia.Unity.Host
             }
 
             // Fallback: location presentation + soft radius (legacy／no placement).
-            if (!world.WorldRegion.TryGet(core.LocationId, out var loc))
+            if (!world.LocalPlaces.TryGet(core.LocationId, out var loc))
                 return false;
             var r = ControlCoreService.DefaultStandRadius;
             if (world.TryGetWorkArea(core.WorkAreaId, out var area))

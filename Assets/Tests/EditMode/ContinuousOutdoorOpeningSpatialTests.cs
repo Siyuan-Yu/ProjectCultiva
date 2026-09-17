@@ -17,11 +17,7 @@ namespace XianXia.Tests.EditMode
 {
     /// <summary>
     /// NewGame Continuous Outdoor Opening Spatial Placement（§17 A–G）。
-    ///
-    /// 制作人复验 blocker：Expected=17 Materialized=17 Views=17 但几乎看不到人。
-    /// 根因（已用真实内容实测）：12 名 opening entity 的 LocationId 全部退化为同一个
-    /// <c>base:loc_ref_labor_yard</c>，materialize 命中同一个 baked SitePlace 中心 →
-    /// 12 人精确重合（且相同 PresentationOverride 绕过 EntityViewSpawner 的 stack 分散）。
+    /// Verifies checked-in Surface opening anchors and materialized positions remain distinct.
     /// </summary>
     public sealed class ContinuousOutdoorOpeningSpatialTests
     {
@@ -103,10 +99,11 @@ namespace XianXia.Tests.EditMode
             var locationId = entity.TryGet<EntityLocationComponent>(out var loc) && loc != null
                 ? loc.LocationId ?? string.Empty
                 : string.Empty;
+            Assert.IsTrue(world.OpeningSpawnIdentities.TryGetSpawnKey(id, out var spawnKey));
             source = ContinuousOutdoorOpeningAnchorResolver.ResolveInitialPlacement(
                 surface,
                 siteId,
-                entity.DefinitionId.ToString(),
+                spawnKey,
                 locationId,
                 false,
                 0f,
@@ -132,11 +129,10 @@ namespace XianXia.Tests.EditMode
 
         // ---------------------------------------------------------------- A
         /// <summary>
-        /// §4/§5：Continuous Outdoor Site 的 opening presence 只表达 Site membership。
-        /// legacy LocalPosition（spawn.localPosition）不得再变成 Normal NewGame 的位置权威。
+        /// §4/§5：Continuous Outdoor opening presence uses the checked-in Surface anchor.
         /// </summary>
         [Test]
-        public void A_OpeningPresenceOnContinuousSiteCarriesNoLegacyDerivedAnchor()
+        public void A_OpeningPresenceUsesCheckedInSurfaceAnchor()
         {
             var boot = Boot();
             var world = boot.World;
@@ -147,14 +143,14 @@ namespace XianXia.Tests.EditMode
             Assert.IsTrue(world.WorldPresence.TryGet(id, out var presence));
             Assert.AreEqual(PartyWorldPresenceMode.AtSite, presence.Mode);
             Assert.AreEqual(ChengzhenSiteId, presence.SiteId);
-            Assert.IsFalse(presence.HasContinuousWorldPosition,
-                "§5：Normal Continuous NewGame 不得把 legacy LocalMap LocalPosition 写进 " +
-                "WorldPresence.HasContinuousWorldPosition");
-
-            // 且 materialize 不会把它当成 RuntimePreciseAnchor 使用。
+            Assert.IsTrue(presence.HasContinuousWorldPosition,
+                "Normal NewGame must use its checked-in Surface anchor");
+            Assert.AreEqual(SurfaceId, presence.PersonalSurfaceId);
             var surface = Surface(boot.Registry);
-            ResolveMaterializeTarget(world, surface, id, ChengzhenSiteId, out var source);
-            Assert.AreNotEqual(OpeningInitialPlacementSource.RuntimePreciseAnchor, source);
+            var target = ResolveMaterializeTarget(world, surface, id, ChengzhenSiteId, out var source);
+            Assert.AreEqual(OpeningInitialPlacementSource.BakedOpeningEntityAnchor, source);
+            Assert.AreEqual(target.X, presence.WorldPosX, 1e-5f);
+            Assert.AreEqual(target.Y, presence.WorldPosY, 1e-5f);
         }
 
         // ---------------------------------------------------------------- B
@@ -272,10 +268,12 @@ namespace XianXia.Tests.EditMode
             var boot = Boot();
             var surface = Surface(boot.Registry);
 
+            var companionId = FindByDefinition(boot.World, CompanionADefinitionId);
+            Assert.IsTrue(boot.World.OpeningSpawnIdentities.TryGetSpawnKey(companionId, out var companionKey));
             var source = ContinuousOutdoorOpeningAnchorResolver.ResolveInitialPlacement(
                 surface,
                 SiteId,
-                CompanionADefinitionId,
+                companionKey,
                 LaborYardLocationId,
                 hasRuntimeAnchor: true,
                 runtimeX: 20f,
@@ -292,11 +290,11 @@ namespace XianXia.Tests.EditMode
 
             // 正对照：真的落在 envelope 内的 runtime anchor 仍优先（§9 第一级不被削弱）。
             Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.TryGetBakedEntityAnchor(
-                surface, SiteId, CompanionADefinitionId, out var baked));
+                surface, SiteId, companionKey, out var baked));
             var accepted = ContinuousOutdoorOpeningAnchorResolver.ResolveInitialPlacement(
                 surface,
                 SiteId,
-                CompanionADefinitionId,
+                companionKey,
                 LaborYardLocationId,
                 hasRuntimeAnchor: true,
                 runtimeX: baked.X,
@@ -343,67 +341,38 @@ namespace XianXia.Tests.EditMode
         }
 
         // ---------------------------------------------------------------- G
-        /// <summary>§6/§7：place slot anchor 是确定性且互不重合的（同一 bake 来源，无随机／时间）。</summary>
+        /// <summary>Checked-in Surface opening anchors are stable and distinct.</summary>
         [Test]
-        public void G_PlaceSlotAnchorsAreDeterministicAndDistinct()
+        public void G_CheckedInOpeningAnchorsAreDeterministicAndDistinct()
         {
             var boot = Boot();
             var world = boot.World;
             var surface = Surface(boot.Registry);
-            Assert.IsTrue(world.Strategic.Sites.TryGet(SiteId, out var site), "huangcun site missing");
-            Assert.IsTrue(ContinuousOutdoorStartupPlanner.TryResolveSiteSourceLayout(
-                boot.Registry, surface, SiteId, out var sourceLayout, out var layoutFailure), layoutFailure);
-            Assert.IsTrue(world.WorldRegion.TryGet(LaborYardLocationId, out var laborYard));
-            var placeLocal = new WorldVec2(laborYard.PresentationX, laborYard.PresentationZ);
-            var hexSize = world.HexWorld.HexSize;
-            var sourceBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                sourceLayout.OriginX, sourceLayout.OriginY, sourceLayout.CellSize,
-                sourceLayout.Width, sourceLayout.Height);
-
-            var first = new List<string>();
-            var second = new List<string>();
-            for (var slot = 0; slot < 15; slot++)
+            Assert.IsTrue(world.Strategic.Sites.TryGet(SiteId, out var site));
+            var population = SitePopulation(world, SiteId);
+            var first = new List<OpeningPlacementPlanRow>();
+            var second = new List<OpeningPlacementPlanRow>();
+            Assert.IsTrue(ContinuousOutdoorOpeningPlacementResolver.TryBuildPlan(
+                world, boot.Registry, surface, site, population, first, out var firstFailure), firstFailure);
+            Assert.IsTrue(ContinuousOutdoorOpeningPlacementResolver.TryBuildPlan(
+                world, boot.Registry, surface, site, population, second, out var secondFailure), secondFailure);
+            Assert.AreEqual(first.Count, second.Count);
+            var seen = new HashSet<string>();
+            for (var i = 0; i < first.Count; i++)
             {
-                Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.TryComputePlaceSlotAnchor(
-                    surface, site.OccupiedHexes, hexSize, sourceLayout, placeLocal,
-                    LaborYardLocationId, slot, out var anchor, out var usedExtent), "slot " + slot);
-                Assert.IsTrue(usedExtent, "labor_yard 有 authored placements，必须走 extent 布局");
-                Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.IsInsideSiteBakedEnvelope(
-                    surface, SiteId, anchor.X, anchor.Y));
-                first.Add(anchor.X.ToString("F6") + "|" + anchor.Y.ToString("F6"));
-
-                Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.TryComputePlaceSlotAnchor(
-                    surface, site.OccupiedHexes, hexSize, sourceLayout, placeLocal,
-                    LaborYardLocationId, slot, out var again, out _));
-                Assert.AreEqual(anchor.X, again.X);
-                Assert.AreEqual(anchor.Y, again.Y);
-                second.Add(again.X.ToString("F6") + "|" + again.Y.ToString("F6"));
+                Assert.AreEqual(first[i].EntityId, second[i].EntityId);
+                Assert.AreEqual(first[i].SpawnKey, second[i].SpawnKey);
+                Assert.AreEqual(first[i].BakedWorldPosition, second[i].BakedWorldPosition);
+                if (string.IsNullOrEmpty(first[i].SpawnKey)) continue;
+                Assert.IsTrue(first[i].HasCheckedInAnchor, first[i].FailureReason);
+                Assert.IsTrue(seen.Add(first[i].BakedWorldPosition.ToString()),
+                    "opening anchors must be distinct");
             }
-
-            Assert.AreEqual(first, second, "slot anchor 必须是纯函数（同输入同输出）");
-            Assert.AreEqual(first.Count, first.Distinct().Count(), "不同 slot 必须给出不同落点");
-
-            // slot 0 恒为该 location 的 authored presentation 经 shared bake 的结果
-            // （不再退化成「placement 中心包围盒网格的某个角」）。
-            Assert.IsTrue(WorldSiteOutdoorBakeTransform.TryBake(
-                site.OccupiedHexes, hexSize, sourceBounds, placeLocal, out var expectedSlotZero));
-            Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.TryComputePlaceSlotAnchor(
-                surface, site.OccupiedHexes, hexSize, sourceLayout, placeLocal,
-                LaborYardLocationId, 0, out var slotZero, out _));
-            Assert.AreEqual(expectedSlotZero.X, slotZero.X, 1e-5f,
-                "§3：slot 0 必须是 authored source LocalPosition 经共享 bake 的结果");
-            Assert.AreEqual(expectedSlotZero.Y, slotZero.Y, 1e-5f);
-
-            // 相邻 slot 的间距至少接近设定步长（保证精灵不重叠）。
-            var spacing = WorldSiteOutdoorOpeningAnchorBake.SlotSpacingSourceCells * sourceLayout.CellSize;
-            Assert.IsTrue(ContinuousOutdoorOpeningAnchorResolver.TryComputePlaceSlotAnchor(
-                surface, site.OccupiedHexes, hexSize, sourceLayout, placeLocal,
-                LaborYardLocationId, 1, out var a1, out _));
-            var distance = Math.Sqrt(
-                (slotZero.X - a1.X) * (slotZero.X - a1.X) +
-                (slotZero.Y - a1.Y) * (slotZero.Y - a1.Y));
-            Assert.Greater(distance, 0f);
-            Assert.Greater(spacing, 0f);
+            Assert.Greater(seen.Count, 0);
+            Assert.AreEqual(OpeningAnchorBakeValidationOutcome.Validated,
+                ContinuousOutdoorOpeningPlacementResolver.ValidateBakedAnchors(
+                    world, boot.Registry, surface, site, population, first, out var validationFailure),
+                validationFailure);
         }
     }
 }

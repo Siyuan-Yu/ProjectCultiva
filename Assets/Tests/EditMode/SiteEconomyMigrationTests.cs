@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.IO;
 using System.Linq;
@@ -109,7 +110,7 @@ namespace XianXia.Tests
             Assert.IsTrue(restored.IsSuccess, restored.IsFailure ? restored.Error.ToString() : "");
             Assert.IsTrue(RuntimeContentShellBootstrap.Rehydrate(restored.Value.world, registry).IsSuccess);
             registry.TryGetOpeningScenario(DefinitionId.Parse("base:scenario_ch01_reference").Value, out var scenario);
-            Assert.IsTrue(HexStrategicMapContentBootstrap.TryApplyToSession(
+            Assert.IsTrue(LegacyHexStrategicMapContentAdapter.TryApplyToSession(
                 restored.Value.world, registry, scenario).IsSuccess);
             Assert.IsTrue(ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(
                 restored.Value.world, registry).IsSuccess);

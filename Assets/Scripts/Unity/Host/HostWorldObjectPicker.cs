@@ -165,7 +165,7 @@ namespace XianXia.Unity.Host
                     continue;
                 if (string.IsNullOrEmpty(area.LocationId) ||
                     (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) &&
-                     !world.WorldRegion.TryGet(area.LocationId, out loc))) continue;
+                     !world.LocalPlaces.TryGet(area.LocationId, out loc))) continue;
                 float distance;
                 if (HostFarmFieldRules.IsFarmTaggedWorkArea(area))
                 {

@@ -129,6 +129,57 @@ namespace XianXia.Unity.Host
             return _instances[instanceKey];
         }
 
+        /// <summary>Materialize only the loaded 50x50 partition from the published terrain cache.</summary>
+        public SurfacePresentationInstance BuildContinuousSurfaceChunkInstance(
+            string instanceKey, ContinuousSurfaceWorldMapDefinition terrain,
+            OutdoorSurfaceCoordinateMapper mapper, SurfaceChunkCoord chunk)
+        {
+            if (terrain == null || mapper == null)
+                throw new System.ArgumentNullException(terrain == null ? nameof(terrain) : nameof(mapper));
+            RemoveLayoutInstance(instanceKey);
+            BeginInstanceBuild(instanceKey, null, Vector2.zero);
+            mapper.ChunkLocalToWorld(chunk, 0f, 0f, out var left, out var bottom);
+            mapper.WorldToPresentation(left, bottom, out var px, out var py);
+            var width = Mathf.RoundToInt(mapper.ChunkWidth / terrain.CellSize);
+            var height = Mathf.RoundToInt(mapper.ChunkHeight / terrain.CellSize);
+            var startX = Mathf.RoundToInt((left - terrain.OriginWorldX) / terrain.CellSize);
+            var startY = Mathf.RoundToInt((bottom - terrain.OriginWorldY) / terrain.CellSize);
+            var presentationCell = terrain.CellSize * mapper.PresentationUnitsPerWorldUnit;
+            if (stampGrassGround && TryResolveCompactGrassTemplate())
+                BuildCompactGrassGround(px, py, width, height, presentationCell);
+            else
+                PlaceZoneOverlay(px + width * presentationCell * .5f,
+                    py + height * presentationCell * .5f, "plain_" + chunk,
+                    width * presentationCell, height * presentationCell,
+                    new Color(.30f, .42f, .26f, .98f));
+            // Merge adjacent cells of the same authored terrain into one presentation rectangle.
+            for (var y = 0; y < height; y++)
+            {
+                var terrainRow = terrain.BaseTerrainRows[startY + y];
+                var forestRow = terrain.ForestRows[startY + y];
+                var x = 0;
+                while (x < width)
+                {
+                    var kind = terrainRow[startX + x];
+                    var forest = forestRow[startX + x];
+                    var end = x + 1;
+                    while (end < width && terrainRow[startX + end] == kind && forestRow[startX + end] == forest)
+                        end++;
+                    Color color;
+                    if (kind == 'M') color = new Color(.39f, .39f, .35f, .94f);
+                    else if (kind == 'W') color = new Color(.13f, .39f, .66f, .86f);
+                    else if (forest != '0') color = new Color(.11f, .29f, .13f, .48f + (forest - '0') * .035f);
+                    else { x = end; continue; }
+                    PlaceZoneOverlay(px + (x + end) * .5f * presentationCell,
+                        py + (y + .5f) * presentationCell,
+                        "terrain_" + chunk + "_" + y + "_" + x,
+                        (end - x) * presentationCell, presentationCell, color);
+                    x = end;
+                }
+            }
+            return EndInstanceBuild();
+        }
+
         /// <summary>
         /// Builds baked outdoor placements directly from physical rectangles plus authored-cell
         /// semantics. This path never converts physical precision into a fake MapPlacement grid.
@@ -740,10 +791,10 @@ namespace XianXia.Unity.Host
         {
             if (p == null || string.IsNullOrWhiteSpace(p.BoundLocationId))
                 return false;
-            if (_session?.World?.WorldRegion == null)
+            if (_session?.World?.LocalPlaces == null)
                 return false;
             if (!_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(p.BoundLocationId, out var loc) &&
-                !_session.World.WorldRegion.TryGet(p.BoundLocationId, out loc))
+                !_session.World.LocalPlaces.TryGet(p.BoundLocationId, out loc))
                 return false;
             if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                 return false;

@@ -42,7 +42,7 @@ namespace XianXia.Unity.Host
         static bool TryFindHouses(PlayableHostSession session, out WorldLocationState houses)
         {
             houses = null;
-            foreach (var kv in session.World.WorldRegion.Locations)
+            foreach (var kv in session.World.LocalPlaces.Locations)
             {
                 if (kv.Key.Contains("house") || (kv.Value.Name != null && kv.Value.Name.Contains("房屋")))
                 {

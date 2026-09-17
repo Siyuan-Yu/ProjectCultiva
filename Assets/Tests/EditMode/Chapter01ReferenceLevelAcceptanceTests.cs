@@ -35,10 +35,10 @@ namespace XianXia.Tests
             Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
 
             var world = started.Value.World;
-            Assert.AreEqual(8, world.WorldRegion.Locations.Count);
-            Assert.IsTrue(world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _));
-            Assert.IsTrue(world.WorldRegion.TryGet("base:loc_ref_cave", out _));
-            Assert.IsTrue(world.WorldRegion.TryGet("base:loc_ref_road_hub", out _));
+            Assert.AreEqual(8, world.LocalPlaces.Locations.Count);
+            Assert.IsTrue(world.LocalPlaces.TryGet("base:loc_ref_labor_yard", out _));
+            Assert.IsTrue(world.LocalPlaces.TryGet("base:loc_ref_cave", out _));
+            Assert.IsTrue(world.LocalPlaces.TryGet("base:loc_ref_road_hub", out _));
 
             Assert.AreEqual("base:chapter_ch01_reference", world.Chapters.ActiveChapterId);
             Assert.IsTrue(world.Flags.Has("story:ch01_ref_started"));

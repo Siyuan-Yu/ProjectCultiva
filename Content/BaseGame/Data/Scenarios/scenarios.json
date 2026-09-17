@@ -6,7 +6,7 @@
       "type": "openingScenario",
       "name": "可玩日开局",
       "scheduleId": "base:playable_labor_day",
-      "openingWorldRegionId": "base:region_qingshi",
+      "openingSurfaceId": "base:surface_main_wilderness_v1",
       "openingChapterId": "base:chapter_scaffold_01",
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
@@ -90,7 +90,7 @@
       "type": "openingScenario",
       "name": "第一章生存 Harness",
       "scheduleId": "base:playable_labor_day",
-      "openingWorldRegionId": "base:region_qingshi",
+      "openingSurfaceId": "base:surface_main_wilderness_v1",
       "openingChapterId": "base:chapter_ch01_shell",
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
@@ -170,8 +170,7 @@
       "type": "openingScenario",
       "name": "第一章参考关开局",
       "scheduleId": "base:playable_labor_day",
-      "openingLocalPlaceSetId": "base:places_ch01_reference",
-      "openingHexWorldId": "base:hex_world_travel_mvp_30x15",
+      "openingSurfaceId": "base:surface_main_wilderness_v1",
       "openingChapterId": "base:chapter_ch01_reference",
       "initialFormalArmyIds": [
         "base:formal_army_bandit_patrol",

@@ -24,25 +24,25 @@ namespace XianXia.Tests
 
         static void RegisterSampleWorkAreas(SimulationWorld world)
         {
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_field",
                 Name = "药田",
                 Kind = LocationKind.Wild
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_home",
                 Name = "房屋",
                 Kind = LocationKind.Village
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_hub",
                 Name = "枢纽",
                 Kind = LocationKind.Village
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_mine",
                 Name = "矿洞",
@@ -236,7 +236,7 @@ namespace XianXia.Tests
                 ResidentTags = { "mortal" },
                 Tags = { "home" }
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_home",
                 Name = "房屋",
@@ -468,7 +468,7 @@ namespace XianXia.Tests
 
             var world = started.Value.World;
             Assert.IsTrue(world.TryGetWorkArea("base:workarea_mine", out _));
-            Assert.IsTrue(world.WorldRegion.TryGet("base:loc_ref_herb_field", out var herbLoc));
+            Assert.IsTrue(world.LocalPlaces.TryGet("base:loc_ref_herb_field", out var herbLoc));
             Assert.Contains("herb", herbLoc.Tags);
 
             var withTendency = 0;

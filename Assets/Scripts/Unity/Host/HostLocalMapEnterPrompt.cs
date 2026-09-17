@@ -426,7 +426,7 @@ namespace XianXia.Unity.Host
             place = null;
             return session?.World != null &&
                    (session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(locationId, out place) ||
-                    session.World.WorldRegion.TryGet(locationId, out place));
+                    session.World.LocalPlaces.TryGet(locationId, out place));
         }
 
         string ResolveName(EntityId id)

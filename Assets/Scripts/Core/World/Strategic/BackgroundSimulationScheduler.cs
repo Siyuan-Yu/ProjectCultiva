@@ -44,7 +44,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (elapsedSimulationTicks == 0)
                 return 0f;
-            return PlayerPartyHexTravelService.WorldUnitsPerTick(hexSize) * elapsedSimulationTicks;
+            return PlayerPartyTravelRuntimeService.WorldUnitsPerTick(hexSize) * elapsedSimulationTicks;
         }
 
         public static int ResolveTravelBucket(EntityId characterId) =>

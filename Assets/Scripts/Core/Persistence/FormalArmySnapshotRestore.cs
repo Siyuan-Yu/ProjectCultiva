@@ -33,13 +33,14 @@ namespace XianXia.Core.Persistence
                 return Invalid(dto, "unknown LocationKind");
 
             var current = new HexCoord(dto.CurrentHexQ, dto.CurrentHexR);
-            if (world.HexWorld == null || !world.HexWorld.IsInBounds(current.Q, current.R))
+            var surfaceRuntime = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world);
+            if (!surfaceRuntime && (world.HexWorld == null || !world.HexWorld.IsInBounds(current.Q, current.R)))
                 return Invalid(dto, "CurrentHex is out of bounds");
             if (dto.HexPath != null)
                 for (var i = 0; i < dto.HexPath.Count; i++)
                 {
                     var p = dto.HexPath[i];
-                    if (p == null || !world.HexWorld.IsInBounds(p.Q, p.R))
+                    if (p == null || (!surfaceRuntime && !world.HexWorld.IsInBounds(p.Q, p.R)))
                         return Invalid(dto, "HexPath contains an invalid coordinate at index " + i);
                 }
             var pathCount = dto.HexPath?.Count ?? 0;
@@ -78,8 +79,9 @@ namespace XianXia.Core.Persistence
                 if (!IsFinite(dto.SiteDepartureVirtualX) || !IsFinite(dto.SiteDepartureVirtualY) ||
                     !IsFinite(dto.SiteDepartureBoundaryX) || !IsFinite(dto.SiteDepartureBoundaryY))
                     return Invalid(dto, "site departure position is not finite");
-                if (!world.HexWorld.IsInBounds(dto.SiteDepartureFootprintQ, dto.SiteDepartureFootprintR) ||
-                    !world.HexWorld.IsInBounds(dto.SiteDepartureExitQ, dto.SiteDepartureExitR))
+                if (!surfaceRuntime &&
+                    (!world.HexWorld.IsInBounds(dto.SiteDepartureFootprintQ, dto.SiteDepartureFootprintR) ||
+                     !world.HexWorld.IsInBounds(dto.SiteDepartureExitQ, dto.SiteDepartureExitR)))
                     return Invalid(dto, "site departure footprint/exit is out of bounds");
             }
             return Result.Success();
@@ -96,6 +98,48 @@ namespace XianXia.Core.Persistence
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var motion = army.WorldMotion;
             var currentHex = new HexCoord(dto.CurrentHexQ, dto.CurrentHexR);
+            var surfaceRuntime = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world);
+            var isSurfaceRoute = dto.RouteKind == (int)FormalArmyRouteKind.SurfaceGround ||
+                                 dto.RouteKind == (int)FormalArmyRouteKind.SurfacePending ||
+                                 dto.RouteKind == (int)FormalArmyRouteKind.SurfaceFailed;
+            if (surfaceRuntime && !isSurfaceRoute)
+            {
+                var currentPosition = new WorldVec2(dto.WorldX, dto.WorldY);
+                if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldSite &&
+                    (dto.WorldX == 0f && dto.WorldY == 0f) &&
+                    world.Strategic.Sites.TryGet(dto.SiteId, out var currentSite) &&
+                    currentSite != null && currentSite.HasCoreWorldPosition)
+                    currentPosition = new WorldVec2(currentSite.CoreWorldX, currentSite.CoreWorldY);
+                if (dto.LocationKind == 0 ||
+                    !world.SurfaceGround.TryResolveContaining(currentPosition, out _))
+                {
+                    HexMath.ToWorldPosition(currentHex, 1f, out var x, out var y);
+                    currentPosition = new WorldVec2(x, y);
+                }
+                if (!world.SurfaceGround.TryResolveContaining(currentPosition, out _))
+                    return Invalid(dto, "legacy army position has no current Surface coverage");
+                var currentSurfaceId = dto.SurfaceId;
+                if (string.IsNullOrWhiteSpace(currentSurfaceId) &&
+                    world.SurfaceGround.TryResolveContaining(currentPosition, out var currentSurface))
+                    currentSurfaceId = currentSurface.SurfaceId;
+                motion.SetAtWorldPosition(currentPosition, currentHex, currentSurfaceId);
+                if (!string.IsNullOrWhiteSpace(dto.DestinationSiteId) &&
+                    dto.HexPath != null && dto.HexPath.Count >= 2)
+                    FormalArmyContinuousTravelService.MoveArmyToWorldSite(
+                        world, army.ArmyId, dto.DestinationSiteId);
+                else if (dto.HexPath != null && dto.HexPath.Count >= 2)
+                {
+                    HexMath.ToWorldPosition(new HexCoord(dto.DestinationHexQ, dto.DestinationHexR),
+                        1f, out var x, out var y);
+                    var destination = new WorldVec2(x, y);
+                    if (world.SurfaceGround.TryResolveContaining(destination, out _))
+                        FormalArmyContinuousTravelService.MoveArmyToWorldPosition(
+                            world, army.ArmyId, destination);
+                }
+                army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army, preservePersonalPositions: true);
+                return Result.Success();
+            }
             if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldSite)
             {
                 world.Strategic.Sites.TryGet(dto.SiteId, out var site);
@@ -106,7 +150,8 @@ namespace XianXia.Core.Persistence
             else if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldPosition)
             {
                 // LocationKind 是 field authority；(0,0) 是合法连续世界坐标。
-                motion.SetAtWorldPosition(new WorldVec2(dto.WorldX, dto.WorldY), currentHex);
+                motion.SetAtWorldPosition(new WorldVec2(dto.WorldX, dto.WorldY), currentHex,
+                    dto.SurfaceId);
             }
             else if (world.Strategic.Sites.TryGetAtHex(currentHex, out var legacySite) && legacySite != null)
             {

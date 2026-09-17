@@ -989,7 +989,7 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.Build(world);
             Assert.IsTrue(world.Strategic.Sites.TryGet(
-                HexStrategicSessionBootstrap.DefaultStartSiteId, out var site));
+                PlayableDayBootstrap.DefaultStartSiteId, out var site));
 
             // ApplyOpening 依赖 party 实体；此处用同等开局契约：Presence + EnterWorldSite → AtWorldSite。
             var a = Spawn(world, "LinQing");
@@ -1000,7 +1000,7 @@ namespace XianXia.Tests
 
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
             Assert.AreNotEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
-            Assert.AreEqual(HexStrategicSessionBootstrap.DefaultStartSiteId, world.PlayerPartyTravel.SiteId);
+            Assert.AreEqual(PlayableDayBootstrap.DefaultStartSiteId, world.PlayerPartyTravel.SiteId);
             Assert.AreEqual(site.PresenceHex, world.PlayerPartyTravel.CurrentHex);
         }
 

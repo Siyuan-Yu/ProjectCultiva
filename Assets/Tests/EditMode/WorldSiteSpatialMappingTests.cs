@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.World.Hex;

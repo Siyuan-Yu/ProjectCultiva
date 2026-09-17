@@ -118,7 +118,7 @@ namespace XianXia.Unity.Host
             var place = "当前位置";
             if (entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
                 loc.HasLocation &&
-                bootstrap.Session.World.WorldRegion.TryGet(loc.LocationId, out var site) &&
+                bootstrap.Session.World.LocalPlaces.TryGet(loc.LocationId, out var site) &&
                 !string.IsNullOrEmpty(site.Name))
                 place = site.Name;
 

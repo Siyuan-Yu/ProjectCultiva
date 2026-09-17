@@ -59,6 +59,9 @@ namespace XianXia.Unity.Host
         ulong _observedDestructibleTopologyRevision;
         bool _dynamicNavigationDirty;
         SimulationWorld _legacyOutdoorRestoreMigrationWorld;
+        SimulationWorld _snapshotRestoredWorld;
+        bool _isSnapshotPresentationRebuild;
+        readonly HashSet<EntityId> _newlyMaterializedEntities = new HashSet<EntityId>();
         PlayableHostBootstrap _bootstrap;
         HostDemoTileMap _tileMap;
         OutdoorSurfaceCoordinateMapper _mapper;
@@ -104,9 +107,6 @@ namespace XianXia.Unity.Host
         WorldVec2 _blockedFrom, _blockedCandidate;
         public string LastMovementDiagnostic { get; private set; } = string.Empty;
         public string SurfaceEgressStatus { get; private set; } = "None";
-        public HexCoord NextOutsideHex { get; private set; }
-        public string NextOutsideTerrain { get; private set; } = string.Empty;
-        public bool NextOutsidePassable { get; private set; }
         public bool IsActive { get; private set; }
         public string ActiveSurfaceId => IsActive ? _surfaceId : string.Empty;
         public SurfaceChunkCoord CurrentChunk { get; private set; }
@@ -127,6 +127,7 @@ namespace XianXia.Unity.Host
         /// <summary>最近一次 materialize pass 中，把「已存在的 view」重新对齐到权威落点的数量。
         /// 非 0 即说明存在「materialize 之前就建好的 view」被 legacy 回退位置滞留。</summary>
         public int RealignedViewCount { get; private set; }
+        public string SnapshotSpatialSummary { get; private set; } = string.Empty;
 
         /// <summary>§5 bake validation：opening spawn 的 checked-in anchor 是否与 shared bake 一致。</summary>
         public bool OpeningAnchorBakeValid =>
@@ -219,10 +220,12 @@ namespace XianXia.Unity.Host
         public bool CommitContinuousNpcPosition(EntityId id, Vector3 presentationPosition)
         {
             var world = _bootstrap?.Session?.World;
-            if (!IsActive || world == null || _mapper == null ||
+            if (_isSnapshotPresentationRebuild || !IsActive || world == null || _mapper == null ||
                 !ReferenceEquals(_navigationStateWorld, world) ||
                 !world.WorldPresence.TryGet(id, out var presence) || presence == null ||
-                presence.Mode == PartyWorldPresenceMode.InEncounter || world.LocalMap.IsInInterior)
+                (presence.Mode != PartyWorldPresenceMode.AtSite &&
+                 presence.Mode != PartyWorldPresenceMode.AtWorldPosition) ||
+                world.LocalMap.IsInInterior || !IsPersonalPositionCaptureOwner(world, id))
                 return false;
             _mapper.PresentationToWorld(
                 presentationPosition.x, presentationPosition.y, out var worldX, out var worldY);
@@ -295,12 +298,9 @@ namespace XianXia.Unity.Host
                    " StrategicPassable=" + (tile != null && tile.IsPassable) + " StrategicIsRoad=" + (tile != null && tile.IsRoad) +
                    "\nSurfaceCoverageContainsWorldPosition=" + covered + " MovementContext=" + context +
                    "\nSurfaceEgressStatus=" + SurfaceEgressStatus +
-                   " NextOutsideHex=" + NextOutsideHex +
-                   " NextOutsideTerrain=" + NextOutsideTerrain +
-                   " NextOutsidePassable=" + NextOutsidePassable +
                    "\nCurrentWorldSiteGateway=DisabledForOutdoorMigration" +
                    " WorldSiteIngressStatus=" + LastMovementDiagnostic +
-                   " LocalPlacesContext=" + (string.IsNullOrEmpty(_bootstrap?.Session?.World?.WorldRegion?.ActiveMapLayoutId) ? "ContinuousEmpty" : _bootstrap.Session.World.WorldRegion.ActiveMapLayoutId) +
+                   " LocalPlacesContext=" + (string.IsNullOrEmpty(_bootstrap?.Session?.World?.LocalPlaces?.ActiveMapLayoutId) ? "ContinuousEmpty" : _bootstrap.Session.World.LocalPlaces.ActiveMapLayoutId) +
                    "\nFormalArmyNearField=" + DescribeFormalArmyNearField(definition) +
                    "\nLastMovementDiagnostic=" + LastMovementDiagnostic;
         }
@@ -515,18 +515,29 @@ namespace XianXia.Unity.Host
         public int CaptureCurrentPersonalPlacements()
         {
             var world = _bootstrap?.Session?.World;
-            if (!IsActive || !ReferenceEquals(_navigationStateWorld, world) ||
+            if (_isSnapshotPresentationRebuild || !IsActive || !ReferenceEquals(_navigationStateWorld, world) ||
                 world == null || world.LocalMap.IsInInterior ||
                 world.Strategic.ContinuousManualCombat.IsActive)
                 return 0;
             var count = 0;
             foreach (var entity in world.Entities.All)
                 if (world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id) &&
+                    IsPersonalPositionCaptureOwner(world, entity.Id) &&
                     _bootstrap.ViewSpawner.Registry.TryGet(entity.Id, out var view) && view != null &&
                     CommitContinuousNpcPosition(entity.Id, view.transform.position))
                     count++;
             return count;
         }
+
+        bool IsPersonalPositionCaptureOwner(SimulationWorld world, EntityId id) =>
+            world != null && !id.IsNone &&
+            (_bootstrap?.Session?.PlayerParty == null || !_bootstrap.Session.PlayerParty.IsMember(id)) &&
+            !ArmyService.TryGetArmyForCharacter(world, id, out _) &&
+            !world.BackgroundCharacterTravel.IsTraveling(id) &&
+            (world.Strategic.ContinuousManualCombat == null ||
+             !world.Strategic.ContinuousManualCombat.Contains(id)) &&
+            !ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) &&
+            world.Strategic.CharacterEncounter?.Find(id.Value) == null;
 
         bool TryAcceptPreparedPoint(Vector3 candidate, Vector3 reference,
             HashSet<long> used, out Vector3 accepted, out string reason)
@@ -778,7 +789,7 @@ namespace XianXia.Unity.Host
                 return;
             }
             if (!OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(_bootstrap.Session.Registry, motion.WorldPosition.X, motion.WorldPosition.Y, out var surface))
-            { if (IsActive) HandoffToLegacy(); return; }
+            { if (IsActive) DeactivatePresentationOnly(); return; }
             var mapper = new OutdoorSurfaceCoordinateMapper(surface.ChunkWidth, surface.ChunkHeight, surface.CellSize, presentationUnitsPerWorldUnit: 1f / surface.CellSize, originWorldX: surface.OriginWorldX, originWorldY: surface.OriginWorldY);
             var chunk = mapper.WorldToChunk(motion.WorldPosition.X, motion.WorldPosition.Y);
             if (!IsActive || !string.Equals(_surfaceId, surface.SurfaceId, StringComparison.Ordinal))
@@ -1101,11 +1112,7 @@ namespace XianXia.Unity.Host
             var nav = world?.SurfaceGround?.Active;
             var oldCovered = nav != null && nav.Contains(from.X, from.Y);
             var newCovered = nav != null && nav.Contains(to.X, to.Y);
-            if (oldCovered && newCovered)
-                return nav.IsSegmentWalkable(from.X, from.Y, to.X, to.Y);
-            var size = world?.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            return ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world?.HexWorld, committedHex, to, size) &&
-                   (!newCovered || nav.IsWalkable(to.X, to.Y));
+            return oldCovered && newCovered && nav.IsSegmentWalkable(from.X, from.Y, to.X, to.Y);
         }
 
         void RestoreMember(EntityId id, Vector3 position)
@@ -1115,44 +1122,6 @@ namespace XianXia.Unity.Host
             if (_bootstrap.Session.World.Entities.TryGet(id, out var entity) &&
                 entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location))
                 location.SetPresentationOverride(position.x, position.y);
-        }
-
-        /// <summary>Pure authored coverage is queried before any WalkGrid collision. This method
-        /// owns presentation handoff, while Core owns the canonical/presence commit.</summary>
-        public bool TryHandoffContinuousSurfaceToLegacy(Vector3 desiredPresentation)
-        {
-            if (!IsActive || !TryResolveSurface(out var surface)) return false;
-            var world = _bootstrap.Session.World;
-            var motion = world.PlayerPartyTravel;
-            _mapper.PresentationToWorld(desiredPresentation.x, desiredPresentation.y, out var desiredX, out var desiredY);
-            if (!OutdoorSurfaceBoundaryEgressResolver.TryResolve(surface,
-                    motion.WorldPosition.X, motion.WorldPosition.Y, desiredX, desiredY, out var egress) ||
-                egress.EgressState != OutdoorSurfaceBoundaryEgressResolver.State.CrossingOuterBoundary)
-                return false;
-
-            var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var outside = new WorldVec2(egress.JustOutsideWorldX, egress.JustOutsideWorldY);
-            var destination = HexMath.WorldToHex(outside.X, outside.Y, size);
-            CacheEgressDestination(world.HexWorld, destination);
-            var party = _bootstrap.Session.PlayerParty;
-            if (!_bootstrap.ViewSpawner.Registry.TryGet(party.ActiveCharacterId, out var active) || active == null) return false;
-            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
-            var commit = PlayerPartyWildernessTransitionService.TryCommitContinuousSurfaceBoundaryEgress(
-                world, outside, destination);
-            if (commit.IsFailure)
-            {
-                SurfaceEgressStatus = commit.Error.Message == "BoundaryBlockedByStrategicGround"
-                    ? "BlockedByStrategicGround" : "None";
-                LastMovementDiagnostic = commit.Error.Message;
-                return false;
-            }
-
-            _mapper.WorldToPresentation(outside.X, outside.Y, out var px, out var py);
-            RestoreMember(party.ActiveCharacterId, new Vector3(px, py, HostPresentationSpace.EntityZ));
-            SurfaceEgressStatus = "HandoffToLegacy";
-            LastMovementDiagnostic = "SurfaceCoverageBoundary -> LegacyWilderness";
-            HandoffToLegacy(destination);
-            return true;
         }
 
         /// <summary>For LocalVisible AutoTravel: distinguishes authored outer egress from merely
@@ -1167,19 +1136,13 @@ namespace XianXia.Unity.Host
                     desiredX, desiredY, out var egress) ||
                 egress.EgressState != OutdoorSurfaceBoundaryEgressResolver.State.CrossingOuterBoundary)
                 return false;
-            var world = _bootstrap.Session.World;
-            var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            CacheEgressDestination(world.HexWorld,
-                HexMath.WorldToHex(egress.JustOutsideWorldX, egress.JustOutsideWorldY, size));
-            SurfaceEgressStatus = "ApproachingOuterBoundary";
+            SurfaceEgressStatus = "SurfaceBoundary";
             _mapper.WorldToPresentation(egress.BoundaryWorldX, egress.BoundaryWorldY, out var px, out var py);
             boundaryPresentation = new Vector3(px, py, HostPresentationSpace.EntityZ);
             return true;
         }
 
-        // Compatibility name retained for existing direct-input call sites.  An independent
-        // encounter is a closed tactical space: its composite grid owns the boundary and must
-        // never fall through to the ordinary Surface -> Legacy handoff.
+        // Independent encounters and the authored Surface edge are closed movement boundaries.
         public bool TryStepAcrossCoverageBoundary(Vector3 proposed)
         {
             var board = _bootstrap?.Session?.World?.ContinuousOutdoorMaterialization;
@@ -1193,39 +1156,16 @@ namespace XianXia.Unity.Host
                 LastMovementDiagnostic = "IndependentEncounterBoundary";
                 return true;
             }
-            return TryHandoffContinuousSurfaceToLegacy(proposed);
-        }
-
-        void CacheEgressDestination(HexWorld hexWorld, HexCoord hex)
-        {
-            NextOutsideHex = hex;
-            if (hexWorld != null && hexWorld.TryGetTile(hex, out var tile) && tile != null)
-            {
-                NextOutsideTerrain = tile.Terrain.ToString();
-                NextOutsidePassable = tile.Terrain != HexTerrainType.Water && tile.IsPassable;
-            }
-            else
-            {
-                NextOutsideTerrain = "Missing";
-                NextOutsidePassable = false;
-            }
-        }
-
-        void HandoffToLegacy(HexCoord? committedDestination = null)
-        {
-            var world = _bootstrap.Session.World;
-            var motion = world.PlayerPartyTravel;
-            var destination = committedDestination ?? motion.CurrentHex;
-            if (!WildernessLocalMapFallback.TryResolve(world, destination, out var mapId))
-            {
-                SurfaceEgressStatus = "BlockedByStrategicGround";
-                Debug.LogError("[W1C] SurfaceCoverageBoundary: legacy Wilderness unavailable at " + destination, this);
-                return;
-            }
-            var prepared = WorldTravelService.EnterWildernessLocalMap(world, destination, mapId);
-            if (prepared.IsFailure) { Debug.LogError(prepared.Error, this); return; }
-            DeactivatePresentationOnly();
-            _bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+            if (!IsActive || !TryResolveSurface(out var surface)) return false;
+            var motion = _bootstrap.Session.World.PlayerPartyTravel;
+            _mapper.PresentationToWorld(proposed.x, proposed.y, out var x, out var y);
+            if (!OutdoorSurfaceBoundaryEgressResolver.TryResolve(surface,
+                    motion.WorldPosition.X, motion.WorldPosition.Y, x, y, out var egress) ||
+                egress.EgressState != OutdoorSurfaceBoundaryEgressResolver.State.CrossingOuterBoundary)
+                return false;
+            SurfaceEgressStatus = "SurfaceBoundary";
+            LastMovementDiagnostic = "SurfaceCoverageBoundary";
+            return true;
         }
 
         public bool TryActivateAtCurrentWorldPosition()
@@ -1327,8 +1267,6 @@ namespace XianXia.Unity.Host
             LastMovementDiagnostic = string.Empty;
             _autoTravelPathBlocked = false;
             SurfaceEgressStatus = "None";
-            NextOutsideTerrain = string.Empty;
-            NextOutsidePassable = false;
             _bootstrap.MoveController.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             // A continuous surface is not a LocalMap. Dispose the previous WorldSite-only
             // labels/interactions only after every source needed by the initial neighborhood has
@@ -1523,11 +1461,12 @@ namespace XianXia.Unity.Host
 
         void BuildChunk(SurfaceChunkCoord coord)
         {
-            if (!TryResolveSource(coord, out var layout)) throw new InvalidOperationException("W1C source layout unavailable.");
-            _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var worldX, out var worldY);
-            _mapper.WorldToPresentation(worldX, worldY, out var presentationX, out var presentationY);
-            var placement = new Vector2(presentationX - layout.OriginX, presentationY - layout.OriginY);
-            _tileMap.BuildLayoutInstance(SurfaceOwnerKey(coord), layout, placement, compactGround: true);
+            if (!TryResolveSurface(out var surface))
+                throw new InvalidOperationException("Continuous surface unavailable.");
+            if (!ContinuousOutdoorStartupPlanner.TryValidateChunkData(_bootstrap.Session.Registry, surface, coord, out var failure))
+                throw new InvalidOperationException("Continuous chunk data unavailable: " + failure);
+            _bootstrap.Session.Registry.TryGetContinuousSurfaceWorldMap(surface.SurfaceId, out var terrain);
+            _tileMap.BuildContinuousSurfaceChunkInstance(SurfaceOwnerKey(coord), terrain, _mapper, coord);
             if (_geography != null && _geography.CoverageChunks.Contains(coord))
                 _tileMap.BuildOutdoorGeographyInstance(GeographyOwnerKey(coord), _geography, _mapper, coord);
             BuildBakedOutdoorSitePlacements(coord);
@@ -1645,13 +1584,15 @@ namespace XianXia.Unity.Host
             _compositeWalkGrid = null;
             foreach (var coord in _loaded)
             {
-                if (!TryResolveSource(coord, out var layout)) continue;
                 _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var wx, out var wy);
                 _mapper.WorldToPresentation(wx, wy, out var px, out var py);
-                _grids.Add(new WalkGridComposer.Input(MapLayoutWalkGridBuilder.Create(layout), px - layout.OriginX, py - layout.OriginY));
-                var blockers = BuildSiteBlockerGrid(coord, px, py, layout);
+                var width = Mathf.RoundToInt(_mapper.ChunkWidth / _mapper.CellSize);
+                var height = Mathf.RoundToInt(_mapper.ChunkHeight / _mapper.CellSize);
+                var cell = _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit;
+                _grids.Add(new WalkGridComposer.Input(new WalkGrid(px, py, cell, width, height), 0f, 0f));
+                var blockers = BuildSiteBlockerGrid(coord, px, py, cell, width, height);
                 if (blockers != null) _grids.Add(new WalkGridComposer.Input(blockers, 0f, 0f));
-                var geographyBlockers = BuildGeographyBlockerGrid(coord, px, py, layout);
+                var geographyBlockers = BuildGeographyBlockerGrid(coord, px, py, cell, width, height);
                 if (geographyBlockers != null) _grids.Add(new WalkGridComposer.Input(geographyBlockers, 0f, 0f));
             }
             if (_grids.Count > 0)
@@ -1673,18 +1614,17 @@ namespace XianXia.Unity.Host
         }
 
         WalkGrid BuildGeographyBlockerGrid(
-            SurfaceChunkCoord coord, float originX, float originY, MapLayoutDefinition sourceLayout)
+            SurfaceChunkCoord coord, float originX, float originY, float cell, int width, int height)
         {
             if (_geography?.Navigation == null || !_geography.CoverageChunks.Contains(coord)) return null;
-            var cell = sourceLayout.CellSize > 0f ? sourceLayout.CellSize : 1f;
-            var grid = new WalkGrid(originX, originY, cell, sourceLayout.Width, sourceLayout.Height);
+            var grid = new WalkGrid(originX, originY, cell, width, height);
             _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var chunkX, out var chunkY);
             var any = false;
-            for (var y = 0; y < sourceLayout.Height; y++)
-            for (var x = 0; x < sourceLayout.Width; x++)
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
             {
-                var wx = chunkX + (x + .5f) * _geography.Navigation.CellSize;
-                var wy = chunkY + (y + .5f) * _geography.Navigation.CellSize;
+                var wx = chunkX + (x + .5f) * _mapper.CellSize;
+                var wy = chunkY + (y + .5f) * _mapper.CellSize;
                 if (!_geography.Navigation.TryGetCell(wx, wy, out var kind)) continue;
                 var blocked = (kind & SurfaceGroundCellKind.Solid) != 0 ||
                               ((kind & SurfaceGroundCellKind.Water) != 0 &&
@@ -1696,11 +1636,10 @@ namespace XianXia.Unity.Host
             return any ? grid : null;
         }
 
-        WalkGrid BuildSiteBlockerGrid(SurfaceChunkCoord coord, float originX, float originY, MapLayoutDefinition sourceLayout)
+        WalkGrid BuildSiteBlockerGrid(SurfaceChunkCoord coord, float originX, float originY, float cell, int width, int height)
         {
             if (!TryResolveSurface(out var surface) || surface.SitePlacements == null) return null;
-            var cell = sourceLayout.CellSize > 0f ? sourceLayout.CellSize : 1f;
-            var grid = new WalkGrid(originX, originY, cell, sourceLayout.Width, sourceLayout.Height);
+            var grid = new WalkGrid(originX, originY, cell, width, height);
             var any = false;
             for (var i = 0; i < surface.SitePlacements.Count; i++)
             {
@@ -1850,16 +1789,98 @@ namespace XianXia.Unity.Host
                 DeactivatePresentationOnly(captureEntityPositions: false);
             _independentFieldId = string.Empty;
             _legacyOutdoorRestoreMigrationWorld = null;
-            var activated = TryActivateAtCurrentWorldPosition();
-            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
-            if (activated && state != null && state.Phase != CharacterEncounterPhase.Committed)
+            var world = _bootstrap?.Session?.World;
+            _snapshotRestoredWorld = world;
+            if (world != null && !world.LocalMap.IsInInterior &&
+                world.Strategic.CharacterEncounter == null)
+                foreach (var entity in world.Entities.All)
+                    if (entity != null &&
+                        entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location))
+                        location.ClearPresentationOverride();
+            _isSnapshotPresentationRebuild = true;
+            try
             {
-                CharacterEncounterService.BindRuntime(_bootstrap.Session.World);
-                // Restore uses the same time-sliced prepared-field transaction as entry.  The
-                // restore modal prevents one frame of tactical execution on the ordinary field.
-                return BeginIndependentFieldRestore(state);
+                var activated = TryActivateAtCurrentWorldPosition();
+                var state = world?.Strategic?.CharacterEncounter;
+                if (activated && state != null && state.Phase != CharacterEncounterPhase.Committed)
+                {
+                    CharacterEncounterService.BindRuntime(world);
+                    return BeginIndependentFieldRestore(state);
+                }
+                if (activated)
+                    DiagnoseSnapshotMaterialization(world);
+                return activated;
             }
-            return activated;
+            finally { _isSnapshotPresentationRebuild = false; }
+        }
+
+        void DiagnoseSnapshotMaterialization(SimulationWorld world)
+        {
+            if (world == null || _mapper == null || !TryResolveSurface(out var surface)) return;
+            var restored = 0;
+            var eligible = 0;
+            var materialized = 0;
+            var rejectedChunk = 0;
+            var rejectedSite = 0;
+            var missingSpatial = 0;
+            foreach (var pair in world.WorldPresence.All)
+            {
+                var presence = pair.Value;
+                if (presence == null || presence.EntityId.IsNone ||
+                    (_bootstrap.Session.PlayerParty?.IsMember(presence.EntityId) ?? false) ||
+                    ArmyService.TryGetArmyForCharacter(world, presence.EntityId, out _))
+                    continue;
+                restored++;
+                if (!presence.HasContinuousWorldPosition)
+                {
+                    if (presence.Mode == PartyWorldPresenceMode.AtSite) missingSpatial++;
+                    continue;
+                }
+                if (!string.Equals(presence.PersonalSurfaceId, _surfaceId, StringComparison.Ordinal))
+                    continue;
+                var inChunk = _loaded.Contains(_mapper.WorldToChunk(presence.WorldPosX, presence.WorldPosY));
+                if (!inChunk)
+                {
+                    rejectedChunk++;
+                    if (_bootstrap.ViewSpawner.Registry.TryGet(presence.EntityId, out var leaked) &&
+                        leaked != null)
+                        Debug.LogError("[SnapshotMaterializationLeak] Entity=" + presence.EntityId.Value +
+                            " SavedChunk=" + _mapper.WorldToChunk(presence.WorldPosX, presence.WorldPosY) +
+                            " ActiveChunk=" + CurrentChunk, this);
+                    continue;
+                }
+                if (presence.Mode == PartyWorldPresenceMode.AtSite &&
+                    !IsSiteInLoadedNeighborhood(surface, presence.SiteId))
+                {
+                    rejectedSite++;
+                    continue;
+                }
+                eligible++;
+                if (world.ContinuousOutdoorMaterialization.IsMaterialized(presence.EntityId))
+                    materialized++;
+            }
+            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            {
+                var army = pair.Value;
+                if (army == null || !army.WorldMotion.HasPosition ||
+                    !string.Equals(army.WorldMotion.SurfaceId, _surfaceId, StringComparison.Ordinal) ||
+                    _loaded.Contains(_mapper.WorldToChunk(
+                        army.WorldMotion.WorldPosition.X, army.WorldMotion.WorldPosition.Y)))
+                    continue;
+                foreach (var rawId in army.MemberCharacterIds)
+                    if (_bootstrap.ViewSpawner.Registry.TryGet(new EntityId(rawId), out var leakedArmyView) &&
+                        leakedArmyView != null)
+                        Debug.LogError("[SnapshotMaterializationLeak] Army=" + army.ArmyId +
+                            " Member=" + rawId + " SavedChunk=" +
+                            _mapper.WorldToChunk(army.WorldMotion.WorldPosition.X,
+                                army.WorldMotion.WorldPosition.Y), this);
+            }
+            SnapshotSpatialSummary = "RestoredPersonalPresences=" + restored +
+                " LoadedNeighborhoodEligible=" + eligible + " Materialized=" + materialized +
+                " RejectedDifferentChunk=" + rejectedChunk + " RejectedDifferentSite=" + rejectedSite +
+                " LegacyAnchorMigrated=" + HostSnapshotSessionRehydration.LastLegacyAnchorMigrated +
+                " MissingSpatialAuthority=" + missingSpatial;
+            Debug.Log("[SnapshotMaterializationCensus] " + SnapshotSpatialSummary, this);
         }
 
         /// <summary>Rebuilds the transient place registry from baked continuous content. Called
@@ -2062,6 +2083,11 @@ namespace XianXia.Unity.Host
                     // supervisor whose army remains Idle rather than Garrisoned.
                     if (_continuousFormalArmyPopulation.Contains(id))
                         continue;
+                    if (world.WorldPresence.TryGet(id, out var scopedPresence) &&
+                        scopedPresence != null && scopedPresence.HasContinuousWorldPosition &&
+                        !CharacterPersonalSpaceQuery.TryResolveContinuous(
+                            world, id, _surfaceId, out _, out _))
+                        continue;
                     if (CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, _surfaceId,
                             out var savedPersonal, out _))
                     {
@@ -2080,6 +2106,10 @@ namespace XianXia.Unity.Host
                         }
                         continue;
                     }
+                    // A restored world cannot invent a resident position at Site arrival.
+                    // Missing current spatial authority must be migrated explicitly before presentation.
+                    if (ReferenceEquals(_snapshotRestoredWorld, world))
+                        continue;
                     // 落点优先级（§9）：precise Continuous authored anchor
                     //　→ EntityLocation.LocationId 对应的 baked SitePlace
                     //　→ deterministic fallback。
@@ -2167,6 +2197,8 @@ namespace XianXia.Unity.Host
                     XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity)) continue;
                 if (FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id))
                     continue;
+                if (!string.Equals(presence.PersonalSurfaceId, _surfaceId, StringComparison.Ordinal))
+                    continue;
                 WorldVec2 position;
                 var hasPrecisePosition = false;
                 if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition && presence.HasContinuousWorldPosition)
@@ -2209,6 +2241,7 @@ namespace XianXia.Unity.Host
 
         void ApplyOutdoorEntityMaterializationReconcile(SimulationWorld world)
         {
+            _newlyMaterializedEntities.Clear();
             var preserveHiddenPlacement = world.Strategic?.ContinuousManualCombat != null &&
                                           world.Strategic.ContinuousManualCombat.IsActive &&
                                           string.Equals(
@@ -2217,11 +2250,11 @@ namespace XianXia.Unity.Host
                                               StringComparison.Ordinal);
             world.ContinuousOutdoorMaterialization.ReconcileEntities(
                 _desiredMaterializedEntities,
-                onAdd: null,
+                onAdd: id => _newlyMaterializedEntities.Add(id),
                 onRemove: id =>
                 {
                     var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
-                    if (!preserveHiddenPlacement && hasView)
+                    if (!_isSnapshotPresentationRebuild && !preserveHiddenPlacement && hasView)
                         TryCaptureAtSiteAnchor(id, view.transform.position);
                     if (world.Entities.TryGet(id, out var entity) &&
                         entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
@@ -2242,8 +2275,9 @@ namespace XianXia.Unity.Host
             _bootstrap.Session.RefreshViewableEntityIds();
             _bootstrap.ViewSpawner.PruneHiddenViews(_bootstrap.Session);
             _bootstrap.ViewSpawner.SpawnMissingVisibleViews(_bootstrap.Session);
-            RealignMaterializedViewPlacements();
-            CaptureCurrentPersonalPlacements();
+            RealignMaterializedViewPlacements(_newlyMaterializedEntities);
+            if (!_isSnapshotPresentationRebuild)
+                CaptureCurrentPersonalPlacements();
         }
 
         /// <summary>
@@ -2256,7 +2290,7 @@ namespace XianXia.Unity.Host
         /// 只在 materialize pass（startup barrier／chunk neighborhood 变化／scope change）执行，
         /// 绝不进入 per-tick 路径（§17-F：普通 tick 不得增长 reconcile。
         /// </summary>
-        void RealignMaterializedViewPlacements()
+        void RealignMaterializedViewPlacements(IEnumerable<EntityId> candidates)
         {
             var session = _bootstrap?.Session;
             var world = session?.World;
@@ -2270,7 +2304,7 @@ namespace XianXia.Unity.Host
             var move = _bootstrap.MoveController;
             var party = session.PlayerParty;
             var realigned = 0;
-            foreach (var id in _desiredMaterializedEntities)
+            foreach (var id in candidates)
             {
                 if (id.IsNone || !registry.TryGet(id, out var view) || view == null)
                     continue;
@@ -2279,7 +2313,7 @@ namespace XianXia.Unity.Host
                     continue;
 
                 var isPartyMember = party != null && party.IsMember(id);
-                var isMoving = !isPartyMember && move != null && move.IsMoving(id);
+                var isMoving = IsEntityUnderContinuousMovementAuthority(world, id, move);
                 var target = HostPresentationSpace.FromPresentation(
                     loc.PresentationOverrideX, loc.PresentationOverrideZ, view.transform.position.z);
                 if (!ContinuousMaterializePlacementSync.ShouldRealign(
@@ -2299,6 +2333,15 @@ namespace XianXia.Unity.Host
 
             RealignedViewCount = realigned;
         }
+
+        bool IsEntityUnderContinuousMovementAuthority(
+            SimulationWorld world, EntityId id, HostMoveController move) =>
+            (move != null && move.IsMoving(id)) ||
+            world.BackgroundCharacterTravel.IsTraveling(id) ||
+            ArmyService.TryGetArmyForCharacter(world, id, out _) ||
+            (_bootstrap?.Session?.PlayerParty?.IsMember(id) ?? false) ||
+            ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) ||
+            world.Strategic.CharacterEncounter?.Find(id.Value) != null;
 
         bool IsSiteInLoadedNeighborhood(OutdoorWorldSurfaceDefinition surface, string siteId)
         {
@@ -2491,25 +2534,10 @@ namespace XianXia.Unity.Host
             }
         }
 
-        /// <summary>Legacy compatibility entry. Normal authority handoff should call DeactivatePresentationOnly first.</summary>
+        /// <summary>Deactivate the current Surface presentation.</summary>
         public void DeactivateSurface()
         {
-            HandoffToLegacy();
-        }
-
-        bool TryResolveSource(SurfaceChunkCoord coord, out MapLayoutDefinition layout)
-        {
-            layout = null;
-            if (!TryResolveSurface(out var surface)) return false;
-            // Single source of truth: preflight and activation share this rule, so a preflight
-            // pass can never be contradicted by the later activation.
-            if (ContinuousOutdoorStartupPlanner.TryResolveChunkSource(
-                    _bootstrap?.Session?.Registry, surface, coord, out layout, out var failure))
-                return true;
-            if (!string.IsNullOrEmpty(failure))
-                Debug.LogError("[W1C] " + failure, this);
-            layout = null;
-            return false;
+            DeactivatePresentationOnly();
         }
 
         /// <summary>
@@ -2549,8 +2577,7 @@ namespace XianXia.Unity.Host
                 " CanonicalWorldPosition=" + (motion != null ? motion.WorldPosition.ToString() : "Missing") +
                 " ResolvedChunk=" + center +
                 " ChunkExists=" + (chunk != null) +
-                " SourceMapLayoutId=" + (chunk?.SourceMapLayoutId ?? string.Empty) +
-                " SourceResolved=false" +
+                " ContinuousDataResolved=false" +
                 " MetricValid=" + (surface != null && surface.CellSize > 0f && surface.ChunkWidth > 0f && surface.ChunkHeight > 0f) +
                 " Failure=" + failure,
                 this);

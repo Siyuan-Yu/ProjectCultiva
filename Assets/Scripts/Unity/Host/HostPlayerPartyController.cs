@@ -1761,16 +1761,13 @@ namespace XianXia.Unity.Host
             var grid = _move != null ? _move.WalkGrid : null;
             if (surface.TryGetOuterBoundaryApproach(desired, out var boundaryTarget))
             {
-                // This is authored-surface egress, not a radius-1 streaming frontier. Walk as
-                // close as the current composite can reach, then use the same handoff as WASD.
+                // The authored Surface edge is a hard movement boundary.
                 var handoffDistance = (grid != null ? grid.CellSize : 1f) * 1.5f;
                 if (Vector3.Distance(activeView.transform.position, boundaryTarget) <= handoffDistance)
                 {
-                    if (surface.TryHandoffContinuousSurfaceToLegacy(desired)) return;
-                    LastTransitionStatus = surface.SurfaceEgressStatus == "BlockedByStrategicGround"
-                        ? "BoundaryBlockedByStrategicGround" : "ContinuousBoundaryPending";
+                    PlayerPartySurfaceTravelService.Cancel(world);
+                    LastTransitionStatus = "SurfaceBoundary";
                     _continuousWaitingReason = LastTransitionStatus;
-                    _autoTravelRetryCooldownUntil = Time.time + 0.5f;
                     return;
                 }
                 desired = boundaryTarget;
@@ -2058,7 +2055,7 @@ namespace XianXia.Unity.Host
                 }
                 LastTransitionStatus = "DepartureNoReachableExit";
                 LastTransitionFailureReason = "当前场景没有通往该目的地的可达出口。";
-                PlayerPartyHexTravelService.CancelTravel(world);
+                PlayerPartyTravelRuntimeService.CancelTravel(world);
                 return;
             }
             var reachableX = reachablePoint.x;
@@ -2256,7 +2253,7 @@ namespace XianXia.Unity.Host
                 if (physicallyArrived)
                 {
                     continuous.SyncPartyPresentation();
-                    var finish = PlayerPartyHexTravelService.CompleteWildernessFinalArrival(world);
+                    var finish = PlayerPartyTravelRuntimeService.CompleteSurfaceArrival(world);
                     if (finish.IsSuccess) _move.CancelPresentationMovementPublic(active);
                     LastTransitionStatus = finish.IsSuccess ? "Arrived" : "FinalArrivalRejected";
                 }
@@ -2333,7 +2330,7 @@ namespace XianXia.Unity.Host
                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
                 return;
 
-            PlayerPartyHexTravelService.CancelTravel(world);
+            PlayerPartyTravelRuntimeService.CancelTravel(world);
             _localVisibleTakeoverActive = false;
             ResetLocalVisibleAutoTravelTracking();
         }

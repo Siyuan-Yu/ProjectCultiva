@@ -34,7 +34,7 @@ namespace XianXia.Tests
                 MaxDurability = 50,
                 OccupyHoldSeconds = 1f
             });
-            world.WorldRegion.Register(new WorldLocationState
+            world.LocalPlaces.Register(new WorldLocationState
             {
                 Id = "loc_work_area",
                 LocalMapId = "map:test"

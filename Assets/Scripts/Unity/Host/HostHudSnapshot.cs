@@ -177,7 +177,7 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return "(none)";
             if (session?.World != null &&
-                session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+                session.World.LocalPlaces.TryGet(loc.LocationId, out var location))
                 return location.Name + " [" + location.Kind + "]";
             return loc.LocationId;
         }

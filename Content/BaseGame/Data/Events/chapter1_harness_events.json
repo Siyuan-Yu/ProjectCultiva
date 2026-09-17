@@ -7,7 +7,7 @@
       "name": "Ch1 Harness·村口试探",
       "body": "测试事件：确认选项与 Flag 链路（非剧情正文）。",
       "trigger": "onExplore",
-      "locationId": "base:loc_village_edge",
+      "locationId": "base:loc_ref_road_hub",
       "once": true,
       "conditions": [],
       "choices": [

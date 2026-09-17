@@ -1,0 +1,427 @@
+# MAP-04 — Physical Legacy Cleanup
+
+> 日期：2026-09-17  
+> 状态：Implementation In Progress / Producer Acceptance Pending  
+> 制作人约束：所有改动未暂存、未提交；未打开 Unity，未运行 PlayMode、Test Runner 或 batchmode。
+
+## 荒村山匪野外部署稳定性修复（制作人复验待定）
+
+三支山匪／试炼 FormalArmy 保留 `assemblySiteId=base:site_huangcun` 作为组织所属地点，仅增加不同的 `initialSurfacePosition`：荒村山匪 `(3.990, 10.542)`、试炼弱匪 `(5.446, 11.606)`、试炼强匪 `(6.594, 10.038)`，均属 `base:surface_main_wilderness_v1`。不改成员、首领、战力或普通 NPC anchor。NewGame 沿用 `FormalArmyContentBootstrap → FormalArmyContinuousTravelService` 写入 exact `WorldMotion`。WorldMap marker 改为优先读取当前 Continuous `WorldMotion`，Snapshot motion 恢复保留 SurfaceId，不再因 derived Hex／assembly Site 偏移。
+
+离线 BaseGame Content validator 0 error；三点均在 active Surface 内，Navigation `IsWalkable=true`、cell=`Ground`，且不与荒村 `blocksMovement=true` 的 SitePlacement 相交。NewGame 三支 Army 与 marker 均与 authored 坐标一致；将一支 Army 移到另一可步行点后 Save→Restore→Content shell→FormalArmy motion restore，三支 Army 与 marker 均保持 saved exact 位置。Host 最小离线编译 0 error、15 条既有 warning；未启动 Unity，仍待制作人人工验收。
+
+## Restore / Presentation 稳定性回归修复（制作人复验待定）
+
+制作人报告 WorldMap 透出 Continuous Surface，以及 Snapshot Load 后远处角色出现在玩家附近并抽搐。暂停进一步 Legacy 删除。对照 MAP-03 已验收 checkpoint `b04920b`，Surface WorldMap 重新使用不透明全屏底色及地图视口底色，恢复顶层输入阻断、打开时关闭背包／建造／任务 UI 并冻结 LocalVisible 旅行、关闭后恢复旅行；保留 Surface 地图、固定头部／底栏、战略面板与 inspect，不恢复 Hex WorldMap。
+
+Snapshot DTO 的 `Mode`、`SiteId`、`PersonalSurfaceId`、exact `WorldX/Y` 在 presentation rebuild 前逐实体校验，不一致为 `SnapshotInvalid`。开局 anchor 只供 NewGame，以及旧档真正缺少对应 presence DTO 时按该实体 SpawnKey／DefinitionId 唯一匹配迁移。换 World 后清除普通 outdoor 的旧 presentation override；首次 Surface activation／materialization 期间只允许 Domain→View，不从 View 捕获 personal position。Current snapshot 的 AtSite 角色若无 exact position，不走 SiteArrival fallback；有 exact position 时 loaded chunk 是硬门。
+
+FormalArmy 驻站成员由 continuous `WorldMotion.AtWorldSite + SiteId` 判定，只有确实有 Hex grid 时才走旧兼容分支。个人位置捕获跳过 Party、FormalArmy、背景旅行、手动战斗、独立战斗与遭遇 owner；军队队形 View 偏移不再写入个人 WorldPresence。View realign 只处理新物化实体，并避开正在移动或由上述 owner 控制的人。首次物化输出 restored／eligible／materialized／rejected chunk／rejected site／legacy migrated／missing authority 计数，远处 exact-position 实体若仍有 View 会报 `[SnapshotMaterializationLeak]`。
+
+本轮轻量离线检查：Core／Data／Unity Host 编译 0 error、15 条既有 warning；BaseGame Content validator 0 error；Ch01 24 anchors／24 spawned／24 presence；Snapshot round-trip 保留异地 NPC 的 exact 坐标，故意篡改 DTO 可触发 mismatch，缺失 DTO 可检测；`git diff --check` 通过。未启动 Unity，因此全屏视觉、输入遮挡、旅行冻结／恢复和实际 Load 后的抖动仍须制作人人工验收。状态保持 **Implementation In Progress / Producer Acceptance Pending**。
+
+## Opening NPC 回归热修（制作人复验待定）
+
+制作人 Unity 人工测试发现开局 NPC 消失。删除 `WorldRegionBootstrap.ApplyOpening` 后，15 名既无 `worldSiteId` 又无 `localLocationId` 的 Ch01 NPC 不再获得旧 `EntityLocation`；其中主管经 FormalArmy bootstrap 另获 Army presence，其余 14 名因旧 place→Site 推断失效而没有 `WorldPresence`。现在 Normal Surface 开局直接以 `openingEntityAnchors` 的稳定 SpawnKey、DefinitionId、SiteId、WorldX/Y 建立 presence；`SourceLocationId` 仅恢复逻辑地点。独立 anchor census 在 NewGame 成功前检查当前 scenario 的全部 opening spawn。离线 Ch01：24 anchors、24 spawned、24 presence、missing/wrongSite/missingPosition 均 0；BaseGame validator 0 error。未修改 `ContinuousOutdoorSurfaceRuntime`，未继续删除 Legacy，状态仍为 Implementation In Progress / Producer Acceptance Pending。
+
+## 本轮已落地
+
+- New Game 使用 `openingSurfaceId`、已发布 Surface Site／FactionFlag 和 `openingEntityAnchors`；不调用 Hex strategic bootstrap，不加载 HexWorld JSON，不激活 Outdoor WorldRegion。离线启动：`HEX=False`、17 Site、0 旧 LocalPlace、玩家精确坐标 `(5.253, 10.239)`。
+- 三个当前 Scenario 只写 `openingSurfaceId`。Runtime opening anchor 校验唯一性、定义、Surface 覆盖、可行走性；不再从 Outdoor MapLayout／LocalPlaceSet 反推或复算位置。`WorldSitePhysicalRegionDefinition` 不再使用 SourceLocalMapId；旧字段仅可被 schema 识别并忽略。
+- `HostWorldMapPanel` 收敛为 Surface 地图，保留地图查看、站点／部队定位、玩家路线和战略面板；缺 Surface 显示“当前世界没有可用的连续世界地图。”。已删除 Hex renderer、grid drawing、picker、projection、Hex map editor 和专属旧 UI helper。
+- `WorldVec2` 从 `Core.World.Hex` 移入中性 `Core.World`。玩家 Surface travel 使用 `BeginSurfaceAutoTravel` 和中性取消／抵达 helper；NPC／FormalArmy 的正常 Surface route 失败不回退 Hex。军队增加精确 Surface 位置旅行，Surface 追击可走当前导航。
+- 从 BaseGame 删除两份 HexWorld JSON、35 个 Outdoor MapLayout JSON、34 个 Outdoor LocalPlaceSet JSON，以及 `world_regions.json`。洞府拆出独立 LocalPlaceSet；遭遇战术图从 `world_node_stub` 更名为独立 arena。旧 HexWorld 与参考 Outdoor 地图作为 EditMode 历史测试 fixture 单独保留在 `Assets/Tests/Fixtures/LegacyWorld`，不会被当前 ContentPackage 加载。
+- `WorldRegionBootstrap` 已退役；独立地图使用 `InteriorLocalPlaceBootstrap`。旧运行时 board 改为 `LocalPlaceBoard`；WorldRegion definition parser 只用于旧包输入。旧 Outdoor LocalMap snapshot ID 在 Host restore 时转换为 Surface，旧遭遇图 ID 映射到新 arena；旧 Hex 人物／军队位置在加载时尝试转换成 Surface 世界坐标。
+- WorldGraphEditor、RegionEditor、Shared/HexWorld 及其 launcher、manifest／solution 项已删除；HexWorldContentLoader、HexStrategicMapBootstrap、Ch01HexPrototypeMapBuilder、HexTestWorldBootstrap、HexWorldStressMapBuilder、StrategicBootstrap 等 8 个 fixture 类已移到 EditMode 测试目录，不再编入 Runtime。MapEditor、LocalPlaceEditor 收窄为 Interior／Cave／独立地图；WorldComposer 当前发布 UI 已去掉“兼容模式”，Migration Import 可以缺少已删除的旧参考图。
+
+## 未通过的 Completion Gate 与风险
+
+1. **Build All Apps 切换失败。** 本轮只运行一次 `publish.ps1`：manifest 确认为 10 个 Editor，10 个项目全部编译并发布到临时 staging；将候选 `Apps` 移入正式目录时，Windows 返回 `Access to the path ...\.build\publish-staging-...\Apps is denied`。脚本回滚成功，现有 `Apps` 仍为 10 个旧 exe。未按制作人“最多一次”约束重复 Build All。`publish.ps1` 已加入候选目录访问拒绝的有限重试与部分切换保全；此修正只经过 PowerShell 语法解析，尚未再次执行发布。需要查明访问拒绝来源，之后由制作人允许再次执行交付构建。
+2. **Legacy Hex gameplay 源码仍较广。** 8 个纯 fixture 类已移出 Runtime。 `StrategicTravelDriver` 对无 Hex grid 的当前 BaseGame 直接返回；`PlayerPartyHexTravelService`、`ArmyHexTravelService`、Hex pathfinder／pursuit、HexWorld loader 与 fixture bootstrap 仍供历史测试／旧包兼容源代码使用。当前产品不能声称“完整 Hex Gameplay stack 已物理删除”。特别是旧快照中的特殊路线／战斗情形尚未经 Unity 人工验收。
+3. **WorldMap 功能回归风险。** Surface-only 组件经离线 Host 编译，但未进行 Unity 视觉与交互验收。旧 Hex UI 附带的复杂检查／战斗交互没有逐一映射到新的 Surface UI；制作人需手验。
+4. **旧战略可视化编辑入口。** WorldGraphEditor 的 FactionManagerWindow、OpeningStrategicEditorWindow 已删除；当前 WorldComposer 可发布 Surface faction flag 内容，但尚无等价的独立可视化外交／开局战略编辑窗口。可直接编辑 current JSON，正式工具体验待制作人确认。
+5. **历史 EditMode 测试。** 旧 fixture 路径已搬迁，但按本轮禁止运行 Unity Test Runner 的要求，未执行这些测试；其语义仍覆盖旧 Hex，而非当前产品验收。
+
+因此本文件保持 **Implementation In Progress / Producer Acceptance Pending**，不得写成 Accepted／Sealed 或宣称 Completion Gate 全部通过。
+
+## Intentional Legacy Compatibility Remaining
+
+| 类别 | 文件／调用 | 处理边界 |
+| --- | --- | --- |
+| 旧包解析 | `DefinitionSchema`、`ContentPackageLoader`；`Assets/Tests/EditMode/LegacyHexFixtures` | Runtime parser 识别旧字段；旧 HexWorld apply／bootstrap 只编入 EditMode 测试。 |
+| 旧快照 DTO 与迁移 | `WorldSnapshot`、`StrategicSnapshotHelper`、`FormalArmySnapshotRestore`、`HostSnapshotSessionRehydration` | 保留 Hex 坐标、Presence、旧 Outdoor LocalMapId 读取；加载时尽量转换到 Surface。 |
+| 独立地图 | `MapLayoutDefinition`、`LocalPlaceSetDefinition`、`LocalPlaceBoard`、`InteriorLocalPlaceBootstrap` | Cave、独立 Encounter 的地点与战术布局；不再担当 Outdoor 开局世界。 |
+| 历史测试 | `Assets/Tests/Fixtures/LegacyWorld`、旧 EditMode Hex 测试 | 不属于 current BaseGame Content。 |
+
+## 轻量验证
+
+- Core／Data 离线 Content load + `ContentReferenceValidator`：`VALID=True ERRORS=0`。
+- `PlayableDayBootstrap.Start`：`START=True`，`HEX=False`，17 Sites，旧 LocalPlace 0。
+- Core／Data／Unity Host 离线 C# 编译：0 error（现有 warning）。未打开 Unity。
+- BaseGame/Data JSON 解析：37 文件，0 error。
+- `git diff --check`：exit 0。
+- ExternalTools Build All：10 项 publish 成功，`Apps` switch 因 Windows access denied 失败并成功 rollback；最终 exit 1。
+
+## 制作人人工验收 checklist（待执行）
+
+- 在 Unity 中新开 Ch01：验证玩家／同伴／NPC 精确位置、Surface 地面、6 个站点及 11 面旗帜，不加载 HexWorld 或 Outdoor LocalMap。
+- 打开 WorldMap：验证 Surface terrain、站点／部队标记、右键路线、抵达、定位和战略面板；缺 Surface 时核对 Content Error。
+- 进入洞府与独立遭遇战术图：验证进入／退出、地点与交互。
+- 加载旧快照：至少覆盖旧 Outdoor LocalMap、纯 Hex 人物位置、军队旅行和遭遇战术图 ID 迁移。
+- 关闭可能占用 `Apps` 或 staging 的外部进程后，由制作人允许再次 Build All；核对 10 个新 exe 与 WorldComposer 当前发布产物。
+- 审核 Surface-only WorldMap 与战略作者工具是否满足原有操作需求；确认是否需要补回可视化外交／开局战略编辑能力。
+
+## 完整未提交文件列表
+
+以下为 `git status --short`，未跟踪目录已展开到实际文件。所有项目均未暂存。
+
+```text
+ M Assets/DynamicData/GameData/Levels/README.txt
+ M Assets/Scenes/LevelTester.unity
+ M Assets/Scripts/Core/Exploration/ExplorationService.cs
+?? Assets/Scripts/Core/Exploration/LocalPlaceBoard.cs
+?? Assets/Scripts/Core/Exploration/LocalPlaceBoard.cs.meta
+ D Assets/Scripts/Core/Exploration/WorldRegionBoard.cs
+ D Assets/Scripts/Core/Exploration/WorldRegionBoard.cs.meta
+ M Assets/Scripts/Core/Persistence/FormalArmySnapshotRestore.cs
+ M Assets/Scripts/Core/Persistence/StrategicSnapshotHelper.cs
+ M Assets/Scripts/Core/Simulation/SimulationWorld.cs
+ D Assets/Scripts/Core/World/Hex/HexMapEditorService.cs
+ D Assets/Scripts/Core/World/Hex/HexMapEditorService.cs.meta
+ D Assets/Scripts/Core/World/Hex/WorldVec2.cs
+ D Assets/Scripts/Core/World/Hex/WorldVec2.cs.meta
+ M Assets/Scripts/Core/World/PlayerPartyRuntime.cs
+ M Assets/Scripts/Core/World/Strategic/ArmyHexTravelService.cs
+ M Assets/Scripts/Core/World/Strategic/ArmyPursuitTargetService.cs
+ M Assets/Scripts/Core/World/Strategic/BackgroundCharacterSiteDepartureResolver.cs
+ M Assets/Scripts/Core/World/Strategic/BackgroundCharacterTravelMotion.cs
+ M Assets/Scripts/Core/World/Strategic/BackgroundCharacterTravelService.cs
+ M Assets/Scripts/Core/World/Strategic/BackgroundSimulationScheduler.cs
+ M Assets/Scripts/Core/World/Strategic/BackgroundSiteDepartureTravelTrace.cs
+ M Assets/Scripts/Core/World/Strategic/BattleEngagementTriggerService.cs
+ D Assets/Scripts/Core/World/Strategic/Ch01HexPrototypeMapBuilder.cs
+ D Assets/Scripts/Core/World/Strategic/Ch01HexPrototypeMapBuilder.cs.meta
+ D Assets/Scripts/Core/World/Strategic/Ch01ScenarioStrategicSetup.cs
+ D Assets/Scripts/Core/World/Strategic/Ch01ScenarioStrategicSetup.cs.meta
+ M Assets/Scripts/Core/World/Strategic/CharacterEncounter.cs
+ M Assets/Scripts/Core/World/Strategic/CharacterPersonalSpaceQuery.cs
+ M Assets/Scripts/Core/World/Strategic/FactionFlagService.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyContinuousTravelService.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyLocationKinds.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyOrderReplaceTrace.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyTestSupport.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyWorldLocationQuery.cs
+ M Assets/Scripts/Core/World/Strategic/FormalArmyWorldMotion.cs
+ M Assets/Scripts/Core/World/Strategic/HexFootprintSpatialGeometry.cs
+ M Assets/Scripts/Core/World/Strategic/HexFootprintSpatialMapping.cs
+ D Assets/Scripts/Core/World/Strategic/HexStrategicMapBootstrap.cs
+ D Assets/Scripts/Core/World/Strategic/HexStrategicMapBootstrap.cs.meta
+ M Assets/Scripts/Core/World/Strategic/HexStrategicRuntime.cs
+ D Assets/Scripts/Core/World/Strategic/HexTestWorldBootstrap.cs
+ D Assets/Scripts/Core/World/Strategic/HexTestWorldBootstrap.cs.meta
+ D Assets/Scripts/Core/World/Strategic/HexWorldStressMapBuilder.cs
+ D Assets/Scripts/Core/World/Strategic/HexWorldStressMapBuilder.cs.meta
+ M Assets/Scripts/Core/World/Strategic/LoadedDestinationArrivalMaterializer.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartyLocalMapMaterializationService.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartyLocalVisibleAutoTravelService.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartySiteIngressTrace.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartyStrategicCombatCommandService.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartySurfaceTravelService.cs
+ M Assets/Scripts/Core/World/Strategic/PlayerPartyWorldMotion.cs
+ M Assets/Scripts/Core/World/Strategic/PreEngagementLegalLocation.cs
+ M Assets/Scripts/Core/World/Strategic/ResidualSpatialAuthorityService.cs
+ M Assets/Scripts/Core/World/Strategic/SquadState.cs
+ D Assets/Scripts/Core/World/Strategic/StrategicBootstrap.cs
+ D Assets/Scripts/Core/World/Strategic/StrategicBootstrap.cs.meta
+ M Assets/Scripts/Core/World/Strategic/StrategicEncounterCatalog.cs
+ M Assets/Scripts/Core/World/Strategic/StrategicEncounterSpawner.cs
+ M Assets/Scripts/Core/World/Strategic/SurfaceExitZoneCalculator.cs
+ M Assets/Scripts/Core/World/Strategic/WildernessLocalWorldProjection.cs
+ M Assets/Scripts/Core/World/Strategic/WorldMapPartyTravelCommand.cs
+ M Assets/Scripts/Core/World/Strategic/WorldSiteFootprintLocationAuthority.cs
+ M Assets/Scripts/Core/World/Strategic/WorldSiteOutdoorBakeTransform.cs
+ M Assets/Scripts/Core/World/Strategic/WorldSiteSpatialMapping.cs
+ M Assets/Scripts/Core/World/Surface/ContinuousSurfaceHexCommitResolver.cs
+ M Assets/Scripts/Core/World/Surface/ContinuousSurfacePrototypeGroundLegality.cs
+ M Assets/Scripts/Core/World/WorldPresenceBoard.cs
+?? Assets/Scripts/Core/World/WorldVec2.cs
+?? Assets/Scripts/Core/World/WorldVec2.cs.meta
+ M Assets/Scripts/Data/Bootstrap/ContentRuntimeBootstrap.cs
+ M Assets/Scripts/Data/Bootstrap/ContinuousOutdoorOpeningPlacementResolver.cs
+ M Assets/Scripts/Data/Bootstrap/ContinuousOutdoorOpeningPopulationBootstrap.cs
+ M Assets/Scripts/Data/Bootstrap/ContinuousOutdoorSpawnPresenceResolver.cs
+?? Assets/Scripts/Data/Bootstrap/ContinuousSurfaceSessionBootstrap.cs
+?? Assets/Scripts/Data/Bootstrap/ContinuousSurfaceSessionBootstrap.cs.meta
+ M Assets/Scripts/Data/Bootstrap/FormalArmyContentBootstrap.cs
+ D Assets/Scripts/Data/Bootstrap/HexStrategicSessionBootstrap.cs
+ D Assets/Scripts/Data/Bootstrap/HexStrategicSessionBootstrap.cs.meta
+?? Assets/Scripts/Data/Bootstrap/InteriorLocalPlaceBootstrap.cs
+?? Assets/Scripts/Data/Bootstrap/InteriorLocalPlaceBootstrap.cs.meta
+ M Assets/Scripts/Data/Bootstrap/OpeningSpawnWorldPresenceApplier.cs
+ M Assets/Scripts/Data/Bootstrap/PlayableDayBootstrap.cs
+ M Assets/Scripts/Data/Bootstrap/StrategicContentBootstrap.cs
+ D Assets/Scripts/Data/Bootstrap/WorldRegionBootstrap.cs
+ D Assets/Scripts/Data/Bootstrap/WorldRegionBootstrap.cs.meta
+ M Assets/Scripts/Data/Content/ContentPackageLoader.cs
+ M Assets/Scripts/Data/Content/ContentReferenceValidator.cs
+ M Assets/Scripts/Data/Content/ContinuousOutdoorOpeningAnchorResolver.cs
+ M Assets/Scripts/Data/Content/ContinuousOutdoorStartupPlanner.cs
+ M Assets/Scripts/Data/Content/DefinitionSchema.cs
+ M Assets/Scripts/Data/Content/FormalArmyDefinition.cs
+ D Assets/Scripts/Data/Content/HexStrategicMapContentBootstrap.cs
+ D Assets/Scripts/Data/Content/HexStrategicMapContentBootstrap.cs.meta
+ D Assets/Scripts/Data/Content/HexWorldContentLoader.cs
+ D Assets/Scripts/Data/Content/HexWorldContentLoader.cs.meta
+ M Assets/Scripts/Data/Content/LocalPlaceSetDefinition.cs
+ M Assets/Scripts/Data/Content/OpeningScenarioDefinition.cs
+ M Assets/Scripts/Data/Content/OutdoorWorldSurfaceDefinition.cs
+ M Assets/Scripts/Data/Content/WorldSiteOutdoorOpeningAnchorBake.cs
+ M Assets/Scripts/Unity/Editor/LevelTesterSceneTool.cs
+ D Assets/Scripts/Unity/Host/BattleEngagementWorldMapDebug.cs
+ D Assets/Scripts/Unity/Host/BattleEngagementWorldMapDebug.cs.meta
+ M Assets/Scripts/Unity/Host/ContinuousOutdoorEncounterField.cs
+ M Assets/Scripts/Unity/Host/ContinuousOutdoorSurfaceRuntime.cs
+ M Assets/Scripts/Unity/Host/EntityViewSpawner.cs
+ D Assets/Scripts/Unity/Host/FactionFlagWorldMapPresentation.cs
+ D Assets/Scripts/Unity/Host/FactionFlagWorldMapPresentation.cs.meta
+ D Assets/Scripts/Unity/Host/HexMapMousePick.cs
+ D Assets/Scripts/Unity/Host/HexMapMousePick.cs.meta
+ D Assets/Scripts/Unity/Host/HexMapViewportProjection.cs
+ D Assets/Scripts/Unity/Host/HexMapViewportProjection.cs.meta
+ M Assets/Scripts/Unity/Host/HostCaveEntranceQuery.cs
+ M Assets/Scripts/Unity/Host/HostCaveSurveyPresenter.cs
+ M Assets/Scripts/Unity/Host/HostCharacterPresentation.cs
+ M Assets/Scripts/Unity/Host/HostCommandBridge.cs
+ M Assets/Scripts/Unity/Host/HostControlCoreQuery.cs
+ M Assets/Scripts/Unity/Host/HostCrowdPresenter.cs
+ M Assets/Scripts/Unity/Host/HostCultivateConfirmPrompt.cs
+ M Assets/Scripts/Unity/Host/HostDemoTileMap.cs
+ M Assets/Scripts/Unity/Host/HostFactionFlagPresenter.cs
+ D Assets/Scripts/Unity/Host/HostHexGridDrawing.cs
+ D Assets/Scripts/Unity/Host/HostHexGridDrawing.cs.meta
+ D Assets/Scripts/Unity/Host/HostHexWorldRenderer.cs
+ D Assets/Scripts/Unity/Host/HostHexWorldRenderer.cs.meta
+ M Assets/Scripts/Unity/Host/HostHousingAreaSelection.cs
+ M Assets/Scripts/Unity/Host/HostHudSnapshot.cs
+ M Assets/Scripts/Unity/Host/HostInteractSpots.cs
+ M Assets/Scripts/Unity/Host/HostLevelTesterCheatPanel.cs
+ M Assets/Scripts/Unity/Host/HostLocalMapEnterPrompt.cs
+ M Assets/Scripts/Unity/Host/HostMapGraybox.cs
+ M Assets/Scripts/Unity/Host/HostMoveController.cs
+ M Assets/Scripts/Unity/Host/HostNpcContextMenu.cs
+ M Assets/Scripts/Unity/Host/HostPlayerPartyController.cs
+ M Assets/Scripts/Unity/Host/HostSnapshotSessionRehydration.cs
+ M Assets/Scripts/Unity/Host/HostWorldMapPanel.cs
+ M Assets/Scripts/Unity/Host/HostWorldObjectPicker.cs
+ M Assets/Scripts/Unity/Host/HostZoneQuery.cs
+ M Assets/Scripts/Unity/Host/LocalMapVisibility.cs
+ M Assets/Scripts/Unity/Host/MapLayoutPick.cs
+ M Assets/Scripts/Unity/Host/MapLayoutPresentationSync.cs
+ M Assets/Scripts/Unity/Host/PlayableHostBootstrap.cs
+ D Assets/Scripts/Unity/Host/WorldSitePresentationLayer.cs
+ D Assets/Scripts/Unity/Host/WorldSitePresentationLayer.cs.meta
+ M Assets/Tests/EditMode/ArmyPhaseHTests.cs
+ M Assets/Tests/EditMode/CaveShadePlacementTests.cs
+ M Assets/Tests/EditMode/Chapter01ReferenceLevelAcceptanceTests.cs
+ M Assets/Tests/EditMode/ContinuousMaterializePlacementSyncTests.cs
+ D Assets/Tests/EditMode/ContinuousOutdoorOpeningPlacementBakeTests.cs
+ D Assets/Tests/EditMode/ContinuousOutdoorOpeningPlacementBakeTests.cs.meta
+ M Assets/Tests/EditMode/ContinuousOutdoorOpeningSpatialTests.cs
+ M Assets/Tests/EditMode/ContinuousSurfaceSpatialRepairTests.cs
+ M Assets/Tests/EditMode/DemoParityLevelAcceptanceTests.cs
+ M Assets/Tests/EditMode/DemoVerticalSlice10AcceptanceTests.cs
+ M Assets/Tests/EditMode/EncounterAssemblyTests.cs
+ D Assets/Tests/EditMode/HexMapMousePickTests.cs
+ D Assets/Tests/EditMode/HexMapMousePickTests.cs.meta
+ D Assets/Tests/EditMode/HexMapViewportProjectionTests.cs
+ D Assets/Tests/EditMode/HexMapViewportProjectionTests.cs.meta
+ D Assets/Tests/EditMode/HexTerrainVisualInsetTests.cs
+ D Assets/Tests/EditMode/HexTerrainVisualInsetTests.cs.meta
+ M Assets/Tests/EditMode/HostZoneQueryTests.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/Ch01HexPrototypeMapBuilder.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/Ch01HexPrototypeMapBuilder.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/Ch01ScenarioStrategicSetup.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/Ch01ScenarioStrategicSetup.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexStrategicMapBootstrap.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexStrategicMapBootstrap.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexTestWorldBootstrap.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexTestWorldBootstrap.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexWorldContentLoader.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexWorldContentLoader.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexWorldStressMapBuilder.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/HexWorldStressMapBuilder.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/LegacyHexStrategicMapContentAdapter.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/LegacyHexStrategicMapContentAdapter.cs.meta
+?? Assets/Tests/EditMode/LegacyHexFixtures/StrategicBootstrap.cs
+?? Assets/Tests/EditMode/LegacyHexFixtures/StrategicBootstrap.cs.meta
+ M Assets/Tests/EditMode/LocalMapEnterLeaveTests.cs
+ M Assets/Tests/EditMode/MapLayoutWalkGridTests.cs
+ M Assets/Tests/EditMode/NpcSimulationFoundationTests.cs
+ M Assets/Tests/EditMode/PlayerPartyContinuousWorldPhase2CTests.cs
+ M Assets/Tests/EditMode/PlayerPartyLocalCoPresenceTests.cs
+ M Assets/Tests/EditMode/PlayerPartyRuntimeTests.cs
+ M Assets/Tests/EditMode/SiteCoreWarfareTests.cs
+ M Assets/Tests/EditMode/SiteEconomyMigrationTests.cs
+ M Assets/Tests/EditMode/StrategicPhaseTests.cs
+ M Assets/Tests/EditMode/WildernessContextAuthorityTests.cs
+ M Assets/Tests/EditMode/WildernessLocalWorldProjectionTests.cs
+ M Assets/Tests/EditMode/WorldExplorationPhaseETests.cs
+ M Assets/Tests/EditMode/WorldSiteCanonicalQueryTests.cs
+ M Assets/Tests/EditMode/WorldSiteDepartureCrossingTests.cs
+ M Assets/Tests/EditMode/WorldSiteDeparturePresentationTests.cs
+ M Assets/Tests/EditMode/WorldSiteDepartureRouteConsistencyTests.cs
+ M Assets/Tests/EditMode/WorldSiteDepartureTests.cs
+ M Assets/Tests/EditMode/WorldSiteEgressContinuationTests.cs
+ M Assets/Tests/EditMode/WorldSiteMultiHexGoalAuthorityTests.cs
+ M Assets/Tests/EditMode/WorldSiteSpatialMappingTests.cs
+ M Assets/Tests/EditMode/WorldSiteSpatialMappingV2Tests.cs
+ M Assets/Tests/EditMode/WorldSiteSurfaceExitReliabilityTests.cs
+?? Assets/Tests/Fixtures.meta
+?? Assets/Tests/Fixtures/LegacyWorld.meta
+?? Assets/Tests/Fixtures/LegacyWorld/ch01_hex_world.json
+?? Assets/Tests/Fixtures/LegacyWorld/ch01_hex_world.json.meta
+?? Assets/Tests/Fixtures/LegacyWorld/ch01_reference_map.json
+?? Assets/Tests/Fixtures/LegacyWorld/ch01_reference_map.json.meta
+ M Content/BaseGame/Data/Armies/qingshi_hostility_acceptance_armies.json
+ M Content/BaseGame/Data/Events/chapter1_harness_events.json
+ M Content/BaseGame/Data/Events/content_events.json
+?? Content/BaseGame/Data/LocalPlaces/ch01_cave_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_reference_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_a_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_b_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_bei_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_chengzhen_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_daoguan_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_dong_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_dukou_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_er_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_feixu_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_fengkou_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_guanai_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_gudao_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_haijiao_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_kuangshan_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_lingdi_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_linjian_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_lu_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_miao_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_nan_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_shankou_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_shuizhai_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_tiejiangpu_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_wai_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_xi_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_yaotian_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_yingdi_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_yucun_places.json
+ D Content/BaseGame/Data/LocalPlaces/ch01_site_zhuangyuan_places.json
+ D Content/BaseGame/Data/LocalPlaces/player_camp_places.json
+?? Content/BaseGame/Data/LocalPlaces/strategic_encounter_arena_places.json
+ D Content/BaseGame/Data/LocalPlaces/wilderness_forest_fallback_places.json
+ D Content/BaseGame/Data/LocalPlaces/wilderness_mountain_fallback_places.json
+ D Content/BaseGame/Data/LocalPlaces/wilderness_plain_fallback_places.json
+ D Content/BaseGame/Data/LocalPlaces/wilderness_road_fallback_places.json
+ D Content/BaseGame/Data/LocalPlaces/world_node_stub_places.json
+ M Content/BaseGame/Data/Maps/ch01_cave_map.json
+ D Content/BaseGame/Data/Maps/ch01_reference_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_a_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_b_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_bei_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_chengzhen_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_daoguan_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_dong_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_dukou_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_er_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_feixu_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_fengkou_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_guanai_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_gudao_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_haijiao_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_kuangshan_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_lingdi_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_linjian_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_lu_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_miao_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_nan_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_shankou_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_shuizhai_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_tiejiangpu_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_wai_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_xi_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_yaotian_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_yingdi_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_yucun_map.json
+ D Content/BaseGame/Data/Maps/ch01_site_zhuangyuan_map.json
+ D Content/BaseGame/Data/Maps/huangcun_01.json
+ D Content/BaseGame/Data/Maps/player_camp_map.json
+?? Content/BaseGame/Data/Maps/strategic_encounter_arena.json
+ D Content/BaseGame/Data/Maps/wilderness_forest_fallback_map.json
+ D Content/BaseGame/Data/Maps/wilderness_mountain_fallback_map.json
+ D Content/BaseGame/Data/Maps/wilderness_plain_fallback_map.json
+ D Content/BaseGame/Data/Maps/wilderness_road_fallback_map.json
+ D Content/BaseGame/Data/Maps/world_node_stub_map.json
+ D Content/BaseGame/Data/Regions/world_regions.json
+ M Content/BaseGame/Data/Scenarios/scenarios.json
+ D Content/BaseGame/Data/Worlds/ch01_hex_world.json
+ M Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json
+ D Content/BaseGame/Data/Worlds/travel_mvp_hex_world_30x15.json
+ D Content/BaseGame/Data/Worlds/w1c_wilderness_acceptance_surface.json
+ M ExternalTools/ContentAuthoring/ContentAuthoring.sln
+ M ExternalTools/ContentAuthoring/EditorManifest.json
+ M ExternalTools/ContentAuthoring/LocalPlaceEditor/MainWindow.xaml
+ M ExternalTools/ContentAuthoring/MapEditor/MainWindow.xaml
+ M ExternalTools/ContentAuthoring/MapEditor/MainWindow.xaml.cs
+ M ExternalTools/ContentAuthoring/README.md
+ D ExternalTools/ContentAuthoring/RegionEditor/App.xaml
+ D ExternalTools/ContentAuthoring/RegionEditor/App.xaml.cs
+ D ExternalTools/ContentAuthoring/RegionEditor/AssemblyInfo.cs
+ D ExternalTools/ContentAuthoring/RegionEditor/MainWindow.xaml
+ D ExternalTools/ContentAuthoring/RegionEditor/MainWindow.xaml.cs
+ D ExternalTools/ContentAuthoring/RegionEditor/RegionEditor.csproj
+ D ExternalTools/ContentAuthoring/Shared.Tests/Ch01HexWorldRoundtripTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/FactionFlagAuthoringTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/HexEditorRenderCachePerfTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/HexWorldEditorFootprintTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/HexWorldTerritoryEditorTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/MultiHexFootprintValidationTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/TerritoryBrushDocumentTests.cs
+ D ExternalTools/ContentAuthoring/Shared.Tests/TerritoryValidatorTests.cs
+ M ExternalTools/ContentAuthoring/Shared/ContentPathRules.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/FactionFlagAuthoring.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexEditorRenderCache.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexMapViewport.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexTerrainPalette.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldContentGenerator.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldContentJson.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldContentModels.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldContentValidator.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldEditorDocument.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldEditorFootprintService.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldFootprintRules.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldLayoutShared.cs
+ D ExternalTools/ContentAuthoring/Shared/HexWorld/HexWorldPresenceRules.cs
+ M ExternalTools/ContentAuthoring/SurfaceAuthoring.Core/LegacyWorldMigration.cs
+ M ExternalTools/ContentAuthoring/WorldComposer/MainWindow.xaml.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/App.xaml
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/App.xaml.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/AssemblyInfo.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/FactionManagerWindow.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/HexMapCanvasRenderer.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/HexMapViewHost.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/MainWindow.xaml
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/MainWindow.xaml.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/OpeningStrategicEditorWindow.cs
+ D ExternalTools/ContentAuthoring/WorldGraphEditor/WorldGraphEditor.csproj
+ M ExternalTools/ContentAuthoring/publish.ps1
+ D ExternalTools/ContentAuthoring/启动-RegionEditor.cmd
+ D ExternalTools/ContentAuthoring/启动-WorldGraphEditor.cmd
+ M docs/00-project/00-overview.md
+ M docs/00-project/04-reading-guide.md
+ M docs/20-systems/2N-continuous-surface-world-authoring-and-composition.md
+ M docs/20-systems/README.md
+?? docs/40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md
+ M docs/40-process/41-roadmap.md
+ M docs/40-process/42-devlog.md
+ M docs/40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md
+```

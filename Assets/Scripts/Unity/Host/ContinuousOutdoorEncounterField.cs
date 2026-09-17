@@ -95,17 +95,21 @@ namespace XianXia.Unity.Host
             {
                 var chunk = surface.Chunks[i];
                 if (!EncounterTouchesChunk(state, chunk.Coord)) continue;
-                if (!TryResolveSource(chunk.Coord, out var layout))
+                if (!ContinuousOutdoorStartupPlanner.TryValidateChunkData(
+                        _bootstrap.Session.Registry, surface, chunk.Coord, out var failure))
                 {
-                    completed?.Invoke(Result.Failure(ErrorCode.ContentLoadFailed, "Missing real source chunk: " + chunk.StableChunkId), null);
+                    completed?.Invoke(Result.Failure(ErrorCode.ContentLoadFailed, failure), null);
                     yield break;
                 }
                 _mapper.ChunkLocalToWorld(chunk.Coord, 0f, 0f, out var wx, out var wy);
                 _mapper.WorldToPresentation(wx, wy, out var px, out var py);
-                inputs.Add(new WalkGridComposer.Input(MapLayoutWalkGridBuilder.Create(layout), px - layout.OriginX, py - layout.OriginY));
-                var blockers = BuildSiteBlockerGrid(chunk.Coord, px, py, layout);
+                var width = Mathf.RoundToInt(_mapper.ChunkWidth / _mapper.CellSize);
+                var height = Mathf.RoundToInt(_mapper.ChunkHeight / _mapper.CellSize);
+                var cell = _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit;
+                inputs.Add(new WalkGridComposer.Input(new WalkGrid(px, py, cell, width, height), 0f, 0f));
+                var blockers = BuildSiteBlockerGrid(chunk.Coord, px, py, cell, width, height);
                 if (blockers != null) inputs.Add(new WalkGridComposer.Input(blockers, 0f, 0f));
-                var geography = BuildGeographyBlockerGrid(chunk.Coord, px, py, layout);
+                var geography = BuildGeographyBlockerGrid(chunk.Coord, px, py, cell, width, height);
                 if (geography != null) inputs.Add(new WalkGridComposer.Input(geography, 0f, 0f));
                 plan.Chunks.Add(chunk.Coord);
                 IndependentPreparationProgress = "读取同源地形 " + (i + 1) + "/" + surface.Chunks.Count;
@@ -619,12 +623,14 @@ namespace XianXia.Unity.Host
             foreach (var chunk in affected)
             {
                 if (!ReferenceEquals(world, _bootstrap.Session.World) || state.EncounterId != _independentFieldId) yield break;
-                if (!TryResolveSource(chunk, out var layout)) continue;
                 _mapper.ChunkLocalToWorld(chunk, 0, 0, out var wx, out var wy);
                 _mapper.WorldToPresentation(wx, wy, out var px, out var py);
-                var source = MapLayoutWalkGridBuilder.Create(layout);
-                var site = BuildSiteBlockerGrid(chunk, px, py, layout);
-                var geography = BuildGeographyBlockerGrid(chunk, px, py, layout);
+                var width = Mathf.RoundToInt(_mapper.ChunkWidth / _mapper.CellSize);
+                var height = Mathf.RoundToInt(_mapper.ChunkHeight / _mapper.CellSize);
+                var cell = _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit;
+                var source = new WalkGrid(px, py, cell, width, height);
+                var site = BuildSiteBlockerGrid(chunk, px, py, cell, width, height);
+                var geography = BuildGeographyBlockerGrid(chunk, px, py, cell, width, height);
                 for (var y = 0; y < source.Height; y++)
                 for (var x = 0; x < source.Width; x++)
                 {

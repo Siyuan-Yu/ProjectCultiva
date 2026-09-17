@@ -27,7 +27,7 @@ namespace XianXia.Tests
 
         const float HexSize = 1f;
 
-        static string WorldJsonPath => Path.Combine(BaseGamePath, "Data", "Worlds", "ch01_hex_world.json");
+        static string WorldJsonPath => Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_hex_world.json");
 
         static WorldSite LoadHuangcun()
         {

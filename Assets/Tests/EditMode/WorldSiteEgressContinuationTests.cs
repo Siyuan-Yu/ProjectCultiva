@@ -29,7 +29,7 @@ namespace XianXia.Tests
         const float HexSize = 1f;
 
         static readonly string WorldJsonPath =
-            Path.Combine(BaseGamePath, "Data", "Worlds", "ch01_hex_world.json");
+            Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_hex_world.json");
 
         // huangcun_01 LocalMap 真实 playable bounds（与 HostSurfaceExitZonePresenter 同源）。
         static readonly WildernessLocalWorldProjection.WildernessLocalMapBounds Bounds =

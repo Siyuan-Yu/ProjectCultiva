@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_ch01_cave",
+      "type": "localPlaceSet",
+      "name": "废弃洞府·内室地点",
+      "mapLayoutId": "base:map_ch01_cave",
+      "startLocationId": "base:loc_cave_chamber",
+      "locations": [
+        {
+          "id": "base:loc_cave_chamber",
+          "name": "洞府内室",
+          "kind": "Opportunity",
+          "tags": [
+            "cave",
+            "interior",
+            "spirit"
+          ],
+          "allowedActivities": [
+            "Cultivate",
+            "Explore",
+            "Rest"
+          ],
+          "adjacentIds": [],
+          "localMapId": "base:map_ch01_cave",
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

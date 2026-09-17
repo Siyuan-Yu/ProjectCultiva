@@ -84,7 +84,7 @@ namespace XianXia.Data.Content
 
         static void ValidateOutdoorControlCores(DefinitionRegistry registry, ValidationReport report)
         {
-            var knownSites = new HashSet<string>(StringComparer.Ordinal);
+            var knownSites = CollectAuthoredSiteIds(registry);
             var controlCoreLocationCounts = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var pair in registry.WorkAreas)
                 if (pair.Value != null && pair.Value.IsControlCore &&
@@ -93,12 +93,6 @@ namespace XianXia.Data.Content
                     controlCoreLocationCounts.TryGetValue(pair.Value.LocationId, out var count);
                     controlCoreLocationCounts[pair.Value.LocationId] = count + 1;
                 }
-            foreach (var pair in registry.HexWorldContents)
-                if (pair.Value?.Sites != null)
-                    for (var i = 0; i < pair.Value.Sites.Count; i++)
-                        if (!string.IsNullOrWhiteSpace(pair.Value.Sites[i]?.SiteId))
-                            knownSites.Add(pair.Value.Sites[i].SiteId);
-
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
@@ -160,12 +154,7 @@ namespace XianXia.Data.Content
 
         static void ValidateOutdoorStorageRooms(DefinitionRegistry registry, ValidationReport report)
         {
-            var knownSites = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var pair in registry.HexWorldContents)
-                if (pair.Value?.Sites != null)
-                    for (var i = 0; i < pair.Value.Sites.Count; i++)
-                        if (!string.IsNullOrWhiteSpace(pair.Value.Sites[i]?.SiteId))
-                            knownSites.Add(pair.Value.Sites[i].SiteId);
+            var knownSites = CollectAuthoredSiteIds(registry);
             var storageSites = new HashSet<string>(StringComparer.Ordinal);
             foreach (var pair in registry.OutdoorSurfaces)
             {
@@ -301,6 +290,15 @@ namespace XianXia.Data.Content
                 AddLocationIds(set, kv.Value?.Locations);
             foreach (var kv in registry.LocalPlaceSets)
                 AddLocationIds(set, kv.Value?.Locations);
+            foreach (var kv in registry.OutdoorSurfaces)
+            {
+                var placements = kv.Value?.SitePlacements;
+                if (placements == null)
+                    continue;
+                foreach (var placement in placements)
+                    if (!string.IsNullOrWhiteSpace(placement?.BoundLocationId))
+                        set.Add(placement.BoundLocationId);
+            }
             return set;
         }
 
@@ -478,9 +476,21 @@ namespace XianXia.Data.Content
                 RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
+                OutdoorWorldSurfaceDefinition openingSurface = null;
+                if (!string.IsNullOrWhiteSpace(s.OpeningSurfaceId))
+                {
+                    if (!DefinitionId.TryParse(s.OpeningSurfaceId, out var surfaceId) ||
+                        !registry.TryGetOutdoorSurface(surfaceId, out openingSurface) ||
+                        openingSurface == null || openingSurface.AcceptanceOnly ||
+                        !registry.TryGetOutdoorSurfaceGeography(s.OpeningSurfaceId, out var surfaceGeography) ||
+                        surfaceGeography?.Navigation == null)
+                        report.Add(ErrorCode.NotFound, "openingSurfaceId requires a normal Surface and navigation geography.",
+                            ctx + ".openingSurfaceId:" + s.OpeningSurfaceId);
+                }
+
                 var hexWorld = ResolveScenarioHexWorld(registry, s, ctx, report);
                 var worldSites = new HashSet<string>(StringComparer.Ordinal);
-                if (hexWorld?.Sites != null)
+                if (openingSurface == null && hexWorld?.Sites != null)
                 {
                     for (var si = 0; si < hexWorld.Sites.Count; si++)
                     {
@@ -488,12 +498,57 @@ namespace XianXia.Data.Content
                             worldSites.Add(hexWorld.Sites[si].SiteId);
                     }
                 }
+                if (openingSurface?.SiteRegions != null)
+                    foreach (var region in openingSurface.SiteRegions)
+                        if (region != null && !string.IsNullOrEmpty(region.SiteId))
+                            worldSites.Add(region.SiteId);
+                if (openingSurface?.OpeningEntityAnchors != null)
+                {
+                    var anchorKeys = new HashSet<string>(StringComparer.Ordinal);
+                    registry.TryGetOutdoorSurfaceGeography(s.OpeningSurfaceId, out var openingGeography);
+                    foreach (var anchor in openingSurface.OpeningEntityAnchors)
+                    {
+                        if (anchor == null || !worldSites.Contains(anchor.SiteId) ||
+                            string.IsNullOrWhiteSpace(anchor.SpawnKey) ||
+                            string.IsNullOrWhiteSpace(anchor.DefinitionId) ||
+                            !anchorKeys.Add(anchor.SpawnKey) ||
+                            openingGeography?.Navigation == null ||
+                            !openingGeography.Navigation.IsWalkable(anchor.WorldX, anchor.WorldY))
+                            report.Add(ErrorCode.InvalidArgument, "Invalid or duplicate opening Surface entity anchor.",
+                                ctx + ".openingSurfaceId:" + s.OpeningSurfaceId);
+                    }
+                }
 
                 if (s.Spawns == null)
                     continue;
+                var spawnOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
                 for (var i = 0; i < s.Spawns.Count; i++)
                 {
                     var spawn = s.Spawns[i];
+                    if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Opening spawn definitionId missing.", ctx + ".spawn[" + i + "]");
+                        continue;
+                    }
+                    var spawnDefinitionId = spawn.DefinitionId.Trim();
+                    spawnOrdinals.TryGetValue(spawnDefinitionId, out var ordinal);
+                    spawnOrdinals[spawnDefinitionId] = ordinal + 1;
+                    if (openingSurface != null)
+                    {
+                        var key = XianXia.Core.World.OpeningSpawnIdentityBoard.BuildStableKey(spawnDefinitionId, ordinal);
+                        if (!ContinuousOutdoorOpeningAnchorResolver.TryFindOpeningEntityAnchor(
+                                openingSurface, key, spawnDefinitionId, out var matchedAnchor,
+                                out var anchorFailure))
+                            report.Add(ErrorCode.InvalidArgument,
+                                "Opening spawn requires exactly one matching Surface anchor: " + anchorFailure,
+                                ctx + ".spawn[" + i + "]:" + key);
+                        else if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId) &&
+                                 !string.Equals(spawn.WorldSiteId.Trim(), matchedAnchor.SiteId,
+                                     StringComparison.Ordinal))
+                            report.Add(ErrorCode.InvalidArgument,
+                                "Opening spawn worldSiteId differs from Surface anchor SiteId.",
+                                ctx + ".spawn[" + i + "]:" + key);
+                    }
                     RequireDef(registry, spawn.DefinitionId, "character", ctx + ".spawn[" + i + "]", report);
                     if (!string.IsNullOrWhiteSpace(spawn.JobId))
                         RequireDef(registry, spawn.JobId, "job", ctx + ".spawn[" + i + "].jobId", report);
@@ -514,18 +569,18 @@ namespace XianXia.Data.Content
 
                     if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId))
                     {
-                        if (hexWorld == null)
+                        if (hexWorld == null && openingSurface == null)
                         {
                             report.Add(
                                 ErrorCode.InvalidArgument,
-                                "spawn.worldSiteId requires scenario.openingHexWorldId.",
+                                "spawn.worldSiteId requires scenario.openingSurfaceId or legacy openingHexWorldId.",
                                 ctx + ".spawn[" + i + "].worldSiteId:" + spawn.WorldSiteId);
                         }
                         else if (!worldSites.Contains(spawn.WorldSiteId))
                         {
                             report.Add(
                                 ErrorCode.NotFound,
-                                "spawn.worldSiteId missing in opening hex world sites.",
+                                "spawn.worldSiteId missing in opening world sites.",
                                 ctx + ".spawn[" + i + "].worldSiteId:" + spawn.WorldSiteId);
                         }
                     }
@@ -579,10 +634,29 @@ namespace XianXia.Data.Content
                     {
                         var armyId = s.InitialFormalArmyIds[i];
                         RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
+                        ValidateInitialFormalArmySurfacePosition(registry, armyId,
+                            ctx + ".initialFormalArmyIds[" + i + "]", report);
                         ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
                     }
                 }
             }
+        }
+
+        static void ValidateInitialFormalArmySurfacePosition(
+            DefinitionRegistry registry, string armyIdText, string ctx, ValidationReport report)
+        {
+            if (!DefinitionId.TryParse(armyIdText, out var armyId) ||
+                !registry.FormalArmies.TryGetValue(armyId, out var def) ||
+                def?.InitialSurfacePosition == null)
+                return;
+            var position = def.InitialSurfacePosition;
+            if (string.IsNullOrWhiteSpace(position.SurfaceId) ||
+                !registry.TryGetOutdoorSurfaceGeography(position.SurfaceId, out var geography) ||
+                geography?.Navigation == null ||
+                !geography.Navigation.IsWalkable(position.WorldX, position.WorldY))
+                report.Add(ErrorCode.InvalidArgument,
+                    "formalArmy.initialSurfacePosition must be walkable on its Surface.",
+                    ctx + ":" + def.Id);
         }
 
         /// <summary>
@@ -1459,7 +1533,7 @@ namespace XianXia.Data.Content
 
         static void ValidateWorldSiteEconomies(DefinitionRegistry registry, ValidationReport report)
         {
-            var siteIds = new HashSet<string>(StringComparer.Ordinal);
+            var siteIds = CollectAuthoredSiteIds(registry);
             foreach (var worldPair in registry.HexWorldContents)
             {
                 var hexWorld = worldPair.Value;
@@ -1496,6 +1570,20 @@ namespace XianXia.Data.Content
                         report.Add(ErrorCode.DuplicateDefinitionId, "Duplicate worldSiteEconomy resource.", context + ":" + entry.ResourceId);
                 }
             }
+        }
+
+        static HashSet<string> CollectAuthoredSiteIds(DefinitionRegistry registry)
+        {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.OutdoorSurfaces)
+                if (pair.Value?.SiteRegions != null && !pair.Value.AcceptanceOnly)
+                    foreach (var region in pair.Value.SiteRegions)
+                        if (!string.IsNullOrWhiteSpace(region?.SiteId)) ids.Add(region.SiteId);
+            foreach (var pair in registry.HexWorldContents)
+                if (pair.Value?.Sites != null)
+                    foreach (var site in pair.Value.Sites)
+                        if (!string.IsNullOrWhiteSpace(site?.SiteId)) ids.Add(site.SiteId);
+            return ids;
         }
 
         static void RequireDef(

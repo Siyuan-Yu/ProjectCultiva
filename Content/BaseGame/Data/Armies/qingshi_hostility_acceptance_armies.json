@@ -29,9 +29,10 @@
       "runtimeStackId": "army:qingshi_acceptance_shuofeng_reinforcement",
       "factionId": "base:faction_shuofeng",
       "assemblySiteId": "base:site_chengzhen",
-      "initialHex": {
-        "q": 9,
-        "r": 7
+      "initialSurfacePosition": {
+        "surfaceId": "base:surface_main_wilderness_v1",
+        "worldX": 16.454483,
+        "worldY": 10.5
       },
       "members": [
         {

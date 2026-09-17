@@ -190,7 +190,7 @@ namespace XianXia.Unity.Host
                 }
 
                 if (loc.HasLocation &&
-                    session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+                    session.World.LocalPlaces.TryGet(loc.LocationId, out var location))
                 {
                     stackAtLocation.TryGetValue(loc.LocationId, out var stack);
                     stackAtLocation[loc.LocationId] = stack + 1;

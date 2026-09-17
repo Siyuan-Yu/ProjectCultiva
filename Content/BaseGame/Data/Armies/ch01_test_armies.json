@@ -9,6 +9,11 @@
       "runtimeStackId": "army:bandit_patrol_1",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
+      "initialSurfacePosition": {
+        "surfaceId": "base:surface_main_wilderness_v1",
+        "worldX": 3.990,
+        "worldY": 10.542
+      },
       "members": [
         {
           "characterDefinitionId": "base:character_bandit_patrol_leader",
@@ -37,6 +42,11 @@
       "runtimeStackId": "army:bandit_patrol_weak",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
+      "initialSurfacePosition": {
+        "surfaceId": "base:surface_main_wilderness_v1",
+        "worldX": 5.446,
+        "worldY": 11.606
+      },
       "members": [
         {
           "characterDefinitionId": "base:character_bandit_weak_grunt",
@@ -53,6 +63,11 @@
       "runtimeStackId": "army:bandit_patrol_casualty_test",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
+      "initialSurfacePosition": {
+        "surfaceId": "base:surface_main_wilderness_v1",
+        "worldX": 6.594,
+        "worldY": 10.038
+      },
       "members": [
         {
           "characterDefinitionId": "base:character_bandit_casualty_grunt",

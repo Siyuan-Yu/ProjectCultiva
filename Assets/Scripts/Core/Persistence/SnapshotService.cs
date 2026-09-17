@@ -872,6 +872,10 @@ namespace XianXia.Core.Persistence
                 var strategicRestore = StrategicSnapshotHelper.Restore(world, snap.Strategic);
                 if (strategicRestore.IsFailure)
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(strategicRestore.Error);
+                var personalRestore = StrategicSnapshotHelper.ValidateRestoredCharacterWorldPresences(
+                    world, snap.Strategic);
+                if (personalRestore.IsFailure)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(personalRestore.Error);
             }
             else if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion)
             {

@@ -5,7 +5,7 @@ namespace XianXia.Data.Content
 {
     /// <summary>
     /// 绑定某张 mapLayout 的村内逻辑地点表（取代 worldRegion 的正式职责）。
-    /// 运行时仍灌入 SimulationWorld.WorldRegion 板。
+    /// 运行时仍灌入 SimulationWorld.LocalPlaces 板。
     /// </summary>
     public sealed class LocalPlaceSetDefinition
     {

@@ -721,7 +721,7 @@ namespace XianXia.Unity.Host
             if (motion == null ||
                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
                 return;
-            PlayerPartyHexTravelService.CancelTravel(world);
+            PlayerPartyTravelRuntimeService.CancelTravel(world);
         }
         void NotifyMeleeDisengageForMove(EntityId id)
         {
@@ -1444,7 +1444,7 @@ namespace XianXia.Unity.Host
                              bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive;
             IReadOnlyDictionary<string, WorldLocationState> locations = continuous
                 ? session.World.ContinuousOutdoorMaterialization.PlacesByLocationId
-                : session.World.WorldRegion.Locations;
+                : session.World.LocalPlaces.Locations;
             foreach (var kv in locations)
             {
                 // 洞内／地表切换后禁止吸附到另一张图的地点，否则离开时带不走人
@@ -1497,7 +1497,7 @@ namespace XianXia.Unity.Host
 
             var exploredFlag = ContentConditionEvaluator.ExploredFlag(locationId);
             if (!session.World.Flags.Has(exploredFlag) &&
-                session.World.WorldRegion.TryGet(locationId, out var place) &&
+                session.World.LocalPlaces.TryGet(locationId, out var place) &&
                 !OpportunityEntranceRules.IsHiddenEntrance(place))
                 exploration.ExploreHere(session.World, subject);
 

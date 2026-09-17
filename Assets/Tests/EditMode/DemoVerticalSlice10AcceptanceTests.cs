@@ -35,7 +35,7 @@ namespace XianXia.Tests
             // 三人开局 + 可招 NPC + 区域
             Assert.AreEqual(3, ids.Count);
             Assert.IsFalse(started.Value.RecruitableNpcId.IsNone);
-            Assert.AreEqual(4, world.WorldRegion.Locations.Count);
+            Assert.AreEqual(4, world.LocalPlaces.Locations.Count);
 
             // 人物关系
             Assert.GreaterOrEqual(

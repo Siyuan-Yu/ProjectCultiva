@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_strategic_encounter_arena",
+      "type": "localPlaceSet",
+      "name": "战略遭遇·保底地点",
+      "mapLayoutId": "base:map_strategic_encounter_arena",
+      "startLocationId": "base:loc_encounter_center",
+      "locations": [
+        {
+          "id": "base:loc_encounter_center",
+          "name": "接战空地",
+          "kind": "Trail",
+          "tags": [
+            "battle",
+            "encounter"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

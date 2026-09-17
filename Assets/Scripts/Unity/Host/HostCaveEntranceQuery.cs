@@ -43,7 +43,7 @@ namespace XianXia.Unity.Host
                 entranceLocationId = id;
                 return true;
             }
-            if (world?.WorldRegion?.Locations == null || layout?.Placements == null)
+            if (world?.LocalPlaces?.Locations == null || layout?.Placements == null)
                 return false;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
@@ -58,7 +58,7 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!string.Equals(pl.Kind, "cave", System.StringComparison.OrdinalIgnoreCase))
                     continue;
-                if (!world.WorldRegion.TryGet(pl.BoundLocationId, out var loc))
+                if (!world.LocalPlaces.TryGet(pl.BoundLocationId, out var loc))
                     continue;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                     continue;
@@ -147,7 +147,7 @@ namespace XianXia.Unity.Host
             if (world == null ||
                 string.IsNullOrWhiteSpace(entranceLocationId) ||
                 (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out var loc) &&
-                 !world.WorldRegion.TryGet(entranceLocationId, out loc)))
+                 !world.LocalPlaces.TryGet(entranceLocationId, out loc)))
                 return false;
             worldCenter = HostPresentationSpace.FromPresentation(loc.PresentationX, loc.PresentationZ);
             return true;

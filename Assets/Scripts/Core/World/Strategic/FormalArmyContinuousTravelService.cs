@@ -30,6 +30,39 @@ namespace XianXia.Core.World.Strategic
             return BeginTravel(world, armyId, default, siteId, FormalArmyOrderKind.TravelToWorldSite);
         }
 
+        public static Result MoveArmyToWorldPosition(
+            SimulationWorld world, string armyId, WorldVec2 destination)
+        {
+            if (world == null || string.IsNullOrWhiteSpace(armyId) ||
+                !world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid Surface army travel.");
+            if (army.State == FormalArmyState.Garrisoned)
+                return Result.Failure(ErrorCode.InvalidOperation, "Army is garrisoned.");
+            if (!FormalArmyWorldLocationQuery.TryResolve(
+                    world, army, out _, out _, out var start, out _))
+                return Result.Failure(ErrorCode.InvalidOperation, "Army has no world location.");
+            if (!world.SurfaceGround.TryResolveShared(start, destination, out var navigation))
+                return Result.Failure(ErrorCode.InvalidOperation, "No shared Surface for army route.");
+            SurfacePathScratch.Clear();
+            var status = navigation.TryFindRoute(start, destination, SurfacePathScratch);
+            if (status != SurfaceGroundRouteStatus.Found)
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Surface army route unavailable: " + status + ".");
+            var wasMoving = army.State == FormalArmyState.Moving || army.WorldMotion.IsMoving;
+            var derived = HexMath.WorldToHex(destination.X, destination.Y, 1f);
+            army.WorldMotion.BeginSurfaceTravel(
+                FormalArmyOrderKind.TravelToWorldPosition, SurfacePathScratch, destination, derived,
+                string.Empty, navigation.SurfaceId, navigation.SourceRevision, navigation.SourceHash);
+            army.WorldMotion.ClearOrderTarget();
+            army.WorldMotion.LastProcessedWorldTick = world.Tick.Value;
+            army.State = FormalArmyState.Moving;
+            army.SyncLegacyFromWorldMotion();
+            FormalArmyMemberPresenceSync.SyncAll(world, army);
+            if (wasMoving && world.Strategic.Squads.TryGet(army.SquadId, out var command))
+                command.SetCommand(SquadCommandKind.FormalArmyWorldMotion);
+            return Result.Success();
+        }
+
         public static void InitializeAtWorldSite(SimulationWorld world, FormalArmy army, string siteId)
         {
             if (world == null || army == null || string.IsNullOrEmpty(siteId))
@@ -55,13 +88,14 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             FormalArmy army,
             WorldVec2 worldPosition,
-            HexCoord derivedHex)
+            HexCoord derivedHex,
+            string surfaceId = null)
         {
             if (world == null || army == null)
                 return;
 
-            army.UsesHexStrategicPosition = true;
-            army.WorldMotion.SetAtWorldPosition(worldPosition, derivedHex);
+            army.UsesHexStrategicPosition = string.IsNullOrEmpty(surfaceId);
+            army.WorldMotion.SetAtWorldPosition(worldPosition, derivedHex, surfaceId);
             army.SyncLegacyFromWorldMotion();
             army.State = FormalArmyState.Idle;
             FormalArmyMemberPresenceSync.SyncAll(world, army);
@@ -169,6 +203,9 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Army destination has no valid Continuous Surface route.");
             if (!world.HexWorld.HasGrid)
                 return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded for legacy army travel.");
 
@@ -305,7 +342,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var budget = PlayerPartyHexTravelService.WorldUnitsPerTick(hexSize) * ticks;
+            var budget = PlayerPartyTravelRuntimeService.WorldUnitsPerTick(hexSize) * ticks;
             AdvanceArmyScratch.Clear();
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {

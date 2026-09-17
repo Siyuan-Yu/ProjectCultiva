@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -117,7 +118,7 @@ namespace XianXia.Core.World.Strategic
             HasPosition = true;
         }
 
-        public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex)
+        public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex, string surfaceId = null)
         {
             LocationKind = FormalArmyLocationKind.AtWorldPosition;
             SiteId = string.Empty;
@@ -125,6 +126,7 @@ namespace XianXia.Core.World.Strategic
             CurrentHex = derivedHex;
             HasPosition = true;
             ClearTravel();
+            SurfaceId = surfaceId ?? string.Empty;
         }
 
         public void BeginAutoTravel(

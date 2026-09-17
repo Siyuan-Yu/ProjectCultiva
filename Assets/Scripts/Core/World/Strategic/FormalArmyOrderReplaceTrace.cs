@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System.Collections.Generic;
 using System.Text;
 using XianXia.Core.World.Hex;

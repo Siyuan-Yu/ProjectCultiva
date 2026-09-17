@@ -329,15 +329,6 @@ namespace XianXia.Unity.Host
                 AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = next;
             y += 28f;
 
-            var showBattleHexOverlay = BattleEngagementWorldMapDebug.ShowOverlay;
-            var nextOverlay = GUI.Toggle(
-                new Rect(x, y, width, 22f),
-                showBattleHexOverlay,
-                "调试：WorldMap 高亮 BattleArea(橙) / SupportArea(蓝)");
-            if (nextOverlay != showBattleHexOverlay)
-                BattleEngagementWorldMapDebug.ShowOverlay = nextOverlay;
-            y += 28f;
-
             var world = bootstrap?.Session?.World;
             if (world != null)
             {

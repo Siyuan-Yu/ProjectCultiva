@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
@@ -282,7 +283,7 @@ namespace XianXia.Data.Bootstrap
                 return false;
 
             var sourceMapId = string.Empty;
-            if (world.WorldRegion.TryGet(locationId, out var placeState) && placeState != null &&
+            if (world.LocalPlaces.TryGet(locationId, out var placeState) && placeState != null &&
                 !string.IsNullOrEmpty(placeState.LocalMapId))
                 sourceMapId = placeState.LocalMapId;
 

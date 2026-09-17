@@ -1,13 +1,13 @@
 # 系统设计索引
 
-> **MAP 状态（2026-09-17）：** [MAP-01](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 Producer Accepted / Sealed；MAP-04 未开始。
+> **MAP 状态（2026-09-17）：** [MAP-01](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 Producer Accepted / Sealed；[MAP-04](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md) 实施中，尚未验收。
 > **Editor Toolchain / Legacy Content Direction：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 继续锁定 Authoring Source ≠ Runtime Content、旧 Content 迁移及后续 legacy retirement；现有 Hex/LocalMap consumers 仍是 compatibility，不因 MAP-02 自动退役。
 
 > 最后更新：2026-09-15（ADR-0036／ADR-0037 生命周期与术语一致性清理；实现与制作人验收按各页状态）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：** CW-04～CW-09.5 与 [238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；[CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)／[CW-10.5](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending。MAP-01/MAP-02/MAP-03 已封板，MAP-04 未开始；旧 Editor 生命周期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。** 当前状态与依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`；[163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) 仅为旧阶段路线。
+> **当前阶段：** CW-04～CW-09.5 与 [238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；[CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)／[CW-10.5](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending。MAP-01/MAP-02/MAP-03 已封板，MAP-04 实施中；旧 Editor 生命周期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。** 当前状态与依赖见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
 
 ## 规则
 
@@ -46,7 +46,7 @@
 | 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | 旧阶段已验收；继承／飞舟／统一移动待迁移 | ADR-0034 |
 | 2L | [LocalMap 建造系统 V1](2L-local-map-construction-v1.md) | P0 | **已实现／已人工验收／已封板** | 建筑目录、材料事务与主动拆除 |
 | 2M | [角色社会关系 V1](2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板** | Social Bond、五维态度、社会事件、击杀后果与统一人物档案 |
-| 2N | [连续世界制作、合成与去 Hex 产品方向](2N-continuous-surface-world-authoring-and-composition.md) | P0 | **已锁定未来方向／未实现** | Composer、Fine Editor、Final Surface、WorldMap LOD |
+| 2N | [连续世界制作、合成与去 Hex 产品方向](2N-continuous-surface-world-authoring-and-composition.md) | P0 | **MAP-01～03 已验收；MAP-04 实施中** | Composer、Fine Editor、Final Surface、WorldMap LOD、物理旧系统清理 |
 
 ## 架构文档（`30-tech`）
 

@@ -30,8 +30,8 @@ namespace XianXia.Tests
         {
             var started = new PlayableDayBootstrap().Start(BaseGamePath);
             Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
-            Assert.AreEqual("base:region_qingshi", started.Value.World.WorldRegion.RegionId);
-            Assert.AreEqual(4, started.Value.World.WorldRegion.Locations.Count);
+            Assert.AreEqual("base:region_qingshi", started.Value.World.LocalPlaces.RegionId);
+            Assert.AreEqual(4, started.Value.World.LocalPlaces.Locations.Count);
 
             foreach (var id in started.Value.CharacterIds)
             {

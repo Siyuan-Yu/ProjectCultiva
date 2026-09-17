@@ -27,7 +27,7 @@ namespace XianXia.Tests
         const float StopMargin = 0.3f;
 
         static readonly string WorldJsonPath =
-            Path.Combine(BaseGamePath, "Data", "Worlds", "ch01_hex_world.json");
+            Path.Combine(BaseGamePath, "..", "..", "Assets", "Tests", "Fixtures", "LegacyWorld", "ch01_hex_world.json");
 
         static readonly WildernessLocalWorldProjection.WildernessLocalMapBounds RealBounds =
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);

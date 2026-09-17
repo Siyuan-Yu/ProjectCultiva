@@ -745,10 +745,10 @@ namespace XianXia.Core.World.Strategic
             var startId = string.Empty;
             var baseX = 0f;
             var baseZ = 0f;
-            if (world.WorldRegion != null)
+            if (world.LocalPlaces != null)
             {
-                startId = world.WorldRegion.StartLocationId ?? string.Empty;
-                if (world.WorldRegion.TryGet(startId, out var startLoc) && startLoc != null)
+                startId = world.LocalPlaces.StartLocationId ?? string.Empty;
+                if (world.LocalPlaces.TryGet(startId, out var startLoc) && startLoc != null)
                 {
                     baseX = startLoc.PresentationX;
                     baseZ = startLoc.PresentationZ;
@@ -808,8 +808,8 @@ namespace XianXia.Core.World.Strategic
                 return 0;
 
             PruneRemovedSpawns(world);
-            var startId = world.WorldRegion.StartLocationId;
-            world.WorldRegion.TryGet(startId, out var startLoc);
+            var startId = world.LocalPlaces.StartLocationId;
+            world.LocalPlaces.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
             var slot = 0;
@@ -897,8 +897,8 @@ namespace XianXia.Core.World.Strategic
             PruneGenericDuplicateSpawnsForFormalArmy(world, army);
 
             var rt = world.Strategic.Encounter;
-            var startId = world.WorldRegion.StartLocationId;
-            world.WorldRegion.TryGet(startId, out var startLoc);
+            var startId = world.LocalPlaces.StartLocationId;
+            world.LocalPlaces.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
             var slot = 0;
@@ -1034,8 +1034,8 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null || toSpawn <= 0)
                 return Result.Success();
 
-            var startId = world.WorldRegion.StartLocationId;
-            world.WorldRegion.TryGet(startId, out var startLoc);
+            var startId = world.LocalPlaces.StartLocationId;
+            world.LocalPlaces.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
             var spawnIndex = spawnIndexStart;
@@ -1091,8 +1091,8 @@ namespace XianXia.Core.World.Strategic
             if (scoped == null)
                 return;
 
-            var startId = world.WorldRegion.StartLocationId;
-            world.WorldRegion.TryGet(startId, out var startLoc);
+            var startId = world.LocalPlaces.StartLocationId;
+            world.LocalPlaces.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
             var slot = 0;

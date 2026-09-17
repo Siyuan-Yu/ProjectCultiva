@@ -24,6 +24,7 @@ namespace XianXia.Data.Bootstrap
     public sealed class PlayableDayBootstrap
     {
         public const string DefaultScheduleId = "base:playable_labor_day";
+        public const string DefaultStartSiteId = "base:site_huangcun";
 
         public static readonly DefinitionId DefaultScenarioId = ContentGameStart.DefaultPlayableScenarioId;
 
@@ -114,6 +115,8 @@ namespace XianXia.Data.Bootstrap
 
             var world = started.Value.World;
             var registry = loaded.Registry;
+            // Surface navigation is normal NewGame authority from the first opening placement.
+            ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
 
             var manuals = RegisterManuals(world, registry);
             if (manuals.IsFailure)
@@ -153,19 +156,14 @@ namespace XianXia.Data.Bootstrap
             if (applied.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(applied.Error);
 
-            var region = WorldRegionBootstrap.ApplyOpening(
-                world, registry, scenario, lookup, spawnEntries);
-            if (region.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(region.Error);
-
             var strategic = StrategicContentBootstrap.ApplyCh01Defaults(world, registry, scenario, lookup);
             if (strategic.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(strategic.Error);
 
-            var hexSession = HexStrategicSessionBootstrap.ApplyOpening(
+            var surfaceSession = ContinuousSurfaceSessionBootstrap.ApplyOpening(
                 world, scenario, lookup, spawnEntries, registry);
-            if (hexSession.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(hexSession.Error);
+            if (surfaceSession.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(surfaceSession.Error);
 
             var spawnZones = SpawnZoneApplier.ApplyAll(world, registry, world.Random);
             if (spawnZones.IsFailure)
@@ -183,16 +181,32 @@ namespace XianXia.Data.Bootstrap
             // 只补「完全没有 WorldPresence」的实体，不覆盖任何已有 authority（含 FormalArmy）。
             _openingPopulationDiagnostics.Clear();
             var openingCensus = ContinuousOutdoorOpeningPopulationBootstrap.BuildCensus(
-                world, HexStrategicSessionBootstrap.DefaultStartSiteId);
+                world, DefaultStartSiteId);
             var openingPopulation = ContinuousOutdoorOpeningPopulationBootstrap.Apply(
                 world,
                 registry,
-                HexStrategicSessionBootstrap.DefaultStartSiteId,
+                DefaultStartSiteId,
                 _openingPopulationDiagnostics);
             if (openingPopulation.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(openingPopulation.Error);
             openingCensus = ContinuousOutdoorOpeningPopulationBootstrap.BuildCensus(
-                world, HexStrategicSessionBootstrap.DefaultStartSiteId);
+                world, DefaultStartSiteId);
+            if (!string.IsNullOrWhiteSpace(scenario.OpeningSurfaceId) &&
+                DefinitionId.TryParse(scenario.OpeningSurfaceId, out var openingSurfaceId) &&
+                registry.TryGetOutdoorSurface(openingSurfaceId, out var openingSurface))
+            {
+                var openingValid = ContinuousOpeningSpawnPresenceResolver.ValidateOpening(
+                    world, openingSurface, spawnEntries, out var anchorCensus);
+                _openingPopulationDiagnostics.Add(
+                    "[OpeningAnchorCensus] expected=" + anchorCensus.AnchorCount +
+                    " spawned=" + anchorCensus.SpawnedEntityCount +
+                    " presence=" + anchorCensus.PresenceCount +
+                    " missing=" + anchorCensus.MissingPresenceCount +
+                    " wrongSite=" + anchorCensus.WrongSiteCount +
+                    " missingPosition=" + anchorCensus.MissingExactPositionCount);
+                if (openingValid.IsFailure)
+                    return Result.Fail<PlayableDayBootstrapResult>(openingValid.Error);
+            }
 
             var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup);
             if (chapter.IsFailure)

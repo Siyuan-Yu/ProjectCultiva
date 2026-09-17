@@ -19,7 +19,8 @@ namespace XianXia.Data.Bootstrap
     /// 与 <c>CollectOpeningCharacterEntityIds</c>（Player／character travel bootstrap 用途）严格分开：
     /// NPC 绝不进入 <c>PlayerPartyTravel</c> 的 traveling members。
     ///
-    /// 解析顺序（§3）：
+    /// Normal Surface opening uses the checked-in openingEntityAnchor before any legacy
+    /// Site/LocalPlace inference. Legacy content retains the following compatibility order:
     /// <list type="bullet">
     /// <item>A. <c>spawn.WorldSiteId</c> 非空 = 最高 authored authority（character／npc 同等）。</item>
     /// <item>B. character 未写 worldSiteId → DefaultStartSiteId（既有语义，不变）。</item>
@@ -51,7 +52,18 @@ namespace XianXia.Data.Bootstrap
             if (entries == null || entries.Count == 0)
                 return Result.Success();
 
-            var defaultSiteId = HexStrategicSessionBootstrap.DefaultStartSiteId;
+            OutdoorWorldSurfaceDefinition openingSurface = null;
+            if (!string.IsNullOrWhiteSpace(scenario?.OpeningSurfaceId))
+            {
+                if (registry == null ||
+                    !DefinitionId.TryParse(scenario.OpeningSurfaceId, out var surfaceId) ||
+                    !registry.TryGetOutdoorSurface(surfaceId, out openingSurface) ||
+                    openingSurface == null || openingSurface.AcceptanceOnly)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Normal opening Surface missing.", scenario.OpeningSurfaceId);
+            }
+
+            var defaultSiteId = PlayableDayBootstrap.DefaultStartSiteId;
             Dictionary<string, string> siteIdByPlaceId = null;
             // §4：SpawnStableKey ≠ DefinitionId。按 authored spawn 顺序建立稳定 key，并允许
             // 从 spawned Entity 反查（同一 Definition 多次 spawn 时不再共享 first-match anchor）。
@@ -63,7 +75,8 @@ namespace XianXia.Data.Bootstrap
                 if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId))
                     continue;
                 if (lookup == null || !lookup.TryGetEntity(spawn.DefinitionId, out var entityId) || entityId.IsNone)
-                    continue;
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Opening spawn entity missing.", spawn.DefinitionId);
 
                 var definitionId = spawn.DefinitionId.Trim();
                 authoredIndexByDefinition.TryGetValue(definitionId, out var authoredIndex);
@@ -71,6 +84,15 @@ namespace XianXia.Data.Bootstrap
                 world.OpeningSpawnIdentities.Register(
                     entityId,
                     OpeningSpawnIdentityBoard.BuildStableKey(definitionId, authoredIndex));
+
+                if (openingSurface != null)
+                {
+                    if (!ContinuousOpeningSpawnPresenceResolver.TryApply(
+                            world, openingSurface, entityId, definitionId, spawn.WorldSiteId,
+                            out var anchorFailure))
+                        return Result.Failure(ErrorCode.ContentLoadFailed, anchorFailure);
+                    continue;
+                }
 
                 var entityKind = string.IsNullOrEmpty(spawn.EntityKind)
                     ? "character"
@@ -101,7 +123,9 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 }
 
-                // C. npc 未写 worldSiteId：解析 authored／placed LocalPlace 的所属 Outdoor Site。
+                // C. Legacy npc only: resolve its authored LocalPlace to an Outdoor Site.
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                    continue;
                 var placeId = ResolveAuthoredPlaceId(spawn, world, entityId);
                 if (string.IsNullOrEmpty(placeId))
                     continue;
@@ -142,7 +166,8 @@ namespace XianXia.Data.Bootstrap
                     ContinuousOutdoorOpeningAnchorResolver.TryGetBakedEntityAnchor(
                         surface, site.SiteId, spawnKey, out var continuousAnchor))
                 {
-                    world.WorldPresence.SetAtSiteWithAnchor(entityId, site.SiteId, continuousAnchor);
+                    world.WorldPresence.SetAtSiteWithAnchor(
+                        entityId, site.SiteId, continuousAnchor, surface.SurfaceId);
                     return;
                 }
                 world.WorldPresence.SetAtSite(entityId, site.SiteId);
@@ -218,11 +243,12 @@ namespace XianXia.Data.Bootstrap
             {
                 boundSiteId = directSiteId;
             }
-            else if (world.WorldRegion.TryGet(placeId, out var placeState) && placeState != null)
+            else if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                     world.LocalPlaces.TryGet(placeId, out var placeState) && placeState != null)
             {
                 var owningMapId = !string.IsNullOrEmpty(placeState.LocalMapId)
                     ? placeState.LocalMapId
-                    : world.WorldRegion.ActiveMapLayoutId;
+                    : world.LocalPlaces.ActiveMapLayoutId;
                 boundSiteId = ResolveSiteIdByLocalMapId(world, owningMapId);
             }
 
@@ -266,7 +292,8 @@ namespace XianXia.Data.Bootstrap
             if (world.Entities.TryGet(entityId, out var entity) && IsCaveBoundNpc(entity))
                 return true;
 
-            if (!world.WorldRegion.TryGet(placeId, out var placeState) || placeState == null)
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
+                !world.LocalPlaces.TryGet(placeId, out var placeState) || placeState == null)
                 return false;
 
             if (string.IsNullOrEmpty(placeState.LocalMapId))

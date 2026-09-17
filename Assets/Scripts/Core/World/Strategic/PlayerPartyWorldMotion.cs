@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -375,6 +376,30 @@ namespace XianXia.Core.World.Strategic
             // Phase 2C：path[0]==CurrentHex 且 off-center 时，段 0 从 live WorldPosition 出发（TryGetActiveSegmentWorld），不在此 snap。
 
             StartAutoTravel(PlayerPartyTravelExecutionMode.World);
+        }
+
+        /// <summary>NewGame continuous Surface placement without a HexWorld lookup.</summary>
+        public void SetAtSurfacePosition(WorldVec2 worldPos) => SetAtWorldPosition(worldPos, default);
+
+        public void BeginSurfaceAutoTravel(
+            WorldVec2 destinationWorldPosition, string destinationSiteId, float arrivalRadius,
+            IReadOnlyList<WorldVec2> continuousRoute)
+        {
+            TravelPlanVersion++;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
+            FinalDestinationSiteId = DestinationSiteId;
+            HasContinuousPhysicalDestination = true;
+            ContinuousPhysicalDestination = destinationWorldPosition;
+            ContinuousPhysicalArrivalRadius = Math.Max(0.001f, arrivalRadius);
+            _hexPath.Clear();
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+            _continuousSurfaceRoute.Clear();
+            if (continuousRoute != null)
+                for (var i = 0; i < continuousRoute.Count; i++)
+                    _continuousSurfaceRoute.Add(continuousRoute[i]);
+            ContinuousSurfaceRouteIndex = _continuousSurfaceRoute.Count > 1 ? 1 : 0;
+            StartAutoTravel(PlayerPartyTravelExecutionMode.LocalVisible);
         }
 
         /// <summary>

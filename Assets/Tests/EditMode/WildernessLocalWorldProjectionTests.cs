@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using NUnit.Framework;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;

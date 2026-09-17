@@ -51,7 +51,17 @@ try {
   try {
     Write-BuildLog "Switching complete candidate Apps directory into place."
     if (Test-Path -LiteralPath $appsRoot) { Move-Item -LiteralPath $appsRoot -Destination $backupApps -ErrorAction Stop; $oldAppsMoved = $true }
-    Move-Item -LiteralPath $candidateApps -Destination $appsRoot -ErrorAction Stop
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+      try {
+        Move-Item -LiteralPath $candidateApps -Destination $appsRoot -ErrorAction Stop
+        break
+      }
+      catch {
+        if ($attempt -eq 5 -or (Test-Path -LiteralPath $appsRoot)) { throw }
+        Write-BuildLog "Apps switch access retry $attempt/5: $($_.Exception.Message)"
+        Start-Sleep -Seconds 2
+      }
+    }
     Write-BuildLog "Apps switch succeeded."
   }
   catch {
@@ -60,6 +70,10 @@ try {
     if ($oldAppsMoved -and -not (Test-Path -LiteralPath $appsRoot) -and (Test-Path -LiteralPath $backupApps)) {
       try { Move-Item -LiteralPath $backupApps -Destination $appsRoot -ErrorAction Stop; Write-BuildLog "Apps rollback succeeded." }
       catch { $preserveBuildRoot = $true; throw "Apps switch and rollback both failed. Previous Apps is preserved at: $backupApps" }
+    }
+    elseif ($oldAppsMoved -and (Test-Path -LiteralPath $appsRoot)) {
+      $preserveBuildRoot = $true
+      throw "Apps switch left a partial destination. Previous Apps is preserved at: $backupApps"
     }
     throw $switchError
   }

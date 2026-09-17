@@ -696,7 +696,7 @@ namespace XianXia.Tests
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
             Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
 
-            const string lingerMap = "base:map_world_node_stub";
+            const string lingerMap = "base:map_strategic_encounter_arena";
             world.Strategic.Encounter.LingeringLocalMapId = lingerMap;
             ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out var anchorHex); var anchorSite = ArmyHexBattleAnchorService.ResolveSiteIdForHex(world, anchorHex, string.Empty);
             if (string.IsNullOrEmpty(anchorSite))

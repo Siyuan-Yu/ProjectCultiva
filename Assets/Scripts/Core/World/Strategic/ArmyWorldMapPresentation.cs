@@ -83,6 +83,17 @@ namespace XianXia.Core.World.Strategic
         {
             worldX = 0f;
             worldY = 0f;
+            // Current Surface WorldMap uses the same exact WorldMotion as LocalVisible.
+            if (world != null && army?.WorldMotion?.HasPosition == true &&
+                ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                world.SurfaceGround.TryResolveContaining(army.WorldMotion.WorldPosition, out var surface) &&
+                (string.IsNullOrEmpty(army.WorldMotion.SurfaceId) ||
+                 string.Equals(army.WorldMotion.SurfaceId, surface.SurfaceId, StringComparison.Ordinal)))
+            {
+                worldX = army.WorldMotion.WorldPosition.X;
+                worldY = army.WorldMotion.WorldPosition.Y;
+                return true;
+            }
             if (army.UsesHexStrategicPosition &&
                 FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
                 return true;

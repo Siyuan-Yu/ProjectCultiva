@@ -45,6 +45,8 @@ namespace XianXia.Data.Content
         public string OpeningLocalPlaceSetId { get; set; }
         /// <summary>正式 Hex 战略大地图 content id。</summary>
         public string OpeningHexWorldId { get; set; }
+        /// <summary>Normal NewGame outdoor Surface identity.</summary>
+        public string OpeningSurfaceId { get; set; }
         /// <summary>Chapter Production: optional opening chapter definition id.</summary>
         public string OpeningChapterId { get; set; }
         public List<OpeningStartingInventoryEntry> StartingInventory { get; set; } = new List<OpeningStartingInventoryEntry>();

@@ -23,7 +23,7 @@ namespace XianXia.Tests
                 BaseGamePath,
                 new PlayableDayOptions { OpeningScenarioId = "base:scenario_ch01_reference" });
             Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
-            var region = started.Value.World.WorldRegion;
+            var region = started.Value.World.LocalPlaces;
             Assert.IsTrue(region.TryGet("base:loc_ref_forest", out var forest));
             Assert.AreEqual(-34f, forest.PresentationX, 0.01f);
             Assert.IsTrue(region.TryGet("base:loc_ref_herb_field", out var herb));

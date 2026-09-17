@@ -426,7 +426,7 @@ namespace XianXia.Core.World
                 return false;
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return false;
-            if (!world.WorldRegion.TryGet(loc.LocationId, out var place))
+            if (!world.LocalPlaces.TryGet(loc.LocationId, out var place))
                 return false;
 
             return string.IsNullOrEmpty(place.LocalMapId) ||

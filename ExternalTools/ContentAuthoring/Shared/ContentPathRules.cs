@@ -84,9 +84,6 @@ public static class ContentPathRules
 
     public static string SuggestMapFileName(string mapId)
     {
-        if (mapId.Contains("ch01", StringComparison.OrdinalIgnoreCase) ||
-            mapId.Contains("reference", StringComparison.OrdinalIgnoreCase))
-            return "ch01_reference_map.json";
         var slug = mapId.Replace("base:", "", StringComparison.OrdinalIgnoreCase)
             .Replace(':', '_')
             .Replace('/', '_');

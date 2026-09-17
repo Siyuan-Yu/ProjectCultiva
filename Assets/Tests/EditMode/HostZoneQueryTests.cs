@@ -101,7 +101,7 @@ namespace XianXia.Tests
                 PresentationZ = -12.25f
             });
 
-            Assert.IsFalse(world.WorldRegion.TryGet("base:loc_continuous_work", out _));
+            Assert.IsFalse(world.LocalPlaces.TryGet("base:loc_continuous_work", out _));
             Assert.IsTrue(HostZoneQuery.TryGetLocationCenter(
                 world, "base:loc_continuous_work", out var center));
             var presentation = HostPresentationSpace.ToPresentation(center);

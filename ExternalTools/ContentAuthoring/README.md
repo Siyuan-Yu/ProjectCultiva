@@ -1,6 +1,6 @@
 # ContentAuthoring（Windows / WPF）
 
-本目录有 12 个独立编辑器工程，以及共享库。Editor metadata 的唯一真源是 [EditorManifest.json](EditorManifest.json)：它定义工程路径、生命周期、默认发布集合、未来替代工具与提示说明。
+本目录有 10 个独立编辑器工程，以及共享库。Editor metadata 的唯一真源是 [EditorManifest.json](EditorManifest.json)：它定义工程路径、生命周期、默认发布集合、未来替代工具与提示说明。
 
 ## 日常编译与启动
 
@@ -36,7 +36,7 @@ MAP-01 Production V1 大世界拼装工具。schema v3 的正式基础地形只�
 
 MAP-01.5 已将世界预览改为后台生成的 `1 Surface Cell = 1 pixel` 缓存位图：pan、zoom、选择和 hover 只重绘位图与轻量矢量 overlay；宏观地形笔刷提交只更新带邻格 padding 的 dirty region，路径拖动在 mouse-up 后才重新合成。制作人可见的按钮、工具、状态、弹窗、验证与枚举显示统一为中文，JSON schema 与 enum value 仍保持英文稳定值。
 
-“导入当前项目世界…”从现有 Main Surface、W2A geography、参考地图和 LocalPlace 数据生成 `Content/BaseGame/Authoring/ContinuousSurface/` 下的新制作源，不改运行时 `Data/**`。“导出运行时兼容候选包…”只写入制作人选择的独立目录，生成 geography 与 main surface 候选文件，不会自动安装。
+“导入当前项目世界…”从现有 Main Surface、W2A geography 生成 `Content/BaseGame/Authoring/ContinuousSurface/` 下的新制作源，不改运行时 `Data/**`。“导出运行时候选包…”只写入制作人选择的独立目录，生成 geography 与 main surface 候选文件，不会自动安装。
 
 ### FineEditor
 
@@ -44,18 +44,16 @@ MAP-01 Production V1 `1×1 Surface Cell` 局部精修工具。WorldSite Blueprin
 
 MAP-01.5 为 sparse terrain 建立 `(x,y)` 索引与缓存 raster，绘制不再逐格线性搜索；大尺寸 Blueprint 的浏览与笔刷更新只处理缓存位图和实际 dirty cells。用户界面同样统一为中文。
 
-## Legacy Compatibility Editors
+## 室内 / 洞穴兼容编辑器
 
-以下工具仍能正常启动，且仍由 Build All 构建；它们只用于维护或迁移既有 Content，不应用于制作新一代地图 Content。
+以下工具仍由 Build All 构建，仅维护室内、洞穴和独立地图 Content。
 
-| Editor | 旧 Content 范围 | 未来替代 |
-|---|---|---|
-| `WorldGraphEditor` | Hex / WorldGraph Content | `WorldComposer` |
-| `MapEditor` | mapLayout / LocalMap / Outdoor compatibility Content | `FineEditor` |
-| `RegionEditor` | worldRegion / navigation Content | 尚未锁定 |
-| `LocalPlaceEditor` | LocalPlace Content | 尚未锁定 |
+| Editor | 正式范围 |
+|---|---|
+| `MapEditor` | 室内 / 洞穴地图编辑器；独立战斗地图 |
+| `LocalPlaceEditor` | 室内 / 洞穴地点编辑器；独立地图地点 |
 
-`WorldComposer` 与 `FineEditor` 是新的 Authoring Source 工具，不继承旧 Hex、WorldGraph、mapLayout 或 LocalMap document model。`WorldGraphEditor` 与 `MapEditor` 仍只维护既有兼容 Content。Legacy Editor 启动时会在控制台显示兼容用途与已知替代方向。
+Outdoor Surface terrain、WorldSite 和 Wilderness 由 `WorldComposer` 与 `FineEditor` 制作，不再使用 `MapEditor` 或 `LocalPlaceEditor`。
 
 ## 发布语义
 
@@ -63,7 +61,7 @@ MAP-01.5 为 sparse terrain 建立 `(x,y)` 索引与缓存 raster，绘制不再
 
 每次 Build All 覆盖 `build-all.log`，其中记录 preflight、manifest、每个 Editor 的 publish、Apps switch 和最终 exit code，便于诊断双击构建失败。
 
-正式 `Apps/` 只保留平铺的最终 exe 和启动说明，例如：`Apps/PackageBrowser.exe`、`Apps/WorldGraphEditor.exe`。不要使用旧的 `Apps/<Editor>/<Editor>.exe` 路径。
+正式 `Apps/` 只保留平铺的最终 exe 和启动说明，例如：`Apps/PackageBrowser.exe`、`Apps/WorldComposer.exe`。不要使用旧的 `Apps/<Editor>/<Editor>.exe` 路径。
 
 ## 用 Visual Studio（调试）
 

@@ -104,7 +104,7 @@ namespace XianXia.Tests
             Assert.IsTrue(WorldSiteCoreWarfareService.TryGetFixedCore(world, FixedSite, out var reverse));
             Assert.AreSame(core, reverse);
 
-            world.WorldRegion.ClearLocations();
+            world.LocalPlaces.ClearLocations();
             var target = Target(b);
             var attacker = world.Strategic.PlayerPartyContext.ActiveCharacterId;
             Assert.IsTrue(WorldSiteCoreWarfareService.Validate(world, attacker, target, requireWar: false).IsSuccess);
@@ -117,7 +117,7 @@ namespace XianXia.Tests
             Assert.AreEqual(hp - damage, core.CurrentDurability);
 
             var restored = RoundTrip(b);
-            restored.WorldRegion.ClearLocations();
+            restored.LocalPlaces.ClearLocations();
             Assert.IsTrue(WorldSiteCoreWarfareService.TryGetFixedCore(restored, FixedSite, out var restoredCore));
             Assert.AreEqual(core.WorkAreaId, restoredCore.WorkAreaId);
             Assert.IsTrue(WorldSiteCoreWarfareService.Resolve(restored, FixedSite, out _).IsSuccess);
@@ -278,7 +278,7 @@ namespace XianXia.Tests
             var shell = RuntimeContentShellBootstrap.Rehydrate(restored.Value.world, b.Registry);
             Assert.IsTrue(shell.IsSuccess, shell.IsFailure ? shell.Error.ToString() : "");
             b.Registry.TryGetOpeningScenario(DefinitionId.Parse("base:scenario_ch01_reference").Value, out var scenario);
-            Assert.IsTrue(HexStrategicMapContentBootstrap.TryApplyToSession(restored.Value.world, b.Registry, scenario).IsSuccess);
+            Assert.IsTrue(LegacyHexStrategicMapContentAdapter.TryApplyToSession(restored.Value.world, b.Registry, scenario).IsSuccess);
             var fixedCores = ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(restored.Value.world, b.Registry);
             Assert.IsTrue(fixedCores.IsSuccess, fixedCores.IsFailure ? fixedCores.Error.ToString() : "");
             var snapshot = new JsonSnapshotSerializer().Deserialize(saved.Value).Value;
@@ -304,7 +304,7 @@ namespace XianXia.Tests
             Assert.IsFalse(restored.Strategic.FactionFlags.Flags.ContainsKey(flag.FlagId));
             Assert.IsFalse(restored.Strategic.Sites.Sites[site.SiteId].IsCoreActive);
             var request = new FactionFlagSitePlacementRequest { SurfaceId = target.SurfaceId,
-                WorldPosition = new XianXia.Core.World.Hex.WorldVec2(target.WorldX, target.WorldY), StrategicAnchor = flag.AnchorHex };
+                WorldPosition = new XianXia.Core.World.WorldVec2(target.WorldX, target.WorldY), StrategicAnchor = flag.AnchorHex };
             var build = XianXia.Core.Construction.ConstructionService.TryConstructFactionFlagSite(w,
                 "base:building_faction_control_post", w.Strategic.PlayerFactionId, request, out var ownFlag, out var ownSite);
             Assert.IsTrue(build.IsSuccess, build.IsFailure ? build.Error.ToString() : "");

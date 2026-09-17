@@ -59,11 +59,11 @@ namespace XianXia.Core.World.Strategic
             world.LocalMap.ActiveMapLayoutId = mapId;
             world.LocalMap.OverworldMapLayoutId = mapId;
 
-            var startId = world.WorldRegion != null ? world.WorldRegion.StartLocationId : string.Empty;
+            var startId = world.LocalPlaces != null ? world.LocalPlaces.StartLocationId : string.Empty;
             WorldLocationState startLoc = null;
             var hasStart = !string.IsNullOrEmpty(startId) &&
-                           world.WorldRegion != null &&
-                           world.WorldRegion.TryGet(startId, out startLoc) &&
+                           world.LocalPlaces != null &&
+                           world.LocalPlaces.TryGet(startId, out startLoc) &&
                            startLoc != null;
             var px = hasStart ? startLoc.PresentationX : 0f;
             var pz = hasStart ? startLoc.PresentationZ : 0f;

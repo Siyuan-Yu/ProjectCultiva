@@ -161,7 +161,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
             {
-                var cancel = PlayerPartyHexTravelService.CancelTravel(world, party);
+                var cancel = PlayerPartyTravelRuntimeService.CancelTravel(world, party);
                 if (cancel.IsFailure)
                     return cancel;
             }

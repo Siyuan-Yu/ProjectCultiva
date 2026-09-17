@@ -1,3 +1,4 @@
+using XianXia.Core.World;
 using System;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
