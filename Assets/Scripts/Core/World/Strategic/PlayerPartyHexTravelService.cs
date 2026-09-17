@@ -1222,11 +1222,13 @@ namespace XianXia.Core.World.Strategic
                 var derived = HexMath.WorldToHex(continuousMotion.WorldPosition.X, continuousMotion.WorldPosition.Y, size);
                 continuousMotion.SetAtWorldPosition(continuousMotion.WorldPosition, derived);
                 continuousMotion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
+                world.SurfaceGround.TryResolveSiteArrival(site.SiteId, out var surfaceId, out _);
                 world.PartyWorld.LocalMapId = string.Empty;
                 world.PartyWorld.SiteId = string.Empty;
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
                 foreach (var id in party.Members)
-                    world.WorldPresence.SetAtWorldPosition(id, continuousMotion.WorldPosition, derived);
+                    world.WorldPresence.SetAtWorldPosition(id, continuousMotion.WorldPosition, derived,
+                        surfaceId);
                 return Result.Success();
             }
             var admission = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(

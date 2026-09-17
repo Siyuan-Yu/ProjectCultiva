@@ -5266,26 +5266,6 @@
         },
         {
           "siteId": "base:site_huangcun",
-          "locationId": "base:loc_cave_chamber",
-          "worldX": 5.19615,
-          "worldY": 10.375,
-          "name": "洞府内室",
-          "localMapId": "base:map_ch01_cave",
-          "kind": "Opportunity",
-          "adjacentIds": [],
-          "tags": [
-            "cave",
-            "interior",
-            "spirit"
-          ],
-          "allowedActivities": [
-            "Cultivate",
-            "Explore",
-            "Rest"
-          ]
-        },
-        {
-          "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_road_hub",
           "worldX": 5.47761,
           "worldY": 10.48,

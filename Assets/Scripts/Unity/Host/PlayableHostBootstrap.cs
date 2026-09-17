@@ -325,7 +325,7 @@ namespace XianXia.Unity.Host
             // 与 normal startup 同一条 FINAL OPENING POPULATION BARRIER（但不重复绑定收尾）。
             FinalizeContinuousOutdoorOpeningPopulation();
             FrameCameraOnActiveCharacter();
-            if (!_continuousOutdoorSurfaceRuntime.TryValidateStartupPostconditions(out var postFailure))
+            if (!_continuousOutdoorSurfaceRuntime.TryValidateOpeningPostconditions(out var postFailure))
             {
                 ContinuousStartupPostconditionDiagnostic = postFailure;
                 Debug.LogError("[ContinuousStartupInvariantFailure] " + postFailure, this);
@@ -578,7 +578,8 @@ namespace XianXia.Unity.Host
             motion.SetAtWorldPosition(canonical, derived);
             motion.SetCurrentOutdoorWorldSiteContext(plan.SiteId);
             for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
-                world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived);
+                world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived,
+                    plan.SurfaceId);
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             world.PartyWorld.LocalMapId = string.Empty;
@@ -1148,7 +1149,7 @@ namespace XianXia.Unity.Host
                 // postcondition 诊断放在 Host finalize + Camera 之后：只报告，不中途 abort
                 // （避免留下「IsInitialized 一半 / Camera 未定位 / Legacy 已清」的 poisoned session）。
                 if (_continuousOutdoorSurfaceRuntime != null &&
-                    !_continuousOutdoorSurfaceRuntime.TryValidateStartupPostconditions(out var postFailure))
+                    !_continuousOutdoorSurfaceRuntime.TryValidateOpeningPostconditions(out var postFailure))
                 {
                     ContinuousStartupPostconditionDiagnostic = postFailure;
                     Debug.LogError("[ContinuousStartupInvariantFailure] " + postFailure, this);
@@ -1533,18 +1534,32 @@ namespace XianXia.Unity.Host
             if (!_session.IsInitialized)
                 return;
 
+            var interior = _session.World.LocalMap.IsInInterior;
             var handoffMotion = _session.World?.PlayerPartyTravel;
             if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive &&
-                (handoffMotion == null || handoffMotion.LocationKind != PlayerPartyLocationKind.AtWorldPosition))
-                _continuousOutdoorSurfaceRuntime.DeactivatePresentationOnly();
-            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
+                (interior || handoffMotion == null ||
+                 handoffMotion.LocationKind != PlayerPartyLocationKind.AtWorldPosition))
+            {
+                if (interior) _continuousOutdoorSurfaceRuntime.DeactivateForInteriorTransition();
+                else _continuousOutdoorSurfaceRuntime.DeactivatePresentationOnly();
+            }
+            if (!interior && _continuousOutdoorSurfaceRuntime != null &&
+                _continuousOutdoorSurfaceRuntime.IsActive)
+            {
+                ReloadContinuousSurfaceOverlaysOnly(frameCamera);
+                return;
+            }
+
+            if (!interior && _continuousOutdoorSurfaceRuntime != null &&
+                handoffMotion?.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
             {
                 ReloadContinuousSurfaceOverlaysOnly(frameCamera);
                 return;
             }
 
             var world = _session.World;
-            if (_continuousWildernessLoadedSet != null &&
+            if (!interior && _continuousWildernessLoadedSet != null &&
                 _continuousWildernessLoadedSet.IsActive &&
                 _continuousWildernessLoadedSet.ContainsHex(world.PlayerPartyTravel?.CurrentHex ?? default))
             {
@@ -2335,6 +2350,12 @@ namespace XianXia.Unity.Host
             if (surfaceExitZonePresenter == null)
                 surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
                                           gameObject.AddComponent<HostSurfaceExitZonePresenter>();
+
+            if (_session.World.LocalMap.IsInInterior)
+            {
+                surfaceExitZonePresenter.Clear();
+                return;
+            }
 
             // W1C is selected from actual WorldPosition coverage before W1B is ever considered.
             var continuousWasActive = _continuousOutdoorSurfaceRuntime != null &&

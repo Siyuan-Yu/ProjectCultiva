@@ -7,6 +7,8 @@ namespace XianXia.Core.World.Strategic
     /// <summary>FormalArmy 成员 World Presence 从 Army Location 派生（单一 Authority）。</summary>
     public static class FormalArmyMemberPresenceSync
     {
+        public enum Reason { OrdinaryTick, GroupRelocation }
+
         public static bool IsArmyEngaged(SimulationWorld world, FormalArmy army)
         {
             if (world?.Strategic?.Participants == null || army == null)
@@ -33,6 +35,14 @@ namespace XianXia.Core.World.Strategic
         }
 
         public static void SyncAll(SimulationWorld world, FormalArmy army, bool preservePersonalPositions = false)
+            => SyncAll(world, army, Reason.OrdinaryTick, preservePersonalPositions);
+
+        public static void SyncAllFromArmyAuthority(SimulationWorld world, FormalArmy army,
+            Reason reason)
+            => SyncAll(world, army, reason, false);
+
+        static void SyncAll(SimulationWorld world, FormalArmy army, Reason reason,
+            bool preservePersonalPositions)
         {
             if (world?.WorldPresence == null || army == null)
                 return;
@@ -51,14 +61,20 @@ namespace XianXia.Core.World.Strategic
                     !string.Equals(bound.ArmyId, army.ArmyId, System.StringComparison.Ordinal))
                     continue;
 
-                if (preservePersonalPositions && world.WorldPresence.TryGet(memberId, out var personal) &&
-                    personal.HasContinuousWorldPosition)
+                if (reason == Reason.GroupRelocation && !IsArmyControlledMember(world, memberId))
                     continue;
-                SyncMember(world, army, memberId);
+                if (reason == Reason.OrdinaryTick && preservePersonalPositions &&
+                    world.WorldPresence.TryGet(memberId, out var personal) &&
+                    personal != null)
+                    continue;
+                SyncMember(world, army, memberId, reason);
             }
         }
 
         public static void SyncMember(SimulationWorld world, FormalArmy army, EntityId memberId)
+            => SyncMember(world, army, memberId, Reason.OrdinaryTick);
+
+        static void SyncMember(SimulationWorld world, FormalArmy army, EntityId memberId, Reason reason)
         {
             if (world?.WorldPresence == null || army == null || memberId.IsNone)
                 return;
@@ -73,9 +89,11 @@ namespace XianXia.Core.World.Strategic
 
             // Near-field movement owns precise personal positions. The legacy group projection
             // must not overwrite them on idle ticks, finalization or during an encounter.
-            if (world.WorldPresence.TryGet(memberId, out var personal) &&
+            if (reason == Reason.OrdinaryTick &&
+                world.WorldPresence.TryGet(memberId, out var personal) &&
                 !string.IsNullOrEmpty(personal.PersonalSurfaceId) &&
-                (!motion.IsMoving || world.ContinuousOutdoorMaterialization.IsMaterialized(memberId)))
+                (!motion.IsMoving || world.ContinuousOutdoorMaterialization.IsMaterialized(memberId)) &&
+                IsNearArmyAnchor(world, personal, motion))
                 return;
 
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
@@ -96,6 +114,30 @@ namespace XianXia.Core.World.Strategic
                 worldSurface = navigation.SurfaceId;
             world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition,
                 motion.CurrentHex, worldSurface);
+        }
+
+        static bool IsNearArmyAnchor(SimulationWorld world, WorldAgentPresence personal,
+            FormalArmyWorldMotion motion)
+        {
+            if (string.IsNullOrEmpty(motion.SurfaceId)) return true;
+            if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite)
+            {
+                if (personal.Mode != PartyWorldPresenceMode.AtSite ||
+                    !string.Equals(personal.SiteId, motion.SiteId,
+                        System.StringComparison.Ordinal))
+                    return false;
+            }
+            else if (personal.Mode != PartyWorldPresenceMode.AtWorldPosition)
+                return false;
+            if (!personal.HasContinuousWorldPosition ||
+                !string.Equals(personal.PersonalSurfaceId, motion.SurfaceId,
+                    System.StringComparison.Ordinal) ||
+                !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation))
+                return false;
+            var dx = personal.WorldPosX - motion.WorldPosition.X;
+            var dy = personal.WorldPosY - motion.WorldPosition.Y;
+            var limit = navigation.CellSize * 16f;
+            return dx * dx + dy * dy <= limit * limit;
         }
 
         /// <summary>
@@ -143,12 +185,22 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId))
             {
-                world.WorldPresence.SetAtSite(memberId, motion.SiteId);
+                var siteSurface = motion.SurfaceId;
+                if (string.IsNullOrEmpty(siteSurface) &&
+                    world.SurfaceGround.TryResolveSiteArrival(motion.SiteId,
+                        out var resolvedSurface, out _))
+                    siteSurface = resolvedSurface;
+                if (!string.IsNullOrEmpty(siteSurface) && motion.HasPosition)
+                    world.WorldPresence.SetAtSiteWithAnchor(memberId, motion.SiteId,
+                        motion.WorldPosition, siteSurface);
+                else
+                    world.WorldPresence.SetAtSite(memberId, motion.SiteId);
                 return;
             }
 
             if (motion.HasPosition)
-                world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition, motion.CurrentHex);
+                world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition,
+                    motion.CurrentHex, motion.SurfaceId);
         }
     }
 }

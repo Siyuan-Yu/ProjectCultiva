@@ -1,5 +1,40 @@
 # 开发日志
 
+## 2026-09-18 — MAP-04 SiteCore 占领队员枚举异常修复（待制作人复验）
+
+- `TickOccupation` 遍历 `PlayerPartyRuntime.Members` 时，队员位置解析会再次读取 `Members`；原 getter 清空并重填同一投影列表，导致外层枚举抛出 `Collection was modified`。现在每次读取返回独立快照，嵌套空间解析不再改动正在枚举的列表。
+- Core／Data／Unity Host 离线编译通过；小型非 Unity 检查覆盖两名队员的嵌套空间解析并通过。未打开 Unity，实际游戏占领流程仍待制作人复验。
+
+## 2026-09-18 — MAP-04 SiteCore 战争与洞府独立空间回归修复（待制作人验收）
+
+- SiteCore 攻击、非遭遇守军搜索、拆除后的占领站位原本各自要求 `CharacterPersonalSpaceQuery`，漏掉由 PlayerParty／FormalArmy 群组 motion 掌权的角色。现抽出 Continuous 角色空间解析，统一 FormalArmy → PlayerParty → Personal 顺序；CharacterEncounter 也复用同一解析。战争／敌对门禁、Core 攻击及接近点规则不变。
+- Continuous Outdoor 洞口已在 `ContinuousOutdoorMaterialization`，旧勘查与提示却只查 `LocalPlaces`。统一入口枚举后，Host 在提交进洞命令前验证目标 MapLayout、激活内室 PlaceSet 并核对 spawn；Core 不再把 Outdoor places 整板复制进内室。`LocalMapSession` 以独立 Surface return 状态判定 Interior；Host 优先让 Cave MapLayout 接管表现，离洞按保存的 SurfaceId 与精确 WorldPosition 回地表，不派生 Hex。
+- 从主 Surface `sitePlaces` 删除误置的洞府内室，仅保留洞口；WorldComposer 兼容发布过滤带 `localMapId` 的 Interior place，避免再次写回 Outdoor。Core／Data／Unity Host 与 SurfaceAuthoring.Core 离线编译通过；BaseGame 加载、SiteCore 无个人位置校验及洞府勘查→进入→精确离开的小型非 Unity 检查通过。未打开 Unity，MAP-04 仍待制作人验收。
+
+## 2026-09-17 — MAP-04 LevelTester 存档恢复 Presence 校验回归修复（待制作人验收）
+
+- 使用制作人现有 `vs04_slot0.json` 只读离线复现：Core restore 通过，Host 阶段重放 FormalArmy motion 后成员 32／33 的已保存 `AtSite` 被改成 `AtWorldPosition`，荒村守军成员 4 的精确位置也被覆写。根因是 Surface 非路线 Army restore 把 saved `AtWorldSite` 无条件改成世界位置，并在 overlay 时同步成员兼容 presence；该兼容投影不能覆盖严格校验的已保存个人状态。
+- FormalArmy motion 现在按 saved LocationKind 恢复 Site／World 语义；motion overlay 不重写成员 presence。运行链路收尾只补缺失的成员投影，保留已保存的 Site／Hex／精确位置；Army motion 仍供群组空间权威使用。LevelTester 加载错误同时显示错误详情中的 CharacterId。
+- 同一存档的离线 Core restore 与 Content shell／政治状态／Army motion／Finalize／presence invariant 重放均通过；Core／Data／Unity Host 离线编译通过。未打开 Unity，制作人仍需人工复验实际加载。
+
+## 2026-09-17 — MAP-04 PlayerParty 遭遇权威与 WorldMap Core 标记回归修复（待制作人验收）
+
+- 制作人复验表明上一轮仅将 FormalArmy 从个人空间校验中分离，PlayerParty 成员仍落入 `CharacterPersonalSpaceQuery`，所以主角缺独立 `PersonalSurfaceId` 时继续报 `LegacyUnqualifiedPosition`。现按 FormalArmy → PlayerParty → Personal 顺序读取空间权威；PlayerParty 直接从 `PlayerPartyWorldMotion` 与稳定随队序号生成遭遇 Origin，LocalVisible 首次物化复用同一 Core 编队解析。战后存活且仍随队成员重新从 Party motion 同步兼容 presence，倒下／脱队成员保留战斗精确结果。
+- WorldMap 的 Site 绘制曾退化为固定像素色块与固定字号，并容许 SiteArrival 伪造无 Core 标记。现仅展示当前 Surface 上真实 active Core：永久 Core 绘议政厅小房子，可移除 Core 绘势力旗；图标、名称间距与字号均随 world projection 缩放，命中区域取投影后的图标与名称。六个正式永久 Site 的 Core invariant 已经离线启动核对，未修改 Actual Control authority。
+- Core／Data／Unity Host 离线编译与小型非 Unity authority／Core sanity 通过；未打开 Unity，仍待制作人手工验收，MAP-04 状态保持 Implementation In Progress / Producer Acceptance Pending。
+
+## 2026-09-17 — MAP-04 WorldMap 输入与人物遭遇空间权威稳定化（待制作人验收）
+
+- WorldMap 角色／势力列表点击被地图先执行的 `HandleMapInput` 消耗；现于地图输入前登记 Header、底栏、战略面板、检视浮层矩形，将 BeginGroup 内 local 鼠标坐标只转换一次为 GUI screen 坐标，面板内左／右键及滚轮均不穿透地图。三项地图层开关改用 Unity toggle 样式，状态仍直接驱动原 renderer。
+- 人物遭遇此前把 FormalArmy 成员当独立个人空间校验，旧式缺失 `PersonalSurfaceId` 导致 `LegacyUnqualifiedPosition`。新增只读 Core 空间解析器：独立角色／玩家读取合格个人位置；受 FormalArmy 控制的存活成员从 `WorldMotion` 与稳定成员序号取得编队 Origin。Host 与遭遇共用同一个 Core 编队算法；初始双方、守军、候选增援和场景计划校验均走统一解析。
+- 参战快照记录 spatial owner；战后存活且仍在原军队的成员回到军队权威，倒下／脱队者保留战斗精确位置。正常 Surface 恢复不再强制推导 Hex。移除遭遇开始时的玩家专用补标识，旧存档只在恢复阶段对精确点所属 Surface 唯一确定的记录补齐来源。
+- Core／Data／Unity Host 离线编译及静态调用点检查通过；未打开 Unity，未运行 Unity Test／PlayMode／batchmode，等待制作人手工验证。
+
+## 2026-09-17 — MAP-04 FormalArmy authored deployment authority 热修（待制作人复验）
+
+- 制作人复验发现三支匪军成员仍堆在荒村：Bootstrap 先写 assembly Site presence，Army 先初始化到 assembly Site，后续只挪 WorldMotion；idle personal preserve 和 LocalVisible personal-first presentation 继续取旧位置。另查出 `SyncLegacyFromWorldMotion` 把所有已定位 Army 强制标记为 Hex。现将 `assemblySiteId` 限定为组织来源，Surface authored 部署一次建立 Army anchor，并用显式 GroupRelocation 更新 living controlled members；idle View 始终从 Army anchor 生成临时编队，间距 3 Surface Cells。Snapshot restore/finalize 从 saved WorldMotion 同步成员，不重新按 assembly Site 或 authored offset 生成。
+- Ch01 三军改用 Core 中心 + 整数 Surface Cell offset；相对实际 Core 中心的旧距离约 79／27／46 cells，新落点约 796／797／799 cells，均已静态核对 bounds、Ground 与 Site blocker。Core／Data／Unity Host 离线编译与 BaseGame Content load 通过；Ch01 NewGame 三军 Army 与 living member anchor 一致、Surface flag 正确。isolated FormalArmy motion DTO restore 后三军与成员仍回远程锚点；尚非完整 Host Save/Load 验收。未运行 Unity；仍待制作人复验，暂停其他 MAP-04 删除，保持未提交。
+
 ## 2026-09-17 — MAP-04 荒村山匪野外部署修复（待制作人复验）
 
 - 三支 FormalArmy 保留荒村 assembly Site，分别 authored 到村西 `(3.990, 10.542)`、村北 `(5.446, 11.606)`、村东南 `(6.594, 10.038)` 的主 Continuous Surface 位置；成员与战力定义不变。
@@ -4776,3 +4811,8 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 制作人纠正战略 marker 尺寸语义：房屋与旗帜以精确 Core/Flag 世界位置为中心，采用稳定的 Surface Cell 展示尺寸，随地图 zoom 一起缩放；Site 名称字号、相对位移和命中矩形同样跟随世界投影。独立旗帜保留左键检视；世界地形和 Actual Control 仍保持世界比例，Header／底部控制条／情报浮层保持屏幕固定尺寸。
 
 ---
+## 2026-09-17 — MAP-04 遭遇入场个人空间来源热修（待制作人验收）
+
+- 制作人报告 `Necessary squad member personal space: 1 LegacyUnqualifiedPosition`。定位为玩家小队在连续世界开局、旧户外地点恢复及户外地点进入时使用了不带 SurfaceId 的旧 `WorldPresence.SetAtWorldPosition` 重载，精确坐标存在但遭遇校验无法确认所属 Surface。
+- 这些连续世界写入现携带已确定的 SurfaceId；从室内返回连续世界时也从已注册导航取得来源。旧存档在遭遇入场前仅对坐标落在当前已注册 Surface 的玩家成员补齐缺失来源，保留原精确坐标，不从 View 或军队锚点推断位置。
+- 离线 Core/Data/Host 编译通过；未启动 Unity 或运行 Unity Test。需制作人重新进入游戏验证遭遇入场。

@@ -38,7 +38,15 @@ namespace XianXia.Tests.PlayMode
                     (entity.Tags & EntityTag.Npc) != 0)
                     npcViews++;
             Assert.Greater(npcViews, 0);
-            Assert.IsTrue(runtime.TryValidateStartupPostconditions(out var failure), failure);
+            // Startup postconditions were split by the MAP-04 cleanup: activation invariants are
+            // validated on every surface activation, the authored opening-site census only on the
+            // initial New Game opening boundary. This New Game test asserts both halves.
+            Assert.IsTrue(
+                runtime.TryValidateSurfaceActivationPostconditions(out var activationFailure),
+                activationFailure);
+            Assert.IsTrue(
+                runtime.TryValidateOpeningPostconditions(out var openingFailure),
+                openingFailure);
 
             yield return null;
             Object.Destroy(host);

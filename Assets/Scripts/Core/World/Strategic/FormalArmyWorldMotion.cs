@@ -99,6 +99,7 @@ namespace XianXia.Core.World.Strategic
         {
             LocationKind = FormalArmyLocationKind.AtWorldSite;
             SiteId = siteId ?? string.Empty;
+            SurfaceId = string.Empty;
             CurrentHex = representativeHex;
             HexMath.ToWorldPosition(representativeHex, hexSize, out var x, out var y);
             WorldPosition = new WorldVec2(x, y);
@@ -109,12 +110,14 @@ namespace XianXia.Core.World.Strategic
         public void SetAtWorldSitePreservingWorldPosition(
             string siteId,
             WorldVec2 worldPosition,
-            HexCoord derivedHex)
+            HexCoord derivedHex,
+            string surfaceId = null)
         {
             LocationKind = FormalArmyLocationKind.AtWorldSite;
             SiteId = siteId ?? string.Empty;
             WorldPosition = worldPosition;
             CurrentHex = derivedHex;
+            SurfaceId = surfaceId ?? string.Empty;
             HasPosition = true;
         }
 

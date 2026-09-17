@@ -17,6 +17,10 @@ namespace XianXia.Unity.Host
         const float HeaderHeight = 78f;
         const float FooterHeight = 34f;
         const float MinimumViewHalf = 1.5f;
+        const float CouncilHallMarkerSizeCells = 30f;
+        const float FactionFlagMarkerSizeCells = 26f;
+        const float SiteLabelHeightCells = 24f;
+        const float SiteLabelGapCells = 5f;
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] KeyCode toggleKey = KeyCode.M;
         [SerializeField] bool open;
@@ -27,11 +31,14 @@ namespace XianXia.Unity.Host
         readonly List<(string Id, Rect Rect)> _armyHits = new List<(string, Rect)>();
         readonly HashSet<ulong> _selected = new HashSet<ulong>();
         readonly List<Rect> _roadRects = new List<Rect>(256);
+        readonly Dictionary<int, GUIStyle> _siteLabelStyles = new Dictionary<int, GUIStyle>();
+        readonly HashSet<string> _missingSiteCoreReported = new HashSet<string>(StringComparer.Ordinal);
         string _roadCacheIdentity = string.Empty;
         HostStrategicCharacterListPanel _characterPanel;
         HostFactionDiplomacyOverviewPanel _factionPanel;
         GUIStyle _title;
         GUIStyle _body;
+        GUIStyle _toggle;
         bool _showGrid = true;
         bool _showGeography = true;
         bool _showTerritory = true;
@@ -72,6 +79,7 @@ namespace XianXia.Unity.Host
             bootstrap?.QuestJournal?.Close();
             open = true;
             _viewReady = false;
+            _missingSiteCoreReported.Clear();
             HostInputGate.Acquire(InputOwner);
             bootstrap?.PlayerPartyController?.FreezeLocalVisibleTravelForPlanning();
         }
@@ -228,12 +236,13 @@ namespace XianXia.Unity.Host
                 _viewReady = true;
             }
             DrawHeader(world);
+            RegisterOverlayInputRects();
             Fill(mapRect, new Color(.93f, .89f, .78f, 1f));
             GUI.BeginGroup(mapRect);
             var local = new Rect(0, 0, mapRect.width, mapRect.height);
             var projection = new SurfaceWorldMapViewportProjection(local, _centerX, _centerY, _viewHalf);
             DrawSurface(local, projection, world, nav);
-            HandleMapInput(local, projection, world, nav);
+            HandleMapInput(local, mapRect, projection, world, nav);
             GUI.EndGroup();
             GUI.Label(new Rect(16, Screen.height - FooterHeight + 3, Screen.width - 32, 26), _status, _body);
             DrawRosterPanels(world);
@@ -246,9 +255,9 @@ namespace XianXia.Unity.Host
         {
             GUI.Label(new Rect(16, 8, 210, 34), "连续世界地图", _title);
             if (GUI.Button(new Rect(Screen.width - 88, 12, 72, 30), "关闭")) CloseWithLocalMapTakeover();
-            _showTerritory = GUI.Toggle(new Rect(230, 14, 105, 24), _showTerritory, "势力范围", _body);
-            _showGeography = GUI.Toggle(new Rect(340, 14, 105, 24), _showGeography, "地理层", _body);
-            _showGrid = GUI.Toggle(new Rect(450, 14, 105, 24), _showGrid, "坐标网格", _body);
+            _showTerritory = GUI.Toggle(new Rect(230, 14, 105, 24), _showTerritory, "势力范围", _toggle);
+            _showGeography = GUI.Toggle(new Rect(340, 14, 105, 24), _showGeography, "地理层", _toggle);
+            _showGrid = GUI.Toggle(new Rect(450, 14, 105, 24), _showGrid, "坐标网格", _toggle);
             var clicked = _toolbar.Draw(570, 12, _body);
             if (clicked != HostGlobalStrategicToolbar.ModuleId.None)
             {
@@ -357,14 +366,87 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.Strategic.Sites.Sites)
             {
                 var site = pair.Value;
-                if (site == null || !TrySitePoint(world, site, out var x, out var y)) continue;
-                var p = projection.ProjectWorld(x, y);
-                var rect = new Rect(p.x - 8, p.y - 8, 16, 16);
+                if (site == null) continue;
+                if (!string.IsNullOrEmpty(site.CoreSurfaceId) &&
+                    !string.Equals(site.CoreSurfaceId, nav.SurfaceId, StringComparison.Ordinal))
+                    continue;
+                if (!site.IsCoreActive || !site.HasContinuousCore ||
+                    !string.Equals(site.CoreSurfaceId, nav.SurfaceId, StringComparison.Ordinal))
+                {
+                    if (!site.IsRuntimeCreated && _missingSiteCoreReported.Add(site.SiteId))
+                        Debug.LogError("[WorldMapSiteCoreMissing] SiteId=" + site.SiteId);
+                    continue;
+                }
+
+                var sizeCells = site.CoreIsRemovable
+                    ? FactionFlagMarkerSizeCells : CouncilHallMarkerSizeCells;
+                var sizeWorld = nav.CellSize * sizeCells;
+                var markerWorld = new Rect(site.CoreWorldX - sizeWorld * .5f,
+                    site.CoreWorldY - sizeWorld * .5f, sizeWorld, sizeWorld);
+                var marker = projection.ProjectWorldRect(markerWorld);
                 var selected = string.Equals(_selectedSiteId, site.SiteId, StringComparison.Ordinal);
-                Fill(rect, selected ? new Color(.15f, .9f, 1f) : new Color(1f, .78f, .24f));
-                GUI.Label(new Rect(p.x + 11, p.y - 10, 160, 24), site.DisplayName, _body);
-                _siteHits.Add((site.SiteId, new Rect(p.x - 12, p.y - 12, 140, 26)));
+                if (site.CoreIsRemovable) DrawSiteFlag(marker, selected);
+                else DrawCouncilHall(marker, selected);
+
+                var fontWorld = nav.CellSize * SiteLabelHeightCells;
+                var labelWorld = new Rect(
+                    site.CoreWorldX + sizeWorld * .5f + nav.CellSize * SiteLabelGapCells,
+                    site.CoreWorldY - fontWorld * .5f,
+                    fontWorld * Mathf.Max(1, site.DisplayName.Length + 1), fontWorld);
+                var label = projection.ProjectWorldRect(labelWorld);
+                var fontSize = Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 1, 128);
+                GUI.Label(label, site.DisplayName, SiteLabelStyle(fontSize));
+                _siteHits.Add((site.SiteId, Rect.MinMaxRect(
+                    Mathf.Min(marker.xMin, label.xMin), Mathf.Min(marker.yMin, label.yMin),
+                    Mathf.Max(marker.xMax, label.xMax), Mathf.Max(marker.yMax, label.yMax))));
             }
+        }
+
+        GUIStyle SiteLabelStyle(int fontSize)
+        {
+            if (_siteLabelStyles.TryGetValue(fontSize, out var style)) return style;
+            style = new GUIStyle(_body) { fontSize = fontSize, wordWrap = false,
+                alignment = TextAnchor.MiddleLeft };
+            style.normal.textColor = new Color(.12f, .10f, .08f);
+            _siteLabelStyles.Add(fontSize, style);
+            return style;
+        }
+
+        static void DrawCouncilHall(Rect r, bool selected)
+        {
+            var wall = selected ? new Color(.18f, .85f, .92f) : new Color(.92f, .73f, .40f);
+            var roof = selected ? new Color(.07f, .43f, .52f) : new Color(.42f, .19f, .12f);
+            Fill(new Rect(r.x + r.width * .17f, r.y + r.height * .43f,
+                r.width * .66f, r.height * .50f), wall);
+            DrawScaledSegment(new Vector2(r.x + r.width * .08f, r.y + r.height * .48f),
+                new Vector2(r.center.x, r.y + r.height * .10f), r.width * .16f, roof);
+            DrawScaledSegment(new Vector2(r.center.x, r.y + r.height * .10f),
+                new Vector2(r.xMax - r.width * .08f, r.y + r.height * .48f), r.width * .16f, roof);
+            Fill(new Rect(r.center.x - r.width * .09f, r.y + r.height * .65f,
+                r.width * .18f, r.height * .28f), new Color(.26f, .16f, .10f));
+        }
+
+        static void DrawSiteFlag(Rect r, bool selected)
+        {
+            Fill(new Rect(r.x + r.width * .28f, r.y + r.height * .10f,
+                r.width * .09f, r.height * .84f), new Color(.26f, .20f, .14f));
+            Fill(new Rect(r.x + r.width * .37f, r.y + r.height * .14f,
+                r.width * .52f, r.height * .34f),
+                selected ? new Color(.18f, .85f, .92f) : new Color(.80f, .20f, .18f));
+        }
+
+        static void DrawScaledSegment(Vector2 from, Vector2 to, float thickness, Color color)
+        {
+            var delta = to - from;
+            if (delta.sqrMagnitude < .0001f) return;
+            var matrix = GUI.matrix;
+            var previous = GUI.color;
+            GUI.color = color;
+            GUIUtility.RotateAroundPivot(Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg, from);
+            GUI.DrawTexture(new Rect(from.x, from.y - thickness * .5f,
+                delta.magnitude, thickness), Texture2D.whiteTexture);
+            GUI.matrix = matrix;
+            GUI.color = previous;
         }
 
         void DrawArmies(SurfaceWorldMapViewportProjection projection, SimulationWorld world)
@@ -406,11 +488,32 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void HandleMapInput(Rect local, SurfaceWorldMapViewportProjection projection,
+        void RegisterOverlayInputRects()
+        {
+            HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, HeaderHeight));
+            HostUiHitTest.Block(new Rect(0f, Screen.height - FooterHeight,
+                Screen.width, FooterHeight));
+            if (_characterPanel?.IsOpen == true || _factionPanel?.IsOpen == true)
+                HostUiHitTest.Block(HostStrategicRosterPanelLayout.Compute(Screen.width, Screen.height));
+            if (!string.IsNullOrEmpty(_selectedSiteId) || !string.IsNullOrEmpty(_selectedArmyId))
+                HostUiHitTest.Block(InspectRect());
+        }
+
+        static Rect InspectRect() => new Rect(Screen.width - 310, HeaderHeight + 8, 292, 102);
+
+        void HandleMapInput(Rect local, Rect mapRect, SurfaceWorldMapViewportProjection projection,
             SimulationWorld world, SurfaceGroundNavigation nav)
         {
             var e = Event.current;
             if (e == null || !local.Contains(e.mousePosition)) return;
+            // BeginGroup makes mousePosition local. Convert once to the GUI screen space used
+            // by every overlay rect; map input must never consume an overlay's mouse/scroll event.
+            var guiPoint = e.mousePosition + mapRect.position;
+            if (HostUiHitTest.ContainsCurrentGuiPoint(guiPoint))
+            {
+                if (e.type == EventType.MouseUp && e.button == 2) _panning = false;
+                return;
+            }
             if (e.type == EventType.ScrollWheel)
             {
                 _viewHalf = Mathf.Clamp(_viewHalf * (e.delta.y > 0 ? 1.15f : .87f),
@@ -500,7 +603,7 @@ namespace XianXia.Unity.Host
 
         void DrawInspect(SimulationWorld world)
         {
-            var rect = new Rect(Screen.width - 310, HeaderHeight + 8, 292, 102);
+            var rect = InspectRect();
             Fill(rect, new Color(.08f, .11f, .13f, .93f));
             if (!string.IsNullOrEmpty(_selectedSiteId) &&
                 world.Strategic.Sites.TryGet(_selectedSiteId, out var site) && site != null)
@@ -532,20 +635,12 @@ namespace XianXia.Unity.Host
         static bool TrySitePoint(SimulationWorld world, WorldSite site, out float x, out float y)
         {
             x = y = 0;
-            if (site == null) return false;
-            if (site.HasContinuousCore)
-            {
-                x = site.CoreWorldX;
-                y = site.CoreWorldY;
-                return true;
-            }
-            if (world.SurfaceGround.TryResolveSiteArrival(site.SiteId, out _, out var arrival))
-            {
-                x = arrival.X;
-                y = arrival.Y;
-                return true;
-            }
-            return false;
+            if (site == null || !site.IsCoreActive || !site.HasContinuousCore ||
+                !string.Equals(site.CoreSurfaceId, world.SurfaceGround.Active?.SurfaceId,
+                    StringComparison.Ordinal)) return false;
+            x = site.CoreWorldX;
+            y = site.CoreWorldY;
+            return true;
         }
 
         static string EntityLabel(SimulationWorld world, EntityId id)
@@ -583,6 +678,13 @@ namespace XianXia.Unity.Host
             _title.normal.textColor = Color.white;
             _body = new GUIStyle(GUI.skin.label) { fontSize = 14, wordWrap = true };
             _body.normal.textColor = Color.white;
+            _toggle = new GUIStyle(GUI.skin.toggle) { fontSize = 14 };
+            _toggle.normal.textColor = Color.white;
+            _toggle.onNormal.textColor = Color.white;
+            _toggle.hover.textColor = Color.white;
+            _toggle.onHover.textColor = Color.white;
+            _toggle.active.textColor = Color.white;
+            _toggle.onActive.textColor = Color.white;
         }
     }
 }

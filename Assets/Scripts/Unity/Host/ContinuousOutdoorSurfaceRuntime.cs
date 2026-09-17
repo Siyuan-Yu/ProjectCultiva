@@ -81,6 +81,8 @@ namespace XianXia.Unity.Host
         readonly Dictionary<long, ulong> _materializePointUses = new Dictionary<long, ulong>();
         readonly List<EntityId> _sitePopulationScratch = new List<EntityId>();
         readonly List<ulong> _formalArmyMemberScratch = new List<ulong>(16);
+        readonly HashSet<string> _distantFormalArmyFormationReported =
+            new HashSet<string>(StringComparer.Ordinal);
         readonly HashSet<string> _materializedSitePlacementOwners = new HashSet<string>(StringComparer.Ordinal);
         /// <summary>同一 materialize pass 内两人最小 presentation 间距（≈2.5 个精灵）。</summary>
         const float MaterializeSeparationPresentation = 2.6f;
@@ -891,16 +893,6 @@ namespace XianXia.Unity.Host
             out Vector3 presentation)
         {
             presentation = default;
-            var currentWorld = _bootstrap?.Session?.World;
-            if (army != null && !army.WorldMotion.IsMoving && stableSlot >= 0)
-            {
-                var members = new List<ulong>(army.MemberCharacterIds);
-                members.Sort();
-                if (stableSlot < members.Count &&
-                    CharacterPersonalSpaceQuery.TryResolveContinuous(currentWorld,
-                        new EntityId(members[stableSlot]), _surfaceId, out var personal, out _))
-                    return TryWorldToPresentation(personal, out presentation);
-            }
             if (!IsFieldFormalArmyInLoadedNeighborhood(army) ||
                 !TryResolveSurface(out var surface) || _compositeWalkGrid == null ||
                 !TryWorldToPresentation(army.WorldMotion.WorldPosition, out var rawAnchor) ||
@@ -910,7 +902,7 @@ namespace XianXia.Unity.Host
             if (stableSlot <= 0)
             {
                 presentation = anchor;
-                return true;
+                return ValidateFormalArmyFormationAnchor(army, rawAnchor, presentation);
             }
 
             var world = _bootstrap.Session.World;
@@ -920,40 +912,32 @@ namespace XianXia.Unity.Host
                                 army.WorldMotion.WorldPosition.Y)
                 ? candidateNavigation
                 : null;
-            var worldSpacing = Mathf.Max(.001f, surface.CellSize * 1.5f);
-            if (HostFormalArmyContinuousFormation.TryResolveMemberWorldPosition(
-                    army.WorldMotion, trail, geography, stableSlot, worldSpacing,
-                    out var worldCandidate) &&
-                TryWorldToPresentation(worldCandidate, out var candidate) &&
+            var worldSpacing = Mathf.Max(.001f, surface.CellSize * 3f);
+            if (geography != null &&
+                TryWorldToPresentation(FormalArmyContinuousFormationResolver.Resolve(
+                    army.WorldMotion, stableSlot, geography, worldSpacing / geography.CellSize,
+                    trail), out var candidate) &&
                 IsCompositeFormationSegmentWalkable(anchor, candidate))
             {
                 presentation = candidate;
-                return true;
+                return ValidateFormalArmyFormationAnchor(army, rawAnchor, presentation);
             }
 
-            var spacing = Mathf.Max(.05f, _compositeWalkGrid.CellSize * 1.5f);
-            var validSlot = 0;
-            var requestedValidSlot = stableSlot - 1;
-            for (var ring = 1; ring <= 4; ring++)
-            for (var direction = 0; direction < 8; direction++)
-            {
-                var angle = direction * Mathf.PI * .25f;
-                var radius = spacing * ring;
-                candidate = HostPresentationSpace.FromPresentation(
-                    anchor.x + Mathf.Cos(angle) * radius,
-                    anchor.y + Mathf.Sin(angle) * radius);
-                if (!IsCompositeFormationSegmentWalkable(anchor, candidate))
-                    continue;
-                if (validSlot++ < requestedValidSlot)
-                    continue;
-                presentation = candidate;
-                return true;
-            }
-
-            // No distinct connected slot exists in the bounded loaded area. Keeping the
-            // corrected anchor is safer than crossing a wall or inventing a world position.
+            // A blocked or unavailable Core formation point falls back to the corrected anchor.
             presentation = anchor;
-            return true;
+            return ValidateFormalArmyFormationAnchor(army, rawAnchor, presentation);
+        }
+
+        bool ValidateFormalArmyFormationAnchor(FormalArmy army, Vector3 expected,
+            Vector3 presentation)
+        {
+            var cellPresentation = _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit;
+            if (Vector3.Distance(expected, presentation) <= cellPresentation * 16f)
+                return true;
+            if (_distantFormalArmyFormationReported.Add(army.ArmyId))
+                Debug.LogError("FormalArmy member presentation exceeds formation radius of Army.WorldMotion: " +
+                               army.ArmyId);
+            return false;
         }
 
         bool TryResolveCompositeWalkableAnchor(Vector3 rawAnchor, out Vector3 anchor)
@@ -1220,7 +1204,7 @@ namespace XianXia.Unity.Host
             var party = _bootstrap.Session.PlayerParty;
             if (party != null)
                 for (var i = 0; i < party.Members.Count; i++)
-                    world.WorldPresence.SetAtWorldPosition(party.Members[i], position, hex);
+                    world.WorldPresence.SetAtWorldPosition(party.Members[i], position, hex, _surfaceId);
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.LocalMapId = string.Empty;
@@ -1276,7 +1260,7 @@ namespace XianXia.Unity.Host
             AlignPartyPresentationToWorld();
             _bootstrap.SurfaceExitZonePresenter?.Clear();
             _bootstrap.MoveController.BindLocalMapContext("ContinuousSurface:" + _surfaceId);
-            if (!TryValidateStartupPostconditions(out var invariantFailure))
+            if (!TryValidateSurfaceActivationPostconditions(out var invariantFailure))
                 Debug.LogError("[ContinuousStartupInvariantFailure] " + invariantFailure, this);
             Debug.Log("[W1C] Activated " + DescribeDiagnostics(), this);
         }
@@ -1511,6 +1495,26 @@ namespace XianXia.Unity.Host
         void BuildBakedOutdoorSitePlacements(SurfaceChunkCoord chunk)
         {
             if (!TryResolveSurface(out var surface) || surface.SitePlacements == null) return;
+            // Chunk presentation is built before the ordinary place-registry refresh. Seed cave
+            // authority first so the initial stamp can already apply party reveal visibility.
+            var world = _bootstrap?.Session?.World;
+            if (world != null)
+                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                {
+                    var cave = surface.SitePlacements[i];
+                    if (cave == null || !PlacementTouchesChunk(cave, chunk) ||
+                        !string.Equals(MapKindCatalog.NormalizeKind(cave.Kind), "cave", StringComparison.Ordinal) ||
+                        string.IsNullOrEmpty(cave.BoundLocationId)) continue;
+                    for (var p = 0; p < surface.SitePlaces.Count; p++)
+                    {
+                        var place = surface.SitePlaces[p];
+                        if (place == null || !string.Equals(place.LocationId, cave.BoundLocationId, StringComparison.Ordinal))
+                            continue;
+                        world.ContinuousOutdoorMaterialization.RegisterPlace(
+                            place.SiteId, CreateMaterializedPlace(place, _mapper));
+                        break;
+                    }
+                }
             var bySite = new Dictionary<string, List<OutdoorSurfacePlacementDefinition>>(StringComparer.Ordinal);
             for (var i = 0; i < surface.SitePlacements.Count; i++)
             {
@@ -1739,6 +1743,8 @@ namespace XianXia.Unity.Host
         /// <summary>Only the surface presentation owner may clear its chunk state. It never chooses a destination authority.</summary>
         public void DeactivatePresentationOnly() => DeactivatePresentationOnly(captureEntityPositions: true);
 
+        public void DeactivateForInteriorTransition() => DeactivatePresentationOnly(captureEntityPositions: false);
+
         void DeactivatePresentationOnly(bool captureEntityPositions)
         {
             _bootstrap?.GetComponent<HostCharacterEncounter>()?.CancelPreparation();
@@ -1850,7 +1856,8 @@ namespace XianXia.Unity.Host
                     continue;
                 }
                 if (presence.Mode == PartyWorldPresenceMode.AtSite &&
-                    !IsSiteInLoadedNeighborhood(surface, presence.SiteId))
+                    !IsContinuousSiteRelevantToLoadedNeighborhood(
+                        world, surface, presence.SiteId, presence.WorldPosX, presence.WorldPosY))
                 {
                     rejectedSite++;
                     continue;
@@ -1983,7 +1990,7 @@ namespace XianXia.Unity.Host
             var party = _bootstrap.Session.PlayerParty;
             if (party != null)
             {
-                _mapper.WorldToPresentation(motion.WorldPosition.X, motion.WorldPosition.Y, out var partyX, out var partyY);
+                world.SurfaceGround.TryGet(_surfaceId, out var partyNavigation);
                 for (var i = 0; i < party.Members.Count; i++)
                 {
                     var memberId = party.Members[i];
@@ -1992,13 +1999,20 @@ namespace XianXia.Unity.Host
                         world.Entities.TryGet(memberId, out var member) &&
                         member.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var memberLoc))
                     {
-                        if (CharacterPersonalSpaceQuery.TryResolveContinuous(world, memberId, _surfaceId,
-                                out var personal, out _))
+                        if (PlayerPartyContinuousFormationResolver.TryResolve(world, party, memberId,
+                                partyNavigation, out var partyPoint))
                         {
-                            _mapper.WorldToPresentation(personal.X, personal.Y, out var px, out var py);
+                            _mapper.WorldToPresentation(partyPoint.X, partyPoint.Y, out var px, out var py);
                             memberLoc.SetPresentationOverride(px, py);
                         }
-                        else memberLoc.SetPresentationOverride(partyX + (i % 3) * .8f, partyY + (i / 3) * .8f);
+                        else if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                                     world, party, memberId) &&
+                                 CharacterPersonalSpaceQuery.TryResolveContinuous(world, memberId,
+                                     _surfaceId, out var residual, out _))
+                        {
+                            _mapper.WorldToPresentation(residual.X, residual.Y, out var px, out var py);
+                            memberLoc.SetPresentationOverride(px, py);
+                        }
                     }
                 }
             }
@@ -2356,6 +2370,61 @@ namespace XianXia.Unity.Host
             return region != null && _loaded.Contains(_mapper.WorldToChunk(region.ArrivalWorldX, region.ArrivalWorldY));
         }
 
+        /// <summary>Rebuild only loaded baked owners touched by a newly revealed entrance.</summary>
+        public bool RefreshRevealedOpportunityPresentation(string boundLocationId)
+        {
+            if (!IsActive || _tileMap == null || string.IsNullOrEmpty(boundLocationId) ||
+                !TryResolveSurface(out var surface) || surface.SitePlacements == null)
+                return false;
+            var touched = false;
+            for (var i = 0; i < surface.SitePlacements.Count; i++)
+            {
+                var entrance = surface.SitePlacements[i];
+                if (entrance == null ||
+                    !string.Equals(entrance.BoundLocationId, boundLocationId, StringComparison.Ordinal) ||
+                    !string.Equals(MapKindCatalog.NormalizeKind(entrance.Kind), "cave", StringComparison.Ordinal))
+                    continue;
+                foreach (var chunk in _loaded)
+                {
+                    if (!PlacementTouchesChunk(entrance, chunk)) continue;
+                    var owner = SitePlacementOwnerKey(chunk, entrance.SiteId);
+                    var sitePlacements = new List<OutdoorSurfacePlacementDefinition>();
+                    for (var p = 0; p < surface.SitePlacements.Count; p++)
+                    {
+                        var candidate = surface.SitePlacements[p];
+                        if (candidate != null &&
+                            string.Equals(candidate.SiteId, entrance.SiteId, StringComparison.Ordinal) &&
+                            PlacementTouchesChunk(candidate, chunk))
+                            sitePlacements.Add(candidate);
+                    }
+                    _tileMap.RemoveLayoutInstance(owner);
+                    _materializedSitePlacementOwners.Remove(owner);
+                    _tileMap.BuildOutdoorPlacementInstance(owner, sitePlacements, _mapper, chunk);
+                    _materializedSitePlacementOwners.Add(owner);
+                    touched = true;
+                }
+            }
+            return touched;
+        }
+
+        bool IsContinuousSiteRelevantToLoadedNeighborhood(
+            SimulationWorld world, OutdoorWorldSurfaceDefinition surface, string siteId,
+            float personalWorldX, float personalWorldY)
+        {
+            // The caller first requires the exact personal chunk to be loaded. Site context
+            // must never materialize a member who is actually far from this neighborhood.
+            if (!_loaded.Contains(_mapper.WorldToChunk(personalWorldX, personalWorldY)))
+                return false;
+            if (world?.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return false;
+            if (!site.IsRuntimeCreated)
+                return IsSiteInLoadedNeighborhood(surface, siteId);
+            return site.HasContinuousCore &&
+                   string.Equals(site.CoreSurfaceId, _surfaceId, StringComparison.Ordinal) &&
+                   _loaded.Contains(_mapper.WorldToChunk(site.CoreWorldX, site.CoreWorldY));
+        }
+
         bool HasSitePlacementInLoadedNeighborhood(
             OutdoorWorldSurfaceDefinition surface,
             string siteId)
@@ -2583,7 +2652,7 @@ namespace XianXia.Unity.Host
                 this);
         }
 
-        public bool TryValidateStartupPostconditions(out string failure)
+        public bool TryValidateSurfaceActivationPostconditions(out string failure)
         {
             var failures = new List<string>();
             var session = _bootstrap?.Session;
@@ -2640,14 +2709,28 @@ namespace XianXia.Unity.Host
                          activeView.transform.position.x, activeView.transform.position.y, out _, out _))
                 failures.Add("ActiveCharacter outside CompositeWalkGrid");
 
-            // Opening-site contract only applies when the canonical position is actually inside an
-            // Outdoor WorldSite physical region. Plain wilderness has no opening site to validate;
-            // treating that as a failure produced a false [ContinuousStartupInvariantFailure] on
-            // every mid-game surface activation away from a site.
+            failure = string.Join("; ", failures);
+            return failures.Count == 0;
+        }
+
+        /// <summary>Only the initial New Game opening boundary calls this authored-site census.</summary>
+        public bool TryValidateOpeningPostconditions(out string failure)
+        {
+            var failures = new List<string>();
+            var session = _bootstrap?.Session;
+            var world = session?.World;
+            var motion = world?.PlayerPartyTravel;
+            if (!TryResolveSurface(out var surface))
+                failures.Add("Opening authored Surface unresolved");
             var openingSiteId = world != null && motion != null
                 ? WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, motion.WorldPosition)
                 : string.Empty;
-            if (!string.IsNullOrEmpty(openingSiteId))
+            if (string.IsNullOrEmpty(openingSiteId))
+                failures.Add("Opening authored Site unresolved");
+            else if (!world.Strategic.Sites.TryGet(openingSiteId, out var openingSite) ||
+                     openingSite == null || openingSite.IsRuntimeCreated)
+                failures.Add("Opening Site is not authored: " + openingSiteId);
+            else
             {
                 if (surface != null && !IsSiteInLoadedNeighborhood(surface, openingSiteId))
                     failures.Add("Opening Site PhysicalRegion not loaded: " + openingSiteId);

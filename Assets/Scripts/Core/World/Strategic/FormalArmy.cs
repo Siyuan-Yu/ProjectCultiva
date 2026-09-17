@@ -131,7 +131,8 @@ namespace XianXia.Core.World.Strategic
         internal void SyncLegacyFromWorldMotion()
         {
             var motion = WorldMotion;
-            UsesHexStrategicPosition = motion.HasPosition;
+            UsesHexStrategicPosition = motion.HasPosition &&
+                                       string.IsNullOrEmpty(motion.SurfaceId);
             CurrentHex = motion.CurrentHex;
             DestinationHex = motion.DestinationHex;
             StepProgress = motion.SegmentProgress;

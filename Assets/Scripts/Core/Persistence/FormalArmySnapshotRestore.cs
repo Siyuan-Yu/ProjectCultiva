@@ -122,7 +122,12 @@ namespace XianXia.Core.Persistence
                 if (string.IsNullOrWhiteSpace(currentSurfaceId) &&
                     world.SurfaceGround.TryResolveContaining(currentPosition, out var currentSurface))
                     currentSurfaceId = currentSurface.SurfaceId;
-                motion.SetAtWorldPosition(currentPosition, currentHex, currentSurfaceId);
+                if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldSite)
+                    motion.SetAtWorldSitePreservingWorldPosition(dto.SiteId,
+                        currentPosition, currentHex, currentSurfaceId);
+                else
+                    motion.SetAtWorldPosition(currentPosition, currentHex, currentSurfaceId);
+                army.UsesHexStrategicPosition = string.IsNullOrEmpty(currentSurfaceId);
                 if (!string.IsNullOrWhiteSpace(dto.DestinationSiteId) &&
                     dto.HexPath != null && dto.HexPath.Count >= 2)
                     FormalArmyContinuousTravelService.MoveArmyToWorldSite(
@@ -137,7 +142,6 @@ namespace XianXia.Core.Persistence
                             world, army.ArmyId, destination);
                 }
                 army.SyncLegacyFromWorldMotion();
-                FormalArmyMemberPresenceSync.SyncAll(world, army, preservePersonalPositions: true);
                 return Result.Success();
             }
             if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldSite)
@@ -145,7 +149,7 @@ namespace XianXia.Core.Persistence
                 world.Strategic.Sites.TryGet(dto.SiteId, out var site);
                 site.EnsurePresenceHexValid();
                 motion.SetAtWorldSitePreservingWorldPosition(dto.SiteId,
-                    new WorldVec2(dto.WorldX, dto.WorldY), currentHex);
+                    new WorldVec2(dto.WorldX, dto.WorldY), currentHex, dto.SurfaceId);
             }
             else if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldPosition)
             {
@@ -165,6 +169,7 @@ namespace XianXia.Core.Persistence
             }
 
             var path = new List<HexCoord>(dto.HexPath?.Count ?? 0);
+            army.UsesHexStrategicPosition = string.IsNullOrEmpty(motion.SurfaceId);
             if (dto.HexPath != null)
                 for (var i = 0; i < dto.HexPath.Count; i++)
                     path.Add(new HexCoord(dto.HexPath[i].Q, dto.HexPath[i].R));
@@ -193,7 +198,6 @@ namespace XianXia.Core.Persistence
                         ? "AwaitingNavigationBind"
                         : dto.RouteDiagnostic);
                 army.SyncLegacyFromWorldMotion();
-                FormalArmyMemberPresenceSync.SyncAll(world, army, preservePersonalPositions: true);
                 return Result.Success();
             }
             var hasMotionAuthority = dto.LocationKind > 0;

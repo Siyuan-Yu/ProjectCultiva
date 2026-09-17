@@ -143,12 +143,40 @@ namespace XianXia.Unity.Host
             }
 
             entranceLocationId = entranceLocationId.Trim();
-            if (!_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out _) &&
-                !_session.World.LocalPlaces.TryGet(entranceLocationId, out _))
+            if (!WorldLocationQuery.TryGet(_session.World, entranceLocationId, out var entrance))
             {
-                _lastStatus = "Entrance missing";
+                _lastStatus = "洞府入口不存在：" + entranceLocationId;
                 return 0;
             }
+            if (OpportunityEntranceRules.IsHiddenEntrance(entrance) &&
+                (!OpportunityEntranceRules.IsRevealedToPlayerParty(_session.World, entrance) ||
+                 !HostCaveEntranceQuery.IsNearEntrance(hostBootstrap, leader, entrance, out _)))
+            {
+                _lastStatus = "请先靠近已发现的洞府入口。";
+                return 0;
+            }
+            var targetMap = entrance.EnterLocalMapId;
+            var spawnId = entrance.EnterSpawnLocationId;
+            if (string.IsNullOrEmpty(targetMap) || string.IsNullOrEmpty(spawnId) ||
+                !DefinitionId.TryParse(targetMap, out var targetId) ||
+                _session.Registry == null || !_session.Registry.TryGetMapLayout(targetId, out _))
+            {
+                _lastStatus = "洞府目标地图不存在：" + targetMap;
+                return 0;
+            }
+            var previousPlaceMap = _session.World.LocalPlaces.ActiveMapLayoutId;
+            var activated = XianXia.Data.Bootstrap.InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
+                _session.World, _session.Registry, targetMap);
+            if (activated.IsFailure || !_session.World.LocalPlaces.TryGet(spawnId, out _))
+            {
+                XianXia.Data.Bootstrap.InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
+                    _session.World, _session.Registry, previousPlaceMap);
+                _lastStatus = "洞府内室地点准备失败：" + (activated.IsFailure
+                    ? activated.Error.ToString() : spawnId);
+                return 0;
+            }
+
+            var previousLocations = new Dictionary<EntityId, string>();
 
             for (var i = 0; i < party.Length; i++)
             {
@@ -160,6 +188,7 @@ namespace XianXia.Unity.Host
                     plc = new XianXia.Core.Exploration.EntityLocationComponent();
                     pe.AddComponent(plc);
                 }
+                previousLocations[pid] = plc.LocationId;
 
                 // 已在目标洞府内室的人不必先拽到洞口（再进救人时保留洞内站位）。
                 if (_session.World.LocalPlaces.TryGet(plc.LocationId, out var cur) &&
@@ -194,10 +223,23 @@ namespace XianXia.Unity.Host
             }
             else
             {
+                foreach (var previous in previousLocations)
+                    if (_session.World.Entities.TryGet(previous.Key, out var member) &&
+                        member.TryGet<EntityLocationComponent>(out var location))
+                        location.LocationId = previous.Value;
+                XianXia.Data.Bootstrap.InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
+                    _session.World, _session.Registry, previousPlaceMap);
                 _lastSuccessCount = 0;
                 _lastFailureCount = 1;
                 _lastStatus = "EnterLocalMap FAIL " + FormatError(result);
             }
+
+            Debug.Log("[CaveEnter] entranceId=" + entranceLocationId + " targetMap=" + targetMap +
+                " spawnLocation=" + spawnId + " returnSurface=" +
+                (_session.World.LocalMap.ContinuousOutdoorReturnSurfaceId ?? "") +
+                " returnWorldPosition=" + _session.World.LocalMap.ContinuousOutdoorReturnX + "," +
+                _session.World.LocalMap.ContinuousOutdoorReturnY +
+                " interiorPlacesActivated=" + result.IsSuccess);
 
             return _lastSuccessCount;
         }
@@ -228,6 +270,10 @@ namespace XianXia.Unity.Host
 
             // 离开前停掉洞内走位，避免 Location 再被表现层吸附错乱。
             CancelPartyPresentationMovement();
+            var returnSurfaceId = _session.World.LocalMap.ContinuousOutdoorReturnSurfaceId;
+            var returnX = _session.World.LocalMap.ContinuousOutdoorReturnX;
+            var returnY = _session.World.LocalMap.ContinuousOutdoorReturnY;
+            var continuousReturn = _session.World.LocalMap.HasContinuousOutdoorReturn;
 
             var result = _session.Port.Submit(
                 new PlayerCommandRequest(id, PlayerCommandKind.LeaveLocalMap, 1));
@@ -236,7 +282,18 @@ namespace XianXia.Unity.Host
                 _lastSuccessCount = 1;
                 _lastFailureCount = 0;
                 _lastStatus = "LeaveLocalMap ok";
+                if (continuousReturn)
+                {
+                    XianXia.Data.Bootstrap.InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
+                        _session.World, _session.Registry, string.Empty);
+                    _session.PreferredMapLayoutId = string.Empty;
+                    hostBootstrap?.ContinuousOutdoorSurfaceRuntime?.TryActivateAtCurrentWorldPosition();
+                }
                 hostBootstrap?.ReloadLocalMapPresentation();
+                Debug.Log("[CaveLeave] returnSurface=" + returnSurfaceId +
+                    " returnWorldPosition=" + returnX + "," + returnY +
+                    " surfaceReactivated=" +
+                    (hostBootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true));
             }
             else
             {
@@ -271,7 +328,19 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            var id = selectionController.State.SelectedIds[0];
+            var id = EntityId.None;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var selected = selectionController.State.SelectedIds[i];
+                if (_session.PlayerParty?.IsMember(selected) != true) continue;
+                id = selected;
+                break;
+            }
+            if (id.IsNone)
+            {
+                _lastStatus = "请先选择玩家队伍成员进行勘查。";
+                return 0;
+            }
             var result = _session.Port.Submit(
                 new PlayerCommandRequest(
                     id,

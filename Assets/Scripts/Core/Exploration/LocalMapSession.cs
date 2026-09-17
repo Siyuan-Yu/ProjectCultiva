@@ -22,6 +22,7 @@ namespace XianXia.Core.Exploration
         public bool HasContinuousOutdoorReturn { get; set; }
         public float ContinuousOutdoorReturnX { get; set; }
         public float ContinuousOutdoorReturnY { get; set; }
+        public string ContinuousOutdoorReturnSurfaceId { get; set; } = string.Empty;
 
         /// <summary>
         /// Surface Exit Trigger Depth（Gameplay）。由当前 MapLayout 写入；≤0 表示使用默认值。
@@ -80,8 +81,9 @@ namespace XianXia.Core.Exploration
 
         public bool IsInInterior =>
             !string.IsNullOrEmpty(ActiveMapLayoutId) &&
-            !string.IsNullOrEmpty(OverworldMapLayoutId) &&
-            !string.Equals(ActiveMapLayoutId, OverworldMapLayoutId, System.StringComparison.Ordinal);
+            (HasContinuousOutdoorReturn ||
+             (!string.IsNullOrEmpty(OverworldMapLayoutId) &&
+              !string.Equals(ActiveMapLayoutId, OverworldMapLayoutId, System.StringComparison.Ordinal)));
 
         public void EnsureOverworld(string mapLayoutId)
         {
@@ -150,6 +152,7 @@ namespace XianXia.Core.Exploration
             OverworldMapLayoutId = string.Empty;
             ReturnLocationId = string.Empty;
             HasContinuousOutdoorReturn = false;
+            ContinuousOutdoorReturnSurfaceId = string.Empty;
             ContinuousOutdoorReturnX = ContinuousOutdoorReturnY = 0f;
             ExitTriggerDepth = 0f;
             ClearPlayableBounds();

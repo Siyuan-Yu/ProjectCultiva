@@ -23,7 +23,6 @@ namespace XianXia.Core.World
     {
         public const int MaxMembers = 6;
 
-        readonly List<EntityId> _memberProjection = new List<EntityId>(MaxMembers);
         SimulationWorld _world;
         string _controlledSquadId = string.Empty;
         EntityId _activeId = EntityId.None;
@@ -33,11 +32,13 @@ namespace XianXia.Core.World
         {
             get
             {
-                _memberProjection.Clear();
+                // Callers may resolve another member while enumerating this result. Return a
+                // stable snapshot instead of mutating one shared projection on the next read.
+                var members = new List<EntityId>(MaxMembers);
                 if (TryGetControlledSquad(out var squad))
                     for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
-                        _memberProjection.Add(new EntityId(squad.MemberCharacterIds[i]));
-                return _memberProjection;
+                        members.Add(new EntityId(squad.MemberCharacterIds[i]));
+                return members;
             }
         }
 
@@ -67,7 +68,6 @@ namespace XianXia.Core.World
         {
             _world = null;
             _controlledSquadId = string.Empty;
-            _memberProjection.Clear();
             _activeId = EntityId.None;
             _controlState = PlayerPartyControlState.Active;
         }

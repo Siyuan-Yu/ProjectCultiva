@@ -647,8 +647,61 @@ namespace XianXia.Data.Content
         {
             if (!DefinitionId.TryParse(armyIdText, out var armyId) ||
                 !registry.FormalArmies.TryGetValue(armyId, out var def) ||
-                def?.InitialSurfacePosition == null)
+                def == null)
                 return;
+            if (def.InitialSurfaceDeployment != null)
+            {
+                var deployment = def.InitialSurfaceDeployment;
+                if (string.IsNullOrWhiteSpace(deployment.SurfaceId) ||
+                    string.IsNullOrWhiteSpace(deployment.AnchorSiteId) ||
+                    !registry.TryGetOutdoorSurfaceGeography(deployment.SurfaceId,
+                        out var deploymentGeography) ||
+                    deploymentGeography?.Navigation == null)
+                {
+                    report.Add(ErrorCode.InvalidArgument,
+                        "formalArmy.initialSurfaceDeployment requires a valid Surface and anchorSiteId.",
+                        ctx + ":" + def.Id);
+                    return;
+                }
+                var coreCount = 0;
+                var coreX = 0f;
+                var coreY = 0f;
+                foreach (var pair in registry.OutdoorSurfaces)
+                {
+                    var surface = pair.Value;
+                    if (surface == null || surface.AcceptanceOnly ||
+                        !string.Equals(surface.SurfaceId, deployment.SurfaceId, StringComparison.Ordinal))
+                        continue;
+                    foreach (var placement in surface.SitePlacements)
+                    {
+                        if (placement == null ||
+                            !string.Equals(placement.SiteId, deployment.AnchorSiteId,
+                                StringComparison.Ordinal) ||
+                            !string.Equals(placement.Kind, "controlCore",
+                                StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        coreCount++;
+                        coreX = placement.WorldX + placement.WorldWidth * .5f;
+                        coreY = placement.WorldY + placement.WorldHeight * .5f;
+                    }
+                }
+                if (coreCount != 1)
+                {
+                    report.Add(ErrorCode.InvalidArgument,
+                        "formalArmy.initialSurfaceDeployment requires exactly one authored Site Core.",
+                        ctx + ":" + def.Id);
+                    return;
+                }
+                var nav = deploymentGeography.Navigation;
+                var x = coreX + deployment.OffsetCellsX * nav.CellSize;
+                var y = coreY + deployment.OffsetCellsY * nav.CellSize;
+                if (!nav.Contains(x, y) || !nav.IsWalkable(x, y))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "formalArmy.initialSurfaceDeployment is outside bounds or blocked.",
+                        ctx + ":" + def.Id);
+                return;
+            }
+            if (def.InitialSurfacePosition == null) return;
             var position = def.InitialSurfacePosition;
             if (string.IsNullOrWhiteSpace(position.SurfaceId) ||
                 !registry.TryGetOutdoorSurfaceGeography(position.SurfaceId, out var geography) ||

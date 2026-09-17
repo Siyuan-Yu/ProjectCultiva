@@ -62,6 +62,8 @@ namespace XianXia.Core.Exploration
             location = null;
             if (world == null || string.IsNullOrEmpty(locationId))
                 return false;
+            if (world.LocalMap.IsInInterior)
+                return world.LocalPlaces.TryGet(locationId, out location);
             return world.ContinuousOutdoorMaterialization.TryGetAnyPlace(locationId, out location) ||
                    world.LocalPlaces.TryGet(locationId, out location);
         }
@@ -185,10 +187,5 @@ namespace XianXia.Core.Exploration
             return !string.IsNullOrEmpty(locationId) && _placesByLocationId.TryGetValue(locationId, out place);
         }
 
-        public void CopyPlacesTo(LocalPlaceBoard target)
-        {
-            if (target == null) return;
-            foreach (var pair in _placesByLocationId) target.Register(pair.Value);
-        }
     }
 }

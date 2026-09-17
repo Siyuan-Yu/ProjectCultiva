@@ -151,7 +151,8 @@ namespace XianXia.Unity.Host
                        XianXia.Core.Persistence.WorldSnapshot.CurrentSchemaVersion + ".";
             }
 
-            return "Load failed: " + msg;
+            return "Load failed: " + msg +
+                   (string.IsNullOrEmpty(error.Detail) ? string.Empty : " (" + error.Detail + ")");
         }
     }
 }

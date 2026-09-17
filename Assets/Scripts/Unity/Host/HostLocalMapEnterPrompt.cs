@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         readonly List<EntityId> _candidates = new List<EntityId>(8);
         readonly List<bool> _selected = new List<bool>(8);
         Vector2 _scroll;
+        float _approachNoticeUntil;
 
         GUIStyle _title;
         GUIStyle _body;
@@ -59,8 +60,14 @@ namespace XianXia.Unity.Host
                 return;
             if (!TryGetPlace(session, entranceLocationId, out var entrance))
                 return;
-            if (!OpportunityEntranceRules.IsRevealed(session.World, entrance))
+            if (!OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, entrance))
                 return;
+            if (!HostCaveEntranceQuery.IsNearEntrance(bootstrap, leader, entrance, out _))
+            {
+                _approachNoticeUntil = Time.unscaledTime + 3f;
+                Debug.Log("[CaveApproach] entranceId=" + entrance.Id + " action=Move prompt=Rejected", this);
+                return;
+            }
 
             _leader = leader;
             _entranceLocationId = entrance.Id;
@@ -265,8 +272,15 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
-            if (!_open || bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
+            if (!_open)
+            {
+                if (Time.unscaledTime < _approachNoticeUntil)
+                    GUI.Label(new Rect((Screen.width - 240f) * 0.5f, Screen.height * 0.72f, 240f, 32f),
+                        "请先靠近洞府入口。");
+                return;
+            }
             EnsureStyles();
 
             var dim = new Rect(0f, 0f, Screen.width, Screen.height);
@@ -360,19 +374,9 @@ namespace XianXia.Unity.Host
 
             if (!IsLeaderNear(session, entrance))
             {
-                if (moveController != null &&
-                    HostCaveEntranceQuery.TryGetCenter(session.World, _entranceLocationId, out var center))
-                {
-                    var pending = party.ToArray();
-                    var entranceId = _entranceLocationId;
-                    var leader = _leader;
-                    Close();
-                    moveController.OrderEntityToWorldPointPublic(
-                        leader,
-                        center,
-                        onArrive: () => FinishEnter(leader, entranceId, pending));
-                    return;
-                }
+                Close();
+                _approachNoticeUntil = Time.unscaledTime + 3f;
+                return;
             }
 
             FinishEnter(_leader, _entranceLocationId, party.ToArray());
@@ -392,26 +396,7 @@ namespace XianXia.Unity.Host
 
         bool IsLeaderNear(PlayableHostSession session, WorldLocationState entrance)
         {
-            var spawner = bootstrap.ViewSpawner;
-            float px, pz;
-            if (spawner != null && spawner.Registry.TryGet(_leader, out var view) && view != null)
-            {
-                var p = HostPresentationSpace.ToPresentation(view.transform.position);
-                px = p.x;
-                pz = p.y;
-            }
-            else if (session.World.Entities.TryGet(_leader, out var entity) &&
-                     entity.TryGet<EntityLocationComponent>(out var loc) &&
-                     loc.HasLocation &&
-                     TryGetPlace(session, loc.LocationId, out var place))
-            {
-                px = place.PresentationX;
-                pz = place.PresentationZ;
-            }
-            else
-                return false;
-
-            return HostCaveEntranceQuery.IsNearEntrance(px, pz, entrance);
+            return HostCaveEntranceQuery.IsNearEntrance(bootstrap, _leader, entrance, out _);
         }
 
         void FinishEnter(EntityId leader, string entranceId, EntityId[] party)
@@ -425,8 +410,7 @@ namespace XianXia.Unity.Host
         {
             place = null;
             return session?.World != null &&
-                   (session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(locationId, out place) ||
-                    session.World.LocalPlaces.TryGet(locationId, out place));
+                   WorldLocationQuery.TryGet(session.World, locationId, out place);
         }
 
         string ResolveName(EntityId id)

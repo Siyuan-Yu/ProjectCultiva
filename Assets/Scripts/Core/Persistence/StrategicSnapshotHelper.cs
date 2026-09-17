@@ -1200,11 +1200,12 @@ namespace XianXia.Core.Persistence
 
             SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
 
+            // Snapshot member presence is saved state, including a Site/Hex without an exact
+            // point. Fill only absent member projections from Army motion at this boundary.
             foreach (var kv in world.Strategic.FormalArmies.Armies)
-            {
                 if (kv.Value != null)
-                    FormalArmyMemberPresenceSync.SyncAll(world, kv.Value, preservePersonalPositions: true);
-            }
+                    FormalArmyMemberPresenceSync.SyncAll(world, kv.Value,
+                        preservePersonalPositions: true);
 
             ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies(world);
 
@@ -1237,7 +1238,7 @@ namespace XianXia.Core.Persistence
                 squad = created.Value;
             }
             army.BindSquad(squad);
-            army.UsesHexStrategicPosition = true;
+            army.UsesHexStrategicPosition = a.UsesHexStrategicPosition;
             army.CurrentHex = new HexCoord(a.CurrentHexQ, a.CurrentHexR);
             army.DestinationHex = new HexCoord(a.DestinationHexQ, a.DestinationHexR);
             if (a.HexPath != null && a.HexPath.Count > 0)
@@ -1390,7 +1391,9 @@ namespace XianXia.Core.Persistence
                 {
                     var pos = new WorldVec2(t.WorldX, t.WorldY);
                     var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-                    world.WorldPresence.SetAtWorldPosition(id, pos, derived);
+                    world.SurfaceGround.TryResolveContaining(pos, out var surface);
+                    world.WorldPresence.SetAtWorldPosition(id, pos, derived,
+                        surface?.SurfaceId ?? string.Empty);
                 }
 
                 if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))

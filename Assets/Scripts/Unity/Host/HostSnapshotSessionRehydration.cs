@@ -69,6 +69,31 @@ namespace XianXia.Unity.Host
             StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
                 world, politicalSnapshot.BackgroundCharacterTravels);
 
+            // Old snapshots could contain an exact personal point without Surface provenance.
+            // Repair once at restore, only when exactly one registered authored Surface owns it.
+            if (politicalSnapshot.CharacterWorldPresences != null)
+                foreach (var saved in politicalSnapshot.CharacterWorldPresences)
+                {
+                    if (saved == null || saved.CharacterId == 0 || !saved.HasWorldPosition ||
+                        !string.IsNullOrEmpty(saved.PersonalSurfaceId) ||
+                        (saved.Mode != (int)PartyWorldPresenceMode.AtWorldPosition &&
+                         saved.Mode != (int)PartyWorldPresenceMode.AtSite) ||
+                        !world.WorldPresence.TryGet(new EntityId(saved.CharacterId), out var personal) ||
+                        personal == null || !personal.HasContinuousWorldPosition ||
+                        !string.IsNullOrEmpty(personal.PersonalSurfaceId))
+                        continue;
+                    string resolvedSurface = null;
+                    var ambiguous = false;
+                    foreach (var candidate in world.SurfaceGround.Registered)
+                        if (candidate.Value.Contains(personal.WorldPosX, personal.WorldPosY))
+                        {
+                            if (resolvedSurface != null) { ambiguous = true; break; }
+                            resolvedSurface = candidate.Key;
+                        }
+                    if (!ambiguous && resolvedSurface != null)
+                        personal.PersonalSurfaceId = resolvedSurface;
+                }
+
             var encounter = world.Strategic.CharacterEncounter;
             if (encounter != null)
             {

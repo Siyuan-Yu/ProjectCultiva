@@ -24,8 +24,8 @@ namespace XianXia.Data.Content
         public string FactionId { get; set; } = string.Empty;
 
         /// <summary>
-        /// 创建成员时放置的合法 assembly Site，也是没有 InitialHex 时的默认开局物理位置
-        /// （FormalArmy.WorldMotion = AtWorldSite）。
+        /// 组织所属／assembly origin；只有未声明初始 Surface 部署或 InitialHex 时，
+        /// 才作为开局物理位置（FormalArmy.WorldMotion = AtWorldSite）。
         /// </summary>
         public string AssemblySiteId { get; set; } = string.Empty;
 
@@ -37,6 +37,8 @@ namespace XianXia.Data.Content
         public FormalArmyInitialHexDefinition InitialHex { get; set; }
         /// <summary>Authored continuous wilderness deployment; takes precedence over legacy initialHex.</summary>
         public FormalArmyInitialSurfacePositionDefinition InitialSurfacePosition { get; set; }
+        /// <summary>Site Core origin plus integer Surface Cell offsets; resolved once at New Game.</summary>
+        public FormalArmyInitialSurfaceDeploymentDefinition InitialSurfaceDeployment { get; set; }
 
         public List<FormalArmyMemberDefinition> Members { get; set; }
             = new List<FormalArmyMemberDefinition>();
@@ -54,6 +56,14 @@ namespace XianXia.Data.Content
         public string SurfaceId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+    }
+
+    public sealed class FormalArmyInitialSurfaceDeploymentDefinition
+    {
+        public string SurfaceId { get; set; } = string.Empty;
+        public string AnchorSiteId { get; set; } = string.Empty;
+        public int OffsetCellsX { get; set; }
+        public int OffsetCellsY { get; set; }
     }
 
     public sealed class FormalArmyMemberDefinition

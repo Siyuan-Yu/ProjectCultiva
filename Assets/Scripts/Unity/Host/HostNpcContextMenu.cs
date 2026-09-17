@@ -169,6 +169,13 @@ namespace XianXia.Unity.Host
                 (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance) ||
                  bootstrap.Session.World.LocalPlaces.TryGet(entranceId, out entrance)))
             {
+                var near = HostCaveEntranceQuery.IsNearEntrance(
+                    bootstrap, actor, entrance, out var distance);
+                Debug.Log("[CaveApproach] entranceId=" + entranceId +
+                    " distance=" + distance.ToString("0.##") +
+                    " action=" + (near ? "OpenEnterMenu" : "Move"), this);
+                if (!near)
+                    return false;
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;

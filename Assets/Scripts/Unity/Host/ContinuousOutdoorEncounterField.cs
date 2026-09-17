@@ -172,7 +172,11 @@ namespace XianXia.Unity.Host
                 if (!plan.World.Strategic.Squads.TryGetForCharacter(id, out var squad) || squad.SquadId != p.SquadId ||
                     squad.CommandRevision != plan.SquadCommands[p.SquadId] ||
                     squad.MemberCharacterIds.Count != plan.SquadCounts[p.SquadId] ||
-                    !CharacterPersonalSpaceQuery.TryResolveContinuous(plan.World, id, plan.SurfaceId, out var point, out _) ||
+                    !CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
+                        plan.World, id, plan.SurfaceId, out var point, out var owner,
+                        out var armyId, out _) ||
+                    owner != p.SourceSpatialOwnerKind ||
+                    !string.Equals(armyId, p.SourceFormalArmyId, StringComparison.Ordinal) ||
                     Math.Abs(point.X - p.OriginX) > .0001f || Math.Abs(point.Y - p.OriginY) > .0001f) return false;
             }
             return true;

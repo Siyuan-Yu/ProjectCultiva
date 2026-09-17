@@ -4,7 +4,15 @@
 > 状态：Implementation In Progress / Producer Acceptance Pending  
 > 制作人约束：所有改动未暂存、未提交；未打开 Unity，未运行 PlayMode、Test Runner 或 batchmode。
 
-## 荒村山匪野外部署稳定性修复（制作人复验待定）
+## FormalArmy authored deployment authority 稳定性修复（制作人复验待定）
+
+制作人再次发现三支军队成员堆在荒村附近。根因不只是坐标：Bootstrap 先给新成员写 assembly Site personal presence，`CreateAuthoredArmy` 再把 Army 初始化到该 Site；随后虽然改写 Army.WorldMotion，idle `FormalArmyMemberPresenceSync` 保留旧个人位置，LocalVisible idle presentation 也优先读旧个人位置。另有 `FormalArmy.SyncLegacyFromWorldMotion()` 每次把 `UsesHexStrategicPosition` 写成 `HasPosition`，覆盖 Surface 语义。本热修使 authored Surface 部署直接建立首次 Army anchor，明确 GroupRelocation 同步受控成员；普通 idle tick 仅保留 Army 锚点附近的 near-field personal position。idle／moving View 共用 Army.WorldMotion + transient formation，队形不写回个人 canonical position，间距由 1.5 提到 3 Surface Cells，并对超出合理编队半径的物化位置作一次性诊断。
+
+正式 Content 新增 `initialSurfaceDeployment = {surfaceId, anchorSiteId, offsetCellsX, offsetCellsY}`。Bootstrap 从同一份 authored controlCore placement 解析精确中心（当前军队初始化早于运行时 SiteCore metadata bind），加导航 `CellSize × offsetCells` 得到一次性的 exact deployment；旧 `initialSurfacePosition` 继续只作绝对坐标兼容。黄村议政厅实际 placement 左下角是 `(6.01888,11.075)`，Core 中心为 `(6.105485,11.215)`。荒村山匪／弱匪／强匪分别用 `(722,334)`、`(797,-5)`、`(722,-343)` cells，约 795.5／797.0／799.3 cells，落点约 `(26.321485,20.567)`、`(28.421485,11.075)`、`(26.321485,1.611)`。原绝对坐标相对实际 Core 中心仅约 79.3／27.4／45.5 cells。三点在正式 Surface bounds 内，geography cell 为 Ground、无 blocking SitePlacement；成员名册与战力不变。
+
+Snapshot 继续以 Army.WorldMotion 为 authority；restore/finalize 对仍由 Army 控制的 Surface 成员执行 GroupRelocation，而不是重新按 assemblySiteId 或 authored deployment 回生。Surface 初始化和 legacy 同步按 SurfaceId 设置 `UsesHexStrategicPosition=false`。当前仅离线 Core／Data／Unity Host 编译、Content load/validation、一次 Ch01 NewGame authored army invariant sanity，以及把三支军队临时移回 assembly Site 后分别应用已捕获的 FormalArmy motion DTO，三支 Army 与 living member 均恢复原始远程锚点。此为 isolated motion restore 检查，不等同完整 Host Save/Load 人工验收；未打开 Unity。状态仍为 **Implementation In Progress / Producer Acceptance Pending**，暂停其余 MAP-04 Legacy 删除。
+
+## 前次荒村山匪野外部署尝试（已由上述修复取代，记录保留）
 
 三支山匪／试炼 FormalArmy 保留 `assemblySiteId=base:site_huangcun` 作为组织所属地点，仅增加不同的 `initialSurfacePosition`：荒村山匪 `(3.990, 10.542)`、试炼弱匪 `(5.446, 11.606)`、试炼强匪 `(6.594, 10.038)`，均属 `base:surface_main_wilderness_v1`。不改成员、首领、战力或普通 NPC anchor。NewGame 沿用 `FormalArmyContentBootstrap → FormalArmyContinuousTravelService` 写入 exact `WorldMotion`。WorldMap marker 改为优先读取当前 Continuous `WorldMotion`，Snapshot motion 恢复保留 SurfaceId，不再因 derived Hex／assembly Site 偏移。
 

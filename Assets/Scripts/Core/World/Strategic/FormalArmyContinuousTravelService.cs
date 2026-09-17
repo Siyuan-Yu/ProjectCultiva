@@ -71,14 +71,21 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             site.EnsurePresenceHexValid();
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            army.UsesHexStrategicPosition = true;
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                world.SurfaceGround.TryResolveSiteArrival(siteId, out _, out var arrival))
+                world.SurfaceGround.TryResolveSiteArrival(siteId, out var surfaceId, out var arrival))
+            {
+                army.UsesHexStrategicPosition = false;
                 army.WorldMotion.SetAtWorldSitePreservingWorldPosition(siteId, arrival,
-                    HexMath.WorldToHex(arrival.X, arrival.Y, hexSize));
+                    world.HexWorld?.HasGrid == true
+                        ? HexMath.WorldToHex(arrival.X, arrival.Y, hexSize) : default,
+                    surfaceId);
+            }
             else
+            {
+                army.UsesHexStrategicPosition = true;
                 army.WorldMotion.SetAtWorldSite(siteId, site.AnchorHex, hexSize);
+            }
             army.SyncLegacyFromWorldMotion();
             army.State = FormalArmyState.Idle;
             FormalArmyMemberPresenceSync.SyncAll(world, army);
@@ -89,7 +96,8 @@ namespace XianXia.Core.World.Strategic
             FormalArmy army,
             WorldVec2 worldPosition,
             HexCoord derivedHex,
-            string surfaceId = null)
+            string surfaceId = null,
+            bool groupRelocation = false)
         {
             if (world == null || army == null)
                 return;
@@ -98,7 +106,22 @@ namespace XianXia.Core.World.Strategic
             army.WorldMotion.SetAtWorldPosition(worldPosition, derivedHex, surfaceId);
             army.SyncLegacyFromWorldMotion();
             army.State = FormalArmyState.Idle;
-            FormalArmyMemberPresenceSync.SyncAll(world, army);
+            if (groupRelocation)
+                FormalArmyMemberPresenceSync.SyncAllFromArmyAuthority(world, army,
+                    FormalArmyMemberPresenceSync.Reason.GroupRelocation);
+            else
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+        }
+
+        public static void InitializeAtWorldPosition(SimulationWorld world, FormalArmy army,
+            WorldVec2 worldPosition, string surfaceId)
+        {
+            var hex = world?.HexWorld?.HasGrid == true
+                ? HexMath.WorldToHex(worldPosition.X, worldPosition.Y,
+                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                : default;
+            InitializeAtWorldPosition(world, army, worldPosition, hex, surfaceId,
+                groupRelocation: true);
         }
 
         static Result BeginTravel(

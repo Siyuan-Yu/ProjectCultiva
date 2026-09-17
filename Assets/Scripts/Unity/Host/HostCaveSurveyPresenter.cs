@@ -67,12 +67,11 @@ namespace XianXia.Unity.Host
             string nearestHint = null;
             var bestHint = float.MaxValue;
 
-            foreach (var kv in session.World.LocalPlaces.Locations)
+            foreach (var loc in OpportunityEntranceQuery.EnumerateAvailableEntrances(session.World))
             {
-                var loc = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                     continue;
-                if (OpportunityEntranceRules.IsRevealed(session.World, loc))
+                if (OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, loc))
                     continue;
 
                 for (var i = 0; i < probes.Count; i++)
@@ -111,7 +110,11 @@ namespace XianXia.Unity.Host
             DiagnoseNearby(session, probes, out var maxSense, out var inSurveyGateFail, out var inHintOutOfRange);
 
             var hint = FormatProbes(probes);
-            var before = CountRevealedEntrances(session);
+            var revealedBefore = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var entrance in OpportunityEntranceQuery.EnumerateAvailableEntrances(session.World))
+                if (OpportunityEntranceRules.IsHiddenEntrance(entrance) &&
+                    OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, entrance))
+                    revealedBefore.Add(entrance.Id);
             var ok = commandBridge.IssueSurveyAround(hint) > 0;
             if (!ok)
             {
@@ -119,8 +122,21 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            var after = CountRevealedEntrances(session);
-            _lastFoundCount = after - before;
+            _lastFoundCount = 0;
+            foreach (var entrance in OpportunityEntranceQuery.EnumerateAvailableEntrances(session.World))
+            {
+                if (!OpportunityEntranceRules.IsHiddenEntrance(entrance) ||
+                    revealedBefore.Contains(entrance.Id) ||
+                    !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, entrance))
+                    continue;
+                _lastFoundCount++;
+                var placementVisible = bootstrap?.ContinuousOutdoorSurfaceRuntime != null &&
+                    bootstrap.ContinuousOutdoorSurfaceRuntime.RefreshRevealedOpportunityPresentation(entrance.Id);
+                Debug.Log("[CaveVisibility] entranceId=" + entrance.Id +
+                    " playerRevealed=true knownByPartyMember=true placementVisible=" + placementVisible);
+            }
+            Debug.Log("[CaveSurvey] found=" + _lastFoundCount +
+                " blockedSense=" + inSurveyGateFail + " nearOut=" + inHintOutOfRange);
             if (_lastFoundCount > 0)
             {
                 Flash("神识扫过，洞府入口显露！");
@@ -166,12 +182,11 @@ namespace XianXia.Unity.Host
                     maxSense = probes[i].Sense;
             }
 
-            foreach (var kv in session.World.LocalPlaces.Locations)
+            foreach (var entrance in OpportunityEntranceQuery.EnumerateAvailableEntrances(session.World))
             {
-                var entrance = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(entrance))
                     continue;
-                if (OpportunityEntranceRules.IsRevealed(session.World, entrance))
+                if (OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, entrance))
                     continue;
 
                 var inSurvey = false;
@@ -285,7 +300,7 @@ namespace XianXia.Unity.Host
             }
             else if (entity.TryGet<EntityLocationComponent>(out var loc) &&
                      loc.HasLocation &&
-                     session.World.LocalPlaces.TryGet(loc.LocationId, out var place))
+                     WorldLocationQuery.TryGet(session.World, loc.LocationId, out var place))
             {
                 px = place.PresentationX;
                 pz = place.PresentationZ;
@@ -312,21 +327,6 @@ namespace XianXia.Unity.Host
             }
 
             return sb.ToString();
-        }
-
-        static int CountRevealedEntrances(PlayableHostSession session)
-        {
-            if (session?.World?.LocalPlaces?.Locations == null)
-                return 0;
-            var n = 0;
-            foreach (var kv in session.World.LocalPlaces.Locations)
-            {
-                if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
-                    OpportunityEntranceRules.IsRevealed(session.World, kv.Value))
-                    n++;
-            }
-
-            return n;
         }
 
         void Flash(string text)

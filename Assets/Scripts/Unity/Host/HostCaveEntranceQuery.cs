@@ -39,7 +39,7 @@ namespace XianXia.Unity.Host
                 if (!continuous.TryPickBakedPlacement("cave", point.x, point.y, out var id) ||
                     !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(id, out var outdoorEntrance) ||
                     !OpportunityEntranceRules.IsHiddenEntrance(outdoorEntrance) ||
-                    !OpportunityEntranceRules.IsRevealed(world, outdoorEntrance)) return false;
+                    !OpportunityEntranceRules.IsRevealedToPlayerParty(world, outdoorEntrance)) return false;
                 entranceLocationId = id;
                 return true;
             }
@@ -62,7 +62,7 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                     continue;
-                if (!OpportunityEntranceRules.IsRevealed(world, loc))
+                if (!OpportunityEntranceRules.IsRevealedToPlayerParty(world, loc))
                     continue;
                 if (!ContainsPresentation(layout, pl, cs, p.x, p.y))
                     continue;
@@ -164,6 +164,38 @@ namespace XianXia.Unity.Host
             var dx = entrance.PresentationX - presentationX;
             var dz = entrance.PresentationZ - presentationZ;
             return dx * dx + dz * dz <= distance * distance;
+        }
+
+        public static bool IsNearEntrance(
+            PlayableHostBootstrap bootstrap,
+            XianXia.Core.Domain.Ids.EntityId actor,
+            WorldLocationState entrance,
+            out float distance)
+        {
+            distance = float.PositiveInfinity;
+            if (bootstrap?.Session?.World == null || entrance == null || actor.IsNone)
+                return false;
+            float x, z;
+            if (bootstrap.ViewSpawner?.Registry != null &&
+                bootstrap.ViewSpawner.Registry.TryGet(actor, out var view) && view != null)
+            {
+                var point = HostPresentationSpace.ToPresentation(view.transform.position);
+                x = point.x; z = point.y;
+            }
+            else if (bootstrap.Session.PlayerParty?.IsMember(actor) == true &&
+                     bootstrap.ContinuousOutdoorSurfaceRuntime?.IsActive == true &&
+                     bootstrap.ContinuousOutdoorSurfaceRuntime.Mapper != null)
+            {
+                var motion = bootstrap.Session.World.PlayerPartyTravel.WorldPosition;
+                bootstrap.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(
+                    motion.X, motion.Y, out x, out z);
+            }
+            else
+                return false;
+            var dx = entrance.PresentationX - x;
+            var dz = entrance.PresentationZ - z;
+            distance = Mathf.Sqrt(dx * dx + dz * dz);
+            return distance <= ApproachDistance;
         }
 
         static bool ContainsPresentation(

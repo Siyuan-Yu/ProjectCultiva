@@ -119,24 +119,21 @@ namespace XianXia.Unity.Host
         {
             string best = null;
             var bestDist = radius;
-            foreach (var kv in world.ContinuousOutdoorMaterialization.PlacesByLocationId)
-            {
-                var loc = kv.Value;
-                if (!pred(loc))
-                    continue;
-                var dx = loc.PresentationX - p.x;
-                var dy = loc.PresentationZ - p.y;
-                var d = Mathf.Sqrt(dx * dx + dy * dy);
-                if (d <= bestDist)
+            if (!world.LocalMap.IsInInterior)
+                foreach (var kv in world.ContinuousOutdoorMaterialization.PlacesByLocationId)
                 {
-                    bestDist = d;
-                    best = loc.Id;
+                    var loc = kv.Value;
+                    if (!pred(loc)) continue;
+                    var dx = loc.PresentationX - p.x;
+                    var dy = loc.PresentationZ - p.y;
+                    var d = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (d <= bestDist) { bestDist = d; best = loc.Id; }
                 }
-            }
             foreach (var kv in world.LocalPlaces.Locations)
             {
                 var loc = kv.Value;
-                if (world.ContinuousOutdoorMaterialization.PlacesByLocationId.ContainsKey(kv.Key))
+                if (!world.LocalMap.IsInInterior &&
+                    world.ContinuousOutdoorMaterialization.PlacesByLocationId.ContainsKey(kv.Key))
                     continue;
                 if (!pred(loc))
                     continue;

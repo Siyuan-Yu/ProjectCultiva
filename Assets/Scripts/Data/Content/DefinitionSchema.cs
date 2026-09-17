@@ -30,7 +30,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "initialSurfacePosition", "members"
+            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "initialSurfacePosition", "initialSurfaceDeployment", "members"
         };
 
         public static readonly HashSet<string> StrategicFactionFields = new HashSet<string>(StringComparer.Ordinal)
@@ -46,6 +46,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> FormalArmyInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "surfaceId", "worldX", "worldY"
+        };
+
+        public static readonly HashSet<string> FormalArmyInitialSurfaceDeploymentFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "surfaceId", "anchorSiteId", "offsetCellsX", "offsetCellsY"
         };
 
         public static readonly HashSet<string> FormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)

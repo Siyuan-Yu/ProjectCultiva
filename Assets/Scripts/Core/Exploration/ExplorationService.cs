@@ -68,7 +68,7 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.InvalidArgument, "Location required.");
             if (!world.Entities.TryGet(subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
-            if (!world.LocalPlaces.TryGet(locationId, out var location))
+            if (!WorldLocationQuery.TryGet(world, locationId, out var location))
                 return Result.Failure(ErrorCode.NotFound, "Location missing.", locationId);
 
             if (setLocation)
@@ -172,8 +172,9 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
 
             var entranceId = string.IsNullOrWhiteSpace(entranceLocationId) ? loc.LocationId : entranceLocationId.Trim();
-            var fromContinuousOutdoor = world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance);
-            if (!fromContinuousOutdoor && !world.LocalPlaces.TryGet(entranceId, out entrance))
+            var fromContinuousOutdoor = !world.LocalMap.IsInInterior &&
+                world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out _);
+            if (!WorldLocationQuery.TryGet(world, entranceId, out var entrance))
                 return Result.Failure(ErrorCode.NotFound, "Entrance location missing.", entranceId);
             if (string.IsNullOrEmpty(entrance.EnterLocalMapId) || string.IsNullOrEmpty(entrance.EnterSpawnLocationId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Location is not a LocalMap entrance.", entranceId);
@@ -196,21 +197,33 @@ namespace XianXia.Core.Exploration
                 }
             }
 
-            if (fromContinuousOutdoor)
-                world.ContinuousOutdoorMaterialization.CopyPlacesTo(world.LocalPlaces);
-            if (!world.LocalPlaces.TryGet(entrance.EnterSpawnLocationId, out _) &&
-                !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entrance.EnterSpawnLocationId, out _))
-                return Result.Failure(ErrorCode.NotFound, "Spawn location missing.", entrance.EnterSpawnLocationId);
+            if (!world.LocalPlaces.TryGet(entrance.EnterSpawnLocationId, out var spawn) ||
+                !string.Equals(spawn.LocalMapId, entrance.EnterLocalMapId,
+                    System.StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.NotFound, "Interior spawn location is not active.",
+                    entrance.EnterSpawnLocationId);
 
             var session = world.LocalMap;
-            var outdoorMotion = world.PlayerPartyTravel;
-            if (outdoorMotion != null && outdoorMotion.HasPosition &&
-                outdoorMotion.LocationKind == XianXia.Core.World.Strategic.PlayerPartyLocationKind.AtWorldPosition &&
-                !string.IsNullOrEmpty(outdoorMotion.CurrentOutdoorWorldSiteId))
+            if (fromContinuousOutdoor)
             {
+                var party = world.Strategic.PlayerPartyContext;
+                var returnSurface = world.SurfaceGround.Active;
+                if (!XianXia.Core.World.Strategic.PlayerPartyWorldLocationQuery.TryResolve(
+                        world, party, out var resolved) || !resolved.HasValue ||
+                    resolved.IsLegacyFallback)
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Continuous entrance has no exact Surface return position.", entranceId);
+                if (returnSurface == null || !returnSurface.Contains(
+                        resolved.WorldPosition.X, resolved.WorldPosition.Y))
+                    world.SurfaceGround.TryResolveContaining(resolved.WorldPosition,
+                        out returnSurface);
+                if (returnSurface == null)
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Continuous entrance has no registered return Surface.", entranceId);
                 session.HasContinuousOutdoorReturn = true;
-                session.ContinuousOutdoorReturnX = outdoorMotion.WorldPosition.X;
-                session.ContinuousOutdoorReturnY = outdoorMotion.WorldPosition.Y;
+                session.ContinuousOutdoorReturnX = resolved.WorldPosition.X;
+                session.ContinuousOutdoorReturnY = resolved.WorldPosition.Y;
+                session.ContinuousOutdoorReturnSurfaceId = returnSurface.SurfaceId;
             }
             if (string.IsNullOrEmpty(session.OverworldMapLayoutId))
                 session.OverworldMapLayoutId = session.ActiveMapLayoutId;
@@ -244,10 +257,20 @@ namespace XianXia.Core.Exploration
             if (string.IsNullOrEmpty(session.OverworldMapLayoutId) && !session.HasContinuousOutdoorReturn)
                 return Result.Failure(ErrorCode.InvalidOperation, "Overworld map missing.");
             if (string.IsNullOrEmpty(session.ReturnLocationId) ||
-                !world.LocalPlaces.TryGet(session.ReturnLocationId, out _))
+                (!session.HasContinuousOutdoorReturn &&
+                 !world.LocalPlaces.TryGet(session.ReturnLocationId, out _)))
                 return Result.Failure(ErrorCode.NotFound, "Return location missing.", session.ReturnLocationId);
+            if (session.HasContinuousOutdoorReturn &&
+                (string.IsNullOrEmpty(session.ContinuousOutdoorReturnSurfaceId) ||
+                 !world.SurfaceGround.TryGet(session.ContinuousOutdoorReturnSurfaceId,
+                     out var returnNavigation) ||
+                 !returnNavigation.Contains(session.ContinuousOutdoorReturnX,
+                     session.ContinuousOutdoorReturnY)))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Continuous return Surface is unavailable.", session.ContinuousOutdoorReturnSurfaceId);
 
             var returnId = session.ReturnLocationId;
+            var continuousReturn = session.HasContinuousOutdoorReturn;
             var interiorMap = session.ActiveMapLayoutId;
             // 默认全员撤离：登记名单 ∪ 仍挂在内室地点的己方。
             EvacuateInteriorParty(world, session, interiorMap, returnId);
@@ -257,22 +280,32 @@ namespace XianXia.Core.Exploration
             {
                 var position = new XianXia.Core.World.WorldVec2(
                     session.ContinuousOutdoorReturnX, session.ContinuousOutdoorReturnY);
-                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                var hex = XianXia.Core.World.Hex.HexMath.WorldToHex(position.X, position.Y, size);
-                world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
+                world.PlayerPartyTravel.SetAtSurfacePosition(position);
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
                     XianXia.Core.World.Strategic.WorldSiteAdministrativeControlResolver
                         .TryResolveOnRegisteredSurface(
                             world, position.X, position.Y, out _, out var returnSite, out _)
                         ? returnSite.SiteId
                         : string.Empty);
-                foreach (var id in world.PlayerPartyTravel.TravelingMembers)
-                    world.WorldPresence.SetAtWorldPosition(id, position, hex);
+                var party = world.Strategic.PlayerPartyContext;
+                if (party != null)
+                {
+                    foreach (var id in party.Members)
+                        if (XianXia.Core.World.Strategic.PlayerPartyTransitionMembership
+                                .ShouldMemberTransitionWithParty(world, party, id))
+                            world.WorldPresence.SetAtWorldPosition(id, position, default,
+                                session.ContinuousOutdoorReturnSurfaceId);
+                }
+                else
+                    foreach (var traveler in world.PlayerPartyTravel.TravelingMembers)
+                        world.WorldPresence.SetAtWorldPosition(traveler, position, default,
+                            session.ContinuousOutdoorReturnSurfaceId);
                 world.PartyWorld.LocalMapId = string.Empty;
                 world.PartyWorld.SiteId = string.Empty;
                 world.PartyWorld.Mode = XianXia.Core.World.PartyWorldPresenceMode.AtWorldPosition;
                 session.OverworldMapLayoutId = string.Empty;
                 session.HasContinuousOutdoorReturn = false;
+                session.ContinuousOutdoorReturnSurfaceId = string.Empty;
             }
 
             world.Events.Publish(
@@ -281,7 +314,10 @@ namespace XianXia.Core.Exploration
                 target: subject,
                 payload: session.ActiveMapLayoutId + ";" + returnId);
 
-            return NotifyArrived(world, subject, returnId, setLocation: false);
+            // The outdoor entrance registry is transient and may be unloaded while inside.
+            // Host reactivates its Surface after this domain transition succeeds.
+            return continuousReturn ? Result.Success() :
+                NotifyArrived(world, subject, returnId, setLocation: false);
         }
 
         /// <summary>
@@ -317,12 +353,11 @@ namespace XianXia.Core.Exploration
                     maxR = probes[i].Radius;
             }
 
-            foreach (var kv in world.LocalPlaces.Locations)
+            foreach (var entrance in OpportunityEntranceQuery.EnumerateAvailableEntrances(world))
             {
-                var entrance = kv.Value;
                 if (!OpportunityEntranceRules.IsHiddenEntrance(entrance))
                     continue;
-                if (OpportunityEntranceRules.IsRevealed(world, entrance))
+                if (OpportunityEntranceRules.IsKnownToCharacter(world, subject, entrance))
                     continue;
 
                 var inSurvey = false;
@@ -423,7 +458,7 @@ namespace XianXia.Core.Exploration
 
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return false;
-            if (!world.LocalPlaces.TryGet(loc.LocationId, out var place))
+            if (!WorldLocationQuery.TryGet(world, loc.LocationId, out var place))
                 return false;
             probes.Add(new SurveyProbe
             {

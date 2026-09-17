@@ -96,6 +96,11 @@ public static class LegacyWorldMigration
             foreach(var chunk in currentChunks.OfType<JsonObject>())chunk.Remove("sourceMapLayoutId");
         if(main["siteRegions"] is JsonArray currentRegions)
             foreach(var region in currentRegions.OfType<JsonObject>())region.Remove("sourceLocalMapId");
+        // Interior/Cave places belong to their separate LocalPlaceSet, never the outdoor registry.
+        if(main["sitePlaces"] is JsonArray outdoorPlaces)
+            foreach(var place in outdoorPlaces.OfType<JsonObject>()
+                        .Where(x=>!string.IsNullOrEmpty(Text(x,"localMapId"))).ToList())
+                outdoorPlaces.Remove(place);
         if(composition.SurfaceWidthCells%50!=0||composition.SurfaceHeightCells%50!=0)throw new InvalidDataException("当前旧 Runtime 的兼容发布要求世界宽高为 50 格整数倍。这只是旧 Runtime 兼容限制，不是 WorldComposer 的制作限制。");
         var width=composition.SurfaceWidthCells;var height=composition.SurfaceHeightCells;var rows=new JsonArray();var compatibility=new Dictionary<(int X,int Y),char>();foreach(var patchPlacement in composition.DetailPatchPlacements)if(linked.Patches.TryGetValue(patchPlacement.PlacementId,out var patch))foreach(var c in patch.FineTerrainOverrides)if(c.CompatibilityGlyph is{Length:1} glyph)compatibility[(patchPlacement.SurfaceCellX+c.SurfaceCellX,patchPlacement.SurfaceCellY+c.SurfaceCellY)]=glyph[0];
         // Legacy geography stores row zero as world/surface Y zero.  The chunkRows contract

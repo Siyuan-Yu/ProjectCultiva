@@ -191,7 +191,8 @@ namespace XianXia.Core.World.Strategic
             string factionId,
             string assemblySiteId,
             IReadOnlyList<EntityId> memberIds,
-            EntityId leaderId)
+            EntityId leaderId,
+            bool initializeAtAssemblySite = true)
         {
             if (world?.Strategic?.FormalArmies == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
@@ -239,7 +240,7 @@ namespace XianXia.Core.World.Strategic
                         memberId.ToString());
                 }
 
-                if (world.WorldPresence.TryGet(memberId, out var presence) &&
+                if (initializeAtAssemblySite && world.WorldPresence.TryGet(memberId, out var presence) &&
                     presence != null &&
                     presence.Mode == PartyWorldPresenceMode.AtSite &&
                     !string.Equals(presence.SiteId, assemblySiteId, StringComparison.Ordinal))
@@ -275,7 +276,8 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
-            FormalArmyContinuousTravelService.InitializeAtWorldSite(world, army, assemblySiteId);
+            if (initializeAtAssemblySite)
+                FormalArmyContinuousTravelService.InitializeAtWorldSite(world, army, assemblySiteId);
 
             return Result.Ok(army);
         }

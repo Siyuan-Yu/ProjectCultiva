@@ -73,7 +73,7 @@ namespace XianXia.Unity.Host
             GUI.color = prev;
 
             GUI.Label(new Rect(panelRect.x + 10f, panelRect.y + 8f, panelRect.width - 100f, 22f),
-                "角色列表 [Global Strategic UI]", _title);
+                "角色列表", _title);
             if (GUI.Button(new Rect(panelRect.xMax - 88f, panelRect.y + 6f, 76f, 24f), "关闭"))
                 Close();
 
@@ -184,30 +184,50 @@ namespace XianXia.Unity.Host
 
             var row = FindRow(new EntityId(idVal));
             var membership = row?.IsGrouped == true ? "NPC 小队成员" : "\u2014";
-            GUI.Label(new Rect(detailRect.x, y, detailRect.width, 120f),
+            GUI.Label(new Rect(detailRect.x, y, detailRect.width, 190f),
                 labelFn(world, entity.Id) + "\n" +
                 "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
-                "\u4f4d\u7f6e\uff1a" + (string.IsNullOrEmpty(row?.LocationLabel) ? (row?.SiteLabel ?? "\u2014") : row.LocationLabel) + "\n" +
                 "\u72b6\u6001\uff1a" + (row?.LifeStateLabel ?? "\u2014") + "  \u7f16\u7ec4\uff1a" + membership + "\n" +
-                FormatWorldPresenceDebug(world, entity.Id),
+                FormatWorldPresence(world, entity.Id),
                 _body);
         }
 
-        static string FormatWorldPresenceDebug(SimulationWorld world, EntityId id)
+        static string FormatWorldPresence(SimulationWorld world, EntityId id)
         {
-            if (!CharacterWorldPresenceQuery.TryDescribe(
-                    world,
-                    id,
-                    out var state,
-                    out var siteId,
-                    out var hex,
-                    out var localLoaded))
-                return "Presence：—";
-            var site = string.IsNullOrEmpty(siteId) ? "—" : siteId;
-            return "Presence：" + state +
-                   "\nWorldSite：" + site +
-                   "\nWorldHex：" + hex +
-                   "\nLocalMap：" + (localLoaded ? "Loaded" : "Unloaded");
+            if (world.LocalMap.IsInInterior && world.Strategic.PlayerPartyContext?.IsMember(id) == true)
+                return "位置状态：独立空间 / 室内";
+
+            world.WorldPresence.TryGet(id, out var personal);
+            var siteId = personal?.SiteId ?? string.Empty;
+            var surfaceId = personal?.PersonalSurfaceId ?? string.Empty;
+            var hasPosition = personal?.HasContinuousWorldPosition == true;
+            var position = hasPosition ? personal.ContinuousWorldPosition : default;
+            var state = personal?.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite
+                ? "据点内" : "连续世界";
+            var owner = "个人";
+
+            if (ArmyService.TryGetArmyForCharacter(world, id, out var army) &&
+                army != null && army.WorldMotion.HasPosition && !army.UsesHexStrategicPosition)
+            {
+                owner = "NPC 小队";
+                position = army.WorldMotion.WorldPosition;
+                hasPosition = true;
+                surfaceId = army.WorldMotion.SurfaceId;
+                siteId = army.WorldMotion.SiteId;
+                state = string.IsNullOrEmpty(siteId) ? "连续世界" : "据点内";
+            }
+
+            var siteName = "—";
+            if (!string.IsNullOrEmpty(siteId) &&
+                world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
+                siteName = site.DisplayName;
+            return "位置状态：" + state +
+                   "\n所在据点：" + siteName +
+                   "\n连续世界：" + (string.IsNullOrEmpty(surfaceId) ? "—" : "主大陆") +
+                   "\n世界坐标：" + (hasPosition
+                       ? "(" + position.X.ToString("0.000") + ", " + position.Y.ToString("0.000") + ")"
+                       : "—") +
+                   "\n空间归属：" + owner;
         }
 
         StrategicCharacterRosterRow FindRow(EntityId id)

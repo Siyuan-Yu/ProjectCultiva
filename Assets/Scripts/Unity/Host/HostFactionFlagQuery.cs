@@ -19,15 +19,13 @@ namespace XianXia.Unity.Host
             out float minX, out float maxX, out float minZ, out float maxZ)
         {
             minX = maxX = minZ = maxZ = 0f;
-            if (flag == null || continuous == null || !continuous.IsActive || continuous.Mapper == null)
+            if (flag == null || !flag.HasWorldPosition || continuous == null ||
+                !continuous.IsActive || continuous.Mapper == null)
                 return false;
             if (!string.IsNullOrEmpty(flag.SurfaceId) &&
                 !string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal))
                 return false;
-            var wx = flag.WorldX; var wy = flag.WorldY;
-            if (!flag.HasWorldPosition)
-                HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out wx, out wy);
-            continuous.Mapper.WorldToPresentation(wx, wy, out var cx, out var cz);
+            continuous.Mapper.WorldToPresentation(flag.WorldX, flag.WorldY, out var cx, out var cz);
             var half = FootprintCells * .5f;
             minX = cx - half; maxX = cx + half; minZ = cz - half; maxZ = cz + half;
             return true;

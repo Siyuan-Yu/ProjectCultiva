@@ -9,10 +9,11 @@
       "runtimeStackId": "army:bandit_patrol_1",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
-      "initialSurfacePosition": {
+      "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
-        "worldX": 3.990,
-        "worldY": 10.542
+        "anchorSiteId": "base:site_huangcun",
+        "offsetCellsX": 722,
+        "offsetCellsY": 334
       },
       "members": [
         {
@@ -42,10 +43,11 @@
       "runtimeStackId": "army:bandit_patrol_weak",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
-      "initialSurfacePosition": {
+      "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
-        "worldX": 5.446,
-        "worldY": 11.606
+        "anchorSiteId": "base:site_huangcun",
+        "offsetCellsX": 797,
+        "offsetCellsY": -5
       },
       "members": [
         {
@@ -63,10 +65,11 @@
       "runtimeStackId": "army:bandit_patrol_casualty_test",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
-      "initialSurfacePosition": {
+      "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
-        "worldX": 6.594,
-        "worldY": 10.038
+        "anchorSiteId": "base:site_huangcun",
+        "offsetCellsX": 722,
+        "offsetCellsY": -343
       },
       "members": [
         {

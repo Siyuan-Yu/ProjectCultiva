@@ -55,25 +55,33 @@ namespace XianXia.Core.Exploration
             !string.IsNullOrEmpty(loc.EnterLocalMapId) &&
             !string.IsNullOrEmpty(loc.OpportunitySiteId);
 
-        public static bool IsRevealed(SimulationWorld world, WorldLocationState loc)
+        public static bool IsKnownToCharacter(
+            SimulationWorld world, EntityId characterId, WorldLocationState loc)
         {
-            if (world == null || loc == null || string.IsNullOrEmpty(loc.OpportunitySiteId))
+            if (loc == null || string.IsNullOrEmpty(loc.OpportunitySiteId))
                 return true;
-            if (!DefinitionId.TryParse(loc.OpportunitySiteId, out var siteId))
+            if (world == null || characterId.IsNone ||
+                !DefinitionId.TryParse(loc.OpportunitySiteId, out var siteId) ||
+                !world.Entities.TryGet(characterId, out var entity) || entity == null ||
+                !entity.TryGet<KnownSitesComponent>(out var known))
                 return false;
-            foreach (var e in world.Entities.All)
+            return known.Knows(siteId);
+        }
+
+        public static bool IsRevealedToPlayerParty(SimulationWorld world, WorldLocationState loc)
+        {
+            if (loc == null || string.IsNullOrEmpty(loc.OpportunitySiteId))
+                return true;
+            var members = world?.Strategic?.PlayerPartyContext?.Members;
+            if (members == null)
+                return false;
+            for (var i = 0; i < members.Count; i++)
             {
-                if (e == null)
-                    continue;
-                if ((e.Tags & EntityTag.Character) == 0)
-                    continue;
-                if (!e.TryGet<KnownSitesComponent>(out var known))
-                    continue;
-                if (known.Knows(siteId))
+                if (IsKnownToCharacter(world, members[i], loc))
                     return true;
             }
-
             return false;
         }
+
     }
 }

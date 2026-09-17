@@ -68,7 +68,8 @@ namespace XianXia.Core.World.Strategic
                     }
                     else
                     {
-                        if (!CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, target.SurfaceId, out var point, out _)) continue;
+                        if (!ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                                world, id, target.SurfaceId, out var point, out _, out _, out _)) continue;
                         x = point.X; y = point.Y;
                     }
                     if (!WorldSiteCoreCoverageResolver.Contains(site, target.SurfaceId, x, y) ||
@@ -208,7 +209,8 @@ namespace XianXia.Core.World.Strategic
                     return Fail("当前战场已有攻城目标。");
                 if (state.Find(attacker.Value) == null) return Fail("攻击者不在当前战场。");
             }
-            else if (!CharacterPersonalSpaceQuery.TryResolveContinuous(world, attacker, target.SurfaceId, out _, out _))
+            else if (!ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                         world, attacker, target.SurfaceId, out _, out _, out _, out _))
                 return Fail("攻击者不在目标连续世界表面。");
             if (requireWar && !WarGateService.CanAttack(world, member.FactionId, current.OwnerFactionId))
                 return Fail("攻击据点核心需要有效战争状态。");
@@ -253,7 +255,9 @@ namespace XianXia.Core.World.Strategic
             else if (world.Strategic.PlayerPartyContext != null)
                 foreach (var id in world.Strategic.PlayerPartyContext.Members)
                     if (CharacterEncounterService.IsLiving(world, id.Value) &&
-                        CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, target.SurfaceId, out var point, out _) && InArea(point.X, point.Y)) standing = true;
+                        ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                            world, id, target.SurfaceId, out var point, out _, out _, out _) &&
+                        InArea(point.X, point.Y)) standing = true;
             ControlCoreService.TickOccupy(world, workAreaId, seconds, standing && !contested);
             return !core.CaptureAvailable;
         }

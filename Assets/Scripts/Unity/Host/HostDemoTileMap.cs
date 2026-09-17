@@ -795,10 +795,11 @@ namespace XianXia.Unity.Host
                 return false;
             if (!_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(p.BoundLocationId, out var loc) &&
                 !_session.World.LocalPlaces.TryGet(p.BoundLocationId, out loc))
-                return false;
+                return !_session.World.LocalMap.IsInInterior &&
+                       string.Equals(MapKindCatalog.NormalizeKind(p.Kind), "cave", System.StringComparison.Ordinal);
             if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                 return false;
-            return !OpportunityEntranceRules.IsRevealed(_session.World, loc);
+            return !OpportunityEntranceRules.IsRevealedToPlayerParty(_session.World, loc);
         }
 
         GameObject PlaceZoneOverlay(float x, float y, string name, float worldW, float worldH, Color color)

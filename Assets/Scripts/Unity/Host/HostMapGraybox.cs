@@ -50,7 +50,7 @@ namespace XianXia.Unity.Host
                 if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
                     continue;
                 if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
-                    !OpportunityEntranceRules.IsRevealed(session.World, kv.Value))
+                    !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, kv.Value))
                     continue;
                 BuildZoneLabel(kv.Value);
             }
@@ -66,7 +66,7 @@ namespace XianXia.Unity.Host
             {
                 var loc = kv.Value;
                 if (loc == null || (OpportunityEntranceRules.IsHiddenEntrance(loc) &&
-                    !OpportunityEntranceRules.IsRevealed(session.World, loc))) continue;
+                    !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, loc))) continue;
                 BuildZoneLabel(loc);
                 var marker = new GameObject("ContinuousSiteMarker_" + kv.Key);
                 marker.transform.SetParent(mapRoot, false);

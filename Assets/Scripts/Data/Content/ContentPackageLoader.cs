@@ -1111,6 +1111,40 @@ namespace XianXia.Data.Content
                 };
             }
 
+            if (item.TryGetProperty("initialSurfaceDeployment", out var deploymentNode))
+            {
+                if (deploymentNode.Kind != JsonValueKind.Object || def.InitialSurfacePosition != null)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed,
+                        "formalArmy must choose one initial Surface deployment form.", id.ToString());
+                    return;
+                }
+                DefinitionSchema.RejectUnknownFields(deploymentNode,
+                    DefinitionSchema.FormalArmyInitialSurfaceDeploymentFields,
+                    report, id + ".initialSurfaceDeployment");
+                if (!deploymentNode.TryGetProperty("offsetCellsX", out var offsetX) ||
+                    !deploymentNode.TryGetProperty("offsetCellsY", out var offsetY) ||
+                    offsetX.Kind != JsonValueKind.Number ||
+                    offsetY.Kind != JsonValueKind.Number ||
+                    offsetX.Number != Math.Truncate(offsetX.Number) ||
+                    offsetY.Number != Math.Truncate(offsetY.Number) ||
+                    offsetX.Number < int.MinValue || offsetX.Number > int.MaxValue ||
+                    offsetY.Number < int.MinValue || offsetY.Number > int.MaxValue)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed,
+                        "formalArmy.initialSurfaceDeployment requires integer cell offsets.",
+                        id.ToString());
+                    return;
+                }
+                def.InitialSurfaceDeployment = new FormalArmyInitialSurfaceDeploymentDefinition
+                {
+                    SurfaceId = deploymentNode.GetString("surfaceId", string.Empty),
+                    AnchorSiteId = deploymentNode.GetString("anchorSiteId", string.Empty),
+                    OffsetCellsX = ReadInt(deploymentNode, "offsetCellsX", 0),
+                    OffsetCellsY = ReadInt(deploymentNode, "offsetCellsY", 0)
+                };
+            }
+
             if (item.TryGetProperty("initialHex", out var hexNode))
             {
                 if (hexNode.Kind != JsonValueKind.Object)

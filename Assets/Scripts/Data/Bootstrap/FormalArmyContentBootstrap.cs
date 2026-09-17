@@ -66,6 +66,17 @@ namespace XianXia.Data.Bootstrap
             if (world.Strategic.FormalArmies.TryGet(def.RuntimeArmyId, out _))
                 return Result.Success();
 
+            var hasSurfaceDeployment = def.InitialSurfaceDeployment != null ||
+                                       def.InitialSurfacePosition != null;
+            var deploymentPoint = default(WorldVec2);
+            var deploymentSurfaceId = string.Empty;
+            if (hasSurfaceDeployment)
+            {
+                var resolved = ResolveInitialSurfaceDeployment(world, registry, def,
+                    out deploymentPoint, out deploymentSurfaceId);
+                if (resolved.IsFailure) return resolved;
+            }
+
             var memberIds = new List<EntityId>(def.Members.Count);
             var leaderId = EntityId.None;
             for (var i = 0; i < def.Members.Count; i++)
@@ -99,7 +110,8 @@ namespace XianXia.Data.Bootstrap
                         return Result.Failure(spawned.Error);
                     entity = spawned.Value;
                     entity.Get<FactionMembershipComponent>().Assign(def.FactionId, FactionRoleKind.Member);
-                    world.WorldPresence.SetAtSite(entity.Id, def.AssemblySiteId);
+                    if (!hasSurfaceDeployment)
+                        world.WorldPresence.SetAtSite(entity.Id, def.AssemblySiteId);
                 }
                 if (member.Leader)
                     leaderId = entity.Id;
@@ -120,18 +132,17 @@ namespace XianXia.Data.Bootstrap
                 def.FactionId,
                 def.AssemblySiteId,
                 memberIds,
-                leaderId);
+                leaderId,
+                initializeAtAssemblySite: !hasSurfaceDeployment);
             if (created.IsFailure)
                 return Result.Failure(created.Error);
 
-            ArmyStackAdapter.EnsureLinkedStackView(world, created.Value, def.RuntimeStackId, def.Name);
-
-            // Optional authored wilderness deployment：initialHex != null 时把
-            // FormalArmy 部署到该 Hex（FormalArmy.WorldMotion = Hex authority）。
-            // 绝不直接改 stack.CurrentHex / member.WorldPresence 绕过 WorldMotion。
-            if (def.InitialSurfacePosition != null)
+            // AssemblySiteId is organizational origin. A Surface deployment establishes the
+            // first physical group anchor once, after membership is registered.
+            if (hasSurfaceDeployment)
             {
-                var deploy = DeployArmyToInitialSurfacePosition(world, registry, created.Value, def);
+                var deploy = DeployArmyToInitialSurfacePosition(world, created.Value, def,
+                    deploymentPoint, deploymentSurfaceId);
                 if (deploy.IsFailure)
                     return deploy;
             }
@@ -142,26 +153,124 @@ namespace XianXia.Data.Bootstrap
                     return deploy;
             }
 
+            ArmyStackAdapter.EnsureLinkedStackView(world, created.Value, def.RuntimeStackId, def.Name);
+
             return Result.Success();
         }
 
-        static Result DeployArmyToInitialSurfacePosition(
-            SimulationWorld world, DefinitionRegistry registry, FormalArmy army, FormalArmyDefinition def)
+        static Result ResolveInitialSurfaceDeployment(SimulationWorld world,
+            DefinitionRegistry registry, FormalArmyDefinition def,
+            out WorldVec2 point, out string surfaceId)
         {
-            var authored = def.InitialSurfacePosition;
-            if (string.IsNullOrWhiteSpace(authored.SurfaceId) ||
-                !registry.TryGetOutdoorSurfaceGeography(authored.SurfaceId, out var geography) ||
-                geography?.Navigation == null ||
-                !geography.Navigation.IsWalkable(authored.WorldX, authored.WorldY))
+            point = default;
+            surfaceId = def.InitialSurfaceDeployment?.SurfaceId ??
+                        def.InitialSurfacePosition?.SurfaceId ?? string.Empty;
+            if (def.InitialSurfaceDeployment != null && def.InitialSurfacePosition != null)
+                return Result.Failure(ErrorCode.InvalidArgument,
+                    "FormalArmy has two initial Surface deployment forms.", def.Id.ToString());
+            if (string.IsNullOrWhiteSpace(surfaceId) ||
+                !registry.TryGetOutdoorSurfaceGeography(surfaceId, out var geography) ||
+                geography?.Navigation == null)
                 return Result.Failure(ErrorCode.InvalidOperation,
-                    "formalArmy.initialSurfacePosition must be walkable on the authored Surface.",
-                    def.Id.ToString());
-            var point = new WorldVec2(authored.WorldX, authored.WorldY);
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            FormalArmyContinuousTravelService.InitializeAtWorldPosition(
-                world, army, point, HexMath.WorldToHex(point.X, point.Y, hexSize), authored.SurfaceId);
+                    "FormalArmy initial Surface navigation missing.", def.Id.ToString());
+            if (def.InitialSurfaceDeployment != null)
+            {
+                var authored = def.InitialSurfaceDeployment;
+                if (!TryResolveAuthoredCoreCenter(world, registry,
+                        authored.AnchorSiteId, surfaceId, out var coreCenter))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "FormalArmy deployment anchor Site Core unavailable on Surface.",
+                        def.Id.ToString());
+                point = new WorldVec2(
+                    coreCenter.X + authored.OffsetCellsX * geography.Navigation.CellSize,
+                    coreCenter.Y + authored.OffsetCellsY * geography.Navigation.CellSize);
+            }
+            else
+            {
+                var authored = def.InitialSurfacePosition;
+                point = new WorldVec2(authored.WorldX, authored.WorldY);
+            }
+            if (!geography.Navigation.Contains(point.X, point.Y) ||
+                !geography.Navigation.IsWalkable(point.X, point.Y))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "FormalArmy initial Surface deployment is outside bounds or blocked.",
+                    def.Id + " @ " + point.X + "," + point.Y);
+            return Result.Success();
+        }
+
+        static bool TryResolveAuthoredCoreCenter(SimulationWorld world,
+            DefinitionRegistry registry, string siteId, string surfaceId,
+            out WorldVec2 center)
+        {
+            center = default;
+            if (string.IsNullOrWhiteSpace(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null ||
+                !site.IsCoreActive || site.CoreIsRemovable)
+                return false;
+            // New Game registers authored armies before fixed SiteCore runtime binding. Read
+            // the exact same checked-in controlCore placement that binding will consume.
+            var found = false;
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly ||
+                    !string.Equals(surface.SurfaceId, surfaceId, System.StringComparison.Ordinal))
+                    continue;
+                foreach (var placement in surface.SitePlacements)
+                {
+                    if (placement == null ||
+                        !string.Equals(placement.SiteId, siteId, System.StringComparison.Ordinal) ||
+                        !string.Equals(placement.Kind, "controlCore",
+                            System.StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (found) return false;
+                    center = new WorldVec2(placement.WorldX + placement.WorldWidth * .5f,
+                        placement.WorldY + placement.WorldHeight * .5f);
+                    found = true;
+                }
+            }
+            return found;
+        }
+
+        static Result DeployArmyToInitialSurfacePosition(
+            SimulationWorld world, FormalArmy army, FormalArmyDefinition def,
+            WorldVec2 point, string surfaceId)
+        {
+            FormalArmyContinuousTravelService.InitializeAtWorldPosition(world, army, point, surfaceId);
+            var invariant = ValidateInitialDeployment(world, army, def, point, surfaceId);
+            if (invariant.IsFailure) return invariant;
             if (world.Strategic.Armies.TryGet(def.RuntimeStackId, out var linked) && linked != null)
                 ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, linked);
+            return Result.Success();
+        }
+
+        static Result ValidateInitialDeployment(SimulationWorld world, FormalArmy army,
+            FormalArmyDefinition def, WorldVec2 point, string surfaceId)
+        {
+            var motion = army.WorldMotion;
+            if (!motion.HasPosition || army.UsesHexStrategicPosition ||
+                !string.Equals(motion.SurfaceId, surfaceId, System.StringComparison.Ordinal) ||
+                motion.LocationKind != FormalArmyLocationKind.AtWorldPosition ||
+                System.Math.Abs(motion.WorldPosition.X - point.X) > .001f ||
+                System.Math.Abs(motion.WorldPosition.Y - point.Y) > .001f)
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "FormalArmy initial deployment motion invariant failed.", def.Id.ToString());
+            foreach (var rawId in army.MemberCharacterIds)
+            {
+                var memberId = new EntityId(rawId);
+                if (!FormalArmyMemberPresenceSync.IsArmyControlledMember(world, memberId)) continue;
+                if (!world.WorldPresence.TryGet(memberId, out var personal) ||
+                    personal.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                    !personal.HasContinuousWorldPosition ||
+                    !string.IsNullOrEmpty(personal.SiteId) ||
+                    !string.Equals(personal.PersonalSurfaceId, surfaceId,
+                        System.StringComparison.Ordinal) ||
+                    System.Math.Abs(personal.WorldPosX - point.X) > .001f ||
+                    System.Math.Abs(personal.WorldPosY - point.Y) > .001f)
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "FormalArmy member has competing personal deployment anchor.",
+                        def.Id + " member=" + memberId);
+            }
             return Result.Success();
         }
 
