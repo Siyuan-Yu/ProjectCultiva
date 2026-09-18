@@ -121,7 +121,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> MapLayoutFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "worldRegionId",
-            "originX", "originY", "cellSize", "width", "height", "exitTriggerDepth", "placements"
+            "originX", "originY", "cellSize", "width", "height", "exitTriggerDepth", "spaceKind", "placements"
         };
 
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)

@@ -74,6 +74,14 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized &&
                 IsBlockedByBattlefield(bootstrap.Session.World)) return;
+            // SPACE-01：Separate Space 内禁用 WorldMap，避免误显 Outdoor。
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized &&
+                bootstrap.Session.World.LocalMap != null &&
+                bootstrap.Session.World.LocalMap.IsActive)
+            {
+                _status = "当前位于独立空间，无法查看大世界地图。";
+                return;
+            }
             bootstrap?.InventoryPanel?.Close();
             bootstrap?.ConstructionPanel?.Close();
             bootstrap?.QuestJournal?.Close();

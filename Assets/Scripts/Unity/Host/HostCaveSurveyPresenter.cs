@@ -139,25 +139,20 @@ namespace XianXia.Unity.Host
                 " blockedSense=" + inSurveyGateFail + " nearOut=" + inHintOutOfRange);
             if (_lastFoundCount > 0)
             {
-                Flash("神识扫过，洞府入口显露！");
-                bootstrap?.RefreshMapStampsOnly();
+                Flash("神识扫过，洞府入口显露。");
                 return true;
             }
 
-            // 半径内但门槛不够／仅气息圈内扫不到 → 弹窗说明神识
+            // 半径内但门槛不够／仅气息圈内扫不到 → 轻量 toast，不全屏变黑
             if (inSurveyGateFail > 0)
             {
-                ShowSenseModal(
-                    "神识不足",
-                    "附近似有隐藏洞府，但你的神识尚不足以探明入口。\n（当前神识 " + maxSense + "）");
+                Flash("神识不足，无法窥见此处玄机。（当前神识 " + maxSense + "）");
                 return true;
             }
 
             if (inHintOutOfRange > 0)
             {
-                ShowSenseModal(
-                    "神识未及",
-                    "附近似有洞府气息，但神识覆盖未及。\n可再靠近，或提升神识后再勘查。\n（当前神识 " + maxSense + "，勘查半径约 " +
+                Flash("感知到异样，但距离太远。（当前神识 " + maxSense + "，勘查半径约 " +
                     OpportunityEntranceRules.SurveyRadius(maxSense).ToString("0.#") + "）");
                 return true;
             }

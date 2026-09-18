@@ -1863,7 +1863,8 @@ namespace XianXia.Data.Content
                 CellSize = ReadFloat(item, "cellSize", 1f),
                 Width = ReadInt(item, "width", 0),
                 Height = ReadInt(item, "height", 0),
-                ExitTriggerDepth = ReadFloat(item, "exitTriggerDepth", 0f)
+                ExitTriggerDepth = ReadFloat(item, "exitTriggerDepth", 0f),
+                SpaceKind = item.GetString("spaceKind", string.Empty)
             };
 
             if (layout.Width <= 0 || layout.Height <= 0 || layout.CellSize <= 0f)

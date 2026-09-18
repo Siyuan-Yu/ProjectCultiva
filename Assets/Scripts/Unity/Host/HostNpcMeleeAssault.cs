@@ -69,12 +69,26 @@ namespace XianXia.Unity.Host
 
         public void Begin(EntityId attacker, EntityId defender)
         {
-            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null)
+            var world = bootstrap?.Session?.World;
+            // SPACE-01：双方均在 Separate Space → 直接本地 melee，不进 CharacterEncounter。
+            if (world != null &&
+                SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, attacker, defender))
+            {
+                BeginLocalMelee(attacker, defender);
+                return;
+            }
+
+            if (world?.Strategic?.CharacterEncounter != null)
             { bootstrap.GetComponent<HostCharacterEncounter>().SetTarget(attacker, defender); return; }
-            var encounterWorld = bootstrap?.Session?.World;
-            var party = encounterWorld?.Strategic?.PlayerPartyContext;
+            var party = world?.Strategic?.PlayerPartyContext;
             if (party != null && (party.IsMember(attacker) || party.IsMember(defender)))
             { bootstrap.GetComponent<HostCharacterEncounter>()?.Request(attacker, defender, automatic: true); return; }
+
+            BeginLocalMelee(attacker, defender);
+        }
+
+        void BeginLocalMelee(EntityId attacker, EntityId defender)
+        {
             if (attacker.IsNone || defender.IsNone || attacker == defender)
                 return;
             var continuousCombat = bootstrap?.Session?.World?.Strategic?.ContinuousManualCombat;

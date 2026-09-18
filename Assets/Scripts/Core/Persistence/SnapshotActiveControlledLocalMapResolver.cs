@@ -36,6 +36,13 @@ namespace XianXia.Core.Persistence
             if (world == null || party == null || !party.HasActive)
                 return false;
 
+            // SPACE-01：Active Separate Space > Outdoor return／WorldPresence。
+            if (TryResolveFromActiveSeparateSpace(world, out resolved))
+            {
+                _lastResolved = resolved;
+                return true;
+            }
+
             var activeId = party.ActiveCharacterId;
 
             if (TryResolveFromActiveWorldPresence(world, activeId, out resolved))
@@ -51,6 +58,29 @@ namespace XianXia.Core.Persistence
             }
 
             return false;
+        }
+
+        static bool TryResolveFromActiveSeparateSpace(SimulationWorld world, out Resolved resolved)
+        {
+            resolved = default;
+            var session = world?.LocalMap;
+            if (session == null || !session.IsActive)
+                return false;
+            var mapId = session.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(mapId))
+                return false;
+
+            resolved = new Resolved
+            {
+                HasValue = true,
+                LocalMapId = mapId,
+                SiteId = string.Empty,
+                PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                WildernessHex = default,
+                WorldLocationLabel = "SeparateSpace(" + mapId + ")",
+                Source = "SeparateSpaceSession"
+            };
+            return true;
         }
 
         public static void ApplyResolvedPartyWorldFocus(SimulationWorld world, in Resolved resolved)

@@ -133,10 +133,12 @@
 | 据点 | Settlement | 城市区域内可探索、占领、建设和管理的区块 | 荒村、矿山、灵地等；落在格子地图上 |
 | 世界地图 | World | 修仙世界顶层 | Freeze v0.2 三层之一 |
 | 区域 | Region | 较大连续区域（城市区域） | 可行走／战斗／飞行 |
-| 局部地图 | LocalMap | 独立加载地图 | 洞／秘境／洞府等 |
+| 局部地图 | LocalMap | **Current（SPACE-01）**：独立可玩空间 MapLayout（Cave／Interior／Dungeon）；由 SeparateSpaceSession 掌管；不再表示 Continuous Outdoor 近景 | 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md) |
+| 独立空间 | Separate Space | 与 Continuous Outdoor Surface 并列的 playable space；进入离开 Outdoor presentation，离开后 exact Surface return | Cave 为第一份样板 |
+| 独立空间会话 | SeparateSpaceSession | `LocalMapSession` 收窄后的正式语义：ActiveMapLayout／SpaceKind／Outdoor return／occupants | Snapshot：`StrategicSnapshotDto.SeparateSpace` |
 | 世界地图（旧称） | WorldMap | 同 World | 兼容旧文档 |
 | 区域地图（旧称） | RegionMap | 同 Region | 兼容旧文档 |
-| 实例地图（旧称） | InstanceMap | 同 LocalMap | 兼容旧文档 |
+| 实例地图（旧称） | InstanceMap | 同 Separate Space／LocalMap | 兼容旧文档 |
 | 路线 | Route | 跨 Region 旅行路径 | 非瞬移 |
 | 同源独立遭遇 | Encounter | 玩家实际参与的新战斗所用临时独立空间；取接战地点当前关键地形／建筑 | 首击前统一确认；主世界停表；见 23／ADR-0033 |
 | 战术临时坐标 | EncounterLocalPosition | 只在本场独立遭遇中使用的战术位置 | 不提交为主世界旅行；结束后释放 |

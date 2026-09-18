@@ -80,20 +80,24 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>洞内：点选出口戳（id/label 含 exit／离开／出口，或较小 cave 戳）。</summary>
-        public static bool TryPickInteriorExitAtMouse(
-            Camera camera,
+        /// <summary>
+        /// 洞内：以 presentation 点判断是否在 Exit Trigger geometry 内。
+        /// </summary>
+        public static bool TryResolveInteriorExitAtPoint(
             MapLayoutDefinition layout,
+            float presentationX,
+            float presentationZ,
+            out string exitId,
             out string exitLabel)
         {
+            exitId = string.Empty;
             exitLabel = string.Empty;
-            if (camera == null || layout?.Placements == null ||
-                !HostPresentationSpace.TryRaycastPlane(camera, Input.mousePosition, out var worldPoint))
+            if (layout?.Placements == null)
                 return false;
 
-            var p = HostPresentationSpace.ToPresentation(worldPoint);
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
             var bestArea = float.MaxValue;
+            string bestId = null;
             string bestLabel = null;
 
             for (var i = 0; i < layout.Placements.Count; i++)
@@ -105,21 +109,29 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!IsInteriorExitStamp(pl))
                     continue;
-                if (!ContainsPresentation(layout, pl, cs, p.x, p.y))
+                if (!ContainsPresentation(layout, pl, cs, presentationX, presentationZ))
                     continue;
 
                 var area = FootprintArea(pl, cs);
                 if (area >= bestArea)
                     continue;
                 bestArea = area;
+                bestId = pl.Id ?? string.Empty;
                 bestLabel = string.IsNullOrEmpty(pl.Label) ? "洞口" : pl.Label;
             }
 
-            if (string.IsNullOrEmpty(bestLabel))
+            if (string.IsNullOrEmpty(bestLabel) && string.IsNullOrEmpty(bestId))
                 return false;
-            exitLabel = bestLabel;
+            exitId = bestId ?? string.Empty;
+            exitLabel = bestLabel ?? "洞口";
             return true;
         }
+
+        public static bool IsPointInsideInteriorExit(
+            MapLayoutDefinition layout,
+            float presentationX,
+            float presentationZ) =>
+            TryResolveInteriorExitAtPoint(layout, presentationX, presentationZ, out _, out _);
 
         public static bool IsInteriorExitStamp(MapPlacement pl)
         {

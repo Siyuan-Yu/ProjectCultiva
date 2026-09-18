@@ -1,5 +1,27 @@
 # 开发日志
 
+## 2026-09-18 — SPACE-01 Final Stabilization（Load Presentation + Physical Exit）（待制作人验收）
+
+- 修复 Cave 内 Save/Load 后出现绿色 Continuous Outdoor：`RebuildPresentationAfterLoad` 优先 `RebuildSeparateSpacePresentationAfterLoad`；禁止 Outdoor ActiveControlled resolver／`RebuildAfterWorldRestore` 抢先。
+- `SnapshotActiveControlledLocalMapResolver` 第一优先 SeparateSpaceSession；Load **不**重新 Enter。
+- 删除洞内右键「离开」与 Action Menu「离开洞窟」；新增 `HostSeparateSpaceExitTrigger` + Core `SeparateSpaceExitEdgeTrigger`（Active 走进 Exit Trigger 才整队离开；edge-arm 防 spawn／Load 立刻弹出）。
+- LevelTester 诊断页保留 Debug Force Leave。文档见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。未打开 Unity；MAP-04 仍 Paused。状态：**SPACE-01 Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-18 — SPACE-01 Combat & Entry Finalization（待制作人验收）
+
+- Separate Space 战斗锁定为原地 Direct Local Combat：`SeparateSpaceCombatPolicy`；`RequiresEntry`／`HostNpcMeleeAssault`／ContextMenu／ArriveAttack／`HostCharacterEncounter.Request` guard 均 bypass Independent Encounter。Outdoor CharacterEncounter 路径不变。
+- 进入 Separate Space 取消队员选择弹窗：删除 `HostLocalMapEnterPrompt`；`IssueEnterSeparateSpace` 由 Core `ShouldMemberTransitionWithParty` 自动收集随队成员。
+- Followers `TickCombatFollow` 在 Separate Space 仅对 occupants 协战。文档见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。未打开 Unity；MAP-04 仍 Paused。状态：**SPACE-01 Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-18 — SPACE-01 Separate Space / Interior Transition V1（待制作人验收）
+
+- 建立统一 Separate Space 模型：`LocalMapSession` 收窄为 Separate Space Session；新增 `SeparateSpaceTransitionService`、`SeparateSpaceKind`、MapLayout `spaceKind`；Cave 为第一份正式样板。
+- Enter／Leave Domain 收口到 TransitionService；Outdoor return 仅认 SurfaceId + exact WorldPosition；PlayerParty membership + deterministic formation；Proximity 门禁，不再用 EntityLocation.LocationId 冒充进洞。
+- Survey 只 Reveal：删除成功后的 `RefreshMapStampsOnly`；神识不足／过远改为轻量 toast，避免全屏深色伪切场景。
+- `LocalMapVisibility` SeparateSpace-first；Separate Space 内禁用 WorldMap。
+- Snapshot additive：`SeparateSpaceSessionSnapshotDto`；Load-inside-Cave 保持洞内；旧档可迁移，信息不足明确失败。
+- MAP-04 暂停（Paused），见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)／[245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。未打开 Unity；轻量离线编译／Content／sanity 见验收汇报。状态：**SPACE-01 Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-18 — MAP-04 SiteCore 占领队员枚举异常修复（待制作人复验）
 
 - `TickOccupation` 遍历 `PlayerPartyRuntime.Members` 时，队员位置解析会再次读取 `Members`；原 getter 清空并重填同一投影列表，导致外层枚举抛出 `Collection was modified`。现在每次读取返回独立快照，嵌套空间解析不再改动正在枚举的列表。

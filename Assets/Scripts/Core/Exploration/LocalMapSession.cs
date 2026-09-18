@@ -5,24 +5,62 @@ using XianXia.Core.World.Strategic;
 namespace XianXia.Core.Exploration
 {
     /// <summary>
-    /// 当前加载的 LocalMap（session-only；对齐 [113] 进出图竖切，不进 Snapshot v1）。
+    /// Separate Space Session（SPACE-01）。
+    /// 类型名保留 LocalMapSession 以兼容既有调用点；语义已收窄为独立可玩空间，不再表示 Outdoor LocalMap。
     /// </summary>
     public sealed class LocalMapSession
     {
         readonly List<EntityId> _occupantIds = new List<EntityId>(8);
 
-        /// <summary>当前 Host 应显示的 mapLayout id。</summary>
+        /// <summary>当前 Separate Space 的 MapLayout id；Outdoor 时为空。</summary>
         public string ActiveMapLayoutId { get; set; } = string.Empty;
 
-        /// <summary>进入洞府／秘境前记住的地表图；离开时还原。</summary>
+        /// <summary>当前激活的 LocalPlaceSet id（可由 MapLayout resolve）。</summary>
+        public string ActiveLocalPlaceSetId { get; set; } = string.Empty;
+
+        /// <summary>进入前记住的旧 Overworld MapLayout（legacy 非 Continuous 路径）。</summary>
         public string OverworldMapLayoutId { get; set; } = string.Empty;
+
+        /// <summary>逻辑入口 identity（通常是洞口 location）。</summary>
+        public string EntryLocationId { get; set; } = string.Empty;
 
         /// <summary>离开时把队伍送回的地点（通常是洞口）。</summary>
         public string ReturnLocationId { get; set; } = string.Empty;
+
+        public SeparateSpaceKind SpaceKind { get; set; } = SeparateSpaceKind.None;
+
+        /// <summary>进入原因（最小字符串，如 enter / migrate）。</summary>
+        public string EntryReason { get; set; } = string.Empty;
+
         public bool HasContinuousOutdoorReturn { get; set; }
         public float ContinuousOutdoorReturnX { get; set; }
         public float ContinuousOutdoorReturnY { get; set; }
         public string ContinuousOutdoorReturnSurfaceId { get; set; } = string.Empty;
+
+        /// <summary>Outdoor return authority 别名。</summary>
+        public bool HasOutdoorReturn
+        {
+            get => HasContinuousOutdoorReturn;
+            set => HasContinuousOutdoorReturn = value;
+        }
+
+        public string ReturnSurfaceId
+        {
+            get => ContinuousOutdoorReturnSurfaceId;
+            set => ContinuousOutdoorReturnSurfaceId = value ?? string.Empty;
+        }
+
+        public float ReturnWorldX
+        {
+            get => ContinuousOutdoorReturnX;
+            set => ContinuousOutdoorReturnX = value;
+        }
+
+        public float ReturnWorldY
+        {
+            get => ContinuousOutdoorReturnY;
+            set => ContinuousOutdoorReturnY = value;
+        }
 
         /// <summary>
         /// Surface Exit Trigger Depth（Gameplay）。由当前 MapLayout 写入；≤0 表示使用默认值。
@@ -76,14 +114,31 @@ namespace XianXia.Core.Exploration
             PlayableHeight = 0;
         }
 
-        /// <summary>当前仍在洞内的己方（进洞登记；离开关闭时清空）。</summary>
+        /// <summary>当前仍在 Separate Space 的己方（进洞登记；离开关闭时清空）。</summary>
         public IReadOnlyList<EntityId> OccupantIds => _occupantIds;
 
-        public bool IsInInterior =>
-            !string.IsNullOrEmpty(ActiveMapLayoutId) &&
-            (HasContinuousOutdoorReturn ||
-             (!string.IsNullOrEmpty(OverworldMapLayoutId) &&
-              !string.Equals(ActiveMapLayoutId, OverworldMapLayoutId, System.StringComparison.Ordinal)));
+        /// <summary>Separate Space 是否激活（正式名）。</summary>
+        public bool IsActive => IsInInterior;
+
+        /// <summary>兼容旧名：是否处于独立内室／洞府等 Separate Space。</summary>
+        public bool IsInInterior
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(ActiveMapLayoutId))
+                    return false;
+                if (HasContinuousOutdoorReturn)
+                    return true;
+                // Active 已回到 Overworld → 明确不在 Separate Space（含半离开兼容）。
+                if (!string.IsNullOrEmpty(OverworldMapLayoutId) &&
+                    string.Equals(ActiveMapLayoutId, OverworldMapLayoutId, System.StringComparison.Ordinal))
+                    return false;
+                if (SpaceKind != SeparateSpaceKind.None)
+                    return true;
+                return !string.IsNullOrEmpty(OverworldMapLayoutId) &&
+                       !string.Equals(ActiveMapLayoutId, OverworldMapLayoutId, System.StringComparison.Ordinal);
+            }
+        }
 
         public void EnsureOverworld(string mapLayoutId)
         {
@@ -146,11 +201,39 @@ namespace XianXia.Core.Exploration
             return false;
         }
 
+        public void EstablishSeparateSpace(
+            string mapLayoutId,
+            string localPlaceSetId,
+            SeparateSpaceKind kind,
+            string entryLocationId,
+            string returnLocationId,
+            string entryReason)
+        {
+            ActiveMapLayoutId = mapLayoutId ?? string.Empty;
+            ActiveLocalPlaceSetId = localPlaceSetId ?? string.Empty;
+            SpaceKind = kind;
+            EntryLocationId = entryLocationId ?? string.Empty;
+            ReturnLocationId = returnLocationId ?? string.Empty;
+            EntryReason = entryReason ?? string.Empty;
+        }
+
+        public void ClearSeparateSpaceIdentity()
+        {
+            SpaceKind = SeparateSpaceKind.None;
+            EntryLocationId = string.Empty;
+            EntryReason = string.Empty;
+            ActiveLocalPlaceSetId = string.Empty;
+        }
+
         public void Clear()
         {
             ActiveMapLayoutId = string.Empty;
+            ActiveLocalPlaceSetId = string.Empty;
             OverworldMapLayoutId = string.Empty;
+            EntryLocationId = string.Empty;
             ReturnLocationId = string.Empty;
+            SpaceKind = SeparateSpaceKind.None;
+            EntryReason = string.Empty;
             HasContinuousOutdoorReturn = false;
             ContinuousOutdoorReturnSurfaceId = string.Empty;
             ContinuousOutdoorReturnX = ContinuousOutdoorReturnY = 0f;

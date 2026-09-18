@@ -112,20 +112,18 @@ namespace XianXia.Unity.Host
             }
 
             var id = selectionController.State.SelectedIds[0];
-            return IssueEnterLocalMapWithParty(id, null, new[] { id });
+            return IssueEnterSeparateSpace(id, null);
         }
 
         /// <summary>
-        /// 入洞：先把随行者 Location 写到洞口，再 Enter（Core 只带走站在洞口的己方）。
+        /// SPACE-01：进入 Separate Space。Party occupants 由 Core TransitionService 按
+        /// ShouldMemberTransitionWithParty 收集；Host 不再传入队员名单。
         /// </summary>
-        public int IssueEnterLocalMapWithParty(
-            EntityId leader,
-            string entranceLocationId,
-            EntityId[] party)
+        public int IssueEnterSeparateSpace(EntityId leader, string entranceLocationId)
         {
-            if (_session?.Port == null || leader.IsNone || party == null || party.Length == 0)
+            if (_session?.Port == null || leader.IsNone)
             {
-                _lastStatus = "Cannot enter LocalMap";
+                _lastStatus = "Cannot enter Separate Space";
                 return 0;
             }
 
@@ -176,31 +174,6 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            var previousLocations = new Dictionary<EntityId, string>();
-
-            for (var i = 0; i < party.Length; i++)
-            {
-                var pid = party[i];
-                if (pid.IsNone || !_session.World.Entities.TryGet(pid, out var pe))
-                    continue;
-                if (!pe.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var plc))
-                {
-                    plc = new XianXia.Core.Exploration.EntityLocationComponent();
-                    pe.AddComponent(plc);
-                }
-                previousLocations[pid] = plc.LocationId;
-
-                // 已在目标洞府内室的人不必先拽到洞口（再进救人时保留洞内站位）。
-                if (_session.World.LocalPlaces.TryGet(plc.LocationId, out var cur) &&
-                    !string.IsNullOrEmpty(cur.LocalMapId) &&
-                    (_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out var entLoc) ||
-                     _session.World.LocalPlaces.TryGet(entranceLocationId, out entLoc)) &&
-                    string.Equals(cur.LocalMapId, entLoc.EnterLocalMapId, System.StringComparison.Ordinal))
-                    continue;
-
-                plc.LocationId = entranceLocationId;
-            }
-
             CancelPartyPresentationMovement();
 
             var result = _session.Port.Submit(
@@ -212,26 +185,33 @@ namespace XianXia.Unity.Host
                     entranceLocationId));
             if (result.IsSuccess)
             {
-                // 双保险：把勾选随行登记进 session（Core 也会按 Location 刷新）。
-                for (var i = 0; i < party.Length; i++)
-                    _session.World.LocalMap.AddOccupant(party[i]);
-
                 _lastSuccessCount = 1;
                 _lastFailureCount = 0;
-                _lastStatus = "EnterLocalMap ok → " + entranceLocationId;
+                _lastStatus = "EnterSeparateSpace ok → " + entranceLocationId;
+                if (_session.World.LocalMap.IsActive)
+                {
+                    _session.World.LocalMap.ActiveLocalPlaceSetId =
+                        _session.World.LocalPlaces.RegionId ?? string.Empty;
+                    if (_session.Registry.TryGetMapLayout(targetId, out var layout) &&
+                        layout != null &&
+                        !string.IsNullOrWhiteSpace(layout.SpaceKind))
+                    {
+                        _session.World.LocalMap.SpaceKind =
+                            XianXia.Core.Exploration.SeparateSpaceResolver.ParseSpaceKind(layout.SpaceKind);
+                    }
+                }
                 hostBootstrap?.ReloadLocalMapPresentation(frameCamera: true);
+                if (hostBootstrap?.WorldMapPanel != null && hostBootstrap.WorldMapPanel.IsOpen)
+                    hostBootstrap.WorldMapPanel.Close();
+                hostBootstrap?.GetComponent<HostSeparateSpaceExitTrigger>()?.NotifyEnteredSeparateSpace();
             }
             else
             {
-                foreach (var previous in previousLocations)
-                    if (_session.World.Entities.TryGet(previous.Key, out var member) &&
-                        member.TryGet<EntityLocationComponent>(out var location))
-                        location.LocationId = previous.Value;
                 XianXia.Data.Bootstrap.InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
                     _session.World, _session.Registry, previousPlaceMap);
                 _lastSuccessCount = 0;
                 _lastFailureCount = 1;
-                _lastStatus = "EnterLocalMap FAIL " + FormatError(result);
+                _lastStatus = "EnterSeparateSpace FAIL " + FormatError(result);
             }
 
             Debug.Log("[CaveEnter] entranceId=" + entranceLocationId + " targetMap=" + targetMap +
@@ -239,9 +219,41 @@ namespace XianXia.Unity.Host
                 (_session.World.LocalMap.ContinuousOutdoorReturnSurfaceId ?? "") +
                 " returnWorldPosition=" + _session.World.LocalMap.ContinuousOutdoorReturnX + "," +
                 _session.World.LocalMap.ContinuousOutdoorReturnY +
+                " spaceKind=" + _session.World.LocalMap.SpaceKind +
                 " interiorPlacesActivated=" + result.IsSuccess);
 
             return _lastSuccessCount;
+        }
+
+        /// <summary>Legacy compatibility only：忽略 party 名单，转 IssueEnterSeparateSpace。</summary>
+        public int IssueEnterLocalMapWithParty(
+            EntityId leader,
+            string entranceLocationId,
+            EntityId[] party) =>
+            IssueEnterSeparateSpace(leader, entranceLocationId);
+
+        /// <summary>
+        /// SPACE-01：物理 Exit Trigger／Debug Force Leave。以 Active Controlled Character 提交 Leave。
+        /// </summary>
+        public int IssueLeaveSeparateSpace(EntityId activeCharacter)
+        {
+            if (_session?.Port == null || activeCharacter.IsNone)
+            {
+                _lastStatus = "Cannot leave Separate Space";
+                return 0;
+            }
+
+            if (!_session.World.LocalMap.IsActive)
+            {
+                _lastStatus = "Not in Separate Space";
+                return 0;
+            }
+
+            if (selectionController != null &&
+                !selectionController.State.Contains(activeCharacter))
+                selectionController.SelectEntity(activeCharacter, false);
+
+            return IssueLeaveLocalMapWithActor(activeCharacter);
         }
 
         public int IssueLeaveLocalMap()
@@ -263,6 +275,17 @@ namespace XianXia.Unity.Host
             }
 
             if (id.IsNone)
+            {
+                _lastStatus = "Cannot leave LocalMap";
+                return 0;
+            }
+
+            return IssueLeaveLocalMapWithActor(id);
+        }
+
+        int IssueLeaveLocalMapWithActor(EntityId id)
+        {
+            if (_session?.Port == null || id.IsNone)
             {
                 _lastStatus = "Cannot leave LocalMap";
                 return 0;

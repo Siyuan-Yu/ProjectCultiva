@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Events;
@@ -84,7 +85,6 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSkillStudyRitual skillStudyRitual;
         [SerializeField] HostTicTacToePanel ticTacToePanel;
         [SerializeField] HostCaveSurveyPresenter caveSurveyPresenter;
-        [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
         [SerializeField] HostSelectedUnitChrome selectedUnitChrome;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
@@ -175,8 +175,6 @@ namespace XianXia.Unity.Host
         public HostTicTacToePanel TicTacToePanel => ticTacToePanel;
 
         public HostCaveSurveyPresenter CaveSurveyPresenter => caveSurveyPresenter;
-
-        public HostLocalMapEnterPrompt LocalMapEnterPrompt => localMapEnterPrompt;
 
         public HostNpcContextMenu NpcContextMenu => npcContextMenu;
 
@@ -816,9 +814,6 @@ namespace XianXia.Unity.Host
             if (caveSurveyPresenter == null)
                 caveSurveyPresenter = GetComponent<HostCaveSurveyPresenter>() ??
                                      gameObject.AddComponent<HostCaveSurveyPresenter>();
-            if (localMapEnterPrompt == null)
-                localMapEnterPrompt = GetComponent<HostLocalMapEnterPrompt>() ??
-                                     gameObject.AddComponent<HostLocalMapEnterPrompt>();
             if (selectedUnitChrome == null)
                 selectedUnitChrome = GetComponent<HostSelectedUnitChrome>() ??
                                     gameObject.AddComponent<HostSelectedUnitChrome>();
@@ -836,6 +831,8 @@ namespace XianXia.Unity.Host
             if (npcContextMenu == null)
                 npcContextMenu = GetComponent<HostNpcContextMenu>() ??
                                 gameObject.AddComponent<HostNpcContextMenu>();
+            if (GetComponent<HostSeparateSpaceExitTrigger>() == null)
+                gameObject.AddComponent<HostSeparateSpaceExitTrigger>();
             if (GetComponent<HostConstructionController>() == null)
                 gameObject.AddComponent<HostConstructionController>();
             if (GetComponent<HostFarmFieldConstructionPresenter>() == null)
@@ -890,8 +887,6 @@ namespace XianXia.Unity.Host
                 ticTacToePanel.ClearSessionState();
             if (caveSurveyPresenter != null)
                 caveSurveyPresenter.ClearSessionState();
-            if (localMapEnterPrompt != null)
-                localMapEnterPrompt.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
             if (surfaceExitZonePresenter != null)
@@ -1066,12 +1061,10 @@ namespace XianXia.Unity.Host
             else
                 FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
-                npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
+                npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter);
             var constructionController = GetComponent<HostConstructionController>();
             if (constructionController != null)
                 constructionController.Bind(this);
-            if (localMapEnterPrompt != null)
-                localMapEnterPrompt.Bind(this, selectionController, commandBridge, moveController);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
@@ -1334,9 +1327,19 @@ namespace XianXia.Unity.Host
             EnsureSocialNotificationOverlay();
             socialNotificationOverlay.Clear();
 
-            HostSnapshotSessionRehydration.ResolvePartyWorldFromActiveControlledCharacter(
-                _session.World,
-                _session.PlayerParty);
+            // SPACE-01：Active Separate Space 时禁止 Outdoor ActiveControlled resolver 抢先改 PartyWorld。
+            if (_session.World?.LocalMap != null && _session.World.LocalMap.IsActive)
+            {
+                _session.World.PartyWorld.LocalMapId = _session.World.LocalMap.ActiveMapLayoutId ?? string.Empty;
+                _session.World.PartyWorld.SiteId = string.Empty;
+                _session.World.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            }
+            else
+            {
+                HostSnapshotSessionRehydration.ResolvePartyWorldFromActiveControlledCharacter(
+                    _session.World,
+                    _session.PlayerParty);
+            }
 
             selectionController.ClearSelection();
             if (inventoryPanel != null)
@@ -1357,26 +1360,192 @@ namespace XianXia.Unity.Host
                 levelTesterCheatPanel.Bind(this, selectionController);
             eventFeed.Clear();
 
-            // Reset old owners before the new restored field acquires its preparation lock.
             HostInputGate.ResetSession();
-            var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
-                                            _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
-            if (continuousOutdoorRestored)
-                RefreshContinuousOutdoorOverlaysOnce();
+
+            // SPACE-01 presentation rebuild 优先级：
+            // 1) Active Separate Space  2) Independent Encounter  3) Continuous Outdoor
+            if (_session.World?.LocalMap != null && _session.World.LocalMap.IsActive)
+            {
+                RebuildSeparateSpacePresentationAfterLoad();
+            }
             else if (_session.World.Strategic.CharacterEncounter != null)
             {
-                _session.AcquireModalPause("EncounterRestoreFailure");
-                Debug.LogError("Independent encounter source restore failed; ordinary-map fallback is prohibited.");
-                return;
+                var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
+                                                _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
+                if (continuousOutdoorRestored)
+                    RefreshContinuousOutdoorOverlaysOnce();
+                else
+                {
+                    _session.AcquireModalPause("EncounterRestoreFailure");
+                    Debug.LogError("Independent encounter source restore failed; ordinary-map fallback is prohibited.");
+                    return;
+                }
             }
-            else ApplyPartyWorldSitePresentation(closeWorldMap: false);
+            else
+            {
+                var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
+                                                _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
+                if (continuousOutdoorRestored)
+                    RefreshContinuousOutdoorOverlaysOnce();
+                else
+                    ApplyPartyWorldSitePresentation(closeWorldMap: false);
+            }
+
             _session.ReleaseModalPause("EncounterRestoreFailure");
 
             RebindHostControlAfterSnapshotRestore();
+            GetComponent<HostSeparateSpaceExitTrigger>()?.NotifyPresentationRestored();
 
             DispatchDrainedEvents();
             _autoTickAccumulator = 0f;
             RefreshStatus();
+        }
+
+        /// <summary>
+        /// Snapshot Load：在已恢复的 SeparateSpaceSession 上重建洞内 presentation。
+        /// 禁止重新 Enter，禁止 Outdoor Site／WorldPosition 解析。
+        /// </summary>
+        public void RebuildSeparateSpacePresentationAfterLoad()
+        {
+            var world = _session?.World;
+            if (world?.LocalMap == null || !world.LocalMap.IsActive)
+                return;
+
+            var mapId = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(mapId))
+            {
+                Debug.LogError("[SeparateSpaceRestoreInvariantFailure] ActiveMapLayoutId empty.");
+                return;
+            }
+
+            var parsed = DefinitionId.Parse(mapId);
+            if (parsed.IsFailure || !_session.Registry.TryGetMapLayout(parsed.Value, out _))
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] MapLayout missing in registry: " + mapId);
+                return;
+            }
+
+            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
+                _continuousOutdoorSurfaceRuntime.DeactivateForInteriorTransition();
+
+            preferredMapLayoutId = mapId;
+            _session.PreferredMapLayoutId = mapId;
+            ConfigurePreferredMapLayout(mapId);
+
+            var places = InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
+                world, _session.Registry, mapId);
+            if (places.IsFailure)
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] ActivatePlaces failed: " + places.Error);
+                return;
+            }
+
+            world.LocalMap.ActiveLocalPlaceSetId = world.LocalPlaces.RegionId ?? string.Empty;
+            LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, mapId);
+            _session.RefreshViewableEntityIds();
+            ReloadLocalMapPresentation(frameCamera: false);
+
+            var presented = entityViewSpawner != null ? entityViewSpawner.SpawnedCount : 0;
+            var savedPlacements = LoadedLocalMapPlacementSnapshotRestore.PendingCount;
+            var occupants = world.LocalMap.OccupantIds;
+            Debug.Log(
+                "[SeparateSpaceRestore] map=" + mapId +
+                " spaceKind=" + world.LocalMap.SpaceKind +
+                " occupants=" + occupants.Count +
+                " savedPlacements=" + savedPlacements +
+                " presented=" + presented +
+                " outdoorRuntimeActive=" +
+                (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive),
+                this);
+
+            ValidateSeparateSpaceRestoreInvariant(mapId);
+
+            LoadedLocalMapPlacementSnapshotRestore.FinishRestorePresentation();
+        }
+
+        void ValidateSeparateSpaceRestoreInvariant(string mapId)
+        {
+            var world = _session.World;
+            var failed = false;
+            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] ContinuousOutdoor still active after Cave restore.");
+                failed = true;
+            }
+
+            if (string.IsNullOrEmpty(world.LocalMap.ActiveMapLayoutId) ||
+                !string.Equals(
+                    _session.PreferredMapLayoutId?.Trim(),
+                    mapId,
+                    System.StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] PreferredMapLayoutId mismatch map=" + mapId +
+                    " preferred=" + _session.PreferredMapLayoutId);
+                failed = true;
+            }
+
+            if (string.IsNullOrEmpty(world.LocalMap.ActiveLocalPlaceSetId) &&
+                string.IsNullOrEmpty(world.LocalPlaces?.RegionId))
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] Active LocalPlaceSet not activated.");
+                failed = true;
+            }
+
+            var party = _session.PlayerParty;
+            if (party == null)
+                return;
+
+            for (var i = 0; i < party.Members.Count; i++)
+            {
+                var id = party.Members[i];
+                if (!world.LocalMap.ContainsOccupant(id))
+                    continue;
+                if (!world.Entities.TryGet(id, out var ent) ||
+                    !CombatLifeStateService.CanFight(ent))
+                    continue;
+
+                if (!LocalMapVisibility.IsEntityVisible(world, id))
+                {
+                    Debug.LogError(
+                        "[SeparateSpaceRestoreInvariantFailure] Occupant not visible id=" + id.Value);
+                    failed = true;
+                }
+
+                if (entityViewSpawner == null ||
+                    !entityViewSpawner.Registry.TryGet(id, out var view) ||
+                    view == null)
+                {
+                    Debug.LogError(
+                        "[SeparateSpaceRestoreInvariantFailure] Occupant missing EntityView id=" +
+                        id.Value);
+                    failed = true;
+                    continue;
+                }
+
+                if (LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(
+                        id, mapId, out var sx, out var sz))
+                {
+                    var p = HostPresentationSpace.ToPresentation(view.transform.position);
+                    var dx = p.x - sx;
+                    var dz = p.y - sz;
+                    if (dx * dx + dz * dz > 0.35f * 0.35f)
+                    {
+                        Debug.LogError(
+                            "[SeparateSpaceRestoreInvariantFailure] Saved placement mismatch id=" +
+                            id.Value + " view=(" + p.x + "," + p.y + ") saved=(" + sx + "," + sz + ")");
+                        failed = true;
+                    }
+                }
+            }
+
+            if (!failed)
+                return;
+            // 失败时禁止 fallback Outdoor；仅诊断，保持 Separate Space 状态。
         }
 
         void FrameCameraOnSlots()

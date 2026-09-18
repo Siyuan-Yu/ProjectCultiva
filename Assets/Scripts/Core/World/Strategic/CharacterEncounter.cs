@@ -74,6 +74,10 @@ namespace XianXia.Core.World.Strategic
     {
         public static bool RequiresEntry(SimulationWorld world, EntityId attacker, EntityId target)
         {
+            // SPACE-01：双方均在 active Separate Space → 原地战斗，不进 Independent Encounter。
+            if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, attacker, target))
+                return false;
+
             var board = world?.Strategic;
             if (board == null) return false;
             var state = board.CharacterEncounter;

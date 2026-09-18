@@ -59,6 +59,16 @@ namespace XianXia.Unity.Host
             bool allowPendingCancel = true)
         {
             if (_host?.Session?.World == null) return;
+            // SPACE-01 guard：Separate Space 不得创建 Independent CharacterEncounter。
+            if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(
+                    _host.Session.World, attacker, target))
+            {
+                Debug.Log(
+                    "[SeparateSpaceCombat] Independent CharacterEncounter bypassed; " +
+                    "combat must resolve in-place. attacker=" + attacker.Value +
+                    " target=" + target.Value);
+                return;
+            }
             if (_host.Session.World.Strategic.CharacterEncounter != null)
             {
                 if (Phase == PresentationPhase.Active || Phase == PresentationPhase.ReadyToEnd)
@@ -374,7 +384,16 @@ namespace XianXia.Unity.Host
                 var attacker = world.Strategic.PendingCharacterAttacker;
                 var target = world.Strategic.PendingCharacterTarget;
                 world.Strategic.PendingCharacterAttacker = world.Strategic.PendingCharacterTarget = EntityId.None;
-                Request(attacker, target, automatic: true);
+                // Separate Space：Pending 不应升级为 Independent Encounter（RequiresEntry 已挡，此处双保险）。
+                if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, attacker, target))
+                {
+                    Debug.Log(
+                        "[SeparateSpaceCombat] Independent CharacterEncounter bypassed; " +
+                        "combat must resolve in-place. pendingAttacker=" + attacker.Value +
+                        " pendingTarget=" + target.Value);
+                }
+                else
+                    Request(attacker, target, automatic: true);
             }
             var state = world.Strategic.CharacterEncounter;
             if (state == null) return;

@@ -143,6 +143,11 @@ namespace XianXia.Core.Persistence
         public List<LoadedLocalMapCharacterPlacementSnapshotDto> LoadedLocalMapCharacterPlacements { get; set; } =
             new List<LoadedLocalMapCharacterPlacementSnapshotDto>();
 
+        /// <summary>
+        /// SPACE-01：Separate Space Session（可选；旧存档缺省时尝试从 placements 迁移）。
+        /// </summary>
+        public SeparateSpaceSessionSnapshotDto SeparateSpace { get; set; }
+
         /// <summary>Phase 2D：Background Character 中途旅行状态（可选）。</summary>
         public List<BackgroundCharacterTravelSnapshotDto> BackgroundCharacterTravels { get; set; } =
             new List<BackgroundCharacterTravelSnapshotDto>();
@@ -305,6 +310,24 @@ namespace XianXia.Core.Persistence
         public string LocalMapId { get; set; } = string.Empty;
         public float LocalX { get; set; }
         public float LocalZ { get; set; }
+    }
+
+    /// <summary>SPACE-01 Separate Space Session additive snapshot（不含 View）。</summary>
+    public sealed class SeparateSpaceSessionSnapshotDto
+    {
+        public bool IsInSeparateSpace { get; set; }
+        public int SpaceKind { get; set; }
+        public string ActiveMapLayoutId { get; set; } = string.Empty;
+        public string ActiveLocalPlaceSetId { get; set; } = string.Empty;
+        public string EntryLocationId { get; set; } = string.Empty;
+        public string ReturnLocationId { get; set; } = string.Empty;
+        public bool HasOutdoorReturn { get; set; }
+        public string ReturnSurfaceId { get; set; } = string.Empty;
+        public float ReturnWorldX { get; set; }
+        public float ReturnWorldY { get; set; }
+        public ulong ActiveCharacterId { get; set; }
+        public string EntryReason { get; set; } = string.Empty;
+        public List<ulong> OccupantIds { get; set; } = new List<ulong>(8);
     }
 
     public sealed class FormalArmySnapshotDto

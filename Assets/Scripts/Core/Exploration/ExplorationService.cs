@@ -160,164 +160,36 @@ namespace XianXia.Core.Exploration
         }
 
         /// <summary>
-        /// 从洞口等入口进入另一张 LocalMap；需已发现机缘点（若入口绑了 opportunitySiteId）。
+        /// Continuous Outdoor → Separate Space。Domain 真源见 SeparateSpaceTransitionService。
+        /// Proximity 由 Host 门禁；不再要求 EntityLocation.LocationId 已等于洞口。
         /// </summary>
         public Result EnterLocalMap(SimulationWorld world, EntityId subject, string entranceLocationId = null)
         {
-            if (world == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (!world.Entities.TryGet(subject, out var entity))
-                return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
-            if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
-                return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
-
-            var entranceId = string.IsNullOrWhiteSpace(entranceLocationId) ? loc.LocationId : entranceLocationId.Trim();
-            var fromContinuousOutdoor = !world.LocalMap.IsInInterior &&
-                world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out _);
-            if (!WorldLocationQuery.TryGet(world, entranceId, out var entrance))
-                return Result.Failure(ErrorCode.NotFound, "Entrance location missing.", entranceId);
-            if (string.IsNullOrEmpty(entrance.EnterLocalMapId) || string.IsNullOrEmpty(entrance.EnterSpawnLocationId))
-                return Result.Failure(ErrorCode.InvalidOperation, "Location is not a LocalMap entrance.", entranceId);
-            if (!string.Equals(loc.LocationId, entranceId, System.StringComparison.Ordinal))
-                return Result.Failure(ErrorCode.InvalidOperation, "Must stand at entrance to enter.", entranceId);
-
-            if (!ContentConditionEvaluator.AllPass(world, subject, entrance.EnterConditions))
-                return Result.Failure(ErrorCode.InvalidOperation, "Entrance conditions not met.", entranceId);
-
-            if (!string.IsNullOrEmpty(entrance.OpportunitySiteId))
-            {
-                if (!entity.TryGet<KnownSitesComponent>(out var known) ||
-                    !DefinitionId.TryParse(entrance.OpportunitySiteId, out var siteId) ||
-                    !known.Knows(siteId))
-                {
-                    return Result.Failure(
-                        ErrorCode.InvalidOperation,
-                        "Discover the cave first (explore).",
-                        entrance.OpportunitySiteId);
-                }
-            }
-
-            if (!world.LocalPlaces.TryGet(entrance.EnterSpawnLocationId, out var spawn) ||
-                !string.Equals(spawn.LocalMapId, entrance.EnterLocalMapId,
-                    System.StringComparison.Ordinal))
-                return Result.Failure(ErrorCode.NotFound, "Interior spawn location is not active.",
-                    entrance.EnterSpawnLocationId);
-
-            var session = world.LocalMap;
-            if (fromContinuousOutdoor)
-            {
-                var party = world.Strategic.PlayerPartyContext;
-                var returnSurface = world.SurfaceGround.Active;
-                if (!XianXia.Core.World.Strategic.PlayerPartyWorldLocationQuery.TryResolve(
-                        world, party, out var resolved) || !resolved.HasValue ||
-                    resolved.IsLegacyFallback)
-                    return Result.Failure(ErrorCode.InvalidOperation,
-                        "Continuous entrance has no exact Surface return position.", entranceId);
-                if (returnSurface == null || !returnSurface.Contains(
-                        resolved.WorldPosition.X, resolved.WorldPosition.Y))
-                    world.SurfaceGround.TryResolveContaining(resolved.WorldPosition,
-                        out returnSurface);
-                if (returnSurface == null)
-                    return Result.Failure(ErrorCode.InvalidOperation,
-                        "Continuous entrance has no registered return Surface.", entranceId);
-                session.HasContinuousOutdoorReturn = true;
-                session.ContinuousOutdoorReturnX = resolved.WorldPosition.X;
-                session.ContinuousOutdoorReturnY = resolved.WorldPosition.Y;
-                session.ContinuousOutdoorReturnSurfaceId = returnSurface.SurfaceId;
-            }
-            if (string.IsNullOrEmpty(session.OverworldMapLayoutId))
-                session.OverworldMapLayoutId = session.ActiveMapLayoutId;
-            session.ReturnLocationId = entranceId;
-            session.ActiveMapLayoutId = entrance.EnterLocalMapId;
-
-            // 仅移动已站在洞口的己方（Host 先把选中随行者 Location 设到洞口）。
-            // 已在洞内的己方（救人／再进）保留其内室 Location，一并登记为洞内成员。
-            MovePartyAtLocationTo(world, entranceId, entrance.EnterSpawnLocationId);
-            RefreshInteriorOccupants(world, session, entrance.EnterLocalMapId);
-
-            world.Events.Publish(
-                EventType.LocalMapChanged,
-                world.Tick,
-                target: subject,
-                payload: session.ActiveMapLayoutId + ";" + entrance.EnterSpawnLocationId);
-
-            return NotifyArrived(world, subject, entrance.EnterSpawnLocationId, setLocation: false);
+            var entered = SeparateSpaceTransitionService.Enter(world, subject, entranceLocationId);
+            if (entered.IsFailure)
+                return entered;
+            if (world != null &&
+                !string.IsNullOrEmpty(entranceLocationId) &&
+                WorldLocationQuery.TryGet(world, entranceLocationId.Trim(), out var entrance) &&
+                !string.IsNullOrEmpty(entrance.EnterSpawnLocationId))
+                return NotifyArrived(world, subject, entrance.EnterSpawnLocationId, setLocation: false);
+            return entered;
         }
 
+        /// <summary>Separate Space → Continuous Outdoor exact return（或 legacy Overworld）。</summary>
         public Result LeaveLocalMap(SimulationWorld world, EntityId subject)
         {
-            if (world == null)
+            if (world?.LocalMap == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (!world.Entities.TryGet(subject, out _))
-                return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
-
-            var session = world.LocalMap;
-            if (!session.IsInInterior)
-                return Result.Failure(ErrorCode.InvalidOperation, "Not inside a LocalMap interior.");
-            if (string.IsNullOrEmpty(session.OverworldMapLayoutId) && !session.HasContinuousOutdoorReturn)
-                return Result.Failure(ErrorCode.InvalidOperation, "Overworld map missing.");
-            if (string.IsNullOrEmpty(session.ReturnLocationId) ||
-                (!session.HasContinuousOutdoorReturn &&
-                 !world.LocalPlaces.TryGet(session.ReturnLocationId, out _)))
-                return Result.Failure(ErrorCode.NotFound, "Return location missing.", session.ReturnLocationId);
-            if (session.HasContinuousOutdoorReturn &&
-                (string.IsNullOrEmpty(session.ContinuousOutdoorReturnSurfaceId) ||
-                 !world.SurfaceGround.TryGet(session.ContinuousOutdoorReturnSurfaceId,
-                     out var returnNavigation) ||
-                 !returnNavigation.Contains(session.ContinuousOutdoorReturnX,
-                     session.ContinuousOutdoorReturnY)))
-                return Result.Failure(ErrorCode.InvalidOperation,
-                    "Continuous return Surface is unavailable.", session.ContinuousOutdoorReturnSurfaceId);
-
-            var returnId = session.ReturnLocationId;
-            var continuousReturn = session.HasContinuousOutdoorReturn;
-            var interiorMap = session.ActiveMapLayoutId;
-            // 默认全员撤离：登记名单 ∪ 仍挂在内室地点的己方。
-            EvacuateInteriorParty(world, session, interiorMap, returnId);
-            session.ActiveMapLayoutId = session.HasContinuousOutdoorReturn ? string.Empty : session.OverworldMapLayoutId;
-            session.ClearOccupants();
-            if (session.HasContinuousOutdoorReturn && world.PlayerPartyTravel != null)
-            {
-                var position = new XianXia.Core.World.WorldVec2(
-                    session.ContinuousOutdoorReturnX, session.ContinuousOutdoorReturnY);
-                world.PlayerPartyTravel.SetAtSurfacePosition(position);
-                world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
-                    XianXia.Core.World.Strategic.WorldSiteAdministrativeControlResolver
-                        .TryResolveOnRegisteredSurface(
-                            world, position.X, position.Y, out _, out var returnSite, out _)
-                        ? returnSite.SiteId
-                        : string.Empty);
-                var party = world.Strategic.PlayerPartyContext;
-                if (party != null)
-                {
-                    foreach (var id in party.Members)
-                        if (XianXia.Core.World.Strategic.PlayerPartyTransitionMembership
-                                .ShouldMemberTransitionWithParty(world, party, id))
-                            world.WorldPresence.SetAtWorldPosition(id, position, default,
-                                session.ContinuousOutdoorReturnSurfaceId);
-                }
-                else
-                    foreach (var traveler in world.PlayerPartyTravel.TravelingMembers)
-                        world.WorldPresence.SetAtWorldPosition(traveler, position, default,
-                            session.ContinuousOutdoorReturnSurfaceId);
-                world.PartyWorld.LocalMapId = string.Empty;
-                world.PartyWorld.SiteId = string.Empty;
-                world.PartyWorld.Mode = XianXia.Core.World.PartyWorldPresenceMode.AtWorldPosition;
-                session.OverworldMapLayoutId = string.Empty;
-                session.HasContinuousOutdoorReturn = false;
-                session.ContinuousOutdoorReturnSurfaceId = string.Empty;
-            }
-
-            world.Events.Publish(
-                EventType.LocalMapChanged,
-                world.Tick,
-                target: subject,
-                payload: session.ActiveMapLayoutId + ";" + returnId);
-
-            // The outdoor entrance registry is transient and may be unloaded while inside.
-            // Host reactivates its Surface after this domain transition succeeds.
-            return continuousReturn ? Result.Success() :
-                NotifyArrived(world, subject, returnId, setLocation: false);
+            var returnId = world.LocalMap.ReturnLocationId;
+            var continuousReturn = world.LocalMap.HasOutdoorReturn;
+            var left = SeparateSpaceTransitionService.Leave(world, subject);
+            if (left.IsFailure)
+                return left;
+            // Continuous：Host 之后再激活 Surface；legacy 仍走地点抵达钩子。
+            return continuousReturn
+                ? Result.Success()
+                : NotifyArrived(world, subject, returnId, setLocation: false);
         }
 
         /// <summary>

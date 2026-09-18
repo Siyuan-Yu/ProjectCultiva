@@ -2708,6 +2708,7 @@ namespace XianXia.Unity.Host
             if (!_melee.IsAttacker(active))
                 return;
 
+            var world = bootstrap?.Session?.World;
             var defender = _melee.DefenderId;
             for (var i = 0; i < Party.Members.Count; i++)
             {
@@ -2716,6 +2717,11 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!bootstrap.Session.World.Entities.TryGet(id, out var ent) ||
                     !CombatLifeStateService.CanFight(ent))
+                    continue;
+                // SPACE-01：仅当前 Separate Space occupants（或非 Separate Space 时全体可战随从）协战。
+                if (world != null &&
+                    SeparateSpaceCombatPolicy.IsInPlaceCombatSpace(world) &&
+                    !world.LocalMap.ContainsOccupant(id))
                     continue;
 
                 _melee.Begin(id, defender);

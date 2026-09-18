@@ -1,7 +1,8 @@
 # MAP-04 — Physical Legacy Cleanup
 
-> 日期：2026-09-17  
-> 状态：Implementation In Progress / Producer Acceptance Pending  
+> 日期：2026-09-17
+> 状态：Paused / Producer Acceptance Pending
+> **暂停原因（2026-09-18）：** MAP-04 paused for SPACE-01 stabilization dependency。本轮不继续 Legacy 删除；详见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。勿写成 MAP-04 Accepted。
 > 制作人约束：所有改动未暂存、未提交；未打开 Unity，未运行 PlayMode、Test Runner 或 batchmode。
 
 ## FormalArmy authored deployment authority 稳定性修复（制作人复验待定）

@@ -64,12 +64,6 @@ namespace XianXia.Unity.Host
                     _status = "无勘查组件";
             }
 
-            if (Button(x, ref y, w, "离开洞窟"))
-            {
-                commandBridge?.IssueLeaveLocalMap();
-                _status = commandBridge != null ? commandBridge.LastStatus : "无桥";
-            }
-
             if (Button(x, ref y, w, "脱离战斗"))
             {
                 var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;

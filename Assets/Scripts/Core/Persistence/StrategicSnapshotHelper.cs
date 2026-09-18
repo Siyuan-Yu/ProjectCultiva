@@ -551,6 +551,7 @@ namespace XianXia.Core.Persistence
 
             PlayerPartySnapshotRestore.Capture(party, dto);
             LoadedLocalMapPlacementSnapshotRestore.Capture(world, dto);
+            SeparateSpaceSessionSnapshotRestore.Capture(world, dto, party);
             PendingEngagementSnapshotRestore.Capture(world, dto);
             return dto;
         }
@@ -904,6 +905,9 @@ namespace XianXia.Core.Persistence
             RestorePlayerPartyTravel(world, dto.PlayerPartyTravel);
             RestoreBackgroundCharacterTravels(world, dto.BackgroundCharacterTravels);
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
+            var separateSpace = SeparateSpaceSessionSnapshotRestore.Restore(world, dto);
+            if (separateSpace.IsFailure)
+                return separateSpace;
             PendingEngagementSnapshotRestore.Restore(world, dto);
             return Result.Success();
         }

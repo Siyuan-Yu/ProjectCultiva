@@ -22,6 +22,10 @@ namespace XianXia.Data.Content
         /// Gameplay Detection 参数，非 Presentation。
         /// </summary>
         public float ExitTriggerDepth { get; set; }
+        /// <summary>
+        /// SPACE-01：Separate Space 种类（cave / interior / dungeon / separateMap）。空＝推断。
+        /// </summary>
+        public string SpaceKind { get; set; } = string.Empty;
         public List<MapPlacement> Placements { get; set; } = new List<MapPlacement>();
     }
 

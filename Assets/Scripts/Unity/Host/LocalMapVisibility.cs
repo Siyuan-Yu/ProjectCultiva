@@ -257,6 +257,11 @@ namespace XianXia.Unity.Host
             if (CombatLifeStateService.ShouldHideFromSpawn(entity))
                 return false;
 
+            // SPACE-01：Separate Space 拥有最高 playable presentation 优先级。
+            // Outdoor WorldSite／Surface presence／chunk materialization 一律不参与当前显示。
+            if (world.LocalMap != null && world.LocalMap.IsActive)
+                return IsEntityVisibleInSeparateSpace(world, id, entity);
+
             // Independent Encounter presentation is an explicit takeover scope. It must be
             // resolved before ordinary Continuous/LocalMap rules: InEncounter correctly hides a
             // person from the normal world, while this exact bound encounter must show it.
@@ -462,6 +467,62 @@ namespace XianXia.Unity.Host
                 return false;
 
             return IsLocationOnActiveMap(world, place);
+        }
+
+        /// <summary>
+        /// SPACE-01 正式入口：当前 playable space 可见性。
+        /// Separate Space active 时只认 occupant／Active MapLayout／LocalPlaceSet／遭遇特例。
+        /// </summary>
+        public static bool IsEntityVisibleInCurrentPlayableSpace(SimulationWorld world, EntityId id) =>
+            IsEntityVisible(world, id);
+
+        static bool IsEntityVisibleInSeparateSpace(SimulationWorld world, EntityId id, Entity entity)
+        {
+            var session = world.LocalMap;
+            var activeMap = session.ActiveMapLayoutId;
+
+            // Occupant authority first.
+            if (session.ContainsOccupant(id))
+                return true;
+
+            // Encounter / separate-map battle participants still on this layout.
+            if (IsCurrentRealLocalMapBattle(world) &&
+                StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id) &&
+                entity.TryGet<EntityLocationComponent>(out var battleLoc) &&
+                battleLoc.HasPresentationOverride)
+                return true;
+
+            if (IsActiveStrategicEncounterMap(world))
+            {
+                if (IsForeignBattlefieldEntity(world, id))
+                    return false;
+                if (world.Strategic?.Encounter != null &&
+                    world.Strategic.Encounter.IsEngaged(id) &&
+                    entity.TryGet<EntityLocationComponent>(out var engagedLoc) &&
+                    engagedLoc.HasPresentationOverride)
+                    return true;
+                if (IsStrategicEncounterSpawn(world, id) &&
+                    entity.TryGet<EntityLocationComponent>(out var spawnLoc) &&
+                    spawnLoc.HasPresentationOverride)
+                    return true;
+            }
+
+            // Cave / Separate Space residents：地点属于 Active MapLayout。
+            if (entity.TryGet<EntityLocationComponent>(out var loc) && loc.HasLocation &&
+                world.LocalPlaces.TryGet(loc.LocationId, out var place) &&
+                IsLocationOnActiveMap(world, place))
+                return true;
+
+            // Cave-bound NPC without location still hidden outdoors; inside, Personality tag cave
+            // alone is not enough — must belong to active layout via location or occupant.
+            if (IsCaveBoundNpc(entity) &&
+                entity.TryGet<EntityLocationComponent>(out var caveLoc) &&
+                caveLoc.HasLocation &&
+                world.LocalPlaces.TryGet(caveLoc.LocationId, out var cavePlace) &&
+                string.Equals(cavePlace.LocalMapId, activeMap, System.StringComparison.Ordinal))
+                return true;
+
+            return false;
         }
 
         /// <summary>

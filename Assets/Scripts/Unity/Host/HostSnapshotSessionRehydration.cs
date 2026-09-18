@@ -166,13 +166,42 @@ namespace XianXia.Unity.Host
 
             ResolvePartyWorldFromActiveControlledCharacter(world, session.PlayerParty);
 
-            var mapId = world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty;
+            // SPACE-01：Separate Space 优先于 Outdoor ActiveControlled 解析。
+            // Surface 已就绪后，再尝试旧档 migration。
+            if (!world.LocalMap.IsActive)
+            {
+                var migrated = SeparateSpaceSessionSnapshotRestore.TryMigrateLegacySeparateSpace(
+                    world, politicalSnapshot);
+                if (migrated.IsFailure)
+                    return migrated;
+            }
+            else
+            {
+                // Active Separate Space：覆盖 Outdoor resolver 可能写入的 return authority。
+                if (world.LocalMap.HasOutdoorReturn)
+                {
+                    if (string.IsNullOrEmpty(world.LocalMap.ReturnSurfaceId) ||
+                        !world.SurfaceGround.TryGet(world.LocalMap.ReturnSurfaceId, out var returnNav) ||
+                        !returnNav.Contains(world.LocalMap.ReturnWorldX, world.LocalMap.ReturnWorldY))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "SeparateSpace return Surface unavailable after content shell.",
+                            world.LocalMap.ReturnSurfaceId);
+                }
+
+                world.PartyWorld.LocalMapId = world.LocalMap.ActiveMapLayoutId;
+                world.PartyWorld.SiteId = string.Empty;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            }
+
+            var mapId = world.LocalMap.IsActive
+                ? (world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty)
+                : (world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty);
             if (mapId == "base:map_world_node_stub")
             {
                 mapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
                 world.PartyWorld.LocalMapId = mapId;
             }
-            if (IsRetiredOutdoorMapId(mapId))
+            if (!world.LocalMap.IsActive && IsRetiredOutdoorMapId(mapId))
             {
                 if (!world.PlayerPartyTravel.HasPosition ||
                     !world.SurfaceGround.TryResolveContaining(world.PlayerPartyTravel.WorldPosition, out _))
@@ -191,14 +220,19 @@ namespace XianXia.Unity.Host
                 if (places.IsFailure)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Interior LocalPlace snapshot shell rehydrate failed.", places.Error.ToString());
+                if (world.LocalMap.IsActive)
+                    world.LocalMap.ActiveLocalPlaceSetId = world.LocalPlaces.RegionId ?? string.Empty;
                 RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
+                if (world.LocalMap.IsActive)
+                    LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, mapId);
             }
 
             // 全部 Content shell 与 motion overlay 均成功后，才同步成员／presentation／pursuit，
             // 最后才允许进入 LocalMap materialization。
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
             CharacterEncounterService.BindRuntime(world);
-            if (!string.IsNullOrEmpty(mapId))
+            // Separate Space 已有完整 session；禁止 ApplyLocalMapSessionFromFocus 清掉 occupants／return。
+            if (!string.IsNullOrEmpty(mapId) && !world.LocalMap.IsActive)
                 WorldTravelService.ApplyLocalMapSessionFromFocus(world);
             var presenceInvariant = StrategicSnapshotHelper.ValidateRestoredCharacterWorldPresences(
                 world, politicalSnapshot);

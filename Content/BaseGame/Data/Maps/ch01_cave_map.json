@@ -5,6 +5,7 @@
       "id": "base:map_ch01_cave",
       "type": "mapLayout",
       "name": "废弃洞府·内室",
+      "spaceKind": "cave",
       "originX": -20,
       "originY": -15,
       "cellSize": 1,

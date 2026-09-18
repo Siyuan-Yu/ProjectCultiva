@@ -31,7 +31,6 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostMoveController moveController;
         [SerializeField] HostDialoguePresenter dialoguePresenter;
-        [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
         [SerializeField] Camera worldCamera;
 
         Phase _phase = Phase.Closed;
@@ -43,7 +42,6 @@ namespace XianXia.Unity.Host
         string _targetEntranceLocationId = string.Empty;
         HostMapDestructible _targetDestructible;
         WorldObjectInteractionTarget _worldObjectTarget;
-        bool _leaveInteriorTarget;
         string _targetLabel = string.Empty;
         EntityId _confirmTarget = EntityId.None;
         System.Action _confirmCallback;
@@ -71,7 +69,6 @@ namespace XianXia.Unity.Host
         bool IsControlCoreTarget => !string.IsNullOrEmpty(_targetControlCoreWorkAreaId);
         bool IsFactionFlagTarget => !string.IsNullOrEmpty(_targetFactionFlagId);
         bool IsCaveEntranceTarget => !string.IsNullOrEmpty(_targetEntranceLocationId);
-        bool IsLeaveInteriorTarget => _leaveInteriorTarget;
         bool IsDestructibleTarget =>
             _targetDestructible != null && !_targetDestructible.IsDestroyed;
         bool IsRecoverySpotTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.RecoverySpot &&
@@ -85,14 +82,12 @@ namespace XianXia.Unity.Host
             PlayableHostBootstrap host,
             HostSelectionController selection,
             HostMoveController move,
-            HostDialoguePresenter dialogue = null,
-            HostLocalMapEnterPrompt enterPrompt = null)
+            HostDialoguePresenter dialogue = null)
         {
             bootstrap = host;
             selectionController = selection;
             moveController = move;
             dialoguePresenter = dialogue;
-            localMapEnterPrompt = enterPrompt;
             if (worldCamera == null)
                 worldCamera = Camera.main;
         }
@@ -130,7 +125,6 @@ namespace XianXia.Unity.Host
                 _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
                 _targetDestructible = null;
-                _leaveInteriorTarget = false;
                 _targetLabel = ResolveDisplayName(npc);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
@@ -142,24 +136,6 @@ namespace XianXia.Unity.Host
             if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
                 !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
                 MapLayoutPick.TryGet(bootstrap.Session, out layout);
-
-            // 洞内出口 → 离开
-            if (bootstrap.Session.World.LocalMap.IsInInterior &&
-                HostCaveEntranceQuery.TryPickInteriorExitAtMouse(worldCamera, layout, out var exitLabel))
-            {
-                _actor = actor;
-                _targetNpc = EntityId.None;
-                _targetControlCoreWorkAreaId = string.Empty;
-                _targetFactionFlagId = string.Empty;
-                _targetEntranceLocationId = string.Empty;
-                _targetDestructible = null;
-                _leaveInteriorTarget = true;
-                _targetLabel = string.IsNullOrEmpty(exitLabel) ? "洞口" : exitLabel;
-                _menuScreen = Input.mousePosition;
-                _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
-                return true;
-            }
 
             // 地表已显形洞府 → 进入
             if (!bootstrap.Session.World.LocalMap.IsInInterior &&
@@ -182,7 +158,6 @@ namespace XianXia.Unity.Host
                 _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = entranceId;
                 _targetDestructible = null;
-                _leaveInteriorTarget = false;
                 _targetLabel = string.IsNullOrEmpty(entrance.Name) ? "洞府入口" : entrance.Name;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
@@ -199,7 +174,6 @@ namespace XianXia.Unity.Host
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetEntranceLocationId = string.Empty;
-                _leaveInteriorTarget = false;
                 SetWorldObjectTarget(objectTarget);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
@@ -247,9 +221,7 @@ namespace XianXia.Unity.Host
             switch (_phase)
             {
                 case Phase.Menu:
-                    if (IsLeaveInteriorTarget)
-                        DrawLeaveMenu();
-                    else if (IsCaveEntranceTarget)
+                    if (IsCaveEntranceTarget)
                         DrawCaveMenu();
                     else if (IsControlCoreTarget)
                         DrawControlCoreMenu();
@@ -286,40 +258,6 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void DrawLeaveMenu()
-        {
-            const float w = 168f;
-            const float itemH = 30f;
-            var h = itemH + 34f;
-            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
-            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
-            _menuGuiRect = new Rect(guiX, guiY, w, h);
-            HostUiHitTest.Block(_menuGuiRect);
-
-            Fill(_menuGuiRect, Panel);
-            DrawFrame(_menuGuiRect, Border);
-
-            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
-            var y = guiY + 30f;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "离开", _button))
-                BeginLeaveInterior();
-            TryDismissOnOutsideClick(_menuGuiRect);
-        }
-
-        void BeginLeaveInterior()
-        {
-            var actor = _actor;
-            CloseAll();
-            var bridge = bootstrap != null ? bootstrap.CommandBridge : null;
-            if (bridge == null)
-                return;
-            if (!actor.IsNone && selectionController != null &&
-                !selectionController.State.Contains(actor))
-                selectionController.SelectEntity(actor, false);
-            if (bridge.IssueLeaveLocalMap() <= 0)
-                Debug.LogWarning("[Host] LeaveLocalMap failed: " + bridge.LastStatus);
-        }
-
         void DrawCaveMenu()
         {
             const float w = 168f;
@@ -345,22 +283,12 @@ namespace XianXia.Unity.Host
             var actor = _actor;
             var entranceId = _targetEntranceLocationId;
             CloseAll();
-            if (actor.IsNone || string.IsNullOrEmpty(entranceId))
+            if (actor.IsNone || string.IsNullOrEmpty(entranceId) || bootstrap?.CommandBridge == null)
                 return;
 
-            if (localMapEnterPrompt == null && bootstrap != null)
-                localMapEnterPrompt = bootstrap.GetComponent<HostLocalMapEnterPrompt>() ??
-                                     bootstrap.gameObject.AddComponent<HostLocalMapEnterPrompt>();
-            // 确保弹窗已 Bind（运行时 AddComponent 时）
-            if (localMapEnterPrompt != null && bootstrap != null)
-            {
-                localMapEnterPrompt.Bind(
-                    bootstrap,
-                    selectionController,
-                    bootstrap.CommandBridge,
-                    moveController);
-                localMapEnterPrompt.Open(actor, entranceId);
-            }
+            // SPACE-01：当前随队成员全部自动进入，不再弹出队员选择窗。
+            if (bootstrap.CommandBridge.IssueEnterSeparateSpace(actor, entranceId) <= 0)
+                Debug.LogWarning("[Host] Enter Separate Space failed: " + bootstrap.CommandBridge.LastStatus);
         }
 
         void DrawControlCoreMenu()
@@ -991,10 +919,27 @@ namespace XianXia.Unity.Host
             switch (route.Route)
             {
                 case HostileActionRoute.LocalCombat:
+                    // SPACE-01：双方均在 Separate Space → 原地战斗，不创建 CharacterEncounter。
+                    if (SeparateSpaceCombatPolicy.IsInPlaceCombatSpace(session.World))
+                    {
+                        if (!SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(
+                                session.World, actor, target))
+                        {
+                            Debug.LogWarning("[Host] Hostile action rejected: 目标不在当前独立空间。");
+                            ReleaseInteractionNpcNow(target);
+                            CloseAll();
+                            return true;
+                        }
+
+                        if (IsActiveStrategicCombatTarget(session.World, target))
+                            return false;
+                        return false;
+                    }
+
                     // 已处于 active WORLD_COMBAT 的 hostile participant → 直接 tactical combat。
                     if (IsActiveStrategicCombatTarget(session.World, target))
                         return false;
-                    // 普通 Character（无论 faction / hostile tag）→ 一次确认。
+                    // Continuous Outdoor 普通 Character → CharacterEncounter。
                     ReleaseInteractionNpcNow(target);
                     CloseAll();
                     bootstrap.GetComponent<HostCharacterEncounter>().Request(actor, target, onEntered: onConfirmedLocalAction);
@@ -1108,6 +1053,13 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World == null || actor.IsNone || npc.IsNone) return;
             ReleaseInteractionNpcNow(npc);
+            var world = bootstrap.Session.World;
+            if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, actor, npc))
+            {
+                BeginMelee(actor, npc);
+                return;
+            }
+
             bootstrap.GetComponent<HostCharacterEncounter>()?.Request(actor, npc, automatic: true);
         }
 
@@ -1177,7 +1129,6 @@ namespace XianXia.Unity.Host
             _targetEntranceLocationId = string.Empty;
             _targetDestructible = null;
             _worldObjectTarget = default;
-            _leaveInteriorTarget = false;
             _targetLabel = string.Empty;
             _confirmTarget = EntityId.None;
             _confirmCallback = null;
@@ -1238,8 +1189,7 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&
-                (dialoguePresenter == null || !dialoguePresenter.IsActive) &&
-                (localMapEnterPrompt == null || !localMapEnterPrompt.IsOpen))
+                (dialoguePresenter == null || !dialoguePresenter.IsActive))
                 bootstrap.Session.IsPaused = false;
         }
 

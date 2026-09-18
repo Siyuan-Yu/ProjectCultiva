@@ -1797,6 +1797,9 @@ namespace XianXia.Unity.Host
             _legacyOutdoorRestoreMigrationWorld = null;
             var world = _bootstrap?.Session?.World;
             _snapshotRestoredWorld = world;
+            // SPACE-01：Active Separate Space 不得重建 Continuous Outdoor presentation。
+            if (world?.LocalMap != null && world.LocalMap.IsActive)
+                return false;
             if (world != null && !world.LocalMap.IsInInterior &&
                 world.Strategic.CharacterEncounter == null)
                 foreach (var entity in world.Entities.All)
