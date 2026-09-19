@@ -225,13 +225,6 @@ namespace XianXia.Unity.Host
             return _lastSuccessCount;
         }
 
-        /// <summary>Legacy compatibility only：忽略 party 名单，转 IssueEnterSeparateSpace。</summary>
-        public int IssueEnterLocalMapWithParty(
-            EntityId leader,
-            string entranceLocationId,
-            EntityId[] party) =>
-            IssueEnterSeparateSpace(leader, entranceLocationId);
-
         /// <summary>
         /// SPACE-01：物理 Exit Trigger／Debug Force Leave。以 Active Controlled Character 提交 Leave。
         /// </summary>

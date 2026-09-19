@@ -318,44 +318,21 @@ SPACE-01 建立 **Continuous Outdoor ↔ Separate Space** 的统一切换机制�
 
 ---
 
-# 12. Known Unfinished / Deferred Hardening（SPACE-01）
+# 12. SPACE-01 Final Hardening（本轮已实现 · 待人工验收）
 
-> **醒目标记：以下全部是制作人已明确暂缓（不是本轮修复对象）的 SPACE-01 deferred hardening。封板前必须完成。**
+> 主体实现 checkpoint：`c05a3d2`。Final Hardening 代码在工作树**未提交**。
+> 状态仍为 **Implementation Complete / Producer Acceptance Pending**。详见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 
-## A. Enter transition membership fallback
+| 项 | 状态 |
+|---|---|
+| A. Enter membership fallback 删除 | **Done** — 空成员明确失败 |
+| B. Leave 严格 `ShouldMemberTransitionWithParty` | **Done** |
+| C. stranded／downed／corpse 不错误 teleport | **Done**（代码）；待 Unity 人工验 |
+| D. `PartyWorldPresenceMode.InSeparateSpace` | **Done**（additive=5；0–4 不变） |
+| E. active-map 全部 Character local placement | **Done**；restore 不污染 membership |
+| F. Producer Accepted／Sealed | **Pending** |
 
-- 位置：`SeparateSpaceTransitionService.CollectTransitionMembers()`
-- 现状：先按 `ShouldMemberTransitionWithParty` 收集；**若结果为空，则 fallback 抓取所有 Player characters**（`IsPlayerPartyCharacter`）。
-- 风险：空 party 情况下会把失能/尸体/已脱队/FormalArmy 控制的人物一起带进洞。
-- 建议：**未来删除该 fallback**（或改成明确失败）。
-
-## B. Leave evacuation ownership
-
-- 位置：`SeparateSpaceTransitionService.EvacuateSeparateSpaceParty()`
-- 现状：迁移 = session occupants ＋ 扫描所有仍挂在 interior location 的 Player characters；**不严格使用** `PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty()`。
-- 风险：过宽处理，会把不该随队的人拉出洞。
-- 建议：严格只迁移 `ShouldMemberTransitionWithParty() == true` 的成员。
-
-## C. Incapacitated / corpse / stranded party member
-
-- 现状：主控出洞时，失能、尸体、detached、stranded 队员的行为**尚未系统验证**。
-- 建议：明确验证四态不应被错误 teleport（与 ADR-0019 Dead ≠ Removed、CW-02 失能安全出口一致）。
-
-## D. PartyWorld Mode
-
-- 现状：Separate Space 仍复用 `PartyWorldPresenceMode.AtHex`（实测出现在 `SeparateSpaceTransitionService.Enter`、`SeparateSpaceSessionSnapshotRestore.Restore/TryMigrateLegacySeparateSpace`、`HostSnapshotSessionRehydration`、`PlayableHostBootstrap`）。
-- 风险：Hex compatibility semantic 污染独立空间语义。
-- 建议：未来增加 `PartyWorldPresenceMode.InSeparateSpace`。
-
-## E. Cave NPC moved-position persistence
-
-- 现状：Save 只持久化 `LoadedLocalMapCharacterPlacements`，而 `LoadedLocalMapPlacementSnapshotRestore.Capture()` **仅捕获 active map 的 occupants**；洞内 NPC 敌人／居民（非 occupant）位置移动后不落点。
-- 建议：未来确保 active Cave resident / enemy 移动后的 **Local position 在 Save/Load 后保留**。
-
-## F. SPACE-01 未 Producer Accepted / Sealed
-
-- 明确标记：**Deferred hardening required before final sealing.**
-- 封板前需完整验收：discover → reveal → enter → combat → save/load → physical exit → downed edge case。
+MAP-04 继续 **Paused / Producer Acceptance Pending**。
 
 ---
 

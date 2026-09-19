@@ -86,6 +86,24 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.NotFound, "Interior spawn location is not active.",
                     entrance.EnterSpawnLocationId);
 
+            var party = world.Strategic?.PlayerPartyContext;
+            var members = CollectTransitionMembers(world, party);
+            if (members.Count == 0)
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "No eligible PlayerParty members to enter Separate Space.");
+            }
+
+            if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, subject) ||
+                !members.Contains(subject))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Active character is not an eligible Separate Space transition member.",
+                    subject.ToString());
+            }
+
             var session = world.LocalMap;
             var kind = SeparateSpaceResolver.InferFromEntrance(entrance, explicitSpaceKind);
 
@@ -112,11 +130,11 @@ namespace XianXia.Core.Exploration
                 entranceId,
                 entryReason ?? "enter");
 
-            MovePlayerPartyIntoSeparateSpace(world, session, entrance.EnterSpawnLocationId, spawn);
+            MovePlayerPartyIntoSeparateSpace(world, session, entrance.EnterSpawnLocationId, spawn, members);
 
             world.PartyWorld.LocalMapId = session.ActiveMapLayoutId;
             world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
 
             world.Events.Publish(
                 EventType.LocalMapChanged,
@@ -227,21 +245,24 @@ namespace XianXia.Core.Exploration
         }
 
         /// <summary>
-        /// 只带走 PlayerParty 真实随行成员（Active + living companions）；不用 FormalArmy／旁观 NPC。
+        /// 只带走当前 PlayerParty + ShouldMemberTransitionWithParty 的合法成员。
         /// </summary>
         static void MovePlayerPartyIntoSeparateSpace(
             SimulationWorld world,
             LocalMapSession session,
             string spawnLocationId,
-            WorldLocationState spawn)
+            WorldLocationState spawn,
+            List<EntityId> members)
         {
             session.ClearOccupants();
             var party = world.Strategic?.PlayerPartyContext;
-            var members = CollectTransitionMembers(world, party);
             var spawnX = spawn?.PresentationX ?? 0f;
             var spawnZ = spawn?.PresentationZ ?? 0f;
             var targetMap = spawn?.LocalMapId ?? session.ActiveMapLayoutId;
             var formationSlot = 0;
+
+            if (members == null)
+                return;
 
             // 已在目标 Separate Space 内的成员（救人／再进）保留站位。
             for (var i = 0; i < members.Count; i++)
@@ -263,42 +284,24 @@ namespace XianXia.Core.Exploration
                 formationSlot++;
                 session.AddOccupant(id);
             }
-
-            // 登记仍挂在内室地点、但未进 party 列表的己方（兼容旧再进路径）。
-            foreach (var e in world.Entities.All)
-            {
-                if (!IsPlayerPartyCharacter(e) || session.ContainsOccupant(e.Id))
-                    continue;
-                if (!e.TryGet<EntityLocationComponent>(out var lc) || !lc.HasLocation)
-                    continue;
-                if (!IsInteriorLocation(world, lc.LocationId, targetMap))
-                    continue;
-                session.AddOccupant(e.Id);
-            }
         }
 
+        /// <summary>
+        /// 唯一正式来源：当前 PlayerParty membership + ShouldMemberTransitionWithParty。
+        /// 空列表 = 明确无成员；禁止 fallback 抓取全部 Player Character。
+        /// </summary>
         static List<EntityId> CollectTransitionMembers(SimulationWorld world, PlayerPartyRuntime party)
         {
             var list = new List<EntityId>(8);
-            if (party != null)
-            {
-                foreach (var id in party.Members)
-                {
-                    if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
-                        continue;
-                    if (!list.Contains(id))
-                        list.Add(id);
-                }
+            if (party == null)
+                return list;
 
-                if (list.Count > 0)
-                    return list;
-            }
-
-            foreach (var e in world.Entities.All)
+            foreach (var id in party.Members)
             {
-                if (!IsPlayerPartyCharacter(e))
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
                     continue;
-                list.Add(e.Id);
+                if (!list.Contains(id))
+                    list.Add(id);
             }
 
             return list;
@@ -352,6 +355,9 @@ namespace XianXia.Core.Exploration
             lc.SetPresentationOverride(spawnX + dx * ring, spawnZ + dz * ring);
         }
 
+        /// <summary>
+        /// 只撤离当前合法 transition members。stranded／downed／corpse／detached 保留 Interior ownership。
+        /// </summary>
         static void EvacuateSeparateSpaceParty(
             SimulationWorld world,
             LocalMapSession session,
@@ -361,31 +367,27 @@ namespace XianXia.Core.Exploration
             if (world == null || string.IsNullOrEmpty(returnLocationId))
                 return;
 
-            if (session != null)
-            {
-                for (var i = 0; i < session.OccupantIds.Count; i++)
-                {
-                    var id = session.OccupantIds[i];
-                    if (id.IsNone || !world.Entities.TryGet(id, out var occupant) ||
-                        !IsPlayerPartyCharacter(occupant))
-                        continue;
-                    if (!occupant.TryGet<EntityLocationComponent>(out _))
-                        continue;
-                    SetEntityLocation(world, occupant, returnLocationId);
-                }
-            }
-
-            if (string.IsNullOrEmpty(interiorMapLayoutId))
+            var party = world.Strategic?.PlayerPartyContext;
+            if (party == null)
                 return;
-            foreach (var e in world.Entities.All)
+
+            foreach (var id in party.Members)
             {
-                if (!IsPlayerPartyCharacter(e))
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
                     continue;
-                if (!e.TryGet<EntityLocationComponent>(out var lc) || !lc.HasLocation)
+                if (id.IsNone || !world.Entities.TryGet(id, out var member) || member == null)
                     continue;
-                if (!IsInteriorLocation(world, lc.LocationId, interiorMapLayoutId))
+                if (!member.TryGet<EntityLocationComponent>(out var lc) || lc == null)
                     continue;
-                SetEntityLocation(world, e, returnLocationId);
+
+                var inInterior = !string.IsNullOrEmpty(interiorMapLayoutId) &&
+                                 lc.HasLocation &&
+                                 IsInteriorLocation(world, lc.LocationId, interiorMapLayoutId);
+                var isOccupant = session != null && session.ContainsOccupant(id);
+                if (!inInterior && !isOccupant)
+                    continue;
+
+                SetEntityLocation(world, member, returnLocationId);
             }
         }
 
@@ -397,11 +399,6 @@ namespace XianXia.Core.Exploration
                    !string.IsNullOrEmpty(place.LocalMapId) &&
                    string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal);
         }
-
-        static bool IsPlayerPartyCharacter(Entity e) =>
-            e != null &&
-            (e.Tags & EntityTag.Character) != 0 &&
-            (e.Tags & EntityTag.Npc) == 0;
 
         static void SetEntityLocation(SimulationWorld world, Entity e, string locationId)
         {

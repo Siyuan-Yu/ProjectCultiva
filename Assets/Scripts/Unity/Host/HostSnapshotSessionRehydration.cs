@@ -190,7 +190,7 @@ namespace XianXia.Unity.Host
 
                 world.PartyWorld.LocalMapId = world.LocalMap.ActiveMapLayoutId;
                 world.PartyWorld.SiteId = string.Empty;
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
             }
 
             var mapId = world.LocalMap.IsActive

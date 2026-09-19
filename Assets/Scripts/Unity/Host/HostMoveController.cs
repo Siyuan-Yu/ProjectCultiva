@@ -1469,6 +1469,11 @@ namespace XianXia.Unity.Host
                 // 记下当前表现坐标，进出图 Rebuild 时不再弹回地点中
                 loc.SetPresentationOverride(p.x, p.y);
             }
+            else if (session.World.LocalMap != null && session.World.LocalMap.IsInInterior)
+            {
+                // Separate Space：远离地点中心时仍写 local placement，供 Save capture。
+                loc.SetPresentationOverride(p.x, p.y);
+            }
             if (continuous)
             {
                 loc.SetPresentationOverride(p.x, p.y);

@@ -11,5 +11,10 @@ namespace XianXia.Core.World
         AtSite = 3,
         /// <summary>Phase 2D：开世界连续 WorldPosition 真源（Background Travel / 非 Party 连续位置）。</summary>
         AtWorldPosition = 4,
+        /// <summary>
+        /// SPACE-01：PlayerParty 处于 active Separate Space（Cave／Interior／Dungeon／SeparateMap）。
+        /// Additive only — 不得改动既有枚举 numeric value。
+        /// </summary>
+        InSeparateSpace = 5,
     }
 }

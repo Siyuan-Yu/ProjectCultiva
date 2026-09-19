@@ -1,4 +1,6 @@
+using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
@@ -6,6 +8,7 @@ namespace XianXia.Unity.Host
     /// <summary>
     /// Save 前：把 EntityView 真实表现坐标回写到 Domain，供 LoadedLocalMap Placement Capture。
     /// HostMoveController.SyncLocation 仅在靠近 WorldRegion 地点时才写 Override，远离 Zone 时会漏采。
+    /// Active Separate Space：同步该图全部 persistent Character（含 NPC／stranded），不只 occupants。
     /// </summary>
     public static class HostSnapshotLocalPlacementCaptureSync
     {
@@ -29,26 +32,24 @@ namespace XianXia.Unity.Host
                 return 0;
 
             var synced = 0;
-            var occupants = world.LocalMap.OccupantIds;
-            for (var i = 0; i < occupants.Count; i++)
+            foreach (var entity in world.Entities.All)
             {
-                var id = occupants[i];
-                if (id.IsNone)
+                if (entity == null || (entity.Tags & EntityTag.Character) == 0)
                     continue;
-                if (!spawner.Registry.TryGet(id, out var view) || view == null)
+                if (!LoadedLocalMapPlacementSnapshotRestore.BelongsToActiveSeparateSpaceMap(
+                        world, entity, mapId))
                     continue;
-                if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                if (!spawner.Registry.TryGet(entity.Id, out var view) || view == null)
                     continue;
 
-                if (!ent.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
                 {
                     loc = new EntityLocationComponent();
-                    ent.AddComponent(loc);
+                    entity.AddComponent(loc);
                 }
 
                 var p = HostPresentationSpace.ToPresentation(view.transform.position);
                 loc.SetPresentationOverride(p.x, p.y);
-                world.LocalMap.AddOccupant(id);
                 synced++;
             }
 

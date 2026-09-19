@@ -83,6 +83,53 @@ if ($outdoor -notmatch 'LocalMap\.IsActive') {
   Write-Output "FAIL RebuildAfterWorldRestore missing SeparateSpace early-out"
   $auditFailed++
 }
+
+# SPACE-01 Final Hardening audits
+$transition = Get-Content (Join-Path $Project "Assets\Scripts\Core\Exploration\SeparateSpaceTransitionService.cs") -Raw
+if ($transition -match 'IsPlayerPartyCharacter' -and $transition -match 'foreach \(var e in world\.Entities\.All\)') {
+  Write-Output "FAIL CollectTransitionMembers/Evacuate still scans all Player characters"
+  $auditFailed++
+}
+if ($transition -notmatch 'No eligible PlayerParty members') {
+  Write-Output "FAIL Enter missing explicit empty-membership failure"
+  $auditFailed++
+}
+if ($transition -match 'PartyWorldPresenceMode\.AtHex') {
+  Write-Output "FAIL SeparateSpaceTransitionService still writes AtHex"
+  $auditFailed++
+}
+if ($transition -notmatch 'PartyWorldPresenceMode\.InSeparateSpace') {
+  Write-Output "FAIL SeparateSpaceTransitionService missing InSeparateSpace"
+  $auditFailed++
+}
+$modeEnum = Get-Content (Join-Path $Project "Assets\Scripts\Core\World\PartyWorldPresenceMode.cs") -Raw
+if ($modeEnum -notmatch 'InEncounter\s*=\s*0' -or
+    $modeEnum -notmatch 'DepartingLocalMap\s*=\s*1' -or
+    $modeEnum -notmatch 'AtHex\s*=\s*2' -or
+    $modeEnum -notmatch 'AtSite\s*=\s*3' -or
+    $modeEnum -notmatch 'AtWorldPosition\s*=\s*4' -or
+    $modeEnum -notmatch 'InSeparateSpace\s*=\s*5') {
+  Write-Output "FAIL PartyWorldPresenceMode numeric values changed or InSeparateSpace missing"
+  $auditFailed++
+}
+$placement = Get-Content (Join-Path $Project "Assets\Scripts\Core\Persistence\LoadedLocalMapPlacementSnapshotRestore.cs") -Raw
+if ($placement -match 'ContainsOccupant\(entity\.Id\)\s*\n\s*continue') {
+  Write-Output "FAIL Capture still occupant-only skip path"
+  $auditFailed++
+}
+if ($placement -notmatch 'BelongsToActiveSeparateSpaceMap') {
+  Write-Output "FAIL Capture missing BelongsToActiveSeparateSpaceMap"
+  $auditFailed++
+}
+if ($placement -match 'AddOccupant') {
+  Write-Output "FAIL ApplySavedPlacementsToDomain still AddOccupant (membership pollution)"
+  $auditFailed++
+}
+if ($bridge -match 'IssueEnterLocalMapWithParty') {
+  Write-Output "FAIL IssueEnterLocalMapWithParty wrapper still present"
+  $auditFailed++
+}
+
 if ($auditFailed -gt 0) {
   Write-Output "STATIC_AUDIT_FAILED=$auditFailed"
   exit 1

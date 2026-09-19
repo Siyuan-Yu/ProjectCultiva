@@ -1,10 +1,10 @@
 # SPACE-01 — Separate Space / Interior Transition V1
 
-> 日期：2026-09-18  
-> 状态：**Implementation Complete / Producer Acceptance Pending**（**不是 Accepted／未封板**）  
-> 第一份正式样板：**废弃洞府（Cave）**  
-> 提交 checkpoint：`c05a3d2`（2026-09-19 00:32:36，制作人提交并推送，非开发会话所为）  
-> 新会话入口：[247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md)  
+> 日期：2026-09-18
+> 状态：**Implementation Complete / Producer Acceptance Pending**（**不是 Accepted／未封板**）
+> 第一份正式样板：**废弃洞府（Cave）**
+> 提交 checkpoint：`c05a3d2`（主体实现）；本轮 Final Hardening **未提交**（等待制作人验收授权）
+> 新会话入口：[247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md)
 > 制作人约束：不 `git add` / `commit` / `push`（除非授权 checkpoint）；不打开 Unity；不运行 PlayMode／Unity Test／batchmode。
 
 ## 目的
@@ -33,38 +33,38 @@
 
 ## Transition lifecycle
 
-Domain 真源：`SeparateSpaceTransitionService`  
+Domain 真源：`SeparateSpaceTransitionService`
 `ExplorationService.EnterLocalMap`／`LeaveLocalMap` 为薄封装。
 
 ### Enter（Outdoor → Separate）
 
-1. resolve entrance／target map／LocalPlaceSet／spawn  
-2. validate  
-3. capture Outdoor exact return（SurfaceId + WorldX/Y）  
-4. establish SeparateSpaceSession  
-5. move PlayerParty membership（非 FormalArmy／旁观 NPC）+ deterministic formation  
-6. Host：deactivate Outdoor presentation → build MapLayout → materialize occupants → camera  
+1. resolve entrance／target map／LocalPlaceSet／spawn
+2. validate
+3. capture Outdoor exact return（SurfaceId + WorldX/Y）
+4. establish SeparateSpaceSession
+5. move PlayerParty membership（非 FormalArmy／旁观 NPC）+ deterministic formation
+6. Host：deactivate Outdoor presentation → build MapLayout → materialize occupants → camera
 
 任意中途失败：Host 回滚 PlaceSet；不得半进洞。
 
 ### Leave（Separate → Outdoor）
 
-1. validate session  
-2. clear Interior places／session  
-3. restore exact Surface return  
-4. Host：reactivate Surface streaming → neighborhood → camera  
+1. validate session
+2. clear Interior places／session
+3. restore exact Surface return
+4. Host：reactivate Surface streaming → neighborhood → camera
 
 禁止返回 Hex／Site center／fake entrance center。
 
 ## Return authority
 
-唯一 Outdoor return authority：`ReturnSurfaceId` + `ReturnWorldX/Y` + `ReturnLocationId`。  
+唯一 Outdoor return authority：`ReturnSurfaceId` + `ReturnWorldX/Y` + `ReturnLocationId`。
 不依赖 Hex／AnchorHex／PresenceHex／Overworld MapLayout。
 
 ## Occupant / visibility authority
 
-- Separate Space 内：PlayerParty occupants + Active MapLayout／LocalPlaceSet 居民  
-- Outdoor WorldSite／Surface chunk／Background NPC **不参与**当前 playable presentation（Domain 保留）  
+- Separate Space 内：PlayerParty occupants + Active MapLayout／LocalPlaceSet 居民
+- Outdoor WorldSite／Surface chunk／Background NPC **不参与**当前 playable presentation（Domain 保留）
 - 正式入口：`LocalMapVisibility.IsEntityVisibleInCurrentPlayableSpace`（SeparateSpace-first）
 
 ## Cave reveal 状态机
@@ -77,7 +77,7 @@ Domain 真源：`SeparateSpaceTransitionService`
 | Revealed + Near | 右键 → Enter 菜单 |
 | Interior | Separate Space |
 
-**Survey 成功只做：** KnownSites.Discover + reveal visual + 轻量 toast。  
+**Survey 成功只做：** KnownSites.Discover + reveal visual + 轻量 toast。
 **禁止：** activate Interior places／改 ActiveMapLayoutId／建 Session／deactivate Surface／move Party。
 
 Survey UX：神识不足／距离太远用轻量 toast；成功「神识扫过，洞府入口显露。」自动消失。删除 Survey 成功后的 `RefreshMapStampsOnly()`（会触发旧 MapLayout 全图刷新）。
@@ -86,15 +86,15 @@ Survey UX：神识不足／距离太远用轻量 toast；成功「神识扫过�
 
 `StrategicSnapshotDto.SeparateSpace`：
 
-- IsInSeparateSpace／SpaceKind／ActiveMapLayoutId／ActiveLocalPlaceSetId  
-- Entry／Return location／ReturnSurface + WorldX/Y  
-- OccupantIds／ActiveCharacterId／EntryReason  
+- IsInSeparateSpace／SpaceKind／ActiveMapLayoutId／ActiveLocalPlaceSetId
+- Entry／Return location／ReturnSurface + WorldX/Y
+- OccupantIds／ActiveCharacterId／EntryReason
 
-另沿用 `LoadedLocalMapCharacterPlacements` 保存 party interior local positions。
+`LoadedLocalMapCharacterPlacements`：Active Separate Space 全部 persistent Character local placement（不限 occupants）。
 
 ### Load-inside-Cave
 
-Restore SeparateSpaceSession → activate Cave places → build MapLayout → restore placements → remain inside。  
+Restore SeparateSpaceSession → activate Cave places → build MapLayout → restore placements → remain inside。
 **禁止** Load 后默默送回 Outdoor。
 
 ### Old-save migration
@@ -120,15 +120,15 @@ Restore SeparateSpaceSession → activate Cave places → build MapLayout → re
 | Scope | Surface presence／support／intervention | 仅 active Separate Space 内真实 entity |
 | Freeze | StrategicClockFreeze／Independent Field | 不触发；Cave 本身即 battle space |
 
-Core：`SeparateSpaceCombatPolicy.IsInPlaceCombatSpace`／`AreBothInActiveSeparateSpace`／`IsEntityInActiveSpace`。  
-`CharacterEncounterService.RequiresEntry` 在双方均属 active Separate Space 时返回 false。  
-Host：`HostNpcMeleeAssault`／`HostNpcContextMenu`／`HostCharacterEncounter.Request` guard 均走 in-place。  
+Core：`SeparateSpaceCombatPolicy.IsInPlaceCombatSpace`／`AreBothInActiveSeparateSpace`／`IsEntityInActiveSpace`。
+`CharacterEncounterService.RequiresEntry` 在双方均属 active Separate Space 时返回 false。
+Host：`HostNpcMeleeAssault`／`HostNpcContextMenu`／`HostCharacterEncounter.Request` guard 均走 in-place。
 `HostPlayerPartyController.TickCombatFollow` 对 Separate Space occupants 自动协战。
 
 ### Combat Save/Load V1 边界
 
-Separate Space 中 Save 继续保存 HP／life state／SeparateSpaceSession／local positions。  
-瞬时 HostNpcMeleeAssault target／cooldown 不持久化；Load 后可为「不在攻击动作中」。  
+Separate Space 中 Save 继续保存 HP／life state／SeparateSpaceSession／local positions。
+瞬时 HostNpcMeleeAssault target／cooldown 不持久化；Load 后可为「不在攻击动作中」。
 真实伤害／死亡／弥留必须保留；Load 不得因缺 CharacterEncounter snapshot 把敌人复活或把 Party 移出 Cave。
 
 ## Entry Party Rule
@@ -136,10 +136,44 @@ Separate Space 中 Save 继续保存 HP／life state／SeparateSpaceSession／lo
 进入 Separate Space = 当前真正随队成员全部自动 transition：
 
 - Authority：`PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty`
-- 进入：Active + living current companions
+- 进入：Active + living current companions（必须均为当前合法 PlayerParty member）
 - 不进入：incapacitated／corpse／FormalArmy-controlled／已脱队
+- **无合法 transition member → 明确失败；禁止 fallback 抓取全部 Player Character**
+- Active Character 也必须满足同一 membership rule，不得绕过
 - 已删除 `HostLocalMapEnterPrompt` 队员选择弹窗
-- Host API：`IssueEnterSeparateSpace(leader, entranceId)`；旧 `IssueEnterLocalMapWithParty` 仅 legacy wrapper（忽略 party 数组）
+- Host API：`IssueEnterSeparateSpace(leader, entranceId)`
+- 已删除无 consumer 的 legacy wrapper `IssueEnterLocalMapWithParty`
+
+## Leave Party Rule
+
+离开只带走：**当前 PlayerParty + `ShouldMemberTransitionWithParty == true`**。
+
+不带走（保留 Interior `EntityLocation`／Separate Space ownership／local placement／HP／life state）：
+
+- incapacitated／downed／dying／corpse
+- detached companion／stranded friendly
+- 已退出当前 Party 或不满足 transition gate 的角色
+
+再次进入同一 Separate Space 时，按现有 visibility rule 可在原空间看到他们。禁止「清空整个 LocalMap 玩家角色」式退出。
+
+## PartyWorld Mode（SPACE-01 Final Hardening）
+
+Active Separate Space：
+
+- `PartyWorld.Mode = InSeparateSpace`（additive enum value **5**）
+- `PartyWorld.LocalMapId = ActiveMapLayoutId`
+- `PartyWorld.SiteId = empty`
+
+**既有 numeric values 保持不变**：`InEncounter=0`、`DepartingLocalMap=1`、`AtHex=2`、`AtSite=3`、`AtWorldPosition=4`。
+Separate Space Enter／Restore／Host rehydrate **不再**写 `AtHex`。Leave 后按 Continuous Surface 恢复 `AtWorldPosition`。
+
+## Snapshot local placement（SPACE-01 Final Hardening）
+
+`LoadedLocalMapCharacterPlacements` 在 `SeparateSpaceSession.IsActive` 时捕获 **该 ActiveMapLayoutId 全部 persistent Character** local placement（Party／Cave NPC／enemy／stranded／incapacitated／corpse），不限 occupants。
+
+- Capture authority：Domain `EntityLocationComponent` PresentationOverride（Save 前 Host 可从 View 回写）
+- Restore：只回写 PresentationOverride；**不**因 placement 加入 PlayerParty／occupant／Active Character
+- V1 不新增：瞬时 melee target／cooldown／projectile／transient aggro
 
 ## Snapshot Presentation Restore Priority
 
@@ -149,8 +183,8 @@ Separate Space 中 Save 继续保存 HP／life state／SeparateSpaceSession／lo
 2. **Independent CharacterEncounter** → Encounter restore
 3. **Continuous Outdoor** → `ContinuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore`
 
-Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session／occupants／saved local placements。  
-`SnapshotActiveControlledLocalMapResolver` 第一优先返回 `SeparateSpaceSession` ActiveMapLayoutId。  
+Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session／occupants／saved local placements。
+`SnapshotActiveControlledLocalMapResolver` 第一优先返回 `SeparateSpaceSession` ActiveMapLayoutId。
 `ContinuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore` 在 LocalMap.IsActive 时直接 return false。
 
 ## Physical Exit Trigger
@@ -180,51 +214,43 @@ Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session�
 - **Save/Load**：洞内 Save/Load 已基本验证可工作，Load 后留在洞内。
 - **Exit**：physical exit trigger → exact Outdoor return。
 
-## Deferred Final Hardening（封板前必须完成）
+## Final Hardening（本轮已完成 · 仍待制作人人工验收）
 
-> **以下为制作人明确暂缓（不在实现轮内修复）的项目。完成前不得把 SPACE-01 写成 Accepted / Sealed。**
+> 状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+> **不要**写成 Accepted／Sealed。MAP-04 继续 **Paused／Producer Acceptance Pending**。
 
-### A. Enter transition membership fallback
+本轮已落地：
 
-`SeparateSpaceTransitionService.CollectTransitionMembers()` 在按 `ShouldMemberTransitionWithParty` 收集结果为空时会 **fallback 抓取所有 Player characters**，可能把失能／尸体／已脱队／FormalArmy 控制的人物一起带进洞。建议未来删除该 fallback。
+| 项 | 结果 |
+|---|---|
+| A. Enter membership | 删除 all-Player fallback；空成员明确失败；Active 必须合法 transition member |
+| B. Leave membership | 只撤离 `ShouldMemberTransitionWithParty` 的当前 Party 成员 |
+| C. stranded／downed／corpse | Leave 不 teleport；保留 Interior ownership；再进可见 |
+| D. `InSeparateSpace` | additive enum=5；既有 0–4 不变；Separate Space 停写 `AtHex` |
+| E. Character local placement | active-map 全部 persistent Character Save／Load；restore 不污染 Party membership |
+| Wrapper cleanup | 删除无 caller 的 `IssueEnterLocalMapWithParty` |
 
-### B. Leave evacuation ownership
-
-`SeparateSpaceTransitionService.EvacuateSeparateSpaceParty()` 迁移范围 = session occupants ＋ 扫描所有仍挂在 interior location 的 Player characters，**未严格使用** `PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty()`。应严格只迁移随队成员。
-
-### C. Incapacitated / corpse / stranded party member
-
-主控出洞时，失能（incapacitated）、尸体（corpse）、detached、stranded 队员行为**尚未系统验证**；必须明确这些状态不应被错误 teleport（对照 ADR-0019 与 CW-02 安全出口规则）。
-
-### D. PartyWorld Mode
-
-Separate Space 当前仍复用 `PartyWorldPresenceMode.AtHex`（`SeparateSpaceTransitionService.Enter`、`SeparateSpaceSessionSnapshotRestore`、`HostSnapshotSessionRehydration`、`PlayableHostBootstrap`）。未来应增加 `InSeparateSpace`，避免 Hex compatibility semantic 污染。
-
-### E. Cave NPC moved-position persistence
-
-`LoadedLocalMapPlacementSnapshotRestore.Capture()` 目前**只捕获 active map 的 occupants**，洞内 resident／enemy 移动后的 Local position 不落点。未来需确保这些位置在 Save/Load 后保留。
-
-### F. 未 Producer Accepted / Sealed
-
-**Deferred hardening required before final sealing.** 封板前需完整验收：discover → reveal → enter → combat → save/load → physical exit → downed edge case。
+仍待：**制作人 Unity 人工验收**（见文末 checklist）后方可 Seal。
 
 ## MAP-04 暂停点
 
-本轮 **不**继续 MAP-04 Legacy 删除（Hex／WorldRegion／WorldGraphEditor 等）。  
+本轮 **不**继续 MAP-04 Legacy 删除（Hex／WorldRegion／WorldGraphEditor 等）。
 MAP-04 保持 **Paused / Producer Acceptance Pending**，待 SPACE-01 验收后再续 Final Cleanup。见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
 ## 轻量验证（本轮）
 
-- `tools/offline-compile.ps1 -Only XianXia.Core,XianXia.Data,XianXia.Unity`
+- offline Roslyn compile：`XianXia.Core`／`XianXia.Data`／`XianXia.Unity`
 - `git diff --check`
-- BaseGame Content load + `ContentReferenceValidator`
-- SeparateSpace snapshot serialize／deserialize sanity
-- Transition state-machine static sanity
-- SeparateSpaceExitEdgeTrigger arming sanity
-- Presentation restore priority static audit
+- PartyWorld／membership／placement static audit
+- SeparateSpace snapshot serialize／deserialize sanity（若环境可跑）
 
 未打开 Unity；未跑 PlayMode／Unity Test／batchmode。
 
-## 制作人人工验收 checklist
+## 制作人人工验收 checklist（本轮 hardening edge case）
 
-见本轮最终汇报。
+- [ ] 正常两三人小队进洞／出洞
+- [ ] 洞内让一名同行 incapacitated／dying 后，主控单独离开；该角色不得被带出去
+- [ ] 再次进入同一洞府，留在里面的角色仍在那里
+- [ ] Cave enemy 移动到新位置 → Save → Load → 仍保持新位置
+- [ ] Cave NPC／enemy Load 后仍不是 PlayerParty member
+- [ ] 洞内 Save → Load → physical exit 再走一次，无主链回归

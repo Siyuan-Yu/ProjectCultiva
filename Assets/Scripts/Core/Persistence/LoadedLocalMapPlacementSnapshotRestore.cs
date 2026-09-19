@@ -9,6 +9,8 @@ namespace XianXia.Core.Persistence
 {
     /// <summary>
     /// Save/Load 当前 Loaded LocalMap Character 表现落点（非 WorldLocation 真源）。
+    /// Active Separate Space：捕获该图全部 persistent Character local placement，
+    /// 不只 PlayerParty occupants。
     /// </summary>
     public static class LoadedLocalMapPlacementSnapshotRestore
     {
@@ -103,27 +105,75 @@ namespace XianXia.Core.Persistence
             dto.LoadedLocalMapCharacterPlacements.Clear();
             foreach (var entity in world.Entities.All)
             {
-                if (entity == null || (entity.Tags & EntityTag.Character) == 0)
-                    continue;
-                if (!world.LocalMap.ContainsOccupant(entity.Id))
-                    continue;
-                if (!entity.TryGet<EntityLocationComponent>(out var loc) ||
-                    loc == null ||
-                    !loc.HasPresentationOverride)
+                if (!TryResolveCapturePlacement(world, entity, mapId, out var x, out var z))
                     continue;
 
                 dto.LoadedLocalMapCharacterPlacements.Add(new LoadedLocalMapCharacterPlacementSnapshotDto
                 {
                     CharacterId = entity.Id.Value,
                     LocalMapId = mapId,
-                    LocalX = loc.PresentationOverrideX,
-                    LocalZ = loc.PresentationOverrideZ
+                    LocalX = x,
+                    LocalZ = z
                 });
             }
         }
 
         /// <summary>
-        /// Materialize 前：把 Pending Saved 落点写入 Domain（AddOccupant + PresentationOverride）。
+        /// Active Separate Space 中可持久化的 Character：属于 ActiveMapLayoutId、
+        /// 有 Interior EntityLocation（或 session occupant）且有合法 local placement。
+        /// </summary>
+        public static bool BelongsToActiveSeparateSpaceMap(
+            SimulationWorld world,
+            Entity entity,
+            string mapId)
+        {
+            if (world?.LocalMap == null || entity == null || string.IsNullOrEmpty(mapId))
+                return false;
+            if ((entity.Tags & EntityTag.Character) == 0)
+                return false;
+
+            if (world.LocalMap.IsActive &&
+                world.LocalMap.ContainsOccupant(entity.Id) &&
+                string.Equals(
+                    world.LocalMap.ActiveMapLayoutId?.Trim(),
+                    mapId,
+                    System.StringComparison.Ordinal))
+                return true;
+
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) ||
+                loc == null ||
+                !loc.HasLocation)
+                return false;
+
+            return world.LocalPlaces.TryGet(loc.LocationId, out var place) &&
+                   !string.IsNullOrEmpty(place.LocalMapId) &&
+                   string.Equals(place.LocalMapId, mapId, System.StringComparison.Ordinal);
+        }
+
+        static bool TryResolveCapturePlacement(
+            SimulationWorld world,
+            Entity entity,
+            string mapId,
+            out float x,
+            out float z)
+        {
+            x = 0f;
+            z = 0f;
+            if (!BelongsToActiveSeparateSpaceMap(world, entity, mapId))
+                return false;
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                return false;
+            if (!loc.HasPresentationOverride)
+                return false;
+
+            x = loc.PresentationOverrideX;
+            z = loc.PresentationOverrideZ;
+            return true;
+        }
+
+        /// <summary>
+        /// Materialize 前：把 Pending Saved 落点写入 Domain PresentationOverride。
+        /// 不通过 placement 扩展 Party／session occupancy（与 membership 严格分离）。
         /// </summary>
         public static int ApplySavedPlacementsToDomain(SimulationWorld world, string localMapId)
         {
@@ -144,7 +194,6 @@ namespace XianXia.Core.Persistence
                 if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
                     continue;
 
-                world.LocalMap.AddOccupant(id);
                 if (!ent.TryGet<EntityLocationComponent>(out var loc) || loc == null)
                 {
                     loc = new EntityLocationComponent();
@@ -223,6 +272,9 @@ namespace XianXia.Core.Persistence
 
             if (wp.Mode == PartyWorldPresenceMode.AtHex || wp.UsesHexPresence)
                 return "AtHex(" + wp.ResidualHex + ")";
+
+            if (wp.Mode == PartyWorldPresenceMode.InSeparateSpace)
+                return "InSeparateSpace";
 
             return wp.Mode.ToString();
         }

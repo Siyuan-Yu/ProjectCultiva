@@ -1332,7 +1332,7 @@ namespace XianXia.Unity.Host
             {
                 _session.World.PartyWorld.LocalMapId = _session.World.LocalMap.ActiveMapLayoutId ?? string.Empty;
                 _session.World.PartyWorld.SiteId = string.Empty;
-                _session.World.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                _session.World.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
             }
             else
             {
@@ -1473,6 +1473,20 @@ namespace XianXia.Unity.Host
             {
                 Debug.LogError(
                     "[SeparateSpaceRestoreInvariantFailure] ContinuousOutdoor still active after Cave restore.");
+                failed = true;
+            }
+
+            if (world.PartyWorld == null ||
+                world.PartyWorld.Mode != PartyWorldPresenceMode.InSeparateSpace ||
+                !string.Equals(
+                    world.PartyWorld.LocalMapId?.Trim(),
+                    mapId,
+                    System.StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "[SeparateSpaceRestoreInvariantFailure] PartyWorld not InSeparateSpace map=" + mapId +
+                    " mode=" + (world.PartyWorld?.Mode.ToString() ?? "null") +
+                    " localMapId=" + (world.PartyWorld?.LocalMapId ?? string.Empty));
                 failed = true;
             }
 

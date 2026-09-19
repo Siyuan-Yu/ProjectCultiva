@@ -171,6 +171,8 @@ namespace XianXia.Core.World.Strategic
                            presence.WorldPosY.ToString("0.###") + ")";
                 case PartyWorldPresenceMode.AtHex:
                     return "AtHex(" + presence.ResidualHex + ")";
+                case PartyWorldPresenceMode.InSeparateSpace:
+                    return "InSeparateSpace";
                 default:
                     return presence.Mode.ToString();
             }

@@ -97,7 +97,7 @@ namespace XianXia.Core.Persistence
 
             world.PartyWorld.LocalMapId = session.ActiveMapLayoutId;
             world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
             return Result.Success();
         }
 
@@ -148,7 +148,9 @@ namespace XianXia.Core.Persistence
             session.ReturnWorldX = travel.WorldX;
             session.ReturnWorldY = travel.WorldY;
 
-            if (dto.LoadedLocalMapCharacterPlacements != null)
+            // Placement 不等于 occupancy：只把当前合法 transition members 登记为 occupant。
+            var party = world.Strategic?.PlayerPartyContext;
+            if (dto.LoadedLocalMapCharacterPlacements != null && party != null)
             {
                 for (var i = 0; i < dto.LoadedLocalMapCharacterPlacements.Count; i++)
                 {
@@ -157,13 +159,16 @@ namespace XianXia.Core.Persistence
                         continue;
                     if (!string.Equals(p.LocalMapId, mapId, System.StringComparison.Ordinal))
                         continue;
-                    session.AddOccupant(new EntityId(p.CharacterId));
+                    var id = new EntityId(p.CharacterId);
+                    if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
+                        continue;
+                    session.AddOccupant(id);
                 }
             }
 
             world.PartyWorld.LocalMapId = mapId;
             world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
             return Result.Success();
         }
 

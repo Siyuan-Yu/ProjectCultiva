@@ -75,7 +75,7 @@ namespace XianXia.Core.Persistence
                 HasValue = true,
                 LocalMapId = mapId,
                 SiteId = string.Empty,
-                PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                PartyWorldMode = PartyWorldPresenceMode.InSeparateSpace,
                 WildernessHex = default,
                 WorldLocationLabel = "SeparateSpace(" + mapId + ")",
                 Source = "SeparateSpaceSession"
@@ -100,9 +100,19 @@ namespace XianXia.Core.Persistence
                 return;
             }
 
+            if (resolved.PartyWorldMode == PartyWorldPresenceMode.InSeparateSpace)
+            {
+                world.PartyWorld.ClearSiteFocus();
+                world.PartyWorld.LocalMapId = resolved.LocalMapId ?? string.Empty;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
+                return;
+            }
+
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.LocalMapId = resolved.LocalMapId ?? string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.Mode = resolved.PartyWorldMode == PartyWorldPresenceMode.AtWorldPosition
+                ? PartyWorldPresenceMode.AtWorldPosition
+                : PartyWorldPresenceMode.AtHex;
         }
 
         /// <summary>Active 权威 Required Map 与 target 一致时，允许在尚未 Materialize 前装图。</summary>
