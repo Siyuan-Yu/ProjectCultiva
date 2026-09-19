@@ -1,9 +1,11 @@
 # SPACE-01 — Separate Space / Interior Transition V1
 
 > 日期：2026-09-18  
-> 状态：**Implementation Complete / Producer Acceptance Pending**  
+> 状态：**Implementation Complete / Producer Acceptance Pending**（**不是 Accepted／未封板**）  
 > 第一份正式样板：**废弃洞府（Cave）**  
-> 制作人约束：未 `git add` / `commit` / `push`；未打开 Unity；未运行 PlayMode／Unity Test／batchmode。
+> 提交 checkpoint：`c05a3d2`（2026-09-19 00:32:36，制作人提交并推送，非开发会话所为）  
+> 新会话入口：[247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md)  
+> 制作人约束：不 `git add` / `commit` / `push`（除非授权 checkpoint）；不打开 Unity；不运行 PlayMode／Unity Test／batchmode。
 
 ## 目的
 
@@ -166,6 +168,45 @@ Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session�
 - Debug Force Leave 仅在 LevelTester 诊断页
 
 已删除：ContextMenu 右键离开、`TryPickInteriorExitAtMouse`、Action Menu「离开洞窟」。
+
+## 当前基本通过的功能（制作人自测记录）
+
+以下流程当前基本可用，但**尚未完成正式人工验收**：
+
+- **Discovery**：hidden entrance → 附近 strange-presence hint → Survey → reveal（reveal authority = PlayerParty knowledge，非全球 NPC knowledge）。
+- **Approach**：Revealed + Far → 右键只走向 entrance；Revealed + Near → 出现 Enter。
+- **Entry**：当前随队成员全部自动进入；无队员选择弹窗。
+- **Combat**：洞内 direct in-place combat；followers 自动 assist；不入 BattleOffer／不建第二战场。
+- **Save/Load**：洞内 Save/Load 已基本验证可工作，Load 后留在洞内。
+- **Exit**：physical exit trigger → exact Outdoor return。
+
+## Deferred Final Hardening（封板前必须完成）
+
+> **以下为制作人明确暂缓（不在实现轮内修复）的项目。完成前不得把 SPACE-01 写成 Accepted / Sealed。**
+
+### A. Enter transition membership fallback
+
+`SeparateSpaceTransitionService.CollectTransitionMembers()` 在按 `ShouldMemberTransitionWithParty` 收集结果为空时会 **fallback 抓取所有 Player characters**，可能把失能／尸体／已脱队／FormalArmy 控制的人物一起带进洞。建议未来删除该 fallback。
+
+### B. Leave evacuation ownership
+
+`SeparateSpaceTransitionService.EvacuateSeparateSpaceParty()` 迁移范围 = session occupants ＋ 扫描所有仍挂在 interior location 的 Player characters，**未严格使用** `PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty()`。应严格只迁移随队成员。
+
+### C. Incapacitated / corpse / stranded party member
+
+主控出洞时，失能（incapacitated）、尸体（corpse）、detached、stranded 队员行为**尚未系统验证**；必须明确这些状态不应被错误 teleport（对照 ADR-0019 与 CW-02 安全出口规则）。
+
+### D. PartyWorld Mode
+
+Separate Space 当前仍复用 `PartyWorldPresenceMode.AtHex`（`SeparateSpaceTransitionService.Enter`、`SeparateSpaceSessionSnapshotRestore`、`HostSnapshotSessionRehydration`、`PlayableHostBootstrap`）。未来应增加 `InSeparateSpace`，避免 Hex compatibility semantic 污染。
+
+### E. Cave NPC moved-position persistence
+
+`LoadedLocalMapPlacementSnapshotRestore.Capture()` 目前**只捕获 active map 的 occupants**，洞内 resident／enemy 移动后的 Local position 不落点。未来需确保这些位置在 Save/Load 后保留。
+
+### F. 未 Producer Accepted / Sealed
+
+**Deferred hardening required before final sealing.** 封板前需完整验收：discover → reveal → enter → combat → save/load → physical exit → downed edge case。
 
 ## MAP-04 暂停点
 

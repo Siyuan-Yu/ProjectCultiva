@@ -3,7 +3,9 @@
 > 日期：2026-09-17
 > 状态：Paused / Producer Acceptance Pending
 > **暂停原因（2026-09-18）：** MAP-04 paused for SPACE-01 stabilization dependency。本轮不继续 Legacy 删除；详见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。勿写成 MAP-04 Accepted。
-> 制作人约束：所有改动未暂存、未提交；未打开 Unity，未运行 PlayMode、Test Runner 或 batchmode。
+> **当前 checkpoint（2026-09-19 核实）：** 第一批大清理 = `596d9c9`；第二批 + FormalArmy／Snapshot 回归修复 = `54141d1`。**无 seal 提交。** 剩余 consumer 清单与新会话入口见 [247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md) §13。
+> **未通过的 Completion Gate 状态未变：** ① Build All Apps 切换失败（`Apps/` 仍为 2026-09-16 旧产物，含已删除的 `RegionEditor.exe`／`WorldGraphEditor.exe`）；② Legacy Hex gameplay 源码面仍广（Hex 命名文件 36 个、`PlayerPartyHexTravelService`／`ArmyHex*`／Hex pathfinder 仍在 Runtime）；③ Surface-only WorldMap 未做 Unity 视觉／交互验收；④ 缺等价的独立可视化外交／开局战略编辑窗口；⑤ 历史 EditMode Hex 测试未运行。
+> 制作人约束：不暂存、不提交（除非授权 checkpoint）；不打开 Unity，不运行 PlayMode、Test Runner 或 batchmode。
 
 ## FormalArmy authored deployment authority 稳定性修复（制作人复验待定）
 

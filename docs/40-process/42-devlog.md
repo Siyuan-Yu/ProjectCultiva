@@ -1,5 +1,12 @@
 # 开发日志
 
+## 2026-09-18／19 — Project Handoff / Recovery Snapshot（Documentation only；无实现修改）
+
+- 新增 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md)：新会话入口。含 Executive Summary、Milestone Status Table（Editor Toolchain／MAP-01～04／SPACE-01）、Authoring 终态术语与比例、WorldComposer 不可重争 UX、Continuous Runtime authority、WorldSite/Territory 规则与 6 个永久 Site 实测、WorldMap 产品规则、MAP-03 已验收清单、Battle 封板规则、SPACE-01 现状与 **Deferred Final Hardening A～F**、MAP-04 已迁／仍剩余（含重新 grep 的实测计数）、8 条回归与根因、Known Issues／Do Not Regress／Resume Order、Producer/Codex workflow、Git 状态与可复制给新 ChatGPT 的上下文。
+- 同步 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)（Paused + checkpoint + gate 现状）、[246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)（当前基本通过功能 + Deferred Hardening A～F）、[41-roadmap](41-roadmap.md)（SPACE-01 final hardening pending；MAP-04 paused）、[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)（简短 Implementation Status）。未改历史 acceptance 文档（240／242／243／244）。
+- 离线验证仅：`tools/offline-compile.ps1` Core（470 sources）／Data（80）／Unity（147）→ **ALL_OK**，0 error；未打开 Unity，未跑 PlayMode／Test Runner／batchmode；未 `git add`／`commit`／`push`。
+- 状态：Editor Toolchain／MAP-01／MAP-02／MAP-03 **Accepted / Sealed**；**SPACE-01 Implementation Complete（`c05a3d2`）／Producer Acceptance Pending**；**MAP-04 Paused / Not Accepted**。
+
 ## 2026-09-18 — SPACE-01 Final Stabilization（Load Presentation + Physical Exit）（待制作人验收）
 
 - 修复 Cave 内 Save/Load 后出现绿色 Continuous Outdoor：`RebuildPresentationAfterLoad` 优先 `RebuildSeparateSpacePresentationAfterLoad`；禁止 Outdoor ActiveControlled resolver／`RebuildAfterWorldRestore` 抢先。

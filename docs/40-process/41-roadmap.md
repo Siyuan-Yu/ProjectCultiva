@@ -1,6 +1,10 @@
 # 路线图
 
-> **2026-09-17 地图进度：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
+> **2026-09-19 当前状态（Handoff）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)／[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)／[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。
+> **当前 WIP：** **[SPACE-01](246-space-01-separate-space-interior-transition-v1-2026-09-18.md) — Separate Space / Interior Transition V1：Implementation Complete（`c05a3d2`）／Producer Acceptance Pending；final hardening A～F pending。** [MAP-04](245-map-04-physical-legacy-cleanup-2026-09-17.md) — **Paused / resume after SPACE-01**（不是 Accepted）。
+> 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
+
+> **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
 > **Editor 工具链／旧 Content 迁移：** [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 已锁定方向，MAP-01/MAP-02/MAP-03 已完成；下列为后续边界，而非本轮开工授权：
 >
@@ -29,7 +33,7 @@
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
 - **下一步：** 制作人按 237／239 的正常玩法路线验收青石荒村接管前后 NPC 劳作、公库变化、战略物资访问与储藏室，以及 Save/Load。后续只记录更完整仓储物流、税赋、跨 Site 运输和离屏生产设计，不在本轮预实现。
-- **地图后续：** MAP-03 已由制作人人工验收；MAP-04 物理清理实施中，Chunk 的 MapLayout 桥和两套旧 Editor 已移除，Scenario、Site opening、Hex WorldMap 等仍待迁。当前审计与未通过的 gate 见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。方向边界见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
+- **地图后续：** MAP-03 已由制作人人工验收；MAP-04 物理清理目前 **Paused**，Chunk 的 MapLayout 桥和两套旧 Editor 已移除，Scenario、Site opening、Hex WorldMap 等仍待迁。**恢复顺序：SPACE-01 final hardening → SPACE-01 验收/封板 → MAP-04 final consumer audit → 物理删除 → 验收 → seal。** 当前审计、剩余 consumer 与未通过 gate 见 [247](247-project-handoff-current-state-2026-09-18.md) §13／§15 与 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。方向边界见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
 
 - **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；NPC 自动攻城与普通建筑战争。
 
