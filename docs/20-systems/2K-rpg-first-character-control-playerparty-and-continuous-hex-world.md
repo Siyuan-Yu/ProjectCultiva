@@ -96,6 +96,8 @@ PlayerParty
 
 **当前目标：唯一行动小队。** 每个正常活动人物属于唯一小队，单人也是小队；玩家、NPC、旧巡逻／守备共用组织模型。PlayerParty 最终仅为玩家所控小队及 Active 的控制投影，不再单独维护可写成员名单。旧 FormalArmy 仅迁移适配，不是特殊战斗入口。
 
+**生命状态 membership 规则（SPACE-01 acceptance fix）：** PlayerParty 成员失去战斗行动能力时，若仍有 Alive／CanFight successor，则先切换 Active，再将失能成员脱离为 singleton squad；恢复生命不会自动重新加入。若无人可行动，为 terminal control／recovery／succession 暂留必要 membership，但这些成员不拥有 follow、travel、跨空间 transition 或 Party materialization authority。
+
 ---
 
 ## 3. Active 切换

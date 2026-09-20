@@ -1,11 +1,11 @@
 # SPACE-01 — Separate Space / Interior Transition V1
 
 > 日期：2026-09-18
-> 状态：**Implementation Complete / Producer Acceptance Pending**（**不是 Accepted／未封板**）
+> 状态：**Accepted / Sealed**（Producer Acceptance completed 2026-09-20）
 > 第一份正式样板：**废弃洞府（Cave）**
-> 提交 checkpoint：`c05a3d2`（主体实现）；本轮 Final Hardening **未提交**（等待制作人验收授权）
+> 提交 checkpoint：`c05a3d2`（主体实现）；Final Hardening seal checkpoint = `Seal SPACE-01 separate-space ownership and persistence`
 > 新会话入口：[247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md)
-> 制作人约束：不 `git add` / `commit` / `push`（除非授权 checkpoint）；不打开 Unity；不运行 PlayMode／Unity Test／batchmode。
+> 制作人约束：本次 Seal checkpoint 已明确授权；不打开 Unity；不运行 PlayMode／Unity Test／batchmode。
 
 ## 目的
 
@@ -156,6 +156,56 @@ Separate Space 中 Save 继续保存 HP／life state／SeparateSpaceSession／lo
 
 再次进入同一 Separate Space 时，按现有 visibility rule 可在原空间看到他们。禁止「清空整个 LocalMap 玩家角色」式退出。
 
+## PlayerParty Life-State Membership（Acceptance Fix）
+
+PlayerParty member 进入 `Incapacitated`、`Dead` 或 `Removed` 后：
+
+- 若仍有合法 Alive／CanFight member，先按既有稳定顺序完成 Active succession，再将非战斗成员通过 `SquadMembershipService.LeaveToSingleton` 脱离 `squad:player`；恢复后不自动重新入队。
+- 若全队没有可行动成员，为 `TemporarilyUnavailable`／`AllMembersDead` 与 recovery／succession 保留必要的 terminal control membership，不允许把 controlled squad 删除为空。
+- terminal compatibility membership 不提供 follow、travel、Separate Space transition 或 Outdoor party materialization authority。
+- active battle lock 可暂时延迟 singleton transfer；生命状态 gate 立即生效，并由 Host tick、Separate Space Leave 与 Snapshot restore 的幂等 reconcile 在解锁后完成脱离。
+
+进入 Separate Space 后，真正 transition 的成员以及 active map 中已有 local placement 的 persistent Character 均清除旧 Outdoor personal `WorldPresence`。洞内 `EntityLocation` + local placement 是空间真源；return point 只由 SeparateSpaceSession 的 `ReturnSurfaceId/ReturnWorldX/ReturnWorldY` 保存。Leave 只给当前合法 transition members 恢复 Outdoor presence，stranded／downed／corpse 保留原洞内 location 与 placement。
+
+Snapshot restore 会 reconcile 本轮之前仍把非战斗成员留在 `squad:player` 的存档；active Separate Space occupant／placement 会移除 stale Outdoor presence，placement restore 不重新入队。该行为已通过 Producer Acceptance。
+
+### Save/Load Acceptance Fix：Snapshot authority 与 Opening migration
+
+新格式存档中，Character 没有 Outdoor `WorldPresence` 可以是明确且合法的结果。`EntityLocationSnapshotAuthorityComponent.SnapshotFieldPresent == true` 表示 Snapshot 已经正式表达该 Character 的 `EntityLocation` 以及是否存在 Outdoor presence；`RestoreMissingLegacyOpeningPresences` 不得把“没有 saved WorldPresence”解释为旧档缺失并恢复 Opening anchor。
+
+- EntityLocation Snapshot authority 优先：即使 `HasEntityLocation == false`，新格式明确保存的 absence 也禁止 Opening inference。
+- Active Separate Space ownership 优先：occupant 或属于 active map 的 Interior Character 无条件跳过 Opening migration。
+- stranded Interior Character 在 PlayerParty 离开后仍以原 Cave `LocationId` 与 local placement 为空间真源；Outdoor Save/Load 后重新进入同一 Cave 时按该 authority 重新呈现，不加入 PlayerParty，也不创建 Outdoor presence。
+- 只有 `SnapshotFieldPresent == false` 且同时缺少 saved/current WorldPresence、FormalArmy ownership 的真正旧档 Character，才保留既有 best-effort Opening anchor migration。
+
+`ContinuousOpeningSpawnPresenceResolver` 的 New Game／真实旧档语义保持不变。该行为已通过 Producer Acceptance。
+
+### Local Placement Acceptance Fix：Down freeze 与 Leave flush
+
+Separate Space persistent local placement 必须在 presentation teardown 前写回 Domain；Party 已离开后再 Save，无法从已销毁的 Cave `EntityView` 恢复角色最后的真实位置。
+
+- Down／Death presentation boundary 先从当前 View 捕获 exact local position，再取消移动并更新弥留／尸体表现。
+- Separate Space Leave 在取消移动、提交 Core Leave、清 session／LocalPlaces 和重建 presentation 之前，对 active map 全部 persistent Character 执行 final placement flush；范围不限 occupants。
+- LevelTester「选中角色进入弥留」在正式 `CombatLifeStateService.TryEnterIncapacitated` 成功后立即走同一个 Host capture helper。
+- Party 离开后，stranded inactive-space Character 的长期位置继续由自身 `EntityLocationComponent.PresentationOverride` 保存；Outdoor Snapshot 直接序列化该字段。
+- `LoadedLocalMapCharacterPlacements` 仍只辅助 active loaded map restore，不扩展为 inactive Cave 的第二套 authority。
+- `EntityViewSpawner` 仍优先使用 saved PresentationOverride；fallback stack 只用于真实缺失 placement 的 Character，不代替 persistence truth。
+
+该行为已通过 Producer Acceptance。
+
+### Outdoor Snapshot Rebuild Acceptance Fix：保留 inactive-space placement
+
+Producer Acceptance 确认：Outdoor Snapshot presentation rebuild 曾遍历 `world.Entities.All` 并清除每个 `EntityLocation.PresentationOverride`，从而在 Snapshot 已正确恢复 Cave exact placement 之后，再次破坏 inactive Separate Space Character 的持久位置。
+
+- Snapshot 恢复的 inactive-space `LocationId + PresentationOverride` 是 persistence truth；当前地图未加载不授权删除它。
+- `ContinuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore` 不再全局清除 EntityLocation placement。
+- Outdoor PlayerParty、普通 personal `WorldPresence` Character、FormalArmy 与 Outdoor combat participant 继续由各自正向 Outdoor authority 在 materialization transaction 中覆盖自己的 presentation。
+- 没有 Outdoor authority 的 stranded／incapacitated／corpse 不进入 Continuous materialization，其 Cave override 原样保留至重新进入该空间。
+- `EntityViewSpawner` authored-location stack 仍仅是真实缺失 exact override 时的 fallback，不是 persistence authority。
+- Continuous runtime 其余 cleanup 仍限定在自身 `_desiredMaterializedEntities` removal 或 `_continuousSitePopulation` release 集合，不扩展为 global spatial reset。
+
+该行为已通过 Producer Acceptance。
+
 ## PartyWorld Mode（SPACE-01 Final Hardening）
 
 Active Separate Space：
@@ -214,10 +264,10 @@ Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session�
 - **Save/Load**：洞内 Save/Load 已基本验证可工作，Load 后留在洞内。
 - **Exit**：physical exit trigger → exact Outdoor return。
 
-## Final Hardening（本轮已完成 · 仍待制作人人工验收）
+## Final Hardening（已完成并通过制作人人工验收）
 
-> 状态仍为 **Implementation Complete / Producer Acceptance Pending**。
-> **不要**写成 Accepted／Sealed。MAP-04 继续 **Paused／Producer Acceptance Pending**。
+> 状态：**Accepted / Sealed**。
+> Producer Acceptance 已覆盖 discovery、approach、entry、in-place combat、physical exit、exact return、casualty ownership，以及 Active Cave／Outdoor Save-Load persistence。
 
 本轮已落地：
 
@@ -230,12 +280,11 @@ Separate Space restore **不**重新调用 `Enter()`；沿用 Snapshot session�
 | E. Character local placement | active-map 全部 persistent Character Save／Load；restore 不污染 Party membership |
 | Wrapper cleanup | 删除无 caller 的 `IssueEnterLocalMapWithParty` |
 
-仍待：**制作人 Unity 人工验收**（见文末 checklist）后方可 Seal。
+Producer Acceptance 已完成；本范围封板。后续只接受明确 regression fix，不在 MAP-04 中重新设计 Separate Space。
 
 ## MAP-04 暂停点
 
-本轮 **不**继续 MAP-04 Legacy 删除（Hex／WorldRegion／WorldGraphEditor 等）。
-MAP-04 保持 **Paused / Producer Acceptance Pending**，待 SPACE-01 验收后再续 Final Cleanup。见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
+SPACE-01 stabilization dependency 已解除。MAP-04 可恢复 Final Physical Legacy Cleanup，但其改动继续保持 **Implementation Complete / Producer Acceptance Pending**，独立等待制作人人工验收。见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
 ## 轻量验证（本轮）
 
@@ -246,11 +295,13 @@ MAP-04 保持 **Paused / Producer Acceptance Pending**，待 SPACE-01 验收后�
 
 未打开 Unity；未跑 PlayMode／Unity Test／batchmode。
 
-## 制作人人工验收 checklist（本轮 hardening edge case）
+## 制作人人工验收记录（2026-09-20 completed）
 
-- [ ] 正常两三人小队进洞／出洞
-- [ ] 洞内让一名同行 incapacitated／dying 后，主控单独离开；该角色不得被带出去
-- [ ] 再次进入同一洞府，留在里面的角色仍在那里
-- [ ] Cave enemy 移动到新位置 → Save → Load → 仍保持新位置
-- [ ] Cave NPC／enemy Load 后仍不是 PlayerParty member
-- [ ] 洞内 Save → Load → physical exit 再走一次，无主链回归
+- [x] 正常两三人小队进洞／出洞
+- [x] 洞内让一名同行 incapacitated／dying 后，主控单独离开；该角色不得被带出去
+- [x] 再次进入同一洞府，留在里面的角色仍在那里
+- [x] Cave enemy 移动到新位置 → Save → Load → 仍保持新位置
+- [x] Cave NPC／enemy Load 后仍不是 PlayerParty member
+- [x] 洞内 Save → Load → physical exit 再走一次，无主链回归
+- [x] Outdoor Save → Load → re-enter Cave 后，stranded Character life state／ownership／exact local placement 保持
+- [x] inactive Separate Space placement 不再被 Outdoor snapshot presentation rebuild 清除

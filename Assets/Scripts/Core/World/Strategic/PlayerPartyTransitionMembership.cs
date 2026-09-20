@@ -12,9 +12,9 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// PlayerParty LocalMap / Hex 边界 Transition：哪些成员随 Active 一起转移。
     /// Membership 为真源；FormalArmy 成员排除；已 Stop Follow 者不在 party.Members。
-    /// 生命状态 gate：Incapacitated / Corpse（非 Alive）不再属于「当前正随队旅行的人」——
-    /// 逻辑 membership 保留（绝不 TryRemoveMember），但 physical traveling membership 排除，
-    /// 弥留/尸体由 StrategicResidual 在倒下 hex 负责，绝不跟随主控移动。
+    /// 有 living successor 时，Incapacitated / Dead / Removed member 会由 life-state
+    /// reconciliation 脱离到 singleton squad；全队无人可行动时可为 terminal control
+    /// compatibility 暂留 membership，但本 gate 始终拒绝其 travel / transition authority。
     /// </summary>
     public static class PlayerPartyTransitionMembership
     {

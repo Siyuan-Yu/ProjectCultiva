@@ -36,6 +36,7 @@ namespace XianXia.Core.Persistence
                     new EntityId(dto?.ActiveCharacterId ?? 0), out _))
             {
                 party.RefreshActiveAfterLifeState(world);
+                PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
                 return;
             }
             if (!string.IsNullOrEmpty(controlledSquadId))
@@ -45,12 +46,16 @@ namespace XianXia.Core.Persistence
                 if (TryApplyExplicit(world, party, dto))
                 {
                     party.RefreshActiveAfterLifeState(world);
+                    PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
                     return;
                 }
             }
 
             if (TryInferFromWorldPresence(world, party))
+            {
                 party.RefreshActiveAfterLifeState(world);
+                PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
+            }
         }
 
         static bool TryApplyExplicit(

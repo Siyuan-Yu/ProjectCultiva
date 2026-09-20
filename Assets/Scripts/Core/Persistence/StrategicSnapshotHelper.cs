@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -27,6 +28,10 @@ namespace XianXia.Core.Persistence
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid or duplicate CharacterWorldPresence snapshot.");
                 var id = new EntityId(saved.CharacterId);
+                // Separate Space local placement supersedes a stale pre-SPACE-01 Outdoor DTO.
+                // Rehydration removes that personal presence instead of teleporting the Character.
+                if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id))
+                    continue;
                 if (!world.Entities.TryGet(id, out _) ||
                     !world.WorldPresence.TryGet(id, out var actual) || actual == null ||
                     (int)actual.Mode != saved.Mode ||

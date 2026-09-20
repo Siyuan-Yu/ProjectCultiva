@@ -377,9 +377,13 @@ namespace XianXia.Unity.Host
 
         void ForceSelectedCharacterIncapacitated()
         {
+            var selected = selectionController?.State?.SelectedIds;
             var result = LevelTesterCharacterCombatCheats.TryForceSelectedCharacterIncapacitated(
                 bootstrap?.Session?.World,
-                selectionController?.State?.SelectedIds);
+                selected);
+            if (result.Success && selected != null && selected.Count == 1)
+                HostSnapshotLocalPlacementCaptureSync.TryCaptureCharacterPlacementFromView(
+                    bootstrap?.Session?.World, bootstrap?.ViewSpawner, selected[0]);
             _partyCombatCheatStatus = result.Message;
         }
 

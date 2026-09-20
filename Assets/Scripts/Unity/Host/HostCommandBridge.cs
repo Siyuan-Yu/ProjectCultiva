@@ -284,7 +284,10 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            // 离开前停掉洞内走位，避免 Location 再被表现层吸附错乱。
+            // Final exact-position flush must run while Cave LocalPlaces and Views still exist.
+            HostSnapshotLocalPlacementCaptureSync
+                .FlushActiveSeparateSpaceCharacterPlacementsFromViews(hostBootstrap);
+            // 捕获后才停掉洞内走位，避免 teardown 再改写表现位置。
             CancelPartyPresentationMovement();
             var returnSurfaceId = _session.World.LocalMap.ContinuousOutdoorReturnSurfaceId;
             var returnX = _session.World.LocalMap.ContinuousOutdoorReturnX;

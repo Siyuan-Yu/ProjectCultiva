@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-09-20 — SPACE-01 弥留队员跨空间 ownership 验收修复（待制作人验收）
+
+- 新增统一 PlayerParty life-state membership reconcile：有 living successor 时先完成 Active succession，再将 Incapacitated／Dead／Removed member 转为 singleton squad；无人可行动时保留 terminal control anchor，但 traveling members 为空。正式生命状态入口、Host 解锁重试、Separate Space Leave 与 Snapshot restore 共用该幂等路径；恢复生命不自动入队。
+- Outdoor Party population、整体 presentation 对齐和 follower slot 只认 `ShouldMemberTransitionWithParty`。Separate Space local placement 清除 stale Outdoor personal presence；Leave 只恢复合法离开成员，stranded Character 保留洞内 EntityLocation／placement。
+- 纯 C# sanity 覆盖 follower detach、Active succession、全员失能 terminal 状态、Leave stranded ownership、JSON Snapshot round-trip 与旧 snapshot reconcile；Host 最小编译 0 error。未打开 Unity，SPACE-01 保持 **Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-20 — LevelTester 单角色弥留验收作弊（待制作人验收）
 
 - 在 `HostLevelTesterCheatPanel` 的“战斗”页增加“选中角色进入弥留”：只接受当前恰好单选的 Character，玩家队员与 NPC 均可；不回退到 Active Character、队伍首人或全体角色。

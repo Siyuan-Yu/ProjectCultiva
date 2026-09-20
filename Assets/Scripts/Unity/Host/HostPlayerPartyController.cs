@@ -97,6 +97,7 @@ namespace XianXia.Unity.Host
         bool _wasdHeldLastFrame;
         bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
+        EntityId _observedActiveCharacterId = EntityId.None;
 
         // Phase 5R-B4: transient Site LocalVisible→Canonical sync state（不落盘、不是 Position truth）。
         // _siteSyncHeld：Materialize 完成帧标记 —— OnLocalMapMaterialized 置 true，下一次 sync tick
@@ -150,6 +151,7 @@ namespace XianXia.Unity.Host
             _workLoop = host.GetComponent<HostWorkLoop>();
             _cameraRig = host.GetComponent<PlayableHostCameraRig>();
             _spawner = host.ViewSpawner;
+            _observedActiveCharacterId = Party != null ? Party.ActiveCharacterId : EntityId.None;
         }
 
         public bool TryFollowActive(EntityId candidate, out string error)
@@ -378,6 +380,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        world, Party, id))
                     continue;
                 var offset = FollowerOffset(followerIndex);
                 followerIndex++;
@@ -737,6 +742,7 @@ namespace XianXia.Unity.Host
             _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
             _lastSameExitReplanDiagnostic = string.Empty;
             _lastSameExitReplanDiagnosticTime = -10f;
+            _observedActiveCharacterId = Party != null ? Party.ActiveCharacterId : EntityId.None;
         }
 
         void InvalidatePartyDerivedLocalActions()
@@ -774,6 +780,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        bootstrap.Session.World, Party, id))
                     continue;
                 OrderFollowerTowardActive(id, followerIndex);
                 followerIndex++;
@@ -834,11 +843,13 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
-            var previousActive = Party.ActiveCharacterId;
-            Party.RefreshActiveAfterLifeState(bootstrap.Session.World);
+            var previousActive = _observedActiveCharacterId;
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(
+                bootstrap.Session.World);
             var currentActive = Party.ActiveCharacterId;
             if (previousActive != currentActive)
                 ApplyAutomaticActiveChange(previousActive, currentActive);
+            _observedActiveCharacterId = currentActive;
         }
 
         void ApplyAutomaticActiveChange(EntityId previousActive, EntityId currentActive)
@@ -2537,6 +2548,10 @@ namespace XianXia.Unity.Host
                 if (Party.IsActive(id))
                     continue;
 
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        bootstrap.Session.World, Party, id))
+                    continue;
+
                 // Formation slot 按 Party.Members 稳定顺序分配：每遇到一个非 Active follower
                 // 立即确定它自己的 slot；之后即使因 melee/farm/moving/cooldown 被 continue，
                 // 也不会改变其他 follower 的 slot（修复：原实现 followerIndex++ 在多个
@@ -2662,6 +2677,10 @@ namespace XianXia.Unity.Host
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
                     continue;
+                if (bootstrap?.Session?.World != null &&
+                    !PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        bootstrap.Session.World, Party, id))
+                    continue;
                 if (id == follower)
                     return idx;
                 idx++;
@@ -2761,6 +2780,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        bootstrap.Session.World, Party, id))
                     continue;
                 if (_followerSharedActivity.TryGetValue(id.Value, out var assigned) &&
                     assigned == current)

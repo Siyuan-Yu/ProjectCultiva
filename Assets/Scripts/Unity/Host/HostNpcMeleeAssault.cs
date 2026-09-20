@@ -527,6 +527,10 @@ namespace XianXia.Unity.Host
         {
             if (viewSpawner == null || id.IsNone || entity == null)
                 return;
+            // A moving Character can fall between path nodes. Freeze the actual View position
+            // before movement cancellation so Incapacitated and Dead share one persistent anchor.
+            HostSnapshotLocalPlacementCaptureSync.TryCaptureCharacterPlacementFromView(
+                bootstrap?.Session?.World, viewSpawner, id);
             moveController?.CancelPresentationMovementPublic(id);
             if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return;

@@ -176,6 +176,7 @@ namespace XianXia.Core.Combat
                 }
                 attribution.Set(responsibleAttackerId);
             }
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
             return true;
         }
 
@@ -277,6 +278,7 @@ namespace XianXia.Core.Combat
             if (!responsibleAttackerId.IsNone)
                 new SocialEventService().RecordCharacterKilled(world, responsibleAttackerId, target.Id);
             ClearDeathAttribution(target);
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
             return true;
         }
 
@@ -376,6 +378,7 @@ namespace XianXia.Core.Combat
 #endif
             life.State = LifecycleState.Removed;
             life.ClearBleedOut();
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
 
             // 大地图
             world.WorldPresence?.Remove(entity.Id);

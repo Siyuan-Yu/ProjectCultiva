@@ -225,6 +225,8 @@ namespace XianXia.Unity.Host
                 RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
                 if (world.LocalMap.IsActive)
                     LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, mapId);
+                if (world.LocalMap.IsActive)
+                    SeparateSpaceTransitionService.ReconcileActiveSeparateSpaceWorldPresence(world);
             }
 
             // 全部 Content shell 与 motion overlay 均成功后，才同步成员／presentation／pursuit，
@@ -251,7 +253,10 @@ namespace XianXia.Unity.Host
              mapId.StartsWith("base:map_site_", System.StringComparison.Ordinal) ||
              mapId.StartsWith("base:map_wilderness_", System.StringComparison.Ordinal));
 
-        /// <summary>Only a missing saved DTO authorizes old-save opening anchor migration.</summary>
+        /// <summary>
+        /// Best-effort Opening anchor inference is only for a genuinely legacy Character:
+        /// modern EntityLocation snapshot authority and active Separate Space ownership both win.
+        /// </summary>
         static Result RestoreMissingLegacyOpeningPresences(
             SimulationWorld world, DefinitionRegistry registry, OpeningScenarioDefinition scenario,
             StrategicSnapshotDto saved)
@@ -272,17 +277,29 @@ namespace XianXia.Unity.Host
                 ordinals.TryGetValue(definitionId, out var ordinal);
                 ordinals[definitionId] = ordinal + 1;
                 var matching = EntityId.None;
+                Entity matchedEntity = null;
                 var matches = 0;
                 foreach (var entity in world.Entities.All)
                     if (entity != null &&
                         string.Equals(entity.DefinitionId.ToString(), definitionId, StringComparison.Ordinal))
                     {
                         matching = entity.Id;
+                        matchedEntity = entity;
                         matches++;
                     }
                 if (matches == 0) continue; // The old save may have removed this entity.
+                // A modern snapshot explicitly owns both EntityLocation and the intentional absence
+                // of Outdoor WorldPresence. Do not even enter legacy identity inference for it.
+                var hasSnapshotLocationAuthority =
+                    matchedEntity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&
+                    snapshotAuthority.SnapshotFieldPresent;
+                // Active Separate Space has stronger spatial authority even for legacy snapshots.
+                var ownedByActiveSeparateSpace =
+                    SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, matching);
                 if (matches != 1)
                 {
+                    if (hasSnapshotLocationAuthority || ownedByActiveSeparateSpace)
+                        continue;
                     if (!savedIds.Contains(matching.Value))
                         return Result.Failure(ErrorCode.SnapshotInvalid,
                             "Old-save opening spawn identity is ambiguous.", definitionId);
@@ -290,6 +307,8 @@ namespace XianXia.Unity.Host
                 }
                 world.OpeningSpawnIdentities.Register(
                     matching, OpeningSpawnIdentityBoard.BuildStableKey(definitionId, ordinal));
+                if (hasSnapshotLocationAuthority || ownedByActiveSeparateSpace)
+                    continue;
                 if (savedIds.Contains(matching.Value) ||
                     world.WorldPresence.TryGet(matching, out _) ||
                     ArmyService.TryGetArmyForCharacter(world, matching, out _))

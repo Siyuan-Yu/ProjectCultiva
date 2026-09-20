@@ -87,6 +87,7 @@ namespace XianXia.Core.Exploration
                     entrance.EnterSpawnLocationId);
 
             var party = world.Strategic?.PlayerPartyContext;
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
             var members = CollectTransitionMembers(world, party);
             if (members.Count == 0)
             {
@@ -131,6 +132,7 @@ namespace XianXia.Core.Exploration
                 entryReason ?? "enter");
 
             MovePlayerPartyIntoSeparateSpace(world, session, entrance.EnterSpawnLocationId, spawn, members);
+            ReconcileActiveSeparateSpaceWorldPresence(world);
 
             world.PartyWorld.LocalMapId = session.ActiveMapLayoutId;
             world.PartyWorld.SiteId = string.Empty;
@@ -171,6 +173,7 @@ namespace XianXia.Core.Exploration
             var returnId = session.ReturnLocationId;
             var continuousReturn = session.HasOutdoorReturn;
             var interiorMap = session.ActiveMapLayoutId;
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
             EvacuateSeparateSpaceParty(world, session, interiorMap, returnId);
 
             session.ActiveMapLayoutId = continuousReturn ? string.Empty : session.OverworldMapLayoutId;
@@ -214,6 +217,38 @@ namespace XianXia.Core.Exploration
                 payload: session.ActiveMapLayoutId + ";" + returnId);
 
             return continuousReturn ? Result.Success() : Result.Success();
+        }
+
+        /// <summary>
+        /// Active Separate Space local placement owns its Characters. Removes stale Outdoor
+        /// personal presence from current occupants and from persistent Characters whose authored
+        /// EntityLocation belongs to the active map. It never changes placement or membership.
+        /// </summary>
+        public static void ReconcileActiveSeparateSpaceWorldPresence(SimulationWorld world)
+        {
+            var session = world?.LocalMap;
+            if (world?.WorldPresence == null || session == null || !session.IsActive)
+                return;
+            foreach (var entity in world.Entities.All)
+            {
+                if (entity == null)
+                    continue;
+                if (IsOwnedByActiveSeparateSpace(world, entity.Id))
+                    world.WorldPresence.Remove(entity.Id);
+            }
+        }
+
+        public static bool IsOwnedByActiveSeparateSpace(SimulationWorld world, EntityId id)
+        {
+            var session = world?.LocalMap;
+            if (world == null || session == null || !session.IsActive || id.IsNone)
+                return false;
+            if (session.ContainsOccupant(id))
+                return true;
+            return world.Entities.TryGet(id, out var entity) && entity != null &&
+                   entity.TryGet<EntityLocationComponent>(out var location) && location != null &&
+                   location.HasLocation && IsInteriorLocation(
+                       world, location.LocationId, session.ActiveMapLayoutId);
         }
 
         public static Result TryCaptureOutdoorReturn(

@@ -98,6 +98,7 @@ namespace XianXia.Core.Persistence
             world.PartyWorld.LocalMapId = session.ActiveMapLayoutId;
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
+            SeparateSpaceTransitionService.ReconcileActiveSeparateSpaceWorldPresence(world);
             return Result.Success();
         }
 
@@ -169,6 +170,7 @@ namespace XianXia.Core.Persistence
             world.PartyWorld.LocalMapId = mapId;
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.Mode = PartyWorldPresenceMode.InSeparateSpace;
+            SeparateSpaceTransitionService.ReconcileActiveSeparateSpaceWorldPresence(world);
             return Result.Success();
         }
 

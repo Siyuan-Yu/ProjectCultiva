@@ -1204,7 +1204,10 @@ namespace XianXia.Unity.Host
             var party = _bootstrap.Session.PlayerParty;
             if (party != null)
                 for (var i = 0; i < party.Members.Count; i++)
-                    world.WorldPresence.SetAtWorldPosition(party.Members[i], position, hex, _surfaceId);
+                    if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                            world, party, party.Members[i]))
+                        world.WorldPresence.SetAtWorldPosition(
+                            party.Members[i], position, hex, _surfaceId);
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.LocalMapId = string.Empty;
@@ -1800,12 +1803,10 @@ namespace XianXia.Unity.Host
             // SPACE-01：Active Separate Space 不得重建 Continuous Outdoor presentation。
             if (world?.LocalMap != null && world.LocalMap.IsActive)
                 return false;
-            if (world != null && !world.LocalMap.IsInInterior &&
-                world.Strategic.CharacterEncounter == null)
-                foreach (var entity in world.Entities.All)
-                    if (entity != null &&
-                        entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location))
-                        location.ClearPresentationOverride();
+            // Snapshot-restored EntityLocation placement is persistence truth even while its
+            // Separate Space is inactive. Outdoor materializers overwrite only entities for which
+            // they hold positive Outdoor authority; presentation rebuild must never reset every
+            // Character in the world merely because the current view is Outdoor.
             _isSnapshotPresentationRebuild = true;
             try
             {
@@ -1997,6 +1998,9 @@ namespace XianXia.Unity.Host
                 for (var i = 0; i < party.Members.Count; i++)
                 {
                     var memberId = party.Members[i];
+                    if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                            world, party, memberId))
+                        continue;
                     _desiredMaterializedEntities.Add(memberId);
                     if (!world.ContinuousOutdoorMaterialization.IsMaterialized(memberId) &&
                         world.Entities.TryGet(memberId, out var member) &&
@@ -2006,14 +2010,6 @@ namespace XianXia.Unity.Host
                                 partyNavigation, out var partyPoint))
                         {
                             _mapper.WorldToPresentation(partyPoint.X, partyPoint.Y, out var px, out var py);
-                            memberLoc.SetPresentationOverride(px, py);
-                        }
-                        else if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
-                                     world, party, memberId) &&
-                                 CharacterPersonalSpaceQuery.TryResolveContinuous(world, memberId,
-                                     _surfaceId, out var residual, out _))
-                        {
-                            _mapper.WorldToPresentation(residual.X, residual.Y, out var px, out var py);
                             memberLoc.SetPresentationOverride(px, py);
                         }
                     }
@@ -3032,7 +3028,9 @@ namespace XianXia.Unity.Host
             _mapper.WorldToPresentation(motion.WorldPosition.X, motion.WorldPosition.Y, out var x, out var y);
             var delta = new Vector3(x - active.transform.position.x, y - active.transform.position.y, 0f);
             foreach (var member in party.Members)
-                if (registry.TryGet(member, out var view) && view != null)
+                if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        _bootstrap.Session.World, party, member) &&
+                    registry.TryGet(member, out var view) && view != null)
                     view.transform.position += delta;
         }
         bool TryResolveSurface(out OutdoorWorldSurfaceDefinition surface)

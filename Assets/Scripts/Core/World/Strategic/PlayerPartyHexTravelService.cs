@@ -1227,8 +1227,10 @@ namespace XianXia.Core.World.Strategic
                 world.PartyWorld.SiteId = string.Empty;
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
                 foreach (var id in party.Members)
-                    world.WorldPresence.SetAtWorldPosition(id, continuousMotion.WorldPosition, derived,
-                        surfaceId);
+                    if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                            world, party, id))
+                        world.WorldPresence.SetAtWorldPosition(id,
+                            continuousMotion.WorldPosition, derived, surfaceId);
                 return Result.Success();
             }
             var admission = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(
