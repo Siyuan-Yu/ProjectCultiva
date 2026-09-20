@@ -38,6 +38,10 @@ namespace XianXia.Data.Serialization
                 ["manuals"] = JsonValue.FromArray(SerializeManuals(snapshot.Manuals)),
                 ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent),
                 ["partyInventorySlots"] = JsonValue.FromArray(SerializePartyInventorySlots(snapshot.PartyInventorySlots)),
+                ["hasTakenWorldLootSnapshotAuthority"] =
+                    JsonValue.FromBool(snapshot.HasTakenWorldLootSnapshotAuthority),
+                ["takenWorldLootSpotIds"] =
+                    JsonValue.FromArray(SerializeStringList(snapshot.TakenWorldLootSpotIds)),
                 ["relationshipEvents"] = JsonValue.FromArray(SerializeRelationshipEvents(snapshot.RelationshipEvents)),
                 ["socialBonds"] = JsonValue.FromArray(SerializeSocialBonds(snapshot.SocialBonds)),
                 ["nextOutdoorConstructedAssetSequence"] = JsonValue.FromString(snapshot.NextOutdoorConstructedAssetSequence.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -143,6 +147,16 @@ namespace XianXia.Data.Serialization
                             Count = count
                         });
                     }
+                }
+
+                snapshot.HasTakenWorldLootSnapshotAuthority =
+                    root.GetBool("hasTakenWorldLootSnapshotAuthority", false);
+                if (root.TryGetProperty("takenWorldLootSpotIds", out var takenLoot) &&
+                    takenLoot.Kind == JsonValueKind.Array)
+                {
+                    foreach (var value in takenLoot.Array)
+                        if (value.Kind == JsonValueKind.String && !string.IsNullOrWhiteSpace(value.String))
+                            snapshot.TakenWorldLootSpotIds.Add(value.String);
                 }
 
                 if (root.TryGetProperty("relationshipEvents", out var relEvents) &&

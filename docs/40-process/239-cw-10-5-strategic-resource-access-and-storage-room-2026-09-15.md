@@ -1,7 +1,9 @@
 # 239｜CW-10.5 战略物资访问与储藏室（2026-09-15）
 
-> 状态：**Implementation Completed / Producer Acceptance Pending**｜优先级：P0｜最后更新：2026-09-15
-> 后续仍有 StorageRoom authored materialization／preview 接线、world object pick bounds、Snapshot shell rehydrate 顺序修正（见 [42 devlog](42-devlog.md) 2026-09-15 各条）；**整体尚未收到制作人正常玩法验收**，不得自行写成 Accepted。
+> 状态：**Producer Accepted / Sealed（2026-09-20）**｜优先级：P0｜最后更新：2026-09-20
+> StorageRoom authored materialization／preview 接线、world object pick bounds、Snapshot shell rehydrate 顺序修正已在 2026-09-15 的后续补丁完成（见 [42 devlog](42-devlog.md) 当日各条）；**整体尚未收到制作人正常玩法验收**，不得自行写成 Accepted。
+
+> **2026-09-20 封板：** 上述接线与 restore 顺序经 readiness audit 与制作人人工验收通过。StorageRoom、战略资源访问和消费事务按本文 V1 范围正式封板。
 
 ## 目标与 authority
 

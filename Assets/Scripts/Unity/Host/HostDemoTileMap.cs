@@ -307,7 +307,9 @@ namespace XianXia.Unity.Host
                 LootItemId = source.LootItemId, SpawnTableId = source.SpawnTableId,
                 SpawnCount = source.SpawnCount
             };
-            if (ShouldHideHiddenEntrance(metadata) || ShouldHideTakenLoot(metadata))
+            var lootSpotId = XianXia.Core.Content.WorldLootPickupService.StableSpotId(
+                string.Empty, source.StableId);
+            if (ShouldHideHiddenEntrance(metadata) || ShouldHideTakenLoot(metadata, lootSpotId))
                 return;
 
             mapper.WorldToPresentation(source.WorldX, source.WorldY, out var left, out var bottom);
@@ -350,7 +352,8 @@ namespace XianXia.Unity.Host
                     var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, id, width, height,
                         info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12);
                     if (info.InteractKind.HasValue)
-                        AttachPlot(go, metadata, info, source.SourceGridX, source.SourceGridY, cx, cy, id);
+                        AttachPlot(go, metadata, info, source.SourceGridX, source.SourceGridY, cx, cy, id,
+                            lootSpotId);
                     AttachDestructibleIfNeeded(go, metadata, info.Kind, id);
                     actual = expectedForOwner = 1;
                 }
@@ -378,7 +381,8 @@ namespace XianXia.Unity.Host
                     var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, cellId, cellW, cellH,
                         info.FallbackColor, sortingOrder: cellOrder);
                     if (info.InteractKind.HasValue || info.Plantable)
-                        AttachPlot(go, cellMetadata, info, source.SourceGridX + gx, source.SourceGridY + gy, cx, cy, cellId);
+                        AttachPlot(go, cellMetadata, info, source.SourceGridX + gx, source.SourceGridY + gy, cx, cy,
+                            cellId, lootSpotId);
                     if (string.Equals(info.Kind, "wall", System.StringComparison.OrdinalIgnoreCase))
                         AttachDestructibleIfNeeded(go, cellMetadata, info.Kind, cellId);
                     actual++;
@@ -692,6 +696,8 @@ namespace XianXia.Unity.Host
             var ph = p.H < 1 ? 1 : p.H;
             var kind = p.Kind ?? string.Empty;
             var id = string.IsNullOrEmpty(p.Id) ? "p" + index : p.Id;
+            var lootSpotId = XianXia.Core.Content.WorldLootPickupService.StableSpotId(
+                layout.Id.ToString(), id);
 
             if (!MapKindCatalog.TryGet(kind, out var info))
             {
@@ -703,7 +709,7 @@ namespace XianXia.Unity.Host
             if (ShouldHideHiddenEntrance(p))
                 return;
             // 已拾取的地上物：不刷。
-            if (ShouldHideTakenLoot(p))
+            if (ShouldHideTakenLoot(p, lootSpotId))
                 return;
 
             if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
@@ -722,7 +728,7 @@ namespace XianXia.Unity.Host
                 var go = PlacePrefab(kind, path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
                     sortingOrder: kind == "controlCore" || kind == "roadHub" ? -8 : -12);
                 if (info.InteractKind.HasValue)
-                    AttachPlot(go, p, info, p.X, p.Y, cx, cy, id);
+                    AttachPlot(go, p, info, p.X, p.Y, cx, cy, id, lootSpotId);
                 AttachDestructibleIfNeeded(go, p, info.Kind, id);
                 return;
             }
@@ -740,7 +746,8 @@ namespace XianXia.Unity.Host
                 var go = PlacePrefab(kind, info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor,
                     sortingOrder: cellOrder);
                 if (info.InteractKind.HasValue || info.Plantable)
-                    AttachPlot(go, p, info, cellX, cellY, wx, wy, id + ":" + gx + ":" + gy);
+                    AttachPlot(go, p, info, cellX, cellY, wx, wy, id + ":" + gx + ":" + gy,
+                        lootSpotId);
                 if (string.Equals(info.Kind, "wall", System.StringComparison.OrdinalIgnoreCase))
                     AttachDestructibleIfNeeded(go, p, info.Kind, cellName);
             }
@@ -777,14 +784,13 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[MapLayout] 树产量为 0：kind=" + kind + " id=" + instanceId);
         }
 
-        bool ShouldHideTakenLoot(MapPlacement p)
+        bool ShouldHideTakenLoot(MapPlacement p, string lootSpotId)
         {
             if (p == null || string.IsNullOrWhiteSpace(p.LootItemId))
                 return false;
             if (_session?.World == null)
                 return false;
-            var spotId = string.IsNullOrWhiteSpace(p.Id) ? p.LootItemId : p.Id;
-            return XianXia.Core.Content.WorldLootPickupService.IsTaken(_session.World, spotId);
+            return XianXia.Core.Content.WorldLootPickupService.IsTaken(_session.World, lootSpotId);
         }
 
         bool ShouldHideHiddenEntrance(MapPlacement p)
@@ -834,7 +840,8 @@ namespace XianXia.Unity.Host
             int cellY,
             float wx,
             float wy,
-            string stableCellId)
+            string stableCellId,
+            string stableLootSpotId = null)
         {
             if (go == null || !info.InteractKind.HasValue)
                 return;
@@ -843,7 +850,9 @@ namespace XianXia.Unity.Host
             var label = string.IsNullOrWhiteSpace(p.Label)
                 ? info.Kind + "(" + cellX + "," + cellY + ")"
                 : p.Label;
-            var lootSpotId = string.IsNullOrWhiteSpace(p.Id) ? string.Empty : p.Id;
+            var lootSpotId = string.IsNullOrWhiteSpace(stableLootSpotId)
+                ? XianXia.Core.Content.WorldLootPickupService.StableSpotId(string.Empty, p.Id)
+                : stableLootSpotId;
             var lootItemId = p.LootItemId ?? string.Empty;
             plot.Configure(
                 _session?.World,

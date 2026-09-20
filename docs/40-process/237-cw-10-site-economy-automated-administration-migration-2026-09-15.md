@@ -1,6 +1,8 @@
 # CW-10：Site Economy / Automated Administration Migration
 
-> 状态：Implementation Completed / Producer Acceptance Pending｜优先级：P0｜最后更新：2026-09-15
+> 状态：**Producer Accepted / Sealed（2026-09-20）**｜优先级：P0｜最后更新：2026-09-20
+
+> **2026-09-20 封板：** readiness audit 未发现 MAP-04／SPACE-01 迁移 blocker，随后制作人人工验收通过。Public Stock、NPC 农作、Capture 与 Snapshot authority 按本文范围正式封板。
 
 ## 目标与权威
 

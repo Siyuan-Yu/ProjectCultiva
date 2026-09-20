@@ -6,6 +6,7 @@ using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Concealment;
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -345,6 +346,8 @@ namespace XianXia.Core.Persistence
             snap.SuppressedCharacterContacts.Sort(System.StringComparer.Ordinal);
             snap.CharacterEncounter = world.Strategic.CharacterEncounter;
             CapturePartyInventory(world, snap);
+            snap.HasTakenWorldLootSnapshotAuthority = true;
+            WorldLootPickupService.CaptureTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
             CaptureOutdoorStatefulObjects(world, snap);
@@ -886,6 +889,8 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePartyInventory(world, snap);
+            if (snap.HasTakenWorldLootSnapshotAuthority)
+                WorldLootPickupService.RestoreTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
             RestoreOutdoorStatefulObjects(world, snap);

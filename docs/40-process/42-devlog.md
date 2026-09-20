@@ -1,5 +1,16 @@
 # 开发日志
 
+## 2026-09-20 — MAP-04 / CW-10 / CW-10.5 制作人验收通过并封板
+
+- 制作人确认 MAP-04、CW-10、CW-10.5 与 Cave Loot persistence 最终补丁全部通过人工验收；对应状态更新为 **Producer Accepted / Sealed**。
+- 已验收 checkpoint 包含洞府 loot taken-state Snapshot authority、LocalMap stable loot identity，以及既有 Site Public Stock／NPC 农作／StorageRoom／战略资源访问 V1。当前主线切换为 LEGACY-FINAL-A；后续 A/B/C 独立验收，不回写已封板范围。
+
+## 2026-09-20 — MAP-04 洞府拾取持久化最终验收补丁（待制作人验收）
+
+- 修复 Cave／LocalMap 地上物 Save→Load 后复生：既有 PartyInventory 本来已保存物品，缺失的是 `loot:*` taken state。Snapshot v6 增加 optional taken-loot authority，稳定排序保存并无事件恢复；不升级 schema，不扩展通用 StoryFlag persistence。
+- LocalMap loot identity 统一为 `MapLayoutId + PlacementId`，Outdoor 继续使用全局 StableId；隐藏检查、Host plot／interaction 与正式拾取调用共用同一 identity。拾取仍先成功写入背包再标记 taken，背包满不会让物体消失。
+- CW-10／CW-10.5 readiness audit 未发现 MAP-04／SPACE-01 迁移 blocker：公库、农田授权／收获、易主、StorageRoom 物化／点选／恢复和战略资源访问路径保持既定 V1 authority，未做 gameplay redesign。MAP-04、CW-10、CW-10.5 均保持 Producer Acceptance Pending；未打开 Unity，改动未暂存、未提交、未推送。
+
 ## 2026-09-20 — MAP-04 Final Seal Preparation（待制作人验收）
 
 - 完成 Legacy Residual Matrix 与 producer/consumer caller audit。Continuous movement 的 traveling member、Snapshot active Continuous focus、带 Continuous battle world anchor 的 AutoResolve／compatibility battle commit 均收口到 exact `WorldPosition + SurfaceId`；`CurrentHex` 只同步为 derived compatibility metadata。

@@ -1,11 +1,19 @@
 # MAP-04 — Physical Legacy Cleanup
 
 > 日期：2026-09-17
-> 状态：**Implementation Complete / Producer Acceptance Pending**
-> **2026-09-20 恢复：** SPACE-01 已完成制作人人工验收并以 `49f8650` 封板、推送；MAP-04 已完成最终 consumer cleanup 实施，等待 Unity 人工验收。勿写成 MAP-04 Accepted / Sealed。
+> 状态：**Producer Accepted / Sealed（2026-09-20）**
+> **2026-09-20 封板：** 制作人已完成人工验收；最终 Cave Loot persistence 补丁亦通过。MAP-04 正式封板，后续 Legacy Finalization 另立 LEGACY-FINAL-A／B／C，不回写本阶段验收范围。
 > **当前 checkpoint（2026-09-19 核实）：** 第一批大清理 = `596d9c9`；第二批 + FormalArmy／Snapshot 回归修复 = `54141d1`。**无 seal 提交。** 剩余 consumer 清单与新会话入口见 [247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md) §13。
 > **未通过的 Completion Gate 状态未变：** ① Build All Apps 切换失败（`Apps/` 仍为 2026-09-16 旧产物，含已删除的 `RegionEditor.exe`／`WorldGraphEditor.exe`）；② Legacy Hex gameplay 源码面仍广（Hex 命名文件 36 个、`PlayerPartyHexTravelService`／`ArmyHex*`／Hex pathfinder 仍在 Runtime）；③ Surface-only WorldMap 未做 Unity 视觉／交互验收；④ 缺等价的独立可视化外交／开局战略编辑窗口；⑤ 历史 EditMode Hex 测试未运行。
 > 制作人约束：不暂存、不提交（除非授权 checkpoint）；不打开 Unity，不运行 PlayMode、Test Runner 或 batchmode。
+
+## 2026-09-20 Final Acceptance Patch — Cave Loot Persistence
+
+制作人人工验收确认 MAP-04 其余最终项目正常，唯一剩余阻断是洞府地上物拾取后 Save／Load 会再次出现。根因是拾取所得物品已由既有 `PartyInventorySlots` 保存，但决定物体是否再次物化的 `loot:*` runtime flag 未进入 Snapshot。
+
+本补丁为 `WorldSnapshot` 增加 additive、optional 的 taken-loot authority，不升级 schema，也不持久化通用 StoryFlag。新存档按 ordinal 排序保存所有已取走的稳定 loot spot identity；恢复直接重建 `loot:*` runtime state，不发布拾取、背包或 StoryFlag gameplay event。LocalMap identity 统一为 `MapLayoutId + PlacementId`，Outdoor 继续使用已有全局 `StableId`；地图隐藏检查和拾取命令共用同一 identity。背包满时仍先由既有 inventory transaction 拒绝，taken state 不会写入。
+
+制作人已确认洞府拾取→保存→加载→重新进入不再复生，本补丁随 MAP-04 一并 **Producer Accepted / Sealed**。
 
 ## 2026-09-20 Final Physical Legacy Cleanup
 

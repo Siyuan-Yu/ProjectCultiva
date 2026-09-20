@@ -47,6 +47,10 @@ namespace XianXia.Core.Persistence
         public List<PartyInventorySlotSnapshotDto> PartyInventorySlots { get; set; } =
             new List<PartyInventorySlotSnapshotDto>();
 
+        /// <summary>字段出现即表示 persistent world loot taken set 完整 authoritative。</summary>
+        public bool HasTakenWorldLootSnapshotAuthority { get; set; }
+        public List<string> TakenWorldLootSpotIds { get; set; } = new List<string>();
+
         /// <summary>RelationshipLedger 事件流（v6 optional；旧档缺省＝空）。</summary>
         public List<RelationshipEventSnapshotDto> RelationshipEvents { get; set; } =
             new List<RelationshipEventSnapshotDto>();

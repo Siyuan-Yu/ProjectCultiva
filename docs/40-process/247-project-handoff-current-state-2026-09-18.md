@@ -1,9 +1,13 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
 
+> **2026-09-20 Seal / Legacy Finalization superseding state：** MAP-04、CW-10、CW-10.5 与 Cave Loot persistence 已由制作人人工验收并正式 **Accepted / Sealed**。当前主线切换为 **LEGACY-FINAL-A — Unified NPC Squad World Motion / FormalArmy Runtime Retirement**；随后依次为 LEGACY-FINAL-B、LEGACY-FINAL-C。A/B/C 全部完成前不得宣称 Legacy migration complete。本文后续关于 MAP-04／CW-10／CW-10.5 pending 的段落均为历史恢复快照。
+
 > **2026-09-20 Current State supersedes the older snapshot below:** SPACE-01 已由制作人验收并以 `49f8650`（`Seal SPACE-01 separate-space ownership and persistence`）提交、推送，状态为 **Accepted / Sealed**。MAP-04 已恢复并完成 final physical cleanup 实施：删除 `ContinuousWildernessPair` runtime、清理 W1C acceptance logs / force-leave cheat、Normal Outdoor Surface sync 不再回退 Hex terrain legality、正常 `PartyWorld` summary 不再写 `AtHex`。MAP-04 当前为 **Implementation Complete / Producer Acceptance Pending**；本轮 MAP-04 文件全部保持未暂存、未提交、未推送。后文 2026-09-18 的 WIP、暂停与旧 consumer 数量是历史恢复快照，不再代表当前状态。
 
 > **2026-09-20 Final Seal Preparation：** 最终 caller audit 发现并修复三处 modern AtHex producer：Continuous movement member presence、Snapshot active Continuous focus、Continuous AutoResolve battle commit。W1B primary-context dead APIs 已删除。现存 AtHex 只服务 old-save restore、旧 Outdoor LocalMap／Hex travel、non-continuous battle 与 legacy residual；WorldRegion 只保留 Data schema、旧包验证和 migration/import。Separate Space LocalMap 是正式独立空间 authority，不属于 Legacy。完整 Residual Matrix 见 [245 MAP-04](245-map-04-physical-legacy-cleanup-2026-09-17.md#final-seal-preparation--legacy-residual-matrix2026-09-20)。状态仍为 **Implementation Complete / Producer Acceptance Pending**，不得提前 Sealed。
+
+> **2026-09-20 Cave Loot acceptance patch：** MAP-04 其余人工验收项已由制作人确认正常；最后阻断是洞府 loot 的 `loot:*` runtime flag 未进入 Snapshot，导致 Load 后重新物化。现增加窄范围 taken-loot Snapshot authority，并将 LocalMap loot identity 统一为 `MapLayoutId + PlacementId`；PartyInventory 沿用既有 authority，未扩展通用 StoryFlag persistence。纯 C# round-trip 覆盖已取、空 authority、跨 MapLayout 同名 placement 和背包满失败。MAP-04 仍待制作人复验后封板。CW-10／CW-10.5 current-code readiness audit 未发现 blocker，二者仍为 **Implementation Completed / Producer Acceptance Pending**。
 
 > **本文是未来新会话（Codex / 新 ChatGPT / 新 Cursor 会话）接手本项目的正式入口。**
 >

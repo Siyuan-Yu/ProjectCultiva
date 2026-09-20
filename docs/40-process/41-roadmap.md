@@ -1,7 +1,7 @@
 # 路线图
 
 > **2026-09-19 当前状态（Handoff）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)／[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)／[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。
-> **当前 WIP：** **[SPACE-01](246-space-01-separate-space-interior-transition-v1-2026-09-18.md) — Separate Space / Interior Transition V1：Implementation Complete（`c05a3d2`）／Producer Acceptance Pending；final hardening A～F pending。** [MAP-04](245-map-04-physical-legacy-cleanup-2026-09-17.md) — **Paused / resume after SPACE-01**（不是 Accepted）。
+> **当前 WIP（2026-09-20）：LEGACY-FINAL-A — Unified NPC Squad World Motion / FormalArmy Runtime Retirement。** MAP-01～MAP-04、SPACE-01、CW-10 与 CW-10.5 均已 **Producer Accepted / Sealed**。A 完成后依次进入 LEGACY-FINAL-B、LEGACY-FINAL-C；A/B/C 全部完成前不得宣称 Legacy migration complete。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
@@ -23,9 +23,9 @@
 > 现状（2026-09-15 实测，未变）：External Editor 仍是 10 个独立工程、`publish.ps1` 硬编码发布列表、输出 `Apps/<Editor>/<Editor>.exe`；Content 侧仍是 37 mapLayout／35 localPlaceSet／2 hexWorld／1 worldRegion，主 Surface 646 个 chunk 的 source 全部是 wilderness fallback 图。**不得把 ADR-0037 读作「工具链或 Content 已迁移」。**
 
 
-> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing、[CW-08 / CW-09](235-sitecore-warfare-worldsite-takeover-2026-09-15.md)、[CW-09.5](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 与 [238 恢复处／队伍战斗作弊](238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 均 Producer Accepted / Sealed；当前实施并待验收 [CW-10 Site Economy / Automated Administration Migration](237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) 与 [CW-10.5 战略物资访问／储藏室](239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md)。
+> **当前唯一主线（2026-09-20）：** 已封板 CW-U0～CW-10.5、MAP-01～MAP-04 与 SPACE-01；当前实施 LEGACY-FINAL-A，随后为 LEGACY-FINAL-B／C。
 
-> 状态：CW-10 与 CW-10.5 均为 **Implementation Completed / Producer Acceptance Pending**（CW-10.5 后续仍有 StorageRoom materialization／picker／shell rehydrate 修正）。保持既有编号，不重排 CW-06 / CW-07。
+> 状态：CW-10 与 CW-10.5 均为 **Producer Accepted / Sealed（2026-09-20）**。保持既有编号，不重排 CW-06 / CW-07。
 >
 > **工具链与地图方向：** MAP-01/MAP-02/MAP-03 已验收并封板；MAP-04（legacy content/editor retirement）正在实施。WorldGraphEditor／RegionEditor 已删除；MapEditor／LocalPlaceEditor 只维护独立 LocalMap。
 

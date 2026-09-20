@@ -1,12 +1,12 @@
 # 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋定向 ADR｜当前阶段 CW-10／CW-10.5（Implementation Completed / Producer Acceptance Pending）；未来 MAP Direction 已锁定、MAP-01 未开始 | 最后更新：2026-09-15
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋定向 ADR｜MAP-01～04、SPACE-01、CW-10／CW-10.5 已封板；当前主线 LEGACY-FINAL-A | 最后更新：2026-09-20
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04～CW-09.5 与 [238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；[CW-10 Site Economy](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) 与 [CW-10.5 战略物资／储藏室](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending。**
+**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04～CW-10.5、MAP-01～MAP-04 与 SPACE-01 均已 Producer Accepted / Sealed。当前主线为 LEGACY-FINAL-A：把正常 NPC group runtime 从 FormalArmy／ArmyStack 收口到 Squad + Continuous Squad World Motion。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
 当前文档落地与后续依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。该记录不是代码开工授权。
 当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)；CW-05 行政资产闭环见 [232](../40-process/232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md)～[234](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)；玩家 SiteCore 战争、接管与交互封板见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)／[236](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)；当前 Site 公库与 NPC 自动行政迁移见 [237](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。
