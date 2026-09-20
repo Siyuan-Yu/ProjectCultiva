@@ -72,4 +72,56 @@ namespace XianXia.Unity.Host
             return new PartyCombatCheatResult(succeeded, skipped);
         }
     }
+
+    public readonly struct CharacterCombatCheatResult
+    {
+        public CharacterCombatCheatResult(bool success, string message)
+        {
+            Success = success;
+            Message = message ?? string.Empty;
+        }
+
+        public bool Success { get; }
+        public string Message { get; }
+    }
+
+    /// <summary>仅供 LevelTester 单角色战斗状态验收；目标可以是玩家队员或 NPC。</summary>
+    public static class LevelTesterCharacterCombatCheats
+    {
+        public static CharacterCombatCheatResult TryForceSelectedCharacterIncapacitated(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> selectedIds)
+        {
+            if (selectedIds == null || selectedIds.Count == 0)
+                return Failed("请先单选一个角色。");
+            if (selectedIds.Count != 1)
+                return Failed("当前选择包含多个角色。");
+            if (world == null)
+                return Failed("当前世界尚未初始化。");
+
+            var id = selectedIds[0];
+            if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                return Failed("选中 Entity 不存在。");
+            if ((entity.Tags & EntityTag.Character) == 0)
+                return Failed("选中 Entity 不是 Character。");
+            if (!entity.TryGet<LifecycleComponent>(out var life) || life == null)
+                return Failed("选中角色没有合法 LifecycleComponent。");
+
+            var name = entity.TryGet<IdentityComponent>(out var identity) &&
+                       !string.IsNullOrWhiteSpace(identity.DisplayName)
+                ? identity.DisplayName
+                : "角色";
+            if (life.State != LifecycleState.Alive)
+                return Failed(name + "当前不是可进入弥留的 Alive 状态。");
+            if (!CombatLifeStateService.TryEnterIncapacitated(world, entity))
+                return Failed(name + "进入弥留失败。");
+
+            return new CharacterCombatCheatResult(
+                true,
+                "成功：" + name + "（" + id.Value + "）已进入弥留。");
+        }
+
+        static CharacterCombatCheatResult Failed(string reason) =>
+            new CharacterCombatCheatResult(false, "失败：" + reason);
+    }
 }

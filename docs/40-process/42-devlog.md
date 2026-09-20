@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-09-20 — LevelTester 单角色弥留验收作弊（待制作人验收）
+
+- 在 `HostLevelTesterCheatPanel` 的“战斗”页增加“选中角色进入弥留”：只接受当前恰好单选的 Character，玩家队员与 NPC 均可；不回退到 Active Character、队伍首人或全体角色。
+- 轻量 `LevelTesterCharacterCombatCheats` 负责实体／Character tag／Lifecycle／Alive 校验，状态变化只调用正式 `CombatLifeStateService.TryEnterIncapacitated`；不改队伍、位置、Separate Space 或战斗流程。失败与成功均返回中文状态。
+- `tools/offline-compile.ps1 -Only XianXia.Core,XianXia.Data,XianXia.Unity` 通过（470／80／147 sources，0 error，仅既有 warning）；未打开 Unity，未运行 Unity Test／PlayMode／batchmode。
+
 ## 2026-09-18／19 — Project Handoff / Recovery Snapshot（Documentation only；无实现修改）
 
 - 新增 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md)：新会话入口。含 Executive Summary、Milestone Status Table（Editor Toolchain／MAP-01～04／SPACE-01）、Authoring 终态术语与比例、WorldComposer 不可重争 UX、Continuous Runtime authority、WorldSite/Territory 规则与 6 个永久 Site 实测、WorldMap 产品规则、MAP-03 已验收清单、Battle 封板规则、SPACE-01 现状与 **Deferred Final Hardening A～F**、MAP-04 已迁／仍剩余（含重新 grep 的实测计数）、8 条回归与根因、Known Issues／Do Not Regress／Resume Order、Producer/Codex workflow、Git 状态与可复制给新 ChatGPT 的上下文。

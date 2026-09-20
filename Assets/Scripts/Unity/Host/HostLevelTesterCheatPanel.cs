@@ -314,10 +314,13 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x + (buttonWidth + 6f) * 2f, y, buttonWidth, 24f), "生命／灵力回满"))
                 RefillPartyCombatPools();
             y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "选中角色进入弥留"))
+                ForceSelectedCharacterIncapacitated();
+            y += 28f;
             if (!string.IsNullOrEmpty(_partyCombatCheatStatus))
             {
-                GUI.Label(new Rect(x, y, width, 22f), _partyCombatCheatStatus, _body);
-                y += 26f;
+                GUI.Label(new Rect(x, y, width, 44f), _partyCombatCheatStatus, _body);
+                y += 48f;
             }
 
             var forceSolo = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
@@ -370,6 +373,14 @@ namespace XianXia.Unity.Host
             var result = LevelTesterPartyCombatCheats.Refill(world, members);
             _partyCombatCheatStatus = "上次数值作弊：生命／灵力回满　成功 " +
                                       result.Succeeded + " / 跳过 " + result.Skipped;
+        }
+
+        void ForceSelectedCharacterIncapacitated()
+        {
+            var result = LevelTesterCharacterCombatCheats.TryForceSelectedCharacterIncapacitated(
+                bootstrap?.Session?.World,
+                selectionController?.State?.SelectedIds);
+            _partyCombatCheatStatus = result.Message;
         }
 
         void DrawDiagnosticsTab(float x, float y, float width)
