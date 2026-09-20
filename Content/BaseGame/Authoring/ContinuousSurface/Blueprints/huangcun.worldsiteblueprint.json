@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "base:site_huangcun",
-  "displayName": "黄村",
+  "displayName": "荒村",
   "widthCells": 82,
   "heightCells": 66,
   "fineTerrainSources": [

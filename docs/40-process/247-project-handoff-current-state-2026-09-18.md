@@ -1,6 +1,10 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
 
+> **2026-09-20 Current State supersedes the older snapshot below:** SPACE-01 已由制作人验收并以 `49f8650`（`Seal SPACE-01 separate-space ownership and persistence`）提交、推送，状态为 **Accepted / Sealed**。MAP-04 已恢复并完成 final physical cleanup 实施：删除 `ContinuousWildernessPair` runtime、清理 W1C acceptance logs / force-leave cheat、Normal Outdoor Surface sync 不再回退 Hex terrain legality、正常 `PartyWorld` summary 不再写 `AtHex`。MAP-04 当前为 **Implementation Complete / Producer Acceptance Pending**；本轮 MAP-04 文件全部保持未暂存、未提交、未推送。后文 2026-09-18 的 WIP、暂停与旧 consumer 数量是历史恢复快照，不再代表当前状态。
+
+> **2026-09-20 Final Seal Preparation：** 最终 caller audit 发现并修复三处 modern AtHex producer：Continuous movement member presence、Snapshot active Continuous focus、Continuous AutoResolve battle commit。W1B primary-context dead APIs 已删除。现存 AtHex 只服务 old-save restore、旧 Outdoor LocalMap／Hex travel、non-continuous battle 与 legacy residual；WorldRegion 只保留 Data schema、旧包验证和 migration/import。Separate Space LocalMap 是正式独立空间 authority，不属于 Legacy。完整 Residual Matrix 见 [245 MAP-04](245-map-04-physical-legacy-cleanup-2026-09-17.md#final-seal-preparation--legacy-residual-matrix2026-09-20)。状态仍为 **Implementation Complete / Producer Acceptance Pending**，不得提前 Sealed。
+
 > **本文是未来新会话（Codex / 新 ChatGPT / 新 Cursor 会话）接手本项目的正式入口。**
 >
 > - 轮次性质：**Documentation / Recovery Snapshot**（本轮禁止任何实现修改）
@@ -73,7 +77,7 @@
 | # | Milestone | Status | Producer Acceptance | Git checkpoint | Current meaning | Remaining work |
 |---|---|---|---|---|---|---|
 | 0 | **Editor Toolchain Cleanup** | **Accepted / Sealed** | 已验收（[240](240-editor-toolchain-cleanup-2026-09-15.md)） | 已提交 | 唯一 manifest（`EditorManifest.json`）为 Editor metadata 真源；Build All 为 staging all-or-nothing；正式输出平铺在 `Apps/<Editor>.exe` | 最后一次成功 Build All 产物**陈旧**（见 §17 问题 6）：`Apps/` 仍含已删除的 `RegionEditor.exe`／`WorldGraphEditor.exe` |
-| 1 | **MAP-01 — WorldComposer / FineEditor Production V1** | **Accepted / Sealed（2026-09-16）** | 已验收（[242](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)） | 已提交 | 大陆级 macro authoring + 逐 Surface Cell 精修 + CompositionEngine/Bake + Legacy Migration Bridge + 黄村（青石荒村）迁移 | 自动水文、道路 A*、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling 仍属后续范围 |
+| 1 | **MAP-01 — WorldComposer / FineEditor Production V1** | **Accepted / Sealed（2026-09-16）** | 已验收（[242](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)） | 已提交 | 大陆级 macro authoring + 逐 Surface Cell 精修 + CompositionEngine/Bake + Legacy Migration Bridge + 荒村（青石荒村）迁移 | 自动水文、道路 A*、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling 仍属后续范围 |
 | 2 | **MAP-02 — Continuous Surface WorldMap** | **Accepted / Sealed（2026-09-16）** | 已验收（[243](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)） | 已提交 | WorldMap 由 exact `WorldPosition` 投影/反投影；Surface terrain/forest cache；固定 Header + 地图视口 + 按需 Flyout；Site/Flag marker 世界空间缩放 | 无（该 milestone 范围已封板）；不表示“完全去 Hex” |
 | 3 | **MAP-03 — Normal Gameplay Surface Authority Cutover** | **Accepted / Sealed（2026-09-17）** | 已验收（[244](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)） | `b04920b`（`docs: seal MAP-03 continuous surface cutover`） | 正常玩法 authority = exact WorldPosition / SurfaceGroundNavigation / Continuous SiteCore / Actual Control；Hex 与 Outdoor LocalMap 降级为 Legacy / Derived Compatibility | MAP-04 负责物理清理；MAP-03 本身不删除兼容实现 |
 | 4 | **MAP-04 — Physical Legacy Cleanup** | **In Progress / Paused / Not Accepted** | **未验收**（[245](245-map-04-physical-legacy-cleanup-2026-09-17.md)） | 部分已提交：`596d9c9`（第一批大清理）+ `54141d1`（第二批 + 回归修复）；**无 seal 提交** | 逐 consumer 删除 Hex / WorldRegion / Outdoor LocalMap / 旧 Editor / 旧 Content | 见 §15「Still remaining」；另有未通过的 Completion Gate（Build All 切换失败、Legacy Hex gameplay 源码面仍广、WorldMap 视觉未 Unity 验收） |

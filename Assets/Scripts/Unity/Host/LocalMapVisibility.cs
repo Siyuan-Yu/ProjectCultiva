@@ -142,7 +142,8 @@ namespace XianXia.Unity.Host
                         System.StringComparison.Ordinal))
                     return true;
 
-                // Phase 2B：Wilderness Fallback — AtHex 成员 + PartyWorld.LocalMapId 对齐即可装图
+                // Compatibility-only legacy Outdoor LocalMap: AtHex member and PartyWorld map
+                // focus must agree. Normal Continuous Outdoor materializes by Surface position.
                 if (wp.Mode == PartyWorldPresenceMode.AtHex &&
                     wp.UsesHexPresence &&
                     string.Equals(
@@ -366,7 +367,7 @@ namespace XianXia.Unity.Host
                         return false;
                     if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
                         return true;
-                    // Phase 2B：Wilderness Fallback LocalMap — PlayerParty AtHex 必须可见
+                    // Compatibility-only legacy Outdoor LocalMap visibility for an AtHex party.
                     return PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
                         world, id, wp);
                 }

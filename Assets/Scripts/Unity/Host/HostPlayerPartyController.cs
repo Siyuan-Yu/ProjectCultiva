@@ -1024,14 +1024,8 @@ namespace XianXia.Unity.Host
                 return;
 
             var pos = activeView.transform.position;
-            var loadedSet = bootstrap.ContinuousWildernessLoadedSet;
-            var currentHex = motion.CurrentHex;
-            if (!TryResolvePresentationToSurfaceLocal(
-                    loadedSet, currentHex, pos.x, pos.y, out var localX, out var localY))
-            {
-                localX = pos.x;
-                localY = pos.y;
-            }
+            var localX = pos.x;
+            var localY = pos.y;
 
             if (!TryResolveWildernessBounds(out var bounds))
                 return;
@@ -1104,18 +1098,8 @@ namespace XianXia.Unity.Host
                 WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
                     world, prevX, prevY, localX, localY, bounds, depth, out var connection))
             {
-                if (loadedSet != null &&
-                    loadedSet.IsActive &&
-                    loadedSet.IsInternal(connection))
-                {
-                    gate?.NoteLocalPosition(localX, localY);
-                    return;
-                }
-
                 if (IsUsableSurfaceExit(connection))
                 {
-                    if (loadedSet != null && loadedSet.IsActive)
-                        bootstrap.DeactivateContinuousWildernessIfActive();
                     var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                         world, party, connection);
                     if (cross.IsSuccess)
@@ -1128,22 +1112,6 @@ namespace XianXia.Unity.Host
             }
 
             gate?.NoteLocalPosition(localX, localY);
-        }
-
-        static bool TryResolvePresentationToSurfaceLocal(
-            ContinuousWildernessLoadedSet loadedSet,
-            HexCoord currentHex,
-            float presentationX,
-            float presentationY,
-            out float surfaceLocalX,
-            out float surfaceLocalY)
-        {
-            surfaceLocalX = presentationX;
-            surfaceLocalY = presentationY;
-            if (loadedSet == null || !loadedSet.IsActive || !loadedSet.ContainsHex(currentHex))
-                return false;
-            return loadedSet.PresentationToSurfaceLocal(
-                currentHex, presentationX, presentationY, out surfaceLocalX, out surfaceLocalY);
         }
 
         static void SyncExitTriggerDepthToSession(
@@ -1180,10 +1148,6 @@ namespace XianXia.Unity.Host
             {
                 sx = view.transform.position.x;
                 sy = view.transform.position.y;
-                var loadedSet = bootstrap?.ContinuousWildernessLoadedSet;
-                var currentHex = world.PlayerPartyTravel?.CurrentHex ?? default;
-                if (loadedSet != null && loadedSet.IsActive && loadedSet.ContainsHex(currentHex))
-                    loadedSet.PresentationToSurfaceLocal(currentHex, sx, sy, out sx, out sy);
             }
 
             PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
@@ -1194,11 +1158,6 @@ namespace XianXia.Unity.Host
             out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
         {
             bounds = default;
-            var loadedSet = bootstrap?.ContinuousWildernessLoadedSet;
-            if (loadedSet != null && loadedSet.IsActive &&
-                loadedSet.TryGetCompositeBounds(out bounds))
-                return true;
-
             // 真源优先：与 HostSurfaceExitZonePresenter 同一 MapLayout 解析，保证 Debug 方块 /
             // AutoTravel 到达判定 / materialize 使用同一 bounds（WalkGrid 由同一 layout 构建，
             // 但 layout 显式解析更稳，避免依赖 WalkGrid 时序）。
@@ -1575,16 +1534,6 @@ namespace XianXia.Unity.Host
             if (!TryResolveWildernessBounds(out var bounds))
                 return;
 
-            var loadedSet = bootstrap?.ContinuousWildernessLoadedSet;
-            if (loadedSet != null &&
-                loadedSet.IsActive &&
-                loadedSet.IsInternalNeighbour(currentHex, nextHex))
-            {
-                TickInternalSeamLocalVisibleAutoTravel(
-                    world, motion, party, active, activeView, currentHex, nextHex, loadedSet);
-                return;
-            }
-
             if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveWildernessExitConnection(
                     world, bounds, currentHex, nextHex, directionIndex, out var connection))
             {
@@ -1617,9 +1566,6 @@ namespace XianXia.Unity.Host
             // 与真实 Trigger / 半透明 Debug 方块同一真源）。不再使用 ExitCenter 半径 fallback。
             var exitTestX = activePos.x;
             var exitTestY = activePos.y;
-            if (loadedSet != null && loadedSet.IsActive)
-                loadedSet.PresentationToSurfaceLocal(
-                    connection.SourceHex, activePos.x, activePos.y, out exitTestX, out exitTestY);
             var arrivedAtExit = SurfaceExitZoneCalculator.PointBelongsToConnection(
                 exitTestX, exitTestY, connection, depth);
             LastActiveInsideExitSlot = arrivedAtExit;
@@ -1650,9 +1596,6 @@ namespace XianXia.Unity.Host
                     SyncLocalVisibleProgress(world, motion);
                     return;
                 }
-
-                if (loadedSet != null && loadedSet.IsActive)
-                    bootstrap.DeactivateContinuousWildernessIfActive();
 
                 var cross = PlayerPartyLocalVisibleAutoTravelService
                     .TryCrossWildernessEdgePreservingLocalVisibleAutoTravel(
@@ -1908,62 +1851,6 @@ namespace XianXia.Unity.Host
             _continuousSubgoalIssueCount++;
             _continuousLastIssueReason = reason;
             _lastAutoTravelTarget = subgoal;
-        }
-
-        void TickInternalSeamLocalVisibleAutoTravel(
-            SimulationWorld world,
-            PlayerPartyWorldMotion motion,
-            PlayerPartyRuntime party,
-            EntityId active,
-            EntityView activeView,
-            HexCoord currentHex,
-            HexCoord nextHex,
-            ContinuousWildernessLoadedSet loadedSet)
-        {
-            LastTransitionStatus = "InternalSeam";
-            LastExitSourceHex = currentHex.ToString();
-            LastExitDestinationHex = nextHex.ToString();
-
-            if (!loadedSet.TryResolveInternalSeamApproachPresentation(
-                    currentHex, nextHex, out var target))
-            {
-                LastTransitionStatus = "InternalSeamNoTarget";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return;
-            }
-
-            loadedSet.TryCommitNormalWalk(activeView.transform.position);
-
-            if (!motion.CurrentHex.Equals(nextHex))
-            {
-                var alreadyMoving = _move != null && _move.IsMoving(active);
-                var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
-                if (alreadyMoving && sameTarget)
-                {
-                    SyncLocalVisibleProgress(world, motion);
-                    return;
-                }
-
-                if (_move == null ||
-                    !_move.OrderEntityToWorldPoint(
-                        active, target, null, issueStop: false,
-                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
-                        exactGoal: true))
-                {
-                    LastTransitionStatus = "InternalSeamPathBlocked";
-                    _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                    return;
-                }
-
-                _lastAutoTravelTarget = target;
-                SyncLocalVisibleProgress(world, motion);
-                return;
-            }
-
-            _autoTravelLegSegmentIndex = motion.SegmentIndex;
-            _lastAutoTravelTarget = default;
-            LastTransitionStatus = "InternalSeamCrossed->" + nextHex;
-            LastTransitionFailureReason = string.Empty;
         }
 
         /// <summary>

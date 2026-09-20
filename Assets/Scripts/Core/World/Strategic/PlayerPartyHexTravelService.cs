@@ -428,7 +428,10 @@ namespace XianXia.Core.World.Strategic
                 return;
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.LocalMapId = string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            // PartyWorld is presentation/focus metadata. Normal outdoor movement already has an
+            // exact PlayerPartyWorldMotion position, so its summary must never revive AtHex as a
+            // second runtime authority.
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             world.PartyWorld.EncounterId = string.Empty;
         }
 

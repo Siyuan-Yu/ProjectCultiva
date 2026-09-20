@@ -1,6 +1,9 @@
 namespace XianXia.Core.World
 {
-    /// <summary>队伍宏观镜头焦点摘要（Pure Hex）。</summary>
+    /// <summary>
+    /// 队伍宏观镜头焦点摘要。正常 Outdoor 只记录 AtWorldPosition / AtSite；AtHex 仅供旧档、
+    /// retired Outdoor LocalMap 与 Independent Battle compatibility，不是空间真源。
+    /// </summary>
     public sealed class PartyWorldPresence
     {
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtSite;

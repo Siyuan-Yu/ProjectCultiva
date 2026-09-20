@@ -3,7 +3,7 @@ using XianXia.Core.World.Surface;
 
 namespace XianXia.Data.Content
 {
-    /// <summary>Pure W1C coverage query. Overlapping authored surfaces are an explicit error.</summary>
+    /// <summary>Pure Continuous Outdoor coverage query. Overlapping authored surfaces are an explicit error.</summary>
     public static class OutdoorSurfaceCoverageResolver
     {
         public static bool TryResolveAtWorldPosition(DefinitionRegistry registry, float worldX, float worldY, out OutdoorWorldSurfaceDefinition surface) =>

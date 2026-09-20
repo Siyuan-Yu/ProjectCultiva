@@ -50,7 +50,7 @@ namespace XianXia.Unity.Host
             if (session == null || !session.IsInitialized)
                 return;
             if (bootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true)
-                return; // W1C has no Outdoor SurfaceExit anywhere inside its coverage.
+                return; // Continuous Outdoor has no LocalMap edge exits inside its coverage.
 
             var world = session.World;
             if (!SurfaceExitZoneCalculator.ShouldPresent(world))
@@ -70,13 +70,6 @@ namespace XianXia.Unity.Host
                 : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
 
             SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, _zones);
-            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
-            if (loadedSet != null && loadedSet.IsActive)
-            {
-                for (var i = _zones.Count - 1; i >= 0; i--)
-                    if (loadedSet.IsInternal(_zones[i].Connection))
-                        _zones.RemoveAt(i);
-            }
             var strategicExitCount = _zones.Count;
             var structuralReadyCount = 0;
             var exactDuplicateCount = 0;
@@ -228,34 +221,15 @@ namespace XianXia.Unity.Host
         }
 
         SurfaceExitConnection ToReachabilityConnection(SurfaceExitConnection connection)
-        {
-            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
-            return loadedSet != null && loadedSet.IsActive
-                ? loadedSet.ToPresentationConnection(connection)
-                : connection;
-        }
+            => connection;
 
         bool TryPresentationPointBelongsToConnection(
             float presentationX,
             float presentationY,
             SurfaceExitConnection connection)
         {
-            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
-            if (loadedSet == null || !loadedSet.IsActive)
-            {
-                return SurfaceExitZoneCalculator.PointBelongsToConnection(
-                    presentationX, presentationY, connection, _cachedDepth);
-            }
-
-            if (!loadedSet.PresentationToSurfaceLocal(
-                    connection.SourceHex,
-                    presentationX,
-                    presentationY,
-                    out var localX,
-                    out var localY))
-                return false;
             return SurfaceExitZoneCalculator.PointBelongsToConnection(
-                localX, localY, connection, _cachedDepth);
+                presentationX, presentationY, connection, _cachedDepth);
         }
 
         static bool SameIdentity(SurfaceExitConnection left, SurfaceExitConnection right) =>
@@ -450,9 +424,6 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(_root, false);
             var cx = (rect.MinX + rect.MaxX) * 0.5f;
             var cy = (rect.MinY + rect.MaxY) * 0.5f;
-            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
-            if (loadedSet != null && loadedSet.IsActive)
-                loadedSet.SurfaceLocalToPresentation(connection.SourceHex, cx, cy, out cx, out cy);
             go.transform.position = HostPresentationSpace.FromPresentation(cx, cy, overlayZ);
             go.transform.localScale = new Vector3(w, h, 1f);
 

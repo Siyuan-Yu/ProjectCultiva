@@ -1,5 +1,16 @@
 # 开发日志
 
+## 2026-09-20 — MAP-04 Final Seal Preparation（待制作人验收）
+
+- 完成 Legacy Residual Matrix 与 producer/consumer caller audit。Continuous movement 的 traveling member、Snapshot active Continuous focus、带 Continuous battle world anchor 的 AutoResolve／compatibility battle commit 均收口到 exact `WorldPosition + SurfaceId`；`CurrentHex` 只同步为 derived compatibility metadata。
+- 删除只服务已退役 W1B pair、且无 Runtime／migration／Separate Space／battle／import caller 的 `ApplyWildernessPrimaryContextWithoutUnload`、两个 seamless crossing API 及其专用测试。旧 Snapshot AtHex restore、旧 Outdoor LocalMap／LocalVisible Hex stack、non-continuous battle、legacy residual consumer 与 WorldRegion schema 明确保留。
+- 未修改 waypoint、path completion、follow 参数或 SPACE-01 设计。普通诊断 Tab 保留到制作人验收；未恢复 Force Leave。Core/Data/Unity Host 最小编译、Content validation、Snapshot roundtrip 与 SPACE-01 sanity 通过；未打开 Unity，全部 MAP-04 改动未暂存、未提交、未推送。
+
+## 2026-09-20 — MAP-04 共享 waypoint 到达门槛回归修复（待制作人验收）
+
+- 删除 W1B `TryCommitNormalWalk` 时遗留的 Active Character 条件错误包住了下一条共享 waypoint arrival gate，导致 follower 与普通 NPC 未到当前 waypoint 就逐帧推进 path，表现为短移动后等待下一次 repath。现已删除该 dangling condition，所有 moving Entity 都必须真正到达当前 waypoint 才能推进或完成路径。
+- 未恢复 `ContinuousWildernessLoadedSet`／`TryCommitNormalWalk`，未调整 follow repath、停止距离、速度、到达阈值或队形参数。MAP-04 相关删除点静态审查未发现第二处同类控制流残骸；Unity Host 最小离线编译 0 error，未打开 Unity，仍待制作人人工验收。
+
 ## 2026-09-20 — SPACE-01 弥留队员跨空间 ownership 验收修复（待制作人验收）
 
 - 新增统一 PlayerParty life-state membership reconcile：有 living successor 时先完成 Active succession，再将 Incapacitated／Dead／Removed member 转为 singleton squad；无人可行动时保留 terminal control anchor，但 traveling members 为空。正式生命状态入口、Host 解锁重试、Separate Space Leave 与 Snapshot restore 共用该幂等路径；恢复生命不自动入队。
@@ -4831,7 +4842,7 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 
 - Continuous Surface Authoring source 升级到 schema v3：基础地形收口为 Plain/Mountain/Water，Feature 只保留可通行 Forest；旧 v1/v2 值在反序列化前迁移。River 最终解析为 Water，并增加显式 WorldObjectPlacement 与桥绑定。
 - WorldComposer 主工具收口为九项，选项按当前工具显示，并补齐中文动态操作提示；FineEditor 同步收口地形选项、森林水域约束与中文提示。
-- 新增“导入当前项目世界”：从真实 Main Surface 推导 1900×850 尺寸，导入 W2A 水域/道路/桥/阻挡物，生成 82×66 的黄村 Blueprint（72 个权威输入，71 个对象，zoneForest 转 432 个森林覆盖格）并写入 `Content/BaseGame/Authoring/ContinuousSurface/`。
+- 新增“导入当前项目世界”：从真实 Main Surface 推导 1900×850 尺寸，导入 W2A 水域/道路/桥/阻挡物，生成 82×66 的荒村 Blueprint（72 个权威输入，71 个对象，zoneForest 转 432 个森林覆盖格）并写入 `Content/BaseGame/Authoring/ContinuousSurface/`。
 - 新增只写独立目录的 Runtime Compatibility Candidate 导出；保留原 surface metrics、chunk registry、未迁移 Site、siteRegions、sitePlaces 与 opening anchors，不修改 `Content/BaseGame/Data/**`，不做 Runtime cutover。
 - 仅执行 WPF/Core compile、schema upgrade、导入解析与两次候选哈希一致性检查；未启动 Unity，未运行 Unity Test 或完整测试套件。
 

@@ -402,23 +402,6 @@ namespace XianXia.Unity.Host
             if (world == null || party == null)
                 return;
 
-            // W1B: a selected cardinal Wilderness pair is promoted to one transient movement
-            // context before committing the shared boundary. No Exit->spawn/rebuild branch runs.
-            var loadedSet = bootstrap.ContinuousWildernessLoadedSet;
-            if (loadedSet != null &&
-                (loadedSet.IsInternal(connection) || loadedSet.TryActivate(connection)) &&
-                loadedSet.TryCommitInternalCrossing(connection))
-            {
-                HostPlayerPartyController.LastTransitionStatus =
-                    "SeamlessWildernessCrossed->" + connection.DestinationHex;
-                HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
-                bootstrap.SurfaceExitZonePresenter.Rebuild();
-                return;
-            }
-
-            if (loadedSet != null && loadedSet.IsActive && !loadedSet.IsInternal(connection))
-                bootstrap.DeactivateContinuousWildernessIfActive();
-
             var usable = bootstrap.SurfaceExitZonePresenter;
             if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))
             {
@@ -456,7 +439,7 @@ namespace XianXia.Unity.Host
                 "ManualExitCrossed->" + connection.DestinationHex;
             HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
 
-            // W1D normal cutover: after Core has committed the wilderness boundary position,
+            // Continuous Surface cutover: after Core has committed the wilderness boundary position,
             // coverage claims presentation before the legacy LocalMap materialize/repair chain.
             // This is intentionally after the formal transition (WorldPosition is authoritative),
             // but before ExpandLocalMapForCurrentPartyWorld (which would rebuild a one-Hex room).
@@ -1016,10 +999,6 @@ namespace XianXia.Unity.Host
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;
                 CaptureIndependentTacticalPosition(view);
-                if (bootstrap?.Session?.PlayerParty != null &&
-                    view.EntityId.Equals(bootstrap.Session.PlayerParty.ActiveCharacterId))
-                    bootstrap.ContinuousWildernessLoadedSet?.TryCommitNormalWalk(next);
-
                 if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
                     continue;
 

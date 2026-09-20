@@ -1,13 +1,13 @@
 # 连续世界制作、合成与去 Hex 产品方向
 
-> 状态：**MAP-01 / MAP-02 / MAP-03 Implemented / Producer Accepted；SPACE-01 Implementation Complete / Producer Acceptance Pending（final hardening pending）；MAP-04 Paused**｜优先级：P0｜最后更新：2026-09-19
+> 状态：**MAP-01 / MAP-02 / MAP-03 / SPACE-01 Producer Accepted / Sealed；MAP-04 Implementation Complete / Producer Acceptance Pending**｜优先级：P0｜最后更新：2026-09-20
 > 上级：[总览](../00-project/00-overview.md)｜决策：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图方向）、[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧 Content 迁移方向）
 > 关联：[24 世界与据点](24-world-and-settlements.md)、[2J Hex Territory](2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../40-process/41-roadmap.md)
 > **本页是 World Composer、Fine Editor、Final Continuous Surface 与 de-Hex 产品方向的系统真源。** MAP-01 实现范围见 [242](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)，MAP-02 验收与残余兼容边界见 [243](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)。Editor 工具链／生命周期与旧 Content 迁移分期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
 
 ## 1. 状态边界
 
-当前阶段结论：MAP-01 的 WorldComposer／FineEditor、migration bridge 与 compatibility publish 已完成；MAP-02 Continuous Surface WorldMap 已完成；MAP-03 正常 Gameplay Surface authority cutover 已完成并由制作人验收。**SPACE-01 Separate Space / Interior Transition V1 主体已实现并提交（`c05a3d2`），但 Deferred Final Hardening（transition membership／leave ownership／失能边界／PartyWorld 语义／洞内 NPC 落点）未完成，尚未 Producer Accepted。** MAP-04 已开始但 **Paused**：Chunk presentation / WalkGrid 已迁离 MapLayout，主 Surface 已去 `sourceMapLayoutId`，旧 WorldGraph / Region 编辑器已移除；Hex strategic 服务、WorldRegion parser、Outdoor LocalMap compat 与历史 Hex fixture 仍待迁。
+当前阶段结论：MAP-01 的 WorldComposer／FineEditor、MAP-02 Continuous Surface WorldMap、MAP-03 正常 Gameplay Surface authority 与 SPACE-01 Separate Space / Interior Transition V1 均已完成制作人验收并封板；SPACE-01 seal checkpoint 为 `49f8650`。MAP-04 已完成最终实施，等待制作人人工验收：Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；`ContinuousWildernessPair` 已物理删除；WorldRegion 只剩旧包 schema / parser；Outdoor LocalMap 与 `AtHex` 只剩明确的 migration、compatibility、Independent Battle / residual 路径。Separate Space 继续合法保留 LocalMap infrastructure。
 
 > 本页只记系统与产品方向。当前仓库真实状态、Milestone 表、Known Issues、Do Not Regress、Resume Order 与可复制上下文见 [247 Project Handoff — Current State](../40-process/247-project-handoff-current-state-2026-09-18.md)；MAP-04 审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)；SPACE-01 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 
@@ -17,7 +17,7 @@
 - Actual Control 已使用连续 world-space；MAP-02 已使主 Surface 的 WorldMap 使用 Continuous Surface strategic view、exact world projection 与 Surface terrain/forest cache。HexWorld 仅为未迁出的 compatibility consumer。
 - MAP-03 已把主 Surface 的 PlayerParty、WorldSite、FactionFlag、NPC/Squad/FormalArmy、BattleAnchor 与 residual 正常位置改为 continuous world-space authority；Outdoor LocalMap 与 Hex 的正常 authority 已退出。Hex/LocalMap 字段仍服务 derived compatibility、旧存档或独立区域路径。实施及制作人验收边界见 [244](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
 - 多数 wilderness surface chunk 仍是 fallback，不能把当前 Surface content coverage 当作完整大陆制作链。
-- External `WorldComposer` 与 `FineEditor` 已完成 MAP-01 Production V1，并经制作人验收；Legacy Migration Bridge 已把当前 Main Surface、W2A geography 与黄村空间内容导入独立 Authoring Source。MAP-02 已发布并加载同源的 Surface WorldMap cache；现有 `Data/**` 仍为 runtime authority。
+- External `WorldComposer` 与 `FineEditor` 已完成 MAP-01 Production V1，并经制作人验收；Legacy Migration Bridge 已把当前 Main Surface、W2A geography 与荒村空间内容导入独立 Authoring Source。MAP-02 已发布并加载同源的 Surface WorldMap cache；现有 `Data/**` 仍为 runtime authority。
 
 ### Locked Future Direction
 

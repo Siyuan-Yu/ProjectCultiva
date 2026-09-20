@@ -209,7 +209,9 @@ namespace XianXia.Unity.Host
                         "Legacy Outdoor LocalMap cannot be migrated to a valid Surface position.", mapId);
                 world.PartyWorld.ClearSiteFocus();
                 world.PartyWorld.LocalMapId = string.Empty;
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                // Retired outdoor LocalMap snapshots are migrated onto the restored exact Surface
+                // position above. Keep PartyWorld as a non-authoritative presentation summary.
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
                 mapId = string.Empty;
             }
             if (!string.IsNullOrEmpty(mapId))
@@ -431,7 +433,11 @@ namespace XianXia.Unity.Host
 
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.LocalMapId = resolved.ResolvedLocalMapId ?? string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            // TryResolve returns AtWorldPosition for normal Continuous runtime. The AtHex fallback
+            // below is restricted to legacy Outdoor LocalMap / old Hex snapshot compatibility.
+            world.PartyWorld.Mode = resolved.LocationKind == PlayerPartyLocationKind.AtWorldPosition
+                ? PartyWorldPresenceMode.AtWorldPosition
+                : PartyWorldPresenceMode.AtHex;
         }
 
         public static void LogDomainTrace(PlayableHostSession session, string phase)

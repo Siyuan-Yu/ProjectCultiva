@@ -376,12 +376,20 @@ namespace XianXia.Core.World.Strategic
             if (world?.WorldPresence == null || world.PlayerPartyTravel == null)
                 return;
             var members = world.PlayerPartyTravel.TravelingMembers;
+            XianXia.Core.World.Surface.SurfaceGroundNavigation navigation = null;
+            var normalSurface = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                world.SurfaceGround.TryResolveContaining(
+                                    world.PlayerPartyTravel.WorldPosition, out navigation);
             for (var i = 0; i < members.Count; i++)
             {
                 var id = members[i];
                 if (id.IsNone)
                     continue;
-                world.WorldPresence.SetAtHex(id, hex);
+                if (normalSurface)
+                    world.WorldPresence.SetAtWorldPosition(
+                        id, world.PlayerPartyTravel.WorldPosition, hex, navigation.SurfaceId);
+                else
+                    world.WorldPresence.SetAtHex(id, hex);
             }
         }
 

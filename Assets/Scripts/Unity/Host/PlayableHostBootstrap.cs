@@ -100,7 +100,6 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
 
         PlayableHostSession _session = new PlayableHostSession();
-        ContinuousWildernessLoadedSet _continuousWildernessLoadedSet;
         ContinuousOutdoorSurfaceRuntime _continuousOutdoorSurfaceRuntime;
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
@@ -132,7 +131,6 @@ namespace XianXia.Unity.Host
 
         public HostSurfaceExitZonePresenter SurfaceExitZonePresenter => surfaceExitZonePresenter;
 
-        public ContinuousWildernessLoadedSet ContinuousWildernessLoadedSet => _continuousWildernessLoadedSet;
 
         public ContinuousOutdoorSurfaceRuntime ContinuousOutdoorSurfaceRuntime => _continuousOutdoorSurfaceRuntime;
 
@@ -484,7 +482,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>开局 canonical position 的 LocationId 来源（人物 LocationId → WorldRegion StartLocationId）。</summary>
+        /// <summary>开局 canonical position 的 legacy LocationId hint；不读取或激活 WorldRegion runtime。</summary>
         string ResolveOpeningStartLocationId(SimulationWorld world)
         {
             if (world == null)
@@ -1042,9 +1040,6 @@ namespace XianXia.Unity.Host
             if (levelTesterCheatPanel != null)
                 levelTesterCheatPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
-            _continuousWildernessLoadedSet = GetComponent<ContinuousWildernessLoadedSet>() ??
-                                              gameObject.AddComponent<ContinuousWildernessLoadedSet>();
-            _continuousWildernessLoadedSet.Bind(this);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
@@ -1213,7 +1208,7 @@ namespace XianXia.Unity.Host
         /// <summary>§12 barrier 是否已在本次启动中执行过（诊断用）。</summary>
         public bool OpeningPopulationBarrierApplied => _openingPopulationBarrierApplied;
 
-        /// <summary>Producer 诊断：真实 presentation authority（Main Surface 不再被叫作 W1C）。</summary>
+        /// <summary>Producer 诊断：当前真实 presentation authority。</summary>
         public string OutdoorAuthorityDiagnostic
         {
             get
@@ -1227,7 +1222,7 @@ namespace XianXia.Unity.Host
                         _session.Registry.TryGetOutdoorSurface(parsed.Value, out var definition) &&
                         definition != null)
                         acceptanceOnly = definition.AcceptanceOnly;
-                    return "Authority=" + (acceptanceOnly ? "W1CAcceptanceSurface" : "ContinuousOutdoorSurface") +
+                    return "Authority=ContinuousOutdoorSurface" +
                            " SurfaceId=" + surface.ActiveSurfaceId +
                            " AcceptanceOnly=" + acceptanceOnly +
                            " CurrentChunk=" + surface.CurrentChunk +
@@ -1236,9 +1231,11 @@ namespace XianXia.Unity.Host
                            (_session?.World?.PlayerPartyTravel?.CurrentOutdoorWorldSiteId ?? string.Empty);
                 }
 
-                if (_continuousWildernessLoadedSet != null && _continuousWildernessLoadedSet.IsActive)
-                    return "Authority=ContinuousWildernessPair";
-                return "Authority=LegacyLocalMap";
+                if (_session?.World?.LocalMap?.IsInInterior == true)
+                    return "Authority=SeparateSpace";
+                if (BattleOfferService.HasActiveManualEncounter(_session?.World))
+                    return "Authority=IndependentBattle";
+                return "Authority=Unavailable";
             }
         }
 
@@ -1741,18 +1738,6 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var world = _session.World;
-            if (!interior && _continuousWildernessLoadedSet != null &&
-                _continuousWildernessLoadedSet.IsActive &&
-                _continuousWildernessLoadedSet.ContainsHex(world.PlayerPartyTravel?.CurrentHex ?? default))
-            {
-                ReloadContinuousWildernessOverlaysOnly(frameCamera);
-                return;
-            }
-
-            if (_continuousWildernessLoadedSet != null && _continuousWildernessLoadedSet.IsActive)
-                DeactivateContinuousWildernessIfActive();
-
             var active = _session.World.LocalMap.ActiveMapLayoutId;
             if (!string.IsNullOrWhiteSpace(active))
                 _session.PreferredMapLayoutId = active.Trim();
@@ -1848,8 +1833,6 @@ namespace XianXia.Unity.Host
                 world.Strategic.Encounter.ClearEngagedParty();
             }
 
-            DeactivateContinuousWildernessIfActive();
-
             LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(
                 world,
                 _session.PlayerParty);
@@ -1883,7 +1866,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public void ExpandLocalMapForCurrentPartyWorld(bool closeWorldMap = false)
         {
-            // W1D single authority gate: every legacy caller (manual exit, WorldMap close,
+            // Continuous Surface single authority gate: every legacy caller (manual exit, WorldMap close,
             // save/materialize recovery, AutoTravel) must give supported Wilderness coverage a
             // chance before it can recreate a one-Hex LocalMap presentation.
             var motion = _session?.World?.PlayerPartyTravel;
@@ -1911,11 +1894,6 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = _session.World;
-            var travelHex = world.PlayerPartyTravel?.CurrentHex ?? default;
-            if (_continuousWildernessLoadedSet != null &&
-                _continuousWildernessLoadedSet.IsActive &&
-                !_continuousWildernessLoadedSet.ContainsHex(travelHex))
-                DeactivateContinuousWildernessIfActive();
             // World Combat 复用已加载的真实 LocalMap 时，不会有另一条隐藏的装图入口。
             // 记录正式 ApplyPending 调用点的前后状态，用于区分「未消费 pending」与
             // 「已准备实体但未落表现／未重建视图」。PendingEngagement 会在调用方返回后清理，
@@ -2540,7 +2518,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // W1C is selected from actual WorldPosition coverage before W1B is ever considered.
+            // Continuous Surface is selected directly from exact WorldPosition coverage.
             var continuousWasActive = _continuousOutdoorSurfaceRuntime != null &&
                                       _continuousOutdoorSurfaceRuntime.IsActive;
             if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
@@ -2563,55 +2541,6 @@ namespace XianXia.Unity.Host
             SyncExitTriggerDepthFromActiveMap();
             surfaceExitZonePresenter.Bind(this);
             surfaceExitZonePresenter.Rebuild();
-            var world = _session.World;
-            var partyHex = world.PlayerPartyTravel?.CurrentHex ?? default;
-            if (_continuousWildernessLoadedSet != null)
-            {
-                if (_continuousWildernessLoadedSet.IsActive)
-                {
-                    moveController?.SetWalkGrid(ResolveWalkGrid());
-                    surfaceExitZonePresenter.Rebuild();
-                    return;
-                }
-
-                if (_continuousWildernessLoadedSet.TryActivateAcceptancePair(
-                        world,
-                        surfaceExitZonePresenter.UsableZones,
-                        partyHex,
-                        out var diagnostic))
-                {
-                    Debug.Log("[W1B] Activated acceptance pair: " + diagnostic, this);
-                    moveController?.SetWalkGrid(ResolveWalkGrid());
-                    surfaceExitZonePresenter.Rebuild();
-                }
-                else
-                {
-                    Debug.LogWarning("[W1B] Continuous pair inactive: " + diagnostic, this);
-                }
-            }
-        }
-
-        void ReloadContinuousWildernessOverlaysOnly(bool frameCamera)
-        {
-            MapLayoutPresentationSync.Apply(_session);
-            SyncExitTriggerDepthFromActiveMap();
-            if (mapGraybox != null)
-                mapGraybox.RebuildOverlaysOnly(_session);
-            if (interactSpotPresenter != null)
-                interactSpotPresenter.Rebuild();
-            if (moveController != null)
-            {
-                moveController.SetWalkGrid(ResolveWalkGrid());
-                moveController.BindLocalMapContext(_continuousWildernessLoadedSet?.Key ?? string.Empty);
-            }
-            if (surfaceExitZonePresenter != null)
-            {
-                surfaceExitZonePresenter.Bind(this);
-                surfaceExitZonePresenter.Rebuild();
-            }
-            if (frameCamera)
-                FrameCameraOnSlots();
-            RefreshStatus();
         }
 
         /// <summary>Acceptance tooling hook；Startup 也用它明确对准主控。</summary>
@@ -2650,7 +2579,7 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
-        /// <summary>W1D authority handoff. A continuous outdoor surface has no Active LocalMap:
+        /// <summary>Continuous Surface authority handoff. A continuous outdoor surface has no Active LocalMap:
         /// clear legacy site-only context without selecting a chunk source as a replacement map.</summary>
         public void FinalizeContinuousWildernessPresentationHandoff()
         {
@@ -2664,15 +2593,6 @@ namespace XianXia.Unity.Host
 
         public void RefreshContinuousOutdoorOverlaysOnce() =>
             ReloadContinuousSurfaceOverlaysOnly(frameCamera: false);
-
-        public void DeactivateContinuousWildernessIfActive()
-        {
-            if (_continuousWildernessLoadedSet == null || !_continuousWildernessLoadedSet.IsActive)
-                return;
-            _continuousWildernessLoadedSet.DeactivateToLegacy();
-            if (moveController != null)
-                moveController.SetWalkGrid(ResolveWalkGrid());
-        }
 
         /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
         public void RefreshSurfaceExitZones() => ActivateSurfaceLocalMapPresentation();
@@ -3148,8 +3068,8 @@ namespace XianXia.Unity.Host
         /// <summary>
         /// 从 EntityViewSpawner.Registry 捕获角色当前真实 Local transform 位置
         /// （仅当该实体正有 view；无 view → false）。不能读 EntityLocationComponent
-        /// PresentationOverride —— HostMoveController.SyncLocation 仅在靠近 WorldRegion
-        /// 地点时才写 Override，远离 Zone 会漏采，可能是 stale。
+        /// PresentationOverride —— 它是 Domain persistence 状态，未必等于当前已物化 View 的
+        /// 实时位置；有 View 时必须捕获 transform，避免保存 stale presentation。
         /// </summary>
         bool TryGetCurrentLocalPresentation(
             EntityId id,
@@ -3297,10 +3217,6 @@ namespace XianXia.Unity.Host
             if (_continuousOutdoorSurfaceRuntime != null &&
                 _continuousOutdoorSurfaceRuntime.TryGetCompositeWalkGrid(out var continuousComposite))
                 return continuousComposite;
-            if (_continuousWildernessLoadedSet != null &&
-                _continuousWildernessLoadedSet.TryGetCompositeWalkGrid(out var composite))
-                return composite;
-
             if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
                 var grid = MapLayoutWalkGridBuilder.Create(preferred);

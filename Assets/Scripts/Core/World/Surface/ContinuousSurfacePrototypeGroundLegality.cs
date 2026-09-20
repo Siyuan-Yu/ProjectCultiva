@@ -3,8 +3,8 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Surface
 {
-    /// <summary>W1C migration/prototype safety guard, NOT future Surface physics authority.
-    /// Roads affect travel cost only; ordinary passable ground does not require a road.</summary>
+    /// <summary>Compatibility-only Hex legality for retired routes without a baked Surface path.
+    /// Normal Continuous Outdoor movement uses SurfaceGroundNavigation.</summary>
     public static class ContinuousSurfacePrototypeGroundLegality
     {
         public const string BlockedDiagnostic = "ContinuousStrategicLegalityBlocked";

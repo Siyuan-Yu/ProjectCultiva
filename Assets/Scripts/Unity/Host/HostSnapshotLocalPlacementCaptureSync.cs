@@ -8,7 +8,8 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// Save 前：把 EntityView 真实表现坐标回写到 Domain，供 LoadedLocalMap Placement Capture。
-    /// HostMoveController.SyncLocation 仅在靠近 WorldRegion 地点时才写 Override，远离 Zone 时会漏采。
+    /// EntityLocation override 是持久 placement，未必等于当前已物化 View 的实时位置；
+    /// Save 前从 View 做最终捕获，避免写入 stale presentation。
     /// Active Separate Space：同步该图全部 persistent Character（含 NPC／stranded），不只 occupants。
     /// </summary>
     public static class HostSnapshotLocalPlacementCaptureSync

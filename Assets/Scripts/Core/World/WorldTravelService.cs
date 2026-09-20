@@ -227,7 +227,8 @@ namespace XianXia.Core.World
         }
 
         /// <summary>
-        /// Phase 2B??? Wilderness Fallback LocalMap?? Hex ?????WorldHex ????? Hex??
+        /// Compatibility-only Outdoor LocalMap activation for old Hex content and saves.
+        /// Normal Continuous Outdoor must retain SurfaceId + exact WorldPosition authority.
         /// </summary>
         public static Result EnterWildernessLocalMap(
             SimulationWorld world,
@@ -251,34 +252,5 @@ namespace XianXia.Core.World
             return Result.Success();
         }
 
-        /// <summary>
-        /// W1B primary Wilderness context commit for an already-loaded continuous pair.
-        /// Updates PartyWorld / LocalMap compatibility fields only ? no occupant unload side effects.
-        /// </summary>
-        public static Result ApplyWildernessPrimaryContextWithoutUnload(
-            SimulationWorld world,
-            HexCoord wildernessHex,
-            string localMapId)
-        {
-            if (world == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (string.IsNullOrWhiteSpace(localMapId))
-                return Result.Failure(ErrorCode.InvalidArgument, "Wilderness LocalMapId required.");
-            if (!world.HexWorld.HasGrid || !world.HexWorld.Contains(wildernessHex))
-                return Result.Failure(ErrorCode.InvalidArgument, "Wilderness hex out of bounds.");
-
-            world.PartyWorld.ClearSiteFocus();
-            world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
-            world.PartyWorld.LocalMapId = localMapId.Trim();
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
-            world.PartyWorld.EncounterId = string.Empty;
-
-            var trimmed = localMapId.Trim();
-            world.LocalMap.ActiveMapLayoutId = trimmed;
-            world.LocalMap.OverworldMapLayoutId = trimmed;
-            world.LocalMap.ReturnLocationId = string.Empty;
-            return Result.Success();
-        }
     }
 }

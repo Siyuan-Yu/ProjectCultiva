@@ -1,17 +1,53 @@
 # MAP-04 — Physical Legacy Cleanup
 
 > 日期：2026-09-17
-> 状态：Paused / Producer Acceptance Pending
-> **暂停原因（2026-09-18）：** MAP-04 paused for SPACE-01 stabilization dependency。本轮不继续 Legacy 删除；详见 [246](246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。勿写成 MAP-04 Accepted。
+> 状态：**Implementation Complete / Producer Acceptance Pending**
+> **2026-09-20 恢复：** SPACE-01 已完成制作人人工验收并以 `49f8650` 封板、推送；MAP-04 已完成最终 consumer cleanup 实施，等待 Unity 人工验收。勿写成 MAP-04 Accepted / Sealed。
 > **当前 checkpoint（2026-09-19 核实）：** 第一批大清理 = `596d9c9`；第二批 + FormalArmy／Snapshot 回归修复 = `54141d1`。**无 seal 提交。** 剩余 consumer 清单与新会话入口见 [247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md) §13。
 > **未通过的 Completion Gate 状态未变：** ① Build All Apps 切换失败（`Apps/` 仍为 2026-09-16 旧产物，含已删除的 `RegionEditor.exe`／`WorldGraphEditor.exe`）；② Legacy Hex gameplay 源码面仍广（Hex 命名文件 36 个、`PlayerPartyHexTravelService`／`ArmyHex*`／Hex pathfinder 仍在 Runtime）；③ Surface-only WorldMap 未做 Unity 视觉／交互验收；④ 缺等价的独立可视化外交／开局战略编辑窗口；⑤ 历史 EditMode Hex 测试未运行。
 > 制作人约束：不暂存、不提交（除非授权 checkpoint）；不打开 Unity，不运行 PlayMode、Test Runner 或 batchmode。
+
+## 2026-09-20 Final Physical Legacy Cleanup
+
+本轮以当前调用链重新审计，不按旧 grep 数量删除。Normal Outdoor 的正式入口为 `SurfaceId + exact WorldPosition + SurfaceGroundNavigation`。`HostWorldMapPanel` 的 marker、列表定位与点选旅行读取 Surface 坐标；SiteCore / FactionFlag 攻击读取 `CoreSurfaceId/CoreWorldPosition` 与 `ContinuousCharacterSpatialAuthorityResolver`；opening population 由 `openingEntityAnchors` 建立 personal presence；FormalArmy authored deployment 由 `initialSurfaceDeployment` 相对 SiteCore 精确落点建立 `WorldMotion`。
+
+制作人验收发现 follower 出现短移动与停顿交替。删除 `TryCommitNormalWalk` 时遗留的 Active Character `if` 把共享 waypoint arrival gate 错误变成了仅 Active 执行；非 Active follower 与普通 NPC 因此会逐帧提前消费整条 path。现已删除该遗留条件，`TickMoves` 对所有 moving Entity 统一在真正到达当前 waypoint 后才推进 path 或完成移动；跟随参数与 W1B runtime 均未恢复。其余 MAP-04 删除点未发现同类 dangling control flow，仍待 Unity 人工复验。
+
+物理删除了无剩余激活 caller 的 `ContinuousWildernessLoadedSet` / `ContinuousWildernessPairSelector` / `ContinuousWildernessSurfaceCoordinates`，同步删除只验证该退役 W1B runtime 的 `ContinuousWildernessW1BTests`，并清除 Host 中的 pair seam、复合 bounds、pair walk-grid、pair overlay 分支。正常 Surface position sync 的合法性现在只由 `SurfaceGroundNavigation` 判定；`CurrentHex` 只在成功提交 exact `WorldPosition` 后作为序列化兼容投影更新。正常 Outdoor 的 `PartyWorld` summary 与 retired Outdoor LocalMap snapshot migration 写 `AtWorldPosition`，不再复活 `AtHex` authority。
+
+剩余 `AtHex` caller 分为：`StrategicSnapshotHelper` / `SnapshotActiveControlledLocalMapResolver` 的旧档迁移；`WorldTravelService.EnterWildernessLocalMap`、旧 LocalVisible / Wilderness transition 的 retired Outdoor LocalMap compatibility；`ManualBattleWorldCommitService`、battle anchor、encounter resolve / residual 的 Independent Battle 或战后 residual；无正常 Surface WorldMap、movement、materialization 或 SiteCore/Flag attack caller。`WorldRegion` 在 Core / Unity 已无实际 board 或 gameplay lookup，只剩 Data schema、旧包 parser / validator / authored import。
+
+删除了 LevelTester 的 `Debug Force Leave Separate Space` 和 `[W1C] Activated / Hex change / Neighborhood / Deactivated` 日志；保留 `OpeningPopulationDiagnostic`、`ContinuousStartupPostconditionDiagnostic`、精简后的 `OutdoorAuthorityDiagnostic` 和性能计数。Separate Space 的 `LocalMap`、occupants、精确 `EntityLocation` placement 与 Independent Battle arena 保持合法独立 authority。Outdoor materialization cleanup 只作用于其自己的 `_continuousSitePopulation` / materialization board，不遍历全世界清理 inactive Separate Space placement。
+
+本轮未修改 opening anchors、试炼匪军成员或部署 Content。荒村山匪／试炼弱匪／强匪仍使用 `initialSurfaceDeployment`，相对荒村 SiteCore 约 800 Surface Cells；每组成员定义保持原样。WorldMap marker world-space scale、Actual Control union overlay、Site/Flag exact attack、snapshot distant-NPC loaded-chunk gate 均沿用已建立的 Continuous authority。
+
+## Final Seal Preparation — Legacy Residual Matrix（2026-09-20）
+
+本矩阵按真实 producer / consumer 与入口分类。保留项是兼容边界，不授权新功能继续写入 Legacy authority。
+
+| Residual | 分类 | 当前合法用途 | 新功能禁止事项 |
+| --- | --- | --- | --- |
+| `PartyWorldPresenceMode.AtHex` / `WorldAgentPresence.SetAtHex` | B：旧档／兼容 | 旧 Snapshot 缺少 modern world authority；旧 Outdoor LocalMap；非 Continuous Hex battle；只有 Hex 的 residual/corpse | Normal Continuous PlayerParty、普通 Character、Surface battle 不得生产新的 AtHex spatial truth |
+| `CurrentHex` / Destination / HexPath | B：派生 metadata／旧路线 | `WorldPosition → derived CurrentHex` 序列化兼容；旧 Hex route、旧存档和诊断 | 不得用 CurrentHex 重建、吸附或决定 normal Continuous 真实位置 |
+| `BattleAnchorHex` | B：非 Continuous battle compatibility | 无 `HasBattleAnchorWorldPosition` 的旧 Hex world combat／旧 Snapshot | Normal Continuous battle 使用冻结的 `BattleAnchorSurfaceId + BattleAnchorWorldX/Y` |
+| `WorldRegion` | B：authored/import compatibility | Data schema、旧包 parser/validator、DefinitionRegistry、migration/import source | 不得决定 normal runtime visibility、movement、combat、Site、WorldMap 或 opening materialization |
+| Outdoor `LocalMap` / `EnterWildernessLocalMap` / LocalVisible Hex stack | B：旧地图 compatibility | 旧包、旧档、legacy Hex travel 与历史 fixture | Continuous Surface 跨 Chunk／旧 Hex boundary 不切 LocalMap；WorldMap 点选走 `PlayerPartySurfaceTravelService` |
+| Separate Space `LocalMapSession` | C：正式独立空间 | Cave／Interior／Dungeon 的 map、occupants、local placement、snapshot restore | 不得与旧 Outdoor LocalMap 语义合并；离开恢复 exact Surface return |
+| Independent / non-continuous battle LocalMap | C：正式独立战斗或 B：旧 Hex battle | Explicit encounter arena 与没有 world anchor 的 Hex compatibility | Continuous ground combat 不得退回 BattleHex center 或 Outdoor LocalMap |
+| Continuous runtime 对 residual `AtHex` 的读取 | B：old-save residual presentation | restore 已附加明确 `PersonalSurfaceId` 后，在已加载 chunk 呈现旧 downed/corpse | 不得作为 modern producer；没有明确 Surface provenance 不得物化 |
+| `ClearPresentationOverride` | A/C 内部受限 cleanup | Continuous runtime 自己 materialize 的 population、prepared combat rollback、明确 entity teardown | 不得遍历全世界或删除 inactive Separate Space persistent placement |
+
+Final audit 修复了三处仍会产生 modern AtHex 的真实 A 类残留：Continuous movement 的 traveling members 现在写 `AtWorldPosition + SurfaceId`；Snapshot active resolver 对已确认 Continuous position 返回 `AtWorldPosition`；`ManualBattleWorldCommitService` 在 snapshot 带 Continuous world anchor 时以 exact anchor 提交 AutoResolve／兼容 caller，只有无 world anchor 的 non-continuous battle 才进入 BattleHex branch。现代 Snapshot 的 `AtWorldPosition`／`AtSite`／`InSeparateSpace` 原样恢复；旧 `AtHex` 若能落入已注册 Surface，会在 restore 时迁移成 `AtWorldPosition`。
+
+严格 dead-code gate 只删除了已无 Runtime／migration／Separate Space／battle／import caller 的 W1B primary-context API：`ApplyWildernessPrimaryContextWithoutUnload`、两个 `TryCommitSeamlessWildernessCrossing*` 方法及其 W1B 专用测试。`EnterWildernessLocalMap`、LocalVisible／Hex travel stack、AtHex restore、residual consumer 与 WorldRegion schema 均特意保留，因为仍有明确 compatibility consumer。
+
+`HostLevelTesterCheatPanel` 的普通「诊断」Tab 保留到 MAP-04 制作人验收，继续展示 authority、opening census、startup postcondition、performance 与错误信息；未恢复 Force Leave，未新增诊断页。制作人验收通过后的 housekeeping 可退休普通诊断 UI，底层 performance/error counters 可继续保留。
 
 ## FormalArmy authored deployment authority 稳定性修复（制作人复验待定）
 
 制作人再次发现三支军队成员堆在荒村附近。根因不只是坐标：Bootstrap 先给新成员写 assembly Site personal presence，`CreateAuthoredArmy` 再把 Army 初始化到该 Site；随后虽然改写 Army.WorldMotion，idle `FormalArmyMemberPresenceSync` 保留旧个人位置，LocalVisible idle presentation 也优先读旧个人位置。另有 `FormalArmy.SyncLegacyFromWorldMotion()` 每次把 `UsesHexStrategicPosition` 写成 `HasPosition`，覆盖 Surface 语义。本热修使 authored Surface 部署直接建立首次 Army anchor，明确 GroupRelocation 同步受控成员；普通 idle tick 仅保留 Army 锚点附近的 near-field personal position。idle／moving View 共用 Army.WorldMotion + transient formation，队形不写回个人 canonical position，间距由 1.5 提到 3 Surface Cells，并对超出合理编队半径的物化位置作一次性诊断。
 
-正式 Content 新增 `initialSurfaceDeployment = {surfaceId, anchorSiteId, offsetCellsX, offsetCellsY}`。Bootstrap 从同一份 authored controlCore placement 解析精确中心（当前军队初始化早于运行时 SiteCore metadata bind），加导航 `CellSize × offsetCells` 得到一次性的 exact deployment；旧 `initialSurfacePosition` 继续只作绝对坐标兼容。黄村议政厅实际 placement 左下角是 `(6.01888,11.075)`，Core 中心为 `(6.105485,11.215)`。荒村山匪／弱匪／强匪分别用 `(722,334)`、`(797,-5)`、`(722,-343)` cells，约 795.5／797.0／799.3 cells，落点约 `(26.321485,20.567)`、`(28.421485,11.075)`、`(26.321485,1.611)`。原绝对坐标相对实际 Core 中心仅约 79.3／27.4／45.5 cells。三点在正式 Surface bounds 内，geography cell 为 Ground、无 blocking SitePlacement；成员名册与战力不变。
+正式 Content 新增 `initialSurfaceDeployment = {surfaceId, anchorSiteId, offsetCellsX, offsetCellsY}`。Bootstrap 从同一份 authored controlCore placement 解析精确中心（当前军队初始化早于运行时 SiteCore metadata bind），加导航 `CellSize × offsetCells` 得到一次性的 exact deployment；旧 `initialSurfacePosition` 继续只作绝对坐标兼容。荒村议政厅实际 placement 左下角是 `(6.01888,11.075)`，Core 中心为 `(6.105485,11.215)`。荒村山匪／弱匪／强匪分别用 `(722,334)`、`(797,-5)`、`(722,-343)` cells，约 795.5／797.0／799.3 cells，落点约 `(26.321485,20.567)`、`(28.421485,11.075)`、`(26.321485,1.611)`。原绝对坐标相对实际 Core 中心仅约 79.3／27.4／45.5 cells。三点在正式 Surface bounds 内，geography cell 为 Ground、无 blocking SitePlacement；成员名册与战力不变。
 
 Snapshot 继续以 Army.WorldMotion 为 authority；restore/finalize 对仍由 Army 控制的 Surface 成员执行 GroupRelocation，而不是重新按 assemblySiteId 或 authored deployment 回生。Surface 初始化和 legacy 同步按 SurfaceId 设置 `UsesHexStrategicPosition=false`。当前仅离线 Core／Data／Unity Host 编译、Content load/validation、一次 Ch01 NewGame authored army invariant sanity，以及把三支军队临时移回 assembly Site 后分别应用已捕获的 FormalArmy motion DTO，三支 Army 与 living member 均恢复原始远程锚点。此为 isolated motion restore 检查，不等同完整 Host Save/Load 人工验收；未打开 Unity。状态仍为 **Implementation In Progress / Producer Acceptance Pending**，暂停其余 MAP-04 Legacy 删除。
 

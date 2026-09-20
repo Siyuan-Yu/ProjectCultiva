@@ -399,23 +399,6 @@ namespace XianXia.Unity.Host
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
 
-            if (GUI.Button(new Rect(x, y, width, 28f), "Debug Force Leave Separate Space"))
-            {
-                var bridge = bootstrap?.CommandBridge;
-                var active = bootstrap?.Session?.PlayerParty?.ActiveCharacterId ??
-                             XianXia.Core.Domain.Ids.EntityId.None;
-                if (bridge == null)
-                    _sessionStatus = "无 CommandBridge";
-                else if (active.IsNone)
-                    _sessionStatus = "无 Active Character";
-                else
-                {
-                    bridge.IssueLeaveSeparateSpace(active);
-                    _sessionStatus = "Force Leave: " + bridge.LastStatus;
-                }
-            }
-
-            y += 36f;
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;
             var perfText =
                 // 性能诊断（判断卡顿是否 A* storm／registry rebuild spike）：

@@ -110,6 +110,8 @@ namespace XianXia.Core.Persistence
 
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.LocalMapId = resolved.LocalMapId ?? string.Empty;
+            // Only compatibility resolutions reach AtHex here. Confirmed Continuous positions
+            // are resolved above as AtWorldPosition; Separate Space and Site have explicit modes.
             world.PartyWorld.Mode = resolved.PartyWorldMode == PartyWorldPresenceMode.AtWorldPosition
                 ? PartyWorldPresenceMode.AtWorldPosition
                 : PartyWorldPresenceMode.AtHex;
@@ -179,7 +181,7 @@ namespace XianXia.Core.Persistence
                 resolved = new Resolved
                 {
                     HasValue = true, LocalMapId = string.Empty,
-                    PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                    PartyWorldMode = PartyWorldPresenceMode.AtWorldPosition,
                     WildernessHex = wp.ResidualHex,
                     WorldLocationLabel = "ContinuousWorldPosition",
                     Source = "ActiveWorldPresence.ContinuousSurface"
@@ -208,6 +210,9 @@ namespace XianXia.Core.Persistence
 
             if (wp.Mode == PartyWorldPresenceMode.AtWorldPosition)
             {
+                // An exact position outside registered Continuous Surface coverage may still
+                // address a legacy Outdoor LocalMap. Quarantine that old map-loading contract as
+                // AtHex presentation context; it is not a modern Continuous authority downgrade.
                 var hex = wp.ResidualHex;
                 if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
                     string.IsNullOrEmpty(mapId))
@@ -264,7 +269,7 @@ namespace XianXia.Core.Persistence
                 resolved = new Resolved
                 {
                     HasValue = true, LocalMapId = string.Empty,
-                    PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                    PartyWorldMode = PartyWorldPresenceMode.AtWorldPosition,
                     WildernessHex = motionResolved.DerivedHex,
                     WorldLocationLabel = "ContinuousWorldPosition",
                     Source = "PlayerPartyTravel.ContinuousSurface"

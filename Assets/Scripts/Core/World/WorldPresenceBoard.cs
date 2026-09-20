@@ -7,7 +7,10 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
-    /// <summary>单个可控角色在宏观 Hex 战略图上的位置。</summary>
+    /// <summary>
+    /// Persistent character world presence. Modern Continuous Outdoor uses exact WorldPosition
+    /// plus Surface provenance; AtHex remains a serialized compatibility form.
+    /// </summary>
     public sealed class WorldAgentPresence
     {
         public const int InvalidHexComponent = ArmyHexBattleAnchorService.InvalidHexComponent;
@@ -55,6 +58,10 @@ namespace XianXia.Core.World
             HexR = InvalidHexComponent;
         }
 
+        /// <summary>
+        /// Compatibility-only residual placement for old saves and independent battle teardown.
+        /// Normal Continuous Outdoor callers must use SetAtWorldPosition / SetAtSiteWithAnchor.
+        /// </summary>
         public void SetAtHex(HexCoord hex)
         {
             PersonalSurfaceId = string.Empty;
@@ -226,6 +233,7 @@ namespace XianXia.Core.World
             p.SetAtSiteWithAnchor(siteId, anchorWorldPosition, surfaceId);
         }
 
+        /// <summary>Compatibility-only adapter; see <see cref="WorldAgentPresence.SetAtHex"/>.</summary>
         public void SetAtHex(EntityId id, HexCoord hex)
         {
             var p = GetOrCreate(id);

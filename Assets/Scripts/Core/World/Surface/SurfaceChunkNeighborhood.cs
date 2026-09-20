@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace XianXia.Core.World.Surface
 {
-    /// <summary>Pure deterministic desired-set and incremental diff policy for W1C streaming.</summary>
+    /// <summary>Pure deterministic desired-set and incremental diff policy for Surface streaming.</summary>
     public static class SurfaceChunkNeighborhood
     {
         public static void CollectSquare(SurfaceChunkCoord center, int radius, ISet<SurfaceChunkCoord> result)

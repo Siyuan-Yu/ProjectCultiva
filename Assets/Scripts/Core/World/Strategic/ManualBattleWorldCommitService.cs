@@ -34,6 +34,17 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || snap == null || resolution == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "CommitWorldCombatParticipants args required.");
+
+            // Normal Continuous combat commits to the frozen exact world anchor. Manual ground
+            // combat normally bypasses this service through ContinuousManualCombat; this branch
+            // also protects AutoResolve and any compatibility caller from reviving BattleHex as
+            // physical authority when the modern snapshot already carries Surface provenance.
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                snap.HasBattleAnchorWorldPosition)
+                return CommitContinuousWorldCombatParticipants(world, partyMembers, snap);
+
+            // Compatibility-only non-continuous world combat. BattleHex remains authoritative for
+            // old Hex worlds / old snapshots that do not carry a Continuous battle world anchor.
             if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var battleHex))
                 return Result.Failure(ErrorCode.InvalidArgument, "Snapshot 缺少冻结的 BattleAnchorHex。");
             if (world.HexWorld == null || !world.HexWorld.Contains(battleHex))
@@ -90,6 +101,50 @@ namespace XianXia.Core.World.Strategic
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
             }
 
+            return Result.Success();
+        }
+
+        static Result CommitContinuousWorldCombatParticipants(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> partyMembers,
+            BattleParticipantSnapshot snap)
+        {
+            var battleWorld = new WorldVec2(snap.BattleAnchorWorldX, snap.BattleAnchorWorldY);
+            if (!world.SurfaceGround.TryResolveContaining(battleWorld, out var navigation))
+                return Result.Failure(ErrorCode.InvalidArgument, "Continuous battle world anchor is outside registered Surface coverage.");
+            if (!string.IsNullOrEmpty(snap.BattleAnchorSurfaceId) &&
+                !string.Equals(snap.BattleAnchorSurfaceId, navigation.SurfaceId, System.StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidArgument, "Continuous battle Surface provenance mismatch.");
+
+            var derivedHex = world.HexWorld?.HasGrid == true
+                ? HexMath.WorldToHex(battleWorld.X, battleWorld.Y,
+                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                : default;
+            var armyIds = new List<string>(8);
+            ArmyHexBattleAnchorService.CollectParticipantFormalArmyIds(world, snap, armyIds);
+            for (var i = 0; i < armyIds.Count; i++)
+            {
+                if (!world.Strategic.FormalArmies.TryGet(armyIds[i], out var army) || army == null)
+                    continue;
+                FormalArmyContinuousTravelService.InitializeAtWorldPosition(
+                    world, army, battleWorld, derivedHex, navigation.SurfaceId,
+                    groupRelocation: true);
+            }
+
+            if (!HasActualPlayerPartyParticipant(snap, partyMembers) ||
+                world.PlayerPartyTravel == null)
+                return Result.Success();
+
+            var motion = world.PlayerPartyTravel;
+            motion.CaptureTravelingMembers(partyMembers);
+            motion.SetAtWorldPosition(battleWorld, derivedHex);
+            for (var i = 0; i < partyMembers.Count; i++)
+                world.WorldPresence.SetAtWorldPosition(
+                    partyMembers[i], battleWorld, derivedHex, navigation.SurfaceId);
+
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.LocalMapId = string.Empty;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             return Result.Success();
         }
 

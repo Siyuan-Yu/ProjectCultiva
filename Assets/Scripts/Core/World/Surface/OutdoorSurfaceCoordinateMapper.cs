@@ -3,7 +3,7 @@ using System;
 namespace XianXia.Core.World.Surface
 {
     /// <summary>
-    /// W1C uniform mapper. WorldPosition remains the physical authority; this service only
+    /// Continuous Outdoor uniform mapper. WorldPosition remains the physical authority; this service only
     /// converts between that space, presentation space and the independent rectangular chunks.
     /// All metric values are provisional prototype parameters owned by the surface definition.
     /// </summary>

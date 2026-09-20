@@ -18,7 +18,7 @@ using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>W1C presentation owner for the acceptance surface. Chunk ownership is transient only.</summary>
+    /// <summary>Continuous Outdoor presentation owner. Chunk ownership is transient only.</summary>
     public sealed partial class ContinuousOutdoorSurfaceRuntime : MonoBehaviour
     {
         public sealed class ManualCombatPreparation
@@ -103,7 +103,6 @@ namespace XianXia.Unity.Host
         SurfaceChunkCoord _pendingCenter;
         int _pendingAddIndex;
         int _pendingRemoveIndex;
-        HexCoord _diagnosticDerived, _diagnosticCommitted;
         bool _autoTravelPathBlocked;
         HexCoord _blockedNextHex, _blockedDestination;
         WorldVec2 _blockedFrom, _blockedCandidate;
@@ -260,7 +259,7 @@ namespace XianXia.Unity.Host
         public bool TryCaptureAtSiteAnchor(EntityId id, Vector3 presentationPosition) =>
             CommitContinuousNpcPosition(id, presentationPosition);
 
-        /// <summary>Lightweight W1C acceptance diagnostic; emitted only on streaming state changes.</summary>
+        /// <summary>Lightweight Outdoor authority and streaming diagnostic for producer acceptance.</summary>
         public string DescribeDiagnostics()
         {
             var chunks = new List<SurfaceChunkCoord>(_loaded);
@@ -279,25 +278,16 @@ namespace XianXia.Unity.Host
             if (_bootstrap?.Session?.PlayerParty != null && _bootstrap.ViewSpawner?.Registry != null &&
                 _bootstrap.ViewSpawner.Registry.TryGet(_bootstrap.Session.PlayerParty.ActiveCharacterId, out var view) && view != null)
                 presentation = "(" + view.transform.position.x.ToString("0.###") + "," + view.transform.position.y.ToString("0.###") + ")";
-            var hexWorld = _bootstrap?.Session?.World?.HexWorld;
-            var derived = motion != null && hexWorld != null
-                ? HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexWorld.HexSize) : default;
-            HexCell tile = null;
-            var exists = hexWorld != null && hexWorld.TryGetTile(derived, out tile);
             var covered = definition != null && motion != null &&
                 OutdoorSurfaceCoverageResolver.ContainsWorldPosition(definition, motion.WorldPosition.X, motion.WorldPosition.Y);
-            return "PresentationAuthority=" + (IsActive ? "MainContinuousSurface" : "LegacyLocalMap") +
+            return "PresentationAuthority=" + (IsActive ? "MainContinuousSurface" : "Unavailable") +
                    " Surface=" + ActiveSurfaceId +
                    " Chunk=" + CurrentChunk +
                    " Loaded=" + _loaded.Count + "[" + string.Join(",", chunks) + "]" +
                    " LoadedNeighborhoodBoundary=radius1" +
                    " SurfaceCoverageBoundary=[" + minX + "," + minY + "]..[" + maxX + "," + maxY + "]" +
-                   " Hex=" + (motion != null ? motion.CurrentHex.ToString() : string.Empty) +
                    " CurrentOutdoorWorldSiteId=" + (motion != null ? motion.CurrentOutdoorWorldSiteId : string.Empty) +
                    " Presentation=" + presentation + " CanonicalWorld=" + (motion != null ? motion.WorldPosition.ToString() : string.Empty) +
-                   " DerivedHex=" + derived + " CommittedHex=" + (motion != null ? motion.CurrentHex.ToString() : string.Empty) +
-                   "\nStrategicCellExists=" + exists + " StrategicTerrain=" + (tile != null ? tile.Terrain.ToString() : "Missing") +
-                   " StrategicPassable=" + (tile != null && tile.IsPassable) + " StrategicIsRoad=" + (tile != null && tile.IsRoad) +
                    "\nSurfaceCoverageContainsWorldPosition=" + covered + " MovementContext=" + context +
                    "\nSurfaceEgressStatus=" + SurfaceEgressStatus +
                    "\nCurrentWorldSiteGateway=DisabledForOutdoorMigration" +
@@ -1061,18 +1051,12 @@ namespace XianXia.Unity.Host
                 _lastLegalMembers[id] = view.transform.position;
                 CommitContinuousNpcPosition(id, view.transform.position);
             }
-            var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, world.HexWorld.HexSize);
-            if (!derived.Equals(_diagnosticDerived) || !motion.CurrentHex.Equals(_diagnosticCommitted))
-            {
-                _diagnosticDerived = derived; _diagnosticCommitted = motion.CurrentHex;
-                Debug.Log("[W1C] Hex change " + DescribeDiagnostics(), this);
-            }
         }
 
         public void ReportLegalityBlocked()
         {
             if (LastMovementDiagnostic != ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic)
-                Debug.LogWarning("[W1C] " + ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic, this);
+                Debug.LogWarning("[ContinuousOutdoor] " + ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic, this);
             LastMovementDiagnostic = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
         }
 
@@ -1160,7 +1144,7 @@ namespace XianXia.Unity.Host
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 world.LocalMap.IsInInterior ||
                 (BattleOfferService.HasActiveManualEncounter(world) && !IsBoundContinuousManualCombat(world))) return false;
-            // Explicit W1C diagnostic activation remains authoritative until its owner is
+            // Explicit acceptance-surface activation remains authoritative until its owner is
             // deactivated; normal resolver never selects acceptance-only content on its own.
             if (IsActive && TryResolveSurface(out var active) && active.AcceptanceOnly) return true;
             if (!OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
@@ -1237,8 +1221,6 @@ namespace XianXia.Unity.Host
                 _geography = previousGeography;
                 return;
             }
-            if (_bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true)
-                _bootstrap.DeactivateContinuousWildernessIfActive();
             _tileMap.RemoveLayoutInstance("legacy:active-localmap");
             IsActive = true;
             _bootstrap.Session.World.SurfaceGround.Activate(_geography?.Navigation);
@@ -1265,7 +1247,6 @@ namespace XianXia.Unity.Host
             _bootstrap.MoveController.BindLocalMapContext("ContinuousSurface:" + _surfaceId);
             if (!TryValidateSurfaceActivationPostconditions(out var invariantFailure))
                 Debug.LogError("[ContinuousStartupInvariantFailure] " + invariantFailure, this);
-            Debug.Log("[W1C] Activated " + DescribeDiagnostics(), this);
         }
 
         /// <summary>Surface activation/hard handoff only. Ordinary adjacent crossings are staged.</summary>
@@ -1292,7 +1273,6 @@ namespace XianXia.Unity.Host
             RefreshLoadedOutdoorPlaces();
             ReconcileOutdoorEntityMaterialization();
             _bootstrap.RefreshContinuousOutdoorOverlaysOnce();
-            Debug.Log("[W1C] Neighborhood add=" + _add.Count + " remove=" + _remove.Count + " " + DescribeDiagnostics(), this);
         }
 
         /// <summary>
@@ -1782,7 +1762,6 @@ namespace XianXia.Unity.Host
             _bootstrap?.MoveController?.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             _bootstrap?.MoveController?.SetWalkGrid(null);
             _bootstrap?.MoveController?.BindLocalMapContext(string.Empty);
-            Debug.Log("[W1C] Deactivated surface=" + _surfaceId + " Loaded=0", this);
             _surfaceId = string.Empty;
             _independentFieldId = string.Empty;
         }
@@ -2199,8 +2178,8 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            // Continuous positions and residual AtHex presences in loaded chunks are part of the
-            // same transient presentation scope, including downed characters and visible corpses.
+            // Modern producers use AtWorldPosition. AtHex is accepted here only as old-save /
+            // residual compatibility after restore has attached explicit Surface provenance.
             foreach (var pair in world.WorldPresence.All)
             {
                 var presence = pair.Value;
@@ -2296,7 +2275,7 @@ namespace XianXia.Unity.Host
         /// <summary>
         /// materialize 已写入权威 PresentationOverride，但 <c>SpawnMissingVisibleViews</c> 只补
         /// 「缺失」view、绝不搬动已存在的 view。若 view 在 activation 之前就由
-        /// <c>EntityViewSpawner.Rebuild</c> 建好（那时只能退回 legacy WorldRegion 地点 presentation +
+        /// <c>EntityViewSpawner.Rebuild</c> 建好（那时只能退回 authored LocalPlace presentation +
         /// stack 偏移），它就会永久停在回退位置：Expected=Materialized=Views 全部成立，人却在镜头外。
         /// 这里在同一 pass 内把已存在的 view 对齐到权威落点（策略见
         /// <see cref="ContinuousMaterializePlacementSync"/>）：PlayerParty 成员与正在移动的实体跳过。
@@ -2626,10 +2605,10 @@ namespace XianXia.Unity.Host
                 _bootstrap?.Session?.Registry, surface, center, out failure);
         }
 
-        /// <summary>W1C 诊断：当前已 materialize 的 Site population 数量（性能面板用）。</summary>
+        /// <summary>当前已 materialize 的 Outdoor population 数量（性能面板用）。</summary>
         public int MaterializedOutdoorEntityCount => _continuousSitePopulation.Count;
 
-        /// <summary>W1C 诊断：Loaded chunk 数量与最近一次 place refresh 代数。</summary>
+        /// <summary>Loaded chunk 数量与最近一次 place refresh 代数。</summary>
         public int LoadedPlaceCount { get; private set; }
 
         void LogActivationFailure(
@@ -2661,7 +2640,7 @@ namespace XianXia.Unity.Host
             var acceptanceOnly = false;
             if (!TryResolveSurface(out var surface)) failures.Add("ActiveSurface unresolved");
             else acceptanceOnly = surface.AcceptanceOnly;
-            // Acceptance-only surfaces are diagnostic targets (LevelTester W1C Acceptance), not the
+            // Acceptance-only surfaces are diagnostic targets, not the
             // main playable surface: they carry no "must be the main surface" or opening-site contract.
             if (!acceptanceOnly)
             {

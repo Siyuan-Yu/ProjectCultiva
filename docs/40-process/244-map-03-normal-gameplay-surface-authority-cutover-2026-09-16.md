@@ -46,7 +46,7 @@
 - WorldMap 分成固定顶部操作区、占满可用宽度的地图视口、按需出现的右侧情报浮层；底部支援控制条仍固定。地图渲染统一使用 `BeginGroup(mapRect)` 内的局部 `Rect(0,0,width,height)` 投影；组结束后只将 marker 命中区域转成屏幕坐标一次。移除永久右栏和 `GUI.matrix` 平移抵消，详情开关不改变视口尺寸或镜头。浮层可点 X、按 Esc 关闭；空白 Surface 的坐标与地形也在浮层显示。坐标网格仅留稀疏线，删除 X/Y 数字。
 - Surface 战略房屋严格代表同 Surface、active、不可拆卸的真实 Continuous Council Hall Core；可拆卸 Site 只有在解析到对应 FactionFlag 时画旗。Site arrival 只承担旅行抵达，不再补画假房屋；无 Core 的 Legacy Site 不在正常 Surface Map 伪造 marker。房屋和旗采用独立于实际建筑占地的稳定世界空间展示尺寸，随地图缩放。
 - 青石镇、青石关、灵地、林间、庄院原先只有 Prototype 树。五棵树各自原有连续世界中心被用作固定议政厅 Core 中心：青石镇 `(20.50315,12.545)`、青石关 `(21.05308,16.92)`、灵地 `(38.72433,8.63)`、林间 `(12.30622,7.72)`、庄院 `(29.0335,5.315)`。每处建立独立 `controlCore` 放置、`base:loc_site_<站点>_core` SitePlace 和 `base:workarea_core_<站点>` ControlCore WorkArea；原 siteRegion arrival 保留且均在建筑阻挡范围之外。
-- WorldComposer 兼容候选导出以当前运行时主世界为模板，只重建黄村放置。实际执行一次候选导出后，核对五个新 Core 及 SitePlace 全部保留；WorkArea 数据文件不由兼容发布替换。现有 `RebindPresetWorldSiteCoreMetadata` 负责给固定 Site 绑定 Core 和默认一级范围，继续使用既有 baseline Claim 初始化；Surface Actual Control 仍消费当前 Claim union。
+- WorldComposer 兼容候选导出以当前运行时主世界为模板，只重建荒村放置。实际执行一次候选导出后，核对五个新 Core 及 SitePlace 全部保留；WorkArea 数据文件不由兼容发布替换。现有 `RebindPresetWorldSiteCoreMetadata` 负责给固定 Site 绑定 Core 和默认一级范围，继续使用既有 baseline Claim 初始化；Surface Actual Control 仍消费当前 Claim union。
 - 本次运行 Core/Data/Unity Host 离线编译、BaseGame Content 加载校验、五个 Core/WorkArea/SitePlace 唯一性与边界静态校验、兼容候选 round-trip 核对及 `git diff --check`。开发侧没有打开 Unity 或运行 Unity Test；最终已由制作人人工验收。
 - 战略 marker 的房屋与旗帜以精确 Core／独立旗帜世界坐标为中心，使用固定 28 Surface Cells 的世界空间展示宽高，经 Surface 投影得到随 zoom 缩放的屏幕矩形；这不是实体建筑占地。名称从图标右侧 8 Surface Cells 起排，字号按投影后的标签高度缩放并按字号缓存样式。命中区域直接使用投影后的图标矩形，在退出地图裁剪组后一次转换成屏幕坐标。Actual Control、道路、河流、地形及路线继续按世界空间投影；Header、底部控制条和情报浮层保持固定屏幕尺寸。缩放、平移时的视觉锚定与点击一致性已纳入制作人人工验收。
 

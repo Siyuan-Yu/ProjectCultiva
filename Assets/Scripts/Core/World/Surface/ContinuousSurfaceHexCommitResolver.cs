@@ -4,7 +4,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Surface
 {
-    /// <summary>W1C WorldPosition→CurrentHex commit rule; deliberately independent of legacy LocalMap projection.</summary>
+    /// <summary>Compatibility projection from exact WorldPosition to serialized CurrentHex metadata.</summary>
     public static class ContinuousSurfaceHexCommitResolver
     {
         public const float HysteresisFraction = 0.04f;

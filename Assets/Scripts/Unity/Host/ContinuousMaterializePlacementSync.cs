@@ -6,7 +6,7 @@ namespace XianXia.Unity.Host
     /// 语义：materialize 写入的 <c>EntityLocationComponent.PresentationOverride</c> 是「该实体在本
     /// loaded scope 内的呈现位置」唯一真源。但 view 可能在 Continuous activation <b>之前</b> 就已被
     /// <c>EntityViewSpawner.Rebuild</c> 创建 —— 那时还没有 materialize，<c>ResolvePresentationPosition</c>
-    /// 只能退回 legacy <c>WorldRegion</c> 地点 presentation + stack 偏移；而
+    /// 只能退回 authored LocalPlace presentation + stack 偏移；而
     /// <c>SpawnMissingVisibleViews</c> 只补「缺失」view、<b>绝不搬动已存在的 view</b>。
     ///
     /// 症状签名（生产实测）：<c>Expected=17 Materialized=17 Views=17</c> 全部成立，但 16 个 view 停在
