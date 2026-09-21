@@ -1,7 +1,7 @@
 # ADR-0035：统一行动小队与固定范围独立遭遇
 
 > 日期：2026-09-13
-> 状态：Design Confirmed；CW-U0 Producer Accepted / Sealed；CW-U2A～U4 核心正常路线已经制作人多轮人工验收（不代表穷尽全部关系概率、旧档组合与边界）；CW-U4.1 Implementation Completed / Producer Acceptance Pending。
+> 状态：Design Confirmed；CW-U0 Producer Accepted / Sealed；统一 Squad／CharacterEncounter normal runtime 已随 LEGACY-FINAL-A 于 2026-09-21 Producer Accepted / Sealed。
 > 制作人 CW-U0 最新决定。实施与验收入口：[220](../220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。
 
 ## 1. 唯一行动小队

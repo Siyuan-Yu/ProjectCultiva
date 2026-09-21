@@ -8,7 +8,7 @@
 
 当前阶段结论：MAP-01～MAP-04 与 SPACE-01 均已完成制作人人工验收并封板；SPACE-01 seal checkpoint 为 `49f8650`。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；`ContinuousWildernessPair` 已物理删除；WorldRegion 只剩旧包 schema / parser；Outdoor LocalMap 与 `AtHex` 只剩明确的 migration、compatibility、Independent Battle / residual 路径。Separate Space 继续合法保留 LocalMap infrastructure。后续旧军队／玩家旧旅行／TerritoryRegion 收尾分别进入 LEGACY-FINAL-A／B／C。
 
-> **2026-09-21 LEGACY-FINAL-A2：** NPC group runtime 已完成 zero-state 收口：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。状态为 Implementation Complete / Producer Acceptance Pending。
+> **2026-09-21 LEGACY-FINAL-A Seal：** NPC group runtime zero-state 已由制作人完整人工验收并正式 **Accepted / Sealed**：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。当前进入 LEGACY-FINAL-B；LEGACY-FINAL-C 仍未完成。
 
 > 本页只记系统与产品方向。当前仓库真实状态、Milestone 表、Known Issues、Do Not Regress、Resume Order 与可复制上下文见 [247 Project Handoff — Current State](../40-process/247-project-handoff-current-state-2026-09-18.md)；MAP-04 审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)；SPACE-01 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 

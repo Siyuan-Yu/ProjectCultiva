@@ -1,7 +1,7 @@
 # LEGACY-FINAL-A — Unified NPC Squad World Motion / FormalArmy Runtime Retirement
 
 > 日期：2026-09-20  
-> 状态：**Implementation Complete / Producer Acceptance Pending**  
+> 状态：**Producer Accepted / Sealed — 2026-09-21**
 > 前置封板：MAP-04、CW-10、CW-10.5、Cave Loot persistence 已 Accepted / Sealed  
 > 后续：LEGACY-FINAL-B（PlayerParty movement legacy）→ LEGACY-FINAL-C（TerritoryRegion 等剩余边界）
 
@@ -185,5 +185,11 @@ A2 完成最后一层 runtime 退役，状态保持 **Implementation Complete / 
 - Active encounter snapshot 恢复后仍停在 `ReadyToStart` 等待玩家开始，恢复的 `ReadyToEnd` 仍显示结束入口；
 - 删除无 caller 的第二层 `LocalAttackConfirm` residue，保留据点／势力旗外交用途的 `StrategicAggressionConfirm`。
 
-旧 `BattleOfferService`、`BattleDecisionPolicy`、`PendingEngagement`、ArmyStack／FormalArmy 战斗 UI 与战略 Army battle workflow 继续保持退役和删除状态，没有因本次表现修复恢复。状态保持 **Implementation Complete / Producer Acceptance Pending**。
+旧 `BattleOfferService`、`BattleDecisionPolicy`、`PendingEngagement`、ArmyStack／FormalArmy 战斗 UI 与战略 Army battle workflow 继续保持退役和删除状态，没有因本次表现修复恢复。
+
+## 17. Producer Acceptance / Seal
+
+制作人已于 2026-09-21 完整人工验收 New Game NPC Squad、FormalArmy／ArmyStack runtime 退役、NPC Squad Continuous movement、WorldMap marker、PlayerParty 与 NPC Squad authority isolation、SiteArrival、CharacterEncounter 的 Offer／Start／End／Report／CloseReport、active encounter Save／Load、Site blocker tactical placement 与 Separate Space regression。
+
+LEGACY-FINAL-A 正式状态为 **Producer Accepted / Sealed**。已验收实现 checkpoint 为 `e97f53f`；seal 文档 checkpoint 另行记录。后续进入 LEGACY-FINAL-B，LEGACY-FINAL-C 仍未完成，因此不得宣称 Legacy Finalization Complete。
 

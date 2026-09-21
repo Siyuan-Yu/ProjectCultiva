@@ -1,10 +1,12 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
+> **2026-09-21 current handoff：** LEGACY-FINAL-A 已由制作人完整人工验收并正式 **Accepted / Sealed**；已验收实现 checkpoint 为 `e97f53f`。当前主线为 **LEGACY-FINAL-B — PlayerParty Continuous Surface Travel Authority Cutover**，目标是把正常玩家旅行收口为 `SurfaceId + exact WorldPosition + SurfaceVisible`，并把 Hex／Outdoor LocalMap executor 限定为兼容路径。LEGACY-FINAL-C 为下一阶段；B/C 完成前不得宣称 Legacy Finalization Complete。
+
 > **2026-09-20 Seal / Legacy Finalization superseding state：** MAP-04、CW-10、CW-10.5 与 Cave Loot persistence 已由制作人人工验收并正式 **Accepted / Sealed**。当前主线切换为 **LEGACY-FINAL-A — Unified NPC Squad World Motion / FormalArmy Runtime Retirement**；随后依次为 LEGACY-FINAL-B、LEGACY-FINAL-C。A/B/C 全部完成前不得宣称 Legacy migration complete。本文后续关于 MAP-04／CW-10／CW-10.5 pending 的段落均为历史恢复快照。
 
 > **2026-09-20 LEGACY-FINAL-A implementation state：** A 已达到 **Implementation Complete / Producer Acceptance Pending**，正式记录见 [248 LEGACY-FINAL-A](248-legacy-final-a-unified-npc-squad-world-motion-2026-09-20.md)。正常 New Game 的 NPC group authority 已收口为 `Squad + SquadWorldMotion + exact Surface position`；Current BaseGame 不再创建 FormalArmy/ArmyStack，旧 content/save 仅作单向 migration input。待制作人验收 A 后才进入 B，TerritoryRegion 等 C 边界仍未完成。
 
-> **2026-09-21 LEGACY-FINAL-A2 runtime zero-state：** FormalArmyBoard、ArmyStackBoard、ArmyMembershipComponent 与旧 Army runtime/services 已物理退出 Simulation；旧 Content/Snapshot DTO 只在兼容边界直接单向迁移到 Squad + SquadWorldMotion，旧 active battle identity 迁到 SquadId / CharacterEncounter。状态仍为 **Implementation Complete / Producer Acceptance Pending**；不得进入 LEGACY-FINAL-B/C。
+> **2026-09-21 LEGACY-FINAL-A2 runtime zero-state（已封板）：** FormalArmyBoard、ArmyStackBoard、ArmyMembershipComponent 与旧 Army runtime/services 已物理退出 Simulation；旧 Content/Snapshot DTO 只在兼容边界直接单向迁移到 Squad + SquadWorldMotion，旧 active battle identity 迁到 SquadId / CharacterEncounter。制作人已完成人工验收，A 状态为 **Accepted / Sealed**。
 
 > **2026-09-20 Current State supersedes the older snapshot below:** SPACE-01 已由制作人验收并以 `49f8650`（`Seal SPACE-01 separate-space ownership and persistence`）提交、推送，状态为 **Accepted / Sealed**。MAP-04 已恢复并完成 final physical cleanup 实施：删除 `ContinuousWildernessPair` runtime、清理 W1C acceptance logs / force-leave cheat、Normal Outdoor Surface sync 不再回退 Hex terrain legality、正常 `PartyWorld` summary 不再写 `AtHex`。MAP-04 当前为 **Implementation Complete / Producer Acceptance Pending**；本轮 MAP-04 文件全部保持未暂存、未提交、未推送。后文 2026-09-18 的 WIP、暂停与旧 consumer 数量是历史恢复快照，不再代表当前状态。
 

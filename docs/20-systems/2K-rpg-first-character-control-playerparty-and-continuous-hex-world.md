@@ -1,5 +1,7 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 Legacy FormalArmy Adapter
 
+> **2026-09-21 LEGACY-FINAL-A Seal：** 正常 NPC group 已统一为 Squad + SquadWorldMotion，FormalArmy／ArmyStack／ArmyMembership runtime 已退休并经制作人人工验收。A 正式 **Accepted / Sealed**。当前进入 LEGACY-FINAL-B，将 PlayerParty 正常旅行进一步收口为 `SurfaceId + exact WorldPosition + SurfaceVisible`；Hex／Outdoor LocalMap 保留为旧档／旧内容兼容边界。
+
 > **2026-09-20 MAP-04 current boundary:** 正常 Outdoor 已只使用 exact `WorldPosition` / Continuous Surface navigation；`PartyWorld.AtHex` 与本页 Hex travel 只属于旧档、retired Outdoor LocalMap、Independent Battle / residual compatibility。`ContinuousWildernessPair` runtime 已删除。Separate Space 使用 `InSeparateSpace + LocalMap`，并已随 SPACE-01 在 `49f8650` 封板。
 
 > **2026-09-16 MAP-02 Accepted：** 主 Continuous Surface 的 WorldMap 已使用同源 Surface strategic view 与 exact WorldPosition 投影；PlayerParty 的实际旅行仍含 Hex compatibility。`PlayerPartyHexTravelService.BeginContinuousSurfaceTravel()` 与 `PlayerPartyWorldMotion` 的 Hex 路径字段须在后续 MAP-03 逐项迁出；本页连续 Hex 内容仍是 compatibility 或历史迁移语境。

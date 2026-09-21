@@ -1,5 +1,10 @@
 # 开发日志
 
+## 2026-09-21 — LEGACY-FINAL-A Producer Accepted / Sealed
+
+- 制作人已完整人工验收 New Game NPC Squad、FormalArmy／ArmyStack runtime 退役、NPC Squad Continuous movement／WorldMap marker、PlayerParty authority isolation、SiteArrival、CharacterEncounter 全流程与 active encounter Save／Load，以及 Separate Space 回归；LEGACY-FINAL-A 正式 **Accepted / Sealed**。
+- 已验收实现 checkpoint 为 `e97f53f`。当前主线进入 LEGACY-FINAL-B：PlayerParty Continuous Surface Travel Authority Cutover；LEGACY-FINAL-C 仍为下一阶段，B/C 完成前不宣称 Legacy Finalization Complete。
+
 ## 2026-09-21 — LEGACY-FINAL-A2 CharacterEncounter UI 回归修复（待制作人验收）
 
 - 修复旧 Army battle 删除时误把现代 `HostStrategicInterruptPresenter` 缩成 no-op 的回归；恢复 CharacterEncounter-only 的人物遭遇、准备／失败重试、开始战斗、结束战斗、`ManualBattleReport` 与 transient toast 表现。
