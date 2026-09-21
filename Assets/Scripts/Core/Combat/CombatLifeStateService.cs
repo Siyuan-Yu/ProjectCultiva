@@ -161,6 +161,8 @@ namespace XianXia.Core.Combat
             if (life.State != LifecycleState.Alive)
                 return false;
 
+            CaptureSquadWorldMotionHandoff(world, entity.Id);
+
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = 0;
@@ -190,6 +192,8 @@ namespace XianXia.Core.Combat
                 return false;
             if (life.State != LifecycleState.Alive && !life.IsIncapacitated)
                 return false;
+
+            CaptureSquadWorldMotionHandoff(world, entity.Id);
 
             life.State = LifecycleState.Captured;
             life.ClearBleedOut();
@@ -247,6 +251,8 @@ namespace XianXia.Core.Combat
                 if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp > 0)
                     return false;
             }
+
+            CaptureSquadWorldMotionHandoff(world, target.Id);
 
             var responsibleAttackerId = attackerId;
             if (responsibleAttackerId.IsNone &&
@@ -386,21 +392,20 @@ namespace XianXia.Core.Combat
             if (entity.TryGet<EntityLocationComponent>(out var loc) && loc != null)
                 loc.ClearPresence();
             // 遭遇刷怪追踪／敌军栈人数（无存活／弥留／可见尸体时从大地图抹栈）
-            StrategicEncounterSpawner.ReconcileAfterLifeDecay(world, entity.Id);
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
             var squadId = world.Strategic?.Squads != null &&
                           world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) && squad != null
                 ? squad.SquadId
                 : string.Empty;
-            var armyId = ArmyService.TryGetArmyForCharacter(world, entity.Id, out var army) && army != null
-                ? army.ArmyId
-                : string.Empty;
+            var groupId = world.Strategic?.Squads != null &&
+                          world.Strategic.Squads.TryGetForCharacter(entity.Id, out var currentSquad) && currentSquad != null
+                ? currentSquad.SquadId : string.Empty;
             System.Diagnostics.Debug.WriteLine(
                 "[ResidualLifecycleSpatial] CharacterId=" + entity.Id.Value +
                 " Name=" + (entity.DisplayName ?? string.Empty) +
                 " Transition=DeadToRemoved" +
                 " SquadId=" + squadId +
-                " LegacyArmyId=" + armyId +
+                " GroupId=" + groupId +
                 " EncounterId=" + (world.Strategic?.CharacterEncounter?.EncounterId ?? string.Empty) +
                 " Before=" + removalSpatialBefore +
                 " After=Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None,ResidualHex:None" +
@@ -408,6 +413,28 @@ namespace XianXia.Core.Combat
                 " SpatialOwner=Removed" +
                 " HandoffAction=Remove");
 #endif
+        }
+
+        static void CaptureSquadWorldMotionHandoff(SimulationWorld world, EntityId id)
+        {
+            if (world?.Strategic?.Squads == null ||
+                !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
+                squad.CommandKind != SquadCommandKind.SquadWorldMotion ||
+                !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
+                !motion.HasPosition ||
+                !ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                    world, id, motion.SurfaceId, out var point, out var owner, out _, out _) ||
+                owner != ContinuousSpatialOwnerKind.Squad)
+                return;
+            var presence = world.WorldPresence.GetOrCreate(id);
+            presence.Mode = PartyWorldPresenceMode.AtWorldPosition;
+            presence.SiteId = string.Empty;
+            presence.PersonalSurfaceId = motion.SurfaceId;
+            presence.WorldPosX = point.X;
+            presence.WorldPosY = point.Y;
+            presence.HasContinuousWorldPosition = true;
+            presence.ClearHexPresence();
+            presence.ClearCombatPursuit();
         }
 
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD

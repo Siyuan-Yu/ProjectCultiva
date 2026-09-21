@@ -166,20 +166,17 @@
     },
     {
       "id": "base:scenario_ch01_reference",
-      "startingInventory": [{ "itemId": "base:resource_rough_wood", "count": 20 }],
+      "startingInventory": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 20
+        }
+      ],
       "type": "openingScenario",
       "name": "第一章参考关开局",
       "scheduleId": "base:playable_labor_day",
       "openingSurfaceId": "base:surface_main_wilderness_v1",
       "openingChapterId": "base:chapter_ch01_reference",
-      "initialFormalArmyIds": [
-        "base:formal_army_bandit_patrol",
-        "base:formal_army_bandit_weak",
-        "base:formal_army_bandit_casualty_test",
-        "base:formal_army_qingshi_acceptance_shuofeng_garrison",
-        "base:formal_army_qingshi_acceptance_shuofeng_reinforcement",
-        "base:formal_army_huangcun_labor_garrison"
-      ],
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
         "vassalages": [
@@ -523,6 +520,14 @@
           "fromDefinitionId": "base:character_ch01_ref_herb_b",
           "toDefinitionId": "base:character_ch01_ref_farmer_b"
         }
+      ],
+      "initialNpcSquadIds": [
+        "base:npc_squad_bandit_patrol",
+        "base:npc_squad_bandit_weak",
+        "base:npc_squad_bandit_casualty_test",
+        "base:npc_squad_qingshi_acceptance_shuofeng_garrison",
+        "base:npc_squad_qingshi_acceptance_shuofeng_reinforcement",
+        "base:npc_squad_huangcun_labor_garrison"
       ]
     }
   ]

@@ -159,7 +159,7 @@ namespace XianXia.Unity.Host
                 // Political overlay does not replace the canonical static placement binding.
                 SettlementAuthoritySync.Rebuild(world);
 
-                var motions = StrategicSnapshotHelper.RestoreFormalArmyMotions(world, politicalSnapshot);
+                var motions = StrategicSnapshotHelper.RestoreSquadWorldMotions(world, politicalSnapshot);
                 if (motions.IsFailure)
                     return motions;
             }
@@ -313,7 +313,7 @@ namespace XianXia.Unity.Host
                     continue;
                 if (savedIds.Contains(matching.Value) ||
                     world.WorldPresence.TryGet(matching, out _) ||
-                    ArmyService.TryGetArmyForCharacter(world, matching, out _))
+                    CharacterStrategicQuery.TryGetSquad(world, matching, out _))
                     continue;
                 if (!ContinuousOpeningSpawnPresenceResolver.TryApply(
                         world, surface, matching, definitionId, spawn.WorldSiteId, out var failure))
@@ -341,7 +341,7 @@ namespace XianXia.Unity.Host
             {
                 if (entity == null || (entity.Tags & EntityTag.Character) == 0 ||
                     IsPartyMember(party, entity.Id) ||
-                    ArmyService.TryGetArmyForCharacter(world, entity.Id, out _) ||
+                    CharacterStrategicQuery.TryGetSquad(world, entity.Id, out _) ||
                     world.WorldPresence.TryGet(entity.Id, out _))
                     continue;
                 if (entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&
@@ -455,7 +455,7 @@ namespace XianXia.Unity.Host
 
             var partyMembers = session.PlayerParty?.Count ?? 0;
             var active = session.PlayerParty?.ActiveCharacterId.Value ?? 0UL;
-            var armyCount = world.Strategic?.FormalArmies?.Armies?.Count ?? 0;
+            var armyCount = world.Strategic?.Squads?.Squads?.Count ?? 0;
 
             SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
                 world,

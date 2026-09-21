@@ -151,109 +151,60 @@ namespace XianXia.Core.Persistence
                 return dto;
 
             dto.HasSquadSnapshotAuthority = true;
-            dto.ControlledSquadId = party?.ControlledSquadId ?? string.Empty;
-            foreach (var pair in world.Strategic.Squads.Squads)
+            dto.HasSquadWorldMotionSnapshotAuthority = true;
+            var controllingParty = party ?? world.Strategic.PlayerPartyContext;
+            dto.ControlledSquadId = controllingParty?.ControlledSquadId ?? string.Empty;
+            var captureSquadIds = new List<string>(world.Strategic.Squads.Squads.Keys);
+            captureSquadIds.Sort(StringComparer.Ordinal);
+            for (var captureSquadIndex = 0; captureSquadIndex < captureSquadIds.Count; captureSquadIndex++)
             {
-                var squad = pair.Value;
+                world.Strategic.Squads.TryGet(captureSquadIds[captureSquadIndex], out var squad);
                 if (squad == null) continue;
+                var isControlledSquad = !string.IsNullOrEmpty(dto.ControlledSquadId) &&
+                    string.Equals(squad.SquadId, dto.ControlledSquadId, StringComparison.Ordinal);
                 var squadDto = new SquadSnapshotDto
                 {
                     SquadId = squad.SquadId,
+                    DisplayName = squad.DisplayName,
+                    FactionId = squad.FactionId,
                     LeaderCharacterId = squad.LeaderCharacterId.Value,
-                    LegacyArmyId = squad.LegacyArmyId,
-                    CommandKind = (int)squad.CommandKind,
+                    LegacyArmyId = string.Empty,
+                    CommandKind = (int)(isControlledSquad
+                        ? SquadCommandKind.FollowLeader
+                        : squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion
+                            ? SquadCommandKind.SquadWorldMotion : squad.CommandKind),
                     CommandRevision = squad.CommandRevision,
-                    CommandTargetCharacterId = squad.CommandTargetCharacterId.Value
+                    CommandTargetCharacterId = isControlledSquad && controllingParty?.HasActive == true
+                        ? controllingParty.ActiveCharacterId.Value : squad.CommandTargetCharacterId.Value
                 };
                 for (var i = 0; i < squad.MemberCharacterIds.Count; i++) squadDto.MemberCharacterIds.Add(squad.MemberCharacterIds[i]);
                 dto.Squads.Add(squadDto);
             }
 
-            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            var motionIds = new List<string>(world.Strategic.SquadWorldMotions.Motions.Keys);
+            motionIds.Sort(StringComparer.Ordinal);
+            for (var i = 0; i < motionIds.Count; i++)
             {
-                var army = kv.Value;
-                if (army == null)
-                    continue;
-                var armyMotion = army.WorldMotion;
-                var armyDto = new FormalArmySnapshotDto
+                world.Strategic.SquadWorldMotions.TryGet(motionIds[i], out var squadMotion);
+                if (squadMotion == null || !squadMotion.HasPosition ||
+                    string.Equals(squadMotion.SquadId, dto.ControlledSquadId, StringComparison.Ordinal) ||
+                    !world.Strategic.Squads.TryGet(squadMotion.SquadId, out var motionSquad) ||
+                    !SquadWorldMotionService.IsActiveNpcSquadAuthority(world, motionSquad, squadMotion)) continue;
+                var motionDto = new SquadWorldMotionSnapshotDto
                 {
-                    ArmyId = army.ArmyId,
-                    FactionId = army.FactionId,
-                    LeaderCharacterId = army.LeaderCharacterId.Value,
-                    State = (int)army.State,
-                    UsesHexStrategicPosition = army.UsesHexStrategicPosition,
-                    CurrentHexQ = armyMotion.CurrentHex.Q,
-                    CurrentHexR = armyMotion.CurrentHex.R,
-                    DestinationHexQ = armyMotion.DestinationHex.Q,
-                    DestinationHexR = armyMotion.DestinationHex.R,
-                    StepProgress = army.StepProgress,
-                    StepRemainingTicks = army.StepRemainingTicks,
-                    StepTotalTicks = army.StepTotalTicks,
-                    CurrentPathIndex = army.CurrentPathIndex,
-                    LocationKind = (int)armyMotion.LocationKind,
-                    SiteId = armyMotion.SiteId ?? string.Empty,
-                    WorldX = armyMotion.WorldPosition.X,
-                    WorldY = armyMotion.WorldPosition.Y,
-                    DestinationSiteId = armyMotion.DestinationSiteId ?? string.Empty,
-                    CurrentOrderKind = (int)armyMotion.CurrentOrderKind,
-                    OrderTargetArmyId = armyMotion.OrderTargetArmyId ?? string.Empty,
-                    SegmentProgress = armyMotion.SegmentProgress,
-                    SegmentIndex = armyMotion.SegmentIndex,
-                    TravelMode = (int)armyMotion.TravelMode,
-                    HasSiteDepartureState = true,
-                    IsSiteDeparturePending = armyMotion.IsSiteDeparturePending,
-                    SiteDepartureVirtualX = armyMotion.SiteDepartureVirtualPosition.X,
-                    SiteDepartureVirtualY = armyMotion.SiteDepartureVirtualPosition.Y,
-                    SiteDepartureBoundaryX = armyMotion.SiteDepartureBoundaryEntry.X,
-                    SiteDepartureBoundaryY = armyMotion.SiteDepartureBoundaryEntry.Y,
-                    SiteDepartureFootprintQ = armyMotion.SiteDepartureFootprintHex.Q,
-                    SiteDepartureFootprintR = armyMotion.SiteDepartureFootprintHex.R,
-                    SiteDepartureExitQ = armyMotion.SiteDepartureExitHex.Q,
-                    SiteDepartureExitR = armyMotion.SiteDepartureExitHex.R,
-                    RouteKind = (int)armyMotion.RouteKind,
-                    SurfaceId = armyMotion.SurfaceId ?? string.Empty,
-                    SurfaceSourceRevision = armyMotion.SurfaceSourceRevision ?? string.Empty,
-                    SurfaceSourceHash = armyMotion.SurfaceSourceHash ?? string.Empty,
-                    PhysicalDestinationX = armyMotion.PhysicalDestination.X,
-                    PhysicalDestinationY = armyMotion.PhysicalDestination.Y,
-                    SurfaceWaypointIndex = armyMotion.SurfaceWaypointIndex,
-                    RouteDiagnostic = armyMotion.RouteDiagnostic ?? string.Empty,
+                    SquadId = squadMotion.SquadId, SurfaceId = squadMotion.SurfaceId, SiteId = squadMotion.SiteId,
+                    WorldX = squadMotion.WorldPosition.X, WorldY = squadMotion.WorldPosition.Y,
+                    IsMoving = squadMotion.IsMoving, DestinationX = squadMotion.Destination.X, DestinationY = squadMotion.Destination.Y,
+                    WaypointIndex = squadMotion.WaypointIndex, SegmentProgress = squadMotion.SegmentProgress,
+                    SourceRevision = squadMotion.SourceRevision, SourceHash = squadMotion.SourceHash
                 };
-                for (var p = 0; p < armyMotion.HexPathCount; p++)
-                {
-                    var coord = armyMotion.HexPath[p];
-                    armyDto.HexPath.Add(new HexCoordSnapshotDto { Q = coord.Q, R = coord.R });
-                }
-                for (var p = 0; p < armyMotion.SurfacePathCount; p++)
-                {
-                    var point = armyMotion.SurfacePath[p];
-                    armyDto.SurfacePath.Add(new WorldPointSnapshotDto { X = point.X, Y = point.Y });
-                }
-                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-                    armyDto.MemberCharacterIds.Add(army.MemberCharacterIds[i]);
-                dto.FormalArmies.Add(armyDto);
+                for (var p = 0; p < squadMotion.Route.Count; p++)
+                    motionDto.Route.Add(new WorldPointSnapshotDto { X = squadMotion.Route[p].X, Y = squadMotion.Route[p].Y });
+                dto.SquadWorldMotions.Add(motionDto);
             }
 
-            foreach (var entity in world.Entities.All)
-            {
-                if (entity == null || !entity.TryGet<ArmyMembershipComponent>(out var mem) ||
-                    string.IsNullOrEmpty(mem.ArmyId))
-                    continue;
-                if (!world.Strategic.FormalArmies.TryGet(mem.ArmyId, out var membershipArmy) ||
-                    membershipArmy == null || !membershipArmy.ContainsMember(entity.Id))
-                {
-#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
-                    System.Diagnostics.Debug.Fail("[SnapshotCapture] Orphan ArmyMembership CharacterId=" +
-                        entity.Id.Value + " ArmyId='" + mem.ArmyId + "'.");
-#endif
-                    continue;
-                }
-                dto.ArmyMemberships.Add(new ArmyMembershipSnapshotDto
-                {
-                    CharacterId = entity.Id.Value,
-                    ArmyId = mem.ArmyId
-                });
-            }
+            // FormalArmy and ArmyMembership DTO collections are legacy input only.
+            // Modern capture deliberately leaves both collections empty.
 
             foreach (var kv in world.WorldPresence.All)
             {
@@ -557,7 +508,9 @@ namespace XianXia.Core.Persistence
             PlayerPartySnapshotRestore.Capture(party, dto);
             LoadedLocalMapPlacementSnapshotRestore.Capture(world, dto);
             SeparateSpaceSessionSnapshotRestore.Capture(world, dto, party);
-            PendingEngagementSnapshotRestore.Capture(world, dto);
+            // FormalArmy/ArmyMembership arrays remain in the schema as legacy inputs only.
+            dto.FormalArmies.Clear();
+            dto.ArmyMemberships.Clear();
             return dto;
         }
 
@@ -568,6 +521,8 @@ namespace XianXia.Core.Persistence
 
             var squadValidation = ValidateSquadAuthority(world, dto);
             if (squadValidation.IsFailure) return squadValidation;
+            var motionValidation = ValidateSquadWorldMotionAuthority(dto);
+            if (motionValidation.IsFailure) return motionValidation;
 
             var armyIds = new HashSet<string>(StringComparer.Ordinal);
             if (dto.FormalArmies != null)
@@ -582,8 +537,8 @@ namespace XianXia.Core.Persistence
 
             world.Strategic.PlayerFactionId = dto.PlayerFactionId ?? string.Empty;
             world.Strategic.Ch01FormationScenarioCompat = dto.Ch01FormationScenarioCompat;
-            world.Strategic.FormalArmies.Clear();
             world.Strategic.Squads.Clear();
+            world.Strategic.SquadWorldMotions.Clear();
             world.Strategic.Wars.Clear();
             world.Strategic.Diplomacy.Clear();
             world.Strategic.Alliances.Clear();
@@ -600,37 +555,32 @@ namespace XianXia.Core.Persistence
                         return Result.Failure(ErrorCode.SnapshotInvalid, "Squad snapshot has empty identity.");
                     var members = new List<EntityId>();
                     for (var m = 0; m < item.MemberCharacterIds.Count; m++) members.Add(new EntityId(item.MemberCharacterIds[m]));
+                    var isControlledSquad = string.Equals(
+                        item.SquadId, dto.ControlledSquadId, StringComparison.Ordinal);
+                    var restoredCommand = isControlledSquad
+                        ? SquadCommandKind.FollowLeader
+                        : item.CommandKind == (int)SquadCommandKind.FormalArmyWorldMotion
+                            ? SquadCommandKind.SquadWorldMotion : (SquadCommandKind)item.CommandKind;
                     var created = SquadMembershipService.Create(world, item.SquadId, members,
-                        new EntityId(item.LeaderCharacterId), item.LegacyArmyId, (SquadCommandKind)item.CommandKind,
-                        importingSnapshot: true);
+                        new EntityId(item.LeaderCharacterId),
+                        dto.HasSquadWorldMotionSnapshotAuthority ? string.Empty : item.LegacyArmyId,
+                        restoredCommand,
+                        importingSnapshot: true, displayName: item.DisplayName, factionId: item.FactionId);
                     if (created.IsFailure) return Result.Failure(created.Error);
                     created.Value.CommandRevision = item.CommandRevision;
-                    created.Value.CommandTargetCharacterId = new EntityId(item.CommandTargetCharacterId);
+                    created.Value.CommandTargetCharacterId = isControlledSquad
+                        ? new EntityId(dto.PlayerParty?.ActiveCharacterId ?? item.LeaderCharacterId)
+                        : new EntityId(item.CommandTargetCharacterId);
                 }
             }
 
-            if (dto.FormalArmies != null && dto.FormalArmies.Count > 0)
+            if (!dto.HasSquadWorldMotionSnapshotAuthority)
             {
-                using (FormalArmyStrategicMutationDiagnostics.Scope(
-                           FormalArmyStrategicMutationDiagnostics.MutationAllowance.SnapshotLoad,
-                           nameof(Restore)))
-                {
-                    for (var i = 0; i < dto.FormalArmies.Count; i++)
-                    {
-                        var a = dto.FormalArmies[i];
-                        if (a == null || string.IsNullOrEmpty(a.ArmyId))
-                            continue;
-                        var army = BuildFormalArmyFromSnapshot(world, a, dto.HasSquadSnapshotAuthority);
-                        world.Strategic.FormalArmies.Register(army);
-                    }
-                }
+                var migrated = LegacyFormalArmySnapshotMigration.RestoreSquads(world, dto);
+                if (migrated.IsFailure) return migrated;
             }
 
-            var memberships = dto.HasSquadSnapshotAuthority
-                ? RestoreDerivedArmyMemberships(world)
-                : RestoreArmyMemberships(world, dto.ArmyMemberships);
-            if (memberships.IsFailure)
-                return memberships;
+            // ArmyMembership is accepted only as legacy migration input; no runtime component is rebuilt.
 
             // CharacterWorldPresences 是新版 authority（可携带 precise WorldPosition）；
             // 恢复时记录已恢复 id —— 旧 ResidualCharacterPresences 只作 legacy fallback，
@@ -913,7 +863,6 @@ namespace XianXia.Core.Persistence
             var separateSpace = SeparateSpaceSessionSnapshotRestore.Restore(world, dto);
             if (separateSpace.IsFailure)
                 return separateSpace;
-            PendingEngagementSnapshotRestore.Restore(world, dto);
             return Result.Success();
         }
 
@@ -1171,32 +1120,87 @@ namespace XianXia.Core.Persistence
         static bool IsSquare(float width, float height, float expected) =>
             Math.Abs(width - expected) <= .001f && Math.Abs(height - expected) <= .001f;
 
-        /// <summary>Stage 2：Hex/Site shell 与政治覆盖完成后，按 Snapshot 精确恢复全部军队运动。</summary>
-        public static Result RestoreFormalArmyMotions(SimulationWorld world, StrategicSnapshotDto dto)
+        /// <summary>Stage 2: restore modern motion or migrate genuine legacy FormalArmy motion one-way.</summary>
+        public static Result RestoreSquadWorldMotions(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic == null || dto == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "FormalArmy motion restore requires world and dto.");
-            if (dto.FormalArmies == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Squad motion restore requires world and dto.");
+            world.Strategic.SquadWorldMotions.Clear();
+            if (dto.HasSquadWorldMotionSnapshotAuthority)
+            {
+                if (dto.SquadWorldMotions == null) return Result.Failure(ErrorCode.SnapshotInvalid, "SquadWorldMotions missing.");
+                for (var i = 0; i < dto.SquadWorldMotions.Count; i++)
+                {
+                    var item = dto.SquadWorldMotions[i];
+                    if (item != null && string.Equals(
+                            item.SquadId, dto.ControlledSquadId, StringComparison.Ordinal))
+                    {
+                        if (world.Strategic.Squads.TryGet(item.SquadId, out var controlledSquad))
+                            SquadCommandService.SetExecution(world, controlledSquad.SquadId,
+                                SquadCommandKind.FollowLeader,
+                                new EntityId(dto.PlayerParty?.ActiveCharacterId ??
+                                             controlledSquad.LeaderCharacterId.Value));
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+                        System.Diagnostics.Debug.WriteLine(
+                            "[SnapshotMigration] Dropped stale PlayerParty SquadWorldMotion: " + item.SquadId);
+#endif
+                        continue;
+                    }
+                    if (item != null && !item.IsMoving && !string.IsNullOrEmpty(item.SiteId))
+                    {
+                        var canonicalized = SquadWorldMotionService.InitializeAtSite(
+                            world, item.SquadId, item.SiteId);
+                        if (canonicalized.IsFailure)
+                            return Result.Failure(ErrorCode.SnapshotInvalid,
+                                "NPC Squad AtSite SiteArrival is unavailable.",
+                                item.SquadId + ":" + item.SiteId + ":" + canonicalized.Error);
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+                        if (!string.Equals(item.SurfaceId, canonicalized.Value.SurfaceId,
+                                StringComparison.Ordinal) ||
+                            Math.Abs(item.WorldX - canonicalized.Value.WorldPosition.X) > .0001f ||
+                            Math.Abs(item.WorldY - canonicalized.Value.WorldPosition.Y) > .0001f ||
+                            Math.Abs(item.DestinationX - canonicalized.Value.Destination.X) > .0001f ||
+                            Math.Abs(item.DestinationY - canonicalized.Value.Destination.Y) > .0001f)
+                            System.Diagnostics.Debug.WriteLine(
+                                "[SnapshotMigration] Canonicalized NPC Squad AtSite motion to SiteArrival: " +
+                                item.SquadId + " SiteId=" + item.SiteId);
+#endif
+                        continue;
+                    }
+                    if (item == null || !world.Strategic.Squads.TryGet(item.SquadId, out var squad) ||
+                        squad.CommandKind != SquadCommandKind.SquadWorldMotion ||
+                        !world.SurfaceGround.TryGet(item.SurfaceId, out var navigation))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Squad world-motion target or Surface missing.", item?.SquadId ?? "<null>");
+                    var position = new WorldVec2(item.WorldX, item.WorldY);
+                    var destination = new WorldVec2(item.DestinationX, item.DestinationY);
+                    if (!navigation.Contains(position.X, position.Y) || !navigation.IsWalkable(position.X, position.Y))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Squad world-motion position is invalid.", item.SquadId);
+                    if (!navigation.Contains(destination.X, destination.Y) || !navigation.IsWalkable(destination.X, destination.Y))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Squad world-motion destination is invalid.", item.SquadId);
+                    var route = new List<WorldVec2>();
+                    if (item.Route != null)
+                        for (var p = 0; p < item.Route.Count; p++)
+                        {
+                            var routePoint = new WorldVec2(item.Route[p].X, item.Route[p].Y);
+                            if (!navigation.Contains(routePoint.X, routePoint.Y) ||
+                                !navigation.IsWalkable(routePoint.X, routePoint.Y))
+                                return Result.Failure(ErrorCode.SnapshotInvalid,
+                                    "Squad world-motion route is invalid.", item.SquadId + ":" + p);
+                            route.Add(routePoint);
+                        }
+                    var motion = new SquadWorldMotionState { SquadId = item.SquadId };
+                    motion.Restore(item.SurfaceId, item.SiteId, position, item.IsMoving, destination, route,
+                        item.WaypointIndex, item.SegmentProgress, item.SourceRevision, item.SourceHash);
+                    if (!world.Strategic.SquadWorldMotions.Register(motion))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate Squad world-motion.", item.SquadId);
+                    squad.LegacyArmyId = string.Empty;
+                    if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion)
+                        squad.SetCommand(SquadCommandKind.SquadWorldMotion);
+                }
                 return Result.Success();
+            }
 
-            for (var i = 0; i < dto.FormalArmies.Count; i++)
-            {
-                var item = dto.FormalArmies[i];
-                if (item == null || !world.Strategic.FormalArmies.TryGet(item.ArmyId, out var army) || army == null)
-                    return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy motion target missing.", item?.ArmyId ?? "<null>");
-                var valid = FormalArmySnapshotRestore.Validate(world, item);
-                if (valid.IsFailure)
-                    return valid;
-            }
-            for (var i = 0; i < dto.FormalArmies.Count; i++)
-            {
-                var item = dto.FormalArmies[i];
-                world.Strategic.FormalArmies.TryGet(item.ArmyId, out var army);
-                var applied = FormalArmySnapshotRestore.Apply(world, army, item);
-                if (applied.IsFailure)
-                    return applied;
-            }
-            return Result.Success();
+            return LegacyFormalArmySnapshotMigration.RestoreMotions(world, dto);
         }
 
         /// <summary>
@@ -1209,74 +1213,7 @@ namespace XianXia.Core.Persistence
 
             SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
 
-            // Snapshot member presence is saved state, including a Site/Hex without an exact
-            // point. Fill only absent member projections from Army motion at this boundary.
-            foreach (var kv in world.Strategic.FormalArmies.Armies)
-                if (kv.Value != null)
-                    FormalArmyMemberPresenceSync.SyncAll(world, kv.Value,
-                        preservePersonalPositions: true);
-
-            ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies(world);
-
-            foreach (var kv in world.Strategic.FormalArmies.Armies)
-            {
-                if (kv.Value != null)
-                    ArmyHexPursuitService.RestoreAttackOrderIfNeeded(world, kv.Value);
-            }
-        }
-
-        static FormalArmy BuildFormalArmyFromSnapshot(SimulationWorld world, FormalArmySnapshotDto a, bool squadAuthority)
-        {
-            var army = new FormalArmy
-            {
-                ArmyId = a.ArmyId,
-                FactionId = a.FactionId ?? string.Empty,
-                LeaderCharacterId = new EntityId(a.LeaderCharacterId),
-                State = (FormalArmyState)a.State
-            };
-            var squadId = SquadMembershipService.ArmySquadId(a.ArmyId);
-            if (!world.Strategic.Squads.TryGet(squadId, out var squad))
-            {
-                if (squadAuthority) throw new InvalidOperationException("Authoritative army squad missing: " + squadId);
-                var members = new List<EntityId>();
-                for (var i = 0; i < a.MemberCharacterIds.Count; i++) members.Add(new EntityId(a.MemberCharacterIds[i]));
-                var created = SquadMembershipService.Create(world, squadId, members,
-                    new EntityId(a.LeaderCharacterId), a.ArmyId, SquadCommandKind.FormalArmyWorldMotion,
-                    importingSnapshot: true);
-                if (created.IsFailure) throw new InvalidOperationException(created.Error.ToString());
-                squad = created.Value;
-            }
-            army.BindSquad(squad);
-            army.UsesHexStrategicPosition = a.UsesHexStrategicPosition;
-            army.CurrentHex = new HexCoord(a.CurrentHexQ, a.CurrentHexR);
-            army.DestinationHex = new HexCoord(a.DestinationHexQ, a.DestinationHexR);
-            if (a.HexPath != null && a.HexPath.Count > 0)
-            {
-                var path = new List<HexCoord>(a.HexPath.Count);
-                for (var p = 0; p < a.HexPath.Count; p++)
-                {
-                    var c = a.HexPath[p];
-                    if (c != null)
-                        path.Add(new HexCoord(c.Q, c.R));
-                }
-
-                army.SetHexPath(path, army.DestinationHex);
-                army.CurrentPathIndex = a.CurrentPathIndex;
-                army.StepProgress = a.StepProgress;
-                army.StepRemainingTicks = a.StepRemainingTicks;
-                army.StepTotalTicks = a.StepTotalTicks;
-            }
-            else
-            {
-                army.StepProgress = a.StepProgress;
-                army.StepRemainingTicks = a.StepRemainingTicks;
-                army.StepTotalTicks = a.StepTotalTicks;
-                army.CurrentPathIndex = a.CurrentPathIndex;
-                if (army.State == FormalArmyState.Moving)
-                    army.State = FormalArmyState.Idle;
-            }
-
-            return army;
+            // Modern runtime does not recreate FormalArmy, ArmyStack or ArmyMembership views.
         }
 
         static Result ValidateSquadAuthority(SimulationWorld world, StrategicSnapshotDto dto)
@@ -1304,64 +1241,34 @@ namespace XianXia.Core.Persistence
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Character is missing authoritative squad.", entity.Id.ToString());
             if (string.IsNullOrEmpty(dto.ControlledSquadId) || !byId.ContainsKey(dto.ControlledSquadId))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Controlled squad is missing.", dto.ControlledSquadId);
-            var armies = new HashSet<string>(StringComparer.Ordinal);
-            if (dto.FormalArmies != null)
-                foreach (var army in dto.FormalArmies)
-                {
-                    if (army == null || string.IsNullOrEmpty(army.ArmyId) || !armies.Add(army.ArmyId) ||
-                        !byId.TryGetValue(SquadMembershipService.ArmySquadId(army.ArmyId), out var squad) ||
-                        !string.Equals(squad.LegacyArmyId, army.ArmyId, StringComparison.Ordinal))
-                        return Result.Failure(ErrorCode.SnapshotInvalid, "Army has no authoritative squad mapping.");
-                }
-            foreach (var squad in byId.Values)
-                if (!string.IsNullOrEmpty(squad.LegacyArmyId) && !armies.Contains(squad.LegacyArmyId))
-                    return Result.Failure(ErrorCode.SnapshotInvalid, "Squad references missing legacy army.", squad.SquadId);
+            // FormalArmy fields, when present beside modern Squad authority, are ignored compatibility input.
             return Result.Success();
         }
 
-        static Result RestoreDerivedArmyMemberships(SimulationWorld world)
+        static Result ValidateSquadWorldMotionAuthority(StrategicSnapshotDto dto)
         {
-            foreach (var entity in world.Entities.All)
+            if (!dto.HasSquadWorldMotionSnapshotAuthority) return Result.Success();
+            if (dto.SquadWorldMotions == null) return Result.Failure(ErrorCode.SnapshotInvalid, "SquadWorldMotions authority missing.");
+            var squadIds = new HashSet<string>(StringComparer.Ordinal);
+            if (dto.Squads != null) foreach (var squad in dto.Squads) if (squad != null) squadIds.Add(squad.SquadId);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var motion in dto.SquadWorldMotions)
             {
-                if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0) continue;
-                ArmyInvariants.EnsureMembershipComponent(entity);
-                var membership = entity.Get<ArmyMembershipComponent>();
-                membership.ClearArmyId();
-                if (world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) &&
-                    !string.IsNullOrEmpty(squad.LegacyArmyId)) membership.SetArmyId(squad.LegacyArmyId);
+                if (motion == null || string.IsNullOrWhiteSpace(motion.SquadId) || !seen.Add(motion.SquadId) ||
+                    !squadIds.Contains(motion.SquadId) || string.IsNullOrWhiteSpace(motion.SurfaceId) ||
+                    !Finite(motion.WorldX) || !Finite(motion.WorldY) || !Finite(motion.DestinationX) ||
+                    !Finite(motion.DestinationY) || !Finite(motion.SegmentProgress) || motion.SegmentProgress < 0f ||
+                    motion.Route == null || motion.WaypointIndex < 0 || motion.WaypointIndex > motion.Route.Count ||
+                    (motion.IsMoving && motion.Route.Count == 0))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid SquadWorldMotion snapshot.", motion?.SquadId ?? "<null>");
+                for (var i = 0; i < motion.Route.Count; i++)
+                    if (motion.Route[i] == null || !Finite(motion.Route[i].X) || !Finite(motion.Route[i].Y))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid SquadWorldMotion route.", motion.SquadId);
             }
             return Result.Success();
         }
 
-        static Result RestoreArmyMemberships(
-            SimulationWorld world,
-            List<ArmyMembershipSnapshotDto> memberships)
-        {
-            if (memberships == null)
-                return Result.Success();
-
-            for (var i = 0; i < memberships.Count; i++)
-            {
-                var m = memberships[i];
-                if (m == null || m.CharacterId == 0 || string.IsNullOrEmpty(m.ArmyId))
-                    continue;
-                var id = new EntityId(m.CharacterId);
-                if (!world.Strategic.FormalArmies.TryGet(m.ArmyId, out var army) || army == null ||
-                    !army.ContainsMember(id))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "ArmyMembership references a missing army or mismatched roster.",
-                        "CharacterId=" + m.CharacterId + " ArmyId='" + m.ArmyId + "'.");
-                if (!world.Entities.TryGet(id, out var entity))
-                {
-                    LogCharacterRestoreSkip(m.CharacterId, m.ArmyId, "army membership target missing");
-                    continue;
-                }
-
-                ArmyInvariants.EnsureMembershipComponent(entity);
-                entity.Get<ArmyMembershipComponent>().SetArmyId(m.ArmyId);
-            }
-            return Result.Success();
-        }
+        static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         static void LogCharacterRestoreSkip(ulong characterId, string context, string reason)
         {

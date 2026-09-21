@@ -110,7 +110,7 @@ namespace XianXia.Unity.Host
             }
 
             // CORRECTION V1: 右键攻击与主动技能必须走同一 pre-damage coordinator。
-            // 返回 true = 输入被消费（确认窗 / BattleOffer / reject）；false = 直接执行原技能。
+            // 返回 true = 输入被人物遭遇确认或拒绝消费；false = 直接执行原技能。
             var npcMenu = bootstrap != null ? bootstrap.GetComponent<HostNpcContextMenu>() : null;
             if (npcMenu == null)
             {

@@ -35,8 +35,7 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Combat.EncounterLinkComponent),
             typeof(XianXia.Core.Combat.SpiritVeilComponent),
             typeof(XianXia.Core.Combat.CorpseComponent),
-            typeof(XianXia.Core.Combat.CombatDeathAttributionComponent),
-            typeof(XianXia.Core.World.Strategic.ArmyMembershipComponent)
+            typeof(XianXia.Core.Combat.CombatDeathAttributionComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

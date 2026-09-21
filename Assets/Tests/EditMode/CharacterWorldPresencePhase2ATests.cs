@@ -199,33 +199,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PRESENCE_09_FormalArmyMember_WorldHexIsArmyCurrentHex()
-        {
-            var world = BuildSiteWorld(out _, out _);
-            var armyHex = new HexCoord(3, 3);
-            world.HexWorld.GetOrCreate(armyHex).IsPassable = true;
-            var leader = Spawn(world, "ArmyLeader");
-            world.WorldPresence.SetAtSite(leader, SiteId);
-            var army = ArmyService.CreateArmy(world, FactionA, SiteId, new[] { leader }).Value;
-            ArmyHexTravelService.InitializeArmyAtHex(army, armyHex);
-            Assert.IsTrue(army.UsesHexStrategicPosition);
-            Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, leader, out var hex));
-            Assert.AreEqual(armyHex, hex);
-            Assert.IsTrue(CharacterWorldPresenceQuery.TryDescribe(
-                world, leader, out var state, out _, out _, out _));
-            Assert.AreEqual(CharacterWorldPresenceQuery.PresenceState.FormalArmyMember, state);
-        }
-
-        [Test]
-        public void PRESENCE_10_BackgroundAtSite_NoWorldMapAvatar()
-        {
-            var world = BuildSiteWorld(out var site, out _);
-            var id = Spawn(world, "BackgroundNpc");
-            world.WorldPresence.SetAtSite(id, site.SiteId);
-            Assert.IsFalse(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, id));
-        }
-
-        [Test]
         public void PRESENCE_11_SaveLoad_KeepsBackgroundWorldSiteAndHexQuery()
         {
             var world = BuildSiteWorld(out var site, out var presence);

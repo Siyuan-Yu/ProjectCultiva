@@ -15,14 +15,12 @@ namespace XianXia.Core.World.Strategic
             Route = route;
             TargetEntityId = target.TargetEntityId;
             TargetFactionId = target.TargetFactionId;
-            TargetFormalArmyId = target.TargetFormalArmyId;
             RequiresWarDeclaration = requiresWarDeclaration;
             FailureReason = failureReason ?? string.Empty;
         }
         public HostileActionRoute Route { get; }
         public EntityId TargetEntityId { get; }
         public string TargetFactionId { get; }
-        public string TargetFormalArmyId { get; }
         public bool RequiresWarDeclaration { get; }
         public string FailureReason { get; }
     }
@@ -32,7 +30,7 @@ namespace XianXia.Core.World.Strategic
     {
         public static HostileActionRouteResult Route(SimulationWorld world, PlayerPartyRuntime party, EntityId attackerId, EntityId targetId)
         {
-            var empty = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, string.Empty, string.Empty);
+            var empty = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, string.Empty);
             if (world == null || party == null || !party.HasActive || attackerId.IsNone || targetId.IsNone)
                 return new HostileActionRouteResult(HostileActionRoute.Reject, empty, false, "PlayerParty attacker and target are required.");
             if (!world.Entities.TryGet(targetId, out var target) || target == null)
@@ -55,8 +53,7 @@ namespace XianXia.Core.World.Strategic
             if (!HostileActionClassificationService.TryClassifyTarget(world, targetId, out var classification, out var reason))
                 return new HostileActionRouteResult(HostileActionRoute.Reject, empty, false, reason);
             // Character targets always enter the unified local CharacterEncounter flow.
-            // StrategicMilitaryAggressionService remains a separate building/site/siege policy;
-            // a character's legacy FormalArmy adapter must never redirect this route.
+            // StrategicMilitaryAggressionService remains a separate building/site/siege policy.
             return new HostileActionRouteResult(
                 HostileActionRoute.LocalCombat, classification, false, string.Empty);
         }

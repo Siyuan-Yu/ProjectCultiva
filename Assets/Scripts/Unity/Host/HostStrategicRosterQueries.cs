@@ -24,21 +24,6 @@ namespace XianXia.Unity.Host
         public string LocationLabel = string.Empty;
         public string ArmyId = string.Empty;
         public bool IsGrouped;
-        public bool CanSelectForArmyCreation;
-    }
-
-    public sealed class StrategicArmyRosterRow
-    {
-        public string ArmyId = string.Empty;
-        public EntityId LeaderId;
-        public string LeaderLabel = string.Empty;
-        public int MemberCount;
-        public FormalArmyState State;
-        public string SiteId = string.Empty;
-        public string SiteLabel = string.Empty;
-        public string DestHexLabel = string.Empty;
-        public int CombatPower;
-        public bool IsPlayerFaction;
     }
 
     /// <summary>Host ?????????????????? Domain??</summary>
@@ -122,9 +107,13 @@ namespace XianXia.Unity.Host
                     : string.Empty,
                 LifeStateLabel = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity) ?? "存活"
             };
-            if (ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null)
+            var currentParty = partyRuntime ?? world.Strategic.PlayerPartyContext;
+            if (currentParty?.IsMember(id) != true &&
+                world.Strategic.Squads.TryGetForCharacter(id, out var army) &&
+                world.Strategic.SquadWorldMotions.TryGet(army.SquadId, out var groupMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, army, groupMotion))
             {
-                row.ArmyId = army.ArmyId;
+                row.ArmyId = army.SquadId;
                 row.IsGrouped = true;
             }
 
@@ -178,103 +167,7 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            row.CanSelectForArmyCreation =
-                !row.IsGrouped &&
-                LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) &&
-                ArmyService.IsEligibleFormalArmyCandidate(world, id, partyRuntime, out _);
-
             into.Add(row);
-        }
-
-        public static void CollectPlayerArmies(
-            SimulationWorld world,
-            string playerFactionId,
-            List<StrategicArmyRosterRow> into)
-        {
-            into.Clear();
-            if (world?.Strategic?.FormalArmies?.Armies == null || into == null)
-                return;
-
-            foreach (var kv in world.Strategic.FormalArmies.Armies)
-            {
-                var army = kv.Value;
-                if (army == null)
-                    continue;
-                if (!string.IsNullOrEmpty(playerFactionId) &&
-                    !string.Equals(army.FactionId, playerFactionId, StringComparison.Ordinal))
-                    continue;
-
-                ArmyService.TryResolveArmySiteId(world, army, out var siteId);
-                var row = new StrategicArmyRosterRow
-                {
-                    ArmyId = army.ArmyId,
-                    LeaderId = army.LeaderCharacterId,
-                    MemberCount = army.MemberCharacterIds.Count,
-                    State = army.State,
-                    SiteId = siteId ?? string.Empty,
-                    IsPlayerFaction = true,
-                    CombatPower = EstimateArmyPower(world, army)
-                };
-                if (!row.LeaderId.IsNone &&
-                    world.Entities.TryGet(row.LeaderId, out var leader) &&
-                    leader != null &&
-                    !string.IsNullOrWhiteSpace(leader.DisplayName))
-                {
-                    row.LeaderLabel = leader.DisplayName;
-                }
-                else
-                {
-                    row.LeaderLabel = row.LeaderId.IsNone ? "?" : row.LeaderId.ToString();
-                }
-
-                row.SiteLabel = !string.IsNullOrEmpty(row.SiteId)
-                    ? ResolveSiteLabel(world, row.SiteId)
-                    : DescribeHexLabel(world, army.CurrentHex);
-                row.DestHexLabel = DescribeHexLabel(world, army.DestinationHex);
-                into.Add(row);
-            }
-
-            into.Sort((a, b) => string.CompareOrdinal(a.ArmyId, b.ArmyId));
-        }
-
-        public static void CollectUngroupedPlayerCharacters(
-            SimulationWorld world,
-            string playerFactionId,
-            IReadOnlyList<EntityId> partyCharacterIds,
-            List<EntityId> into,
-            PlayerPartyRuntime partyRuntime = null)
-        {
-            into.Clear();
-            if (world == null || into == null)
-                return;
-
-            var rows = new List<StrategicCharacterRosterRow>(32);
-            CollectPlayerCharacters(world, playerFactionId, partyCharacterIds, rows, partyRuntime);
-            for (var i = 0; i < rows.Count; i++)
-            {
-                if (!rows[i].IsGrouped && rows[i].CanSelectForArmyCreation)
-                    into.Add(rows[i].CharacterId);
-            }
-        }
-
-        public static void CollectUngroupedCharactersAtSite(
-            SimulationWorld world,
-            string siteId,
-            string factionId,
-            IReadOnlyList<EntityId> partyCharacterIds,
-            List<EntityId> into,
-            PlayerPartyRuntime partyRuntime = null)
-        {
-            into.Clear();
-            if (world == null || into == null || string.IsNullOrEmpty(siteId))
-                return;
-
-            var scratchResidents = new List<EntityId>(8);
-            var scratchArmies = new List<FormalArmy>(4);
-            ArmyService.CollectResidentsAtSite(
-                world, siteId, factionId, partyCharacterIds, scratchResidents, scratchArmies, partyRuntime);
-            for (var i = 0; i < scratchResidents.Count; i++)
-                into.Add(scratchResidents[i]);
         }
 
         public static string ResolveSiteLabel(SimulationWorld world, string siteId) =>
@@ -302,23 +195,5 @@ namespace XianXia.Unity.Host
             return hex.ToString();
         }
 
-        public static string DescribeArmyTravel(StrategicArmyRosterRow row)
-        {
-            if (row == null)
-                return string.Empty;
-            if (row.State == FormalArmyState.Moving && !string.IsNullOrEmpty(row.DestHexLabel))
-                return row.SiteLabel + " ? " + row.DestHexLabel;
-            return row.SiteLabel;
-        }
-
-        public static int EstimateArmyPower(SimulationWorld world, FormalArmy army)
-        {
-            if (world == null || army == null)
-                return 1;
-            var sum = 0;
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-                sum += CombatPowerCalculator.ForEntity(world, new EntityId(army.MemberCharacterIds[i]));
-            return Math.Max(1, sum);
-        }
     }
 }

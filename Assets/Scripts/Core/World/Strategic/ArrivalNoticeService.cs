@@ -7,7 +7,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex 战略：到站杝示（legacy Route 旅行已移除）�?/summary>
+    /// <summary>Hex 战略：到站杝示（legacy Route 旅行已移除）�?/summary>
     public static class ArrivalNoticeService
     {
         public static void SuppressForParty(SimulationWorld world, IReadOnlyList<EntityId> party)
@@ -36,8 +36,6 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < arrivedThisTick.Count; i++)
             {
                 var id = arrivedThisTick[i];
-                if (StrategicPursuitService.IsCombatPursuitTraveler(world, id))
-                    continue;
                 if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
                     continue;
                 if (presence.SuppressArrivalNotice)

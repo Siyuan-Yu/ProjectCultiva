@@ -36,11 +36,6 @@ namespace XianXia.Core.World.Strategic
                 !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
                 return false;
 
-            // FormalArmy member 由 FormalArmyCasualtyService 处理（detach + Army residual）——
-            // 防止同一成员同时走 Army residual 与 Party/Local residual 双 owner。
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
-                return false;
-
             // Idempotent delayed/repeated event: an existing personal authority is already a
             // successful spatial result. Never replace it with the player's loaded-map context.
             if (ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
@@ -92,9 +87,6 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || characterId.IsNone ||
                 !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
-                return false;
-
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
                 return false;
 
             return TryPlacePreciseResidualFromLoadedLocalPosition(
@@ -262,8 +254,8 @@ namespace XianXia.Core.World.Strategic
                 lifeState = CombatLifeStateService.ResolveLifeStateLabel(entity);
             }
 
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out var army) && army != null)
-                armyId = army.ArmyId;
+            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out var squad) && squad != null)
+                armyId = squad.SquadId;
 
             var presenceMode = "(none)";
             var presenceSiteId = string.Empty;
@@ -294,7 +286,7 @@ namespace XianXia.Core.World.Strategic
                 " EntityId=" + characterId +
                 " Name=" + name +
                 " LifeState=" + lifeState +
-                " FormalArmyId=" + armyId +
+                " SquadId=" + armyId +
                 " SurfaceKind=" + context.Kind +
                 " SurfaceSiteId=" + (context.Site != null ? context.Site.SiteId : string.Empty) +
                 " SurfaceWildernessHex=" + context.WildernessHex +

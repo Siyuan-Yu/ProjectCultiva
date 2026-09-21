@@ -12,23 +12,20 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// Current Character target identity for hostile-action routing. FormalArmy membership is legacy
-    /// diagnostics metadata only: every Character remains LocalCharacter and personal hostility never declares war.
+    /// Current Character target identity for hostile-action routing.
     /// </summary>
     public readonly struct HostileActionClassification
     {
-        public HostileActionClassification(EntityId targetEntityId, HostileActionScope scope, string targetFactionId, string targetFormalArmyId)
+        public HostileActionClassification(EntityId targetEntityId, HostileActionScope scope, string targetFactionId)
         {
             TargetEntityId = targetEntityId;
             Scope = scope;
             TargetFactionId = targetFactionId ?? string.Empty;
-            TargetFormalArmyId = targetFormalArmyId ?? string.Empty;
         }
 
         public EntityId TargetEntityId { get; }
         public HostileActionScope Scope { get; }
         public string TargetFactionId { get; }
-        public string TargetFormalArmyId { get; }
     }
 
     public static class HostileActionClassificationService
@@ -49,26 +46,10 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            // Legacy membership is validated as metadata only. It must never change a Character into
-            // StrategicMilitary or select a different battle/participant path.
-            if (ArmyService.TryGetArmyForCharacter(world, targetId, out var formalArmy))
-            {
-                if (target.TryGet<FactionMembershipComponent>(out var membership) &&
-                    !string.IsNullOrEmpty(membership.FactionId) &&
-                    !string.Equals(membership.FactionId, formalArmy.FactionId, StringComparison.Ordinal))
-                {
-                    reason = "FormalArmy member faction mismatch";
-                    return false;
-                }
-
-                classification = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, formalArmy.FactionId, formalArmy.ArmyId);
-                return true;
-            }
-
             var factionId = target.TryGet<FactionMembershipComponent>(out var localMembership) && localMembership.IsAffiliated
                 ? localMembership.FactionId
                 : string.Empty;
-            classification = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, factionId, string.Empty);
+            classification = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, factionId);
             return true;
         }
 

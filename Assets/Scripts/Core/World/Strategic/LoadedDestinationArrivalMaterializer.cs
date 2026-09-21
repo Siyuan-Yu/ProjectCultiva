@@ -773,7 +773,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (party != null && party.IsMember(characterId))
                 return false;
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
                 return false;
             if (!world.Entities.TryGet(characterId, out var entity) ||
                 !CombatLifeStateService.CanFight(entity))

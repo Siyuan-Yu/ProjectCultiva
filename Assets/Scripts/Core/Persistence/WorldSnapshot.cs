@@ -93,6 +93,8 @@ namespace XianXia.Core.Persistence
         public bool Ch01FormationScenarioCompat { get; set; }
         public bool HasSquadSnapshotAuthority { get; set; }
         public List<SquadSnapshotDto> Squads { get; set; } = new List<SquadSnapshotDto>();
+        public bool HasSquadWorldMotionSnapshotAuthority { get; set; }
+        public List<SquadWorldMotionSnapshotDto> SquadWorldMotions { get; set; } = new List<SquadWorldMotionSnapshotDto>();
         public string ControlledSquadId { get; set; } = string.Empty;
         public List<FormalArmySnapshotDto> FormalArmies { get; set; } = new List<FormalArmySnapshotDto>();
         public List<ArmyMembershipSnapshotDto> ArmyMemberships { get; set; } = new List<ArmyMembershipSnapshotDto>();
@@ -237,6 +239,7 @@ namespace XianXia.Core.Persistence
     {
         public int Kind { get; set; }
         public ulong EntityId { get; set; }
+        public string SquadId { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
         public string FormalArmyId { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
@@ -444,12 +447,31 @@ namespace XianXia.Core.Persistence
     public sealed class SquadSnapshotDto
     {
         public string SquadId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string FactionId { get; set; } = string.Empty;
         public ulong LeaderCharacterId { get; set; }
         public string LegacyArmyId { get; set; } = string.Empty;
         public int CommandKind { get; set; }
         public ulong CommandRevision { get; set; }
         public ulong CommandTargetCharacterId { get; set; }
         public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
+    }
+
+    public sealed class SquadWorldMotionSnapshotDto
+    {
+        public string SquadId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public string SiteId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public bool IsMoving { get; set; }
+        public float DestinationX { get; set; }
+        public float DestinationY { get; set; }
+        public int WaypointIndex { get; set; }
+        public float SegmentProgress { get; set; }
+        public string SourceRevision { get; set; } = string.Empty;
+        public string SourceHash { get; set; } = string.Empty;
+        public List<WorldPointSnapshotDto> Route { get; set; } = new List<WorldPointSnapshotDto>();
     }
 
     public sealed class RuntimeWorldSiteSnapshotDto

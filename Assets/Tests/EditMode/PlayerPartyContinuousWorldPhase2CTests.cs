@@ -589,22 +589,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void CONTINUOUS_22_ContinuousTravel_DoesNotCreateFormalArmy()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
-            var a = Spawn(world, "LinQing");
-            var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
-
-            var before = world.Strategic.FormalArmies.Armies.Count;
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            ForceAdvanceToDestination(world);
-            Assert.AreEqual(before, world.Strategic.FormalArmies.Armies.Count);
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, a, out _));
-        }
-
-        [Test]
         public void CONTINUOUS_23_BackgroundCharacter_DoesNotMoveWithParty()
         {
             var world = BuildTinyTravelWorld(out var siteA, out var siteB, out _);

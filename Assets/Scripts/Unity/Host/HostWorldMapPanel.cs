@@ -61,7 +61,7 @@ namespace XianXia.Unity.Host
             if (world.Strategic.Participants != null && world.Strategic.Participants.IsAutoSettlement)
                 return false;
             return StrategicClockFreezeService.IsModalEncounter(world) ||
-                   BattleOfferService.HasActiveManualEncounter(world);
+                   world.Strategic.CharacterEncounter != null;
         }
 
         public void Toggle()
@@ -130,7 +130,6 @@ namespace XianXia.Unity.Host
         public void NotifyAfterBattleResolved(SimulationWorld world)
         {
             if (world == null) return;
-            StrategicEncounterResolveService.NormalizePresenceAfterEncounterExit(world);
             RefreshStrategicPresentation(world);
         }
 
@@ -170,9 +169,9 @@ namespace XianXia.Unity.Host
         {
             var world = bootstrap?.Session?.World;
             if (world == null || string.IsNullOrEmpty(armyId) ||
-                !world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null) return;
-            if (ArmyWorldMapPresentation.TryResolveArmyWorldPoint(world, army, out var x, out var y))
-                Focus(x, y);
+                !SquadWorldMotionService.TryGetActiveNpcSquadAuthority(
+                    world, armyId, out _, out var motion)) return;
+            Focus(motion.WorldPosition.X, motion.WorldPosition.Y);
             _selectedArmyId = armyId;
             _selectedSiteId = string.Empty;
             _status = "已定位 NPC 小队";
@@ -460,12 +459,11 @@ namespace XianXia.Unity.Host
         void DrawArmies(SurfaceWorldMapViewportProjection projection, SimulationWorld world)
         {
             _armyHits.Clear();
-            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            foreach (var pair in world.Strategic.SquadWorldMotions.Motions)
             {
-                var army = pair.Value;
-                if (army == null || !ArmyWorldMapPresentation.TryResolveArmyWorldPoint(
-                        world, army, out var x, out var y)) continue;
-                var p = projection.ProjectWorld(x, y);
+                if (!SquadWorldMotionService.TryGetActiveNpcSquadAuthority(
+                        world, pair.Key, out _, out var motion)) continue;
+                var p = projection.ProjectWorld(motion.WorldPosition.X, motion.WorldPosition.Y);
                 var rect = new Rect(p.x - 7, p.y - 7, 14, 14);
                 Fill(rect, string.Equals(_selectedArmyId, pair.Key, StringComparison.Ordinal)
                     ? Color.cyan : new Color(.95f, .32f, .25f));
@@ -618,7 +616,8 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(rect.x + 10, rect.y + 8, rect.width - 20, 84),
                     site.DisplayName + "\n" + site.SiteType + "  ·  " + site.OwnerFactionId, _body);
             else if (!string.IsNullOrEmpty(_selectedArmyId) &&
-                     world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var army) && army != null)
+                     SquadWorldMotionService.TryGetActiveNpcSquadAuthority(
+                         world, _selectedArmyId, out var army, out _))
                 GUI.Label(new Rect(rect.x + 10, rect.y + 8, rect.width - 20, 84),
                     "NPC 小队\n队长 " + EntityLabel(world, army.LeaderCharacterId) +
                     " · " + army.MemberCharacterIds.Count + " 人", _body);

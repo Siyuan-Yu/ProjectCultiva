@@ -20,14 +20,13 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || ticks < 1)
                 return;
 
+            SquadWorldMotionService.AdvanceAll(world, ticks);
+            BackgroundSimulationScheduler.AfterSimulationTick(world, ticks);
+
             if (!world.HexWorld.HasGrid)
                 return;
 
-            ArmyHexTravelService.AdvanceAll(world, ticks);
             PlayerPartyHexTravelService.AdvanceAll(world, ticks);
-            BackgroundSimulationScheduler.AfterSimulationTick(world, ticks);
-            ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
-            ArmyHexPursuitService.AfterTravelTick(world);
         }
     }
 }

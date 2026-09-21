@@ -121,17 +121,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void FormalArmyMemberCannotUseBackgroundTravelAuthority()
-        {
-            var world = BuildTravelWorld(out var siteA, out var siteB, out _);
-            var leader = Spawn(world, "Soldier");
-            PlaceAtSite(world, leader, siteA);
-            var army = ArmyService.CreateArmy(world, FactionA, siteA.SiteId, new[] { leader }).Value;
-            ArmyHexTravelService.InitializeArmyAtHex(world, army, siteA.PresenceHex);
-            Assert.IsFalse(BackgroundCharacterTravelService.BeginTravelToWorldSite(world, leader, siteB.SiteId).IsSuccess);
-        }
-
-        [Test]
         public void LoadedRealtimeCharacterCannotAlsoUseBackgroundTravelAuthority()
         {
             var world = BuildTravelWorld(out var siteA, out var siteB, out _);
@@ -413,16 +402,6 @@ namespace XianXia.Tests
             ent.Get<LifecycleComponent>().State = LifecycleState.Incapacitated;
             BackgroundCharacterTravelService.AdvanceAll(world, 4);
             Assert.IsFalse(world.BackgroundCharacterTravel.IsTraveling(a));
-        }
-
-        [Test]
-        public void BackgroundCharacterDoesNotCreateWorldMapPersonalMarker()
-        {
-            var world = BuildTravelWorld(out _, out _, out var mid);
-            var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
-            BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 2, mid.R));
-            Assert.IsFalse(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, a));
         }
 
         [Test]

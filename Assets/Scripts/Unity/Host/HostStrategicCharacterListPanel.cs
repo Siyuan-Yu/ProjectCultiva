@@ -206,14 +206,14 @@ namespace XianXia.Unity.Host
                 ? "据点内" : "连续世界";
             var owner = "个人";
 
-            if (ArmyService.TryGetArmyForCharacter(world, id, out var army) &&
-                army != null && army.WorldMotion.HasPosition && !army.UsesHexStrategicPosition)
+            if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) && motion.HasPosition)
             {
                 owner = "NPC 小队";
-                position = army.WorldMotion.WorldPosition;
+                position = motion.WorldPosition;
                 hasPosition = true;
-                surfaceId = army.WorldMotion.SurfaceId;
-                siteId = army.WorldMotion.SiteId;
+                surfaceId = motion.SurfaceId;
+                siteId = motion.SiteId;
                 state = string.IsNullOrEmpty(siteId) ? "连续世界" : "据点内";
             }
 

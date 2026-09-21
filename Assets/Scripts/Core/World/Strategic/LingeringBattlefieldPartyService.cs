@@ -10,7 +10,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 残留战场再入队伍收集与锚点解析（Core 真源；Host 只负责点击与菜单）�?
+    /// 残留战场再入队伍收集与锚点解析（Core 真源；Host 只负责点击与菜单）�?
     /// </summary>
     public static class LingeringBattlefieldPartyService
     {
@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
             return ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated;
         }
 
-        /// <summary>可见尸体（未腐烂）：与弥留同属「倒下可交互」——可选中／进残留，不可下令�?/summary>
+        /// <summary>可见尸体（未腐烂）：与弥留同属「倒下可交互」——可选中／进残留，不可下令�?/summary>
         public static bool IsVisibleCorpse(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone)
@@ -33,13 +33,13 @@ namespace XianXia.Core.World.Strategic
             return CombatLifeStateService.HasVisibleCorpse(ent);
         }
 
-        /// <summary>弥留或可见尸体：残留战场交互（点选／右键进入／探望）同一套�?/summary>
+        /// <summary>弥留或可见尸体：残留战场交互（点选／右键进入／探望）同一套�?/summary>
         public static bool IsLingeringDowned(SimulationWorld world, EntityId id) =>
             IsIncapacitated(world, id) || IsVisibleCorpse(world, id);
 
         /// <summary>
-        /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」�?
-        /// 敌方也可经残留栈菜单进入；仍可用「追击／再攻」走进攻接战�?
+        /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」�?
+        /// 敌方也可经残留栈菜单进入；仍可用「追击／再攻」走进攻接战�?
         /// </summary>
         public static bool IsFriendlyLingeringDowned(SimulationWorld world, EntityId id)
         {
@@ -55,7 +55,7 @@ namespace XianXia.Core.World.Strategic
             if ((ent.Tags & EntityTag.Npc) != 0)
                 return false;
             var playerFaction = world.Strategic?.PlayerFactionId ?? StrategicFactionCatalog.PlayerFactionId;
-            var faction = ArmyService.ResolveCharacterFactionId(world, id);
+            var faction = CharacterStrategicQuery.ResolveFactionId(world, id);
             return !string.IsNullOrEmpty(faction) &&
                    string.Equals(faction, playerFaction, StringComparison.Ordinal);
         }
@@ -70,8 +70,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 残留战场再入：半径内我方弥留／尸�?+ 当前行动决定人（mandatoryLiving）强制纳入；
-        /// 其余支援半径内活人由接战�?Optional 名单勾选，不在此强制�?
+        /// 残留战场再入：半径内我方弥留／尸�?+ 当前行动决定人（mandatoryLiving）强制纳入；
+        /// 其余支援半径内活人由接战�?Optional 名单勾选，不在此强制�?
         /// </summary>
         public static bool CollectViewParty(
             SimulationWorld world,
@@ -83,7 +83,7 @@ namespace XianXia.Core.World.Strategic
             into.Clear();
             if (world?.Strategic == null || roster == null || into == null)
                 return false;
-            if (!BattleOfferService.HasLingeringBattlefield(world))
+            if (world.Strategic.LingeringBattlefields == null)
                 return false;
 
             if (!TryResolveBattleAnchorHex(world, focusIncap, out var anchorHex))
@@ -100,7 +100,7 @@ namespace XianXia.Core.World.Strategic
             AppendFriendlyLingeringAtHex(world, roster, anchorHex, into);
             AppendMandatoryLivingAtHex(world, mandatoryLiving, anchorHex, into);
             AppendIncapacitatedAtHex(world, roster, anchorHex, into);
-            ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
+            ExpandLivingSquadMembers(world, into);
             EnsureFocusIncapInParty(world, focusIncap, into);
             return into.Count > 0;
         }
@@ -208,7 +208,7 @@ namespace XianXia.Core.World.Strategic
                     return;
             }
 
-            // 用户从该倒下头像进入：本人始终纳入进场名�?
+            // 用户从该倒下头像进入：本人始终纳入进场名�?
             into.Add(focusIncap);
         }
 
@@ -223,6 +223,20 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return CollectViewParty(world, roster, focusIncap, scratch, mandatoryLiving) &&
                    scratch.Count > 0;
+        }
+
+        static void ExpandLivingSquadMembers(SimulationWorld world, List<EntityId> into)
+        {
+            var initial = new List<EntityId>(into);
+            for (var i = 0; i < initial.Count; i++)
+            {
+                if (!world.Strategic.Squads.TryGetForCharacter(initial[i], out var squad) || squad == null) continue;
+                for (var m = 0; m < squad.MemberCharacterIds.Count; m++)
+                {
+                    var id = new EntityId(squad.MemberCharacterIds[m]);
+                    if (!into.Contains(id) && IsLivingForMacroOrder(world, id)) into.Add(id);
+                }
+            }
         }
 
         public static bool TryResolveBattleAnchorHex(
@@ -248,8 +262,10 @@ namespace XianXia.Core.World.Strategic
         {
             anchorHex = default;
             var snap = world?.Strategic?.Participants;
-            return snap != null &&
-                   ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out anchorHex);
+            if (snap == null || snap.BattleAnchorHexQ == StrategicHexConstants.InvalidHexComponent ||
+                snap.BattleAnchorHexR == StrategicHexConstants.InvalidHexComponent) return false;
+            anchorHex = new HexCoord(snap.BattleAnchorHexQ, snap.BattleAnchorHexR);
+            return true;
         }
 
         static bool TryResolveBattleAnchorHexFromPresence(
@@ -268,7 +284,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (!string.IsNullOrEmpty(wp.SiteId) &&
-                ArmyHexBattleAnchorService.TryResolveHexForSite(world, wp.SiteId, out anchorHex))
+                world.Strategic.Sites.TryResolveSitePresenceHex(wp.SiteId, out anchorHex))
                 return true;
 
             return false;

@@ -5,7 +5,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    public enum ContinuousSpatialOwnerKind { Personal = 0, PlayerParty = 1, FormalArmy = 2 }
+    public enum ContinuousSpatialOwnerKind { Personal = 0, PlayerParty = 1, FormalArmy = 2, Squad = 3 }
 
     /// <summary>Read-only normal Surface position, with group motion ahead of personal presence.</summary>
     public static class ContinuousCharacterSpatialAuthorityResolver
@@ -21,26 +21,6 @@ namespace XianXia.Core.World.Strategic
             if (world == null || id.IsNone || string.IsNullOrEmpty(surfaceId))
             { failure = "MissingContinuousSpatialContext"; return false; }
 
-            if (FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id) &&
-                ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null)
-            {
-                owner = ContinuousSpatialOwnerKind.FormalArmy;
-                ownerId = army.ArmyId;
-                var motion = army.WorldMotion;
-                if (!motion.HasPosition || motion.SurfaceId != surfaceId ||
-                    !Finite(motion.WorldPosition.X) || !Finite(motion.WorldPosition.Y) ||
-                    !world.SurfaceGround.TryGet(surfaceId, out var nav) ||
-                    !nav.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) ||
-                    !nav.IsWalkable(motion.WorldPosition.X, motion.WorldPosition.Y))
-                { failure = "FormalArmyContinuousSpatialInvariant"; return false; }
-                var slot = -1;
-                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-                    if (army.MemberCharacterIds[i] == id.Value) { slot = i; break; }
-                if (slot < 0) { failure = "FormalArmyContinuousSpatialInvariant:MemberMissing"; return false; }
-                position = FormalArmyContinuousFormationResolver.Resolve(motion, slot, nav);
-                return true;
-            }
-
             var party = world.Strategic.PlayerPartyContext;
             if (party != null && party.IsMember(id))
             {
@@ -54,6 +34,24 @@ namespace XianXia.Core.World.Strategic
                 if (!PlayerPartyContinuousFormationResolver.TryResolve(world, party, id, nav,
                         out position))
                 { failure = "PlayerPartyContinuousSpatialInvariant:MemberNotTraveling"; return false; }
+                return true;
+            }
+
+            if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
+            {
+                owner = ContinuousSpatialOwnerKind.Squad;
+                ownerId = squad.SquadId;
+                if (!squadMotion.HasPosition || squadMotion.SurfaceId != surfaceId ||
+                    !Finite(squadMotion.WorldPosition.X) || !Finite(squadMotion.WorldPosition.Y) ||
+                    !world.SurfaceGround.TryGet(surfaceId, out var nav) ||
+                    !nav.Contains(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y) ||
+                    !nav.IsWalkable(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y))
+                { failure = "SquadContinuousSpatialInvariant"; return false; }
+                var slot = SquadContinuousFormationResolver.StableSlot(squad, id);
+                if (slot < 0) { failure = "SquadContinuousSpatialInvariant:MemberMissing"; return false; }
+                position = SquadContinuousFormationResolver.Resolve(squadMotion, slot, nav);
                 return true;
             }
 

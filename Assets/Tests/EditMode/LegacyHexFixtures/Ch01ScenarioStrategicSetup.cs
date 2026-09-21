@@ -65,41 +65,12 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public static void PositionPrototypeTestBanditArmies(SimulationWorld world)
         {
-            if (!ArmyHexCommandService.IsHexStrategicActive(world))
-                return;
-
-            Ch01HexPrototypeMapBuilder.ResolvePrototypeTestBanditHexesBelowHuangcun(
-                world,
-                out var strongHex,
-                out var weakHex,
-                out var casualtyHex);
-            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditPatrolFormalArmyId, strongHex);
-            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, weakHex);
-            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditCasualtyTestFormalArmyId, casualtyHex);
+            // Retired Army runtime has no Hex fixture deployment.
         }
 
         /// <summary>Hex 模式下将 Prototype 山匪放到荒村外 7～8 格（迁移/重建后也可复用）。</summary>
         public static void PositionPrototypeBanditPatrolArmy(SimulationWorld world) =>
             PositionPrototypeTestBanditArmies(world);
-
-        static void PositionPrototypeBanditArmyAtHex(
-            SimulationWorld world,
-            string formalArmyId,
-            HexCoord hex)
-        {
-            if (!world.Strategic.FormalArmies.TryGet(formalArmyId, out var bandit) || bandit == null)
-                return;
-
-            Ch01HexPrototypeMapBuilder.EnsurePrototypeTestBanditHexPassable(world, hex);
-            ArmyHexTravelService.InitializeArmyAtHex(world, bandit, hex);
-            var stackId = string.Equals(formalArmyId, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, StringComparison.Ordinal)
-                ? ArmyStackAdapter.BanditWeakPatrolStackId
-                : string.Equals(formalArmyId, ArmyStackAdapter.BanditCasualtyTestFormalArmyId, StringComparison.Ordinal)
-                    ? ArmyStackAdapter.BanditCasualtyTestStackId
-                    : ArmyStackAdapter.BanditPatrolStackId;
-            if (world.Strategic.Armies.TryGet(stackId, out var stack) && stack != null)
-                ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
-        }
 
         /// <summary>
         /// Prototype 回归用 Bandit 敌对 — 非 Ch01 正式剧情战争。

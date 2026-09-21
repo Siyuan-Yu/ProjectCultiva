@@ -114,7 +114,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!string.IsNullOrEmpty(playerFaction))
                 {
-                    var faction = ArmyService.ResolveCharacterFactionId(world, id);
+                    var faction = CharacterStrategicQuery.ResolveFactionId(world, id);
                     if (!string.IsNullOrEmpty(faction) &&
                         !string.Equals(faction, playerFaction, StringComparison.Ordinal))
                         continue;
@@ -172,64 +172,35 @@ namespace XianXia.Core.World.Strategic
         }
 
         static void CollectArmyMemberIdsAtSite(
-            SimulationWorld world,
-            WorldSite site,
-            List<EntityId> into,
-            HashSet<ulong> seen)
+            SimulationWorld world, WorldSite site, List<EntityId> into, HashSet<ulong> seen)
         {
-            if (world?.Strategic?.FormalArmies?.Armies == null)
-                return;
-
-            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            if (world?.Strategic?.Squads == null) return;
+            foreach (var pair in world.Strategic.Squads.Squads)
             {
-                var army = kv.Value;
-                if (army == null || !IsArmyPhysicallyAtSite(world, army, site))
-                    continue;
-
-                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                var squad = pair.Value;
+                if (squad == null || !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
+                    !SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, motion) ||
+                    !string.Equals(motion.SiteId, site.SiteId, StringComparison.Ordinal)) continue;
+                for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
                 {
-                    var memberId = new EntityId(army.MemberCharacterIds[i]);
-                    if (memberId.IsNone || seen.Contains(memberId.Value))
-                        continue;
-                    if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
-                        continue;
-                    if (!world.Entities.TryGet(memberId, out var entity) || entity == null ||
-                        CombatLifeStateService.ShouldHideFromSpawn(entity))
-                        continue;
-                    // Claim deduplication only after this pass has accepted the character.
-                    if (seen.Add(memberId.Value))
-                        into.Add(memberId);
+                    var memberId = new EntityId(squad.MemberCharacterIds[i]);
+                    if (memberId.IsNone || seen.Contains(memberId.Value) ||
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId) ||
+                        !world.Entities.TryGet(memberId, out var entity) || entity == null ||
+                        CombatLifeStateService.ShouldHideFromSpawn(entity)) continue;
+                    if (seen.Add(memberId.Value)) into.Add(memberId);
                 }
             }
         }
 
         static bool IsArmyMemberPhysicallyAtSite(
-            SimulationWorld world,
-            EntityId characterId,
-            WorldSite site)
+            SimulationWorld world, EntityId characterId, WorldSite site)
         {
-            if (!ArmyService.TryGetArmyForCharacter(world, characterId, out var army) || army == null)
-                return false;
-            if (!army.ContainsMember(characterId))
-                return false;
-            if (!IsArmyPhysicallyAtSite(world, army, site))
-                return false;
+            if (!CharacterStrategicQuery.TryGetSquad(world, characterId, out var squad) || squad == null ||
+                !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
+                !SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, motion) ||
+                !string.Equals(motion.SiteId, site.SiteId, StringComparison.Ordinal)) return false;
             return LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, characterId);
-        }
-
-        static bool IsArmyPhysicallyAtSite(SimulationWorld world, FormalArmy army, WorldSite site)
-        {
-            if (army == null || site == null)
-                return false;
-
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                return army.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
-                       string.Equals(army.WorldMotion.SiteId, site.SiteId, StringComparison.Ordinal);
-
-            if (army.UsesHexStrategicPosition && world?.HexWorld?.HasGrid == true)
-                return site.OccupiesHex(army.CurrentHex);
-
-            return false;
         }
 
         static bool IsPersonalResidentAtSite(
@@ -261,8 +232,8 @@ namespace XianXia.Core.World.Strategic
             if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
                 return true;
 
-            // Living legacy members remain owned by the group compatibility pass.
-            return !ArmyService.TryGetArmyForCharacter(world, characterId, out _);
+            // Living Squad members with group motion are projected by the group authority pass.
+            return !SquadWorldMotionService.OwnsCharacter(world, characterId);
         }
     }
 }

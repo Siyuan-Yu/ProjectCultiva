@@ -56,7 +56,10 @@ namespace XianXia.Data.Content
         /// <summary>仅用于新游戏 Tick 0 的战略初始状态；读档以 Runtime Strategic Snapshot 为准。</summary>
         public OpeningStrategicStateDefinition StrategicOpening { get; set; }
 
-        /// <summary>Phase 5S：开局实例化的 FormalArmyDefinition ids（顺序即创建顺序）。</summary>
+        /// <summary>Modern authored NPC squads created for a new game.</summary>
+        public List<string> InitialNpcSquadIds { get; set; } = new List<string>();
+
+        /// <summary>[Legacy content input only] Loaded through a one-way migration adapter.</summary>
         public List<string> InitialFormalArmyIds { get; set; } = new List<string>();
     }
 

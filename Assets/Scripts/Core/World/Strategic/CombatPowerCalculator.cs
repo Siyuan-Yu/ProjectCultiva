@@ -36,26 +36,6 @@ namespace XianXia.Core.World.Strategic
             return Math.Max(1, power);
         }
 
-        public static int ForArmyStack(SimulationWorld world, ArmyStack stack)
-        {
-            if (stack == null)
-                return 1;
-            if (world != null && ArmyStackAdapter.HasFormalArmyLink(stack))
-                return ArmyStackAdapter.GetCombatPower(world, stack);
-            return ForLegacyArmyStack(stack);
-        }
-
-        public static int ForArmyStack(ArmyStack stack) => ForLegacyArmyStack(stack);
-
-        static int ForLegacyArmyStack(ArmyStack stack)
-        {
-            if (stack == null)
-                return 1;
-            var basePower = stack.CombatPower > 0 ? stack.CombatPower : 1;
-            var count = stack.MemberCount > 0 ? stack.MemberCount : 1;
-            return Math.Max(1, basePower * count);
-        }
-
         static int RealmWeight(Entity entity)
         {
             if (entity == null || !entity.TryGet<CultivationComponent>(out var cult) || cult == null)

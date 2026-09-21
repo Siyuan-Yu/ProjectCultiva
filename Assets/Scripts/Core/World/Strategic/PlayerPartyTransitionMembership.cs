@@ -11,7 +11,7 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// PlayerParty LocalMap / Hex 边界 Transition：哪些成员随 Active 一起转移。
-    /// Membership 为真源；FormalArmy 成员排除；已 Stop Follow 者不在 party.Members。
+    /// Membership 为真源；其它 NPC Squad 成员排除；已 Stop Follow 者不在 party.Members。
     /// 有 living successor 时，Incapacitated / Dead / Removed member 会由 life-state
     /// reconciliation 脱离到 singleton squad；全队无人可行动时可为 terminal control
     /// compatibility 暂留 membership，但本 gate 始终拒绝其 travel / transition authority。
@@ -29,7 +29,13 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!party.IsMember(characterId))
                 return false;
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+            // PlayerParty itself is represented by the controlled Squad.  Reject only a
+            // different Squad; treating every Squad membership as NPC authority excludes the
+            // ActiveCharacter from the initial Continuous materialization pass.
+            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out var squad) &&
+                !string.Equals(squad.SquadId, party.ControlledSquadId, System.StringComparison.Ordinal) &&
+                !string.Equals(squad.SquadId, SquadMembershipService.PlayerSquadId,
+                    System.StringComparison.Ordinal))
                 return false;
             if (!world.Entities.TryGet(characterId, out var entity) || entity == null)
                 return false;
@@ -182,18 +188,14 @@ namespace XianXia.Core.World.Strategic
                 var id = party.Members[i];
                 CharacterWorldMovementAuthorityQuery.TryGetAuthority(
                     world, id, party, out var authority);
-                ArmyService.TryGetArmyForCharacter(world, id, out var army);
+                CharacterStrategicQuery.TryGetSquad(world, id, out var squad);
                 var included = ShouldMemberTransitionWithParty(world, party, id);
-                var reason = included
-                    ? "PlayerPartyMember"
-                    : army != null
-                        ? "FormalArmyMember"
-                        : !party.IsMember(id)
-                            ? "NotInParty"
-                            : "Excluded";
+                var reason = included ? "PlayerPartyMember"
+                    : squad != null && !SquadWorldMotionService.IsPlayerPartySquad(world, squad) ? "NpcSquadMember"
+                    : !party.IsMember(id) ? "NotInParty" : "Excluded";
                 sb.Append("\n  CharacterId=").Append(id.Value);
                 sb.Append(" IsFollower=").Append(party.IsFollower(id));
-                sb.Append(" ArmyId=").Append(army != null ? army.ArmyId : "—");
+                sb.Append(" SquadId=").Append(squad != null ? squad.SquadId : "—");
                 sb.Append(" Authority=").Append(authority);
                 sb.Append(" Included=").Append(included);
                 sb.Append(" Reason=").Append(reason);

@@ -203,8 +203,6 @@ namespace XianXia.Data.Bootstrap
                             region.ArrivalWorldX, region.ArrivalWorldY));
                 }
             }
-            XianXia.Core.World.Strategic.FormalArmyContinuousTravelService
-                .RebindPendingSurfaceRoutes(world);
         }
 
         public static Result RebindPresetWorldSiteCoreMetadata(

@@ -22,7 +22,6 @@ namespace XianXia.Unity.Host
         {
             Closed = 0,
             Menu = 1,
-            LocalAttackConfirm = 2,
             StrategicAggressionConfirm = 3,
             DismantleConfirm = 4
         }
@@ -43,15 +42,12 @@ namespace XianXia.Unity.Host
         HostMapDestructible _targetDestructible;
         WorldObjectInteractionTarget _worldObjectTarget;
         string _targetLabel = string.Empty;
-        EntityId _confirmTarget = EntityId.None;
         System.Action _confirmCallback;
         string _aggressionAttackerFactionId = string.Empty;
         string _aggressionDefenderFactionId = string.Empty;
         string _dismantleStatus = string.Empty;
         bool _holdingDismantlePause;
         const string AggressionPauseOwner = "SiteCoreAggressionConfirmation";
-        /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
-        EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
         Rect _menuGuiRect;
 
@@ -94,7 +90,6 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
-            _confirmedLocalAttackTargetId = EntityId.None;
             ReleaseInteractionNpcNow();
             CloseAll();
         }
@@ -235,14 +230,6 @@ namespace XianXia.Unity.Host
                         DrawReadOnlyWorldObjectMenu();
                     else
                         DrawContextMenu();
-                    break;
-                case Phase.LocalAttackConfirm:
-                    DrawAttackConfirm(
-                        "攻击确认",
-                        "是否攻击「" + ResolveDisplayName(_confirmTarget) + "」？",
-                        "攻击",
-                        ConfirmLocalAttack,
-                        CloseAll);
                     break;
                 case Phase.StrategicAggressionConfirm:
                     DrawAttackConfirm(
@@ -878,7 +865,7 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Host pre-damage coordinator（右键攻击 / 主动技能共用，单一路由，禁止复制两套判断）。
-        /// 返回 true = 本次输入已被消费（确认窗 / BattleOffer / reject）；
+        /// 返回 true = 本次输入已被人物遭遇确认或拒绝消费；
         /// 返回 false = caller 应直接执行本地伤害动作（仅 active WORLD_COMBAT participant 直接攻击路径）。
         /// </summary>
         public bool TryHandlePlayerHostileAction(
@@ -1023,24 +1010,6 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void BeginLocalAttackConfirm(EntityId actor, EntityId target, System.Action onConfirmed)
-        {
-            _confirmTarget = target;
-            _confirmCallback = onConfirmed;
-            _phase = Phase.LocalAttackConfirm;
-            HostInputGate.BlockWorldInteraction = true;
-        }
-
-        void ConfirmLocalAttack()
-        {
-            if (!_confirmTarget.IsNone)
-                _confirmedLocalAttackTargetId = _confirmTarget;
-            var cb = _confirmCallback;
-            _confirmCallback = null;
-            cb?.Invoke();
-            CloseAll();
-        }
-
         static bool IsActiveStrategicCombatTarget(SimulationWorld world, EntityId targetId)
         {
             if (world == null || targetId.IsNone ||
@@ -1130,7 +1099,6 @@ namespace XianXia.Unity.Host
             _targetDestructible = null;
             _worldObjectTarget = default;
             _targetLabel = string.Empty;
-            _confirmTarget = EntityId.None;
             _confirmCallback = null;
             _aggressionAttackerFactionId = string.Empty;
             _aggressionDefenderFactionId = string.Empty;

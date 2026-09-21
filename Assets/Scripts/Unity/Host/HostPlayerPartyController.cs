@@ -340,7 +340,7 @@ namespace XianXia.Unity.Host
                     if (session.World.PlayerPartyTravel != null &&
                         session.World.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                         !string.IsNullOrEmpty(session.World.PlayerPartyTravel.SiteId) &&
-                        !BattleOfferService.HasActiveManualEncounter(world))
+                        world.Strategic.CharacterEncounter == null)
                         SyncCanonicalImmediatelyAfterRepair(session.World, activeSafe.x, activeSafe.y);
                 }
             }

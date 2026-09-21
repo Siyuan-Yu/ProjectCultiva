@@ -23,27 +23,9 @@ namespace XianXia.Core.World.Strategic
             if (!IsResidualLifeCandidate(world, characterId))
                 return;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            HexCoord oldHex = default;
-            var hadOld = world.WorldPresence.TryGet(characterId, out var oldWp) &&
-                         oldWp != null &&
-                         oldWp.UsesHexPresence;
-            if (hadOld)
-                oldHex = oldWp.ResidualHex;
-#endif
+
             world.WorldPresence.SetAtHex(characterId, encounterHex);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!hadOld || !oldHex.Equals(encounterHex))
-            {
-                LingeringExitPositionTrace.LogResidualHexMutation(
-                    world,
-                    characterId,
-                    hadOld ? oldHex : default,
-                    encounterHex,
-                    nameof(PlaceCharacterAtResidualHex),
-                    "PlaceCharacterAtResidualHex");
-            }
-#endif
+
         }
 
         /// <summary>
@@ -104,7 +86,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null || characterId.IsNone || snap == null)
                 return false;
             if (snap.HasBattleAnchorWorldPosition ||
-                !ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+                ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
                 return false;
             if (!TryResolveEncounterHex(world, snap, out var hex))
                 return false;
@@ -119,15 +101,12 @@ namespace XianXia.Core.World.Strategic
         {
             hex = default;
             // 本场 snap 优先：Active Encounter 结算不得被旧残留 Runtime 污染
-            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out hex) &&
-                (world?.HexWorld == null || !world.HexWorld.HasGrid || world.HexWorld.Contains(hex)))
-                return true;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
-                LingeringExitPositionTrace.LogMissingHexAnchor(
-                    world, nameof(TryResolveEncounterHex));
-#endif
+            if (snap.BattleAnchorHexQ != StrategicHexConstants.InvalidHexComponent &&
+                snap.BattleAnchorHexR != StrategicHexConstants.InvalidHexComponent)
+            {
+                hex = new HexCoord(snap.BattleAnchorHexQ, snap.BattleAnchorHexR);
+                return world?.HexWorld == null || !world.HexWorld.HasGrid || world.HexWorld.Contains(hex);
+            }
             return false;
         }
 

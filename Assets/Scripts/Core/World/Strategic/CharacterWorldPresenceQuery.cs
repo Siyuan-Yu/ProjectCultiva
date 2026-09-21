@@ -41,14 +41,12 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out var army) &&
-                army != null &&
-                army.UsesHexStrategicPosition)
+            if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
-                if (FormalArmyWorldLocationQuery.TryResolve(
-                        world, army, out _, out _, out _, out worldHex))
-                    return true;
-                worldHex = army.CurrentHex;
+                worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
+                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
                 return true;
             }
 
@@ -62,7 +60,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
-                presence.DerivedHexFromWorldPosition.Q != ArmyHexBattleAnchorService.InvalidHexComponent)
+                presence.DerivedHexFromWorldPosition.Q != StrategicHexConstants.InvalidHexComponent)
             {
                 worldHex = presence.DerivedHexFromWorldPosition;
                 return true;
@@ -76,10 +74,13 @@ namespace XianXia.Core.World.Strategic
         }
 
         public static bool TryGetPartyWorldHex(
-            SimulationWorld world,
-            PlayerPartyRuntime party,
-            out HexCoord worldHex) =>
-            BattleEngagementSpatialQuery.TryGetCommittedPartyHex(world, party, out worldHex);
+            SimulationWorld world, PlayerPartyRuntime party, out HexCoord worldHex)
+        {
+            worldHex = default;
+            if (world?.PlayerPartyTravel?.HasPosition == true)
+            { worldHex = world.PlayerPartyTravel.CurrentHex; return true; }
+            return party != null && party.HasActive && TryGetWorldHex(world, party.ActiveCharacterId, out worldHex);
+        }
 
         public static bool TryDescribe(
             SimulationWorld world,
@@ -96,14 +97,14 @@ namespace XianXia.Core.World.Strategic
             if (world == null || characterId.IsNone)
                 return false;
 
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out var army) &&
-                army != null &&
-                army.UsesHexStrategicPosition)
+            if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
-                state = PresenceState.FormalArmyMember;
-                worldHex = army.CurrentHex;
-                if (world.Strategic.Sites.TryGetAtHex(worldHex, out var armySite) && armySite != null)
-                    siteId = armySite.SiteId;
+                state = PresenceState.FormalArmyMember; // preserved numeric compatibility; runtime authority is Squad.
+                worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
+                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                siteId = squadMotion.SiteId;
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
                 return true;
             }

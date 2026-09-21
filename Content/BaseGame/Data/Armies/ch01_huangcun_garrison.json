@@ -2,11 +2,9 @@
   "schemaVersion": 1,
   "definitions": [
     {
-      "id": "base:formal_army_huangcun_labor_garrison",
-      "type": "formalArmy",
+      "id": "base:npc_squad_huangcun_labor_garrison",
+      "type": "npcSquad",
       "name": "荒村驻军",
-      "runtimeArmyId": "army:formal_huangcun_labor_garrison",
-      "runtimeStackId": "army:huangcun_labor_garrison",
       "factionId": "base:sect_huangcun_labor",
       "assemblySiteId": "base:site_huangcun",
       "members": [
@@ -15,7 +13,8 @@
           "leader": true,
           "reuseOpeningSpawn": true
         }
-      ]
+      ],
+      "squadId": "squad:npc:huangcun_labor_garrison"
     }
   ]
 }

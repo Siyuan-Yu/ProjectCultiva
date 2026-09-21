@@ -46,18 +46,22 @@ namespace XianXia.Core.Persistence
                 AppendCharacter(sb, world, entity);
             }
 
-            if (world.Strategic?.FormalArmies != null)
+            if (world.Strategic?.Squads != null)
             {
-                foreach (var kv in world.Strategic.FormalArmies.Armies)
+                foreach (var kv in world.Strategic.Squads.Squads)
                 {
-                    var army = kv.Value;
-                    if (army == null)
-                        continue;
-                    sb.Append("army=").Append(army.ArmyId);
-                    sb.Append(" faction=").Append(army.FactionId ?? string.Empty);
-                    sb.Append(" leader=").Append(army.LeaderCharacterId.Value);
-                    sb.Append(" state=").Append((int)army.State);
-                    sb.Append(" members=").Append(army.MemberCharacterIds.Count);
+                    var squad = kv.Value;
+                    if (squad == null) continue;
+                    sb.Append("squad=").Append(squad.SquadId);
+                    sb.Append(" faction=").Append(squad.FactionId ?? string.Empty);
+                    sb.Append(" leader=").Append(squad.LeaderCharacterId.Value);
+                    sb.Append(" command=").Append((int)squad.CommandKind);
+                    sb.Append(" members=").Append(squad.MemberCharacterIds.Count);
+                    if (world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion))
+                    {
+                        sb.Append(" surface=").Append(motion.SurfaceId);
+                        sb.Append(" pos=").Append(motion.WorldPosition.X).Append(',').Append(motion.WorldPosition.Y);
+                    }
                     sb.AppendLine();
                 }
             }
@@ -117,11 +121,6 @@ namespace XianXia.Core.Persistence
                 if (!string.IsNullOrEmpty(presence.SiteId))
                     sb.Append(':').Append(presence.SiteId);
             }
-
-            if (entity.TryGet<ArmyMembershipComponent>(out var armyMem) &&
-                armyMem != null &&
-                armyMem.IsInArmy)
-                sb.Append(" army=").Append(armyMem.ArmyId);
 
             sb.AppendLine();
         }

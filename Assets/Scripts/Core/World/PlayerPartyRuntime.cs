@@ -86,6 +86,7 @@ namespace XianXia.Core.World
             _controlledSquadId = squad.SquadId;
             _activeId = activeId.IsNone || !squad.Contains(activeId) ? new EntityId(squad.MemberCharacterIds[0]) : activeId;
             _controlState = PlayerPartyControlState.Active;
+            SquadWorldMotionService.ReconcilePlayerPartyAuthority(_world, this);
             return true;
         }
 
@@ -117,6 +118,7 @@ namespace XianXia.Core.World
             _activeId = squad.Contains(firstActive) ? firstActive : new EntityId(squad.MemberCharacterIds[0]);
             _controlState = PlayerPartyControlState.Active;
             RefreshActiveAfterLifeState(_world);
+            SquadWorldMotionService.ReconcilePlayerPartyAuthority(_world, this);
             return true;
         }
 
@@ -162,6 +164,7 @@ namespace XianXia.Core.World
 
             _activeId = activeId;
             _controlState = PlayerPartyControlState.Active;
+            SquadWorldMotionService.ReconcilePlayerPartyAuthority(_world, this);
             return true;
         }
 

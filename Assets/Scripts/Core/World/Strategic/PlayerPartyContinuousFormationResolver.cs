@@ -34,7 +34,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (member == id)
                 {
-                    point = FormalArmyContinuousFormationResolver.ResolveConnectedSlot(
+                    point = SquadContinuousFormationResolver.ResolveConnectedSlot(
                         anchor, slot, navigation);
                     return true;
                 }

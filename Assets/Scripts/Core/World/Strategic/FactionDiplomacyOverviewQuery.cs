@@ -42,7 +42,7 @@ namespace XianXia.Core.World.Strategic
                     Add(ids, factionId);
             }
 
-            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            foreach (var pair in world.Strategic.Squads.Squads)
                 Add(ids, pair.Value?.FactionId);
             foreach (var pair in world.Strategic.Sites.Sites)
                 Add(ids, pair.Value?.OwnerFactionId);
@@ -68,13 +68,13 @@ namespace XianXia.Core.World.Strategic
             return count;
         }
 
-        public static int CountFormalArmies(SimulationWorld world, string factionId)
+        public static int CountNpcSquads(SimulationWorld world, string factionId)
         {
-            if (world?.Strategic?.FormalArmies == null || string.IsNullOrEmpty(factionId))
+            if (world?.Strategic?.Squads == null || string.IsNullOrEmpty(factionId))
                 return 0;
 
             var count = 0;
-            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            foreach (var pair in world.Strategic.Squads.Squads)
             {
                 if (string.Equals(pair.Value?.FactionId, factionId, StringComparison.Ordinal))
                     count++;

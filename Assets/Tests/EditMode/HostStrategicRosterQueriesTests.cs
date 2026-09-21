@@ -29,58 +29,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Roster_CollectPlayerArmies_EmptyWhenNoArmy()
-        {
-            var world = BootstrapNodeWithCharacters(out _, out _);
-            var rows = new List<StrategicArmyRosterRow>();
-            HostStrategicRosterQueries.CollectPlayerArmies(world, FactionA, rows);
-            Assert.AreEqual(0, rows.Count);
-        }
-
-        [Test]
-        public void Roster_CollectPlayerArmies_ListsCreatedArmy()
-        {
-            var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
-            var create = ArmyUiCommands.TryCreateArmy(world, NodeA, FactionA, new[] { leader, recruit });
-            Assert.IsTrue(create.IsSuccess);
-
-            var rows = new List<StrategicArmyRosterRow>();
-            HostStrategicRosterQueries.CollectPlayerArmies(world, FactionA, rows);
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual(create.Value.ArmyId, rows[0].ArmyId);
-            Assert.AreEqual(2, rows[0].MemberCount);
-            Assert.Greater(rows[0].CombatPower, 0);
-        }
-
-        [Test]
-        public void Roster_CollectUngroupedCharactersAtSite_ExcludesGrouped()
-        {
-            var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
-            var create = ArmyUiCommands.TryCreateArmy(world, NodeA, FactionA, new[] { leader });
-            Assert.IsTrue(create.IsSuccess);
-
-            var ungrouped = new List<EntityId>();
-            HostStrategicRosterQueries.CollectUngroupedCharactersAtSite(
-                world, NodeA, FactionA, new[] { leader, recruit }, ungrouped);
-            Assert.AreEqual(1, ungrouped.Count);
-            Assert.AreEqual(recruit, ungrouped[0]);
-        }
-
-        [Test]
-        public void Roster_CollectUngroupedPlayerCharacters_ExcludesGrouped()
-        {
-            var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
-            var create = ArmyUiCommands.TryCreateArmy(world, NodeA, FactionA, new[] { leader });
-            Assert.IsTrue(create.IsSuccess);
-
-            var ungrouped = new List<EntityId>();
-            HostStrategicRosterQueries.CollectUngroupedPlayerCharacters(
-                world, FactionA, new[] { leader, recruit }, ungrouped);
-            Assert.AreEqual(1, ungrouped.Count);
-            Assert.AreEqual(recruit, ungrouped[0]);
-        }
-
-        [Test]
         public void Roster_CollectPlayerCharacters_ExcludesOverlordFactionMembers()
         {
             var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
@@ -112,12 +60,6 @@ namespace XianXia.Tests
             var recruitRow = rows.Find(r => r.CharacterId == recruit);
             Assert.NotNull(recruitRow);
             Assert.AreEqual("弥留", recruitRow.LifeStateLabel);
-            Assert.IsFalse(recruitRow.CanSelectForArmyCreation);
-
-            var ungrouped = new List<EntityId>();
-            HostStrategicRosterQueries.CollectUngroupedPlayerCharacters(
-                world, FactionA, new[] { leader }, ungrouped);
-            Assert.IsFalse(ungrouped.Contains(recruit));
         }
 
         static bool ContainsCharacter(List<StrategicCharacterRosterRow> rows, EntityId id)

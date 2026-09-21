@@ -14,7 +14,8 @@ namespace XianXia.Core.World.Strategic
     {
         None = 0,
         FollowLeader = 1,
-        FormalArmyWorldMotion = 2
+        FormalArmyWorldMotion = 2,
+        SquadWorldMotion = 3
     }
 
     /// <summary>Persistent action group. Membership can only be changed by SquadMembershipService.</summary>
@@ -24,7 +25,10 @@ namespace XianXia.Core.World.Strategic
         ReadOnlyCollection<ulong> _view;
 
         public string SquadId { get; internal set; } = string.Empty;
+        public string DisplayName { get; internal set; } = string.Empty;
+        public string FactionId { get; internal set; } = string.Empty;
         public EntityId LeaderCharacterId { get; internal set; }
+        /// <summary>Old-save/content migration input only; modern runtime and saves keep this empty.</summary>
         public string LegacyArmyId { get; internal set; } = string.Empty;
         public SquadCommandKind CommandKind { get; internal set; }
         public ulong CommandRevision { get; internal set; }
@@ -92,7 +96,7 @@ namespace XianXia.Core.World.Strategic
         public static Result<SquadState> Create(
             SimulationWorld world, string squadId, IReadOnlyList<EntityId> members,
             EntityId leader, string legacyArmyId = "", SquadCommandKind command = SquadCommandKind.None,
-            bool importingSnapshot = false)
+            bool importingSnapshot = false, string displayName = "", string factionId = "")
         {
             if (world?.Strategic?.Squads == null || string.IsNullOrWhiteSpace(squadId) || members == null || members.Count == 0)
                 return Result.Fail<SquadState>(ErrorCode.InvalidArgument, "Squad requires world, identity and members.");
@@ -117,7 +121,11 @@ namespace XianXia.Core.World.Strategic
                 values.Add(id.Value);
             }
             if (leader.IsNone || !values.Contains(leader.Value)) leader = new EntityId(values[0]);
-            var squad = new SquadState { SquadId = squadId, LeaderCharacterId = leader, LegacyArmyId = legacyArmyId ?? string.Empty, CommandKind = command };
+            var squad = new SquadState {
+                SquadId = squadId, LeaderCharacterId = leader,
+                LegacyArmyId = legacyArmyId ?? string.Empty, CommandKind = command,
+                DisplayName = displayName ?? string.Empty, FactionId = factionId ?? string.Empty
+            };
             squad.Replace(values);
             var replaced = new List<SquadState>();
             for (var i = 0; i < members.Count; i++)
@@ -163,23 +171,6 @@ namespace XianXia.Core.World.Strategic
                     source.LeaderCharacterId = new EntityId(source.MemberCharacterIds[0]);
                 if (source.MemberCharacterIds.Count == 0 && string.IsNullOrEmpty(source.LegacyArmyId))
                     world.Strategic.Squads.Remove(source.SquadId);
-            }
-            if (world.Entities.TryGet(member, out var entity) && entity != null)
-            {
-                ArmyInvariants.EnsureMembershipComponent(entity);
-                var membership = entity.Get<ArmyMembershipComponent>();
-                if (!string.IsNullOrEmpty(target.LegacyArmyId)) membership.SetArmyId(target.LegacyArmyId);
-                else if (!string.IsNullOrEmpty(sourceArmyId)) membership.ClearArmyId();
-            }
-            if (!string.IsNullOrEmpty(sourceArmyId) && source != null && source.MemberCharacterIds.Count == 0)
-            {
-                world.Strategic.FormalArmies.Remove(sourceArmyId);
-                world.Strategic.Squads.Remove(source.SquadId);
-                var obsoleteStacks = new List<string>();
-                foreach (var pair in world.Strategic.Armies.Stacks)
-                    if (string.Equals(pair.Value.FormalArmyId, sourceArmyId, StringComparison.Ordinal))
-                        obsoleteStacks.Add(pair.Key);
-                for (var i = 0; i < obsoleteStacks.Count; i++) world.Strategic.Armies.Remove(obsoleteStacks[i]);
             }
             if (target.CommandKind != SquadCommandKind.None)
                 BackgroundCharacterTravelService.CancelTravelIfAny(world, member);
@@ -255,7 +246,7 @@ namespace XianXia.Core.World.Strategic
             // An idle field formation still owns its members; stopping its route must not
             // let Core start work while the Host continues to hold formation. Garrisoned
             // members are excluded by the same authority predicate used by the Host.
-            if (FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id)) return true;
+            if (SquadWorldMotionService.OwnsCharacter(world, id)) return true;
             return squad.MemberCharacterIds.Count > 1 && squad.CommandKind == SquadCommandKind.FollowLeader &&
                    id != (squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId);
         }
@@ -264,18 +255,12 @@ namespace XianXia.Core.World.Strategic
         {
             position = default;
             if (world == null || squad == null) return false;
-            if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion &&
-                world.Strategic.FormalArmies.TryGet(squad.LegacyArmyId, out var army) && army.WorldMotion.IsMoving)
+            if (squad.CommandKind == SquadCommandKind.SquadWorldMotion &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion) &&
+                squadMotion.IsMoving)
             {
-                // Command references the existing plan; never copies or replaces its route.
-                if (army.WorldMotion.RouteKind == FormalArmyRouteKind.SurfaceGround)
-                    position = army.WorldMotion.PhysicalDestination;
-                else
-                {
-                    HexMath.ToWorldPosition(army.WorldMotion.DestinationHex,
-                        world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f, out var x, out var y);
-                    position = new WorldVec2(x, y);
-                }
+                position = squadMotion.Destination;
                 return true;
             }
             var target = squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId;

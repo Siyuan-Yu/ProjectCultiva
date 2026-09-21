@@ -1,5 +1,21 @@
 # 开发日志
 
+## 2026-09-21 — LEGACY-FINAL-A2 CharacterEncounter UI 回归修复（待制作人验收）
+
+- 修复旧 Army battle 删除时误把现代 `HostStrategicInterruptPresenter` 缩成 no-op 的回归；恢复 CharacterEncounter-only 的人物遭遇、准备／失败重试、开始战斗、结束战斗、`ManualBattleReport` 与 transient toast 表现。
+- Encounter roster 继续读取 Character／Squad 与 `CharacterEncounterState.Participants`；主动技能仍由 `CharacterEncounterStartGate` 保留一次性回调，直到 `StartBattle` 才执行。NPC 自动接战、NPC Squad 和 Site defender 复用同一 UI，Separate Space 原地战斗规则未改。
+- 战报使用独立 pause/input owner，只有 `CloseReport` 真正清除 Committed encounter 后才释放；存档恢复的 Active encounter 停在恢复开始栏，ReadyToEnd 恢复显示结束栏。删除无 caller 的 `LocalAttackConfirm`，保留 `StrategicAggressionConfirm`。
+- 旧 BattleOffer／PendingEngagement／FormalArmy／ArmyStack 战斗 runtime 与 UI 保持删除。仅做离线编译与静态状态机、输入所有权、回调、战报关闭和恢复链审查；未打开 Unity，状态保持 **Implementation Complete / Producer Acceptance Pending**。详见 [248](248-legacy-final-a-unified-npc-squad-world-motion-2026-09-20.md)。
+
+## 2026-09-20 — LEGACY-FINAL-A NPC Squad Continuous authority（待制作人验收）
+
+- 正常 NPC group 的成员、Leader、连续世界位置与移动收口为 `Squad + SquadWorldMotion`；队形依 Squad anchor 与稳定 EntityId slot 推导，不再依赖 FormalArmyId/ArmyStackId。
+- Current BaseGame authored group 改为 `npcSquad` + `InitialNpcSquadIds`。正常 New Game 不创建 FormalArmy、ArmyStack 或现代 ArmyMembership；旧 formalArmy content/save 只在边界单向转换为现代 Squad authority。
+- WorldMap、Continuous materialization、NPC schedule ownership、Host presenter、CharacterEncounter 与现代 Snapshot 已改读 SquadWorldMotion；弥留/死亡/脱队人物保留真实 Character lifecycle 与 exact personal position。
+- 删除无 caller 的旧军队列表/编组 UI、`ArmyUiCommands`、`SiteDefenseService` 与 normal FormalArmy presenter；旧 DTO/parser 与独立 Hex/Army battle compatibility 最窄保留。PlayerParty movement/follow 和 TerritoryRegion 未扩大修改。
+- LevelTester 增加 runtime authority 计数和选中 NPC Squad continuous movement 验收指令。轻量离线 compile/content/New Game/snapshot/old migration sanity 通过；未打开 Unity，LEGACY-FINAL-A 保持未提交。详见 [248](248-legacy-final-a-unified-npc-squad-world-motion-2026-09-20.md)。
+- 后续 EditMode 编译补查清理了测试对已删 `SiteDefenseService`、`ArmyUiCommands`、旧军队 roster API 的引用；保留的旧战略 compatibility acceptance 改为直接调用 `ArmyService`。测试程序集仅离线编译，0 error，未运行测试。
+
 ## 2026-09-20 — MAP-04 / CW-10 / CW-10.5 制作人验收通过并封板
 
 - 制作人确认 MAP-04、CW-10、CW-10.5 与 Cave Loot persistence 最终补丁全部通过人工验收；对应状态更新为 **Producer Accepted / Sealed**。
@@ -4879,3 +4895,27 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 制作人报告 `Necessary squad member personal space: 1 LegacyUnqualifiedPosition`。定位为玩家小队在连续世界开局、旧户外地点恢复及户外地点进入时使用了不带 SurfaceId 的旧 `WorldPresence.SetAtWorldPosition` 重载，精确坐标存在但遭遇校验无法确认所属 Surface。
 - 这些连续世界写入现携带已确定的 SurfaceId；从室内返回连续世界时也从已注册导航取得来源。旧存档在遭遇入场前仅对坐标落在当前已注册 Surface 的玩家成员补齐缺失来源，保留原精确坐标，不从 View 或军队锚点推断位置。
 - 离线 Core/Data/Host 编译通过；未启动 Unity 或运行 Unity Test。需制作人重新进入游戏验证遭遇入场。
+
+## 2026-09-20 — LEGACY-FINAL-A PlayerParty / NPC Squad authority 隔离修复（待制作人验收）
+
+- 修复迁移或旧开发存档残留的 PlayerParty `SquadWorldMotion` 被 NPC presenter 每帧写回、覆盖 WorldMap LocalVisible 移动的问题。PlayerParty spatial authority 现优先于 Squad/legacy FormalArmy，NPC motion 的创建、推进、表现、物化、地图、roster 与诊断统一经过 NPC-only gate。
+- modern capture 不再保存 ControlledSquad motion，并规范化其 command；bug build 的 transitional snapshot 与旧 FormalArmy snapshot 在恢复时丢弃玩家 group motion，只保留 `PlayerPartyTravel`，bind 后幂等恢复 `FollowLeader + Active Character`。
+- 未改 PlayerParty travel 参数或 StrategicTravelDriver 的现代 NPC 推进。离线 Core/Data/Host/EditMode 编译通过；小型纯 C# sanity 覆盖脏 runtime、modern transitional snapshot、旧 FormalArmy→PlayerParty migration 以及正常 NPC motion 到达。未启动 Unity，未运行 Unity Test/PlayMode/batchmode。
+
+## 2026-09-20 — LEGACY-FINAL-A NPC SiteArrival / CharacterEncounter 落点修复（待制作人验收）
+
+- 无显式 deployment 的现代 NPC Squad 恢复旧正式 AtSite 语义：统一从 baked SiteArrival 初始化，不再把 controlCore 中心作为隐式 group spawn。modern 坏存档与旧 FormalArmy AtSite migration 同样归一化到当前 SiteArrival，field motion 保持精确原值。
+- CharacterEncounter 明确分离 Origin 与 Tactical：Origin 保留普通世界 authority；Tactical 在最终 prepared Composite grid 上优先采用合法当前 View，否则使用 Origin 或半径 8 格内的四向连通 correction。多人按 CharacterId 确定性处理并占用不同格，跨 blocker 的歧义侧会失败。
+- Squad formation 增加 anchor→candidate 连通检查；Squad-owned NPC 排除在普通 personal position capture 外。当前 Content validation、AtSite/field snapshot、legacy migration、Tactical A–F 和 NPC encounter 小型 sanity 通过；未启动 Unity 或运行 Unity Test。
+
+## 2026-09-21 — LEGACY-FINAL-A2 FormalArmy / ArmyStack Runtime Zero-State（待制作人验收）
+
+- 删除 Simulation 的 FormalArmyBoard、ArmyStackBoard、ArmyMembershipComponent，以及旧 Army 创建、旅行、追击、战斗 roster、残留与 Host presentation runtime；StrategicTravelDriver 仅保留 SquadWorldMotion、background 与 LEGACY-FINAL-B 的 PlayerParty Hex compatibility。
+- 新增旧 FormalArmy snapshot 直接到 Squad/SquadWorldMotion 的单向迁移，AtSite 归一化到 canonical SiteArrival；现代 capture 不再输出 FormalArmies/ArmyMemberships。
+- BattleParticipant 增加 SquadId；现代 CharacterEncounter 只产生 Squad owner。旧 CharacterEncounter FormalArmy owner 会迁成 Squad；旧 active PendingEngagement 直接迁成真实 Character + Squad 的 CharacterEncounter，无法唯一恢复时返回 SnapshotInvalid。
+- Core/Data/Host 最小离线编译通过；未打开 Unity，未运行 Unity Test/PlayMode/batchmode。PlayerParty Hex/LocalVisible 与 TerritoryRegion 未在本轮重构。状态保持 Implementation Complete / Producer Acceptance Pending。
+
+### 制作人验收回归修复：Continuous ActiveCharacter 启动物化
+
+- 修复 `PlayerPartyTransitionMembership` 将玩家自己的 controlled Squad 误判为 NPC Squad 的问题。此前 ActiveCharacter 被首次 Continuous materialization 排除，触发 `ActiveCharacter EntityView missing / NotContinuousMaterialized`；现在只排除其它 Squad，PlayerParty controlled/player Squad 成员正常随队物化。
+- Core／Data／Host／Tests sources 离线编译 0 error；Current BaseGame sanity 增加 controlled Squad ActiveCharacter transition 断言并通过。未打开 Unity、未运行 Unity Test/PlayMode/batchmode，状态仍为 **Implementation Complete / Producer Acceptance Pending**。

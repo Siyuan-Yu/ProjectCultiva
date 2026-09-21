@@ -226,35 +226,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void FormalArmyMemberExcludedFromPartyTransition()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
-            siteA.OwnerFactionId = TestFaction;
-            world.Strategic.PlayerFactionId = TestFaction;
-            var a = SpawnWithFaction(world, "LinQing", TestFaction);
-            var b = SpawnWithFaction(world, "Soldier", TestFaction);
-            var party = BuildParty(world, siteA, a);
-
-            world.WorldPresence.SetAtSite(b, siteA.SiteId);
-            var armyResult = ArmyService.CreateArmy(
-                world, TestFaction, siteA.SiteId, new List<EntityId> { b }, b);
-            Assert.IsTrue(armyResult.IsSuccess, armyResult.IsFailure ? armyResult.Error.ToString() : string.Empty);
-
-            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
-            world.WorldPresence.SetAtHex(a, mid);
-            world.WorldPresence.SetAtHex(b, mid);
-            world.PlayerPartyTravel.CaptureTravelingMembers(new List<EntityId> { a });
-
-            var neighbor = HexMath.Neighbor(mid, 1);
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCrossWildernessEdge(
-                world, party, neighbor).IsSuccess);
-
-            Assert.IsTrue(world.WorldPresence.TryGet(b, out var armyMemberPresence));
-            Assert.AreEqual(mid, armyMemberPresence.ResidualHex,
-                "FormalArmy member must not follow PlayerParty edge transition.");
-        }
-
-        [Test]
         public void FollowerStillBelongsToPartyAfterLocalMapTransition()
         {
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);

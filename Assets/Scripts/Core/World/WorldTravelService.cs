@@ -25,13 +25,11 @@ namespace XianXia.Core.World
                 return true;
             if (p.Mode != PartyWorldPresenceMode.InEncounter)
                 return false;
-            if (BattleOfferService.HasActiveManualEncounter(world))
-                return StrategicEncounterSpawner.IsFieldCleared(world);
-            return true;
+            return false;
         }
 
         /// <summary>
-        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达�?
+        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达�?
         /// </summary>
         public static bool CanReceivePlayerMacroTravelOrder(SimulationWorld world, EntityId id)
         {
@@ -49,30 +47,8 @@ namespace XianXia.Core.World
             return (entity.Tags & EntityTag.Npc) == 0;
         }
 
-        public static bool BlocksFormalArmyMemberIndependentTravel(SimulationWorld world, EntityId id)
-        {
-            if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var presence) || presence == null)
-                return false;
-            return BlocksFormalArmyIndependentTravel(world, id, presence);
-        }
-
-        static bool BlocksFormalArmyIndependentTravel(
-            SimulationWorld world,
-            EntityId id,
-            WorldAgentPresence presence)
-        {
-            if (world == null || id.IsNone || presence == null || !IsPlayerAgent(world, id))
-                return false;
-            if (!ArmyService.TryGetArmyForCharacter(world, id, out var army) || army == null)
-                return false;
-            if (army.State == FormalArmyState.Moving)
-                return true;
-            if (presence.IsFollowingStack)
-                return false;
-            if (presence.IsCombatPursuing)
-                return false;
-            return true;
-        }
+        public static bool BlocksFormalArmyMemberIndependentTravel(SimulationWorld world, EntityId id) =>
+            SquadWorldMotionService.OwnsCharacter(world, id);
 
         public static void SyncPartyFocus(SimulationWorld world)
         {
@@ -139,9 +115,7 @@ namespace XianXia.Core.World
                 return;
 
             world.PartyWorld.SiteId = focusSiteId;
-            world.PartyWorld.LocalMapId = BattleOfferService.HasActiveManualEncounter(world)
-                ? BattleOfferService.ResolveActiveEncounterLocalMapId(world)
-                : ResolveWorldSiteLocalMapId(focusSite);
+            world.PartyWorld.LocalMapId = ResolveWorldSiteLocalMapId(focusSite);
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
         }
 
@@ -163,7 +137,7 @@ namespace XianXia.Core.World
             }
         }
 
-        /// <summary>�?WorldSite 进入 LocalMap（真�?= SiteId + FormalArmy 足迹）�?/summary>
+        /// <summary>�?WorldSite 进入 LocalMap（真�?= SiteId + FormalArmy 足迹）�?/summary>
         public static Result EnterWorldSiteScene(
             SimulationWorld world,
             string siteId,

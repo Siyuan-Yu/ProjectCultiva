@@ -132,10 +132,9 @@ namespace XianXia.Unity.Host
                 // 弥留／尸体不跑日程寻路
                 if (!CombatLifeStateService.CanFight(entity))
                     continue;
-                // Field-army members are driven by the army's world-tick motion/presenter. During
-                // battle the participant materializer owns them instead; Schedule owns neither.
-                if (FormalArmyMemberPresenceSync.IsArmyControlledMember(session.World, entity.Id) ||
-                    ActualBattleParticipantQuery.TryFind(
+                // Moving NPC Squad members are driven by group motion/presentation. During battle
+                // the participant materializer owns them instead; Schedule owns neither.
+                if (ActualBattleParticipantQuery.TryFind(
                         session.World.Strategic.Participants, entity.Id, out _))
                     continue;
                 if (SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id))

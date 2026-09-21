@@ -60,6 +60,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, HexWorldContentDefinition>();
         readonly Dictionary<DefinitionId, FormalArmyDefinition> _formalArmies =
             new Dictionary<DefinitionId, FormalArmyDefinition>();
+        readonly Dictionary<DefinitionId, NpcSquadDefinition> _npcSquads =
+            new Dictionary<DefinitionId, NpcSquadDefinition>();
         readonly Dictionary<DefinitionId, StrategicFactionDefinition> _strategicFactions =
             new Dictionary<DefinitionId, StrategicFactionDefinition>();
         readonly Dictionary<DefinitionId, OutdoorWorldSurfaceDefinition> _outdoorSurfaces =
@@ -92,6 +94,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
         public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
         public IReadOnlyDictionary<DefinitionId, FormalArmyDefinition> FormalArmies => _formalArmies;
+        public IReadOnlyDictionary<DefinitionId, NpcSquadDefinition> NpcSquads => _npcSquads;
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
         public IReadOnlyDictionary<DefinitionId, OutdoorWorldSurfaceDefinition> OutdoorSurfaces => _outdoorSurfaces;
         public IReadOnlyDictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> OutdoorSurfaceGeographies => _outdoorSurfaceGeographies;
@@ -122,6 +125,7 @@ namespace XianXia.Data.Content
             _localPlaceSets.ContainsKey(id) ||
             _hexWorldContents.ContainsKey(id) ||
             _formalArmies.ContainsKey(id) ||
+            _npcSquads.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
             _outdoorSurfaces.ContainsKey(id) ||
             _outdoorSurfaceGeographies.ContainsKey(id) ||
@@ -288,6 +292,13 @@ namespace XianXia.Data.Content
             return Register(_formalArmies, definition, definition.Id);
         }
 
+        public Result RegisterNpcSquad(NpcSquadDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "NpcSquadDefinition is null.");
+            return Register(_npcSquads, definition, definition.Id);
+        }
+
         public Result RegisterStrategicFaction(StrategicFactionDefinition definition)
         {
             if (definition == null)
@@ -390,6 +401,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetFormalArmy(DefinitionId id, out FormalArmyDefinition definition) =>
             _formalArmies.TryGetValue(id, out definition);
+
+        public bool TryGetNpcSquad(DefinitionId id, out NpcSquadDefinition definition) =>
+            _npcSquads.TryGetValue(id, out definition);
 
         public bool TryGetStrategicFaction(DefinitionId id, out StrategicFactionDefinition definition) =>
             _strategicFactions.TryGetValue(id, out definition);

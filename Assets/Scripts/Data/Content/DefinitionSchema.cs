@@ -25,8 +25,20 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "scheduleId", "openingFactionId",
             "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingSurfaceId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
-            "initialFormalArmyIds", "strategicOpening", "startingInventory"
+            "initialNpcSquadIds", "initialFormalArmyIds", "strategicOpening", "startingInventory"
         };
+
+        public static readonly HashSet<string> NpcSquadFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "squadId", "name", "factionId", "assemblySiteId",
+            "initialSurfacePosition", "initialSurfaceDeployment", "members"
+        };
+        public static readonly HashSet<string> NpcSquadInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
+        { "surfaceId", "worldX", "worldY" };
+        public static readonly HashSet<string> NpcSquadInitialSurfaceDeploymentFields = new HashSet<string>(StringComparer.Ordinal)
+        { "surfaceId", "anchorSiteId", "offsetCellsX", "offsetCellsY" };
+        public static readonly HashSet<string> NpcSquadMemberFields = new HashSet<string>(StringComparer.Ordinal)
+        { "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn" };
 
         public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
         {

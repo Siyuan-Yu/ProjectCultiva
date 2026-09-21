@@ -127,7 +127,7 @@ namespace XianXia.Data.Bootstrap
 
                 // FormalArmy member 的战略位置由 FormalArmyDefinition.factionId／Army context 决定；
                 // normalize 绝不为它臆造 AtSite（否则会把部队成员钉进某个 Site population）。
-                if (ArmyService.TryGetArmyForCharacter(world, entity.Id, out _))
+                if (SquadWorldMotionService.OwnsCharacter(world, entity.Id))
                 {
                     report.SkippedArmyMember++;
                     continue;
@@ -232,7 +232,7 @@ namespace XianXia.Data.Bootstrap
             census.ExpectedContinuousPopulationCount = expected.Count;
             for (var i = 0; i < expected.Count; i++)
             {
-                if (ArmyService.TryGetArmyForCharacter(world, expected[i], out _))
+                if (SquadWorldMotionService.OwnsCharacter(world, expected[i]))
                     census.FormalArmyCharacterAtOpeningSiteCount++;
             }
 

@@ -2,11 +2,9 @@
   "schemaVersion": 1,
   "definitions": [
     {
-      "id": "base:formal_army_qingshi_acceptance_shuofeng_garrison",
-      "type": "formalArmy",
+      "id": "base:npc_squad_qingshi_acceptance_shuofeng_garrison",
+      "type": "npcSquad",
       "name": "青石验收·朔风驻镇队",
-      "runtimeArmyId": "army:qingshi_acceptance_shuofeng_garrison",
-      "runtimeStackId": "army:qingshi_acceptance_shuofeng_garrison",
       "factionId": "base:faction_shuofeng",
       "assemblySiteId": "base:site_chengzhen",
       "members": [
@@ -19,14 +17,13 @@
           "characterDefinitionId": "base:character_qingshi_acceptance_shuofeng_guard",
           "displayName": "朔风驻镇卫乙"
         }
-      ]
+      ],
+      "squadId": "squad:npc:qingshi_acceptance_shuofeng_garrison"
     },
     {
-      "id": "base:formal_army_qingshi_acceptance_shuofeng_reinforcement",
-      "type": "formalArmy",
+      "id": "base:npc_squad_qingshi_acceptance_shuofeng_reinforcement",
+      "type": "npcSquad",
       "name": "青石验收·朔风外援队",
-      "runtimeArmyId": "army:qingshi_acceptance_shuofeng_reinforcement",
-      "runtimeStackId": "army:qingshi_acceptance_shuofeng_reinforcement",
       "factionId": "base:faction_shuofeng",
       "assemblySiteId": "base:site_chengzhen",
       "initialSurfacePosition": {
@@ -44,7 +41,8 @@
           "characterDefinitionId": "base:character_qingshi_acceptance_shuofeng_guard",
           "displayName": "朔风巡逻卫乙"
         }
-      ]
+      ],
+      "squadId": "squad:npc:qingshi_acceptance_shuofeng_reinforcement"
     }
   ]
 }

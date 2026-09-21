@@ -104,7 +104,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.Encounter.HasEngagedParty &&
                 string.Equals(
                     mapId,
-                    BattleOfferService.ResolveActiveEncounterLocalMapId(world),
+                    ResolveLegacyEncounterLocalMapId(world),
                     System.StringComparison.Ordinal))
                 return true;
 
@@ -126,7 +126,7 @@ namespace XianXia.Unity.Host
                 {
                     if (string.Equals(
                             mapId,
-                            BattleOfferService.ResolveActiveEncounterLocalMapId(world),
+                            ResolveLegacyEncounterLocalMapId(world),
                             System.StringComparison.Ordinal))
                         return true;
                     continue;
@@ -310,10 +310,6 @@ namespace XianXia.Unity.Host
             // 物理在场 → 继续显示，不依赖 Battle Encounter / ParticipantSnapshot /
             // BattlefieldSpawnScope —— 这是「实体物理上就在这张地图」，不是战斗临时
             // visibility exception。必须在 WorldSite 硬门禁之前判定。
-            if (!onEncounterMap &&
-                LoadedStrategicPopulationQuery.IsMaterializedStrategicCharacterOnLoadedMap(world, id))
-                return true;
-
             // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
             // 禁止世界其它地点NPC／Army 成员落到同一张图（含开局荒村）
             // WorldPresence、仅LocationId 的场NPC（守卫／商人等）仍走下方地点过滤
@@ -413,7 +409,7 @@ namespace XianXia.Unity.Host
                     return true;
 
                 // Hex FormalArmy 成员若仍残留 AtSite Presence，不得凭 SiteId 误进任意 LocalMap
-                if (!onEncounterMap && IsHexStrategicArmyMember(world, id))
+                if (!onEncounterMap && IsTravelingSquadMember(world, id))
                     return false;
 
                 var focusSite = TryResolveVisibilityFocusSite(world, out var focusSiteState)
@@ -746,13 +742,22 @@ namespace XianXia.Unity.Host
         static bool IsStrategicEncounterSpawn(SimulationWorld world, EntityId id) =>
             BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, id);
 
-        static bool IsHexStrategicArmyMember(SimulationWorld world, EntityId id)
+        static string ResolveLegacyEncounterLocalMapId(SimulationWorld world)
+        {
+            var mapId = world?.Strategic?.Encounter?.LingeringLocalMapId;
+            return string.IsNullOrWhiteSpace(mapId)
+                ? StrategicEncounterCatalog.DefaultEncounterLocalMapId
+                : mapId.Trim();
+        }
+
+        static bool IsTravelingSquadMember(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone)
                 return false;
-            if (!ArmyService.TryGetArmyForCharacter(world, id, out var army) || army == null)
+            if (!world.Strategic.Squads.TryGetForCharacter(id, out var squad) || squad == null ||
+                !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) || motion == null)
                 return false;
-            return army.UsesHexStrategicPosition;
+            return motion.HasPosition && string.IsNullOrEmpty(motion.SiteId);
         }
     }
 }

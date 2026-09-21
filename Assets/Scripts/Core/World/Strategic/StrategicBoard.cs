@@ -20,54 +20,6 @@ namespace XianXia.Core.World.Strategic
         LocalMapHostileAction = 1
     }
 
-    /// <summary>全战式接战弹窗数据。</summary>
-    public sealed class BattleOfferPending
-    {
-        public string OfferId { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string PlayerLabel { get; set; } = string.Empty;
-        public string EnemyLabel { get; set; } = string.Empty;
-        public int PlayerPower { get; set; }
-        public int EnemyPower { get; set; }
-        public int AutoWinPercent { get; set; }
-        public string ArmyStackId { get; set; } = string.Empty;
-        /// <summary>Phase E+：Formal Army 接战双方。</summary>
-        public string AttackerArmyId { get; set; } = string.Empty;
-        public string DefenderArmyId { get; set; } = string.Empty;
-        public string EncounterLocalMapId { get; set; } = string.Empty;
-        public bool Resolved { get; set; }
-        public bool PlayerWonAuto { get; set; }
-        public string LastAutoBattleSummary { get; set; } = string.Empty;
-        /// <summary>自动战胜后是否直接击杀敌军（否则仅击溃，敌军栈可能残存）。</summary>
-        public bool ExecuteOnWin { get; set; }
-        /// <summary>Offer 来源（决策态 authority；Local-origin 强制禁 Auto）。</summary>
-        public BattleOfferOrigin Origin { get; set; } = BattleOfferOrigin.StrategicCommand;
-        /// <summary>确认「手动战斗」时才 DeclareWar 的 pending 声明标记（Neutral Local 军事攻击）。</summary>
-        public bool RequiresWarDeclaration { get; set; }
-        public string PendingWarAttackerFactionId { get; set; } = string.Empty;
-        public string PendingWarDefenderFactionId { get; set; } = string.Empty;
-        /// <summary>可选战略目标；仅用于 Offer 表现，绝不作为战斗人物或结束条件。</summary>
-        public string StrategicObjectiveKind { get; set; } = string.Empty;
-        public string StrategicObjectiveId { get; set; } = string.Empty;
-        readonly List<ulong> _playerPartyIds = new List<ulong>(8);
-
-        public IReadOnlyList<ulong> PlayerPartyIds => _playerPartyIds;
-
-        public void SetPlayerParty(IReadOnlyList<EntityId> party)
-        {
-            _playerPartyIds.Clear();
-            if (party == null)
-                return;
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (!party[i].IsNone && !_playerPartyIds.Contains(party[i].Value))
-                    _playerPartyIds.Add(party[i].Value);
-            }
-        }
-
-        public void ClearPlayerParty() => _playerPartyIds.Clear();
-    }
-
     /// <summary>
     /// Host-facing lifetime marker for a manual battle presented on the already active
     /// Continuous Outdoor surface. Strategic battle location remains in Participants;
@@ -158,11 +110,9 @@ namespace XianXia.Core.World.Strategic
         public AllianceBoard Alliances { get; } = new AllianceBoard();
         public VassalageBoard Vassalages { get; } = new VassalageBoard();
         public RetreatingArmyBoard RetreatingArmies { get; } = new RetreatingArmyBoard();
-        public ArmyStackBoard Armies { get; } = new ArmyStackBoard();
-        /// <summary>Formal Army 领域真源（Phase A）；与 Prototype <see cref="Armies"/> 并存。</summary>
-        public FormalArmyBoard FormalArmies { get; } = new FormalArmyBoard();
         /// <summary>Unified persistent action-group membership authority.</summary>
         public SquadBoard Squads { get; } = new SquadBoard();
+        public SquadWorldMotionBoard SquadWorldMotions { get; } = new SquadWorldMotionBoard();
         /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
@@ -172,7 +122,6 @@ namespace XianXia.Core.World.Strategic
         /// <summary>SiteId-keyed public administrative resources; ownership remains on WorldSite.</summary>
         public WorldSitePublicStockBoard SitePublicStocks { get; } = new WorldSitePublicStockBoard();
         public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
-        public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();
         public LingeringBattlefieldRegistry LingeringBattlefields { get; } = new LingeringBattlefieldRegistry();
@@ -182,8 +131,6 @@ namespace XianXia.Core.World.Strategic
             new ContinuousManualCombatPresentationState();
         public ManualBattleSettlementState ManualBattleSettlement { get; } =
             new ManualBattleSettlementState();
-        public PendingEngagementRuntime PendingEngagement { get; } = new PendingEngagementRuntime();
-        public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();
 
         /// <summary>Ch01 / LevelTester：启用 presence-based 组军场景 Adapter。</summary>
         public bool Ch01FormationScenarioCompat { get; set; }
@@ -229,36 +176,16 @@ namespace XianXia.Core.World.Strategic
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;
 
-        public bool HasBattleOffer =>
-            BattleOffer != null && !BattleOffer.Resolved && !string.IsNullOrEmpty(BattleOffer.OfferId);
-
         public bool HasArrivalNotice =>
             ArrivalNotice != null && !ArrivalNotice.Resolved && !string.IsNullOrEmpty(ArrivalNotice.NoticeId);
 
         public bool HasBlockingInterrupt =>
-            HasBattleOffer || HasArrivalNotice ||
+            HasArrivalNotice ||
             (Participants != null && Participants.IsAutoSettlement);
 
         public bool IsWorldTickFrozen => ClockFreeze != null && ClockFreeze.IsWorldTickFrozen;
 
         public bool IsModalEncounter => ClockFreeze != null && ClockFreeze.IsModalEncounter;
-
-        public void ClearBattleOffer()
-        {
-            BattleOffer.OfferId = string.Empty;
-            BattleOffer.ArmyStackId = string.Empty;
-            BattleOffer.AttackerArmyId = string.Empty;
-            BattleOffer.DefenderArmyId = string.Empty;
-            BattleOffer.Origin = BattleOfferOrigin.StrategicCommand;
-            BattleOffer.RequiresWarDeclaration = false;
-            BattleOffer.PendingWarAttackerFactionId = string.Empty;
-            BattleOffer.PendingWarDefenderFactionId = string.Empty;
-            BattleOffer.StrategicObjectiveKind = string.Empty;
-            BattleOffer.StrategicObjectiveId = string.Empty;
-            BattleOffer.ClearPlayerParty();
-            BattleOffer.Resolved = true;
-            PendingEngagement?.Clear();
-        }
 
         public void ClearArrivalNotice()
         {

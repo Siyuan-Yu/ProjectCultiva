@@ -900,6 +900,9 @@ namespace XianXia.Core.Persistence
             var relationshipRestore = RestoreRelationshipLedger(world, snap);
             if (relationshipRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(relationshipRestore.Error);
+            var legacyPending = LegacyPendingEngagementSnapshotMigration.Migrate(world, snap);
+            if (legacyPending.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(legacyPending.Error);
             var encounterRestore = CharacterEncounterService.ValidateRestored(world, snap.CharacterEncounter);
             if (encounterRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(encounterRestore.Error);

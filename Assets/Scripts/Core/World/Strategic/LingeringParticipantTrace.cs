@@ -34,9 +34,10 @@ namespace XianXia.Core.World.Strategic
             sb.Append("ResolvedBattleAnchorHex=");
             if (battlefield != null)
                 sb.AppendLine(battlefield.BattleAnchorHex.ToString());
-            else if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
-                         world.Strategic.Participants, out var snapHex))
-                sb.AppendLine(snapHex.ToString());
+            else if (world.Strategic.Participants.BattleAnchorHexQ != StrategicHexConstants.InvalidHexComponent &&
+                     world.Strategic.Participants.BattleAnchorHexR != StrategicHexConstants.InvalidHexComponent)
+                sb.AppendLine(new HexCoord(world.Strategic.Participants.BattleAnchorHexQ,
+                    world.Strategic.Participants.BattleAnchorHexR).ToString());
             else
                 sb.AppendLine("NONE");
 
@@ -86,11 +87,14 @@ namespace XianXia.Core.World.Strategic
                 battlefield != null)
                 return true;
 
-            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
-                    world.Strategic.Participants, out resolvedHex) &&
-                world.Strategic.LingeringBattlefields.TryGetAtHex(resolvedHex, out battlefield) &&
-                battlefield != null)
-                return true;
+            if (world.Strategic.Participants.BattleAnchorHexQ != StrategicHexConstants.InvalidHexComponent &&
+                world.Strategic.Participants.BattleAnchorHexR != StrategicHexConstants.InvalidHexComponent)
+            {
+                resolvedHex = new HexCoord(world.Strategic.Participants.BattleAnchorHexQ,
+                    world.Strategic.Participants.BattleAnchorHexR);
+                if (world.Strategic.LingeringBattlefields.TryGetAtHex(resolvedHex, out battlefield) &&
+                    battlefield != null) return true;
+            }
 
             battlefield = null;
             return false;

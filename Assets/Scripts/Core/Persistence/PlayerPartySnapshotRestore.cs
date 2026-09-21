@@ -37,6 +37,7 @@ namespace XianXia.Core.Persistence
             {
                 party.RefreshActiveAfterLifeState(world);
                 PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
+                SquadWorldMotionService.ReconcilePlayerPartyAuthority(world, party);
                 return;
             }
             if (!string.IsNullOrEmpty(controlledSquadId))
@@ -47,6 +48,7 @@ namespace XianXia.Core.Persistence
                 {
                     party.RefreshActiveAfterLifeState(world);
                     PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
+                    SquadWorldMotionService.ReconcilePlayerPartyAuthority(world, party);
                     return;
                 }
             }
@@ -55,6 +57,7 @@ namespace XianXia.Core.Persistence
             {
                 party.RefreshActiveAfterLifeState(world);
                 PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
+                SquadWorldMotionService.ReconcilePlayerPartyAuthority(world, party);
             }
         }
 
@@ -111,7 +114,7 @@ namespace XianXia.Core.Persistence
                         continue;
                     if (!IsPlayerFactionCharacter(world, entity.Id, playerFaction))
                         continue;
-                    if (ArmyService.TryGetArmyForCharacter(world, entity.Id, out _))
+                    if (CharacterStrategicQuery.TryGetSquad(world, entity.Id, out _))
                         continue;
                     if (!Contains(members, entity.Id))
                         members.Add(entity.Id);
@@ -144,7 +147,7 @@ namespace XianXia.Core.Persistence
                     continue;
                 if (!IsPlayerFactionCharacter(world, presence.EntityId, playerFaction))
                     continue;
-                if (ArmyService.TryGetArmyForCharacter(world, presence.EntityId, out _))
+                if (CharacterStrategicQuery.TryGetSquad(world, presence.EntityId, out _))
                     continue;
                 if (!Contains(into, presence.EntityId))
                     into.Add(presence.EntityId);
@@ -155,7 +158,7 @@ namespace XianXia.Core.Persistence
         {
             if (string.IsNullOrEmpty(playerFaction))
                 return true;
-            var faction = ArmyService.ResolveCharacterFactionId(world, id);
+            var faction = CharacterStrategicQuery.ResolveFactionId(world, id);
             return string.Equals(faction, playerFaction, System.StringComparison.Ordinal);
         }
 

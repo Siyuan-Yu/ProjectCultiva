@@ -89,7 +89,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
-        [SerializeField] HostFormalArmyContinuousPresenter formalArmyContinuousPresenter;
+        [SerializeField] HostNpcSquadContinuousPresenter npcSquadContinuousPresenter;
         [SerializeField] HostNpcContextMenu npcContextMenu;
 
         [Header("Tick debug")]
@@ -215,7 +215,7 @@ namespace XianXia.Unity.Host
                                   GetComponentInChildren<HostContentInterruptPresenter>();
             if (strategicInterrupt == null)
                 strategicInterrupt = GetComponent<HostStrategicInterruptPresenter>() ??
-                                    GetComponentInChildren<HostStrategicInterruptPresenter>();
+                                     GetComponentInChildren<HostStrategicInterruptPresenter>();
             if (dialoguePresenter == null)
                 dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
                                    GetComponentInChildren<HostDialoguePresenter>();
@@ -237,9 +237,9 @@ namespace XianXia.Unity.Host
             if (combatArtLearnPrompt == null)
                 combatArtLearnPrompt = GetComponent<HostCombatArtLearnPrompt>() ??
                                       GetComponentInChildren<HostCombatArtLearnPrompt>();
-            if (formalArmyContinuousPresenter == null)
-                formalArmyContinuousPresenter = GetComponent<HostFormalArmyContinuousPresenter>() ??
-                    gameObject.AddComponent<HostFormalArmyContinuousPresenter>();
+            if (npcSquadContinuousPresenter == null)
+                npcSquadContinuousPresenter = GetComponent<HostNpcSquadContinuousPresenter>() ??
+                                              gameObject.AddComponent<HostNpcSquadContinuousPresenter>();
             EnsureSocialNotificationOverlay();
 
             secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
@@ -346,9 +346,6 @@ namespace XianXia.Unity.Host
             // Continuous startup 未完成（preflight／activation 失败）：token 仍 pending，逐帧重试。
             TickContinuousStartupRecovery();
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            FormalArmyStrategicMutationDiagnosticsHost.TickFrame();
-#endif
 
             // Phase 5R-B6.5-B：Modal 强制暂停期间 Space 不能切换（ModalHardPaused 分层）。
             if (Input.GetKeyDown(togglePauseKey) &&
@@ -761,7 +758,7 @@ namespace XianXia.Unity.Host
                                   gameObject.AddComponent<HostContentInterruptPresenter>();
             if (strategicInterrupt == null)
                 strategicInterrupt = GetComponent<HostStrategicInterruptPresenter>() ??
-                                    gameObject.AddComponent<HostStrategicInterruptPresenter>();
+                                     gameObject.AddComponent<HostStrategicInterruptPresenter>();
             if (dialoguePresenter == null)
                 dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
                                    gameObject.AddComponent<HostDialoguePresenter>();
@@ -1103,7 +1100,7 @@ namespace XianXia.Unity.Host
                 relationPanel,
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
-            formalArmyContinuousPresenter.Bind(this);
+            npcSquadContinuousPresenter.Bind(this);
             ActivateSurfaceLocalMapPresentation();
             if (continuousOutdoorStartup)
             {
@@ -1152,9 +1149,6 @@ namespace XianXia.Unity.Host
                 " Views=" + entityViewSpawner.SpawnedCount +
                 " Content=" + _resolvedContentPath,
                 this);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            FormalArmyStrategicMutationDiagnosticsHost.BindSession(this);
-#endif
             return true;
         }
 
@@ -1233,8 +1227,8 @@ namespace XianXia.Unity.Host
 
                 if (_session?.World?.LocalMap?.IsInInterior == true)
                     return "Authority=SeparateSpace";
-                if (BattleOfferService.HasActiveManualEncounter(_session?.World))
-                    return "Authority=IndependentBattle";
+                if (_session?.World?.Strategic?.CharacterEncounter != null)
+                    return "Authority=CharacterEncounter";
                 return "Authority=Unavailable";
             }
         }
@@ -1819,20 +1813,6 @@ namespace XianXia.Unity.Host
 
             var world = _session.World;
             var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
-            if (clearEmptyEncounter &&
-                !string.IsNullOrWhiteSpace(active) &&
-                world.Strategic?.Encounter != null &&
-                string.Equals(
-                    active.Trim(),
-                    BattleOfferService.ResolveActiveEncounterLocalMapId(world),
-                    System.StringComparison.Ordinal) &&
-                !LocalMapVisibility.HasFriendlyCharacterOnMapLayout(
-                    world, _session.CharacterIds, active))
-            {
-                StrategicEncounterSpawner.ClearSpawned(world);
-                world.Strategic.Encounter.ClearEngagedParty();
-            }
-
             LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(
                 world,
                 _session.PlayerParty);
@@ -1910,25 +1890,8 @@ namespace XianXia.Unity.Host
             }
 
             var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
-            if (BattleOfferService.HasActiveManualEncounter(world))
-            {
-                targetMap = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
-                world.PartyWorld.LocalMapId = targetMap;
-            }
-            var onEncounterMap = BattleOfferService.HasActiveManualEncounter(world) &&
-                                 !string.IsNullOrWhiteSpace(targetMap) &&
-                                 string.Equals(
-                                     targetMap.Trim(),
-                                     StrategicEncounterCatalog.DefaultEncounterLocalMapId,
-                                     System.StringComparison.Ordinal);
-            var sameMapWorldCombat =
-                world.Strategic?.PendingEngagement != null &&
-                world.Strategic.PendingEngagement.IsActive &&
-                !string.IsNullOrWhiteSpace(targetMap) &&
-                string.Equals(
-                    activeMapBeforePresentation.Trim(),
-                    targetMap.Trim(),
-                    System.StringComparison.Ordinal);
+            var onEncounterMap = false;
+            var sameMapWorldCombat = false;
 
             // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
             // Wilderness：CanLoadMapLayoutForParty 已认 AtHex + PartyWorld.LocalMapId
@@ -2166,32 +2129,11 @@ namespace XianXia.Unity.Host
             if (playerPartyMaterializationAttempted && !playerPartyMaterialized)
                 return;
 
-            // Phase 5S-B2-3.2：Friendly battle tactical assembly 必须在正确 Battle LocalMap
-            // 加载后（PlayerParty 已按 BattleHex materialize）、enemy ApplyPending 前执行。
-            // participant authority 用当前 frozen BattleParticipantSnapshot（不清扫 SupportArea、
-            // 不重新 gather）；ExplicitEncounterMap 与战后（Participants.Clear 后 kind 重置）不触发。
-            if (!onEncounterMap &&
-                StrategicEncounterSpawner.HasActiveRealLocalMapManualEncounter(world))
-            {
-                StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(
-                    world, _session.PlayerParty, preserveExistingLoadedPlacement: false);
-            }
-
             if (sameMapWorldCombat)
                 LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "Before");
-
-            var spawned = StrategicEncounterSpawner.ApplyPending(world);
-            if (spawned.IsFailure)
-                Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
             if (sameMapWorldCombat)
-                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "AfterApplyPending");
-            if (onEncounterMap)
-            {
-                StrategicEncounterSpawner.EnsureTrackedSpawnsLocalPresentation(world);
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.Rebuild(_session);
-            }
-            else
+                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "AfterPresentation");
+            if (!onEncounterMap)
             {
                 if (world.Strategic?.Encounter != null)
                 {
@@ -2346,145 +2288,13 @@ namespace XianXia.Unity.Host
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
         {
-            var focusNode = world.PartyWorld.SiteId;
-            var focusSiteId = world.PartyWorld.SiteId;
-            WorldSite focusSite = null;
-            if (!string.IsNullOrEmpty(focusSiteId))
-                world.Strategic?.Sites?.TryGet(focusSiteId, out focusSite);
-            var focusArmyId = world.PartyWorld.FocusFormalArmyId;
-            FormalArmy focusArmy = null;
-            if (!string.IsNullOrEmpty(focusArmyId))
-                world.Strategic?.FormalArmies?.TryGet(focusArmyId, out focusArmy);
-            var startId = world.LocalPlaces.StartLocationId;
-            var encounter = world.Strategic?.Encounter;
-            var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
-            for (var i = 0; i < _session.CharacterIds.Count; i++)
-            {
-                var id = _session.CharacterIds[i];
-                if (filterEngaged && !encounter.IsEngaged(id))
-                    continue;
-                world.WorldPresence.TryGet(id, out var wp);
-                if (wp != null &&
-                    !onEncounterMap &&
-                    (wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.InEncounter ||
-                     wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite))
-                    continue;
-                var engagedInEncounter = filterEngaged && encounter.IsEngaged(id);
-                if (!engagedInEncounter && focusSite != null)
-                {
-                    if (!StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(
-                            world, id, focusSite))
-                        continue;
-                }
-                else if (!engagedInEncounter && focusArmy != null)
-                {
-                    if (!focusArmy.ContainsMember(id))
-                        continue;
-                }
-                else if (!engagedInEncounter &&
-                    wp != null &&
-                    !string.IsNullOrEmpty(focusNode) &&
-                    !string.Equals(wp.SiteId, focusNode, System.StringComparison.Ordinal))
-                    continue;
-                if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite)
-                {
-                    if (!onEncounterMap)
-                        continue;
-                    wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
-                }
-                else if (wp != null &&
-                         wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite &&
-                         onEncounterMap &&
-                         engagedInEncounter)
-                {
-                    wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
-                }
-
-                if (!world.Entities.TryGet(id, out var ent))
-                    continue;
-                if (!ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
-                {
-                    loc = new XianXia.Core.Exploration.EntityLocationComponent();
-                    ent.AddComponent(loc);
-                }
-
-                if (!string.IsNullOrEmpty(startId) && world.LocalPlaces.TryGet(startId, out var startLoc))
-                {
-                    loc.LocationId = startId;
-                    loc.SetPresentationOverride(startLoc.PresentationX, startLoc.PresentationZ);
-                }
-                else
-                {
-                    loc.LocationId = string.Empty;
-                    loc.SetPresentationOverride(0f, 0f);
-                }
-            }
+            // FormalArmy focus presentation retired; Squad presentation is handled by HostNpcSquadContinuousPresenter.
         }
 
         /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap</summary>
         public void EnterLingeringBattlefield(IReadOnlyList<EntityId> party)
         {
-            if (!_session.IsInitialized || party == null || party.Count == 0)
-                return;
-            var world = _session.World;
-            if (world?.Strategic?.Encounter == null ||
-                !BattleOfferService.HasLingeringBattlefield(world))
-                return;
-
-            var scratch = new List<EntityId>(party.Count);
-            var focus = party[0];
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (LingeringBattlefieldPartyService.IsIncapacitated(world, party[i]))
-                {
-                    focus = party[i];
-                    break;
-                }
-            }
-
-            var mandatoryLiving = new List<EntityId>(party.Count);
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, party[i]))
-                    mandatoryLiving.Add(party[i]);
-            }
-
-            if (!LingeringBattlefieldPartyService.CanEnterLingeringBattlefield(
-                    world,
-                    _session.CharacterIds,
-                    focus,
-                    scratch,
-                    mandatoryLiving))
-                return;
-
-            world.Strategic.ClearPendingLingeringVisit();
-
-            HexCoord targetHex = default;
-            if (StrategicResidualPresenceService.TryGetResidualHex(world, focus, out targetHex) ||
-                ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out targetHex))
-                StrategicEncounterSpawner.TryPrepareLingeringLocalMapSession(world, targetHex);
-
-            var rt = world.Strategic.Encounter;
-            var mapId = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
-            var stackId = !string.IsNullOrEmpty(rt.ArmyStackId)
-                ? rt.ArmyStackId
-                : world.Strategic.Participants?.PrimaryEnemyStackId ?? string.Empty;
-            StrategicEncounterSpawner.PlanManualEncounter(
-                world,
-                stackId,
-                string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId,
-                scratch);
-            world.PartyWorld.LocalMapId = mapId;
-            world.PartyWorld.EncounterId = string.IsNullOrEmpty(rt.EncounterLinkId)
-                ? "linger"
-                : rt.EncounterLinkId;
-            preferredMapLayoutId = mapId;
-            _session.PreferredMapLayoutId = mapId;
-            StrategicClockFreezeService.BeginOrPromote(
-                world, StrategicClockFreezeReason.ManualEncounter);
-            if (worldMapPanel != null)
-                worldMapPanel.Close();
-            ApplyPartyWorldSitePresentation(closeWorldMap: true);
+            // Legacy ArmyStack battlefield entry retired. Character residuals keep personal spatial authority.
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>
@@ -2663,17 +2473,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public bool ReconcileLoadedStrategicPopulation()
         {
-            if (!_session.IsInitialized)
-                return false;
-
-            var world = _session.World;
-            ResolveLoadedStrategicBounds(world);
-            var result = LoadedStrategicPopulationMaterializer.ReconcileLoadedStrategicPopulation(
-                world,
-                _session.PlayerParty,
-                _loadedStrategicWildernessBounds,
-                _loadedStrategicSiteBounds);
-            return result.Changed;
+            return false;
         }
 
         /// <summary>Phase 5S-B2-3.1：reconcile + 条件视图刷新（Changed 才 Refresh/Spawn/Prune）。</summary>
@@ -2692,39 +2492,11 @@ namespace XianXia.Unity.Host
         /// <summary>当前真实 surface 上原地开启 WORLD_COMBAT：只增量装配参战者，绝不重载地图或重刷 PlayerParty。</summary>
         public void ActivateRealWorldCombatOnCurrentLoadedSurface()
         {
-            if (!_session.IsInitialized || entityViewSpawner == null)
-                return;
-
-            HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(this);
-            var world = _session.World;
-            StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(
-                world, _session.PlayerParty, preserveExistingLoadedPlacement: true);
-            var spawned = StrategicEncounterSpawner.ApplyPending(world);
-            if (spawned.IsFailure)
-                Debug.LogWarning("[PlayableHost] 原地世界战斗装配失败：" + spawned.Error, this);
-            ReconcileLoadedStrategicPopulation();
+            if (!_session.IsInitialized || entityViewSpawner == null) return;
             _session.RefreshViewableEntityIds();
             entityViewSpawner.SpawnMissingVisibleViews(_session);
             entityViewSpawner.PruneHiddenViews(_session);
             entityViewSpawner.SyncLocations(_session);
-        }
-
-        /// <summary>
-        /// Continuous Outdoor WORLD_COMBAT assembly consumes the exact read-only preparation
-        /// produced before declaration. It never invokes the legacy LocalMap spawner.
-        /// </summary>
-        public Result ActivateRealWorldCombatOnCurrentLoadedSurface(
-            ContinuousOutdoorSurfaceRuntime.ManualCombatPreparation preparation)
-        {
-            if (!_session.IsInitialized || entityViewSpawner == null ||
-                _continuousOutdoorSurfaceRuntime == null)
-                return Result.Failure(ErrorCode.InvalidOperation, "Continuous 战斗 Host 尚未就绪。");
-            return _continuousOutdoorSurfaceRuntime.CommitPreparedManualCombat(preparation);
-        }
-
-        public void CompleteContinuousManualCombat(string offerId)
-        {
-            _continuousOutdoorSurfaceRuntime?.CompleteContinuousManualCombat(offerId);
         }
 
         public void StepTick()
@@ -2781,9 +2553,7 @@ namespace XianXia.Unity.Host
 #endif
                     _session.World.Entities.TryGet(defenderId, out var defeatedEntity);
                     var transition = DefeatSpatialTransitionResolver.Resolve(evt, defeatedEntity);
-                    var handledByStrategicEncounter = StrategicEncounterSpawner.OnCombatantDefeated(
-                        _session.World,
-                        defenderId);
+                    var handledByStrategicEncounter = false;
                     var handoffAction = handledByStrategicEncounter ? "Preserve" : string.Empty;
                     var spatialHandled = handledByStrategicEncounter;
                     if (!handledByStrategicEncounter)
@@ -2845,18 +2615,12 @@ namespace XianXia.Unity.Host
                                 // Compatibility only. Both services now require the character's
                                 // own presence to belong to the loaded legacy LocalMap; they cannot
                                 // infer a corpse location from PlayerParty.CurrentHex/focus.
-                                var handledByArmyCasualty = gotLocal
-                                    ? FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
-                                        _session.World, defenderId, localX, localZ,
-                                        _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
-                                    : FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
-                                        _session.World, defenderId);
-                                spatialHandled = handledByArmyCasualty || (gotLocal
+                                spatialHandled = gotLocal
                                     ? LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
                                         _session.World, defenderId, localX, localZ,
                                         _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
                                     : LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
-                                        _session.World, defenderId));
+                                        _session.World, defenderId);
                                 handoffAction = spatialHandled ? "LegacyRepair" : "LegacyRepairRejected";
                             }
 
@@ -2960,9 +2724,7 @@ namespace XianXia.Unity.Host
             var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null
                 ? squad.SquadId
                 : string.Empty;
-            var legacyArmyId = ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null
-                ? army.ArmyId
-                : string.Empty;
+            var legacyArmyId = string.Empty;
             var encounterId = world.Strategic.CharacterEncounter?.EncounterId ?? string.Empty;
             var changed = before.Mode != after.Mode || before.SiteId != after.SiteId ||
                           before.SurfaceId != after.SurfaceId || before.HasPrecise != after.HasPrecise ||
@@ -3007,7 +2769,7 @@ namespace XianXia.Unity.Host
             var lifeState = "(entity missing)";
             var isPartyMember = false;
             var isTraveling = false;
-            var armyId = "(none)";
+            var squadId = "(none)";
             var presenceMode = "(none)";
             var presenceSiteId = string.Empty;
             var presenceHex = "(none)";
@@ -3033,11 +2795,8 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            if (world != null &&
-                XianXia.Core.World.Strategic.ArmyService.TryGetArmyForCharacter(
-                    world, defenderId, out var army) &&
-                army != null)
-                armyId = army.ArmyId;
+            if (world != null && CharacterStrategicQuery.TryGetSquad(world, defenderId, out var squad) && squad != null)
+                squadId = squad.SquadId;
             if (world?.WorldPresence != null &&
                 world.WorldPresence.TryGet(defenderId, out var wp) && wp != null)
             {
@@ -3055,7 +2814,7 @@ namespace XianXia.Unity.Host
                 " HandledByStrategicEncounter=" + handledByStrategicEncounter +
                 " IsPlayerPartyMember=" + isPartyMember +
                 " IsTravelingPartyMember=" + isTraveling +
-                " FormalArmyId=" + armyId +
+                " SquadId=" + squadId +
                 " WorldPresenceMode=" + presenceMode +
                 " WorldPresenceSiteId=" + presenceSiteId +
                 " WorldPresenceHex=" + presenceHex +

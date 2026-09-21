@@ -48,18 +48,15 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, presence.SiteId, out var siteHex) ||
-                ArmyHexBattleAnchorService.TryResolveHexForSite(world, presence.SiteId, out siteHex))
+            if (!string.IsNullOrEmpty(presence.SiteId) &&
+                world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out var siteHex))
             {
                 HexMath.ToWorldPosition(siteHex, world.HexWorld.HexSize, out worldX, out worldY);
                 return true;
             }
-
-            if (ArmyService.TryGetArmyForCharacter(world, entityId, out var army) &&
-                army != null &&
-                army.UsesHexStrategicPosition &&
-                FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
-                return true;
+            if (world.Strategic.Squads.TryGetForCharacter(entityId, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) && motion.HasPosition)
+            { worldX = motion.WorldPosition.X; worldY = motion.WorldPosition.Y; return true; }
 
             return false;
         }

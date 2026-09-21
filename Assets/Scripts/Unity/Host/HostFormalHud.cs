@@ -1112,7 +1112,6 @@ namespace XianXia.Unity.Host
                 if (squad.LeaderCharacterId == focus) subtitle += " · 队长";
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 subtitle += " · " + squad.SquadId;
-                if (!string.IsNullOrEmpty(squad.LegacyArmyId)) subtitle += " · " + squad.LegacyArmyId;
 #endif
             }
             var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);

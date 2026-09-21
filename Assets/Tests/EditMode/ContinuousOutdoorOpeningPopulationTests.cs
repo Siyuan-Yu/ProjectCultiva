@@ -290,37 +290,6 @@ namespace XianXia.Tests.EditMode
         /// 语义：materialize 集合（loaded scope 权威）内的 Continuous Site 人口必须可见；
         /// 未 materialize 的残留 presence 仍按原守卫隐藏。
         /// </summary>
-        [Test]
-        public void G_HexArmyGarrisonAtContinuousSiteIsVisibleOnceMaterialized()
-        {
-            var boot = Boot();
-            var world = boot.World;
-            var garrisonMember = FindByDefinition(world, "base:character_ch01_ref_supervisor");
-            Assert.AreNotEqual(EntityId.None, garrisonMember,
-                "荒村驻军成员（杂役主管）必须存在");
-            Assert.IsTrue(ArmyService.TryGetArmyForCharacter(world, garrisonMember, out var army));
-            Assert.IsTrue(army.UsesHexStrategicPosition,
-                "该 NPC 必须是 Hex FormalArmy 成员（即本修复命中的那条路径）");
-            Assert.IsTrue(world.Strategic.Sites.TryGet(OpeningSiteId, out var site));
-            Assert.IsTrue(site.OccupiesHex(army.CurrentHex),
-                "该驻军必须物理位于荒村 footprint 内");
-
-            // continuous startup 状态：legacy Site／LocalMap focus 已清。
-            world.PartyWorld.ClearSiteFocus();
-            world.PartyWorld.LocalMapId = string.Empty;
-            world.LocalMap.ActiveMapLayoutId = string.Empty;
-
-            // 未 materialize：残留 AtSite presence 不得泄漏进图（旧守卫语义必须保留）。
-            Assert.IsFalse(LocalMapVisibility.IsEntityVisible(world, garrisonMember),
-                "未 materialize 的 hex army 残留 presence 仍必须隐藏");
-
-            // runtime materialize（loaded scope 权威）后必须可见，否则 EntityView 永远不产生。
-            var desired = new HashSet<EntityId> { garrisonMember };
-            world.ContinuousOutdoorMaterialization.ReconcileEntities(desired, null, null);
-            Assert.IsTrue(LocalMapVisibility.IsEntityVisible(world, garrisonMember),
-                "materialized 的 Continuous Site 驻军必须可见（materialized-but-no-view 缺口）");
-        }
-
         // ------------------------------------------------------- synthetic content
         static void RegisterProbeSpawnTable(DefinitionRegistry registry, string definitionId)
         {

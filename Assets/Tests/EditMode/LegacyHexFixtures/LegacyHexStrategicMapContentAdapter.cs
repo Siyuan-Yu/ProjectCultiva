@@ -49,7 +49,6 @@ namespace XianXia.Data.Content
                 return applied;
             }
 
-            ArmyHexMigrationHelper.MigrateFormalArmies(world);
             return Result.Success();
         }
     }

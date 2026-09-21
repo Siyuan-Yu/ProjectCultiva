@@ -62,7 +62,7 @@ namespace XianXia.Data.Serialization
                 "decisionAt", "arrivalDelay", "relationThreshold", "chanceBasisPoints", "participants", "candidates");
             if (!value.TryGetProperty("version", out _)) throw new FormatException("Independent encounter version missing.");
             var format = value.GetNumber("version", 0);
-            if (format != 1 && format != CharacterEncounterState.Format) throw new FormatException("Unsupported encounter format.");
+            if (format != 1 && format != 2 && format != CharacterEncounterState.Format) throw new FormatException("Unsupported encounter format.");
             var state = new CharacterEncounterState
             {
                 DecisionAt = (float)value.GetNumber("decisionAt", -1),
@@ -90,7 +90,7 @@ namespace XianXia.Data.Serialization
                     throw new FormatException("Legacy encounter contains new objective fields.");
                 state.Version = CharacterEncounterState.Format;
             }
-            else if (state.Version == CharacterEncounterState.Format)
+            else if (state.Version == 2 || state.Version == CharacterEncounterState.Format)
             {
                 if (!value.TryGetProperty("objective", out var objective) || objective.Kind != JsonValueKind.Object ||
                     !value.TryGetProperty("objectiveDefenderSquads", out var squads) || squads.Kind != JsonValueKind.Array)
@@ -110,12 +110,13 @@ namespace XianXia.Data.Serialization
                     if (squad.Kind != JsonValueKind.String) throw new FormatException("Invalid objective squad id.");
                     state.ObjectiveDefenderSquads.Add(squad.String);
                 }
+                state.Version = CharacterEncounterState.Format;
             }
             else throw new FormatException("Unsupported encounter format.");
             if (!value.TryGetProperty("participants", out var rows) || rows.Kind != JsonValueKind.Array)
                 throw new FormatException("Independent encounter participant list missing.");
             foreach (var row in rows.Array)
-                state.Participants.Add(ReadPerson(row));
+                state.Participants.Add(ReadPerson(row, (int)format));
             if (!value.TryGetProperty("candidates", out var candidates) || candidates.Kind != JsonValueKind.Array)
                 throw new FormatException("Encounter candidates missing.");
             foreach (var row in candidates.Array)
@@ -128,7 +129,7 @@ namespace XianXia.Data.Serialization
                 };
                 if (!row.TryGetProperty("members", out var members) || members.Kind != JsonValueKind.Array)
                     throw new FormatException("Candidate members missing.");
-                foreach (var member in members.Array) c.Members.Add(ReadPerson(member));
+                foreach (var member in members.Array) c.Members.Add(ReadPerson(member, (int)format));
                 state.Candidates.Add(c);
             }
             return state;
@@ -140,6 +141,9 @@ namespace XianXia.Data.Serialization
                 ["enemy"] = JsonValue.FromBool(p.Enemy),
                 ["sourceSiteId"] = JsonValue.FromString(p.SourceSiteId),
                 ["sourceMode"] = JsonValue.FromNumber(p.SourceMode),
+                ["sourceSpatialOwnerKind"] = JsonValue.FromNumber((int)p.SourceSpatialOwnerKind),
+                ["sourceSquadId"] = JsonValue.FromString(p.SourceSquadId ?? string.Empty),
+                ["sourceFormalArmyId"] = JsonValue.FromString(p.SourceFormalArmyId ?? string.Empty),
                 ["originX"] = JsonValue.FromNumber(p.OriginX),
                 ["originY"] = JsonValue.FromNumber(p.OriginY),
                 ["tacticalX"] = JsonValue.FromNumber(p.TacticalX),
@@ -153,10 +157,11 @@ namespace XianXia.Data.Serialization
                 ["entryHp"] = JsonValue.FromNumber(p.EntryHp),
                 ["entryMaxHp"] = JsonValue.FromNumber(p.EntryMaxHp),
                 });
-        static EncounterCharacter ReadPerson(JsonValue row)
+        static EncounterCharacter ReadPerson(JsonValue row, int format)
         {
             RequireFields(row, "characterId", "squadId", "enemy", "sourceSiteId", "sourceMode", "originX", "originY",
                 "tacticalX", "tacticalY", "targetId", "cooldown", "artCooldowns", "joinedAt", "entryCondition", "entryHpAvailable", "entryHp", "entryMaxHp");
+            if (format >= 3) RequireFields(row, "sourceSpatialOwnerKind", "sourceSquadId", "sourceFormalArmyId");
             return new EncounterCharacter
                 {
                 CharacterId = ulong.Parse(row.GetString("characterId", "0"), System.Globalization.CultureInfo.InvariantCulture),
@@ -164,6 +169,11 @@ namespace XianXia.Data.Serialization
                 Enemy = row.GetBool("enemy", false),
                 SourceSiteId = row.GetString("sourceSiteId", ""),
                 SourceMode = (int)row.GetNumber("sourceMode", 0),
+                SourceSpatialOwnerKind = format >= 3
+                    ? (EncounterSpatialOwnerKind)row.GetNumber("sourceSpatialOwnerKind", 0)
+                    : EncounterSpatialOwnerKind.Personal,
+                SourceSquadId = format >= 3 ? row.GetString("sourceSquadId", "") : "",
+                SourceFormalArmyId = format >= 3 ? row.GetString("sourceFormalArmyId", "") : "",
                 OriginX = (float)row.GetNumber("originX", 0),
                 OriginY = (float)row.GetNumber("originY", 0),
                 TacticalX = (float)row.GetNumber("tacticalX", 0),
@@ -224,6 +234,7 @@ namespace XianXia.Data.Serialization
                 switch (field)
                 {
                     case "id": case "characterId": case "targetId": case "squadId": case "sourceSurfaceId": case "sourceSiteId":
+                    case "sourceSquadId": case "sourceFormalArmyId":
                     case "siteId": case "assetId": case "attackerFactionId": case "defenderFactionId":
                         expected = JsonValueKind.String; break;
                     case "enemy": case "playerWon": case "continuationUsed": case "entryHpAvailable":

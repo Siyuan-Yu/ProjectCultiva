@@ -10,7 +10,7 @@ namespace XianXia.Core.World.Strategic
     {
         None = 0,
         PlayerParty = 1,
-        FormalArmy = 2,
+        Squad = 2,
         LoadedLocalRealtime = 3,
         BackgroundTravel = 4,
     }
@@ -33,9 +33,9 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
             {
-                authority = CharacterWorldMovementAuthority.FormalArmy;
+                authority = CharacterWorldMovementAuthority.Squad;
                 return true;
             }
 
@@ -123,9 +123,9 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
             {
-                error = "FormalArmy member cannot use background travel.";
+                error = "Squad member cannot use background travel.";
                 return false;
             }
 

@@ -1,5 +1,4 @@
 # 连续世界制作、合成与去 Hex 产品方向
-
 > 状态：**MAP-01 / MAP-02 / MAP-03 / MAP-04 / SPACE-01 Producer Accepted / Sealed**｜优先级：P0｜最后更新：2026-09-20
 > 上级：[总览](../00-project/00-overview.md)｜决策：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图方向）、[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧 Content 迁移方向）
 > 关联：[24 世界与据点](24-world-and-settlements.md)、[2J Hex Territory](2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../40-process/41-roadmap.md)
@@ -8,6 +7,8 @@
 ## 1. 状态边界
 
 当前阶段结论：MAP-01～MAP-04 与 SPACE-01 均已完成制作人人工验收并封板；SPACE-01 seal checkpoint 为 `49f8650`。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；`ContinuousWildernessPair` 已物理删除；WorldRegion 只剩旧包 schema / parser；Outdoor LocalMap 与 `AtHex` 只剩明确的 migration、compatibility、Independent Battle / residual 路径。Separate Space 继续合法保留 LocalMap infrastructure。后续旧军队／玩家旧旅行／TerritoryRegion 收尾分别进入 LEGACY-FINAL-A／B／C。
+
+> **2026-09-21 LEGACY-FINAL-A2：** NPC group runtime 已完成 zero-state 收口：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。状态为 Implementation Complete / Producer Acceptance Pending。
 
 > 本页只记系统与产品方向。当前仓库真实状态、Milestone 表、Known Issues、Do Not Regress、Resume Order 与可复制上下文见 [247 Project Handoff — Current State](../40-process/247-project-handoff-current-state-2026-09-18.md)；MAP-04 审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)；SPACE-01 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 

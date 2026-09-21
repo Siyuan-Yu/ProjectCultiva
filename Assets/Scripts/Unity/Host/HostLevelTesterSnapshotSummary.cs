@@ -63,7 +63,7 @@ namespace XianXia.Unity.Host
             }
 
             counts.PlayerPartyCount = session?.PlayerParty?.Count ?? 0;
-            counts.FormalArmyCount = world.Strategic?.FormalArmies?.Armies?.Count ?? 0;
+            counts.FormalArmyCount = world.Strategic?.Squads?.Squads?.Count ?? 0;
             counts.PlayerPartyDetail = BuildRuntimePlayerPartyDetail(session);
             counts.LocalPlacementsDetail = BuildRuntimeLocalPlacementsDetail(world, session);
 

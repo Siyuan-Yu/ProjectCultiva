@@ -346,9 +346,6 @@ namespace XianXia.Core.World.Strategic
                 !site.AnchorHex.Equals(default))
                 return site.AnchorHex;
 
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, SiteHuangcun, out var hex))
-                return hex;
-
             return HuangcunHex;
         }
 

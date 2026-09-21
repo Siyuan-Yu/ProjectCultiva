@@ -4,6 +4,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 
@@ -37,6 +38,7 @@ namespace XianXia.Data.Content
 
             ValidateScenarios(registry, locations, report);
             ValidateFormalArmies(registry, report);
+            ValidateNpcSquads(registry, report);
             ValidateStrategicFactions(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
@@ -639,6 +641,12 @@ namespace XianXia.Data.Content
                         ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
                     }
                 }
+                if (s.InitialNpcSquadIds != null)
+                {
+                    for (var i = 0; i < s.InitialNpcSquadIds.Count; i++)
+                        RequireDef(registry, s.InitialNpcSquadIds[i], "npcSquad",
+                            ctx + ".initialNpcSquadIds[" + i + "]", report);
+                }
             }
         }
 
@@ -663,6 +671,7 @@ namespace XianXia.Data.Content
                         ctx + ":" + def.Id);
                     return;
                 }
+
                 var coreCount = 0;
                 var coreX = 0f;
                 var coreY = 0f;
@@ -1172,6 +1181,89 @@ namespace XianXia.Data.Content
                         report);
                 }
             }
+        }
+
+        static void ValidateNpcSquads(DefinitionRegistry registry, ValidationReport report)
+        {
+            var squadIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.NpcSquads)
+            {
+                var def = pair.Value;
+                var ctx = def.Id.ToString();
+                if (!squadIds.Add(def.SquadId)) report.Add(ErrorCode.DuplicateDefinitionId, "Duplicate npcSquad.squadId.", ctx);
+                RequireFaction(registry, def.FactionId, ctx + ".factionId", report, false);
+                if (def.Members == null || def.Members.Count == 0) report.Add(ErrorCode.MissingRequiredField, "npcSquad.members empty.", ctx);
+                else for (var i = 0; i < def.Members.Count; i++)
+                    RequireDef(registry, def.Members[i].CharacterDefinitionId, "character", ctx + ".members[" + i + "].characterDefinitionId", report);
+                if (def.InitialSurfacePosition != null)
+                {
+                    var position = def.InitialSurfacePosition;
+                    if (!registry.TryGetOutdoorSurfaceGeography(position.SurfaceId, out var geography) ||
+                        geography?.Navigation == null)
+                        report.Add(ErrorCode.NotFound, "npcSquad initial position Surface geography missing.",
+                            ctx + ":" + position.SurfaceId);
+                    else if (!geography.Navigation.Contains(position.WorldX, position.WorldY) ||
+                             !geography.Navigation.IsWalkable(position.WorldX, position.WorldY))
+                        report.Add(ErrorCode.InvalidArgument, "npcSquad initial position is outside or blocked.", ctx);
+                }
+                else if (def.InitialSurfaceDeployment != null)
+                {
+                    var deployment = def.InitialSurfaceDeployment;
+                    if (!registry.TryGetOutdoorSurfaceGeography(deployment.SurfaceId, out var geography) ||
+                        geography?.Navigation == null)
+                        report.Add(ErrorCode.NotFound, "npcSquad deployment Surface geography missing.",
+                            ctx + ":" + deployment.SurfaceId);
+                    else if (!NpcSquadContentBootstrap.TryResolveCoreCenter(registry,
+                                 deployment.AnchorSiteId, deployment.SurfaceId, out var anchor))
+                        report.Add(ErrorCode.NotFound, "npcSquad deployment anchor Site is not exactly resolvable.",
+                            ctx + ":" + deployment.AnchorSiteId);
+                    else
+                    {
+                        var point = new WorldVec2(
+                            anchor.X + deployment.OffsetCellsX * geography.Navigation.CellSize,
+                            anchor.Y + deployment.OffsetCellsY * geography.Navigation.CellSize);
+                        if (!geography.Navigation.Contains(point.X, point.Y) ||
+                            !geography.Navigation.IsWalkable(point.X, point.Y))
+                            report.Add(ErrorCode.InvalidArgument,
+                                "npcSquad deployment result is outside or blocked.", ctx);
+                    }
+                }
+                else if (!TryResolveNpcSquadSiteArrival(registry, def.AssemblySiteId,
+                             out var arrivalSurface, out var arrival))
+                    report.Add(ErrorCode.NotFound, "npcSquad AssemblySite has no unique SiteArrival.",
+                        ctx + ":" + def.AssemblySiteId);
+                else if (!registry.TryGetOutdoorSurfaceGeography(arrivalSurface, out var arrivalGeography) ||
+                         arrivalGeography?.Navigation == null ||
+                         !arrivalGeography.Navigation.Contains(arrival.X, arrival.Y) ||
+                         !arrivalGeography.Navigation.IsWalkable(arrival.X, arrival.Y))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "npcSquad AssemblySite SiteArrival is outside or blocked.", ctx);
+            }
+        }
+
+        static bool TryResolveNpcSquadSiteArrival(DefinitionRegistry registry, string siteId,
+            out string surfaceId, out WorldVec2 arrival)
+        {
+            surfaceId = string.Empty;
+            arrival = default;
+            if (registry == null || string.IsNullOrWhiteSpace(siteId)) return false;
+            var found = false;
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SiteRegions == null) continue;
+                for (var i = 0; i < surface.SiteRegions.Count; i++)
+                {
+                    var region = surface.SiteRegions[i];
+                    if (region == null || !string.Equals(region.SiteId, siteId, StringComparison.Ordinal)) continue;
+                    if (found) return false;
+                    surfaceId = string.IsNullOrWhiteSpace(region.SurfaceId)
+                        ? surface.SurfaceId : region.SurfaceId;
+                    arrival = new WorldVec2(region.ArrivalWorldX, region.ArrivalWorldY);
+                    found = true;
+                }
+            }
+            return found;
         }
 
         void ValidateWorldRegions(
@@ -1710,6 +1802,9 @@ namespace XianXia.Data.Content
                     break;
                 case "formalArmy":
                     ok = registry.FormalArmies.ContainsKey(id);
+                    break;
+                case "npcSquad":
+                    ok = registry.NpcSquads.ContainsKey(id);
                     break;
             }
 

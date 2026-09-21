@@ -353,9 +353,6 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || party == null || !party.HasActive || damage <= 0)
                 return Result.Failure(ErrorCode.InvalidArgument, "阵营旗突击参数无效。");
-            var military = StrategicMilitaryRules.ValidatePlayerPartyCanInitiateStrategicMilitaryAction(world, party);
-            if (military.IsFailure)
-                return military;
             if (!world.Strategic.FactionFlags.Flags.TryGetValue(flagId ?? string.Empty, out var flag) || flag == null)
                 return Result.Failure(ErrorCode.NotFound, "阵营旗不存在。");
             if (string.Equals(attackerFactionId, flag.FactionId, StringComparison.Ordinal))

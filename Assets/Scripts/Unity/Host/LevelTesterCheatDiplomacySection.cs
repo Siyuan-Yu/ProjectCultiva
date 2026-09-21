@@ -38,7 +38,7 @@ namespace XianXia.Unity.Host
                 return y + lineH;
             }
 
-            StrategicAcceptanceInspector.CollectKnownFactionIds(world, _factions);
+            FactionDiplomacyOverviewQuery.CollectRuntimeFactionIds(world, _factions);
             ClampIndices();
 
             y = DrawReadOnlyStatus(world, x, y, width, lineH, body);
@@ -54,21 +54,16 @@ namespace XianXia.Unity.Host
             y = DrawFactionPicker(x, y, width, lineH, body, "势力 B", ref _factionBIndex, _factions);
             if (GUI.Button(new Rect(x, y, width, 24f), "宣战"))
             {
-                var result = StrategicAcceptanceCommands.TryDeclareWar(
-                    world, _factions[_factionAIndex], _factions[_factionBIndex]);
-                _sectionStatus = result.IsSuccess
-                    ? "成功：宣战"
-                    : "失败：" + result.Error.Message;
+                var result = WarGateService.DeclareWar(world, _factions[_factionAIndex], _factions[_factionBIndex]);
+                _sectionStatus = result.IsSuccess ? "成功：宣战" : "失败：" + result.Error.Message;
             }
 
             y += 28f;
             if (GUI.Button(new Rect(x, y, width, 24f), "结盟"))
             {
-                var result = StrategicAcceptanceCommands.TryFormAlliance(
-                    world, _factions[_factionAIndex], _factions[_factionBIndex]);
-                _sectionStatus = result.IsSuccess
-                    ? "成功：结盟"
-                    : "失败：" + result.Error.Message;
+                var ok = world.Strategic.Alliances.FormAlliance(
+                    _factions[_factionAIndex], _factions[_factionBIndex], out _);
+                _sectionStatus = ok ? "成功：结盟" : "失败：无法建立联盟";
             }
 
             y += 28f;
@@ -76,11 +71,9 @@ namespace XianXia.Unity.Host
             y = DrawFactionPicker(x, y, width, lineH, body, "附庸", ref _vassalIndex, _factions);
             if (GUI.Button(new Rect(x, y, width, 24f), "建立附庸（测试）"))
             {
-                var result = StrategicAcceptanceCommands.TryBindVassalage(
-                    world, _factions[_overlordIndex], _factions[_vassalIndex]);
-                _sectionStatus = result.IsSuccess
-                    ? "成功：建立附庸"
-                    : "失败：" + result.Error.Message;
+                var ok = world.Strategic.Vassalages.TryBindVassalage(
+                    _factions[_vassalIndex], _factions[_overlordIndex]);
+                _sectionStatus = ok ? "成功：建立附庸" : "失败：无法建立附庸";
             }
 
             y += 28f;

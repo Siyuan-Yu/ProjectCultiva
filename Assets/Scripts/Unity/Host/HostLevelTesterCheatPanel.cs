@@ -317,20 +317,14 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, y, width, 24f), "选中角色进入弥留"))
                 ForceSelectedCharacterIncapacitated();
             y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "让所选 NPC 小队移动到主控附近测试点"))
+                MoveSelectedNpcSquadNearPlayer();
+            y += 28f;
             if (!string.IsNullOrEmpty(_partyCombatCheatStatus))
             {
                 GUI.Label(new Rect(x, y, width, 44f), _partyCombatCheatStatus, _body);
                 y += 48f;
             }
-
-            var forceSolo = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
-            var next = GUI.Toggle(
-                new Rect(x, y, width, 22f),
-                forceSolo,
-                "调试：下次单人自动战斗必定失能");
-            if (next != forceSolo)
-                AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = next;
-            y += 28f;
 
             var world = bootstrap?.Session?.World;
             if (world != null)
@@ -349,8 +343,6 @@ namespace XianXia.Unity.Host
                         y += 26;
                     }
                 }
-                var summary = BattleEngagementAuthorityDebug.BuildSummary(world);
-                GUI.Label(new Rect(x, y, width, 360f), summary, _body);
             }
         }
 
@@ -387,6 +379,12 @@ namespace XianXia.Unity.Host
             _partyCombatCheatStatus = result.Message;
         }
 
+        void MoveSelectedNpcSquadNearPlayer()
+        {
+            _partyCombatCheatStatus = LevelTesterNpcSquadMotionCheats.TryMoveSelectedNpcSquadNearPlayer(
+                bootstrap?.Session?.World, selectionController?.State?.SelectedIds).Message;
+        }
+
         void DrawDiagnosticsTab(float x, float y, float width)
         {
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
@@ -398,6 +396,13 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x, y, width, 56f),
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
+
+            var strategic = bootstrap?.Session?.World?.Strategic;
+            GUI.Label(new Rect(x, y, width, 40f),
+                "NPC Squad Runtime: Squads=" + (strategic?.Squads?.Squads?.Count ?? 0) +
+                "  ActiveNpcSquadWorldMotions=" + CountActiveNpcSquadWorldMotions() +
+                "  LegacyArmyRuntime=0", _body);
+            y += 44f;
 
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;
             var perfText =
@@ -421,6 +426,17 @@ namespace XianXia.Unity.Host
                     : "ok") + "\n" +
                 (surface != null ? surface.DescribeDiagnostics() : string.Empty);
             GUI.Label(new Rect(x, y, width, 350f), perfText, _body);
+        }
+
+        int CountActiveNpcSquadWorldMotions()
+        {
+            var world = bootstrap?.Session?.World;
+            if (world?.Strategic?.SquadWorldMotions == null) return 0;
+            var count = 0;
+            foreach (var pair in world.Strategic.SquadWorldMotions.Motions)
+                if (world.Strategic.Squads.TryGet(pair.Key, out var squad) &&
+                    SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, pair.Value)) count++;
+            return count;
         }
 
         public const float TopBarEntryY = 8f;

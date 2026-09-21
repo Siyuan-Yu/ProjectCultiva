@@ -27,7 +27,6 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
 
             Ch01HexPrototypeMapBuilder.Build(world);
-            ArmyHexMigrationHelper.MigrateFormalArmies(world);
             return Result.Success();
         }
     }

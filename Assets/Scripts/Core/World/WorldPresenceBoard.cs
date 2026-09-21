@@ -13,7 +13,7 @@ namespace XianXia.Core.World
     /// </summary>
     public sealed class WorldAgentPresence
     {
-        public const int InvalidHexComponent = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public const int InvalidHexComponent = StrategicHexConstants.InvalidHexComponent;
 
         public EntityId EntityId { get; set; }
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtSite;

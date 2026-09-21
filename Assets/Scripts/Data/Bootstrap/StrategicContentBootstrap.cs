@@ -22,9 +22,15 @@ namespace XianXia.Data.Bootstrap
             var surface = ApplySurfaceSites(world, registry, scenario);
             if (surface.IsFailure)
                 return surface;
-            var armies = FormalArmyContentBootstrap.Apply(world, registry, scenario, openingLookup);
-            if (armies.IsFailure)
-                return armies;
+            var squads = NpcSquadContentBootstrap.Apply(world, registry, scenario, openingLookup);
+            if (squads.IsFailure) return squads;
+            // Only old content enters the one-way formalArmy migration adapter. Current content
+            // has no legacy ids and therefore never invokes the adapter during New Game startup.
+            if (scenario.InitialFormalArmyIds != null && scenario.InitialFormalArmyIds.Count > 0)
+            {
+                var legacySquads = FormalArmyContentBootstrap.Apply(world, registry, scenario, openingLookup);
+                if (legacySquads.IsFailure) return legacySquads;
+            }
             return Result.Success();
         }
 

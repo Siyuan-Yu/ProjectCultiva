@@ -108,9 +108,9 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || snap == null)
                 return null;
 
-            if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var hex) &&
-                !StrategicEncounterResolveService.TryGetLingeringBattleAnchorHex(world, out hex))
-                return null;
+            if (snap.BattleAnchorHexQ == StrategicHexConstants.InvalidHexComponent ||
+                snap.BattleAnchorHexR == StrategicHexConstants.InvalidHexComponent) return null;
+            var hex = new HexCoord(snap.BattleAnchorHexQ, snap.BattleAnchorHexR);
 
             var rt = world.Strategic.Encounter;
             var registry = world.Strategic.LingeringBattlefields;

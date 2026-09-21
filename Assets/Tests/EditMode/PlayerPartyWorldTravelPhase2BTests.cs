@@ -136,21 +136,6 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void TRAVEL_03_Travel_DoesNotCreate_FormalArmy()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
-            var a = Spawn(world, "LinQing");
-            var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
-
-            var before = world.Strategic.FormalArmies.Armies.Count;
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            Assert.AreEqual(before, world.Strategic.FormalArmies.Armies.Count);
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, a, out _));
-        }
-
-        [Test]
         public void TRAVEL_04_MemberCount_And_Active_Unchanged()
         {
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
@@ -279,103 +264,6 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var wp));
             Assert.IsTrue(wp.UsesHexPresence);
             Assert.AreEqual(mid, wp.ResidualHex);
-        }
-
-        [Test]
-        public void TRAVEL_09_Background_Does_Not_Follow_Party_Travel()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out var siteB, out _);
-            var a = Spawn(world, "LinQing");
-            var b = Spawn(world, "WangChen");
-            var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-
-            Assert.IsTrue(party.TryRemoveMember(b, out _));
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, siteB.PresenceHex).IsSuccess);
-            ForceAdvanceToDestination(world);
-            Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, siteB).IsSuccess);
-
-            Assert.IsTrue(world.WorldPresence.TryGet(b, out var left));
-            Assert.AreEqual(PartyWorldPresenceMode.AtSite, left.Mode);
-            Assert.AreEqual(siteA.SiteId, left.SiteId);
-            Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, b, out var leftHex));
-            Assert.AreEqual(siteA.PresenceHex, leftHex);
-            Assert.IsFalse(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, b));
-        }
-
-        [Test]
-        public void TRAVEL_10_Marker_Uses_Active_Avatar_PartyId_Stable()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out _);
-            var a = Spawn(world, "LinQing");
-            var b = Spawn(world, "WangChen");
-            var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
-
-            Assert.AreEqual(a, party.ActiveCharacterId);
-            Assert.IsTrue(party.TrySetActive(world, b, out _));
-            Assert.AreEqual(b, party.ActiveCharacterId);
-            Assert.AreEqual(2, party.Count);
-            Assert.IsTrue(PlayerPartyHexTravelService.TryResolvePartyWorldHex(world, party, out var hex));
-            Assert.AreEqual(siteA.PresenceHex, hex);
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, a, out _));
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, b, out _));
-        }
-
-        [Test]
-        public void TRAVEL_11_FormalArmy_And_PlayerParty_Are_Distinct()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
-            var a = Spawn(world, "LinQing");
-            var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-
-            var before = world.Strategic.FormalArmies.Armies.Count;
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            ForceAdvanceToDestination(world);
-            Assert.AreEqual(before, world.Strategic.FormalArmies.Armies.Count);
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, a, out _));
-            Assert.IsTrue(world.PlayerPartyTravel.HasPosition);
-            Assert.AreEqual(mid, world.PlayerPartyTravel.CurrentHex);
-        }
-
-        [Test]
-        public void TRAVEL_12_Wilderness_Materialize_Shows_Active_And_Followers()
-        {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
-            var a = Spawn(world, "LinQing");
-            var b = Spawn(world, "WangChen");
-            var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
-
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            ForceAdvanceToDestination(world);
-            Assert.IsTrue(PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party).IsSuccess);
-
-            var beforeActive = party.ActiveCharacterId;
-            var beforeCount = party.Count;
-            PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                world, party.Members);
-
-            Assert.AreEqual(beforeActive, party.ActiveCharacterId);
-            Assert.AreEqual(beforeCount, party.Count);
-            Assert.AreEqual(mid, world.PlayerPartyTravel.CurrentHex);
-            Assert.IsTrue(world.LocalMap.ContainsOccupant(a));
-            Assert.IsTrue(world.LocalMap.ContainsOccupant(b));
-            Assert.IsTrue(world.WorldPresence.TryGet(a, out var wpA));
-            Assert.IsTrue(wpA.UsesHexPresence);
-            Assert.AreEqual(mid, wpA.ResidualHex);
-            Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, a, out _));
-
-            world.LocalMap.ActiveMapLayoutId = world.PartyWorld.LocalMapId;
-            Assert.IsTrue(
-                PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
-                    world, a, wpA));
-            Assert.IsTrue(world.WorldPresence.TryGet(b, out var wpB));
-            Assert.IsTrue(
-                PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
-                    world, b, wpB));
         }
 
         [Test]

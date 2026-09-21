@@ -277,6 +277,9 @@ namespace XianXia.Data.Content
                     case "formalArmy":
                         LoadFormalArmy(item, parsed.Value, registry, report);
                         break;
+                    case "npcSquad":
+                        LoadNpcSquad(item, parsed.Value, registry, report);
+                        break;
                     case "strategicFaction":
                         LoadStrategicFaction(item, parsed.Value, registry, report);
                         break;
@@ -1004,6 +1007,24 @@ namespace XianXia.Data.Content
                 }
             }
 
+            if (item.TryGetProperty("initialNpcSquadIds", out var squadIdsNode))
+            {
+                if (squadIdsNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "initialNpcSquadIds must be array.", id.ToString());
+                    return;
+                }
+                foreach (var squadIdNode in squadIdsNode.Array)
+                {
+                    if (squadIdNode.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(squadIdNode.String))
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "initialNpcSquadIds entries must be strings.", id.ToString());
+                        continue;
+                    }
+                    scenario.InitialNpcSquadIds.Add(squadIdNode.String);
+                }
+            }
+
             var reg = registry.RegisterOpeningScenario(scenario);
             if (reg.IsFailure)
                 report.Add(reg.Error);
@@ -1071,6 +1092,66 @@ namespace XianXia.Data.Content
             var registered = registry.RegisterStrategicFaction(def);
             if (registered.IsFailure)
                 report.Add(registered.Error);
+        }
+
+        static void LoadNpcSquad(
+            JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.NpcSquadFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var def = new NpcSquadDefinition
+            {
+                Id = id,
+                SquadId = item.GetString("squadId", string.Empty),
+                Name = item.GetString("name", string.Empty),
+                FactionId = item.GetString("factionId", string.Empty),
+                AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
+            };
+            if (item.TryGetProperty("initialSurfacePosition", out var surfaceNode))
+            {
+                if (surfaceNode.Kind != JsonValueKind.Object) { report.Add(ErrorCode.ContentLoadFailed, "npcSquad.initialSurfacePosition must be object.", id.ToString()); return; }
+                DefinitionSchema.RejectUnknownFields(surfaceNode, DefinitionSchema.NpcSquadInitialSurfacePositionFields, report, id + ".initialSurfacePosition");
+                def.InitialSurfacePosition = new NpcSquadInitialSurfacePositionDefinition
+                {
+                    SurfaceId = surfaceNode.GetString("surfaceId", string.Empty),
+                    WorldX = ReadFloat(surfaceNode, "worldX", 0f), WorldY = ReadFloat(surfaceNode, "worldY", 0f)
+                };
+            }
+            if (item.TryGetProperty("initialSurfaceDeployment", out var deploymentNode))
+            {
+                if (deploymentNode.Kind != JsonValueKind.Object || def.InitialSurfacePosition != null) { report.Add(ErrorCode.ContentLoadFailed, "npcSquad must choose one initial Surface deployment form.", id.ToString()); return; }
+                DefinitionSchema.RejectUnknownFields(deploymentNode, DefinitionSchema.NpcSquadInitialSurfaceDeploymentFields, report, id + ".initialSurfaceDeployment");
+                if (!deploymentNode.TryGetProperty("offsetCellsX", out var ox) || !deploymentNode.TryGetProperty("offsetCellsY", out var oy) ||
+                    ox.Kind != JsonValueKind.Number || oy.Kind != JsonValueKind.Number || ox.Number != Math.Truncate(ox.Number) || oy.Number != Math.Truncate(oy.Number))
+                { report.Add(ErrorCode.ContentLoadFailed, "npcSquad.initialSurfaceDeployment requires integer cell offsets.", id.ToString()); return; }
+                def.InitialSurfaceDeployment = new NpcSquadInitialSurfaceDeploymentDefinition
+                {
+                    SurfaceId = deploymentNode.GetString("surfaceId", string.Empty), AnchorSiteId = deploymentNode.GetString("anchorSiteId", string.Empty),
+                    OffsetCellsX = ReadInt(deploymentNode, "offsetCellsX", 0), OffsetCellsY = ReadInt(deploymentNode, "offsetCellsY", 0)
+                };
+            }
+            if (string.IsNullOrWhiteSpace(def.SquadId) || string.IsNullOrWhiteSpace(def.FactionId) || string.IsNullOrWhiteSpace(def.AssemblySiteId))
+            { report.Add(ErrorCode.MissingRequiredField, "npcSquad.squadId/factionId/assemblySiteId required.", id.ToString()); return; }
+            if (!item.TryGetProperty("members", out var membersNode) || membersNode.Kind != JsonValueKind.Array)
+            { report.Add(ErrorCode.MissingRequiredField, "npcSquad.members required array.", id.ToString()); return; }
+            var leaders = 0;
+            foreach (var memberNode in membersNode.Array)
+            {
+                if (memberNode.Kind != JsonValueKind.Object) { report.Add(ErrorCode.ContentLoadFailed, "npcSquad.members entries must be objects.", id.ToString()); continue; }
+                DefinitionSchema.RejectUnknownFields(memberNode, DefinitionSchema.NpcSquadMemberFields, report, id + ".member");
+                var member = new NpcSquadMemberDefinition
+                {
+                    CharacterDefinitionId = memberNode.GetString("characterDefinitionId", string.Empty), DisplayName = memberNode.GetString("displayName", string.Empty),
+                    Leader = memberNode.GetBool("leader", false), ReuseOpeningSpawn = memberNode.GetBool("reuseOpeningSpawn", false)
+                };
+                if (string.IsNullOrWhiteSpace(member.CharacterDefinitionId)) { report.Add(ErrorCode.MissingRequiredField, "npcSquad.member.characterDefinitionId required.", id.ToString()); continue; }
+                if (member.Leader) leaders++;
+                def.Members.Add(member);
+            }
+            if (def.Members.Count == 0 || leaders != 1) { report.Add(ErrorCode.InvalidArgument, "npcSquad.members requires a non-empty roster and exactly one leader.", id.ToString()); return; }
+            var registered = registry.RegisterNpcSquad(def);
+            if (registered.IsFailure) report.Add(registered.Error);
         }
 
         static void LoadFormalArmy(

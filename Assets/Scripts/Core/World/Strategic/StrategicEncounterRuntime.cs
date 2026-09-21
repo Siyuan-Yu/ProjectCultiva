@@ -18,8 +18,8 @@ namespace XianXia.Core.World.Strategic
         /// <summary>
         /// 最近进入/结算的残留战场 Hex（Active session 用；历史见 Registry）。
         /// </summary>
-        public int LingeringBattleAnchorHexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
-        public int LingeringBattleAnchorHexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public int LingeringBattleAnchorHexQ { get; set; } = StrategicHexConstants.InvalidHexComponent;
+        public int LingeringBattleAnchorHexR { get; set; } = StrategicHexConstants.InvalidHexComponent;
         /// <summary>多场残留战场 Hex 注册表：同一 Army 可先后在 H1/H2/H3 留下独立残留。</summary>
         readonly List<HexCoord> _lingeringBattlefieldHexes = new List<HexCoord>(4);
         readonly List<LingeringBattlefieldRecord> _lingeringBattlefields = new List<LingeringBattlefieldRecord>(4);
@@ -33,12 +33,12 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Hex 移动抵达后进入敌方残留战场（非 Pursuit）。</summary>
         public string PendingLingeringAttackArmyId { get; set; } = string.Empty;
         public string PendingLingeringAttackStackId { get; set; } = string.Empty;
-        public int PendingLingeringAttackHexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
-        public int PendingLingeringAttackHexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public int PendingLingeringAttackHexQ { get; set; } = StrategicHexConstants.InvalidHexComponent;
+        public int PendingLingeringAttackHexR { get; set; } = StrategicHexConstants.InvalidHexComponent;
 
         public bool HasPendingLingeringAttack =>
             !string.IsNullOrEmpty(PendingLingeringAttackArmyId) &&
-            PendingLingeringAttackHexQ != ArmyHexBattleAnchorService.InvalidHexComponent;
+            PendingLingeringAttackHexQ != StrategicHexConstants.InvalidHexComponent;
         public int FallbackMemberCount { get; set; } = StrategicEncounterCatalog.DefaultFallbackMemberCount;
         public int FallbackCombatPowerPerMember { get; set; } = StrategicEncounterCatalog.DefaultFallbackCombatPower;
         readonly List<ulong> _spawnedEntityIds = new List<ulong>(8);
@@ -123,8 +123,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         public bool HasLingeringBattleAnchorHex =>
-            LingeringBattleAnchorHexQ != ArmyHexBattleAnchorService.InvalidHexComponent &&
-            LingeringBattleAnchorHexR != ArmyHexBattleAnchorService.InvalidHexComponent;
+            LingeringBattleAnchorHexQ != StrategicHexConstants.InvalidHexComponent &&
+            LingeringBattleAnchorHexR != StrategicHexConstants.InvalidHexComponent;
 
         public void SetLingeringBattleAnchorHex(HexCoord hex)
         {
@@ -144,8 +144,8 @@ namespace XianXia.Core.World.Strategic
 
         public void ClearLingeringBattleAnchorHex()
         {
-            LingeringBattleAnchorHexQ = ArmyHexBattleAnchorService.InvalidHexComponent;
-            LingeringBattleAnchorHexR = ArmyHexBattleAnchorService.InvalidHexComponent;
+            LingeringBattleAnchorHexQ = StrategicHexConstants.InvalidHexComponent;
+            LingeringBattleAnchorHexR = StrategicHexConstants.InvalidHexComponent;
         }
 
         public void RegisterLingeringBattlefield(HexCoord hex, string enemyStackId)
@@ -262,8 +262,8 @@ namespace XianXia.Core.World.Strategic
         {
             PendingLingeringAttackArmyId = string.Empty;
             PendingLingeringAttackStackId = string.Empty;
-            PendingLingeringAttackHexQ = ArmyHexBattleAnchorService.InvalidHexComponent;
-            PendingLingeringAttackHexR = ArmyHexBattleAnchorService.InvalidHexComponent;
+            PendingLingeringAttackHexQ = StrategicHexConstants.InvalidHexComponent;
+            PendingLingeringAttackHexR = StrategicHexConstants.InvalidHexComponent;
         }
     }
 }

@@ -57,6 +57,8 @@ namespace XianXia.Core.World.Strategic
         }
     }
 
+    public enum BattleLocalMapResolutionKind { ExplicitEncounterMap = 0, ContinuousSurface = 1, WorldSite = 2 }
+
     public enum BattleParticipantKind
     {
         MandatoryFriendly = 0,
@@ -69,6 +71,7 @@ namespace XianXia.Core.World.Strategic
     {
         public BattleParticipantKind Kind { get; set; }
         public EntityId EntityId { get; set; }
+        public string SquadId { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
         public string FormalArmyId { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
@@ -172,8 +175,8 @@ namespace XianXia.Core.World.Strategic
     public sealed class BattleParticipantSnapshot
     {
         public string OfferId { get; set; } = string.Empty;
-        public int BattleAnchorHexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
-        public int BattleAnchorHexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public int BattleAnchorHexQ { get; set; } = StrategicHexConstants.InvalidHexComponent;
+        public int BattleAnchorHexR { get; set; } = StrategicHexConstants.InvalidHexComponent;
         public bool HasBattleAnchorWorldPosition { get; set; }
         public float BattleAnchorWorldX { get; set; }
         public float BattleAnchorWorldY { get; set; }
@@ -200,8 +203,8 @@ namespace XianXia.Core.World.Strategic
         public void Clear()
         {
             OfferId = string.Empty;
-            BattleAnchorHexQ = ArmyHexBattleAnchorService.InvalidHexComponent;
-            BattleAnchorHexR = ArmyHexBattleAnchorService.InvalidHexComponent;
+            BattleAnchorHexQ = StrategicHexConstants.InvalidHexComponent;
+            BattleAnchorHexR = StrategicHexConstants.InvalidHexComponent;
             HasBattleAnchorWorldPosition = false;
             BattleAnchorWorldX = BattleAnchorWorldY = 0f;
             BattleAnchorSurfaceId = string.Empty;
@@ -340,6 +343,7 @@ namespace XianXia.Core.World.Strategic
                 {
                     Kind = r.Kind,
                     EntityId = r.EntityId,
+                    SquadId = r.SquadId,
                     ArmyStackId = r.ArmyStackId,
                     FormalArmyId = r.FormalArmyId,
                     DisplayLabel = r.DisplayLabel,
@@ -422,21 +426,6 @@ namespace XianXia.Core.World.Strategic
                 out y);
         }
 
-        public static bool IsStackWithinRange(
-            SimulationWorld world,
-            ArmyStack stack,
-            HexCoord anchorHex)
-        {
-            if (stack == null)
-                return false;
-            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) || army == null)
-                return false;
-            HexMath.ToWorldPosition(army.CurrentHex, world.HexWorld.HexSize, out var sx, out var sy);
-            HexMath.ToWorldPosition(anchorHex, world.HexWorld.HexSize, out var ax, out var ay);
-            var dx = sx - ax;
-            var dy = sy - ay;
-            var dist = (float)Math.Sqrt(dx * dx + dy * dy);
-            return dist <= GetWorldRadius(world);
-        }
+
     }
 }

@@ -2,11 +2,9 @@
   "schemaVersion": 1,
   "definitions": [
     {
-      "id": "base:formal_army_bandit_patrol",
-      "type": "formalArmy",
+      "id": "base:npc_squad_bandit_patrol",
+      "type": "npcSquad",
       "name": "荒村山匪",
-      "runtimeArmyId": "army:formal_bandit_patrol_1",
-      "runtimeStackId": "army:bandit_patrol_1",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
       "initialSurfaceDeployment": {
@@ -33,14 +31,13 @@
           "characterDefinitionId": "base:character_bandit_patrol_grunt",
           "displayName": "BanditC"
         }
-      ]
+      ],
+      "squadId": "squad:npc:bandit_patrol"
     },
     {
-      "id": "base:formal_army_bandit_weak",
-      "type": "formalArmy",
+      "id": "base:npc_squad_bandit_weak",
+      "type": "npcSquad",
       "name": "试炼弱匪（自动必胜）",
-      "runtimeArmyId": "army:formal_bandit_patrol_weak",
-      "runtimeStackId": "army:bandit_patrol_weak",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
       "initialSurfaceDeployment": {
@@ -55,14 +52,13 @@
           "displayName": "WeakBandit",
           "leader": true
         }
-      ]
+      ],
+      "squadId": "squad:npc:bandit_weak"
     },
     {
-      "id": "base:formal_army_bandit_casualty_test",
-      "type": "formalArmy",
+      "id": "base:npc_squad_bandit_casualty_test",
+      "type": "npcSquad",
       "name": "试炼强匪（自动伤亡）",
-      "runtimeArmyId": "army:formal_bandit_casualty_test",
-      "runtimeStackId": "army:bandit_patrol_casualty_test",
       "factionId": "base:faction_bandits",
       "assemblySiteId": "base:site_huangcun",
       "initialSurfaceDeployment": {
@@ -85,7 +81,8 @@
           "characterDefinitionId": "base:character_bandit_casualty_grunt",
           "displayName": "StrongBanditB"
         }
-      ]
+      ],
+      "squadId": "squad:npc:bandit_casualty_test"
     }
   ]
 }

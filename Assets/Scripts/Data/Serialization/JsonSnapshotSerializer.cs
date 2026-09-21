@@ -977,12 +977,35 @@ namespace XianXia.Data.Serialization
                     squads.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
                     {
                         ["squadId"] = JsonValue.FromString(s.SquadId ?? string.Empty),
+                        ["displayName"] = JsonValue.FromString(s.DisplayName ?? string.Empty),
+                        ["factionId"] = JsonValue.FromString(s.FactionId ?? string.Empty),
                         ["leaderCharacterId"] = U(s.LeaderCharacterId),
                         ["legacyArmyId"] = JsonValue.FromString(s.LegacyArmyId ?? string.Empty),
                         ["commandKind"] = JsonValue.FromNumber(s.CommandKind),
                         ["commandRevision"] = U(s.CommandRevision),
                         ["commandTargetCharacterId"] = U(s.CommandTargetCharacterId),
                         ["memberCharacterIds"] = JsonValue.FromArray(members)
+                    }));
+                }
+            var squadWorldMotions = new List<JsonValue>();
+            if (strategic.SquadWorldMotions != null)
+                for (var i = 0; i < strategic.SquadWorldMotions.Count; i++)
+                {
+                    var m = strategic.SquadWorldMotions[i];
+                    if (m == null) continue;
+                    squadWorldMotions.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["squadId"] = JsonValue.FromString(m.SquadId ?? string.Empty),
+                        ["surfaceId"] = JsonValue.FromString(m.SurfaceId ?? string.Empty),
+                        ["siteId"] = JsonValue.FromString(m.SiteId ?? string.Empty),
+                        ["worldX"] = JsonValue.FromNumber(m.WorldX), ["worldY"] = JsonValue.FromNumber(m.WorldY),
+                        ["isMoving"] = JsonValue.FromBool(m.IsMoving),
+                        ["destinationX"] = JsonValue.FromNumber(m.DestinationX), ["destinationY"] = JsonValue.FromNumber(m.DestinationY),
+                        ["waypointIndex"] = JsonValue.FromNumber(m.WaypointIndex),
+                        ["segmentProgress"] = JsonValue.FromNumber(m.SegmentProgress),
+                        ["sourceRevision"] = JsonValue.FromString(m.SourceRevision ?? string.Empty),
+                        ["sourceHash"] = JsonValue.FromString(m.SourceHash ?? string.Empty),
+                        ["route"] = JsonValue.FromArray(SerializeWorldPath(m.Route))
                     }));
                 }
             var armies = new List<JsonValue>();
@@ -1302,8 +1325,10 @@ namespace XianXia.Data.Serialization
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
                 ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
                 ["hasSquadSnapshotAuthority"] = JsonValue.FromBool(strategic.HasSquadSnapshotAuthority),
+                ["hasSquadWorldMotionSnapshotAuthority"] = JsonValue.FromBool(strategic.HasSquadWorldMotionSnapshotAuthority),
                 ["controlledSquadId"] = JsonValue.FromString(strategic.ControlledSquadId ?? string.Empty),
                 ["squads"] = JsonValue.FromArray(squads),
+                ["squadWorldMotions"] = JsonValue.FromArray(squadWorldMotions),
                 ["formalArmies"] = JsonValue.FromArray(armies),
                 ["armyMemberships"] = JsonValue.FromArray(memberships),
                 ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
@@ -1443,6 +1468,7 @@ namespace XianXia.Data.Serialization
                 Ch01FormationScenarioCompat = strategic.TryGetProperty("ch01FormationScenarioCompat", out var c) &&
                                               c.Kind == JsonValueKind.Boolean && c.Bool,
                 HasSquadSnapshotAuthority = strategic.GetBool("hasSquadSnapshotAuthority", false),
+                HasSquadWorldMotionSnapshotAuthority = strategic.GetBool("hasSquadWorldMotionSnapshotAuthority", false),
                 HasTerritoryClaimSnapshotAuthority =
                     strategic.GetBool("hasTerritoryClaimSnapshotAuthority", false),
                 ControlledSquadId = strategic.GetString("controlledSquadId", string.Empty)
@@ -1463,6 +1489,8 @@ namespace XianXia.Data.Serialization
                     var item = new SquadSnapshotDto
                     {
                         SquadId = node.GetString("squadId", string.Empty),
+                        DisplayName = node.GetString("displayName", string.Empty),
+                        FactionId = node.GetString("factionId", string.Empty),
                         LeaderCharacterId = ReadU(node, "leaderCharacterId"),
                         LegacyArmyId = node.GetString("legacyArmyId", string.Empty),
                         CommandKind = node.TryGetProperty("commandKind", out var ck) ? (int)ck.Number : 0,
@@ -1472,6 +1500,26 @@ namespace XianXia.Data.Serialization
                     if (node.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                         foreach (var member in members.Array) item.MemberCharacterIds.Add(ReadUValue(member));
                     dto.Squads.Add(item);
+                }
+            }
+
+            if (strategic.TryGetProperty("squadWorldMotions", out var squadMotions) && squadMotions.Kind == JsonValueKind.Array)
+            {
+                if (!strategic.TryGetProperty("hasSquadWorldMotionSnapshotAuthority", out _)) dto.HasSquadWorldMotionSnapshotAuthority = true;
+                foreach (var node in squadMotions.Array)
+                {
+                    var item = new SquadWorldMotionSnapshotDto
+                    {
+                        SquadId = node.GetString("squadId", string.Empty), SurfaceId = node.GetString("surfaceId", string.Empty), SiteId = node.GetString("siteId", string.Empty),
+                        WorldX = (float)node.GetNumber("worldX"), WorldY = (float)node.GetNumber("worldY"),
+                        IsMoving = node.GetBool("isMoving", false), DestinationX = (float)node.GetNumber("destinationX"), DestinationY = (float)node.GetNumber("destinationY"),
+                        WaypointIndex = (int)node.GetNumber("waypointIndex"), SegmentProgress = (float)node.GetNumber("segmentProgress"),
+                        SourceRevision = node.GetString("sourceRevision", string.Empty), SourceHash = node.GetString("sourceHash", string.Empty)
+                    };
+                    if (node.TryGetProperty("route", out var route) && route.Kind == JsonValueKind.Array)
+                        foreach (var point in route.Array) item.Route.Add(new WorldPointSnapshotDto
+                        { X = (float)point.GetNumber("x"), Y = (float)point.GetNumber("y") });
+                    dto.SquadWorldMotions.Add(item);
                 }
             }
 
@@ -2028,6 +2076,7 @@ namespace XianXia.Data.Serialization
                     {
                         ["kind"] = JsonValue.FromNumber(r.Kind),
                         ["entityId"] = U(r.EntityId),
+                        ["squadId"] = JsonValue.FromString(r.SquadId ?? string.Empty),
                         ["armyStackId"] = JsonValue.FromString(r.ArmyStackId ?? string.Empty),
                         ["formalArmyId"] = JsonValue.FromString(r.FormalArmyId ?? string.Empty),
                         ["displayLabel"] = JsonValue.FromString(r.DisplayLabel ?? string.Empty),
@@ -2256,6 +2305,7 @@ namespace XianXia.Data.Serialization
                         {
                             Kind = (int)r.GetNumber("kind"),
                             EntityId = ReadU(r, "entityId"),
+                            SquadId = r.GetString("squadId", string.Empty),
                             ArmyStackId = r.GetString("armyStackId", string.Empty),
                             FormalArmyId = r.GetString("formalArmyId", string.Empty),
                             DisplayLabel = r.GetString("displayLabel", string.Empty),

@@ -9,6 +9,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
@@ -106,13 +107,12 @@ namespace XianXia.Unity.Host
             {
                 return string.IsNullOrEmpty(encounter.SourceSiteId)
                     ? "独立战场"
-                    : "独立战场 · " + StrategicSiteAccessService.DescribeSite(
-                        session.World, encounter.SourceSiteId);
+                    : "独立战场 · " + DescribeSite(session.World, encounter.SourceSiteId);
             }
             if (CharacterWorldPresenceQuery.TryDescribe(session.World, id, out _, out var siteId, out var hex, out var loaded))
             {
                 if (!string.IsNullOrEmpty(siteId))
-                    return StrategicSiteAccessService.DescribeSite(session.World, siteId) + (loaded ? " · 当前地图已加载" : string.Empty);
+                    return DescribeSite(session.World, siteId) + (loaded ? " · 当前地图已加载" : string.Empty);
                 return "荒野" + hex;
             }
             if (entity.TryGet<EntityLocationComponent>(out var location) && location.HasLocation &&
@@ -150,6 +150,13 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Idle: return "待命";
                 default: return "待命";
             }
+        }
+
+        static string DescribeSite(SimulationWorld world, string siteId)
+        {
+            if (world?.Strategic?.Sites != null && world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
+                return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            return siteId ?? string.Empty;
         }
     }
 

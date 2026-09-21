@@ -20,14 +20,14 @@ namespace XianXia.Data.Bootstrap
                     if (old == v.OverlordFactionId) continue;
                     return Result.Failure(ErrorCode.InvalidOperation, "Opening vassalage conflicts with runtime board.");
                 }
-                var r = StrategicAcceptanceCommands.TryBindVassalage(world, v.OverlordFactionId, v.VassalFactionId);
-                if (r.IsFailure) return r;
+                if (!world.Strategic.Vassalages.TryBindVassalage(v.VassalFactionId, v.OverlordFactionId))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Opening vassalage is invalid.");
             }
             foreach (var a in opening.Alliances)
             {
                 if (world.Strategic.Alliances.AreAllied(a.FactionAId, a.FactionBId)) continue;
-                var r = StrategicAcceptanceCommands.TryFormAlliance(world, a.FactionAId, a.FactionBId);
-                if (r.IsFailure) return r;
+                if (!world.Strategic.Alliances.FormAlliance(a.FactionAId, a.FactionBId, out _))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Opening alliance is invalid.");
             }
             foreach (var war in opening.InitialWars)
             {

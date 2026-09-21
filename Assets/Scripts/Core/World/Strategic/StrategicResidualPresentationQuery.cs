@@ -103,7 +103,7 @@ namespace XianXia.Core.World.Strategic
                 else if (LingeringBattlefieldPartyService.IsVisibleCorpse(world, entity.Id))
                     state = ResidualStateBucket.Dead;
                 else continue;
-                var factionId = ArmyService.ResolveCharacterFactionId(world, entity.Id);
+                var factionId = CharacterStrategicQuery.ResolveFactionId(world, entity.Id);
                 var group = new ResidualMarkerGroupView
                 {
                     Hex = HexMath.WorldToHex(spatial.WorldPosition.X, spatial.WorldPosition.Y,
@@ -232,7 +232,7 @@ namespace XianXia.Core.World.Strategic
             else
                 return false;
 
-            var factionId = ArmyService.ResolveCharacterFactionId(world, entity.Id);
+            var factionId = CharacterStrategicQuery.ResolveFactionId(world, entity.Id);
             relation = StrategicRelationQuery.GetRelationToPlayer(world, factionId);
             return true;
         }
@@ -242,7 +242,7 @@ namespace XianXia.Core.World.Strategic
             Entity entity,
             ResidualStateBucket state)
         {
-            var factionId = ArmyService.ResolveCharacterFactionId(world, entity.Id) ?? string.Empty;
+            var factionId = CharacterStrategicQuery.ResolveFactionId(world, entity.Id) ?? string.Empty;
             return new ResidualCharacterRowView
             {
                 CharacterId = entity.Id,

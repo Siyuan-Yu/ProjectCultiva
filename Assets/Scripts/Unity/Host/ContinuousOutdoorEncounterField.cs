@@ -9,6 +9,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
@@ -143,19 +144,77 @@ namespace XianXia.Unity.Host
                 if (pair.Value != null && pair.Value.SurfaceId == state.SourceSurfaceId)
                     HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, plan.Grid);
             yield return ClipPreparedEncounterGrid(plan.Grid, state);
-            foreach (var p in state.Participants)
+            var placementOrder = new List<EncounterCharacter>(state.Participants);
+            placementOrder.Sort((a, b) => a.CharacterId.CompareTo(b.CharacterId));
+            var occupied = new HashSet<long>();
+            var resolvedTactical = new Dictionary<ulong, WorldVec2>();
+            foreach (var p in placementOrder)
             {
-                _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
-                if (!plan.Grid.TryWorldToCell(px, py, out var x, out var y) || !plan.Grid.IsWalkable(x, y))
+                var id = new EntityId(p.CharacterId);
+                var currentView = default(WorldVec2);
+                var hasCurrentView = state.Phase == CharacterEncounterPhase.Preparing &&
+                                     TryGetCurrentEncounterViewWorld(world, id, out currentView);
+                var hasPreferred = hasCurrentView || state.Phase != CharacterEncounterPhase.Preparing;
+                var preferred = hasCurrentView
+                    ? currentView : new WorldVec2(p.TacticalX, p.TacticalY);
+                var preferredSource = hasCurrentView ? "CurrentMaterializedView" : "SavedTactical";
+                var origin = new WorldVec2(p.OriginX, p.OriginY);
+                if (!EncounterInitialTacticalPlacementResolver.TryResolve(
+                        plan.Grid, origin, hasPreferred, preferred, preferredSource,
+                        WorldToPreparedGrid, PreparedGridToWorld, point => state.Contains(point.X, point.Y),
+                        occupied, 8, out var tactical, out _, out _, out _, out var reason))
                 {
-                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Personal field position is not walkable: CharacterId=" + p.CharacterId), null);
+                    var reference = hasPreferred ? preferred : origin;
+                    var projected = WorldToPreparedGrid(reference);
+                    plan.Grid.TryWorldToCell(projected.X, projected.Y, out var cellX, out var cellY);
+                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation,
+                        "Initial encounter tactical position is not walkable: CharacterId=" + p.CharacterId +
+                        " SquadId=" + p.SquadId +
+                        " SourceSpatialOwnerKind=" + p.SourceSpatialOwnerKind +
+                        " SourceSquadId=" + p.SourceSquadId +
+                        " Origin=" + origin +
+                        " Reference=" + reference +
+                        " CurrentView=" + (hasCurrentView ? currentView.ToString() : "none") +
+                        " SurfaceId=" + state.SourceSurfaceId +
+                        " PreparedCell=(" + cellX + "," + cellY + ")" +
+                        " Reason=" + reason), null);
                     yield break;
                 }
+                resolvedTactical[p.CharacterId] = tactical;
             }
+            foreach (var p in state.Participants)
+                if (resolvedTactical.TryGetValue(p.CharacterId, out var tactical))
+                { p.TacticalX = tactical.X; p.TacticalY = tactical.Y; }
             completed?.Invoke(Result.Success(), plan);
             Debug.Log("[IndependentEncounter] prepared Id=" + state.EncounterId + " chunks=" + plan.Chunks.Count +
                 " inputs=" + plan.InputGridCount + " outputCells=" + plan.OutputGridCells +
                 " backgroundRenderers=" + plan.Chunks.Count + " elapsedSeconds=" + (Time.realtimeSinceStartup - prepareStarted));
+        }
+
+        bool TryGetCurrentEncounterViewWorld(SimulationWorld world, EntityId id, out WorldVec2 point)
+        {
+            point = default;
+            if (world == null || id.IsNone || !ReferenceEquals(world, _navigationStateWorld) ||
+                !world.Entities.TryGet(id, out _) ||
+                !world.ContinuousOutdoorMaterialization.IsMaterialized(id) ||
+                _bootstrap?.ViewSpawner?.Registry == null ||
+                !_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null) return false;
+            _mapper.PresentationToWorld(view.transform.position.x, view.transform.position.y,
+                out var wx, out var wy);
+            point = new WorldVec2(wx, wy);
+            return true;
+        }
+
+        WorldVec2 WorldToPreparedGrid(WorldVec2 point)
+        {
+            _mapper.WorldToPresentation(point.X, point.Y, out var x, out var y);
+            return new WorldVec2(x, y);
+        }
+
+        WorldVec2 PreparedGridToWorld(WorldVec2 point)
+        {
+            _mapper.PresentationToWorld(point.X, point.Y, out var x, out var y);
+            return new WorldVec2(x, y);
         }
 
         bool PlanIsCurrent(PreparedIndependentField plan, bool restore)
@@ -176,7 +235,8 @@ namespace XianXia.Unity.Host
                         plan.World, id, plan.SurfaceId, out var point, out var owner,
                         out var armyId, out _) ||
                     owner != p.SourceSpatialOwnerKind ||
-                    !string.Equals(armyId, p.SourceFormalArmyId, StringComparison.Ordinal) ||
+                    !string.Equals(owner == EncounterSpatialOwnerKind.Squad ? armyId : string.Empty,
+                        p.SourceSquadId, StringComparison.Ordinal) ||
                     Math.Abs(point.X - p.OriginX) > .0001f || Math.Abs(point.Y - p.OriginY) > .0001f) return false;
             }
             return true;
@@ -912,9 +972,6 @@ namespace XianXia.Unity.Host
                 var worldPosition = hasPosition
                     ? "(" + presence.WorldPosX.ToString("0.###") + "," + presence.WorldPosY.ToString("0.###") + ")"
                     : "None";
-                var legacyArmyId = ArmyService.TryGetArmyForCharacter(world, id, out var legacyArmy) && legacyArmy != null
-                    ? legacyArmy.ArmyId
-                    : string.Empty;
                 var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null
                     ? squad.SquadId
                     : participant.SquadId;
@@ -938,7 +995,6 @@ namespace XianXia.Unity.Host
                               " Name=" + (entity?.DisplayName ?? string.Empty) +
                               " LifeState=" + lifeState +
                               " SquadId=" + (squadId ?? string.Empty) +
-                              " LegacyArmyId=" + legacyArmyId +
                               " SourceMode=" + (XianXia.Core.World.PartyWorldPresenceMode)participant.SourceMode +
                               " ReturnedMode=" + returnedMode +
                               " SiteId=" + returnedSiteId +
