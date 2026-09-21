@@ -7,10 +7,15 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 战后 Downed / Visible Corpse 的个人空间收口。现代 Continuous 使用精确 Surface 位置。
+    /// Modern residual = lifecycle state plus precise Surface spatial authority. Hex helpers in
+    /// this type exist only for one-way old snapshot and non-Continuous compatibility.
     /// </summary>
     public static class ResidualCharacterPresenceService
     {
+        /// <summary>
+        /// Legacy-only Hex placement for old snapshot migration and non-Continuous LocalMap
+        /// compatibility. Modern Continuous gameplay must preserve an exact Surface position.
+        /// </summary>
         public static void PlaceLegacyCharacterAtResidualHex(
             SimulationWorld world,
             EntityId characterId,
@@ -39,7 +44,7 @@ namespace XianXia.Core.World.Strategic
             world.WorldPresence.Remove(characterId);
         }
 
-        /// <summary>从 BattleParticipantSnapshot 解析 EncounterHex 并放置（Hex 模式）。</summary>
+        /// <summary>Compatibility-only migration from an old battle snapshot Hex anchor.</summary>
         public static bool TryMigrateFromLegacyBattleSnapshot(
             SimulationWorld world,
             EntityId characterId,
@@ -113,7 +118,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 正式 Residual Candidate：Life + 非 FormalArmy + 非 Captured/Escaped/Retreating + 合法 Hex Presence。
+        /// Modern candidates use lifecycle plus precise Surface authority. Legacy sessions may
+        /// fall back to a valid migrated Hex presence.
         /// </summary>
         public static bool IsStrategicResidualCandidate(SimulationWorld world, EntityId characterId)
         {

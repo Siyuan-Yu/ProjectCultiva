@@ -8,9 +8,9 @@ using XianXia.Core.World.Surface;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 2C：Wilderness LocalMap 内移动同步、边缘跨 Hex、WorldSite 出站。
+    /// LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. Requires a real active Outdoor LocalMap;
+    /// normal SurfaceVisible gameplay never enters this adapter.
     /// </summary>
-    /// <summary>Legacy Hex / Outdoor LocalMap transition compatibility only.</summary>
     public static class LegacyPlayerPartyOutdoorLocalMapCompatibility
     {
         /// <summary>
@@ -21,6 +21,8 @@ namespace XianXia.Core.World.Strategic
             if (world?.LocalMap == null || world.PlayerPartyTravel == null)
                 return false;
             if (world.LocalMap.IsInInterior)
+                return false;
+            if (string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
                 return false;
 
             var motion = world.PlayerPartyTravel;
@@ -535,7 +537,6 @@ namespace XianXia.Core.World.Strategic
             ApplyTravelingMembersAtHex(world, connection.DestinationHex);
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
             world.PartyWorld.LocalMapId = string.Empty;
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             world.PartyWorld.EncounterId = string.Empty;

@@ -14,6 +14,7 @@ namespace XianXia.Core.World.Strategic
     {
         None = 0,
         FollowLeader = 1,
+        /// <summary>Legacy serialized numeric value; immediately upgraded during migration.</summary>
         FormalArmyWorldMotion = 2,
         SquadWorldMotion = 3
     }

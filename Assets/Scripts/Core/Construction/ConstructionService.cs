@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Inventory;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Construction
@@ -37,44 +36,6 @@ namespace XianXia.Core.Construction
             world?.InventoryCatalog?.HasTag(itemId, "resource") == true
                 ? PlayerStrategicResourceService.GetAvailableCount(world, itemId)
                 : world?.Inventory?.GetCount(itemId) ?? 0;
-
-        public static Result TryConstructFactionFlag(
-            SimulationWorld world,
-            string buildingId,
-            string playerFactionId,
-            HexCoord anchor,
-            float localX,
-            float localZ,
-            out string flagId)
-        {
-            flagId = string.Empty;
-            var resolved = ResolveFactionFlagSpec(world, buildingId, out var spec);
-            if (resolved.IsFailure)
-                return resolved;
-            if (!spec.UnlockedByDefault)
-                return Result.Failure(ErrorCode.InvalidOperation, "此建筑尚未解锁。");
-            if (!HasRequiredMaterials(world, spec, out var missing))
-                return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。", missing?.ItemId);
-
-            var placement = FactionFlagService.ValidatePlacement(world, playerFactionId, anchor, out _);
-            if (placement.IsFailure)
-                return placement;
-
-            if (!TrySpendMaterials(world, spec, out var removed))
-                return Result.Failure(ErrorCode.InvalidOperation, "建造材料扣除失败，事务已回滚。");
-
-            flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId, anchor);
-            var placed = FactionFlagService.TryPlace(
-                world, flagId, playerFactionId, anchor,
-                FactionFlagService.NextEstablishedOrder(world), localX, localZ, true);
-            if (placed.IsFailure)
-            {
-                RestoreRemoved(world, removed);
-                flagId = string.Empty;
-                return placed;
-            }
-            return Result.Success();
-        }
 
         public static Result TryConstructFactionFlagSite(
             SimulationWorld world,

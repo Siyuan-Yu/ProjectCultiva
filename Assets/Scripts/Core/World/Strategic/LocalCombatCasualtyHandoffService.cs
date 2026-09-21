@@ -19,11 +19,11 @@ namespace XianXia.Core.World.Strategic
     public static class LocalCombatCasualtyHandoffService
     {
         /// <summary>
-        /// 尝试把非 Army 的 defeated residual 角色钉到当前 Loaded LocalMap 对应的真实物理 Hex。
+        /// 尝试把 defeated residual 角色钉到当前 Loaded LocalMap 对应的真实物理位置。
         /// 返回 true 表示本 service 接管并完成 presence 收口（可能无需实际写 —— 已在该 hex）。
         /// WorldSite 无 local point 可用时不再用主控位置派生 —— 明确失败（由调用方回退 hex-only）。
         /// </summary>
-        public static bool TryHandleNonArmyDefeat(
+        public static bool TryHandleResidualDefeat(
             SimulationWorld world,
             EntityId characterId)
         {
@@ -73,7 +73,7 @@ namespace XianXia.Core.World.Strategic
         /// Wilderness：ResidualHex = Context WildernessHex（不重新 WorldToHex）；
         /// WorldSite：用角色自己的 localX/localZ 映射，derived hex 必须 OccupiesHex。
         /// </summary>
-        public static bool TryHandleNonArmyDefeat(
+        public static bool TryHandleResidualDefeat(
             SimulationWorld world,
             EntityId characterId,
             float localX,

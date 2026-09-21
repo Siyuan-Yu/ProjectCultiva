@@ -8,11 +8,9 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 5C-W1: Wilderness-only LocalVisible AutoTravel.
-    /// When LocalMap is a WorldSite, this service refuses to act (keeps Phase 5B: stand still).
-    /// All Exit geometry reuses the existing formal Wilderness Surface Exit (Phase 2C).
+    /// LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. ExecutionMode.LocalVisible is the explicit
+    /// gate; normal Continuous SurfaceVisible travel never calls this executor.
     /// </summary>
-    /// <summary>Legacy Outdoor LocalMap compatibility only. Normal Continuous Surface travel never calls this service.</summary>
     public static class LegacyPlayerPartyLocalVisibleTravelCompatibility
     {
         public static bool IsActiveLocalVisibleAutoTravel(PlayerPartyWorldMotion motion) =>

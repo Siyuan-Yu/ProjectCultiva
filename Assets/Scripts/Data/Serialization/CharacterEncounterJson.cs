@@ -62,7 +62,9 @@ namespace XianXia.Data.Serialization
                 "decisionAt", "arrivalDelay", "relationThreshold", "chanceBasisPoints", "participants", "candidates");
             if (!value.TryGetProperty("version", out _)) throw new FormatException("Independent encounter version missing.");
             var format = value.GetNumber("version", 0);
-            if (format != 1 && format != 2 && format != CharacterEncounterState.Format) throw new FormatException("Unsupported encounter format.");
+            if (format != 1 && format != 2 && format != 3 &&
+                format != CharacterEncounterState.Format)
+                throw new FormatException("Unsupported encounter format.");
             var state = new CharacterEncounterState
             {
                 DecisionAt = (float)value.GetNumber("decisionAt", -1),
@@ -90,7 +92,8 @@ namespace XianXia.Data.Serialization
                     throw new FormatException("Legacy encounter contains new objective fields.");
                 state.Version = CharacterEncounterState.Format;
             }
-            else if (state.Version == 2 || state.Version == CharacterEncounterState.Format)
+            else if (state.Version == 2 || state.Version == 3 ||
+                     state.Version == CharacterEncounterState.Format)
             {
                 if (!value.TryGetProperty("objective", out var objective) || objective.Kind != JsonValueKind.Object ||
                     !value.TryGetProperty("objectiveDefenderSquads", out var squads) || squads.Kind != JsonValueKind.Array)
@@ -146,6 +149,8 @@ namespace XianXia.Data.Serialization
                 ["sourceFormalArmyId"] = JsonValue.FromString(p.SourceFormalArmyId ?? string.Empty),
                 ["originX"] = JsonValue.FromNumber(p.OriginX),
                 ["originY"] = JsonValue.FromNumber(p.OriginY),
+                ["returnX"] = JsonValue.FromNumber(p.ReturnX),
+                ["returnY"] = JsonValue.FromNumber(p.ReturnY),
                 ["tacticalX"] = JsonValue.FromNumber(p.TacticalX),
                 ["tacticalY"] = JsonValue.FromNumber(p.TacticalY),
                 ["targetId"] = JsonValue.FromString(p.TargetId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -162,6 +167,9 @@ namespace XianXia.Data.Serialization
             RequireFields(row, "characterId", "squadId", "enemy", "sourceSiteId", "sourceMode", "originX", "originY",
                 "tacticalX", "tacticalY", "targetId", "cooldown", "artCooldowns", "joinedAt", "entryCondition", "entryHpAvailable", "entryHp", "entryMaxHp");
             if (format >= 3) RequireFields(row, "sourceSpatialOwnerKind", "sourceSquadId", "sourceFormalArmyId");
+            if (format >= 4) RequireFields(row, "returnX", "returnY");
+            var originX = (float)row.GetNumber("originX", 0);
+            var originY = (float)row.GetNumber("originY", 0);
             return new EncounterCharacter
                 {
                 CharacterId = ulong.Parse(row.GetString("characterId", "0"), System.Globalization.CultureInfo.InvariantCulture),
@@ -174,8 +182,10 @@ namespace XianXia.Data.Serialization
                     : EncounterSpatialOwnerKind.Personal,
                 SourceSquadId = format >= 3 ? row.GetString("sourceSquadId", "") : "",
                 SourceFormalArmyId = format >= 3 ? row.GetString("sourceFormalArmyId", "") : "",
-                OriginX = (float)row.GetNumber("originX", 0),
-                OriginY = (float)row.GetNumber("originY", 0),
+                OriginX = originX,
+                OriginY = originY,
+                ReturnX = format >= 4 ? (float)row.GetNumber("returnX", 0) : originX,
+                ReturnY = format >= 4 ? (float)row.GetNumber("returnY", 0) : originY,
                 TacticalX = (float)row.GetNumber("tacticalX", 0),
                 TacticalY = (float)row.GetNumber("tacticalY", 0),
                 TargetId = ulong.Parse(row.GetString("targetId", "0"), System.Globalization.CultureInfo.InvariantCulture),

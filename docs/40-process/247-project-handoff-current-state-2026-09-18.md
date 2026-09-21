@@ -1,5 +1,7 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
+> **2026-09-21 LEGACY-FINAL-SEAL implementation：** Compatibility quarantine、zero-caller API cleanup、runtime naming cleanup、Development boundary guards 与最终 Architecture Freeze 已达到 **Implementation Complete / Producer Acceptance Pending**。冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。LEGACY-FINAL-C 已 Sealed；最终 smoke 通过前暂不宣称 Migration Complete。下一阶段为 Gameplay / Content development，具体玩法尚未指定。
+
 > **2026-09-21 LEGACY-FINAL-C Seal：** Final Strategic Hex / Territory / Residual / Legacy Battle Runtime Retirement 已由制作人完成人工验收并正式 **Producer Accepted / Sealed**。正常 runtime authority 已收口为 Continuous Surface、Squad、WorldSite／Claim、CharacterEncounter 与 Separate Space；当前只进行 **LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze**，完成最终 smoke 前暂不宣称 Migration Complete。
 
 > **2026-09-21 LEGACY-FINAL-C implementation：** Final Strategic Hex / Territory / Residual / Legacy Battle Runtime Retirement 已达到 **Implementation Complete / Producer Acceptance Pending**。TerritoryRegion、StrategicEncounter、RetreatingArmy 与 LingeringBattlefield runtime boards 已退出；现代 residual 使用 `AtWorldPosition + SurfaceId + exact WorldPosition`；旧 Hex／Outdoor LocalMap 与旧 DTO 仅留明确 compatibility／one-way migration 边界。正式记录见 [250](250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。C 尚未获制作人验收，不得宣称 Legacy Finalization Complete。

@@ -62,7 +62,7 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Phase 5R-B6.5-B：ManualPaused = 用户 Space／Pause-UI 可自由切换的层。
-        /// Travel Order（PlayerParty／FormalArmy）与 WorldMap／普通面板开关绝不修改它；
+        /// Travel Order（PlayerParty／NPC Squad）与 WorldMap／普通面板开关绝不修改它；
         /// 临时窗口使用具名 Modal ownership，关闭时只释放自己的 ownership。
         /// </summary>
         public bool ManualPaused { get; set; } = true;

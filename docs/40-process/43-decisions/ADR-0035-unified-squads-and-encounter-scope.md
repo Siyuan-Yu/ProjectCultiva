@@ -16,6 +16,8 @@ PlayerParty 最终只表达玩家所控小队与单 Active，不维护第二份�
 
 主世界暂停，本场战术时间运行；返回只恢复空间，保留伤亡、消耗、关系、建筑损伤等真实战果，禁止恢复整份战前快照。远处无玩家的 NPC 战斗仍自动处理，不加载全世界独立场景或冻结世界。人物冲突与正式战争后果继续区分。
 
+人物遭遇使用三种不可混淆的位置：`Origin` 是入场时的 source-world canonical authority；`Return` 是 Independent Field 接管前从实际 EntityView 冻结的主世界物理位置；`Tactical` 是独立战场内可移动、可存档的位置。战斗正式开始后 `Return` 不可变，Tactical movement 对主世界位置没有任何影响。`CharacterEncounter` 从 Active 到 `CommitAndReturn` 始终独占参战者空间状态；弥留／死亡在同一个 View、同一 Tactical 点原地切换，普通 residual handoff 只在 return 后开始。倒下、死亡或脱离原小队的角色回到 `SourceSurfaceId + Return`；仍存活且仍受 PlayerParty／Squad authority 管理的角色重新交给对应 group authority。
+
 ## 3. 战场范围唯一规则
 
 2026-09-14 制作人最终锁定：一级议政厅与一级势力旗共用核心等级 Content 配置，控制范围为以核心真实 Continuous 世界位置为中心的 **150×150 Surface cells**。Main Surface 为 0.028 world/cell，因此得到 4.2×4.2 world（X/Y 各 ±2.1），即3×3个1.4-world chunks。这是控制/行政/建设管理/Site Encounter 范围，不是建筑自身 footprint。野外 Encounter 使用独立配置，继续为500×500 cells／14×14 world。

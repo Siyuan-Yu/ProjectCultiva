@@ -22,7 +22,7 @@ namespace XianXia.Unity.Host
         public string SiteLabel = string.Empty;
         /// <summary>玩家看到的行标签（PlayerParty member：canonical party location；其余：SiteLabel）。</summary>
         public string LocationLabel = string.Empty;
-        public string ArmyId = string.Empty;
+        public string SquadId = string.Empty;
         public bool IsGrouped;
     }
 
@@ -109,17 +109,16 @@ namespace XianXia.Unity.Host
             };
             var currentParty = partyRuntime ?? world.Strategic.PlayerPartyContext;
             if (currentParty?.IsMember(id) != true &&
-                world.Strategic.Squads.TryGetForCharacter(id, out var army) &&
-                world.Strategic.SquadWorldMotions.TryGet(army.SquadId, out var groupMotion) &&
-                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, army, groupMotion))
+                world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var groupMotion) &&
+                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, groupMotion))
             {
-                row.ArmyId = army.SquadId;
+                row.SquadId = squad.SquadId;
                 row.IsGrouped = true;
             }
 
-            // CORRECTION V1（roster “?”）：PlayerParty member（非 FormalArmy）的位置不是 individual
-            // Site-only query（ArmyService.ResolveCharacterFormationLocationId 是旧 FormalArmy/individual
-            // presence query，对 canonical party 位置会返回空 → “?”）。改用 PlayerPartyWorldLocationQuery：
+            // PlayerParty member 的位置来自 canonical PlayerPartyWorldLocationQuery，而不是
+            // NPC Squad membership 或 individual Site-only presence。
             // AtWorldSite → row.SiteId = resolved Site（可 focus）；AtWorldPosition（Wilderness）→
             // SiteId 留空 + LocationLabel = Hex 标签（正常状态，不是 Unknown）。
             if (partyRuntime != null &&

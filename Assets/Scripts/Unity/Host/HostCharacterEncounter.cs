@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.Results;
 using XianXia.Core.World.Strategic;
@@ -466,7 +467,10 @@ namespace XianXia.Unity.Host
                     if (p.Cooldown > 0f || !state.Opposing(id.Value, target.Value)) continue;
                     _host.MoveController.CancelPresentationMovementPublic(id);
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
-                    _melee.ApplyStrike(world, id, target, out _, out _);
+                    var strike = _melee.ApplyStrike(
+                        world, id, target, out _, out var defenderDefeated);
+                    if (strike.IsSuccess && defenderDefeated)
+                        RefreshDefeatedParticipant(target);
                 }
                 var previousCount = state.Participants.Count;
                 CharacterEncounterService.Advance(world, dt, _host.ContinuousOutdoorSurfaceRuntime.PrepareInterventionPlacement);
@@ -531,9 +535,27 @@ namespace XianXia.Unity.Host
                 return;
             _host.MoveController.CancelPresentationMovementPublic(attackerId);
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
-            _melee.ApplyStrike(world, attackerId, targetId, out _, out _);
+            var strike = _melee.ApplyStrike(
+                world, attackerId, targetId, out _, out var defenderDefeated);
+            if (strike.IsSuccess && defenderDefeated)
+                RefreshDefeatedParticipant(targetId);
             if (!CombatLifeStateService.CanBeAttacked(targetEntity))
                 attacker.TargetId = 0;
+        }
+
+        void RefreshDefeatedParticipant(EntityId id)
+        {
+            if (_host?.Session?.World == null || id.IsNone)
+                return;
+            if (_host.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                _host.ContinuousOutdoorSurfaceRuntime
+                    ?.TryCaptureIndependentParticipantPosition(id, view.transform.position);
+            HostLifeStatePresentationSync.RefreshDownedOrDead(
+                _host.Session.World,
+                _host.ViewSpawner,
+                _host.MoveController,
+                id,
+                captureOrdinaryPlacement: false);
         }
 
         public void CancelPreparation()
@@ -560,6 +582,9 @@ namespace XianXia.Unity.Host
             if (anchors.IsFailure) { _failure = anchors.Error.Message; return false; }
             var result = CharacterEncounterService.CommitAndReturn(world);
             if (result.IsFailure) { _failure = result.Error.Message; return false; }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LogReturnDiagnostics(world, state);
+#endif
             // CommitAndReturn clears the encounter-owned participant scope. Re-evaluate Active
             // control in that ordinary scope before Continuous startup asks for its EntityView;
             // waiting for the next HostPlayerPartyController.Update leaves a one-frame stale
@@ -569,6 +594,40 @@ namespace XianXia.Unity.Host
             Phase = PresentationPhase.Report;
             return true;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        static void LogReturnDiagnostics(
+            SimulationWorld world,
+            CharacterEncounterState state)
+        {
+            foreach (var participant in state.Participants)
+            {
+                var id = new EntityId(participant.CharacterId);
+                world.Entities.TryGet(id, out var entity);
+                var life = entity != null &&
+                           entity.TryGet<LifecycleComponent>(out var lifecycle)
+                    ? lifecycle.State.ToString()
+                    : "Missing";
+                var returned = world.WorldPresence.TryGet(id, out var presence) &&
+                               presence != null && presence.HasContinuousWorldPosition &&
+                               presence.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtWorldPosition
+                    ? "(" + presence.WorldPosX.ToString("0.###") + "," +
+                      presence.WorldPosY.ToString("0.###") + ")"
+                    : participant.SourceSpatialOwnerKind + "Authority";
+                Debug.Log(
+                    "[CharacterEncounterReturn] CharacterId=" + participant.CharacterId +
+                    " LifeState=" + life +
+                    " SourceOwner=" + participant.SourceSpatialOwnerKind +
+                    " Origin=(" + participant.OriginX.ToString("0.###") + "," +
+                    participant.OriginY.ToString("0.###") + ")" +
+                    " Return=(" + participant.ReturnX.ToString("0.###") + "," +
+                    participant.ReturnY.ToString("0.###") + ")" +
+                    " FinalTactical=(" + participant.TacticalX.ToString("0.###") + "," +
+                    participant.TacticalY.ToString("0.###") + ")" +
+                    " ReturnedWorldPosition=" + returned);
+            }
+        }
+#endif
 
         public void CloseReport()
         {

@@ -33,7 +33,7 @@ namespace XianXia.Unity.Host
             "外交",
             "存档",
             "战斗",
-            "诊断",
+            "系统 / 性能",
         };
 
         const int WindowId = 0x1E7E573;
@@ -214,13 +214,13 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x, y, width, lineH),
                 "上次保存: Ch=" + saved.CharacterCount +
                 " Party=" + saved.PlayerPartyCount +
-                " Army=" + saved.FormalArmyCount +
+                " Squad=" + saved.SquadCount +
                 " " + saved.WorldLocation, _body);
             y += lineH;
             GUI.Label(new Rect(x, y, width, lineH),
                 "当前 Runtime: Ch=" + runtime.CharacterCount +
                 " Party=" + runtime.PlayerPartyCount +
-                " Army=" + runtime.FormalArmyCount +
+                " Squad=" + runtime.SquadCount +
                 " " + runtime.WorldLocation, _body);
             y += lineH;
             if (!string.IsNullOrEmpty(saved.PlayerPartyDetail))
@@ -388,7 +388,7 @@ namespace XianXia.Unity.Host
         void DrawDiagnosticsTab(float x, float y, float width)
         {
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            GUI.Label(new Rect(x, y, width, 24f), "通用运行诊断", _title);
+            GUI.Label(new Rect(x, y, width, 24f), "系统 / 性能", _title);
             y += 30f;
             GUI.Label(new Rect(x, y, width, 22f),
                 bootstrap != null ? bootstrap.OutdoorAuthorityDiagnostic : "Authority=Uninitialized", _body);
@@ -397,11 +397,14 @@ namespace XianXia.Unity.Host
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
 
-            var strategic = bootstrap?.Session?.World?.Strategic;
+            var world = bootstrap?.Session?.World;
+            var strategic = world?.Strategic;
             GUI.Label(new Rect(x, y, width, 40f),
                 "NPC Squad Runtime: Squads=" + (strategic?.Squads?.Squads?.Count ?? 0) +
-                "  ActiveNpcSquadWorldMotions=" + CountActiveNpcSquadWorldMotions() +
-                "  LegacyArmyRuntime=0", _body);
+                "  ActiveNpcSquadWorldMotions=" + CountActiveNpcSquadWorldMotions() + "\n" +
+                "Legacy Runtime: RETIRED  Modern AtHex Producers=0  Outdoor LocalMap Active=" +
+                (world?.LocalMap != null && !world.LocalMap.IsInInterior &&
+                 !string.IsNullOrEmpty(world.LocalMap.ActiveMapLayoutId)), _body);
             y += 44f;
 
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;

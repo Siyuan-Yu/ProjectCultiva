@@ -944,6 +944,7 @@ namespace XianXia.Unity.Host
                 }
                 return false; // Internal chunk/Hex seams are ordinary movement, never SurfaceExit.
             }
+            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY.
             if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
                 return false;
 
@@ -1022,6 +1023,7 @@ namespace XianXia.Unity.Host
 
             // Phase 5C-W1: LocalVisible AutoTravel in Wilderness keeps Host sync + edge enabled;
             // normal moving (World execution) still early-returns (World Advance drives position).
+            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY: explicit LocalVisible executor gate.
             var localVisibleAutoTravel =
                 LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion);
             if (motion.IsMoving && !localVisibleAutoTravel)
@@ -1230,6 +1232,21 @@ namespace XianXia.Unity.Host
         /// </summary>
         void TickWorldSiteCanonicalSync()
         {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var motion = world?.PlayerPartyTravel;
+            if (world == null || motion == null || !motion.HasPosition)
+                return;
+
+            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. Normal Continuous Surface frames must
+            // never resolve Site geometry, write AtWorldSite canonical state, or emit B4 diagnostics.
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(motion.SiteId) ||
+                ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
+                world.LocalMap == null || world.LocalMap.IsInInterior ||
+                string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
+                return;
+
             // Materialize 完成帧（OnLocalMapMaterialized 已置 held）：本帧不反写，下一帧 ownership 接管。
             if (_siteSyncHeld)
             {
@@ -1238,11 +1255,6 @@ namespace XianXia.Unity.Host
             }
 
             if (HostInputGate.BlockWorldInteraction)
-                return;
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var motion = world?.PlayerPartyTravel;
-            if (world == null || motion == null || !motion.HasPosition)
                 return;
 
             var active = Party.ActiveCharacterId;

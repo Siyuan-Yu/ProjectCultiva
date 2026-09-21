@@ -1486,7 +1486,6 @@ namespace XianXia.Core.Persistence
             var motion = world.PlayerPartyTravel;
             // CW-U4.1: old PlayerParty AttackArmy/attack-chase orders are retired on load.
             // Preserve the canonical position, restore Idle, and never auto-declare war/create an encounter.
-            motion.ClearAttackOrder();
             var pos = new WorldVec2(travel.WorldX, travel.WorldY);
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize

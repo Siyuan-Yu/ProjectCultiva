@@ -8,7 +8,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 5R-B6：PlayerParty WorldSite departure 细分阶段。
+    /// LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：PlayerParty WorldSite departure 细分阶段。
     /// 将「计划离开 Site」与「已经进入 Boundary Transition」拆开，避免单一 bool 让 B4
     /// ownership 模糊（approaching 时角色仍 AtWorldSite、LocalVisible owns，B4 必须继续；
     /// 仅 TransitionCommit 时 transition authority 接管、B4 停止）。
@@ -32,8 +32,8 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// PlayerParty 世界位置 + 移动状态真源（Phase 2C）。
-    /// WorldPosition 为开世界真源；CurrentHex 只是在 HexWorld 存在时派生的 compatibility metadata。
+    /// PlayerParty Continuous Outdoor 位置与移动 authority。正常运行使用 SurfaceId、WorldPosition、
+    /// SurfaceVisible 与 ContinuousSurfaceRoute；CurrentHex 只是 derived compatibility metadata。
     /// </summary>
     public sealed class PlayerPartyWorldMotion
     {
@@ -77,23 +77,6 @@ namespace XianXia.Core.World.Strategic
             _continuousSurfaceRouteView ?? (_continuousSurfaceRouteView = _continuousSurfaceRoute.AsReadOnly());
         public bool HasContinuousSurfaceRoute => _continuousSurfaceRoute.Count > 1;
 
-        /// <summary>
-        /// Phase 5S-B2-3.5：PlayerParty 追击目标 FormalArmy 的 strategic order metadata。
-        /// 不是第二份 position authority（WorldPosition / CurrentHex / HexPath 仍是唯一物理真源），
-        /// 只表达「正在追击哪个 target」；pursuit 每 tick 由 PlayerPartyHexPursuitService 驱动：
-        /// 目标移动时 retarget、进入 Defender SupportArea 时立即转为 PendingEngagement。
-        /// 生命周期完全由 PlayerPartyHexPursuitService 管理（BeginAttackArmy 设置 / CancelPursuit
-        /// 清除）；CompleteMove / ClearMovementKeepMembers 不清，避免 contact 流程的 CancelTravel
-        /// 误清 pursuit intent。Save→Load 后 Movement 恢复 Idle，pursuit target 亦清空（见
-        /// StrategicSnapshotHelper.RestorePlayerPartyTravel）。
-        /// </summary>
-        public string AttackOrderTargetArmyId { get; private set; } = string.Empty;
-
-        public void SetAttackOrder(string targetArmyId) =>
-            AttackOrderTargetArmyId = targetArmyId ?? string.Empty;
-
-        public void ClearAttackOrder() => AttackOrderTargetArmyId = string.Empty;
-
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
@@ -101,7 +84,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>派生格：Travel Presentation 或 Authority 投影。</summary>
         public HexCoord CurrentHex { get; private set; }
 
-        /// <summary>Site 内 Travel Presentation（Authority 仍为 AtWorldSite）。</summary>
+        /// <summary>LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：Site departure presentation transient。</summary>
         public bool IsSiteDeparturePending { get; private set; }
         public WorldVec2 SiteDepartureVirtualPosition { get; private set; }
         public WorldVec2 SiteDepartureBoundaryEntry { get; private set; }
@@ -109,7 +92,7 @@ namespace XianXia.Core.World.Strategic
         public HexCoord SiteDepartureExitHex { get; private set; }
 
         /// <summary>
-        /// Phase 5R-B6：WorldSite departure 细分阶段（区分「计划/走向出口」与「真正 crossing」）。
+        /// LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：WorldSite departure 细分阶段。
         ///  <see cref="PlayerPartyDeparturePhase.Planned"/>：WorldMap 接受外部 order，plan 已形成（WorldMap open 仅 plan，不虚拟推进）；
         ///  <see cref="PlayerPartyDeparturePhase.Approaching"/>：WorldMap close，LocalVisible 驱动角色在 Site LocalMap 内走向正式出口
         ///      —— 期间角色仍 AtWorldSite、LocalVisible owns，<b>B4 Local→Canonical 必须继续</b>；
@@ -124,7 +107,7 @@ namespace XianXia.Core.World.Strategic
             IsSiteDeparturePending = phase != PlayerPartyDeparturePhase.None;
         }
 
-        /// <summary>跨入 Destination Site 后 Footprint 内 Presentation（Authority 已为 AtWorldSite）。</summary>
+        /// <summary>LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：Destination Site presentation transient。</summary>
         public bool UsesTravelPresentation { get; private set; }
         public WorldVec2 TravelPresentationPosition { get; private set; }
 
@@ -132,12 +115,13 @@ namespace XianXia.Core.World.Strategic
 
         public int HexPathCount => _hexPath.Count;
 
+        /// <summary>LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY.</summary>
         public IReadOnlyList<HexCoord> HexPath =>
             _hexPathView ?? (_hexPathView = _hexPath.AsReadOnly());
 
         public IReadOnlyList<EntityId> TravelingMembers => _travelingMembers;
 
-        /// <summary>Surface LocalMap 边界跨格防抖（不改 WorldPosition）。</summary>
+        /// <summary>LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：Surface LocalMap 边界跨格防抖。</summary>
         public PlayerPartySurfaceEdgeGate SurfaceEdgeGate { get; } = new PlayerPartySurfaceEdgeGate();
 
         /// <summary>Outdoor physical-region context only. It is derived from canonical
@@ -160,7 +144,6 @@ namespace XianXia.Core.World.Strategic
             _travelingMembers.Clear();
             _continuousSurfaceRoute.Clear();
             ContinuousSurfaceRouteIndex = 0;
-            AttackOrderTargetArmyId = string.Empty;
             SegmentIndex = 0;
             SegmentProgress = 0f;
             StepRemainingTicks = 0;
@@ -296,9 +279,9 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// Snapshot 的静止 WorldSite 恢复入口。WorldPosition 是已经保存的 Canonical 位置，
+        /// Legacy Snapshot 的静止 WorldSite 恢复入口。WorldPosition 是已经保存的 Canonical 位置，
         /// 因而不得调用 <see cref="SetAtWorldSite"/> 再吸回 PresenceHex 中心。
-        /// 该入口只恢复静止态：不恢复路径、离场计划、攻击命令或执行器所有权。
+        /// 该入口只恢复静止态：不恢复路径、离场计划或执行器所有权。
         /// </summary>
         public bool RestoreIdleAtWorldSite(
             string siteId,
@@ -316,7 +299,6 @@ namespace XianXia.Core.World.Strategic
             CurrentHex = currentHex;
             HasPosition = true;
             ClearMovementKeepMembers();
-            ClearAttackOrder();
             UsesTravelPresentation = false;
             return true;
         }

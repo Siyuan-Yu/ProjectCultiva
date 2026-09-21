@@ -1,11 +1,22 @@
 using XianXia.Core.Simulation;
 using XianXia.Core.Persistence;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>Development-only proof that a modern Continuous session owns no retired runtime authority.</summary>
     public static class LegacyRuntimeInvariant
     {
+        public static void AssertModernOpeningScenario(int initialFormalArmyCount)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (initialFormalArmyCount > 0)
+                System.Diagnostics.Debug.Fail(
+                    "[LegacyRuntimeInvariant] Current opening scenario still declares InitialFormalArmyIds: " +
+                    initialFormalArmyCount);
+#endif
+        }
+
         public static void AssertModernNewGame(SimulationWorld world)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -19,11 +30,58 @@ namespace XianXia.Core.World.Strategic
                         "[LegacyRuntimeInvariant] Modern Character has AtHex presence: " + pair.Key);
             }
             var travel = world.PlayerPartyTravel;
+            if (travel != null && travel.HasPosition)
+            {
+                if (travel.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Modern PlayerParty is not AtWorldPosition: " +
+                        travel.LocationKind);
+                if (string.IsNullOrWhiteSpace(travel.SurfaceId))
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Modern PlayerParty SurfaceId is empty.");
+                else if (!world.SurfaceGround.TryGet(travel.SurfaceId, out var navigation))
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Modern PlayerParty Surface is not registered: " +
+                        travel.SurfaceId);
+                else if (!navigation.Contains(travel.WorldPosition.X, travel.WorldPosition.Y))
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Modern PlayerParty WorldPosition is outside its Surface: " +
+                        travel.SurfaceId);
+
+                if (travel.IsMoving)
+                {
+                    if (travel.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible)
+                        System.Diagnostics.Debug.Fail(
+                            "[LegacyRuntimeInvariant] Moving modern PlayerParty does not use SurfaceVisible: " +
+                            travel.ExecutionMode);
+                    if (!travel.HasContinuousPhysicalDestination)
+                        System.Diagnostics.Debug.Fail(
+                            "[LegacyRuntimeInvariant] Moving modern PlayerParty has no continuous physical destination.");
+                }
+                else if (travel.ExecutionMode != PlayerPartyTravelExecutionMode.None)
+                {
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Idle modern PlayerParty execution is not None: " +
+                        travel.ExecutionMode);
+                }
+
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                var derivedHex = HexMath.WorldToHex(
+                    travel.WorldPosition.X, travel.WorldPosition.Y, hexSize);
+                if (travel.CurrentHex != derivedHex)
+                    System.Diagnostics.Debug.Fail(
+                        "[LegacyRuntimeInvariant] Modern PlayerParty CurrentHex is not derived from WorldPosition.");
+            }
             if (travel != null && travel.HasPosition &&
-                travel.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible)
+                travel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(travel.SiteId) &&
+                world.Strategic.Sites.TryGet(travel.SiteId, out var site) &&
+                WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
                 System.Diagnostics.Debug.Fail(
-                    "[LegacyRuntimeInvariant] Modern PlayerParty uses legacy travel execution: " +
-                    travel.ExecutionMode);
+                    "[LegacyRuntimeInvariant] Modern Continuous Site uses AtWorldSite: " +
+                    travel.SiteId);
             if (world.LocalMap != null && !world.LocalMap.IsInInterior &&
                 !string.IsNullOrEmpty(world.LocalMap.ActiveMapLayoutId))
                 System.Diagnostics.Debug.Fail(

@@ -89,7 +89,6 @@ namespace XianXia.Core.Persistence
                 return;
 
             world.PartyWorld.EncounterId = string.Empty;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
 
             if (resolved.PartyWorldMode == PartyWorldPresenceMode.AtSite &&
                 !string.IsNullOrEmpty(resolved.SiteId))

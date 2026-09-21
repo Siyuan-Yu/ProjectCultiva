@@ -435,7 +435,6 @@ namespace XianXia.Unity.Host
                 return;
 
             world.PartyWorld.EncounterId = string.Empty;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
 
             if (resolved.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(resolved.SiteId))

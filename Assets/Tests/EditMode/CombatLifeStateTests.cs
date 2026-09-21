@@ -151,18 +151,16 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Downed_CannotFight_OrTravel()
+        public void Downed_CannotFight_OrBeAttacked()
         {
             var world = CreateWorld(out var entity, out _);
             Assert.IsTrue(CombatLifeStateService.CanFight(entity));
             CombatLifeStateService.TryEnterIncapacitated(world, entity);
             Assert.IsFalse(CombatLifeStateService.CanFight(entity));
-            Assert.IsFalse(WorldTravelService.CanReceiveTravelOrder(world, entity.Id));
 
             CombatLifeStateService.TryConfirmDeath(world, EntityId.None, entity, out _);
             Assert.IsFalse(CombatLifeStateService.CanFight(entity));
             Assert.IsFalse(CombatLifeStateService.CanBeAttacked(entity));
-            Assert.IsFalse(WorldTravelService.CanReceiveTravelOrder(world, entity.Id));
         }
     }
 }

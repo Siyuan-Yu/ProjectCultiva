@@ -1,5 +1,30 @@
 # 开发日志
 
+## 2026-09-21 — LEGACY-FINAL-PRESEAL-FIX modern invariant 与 Host legacy sync 隔离（待制作人验收）
+
+- 修正 `AssertModernNewGame`：idle Continuous PlayerParty 要求 `ExecutionMode=None`，只有 moving 状态要求 `SurfaceVisible` 与 continuous physical destination；同时验证 AtWorldPosition、SurfaceId/registered bounds 与 CurrentHex 单向派生。
+- `TickWorldSiteCanonicalSync` 在解析 Active View／Site geometry 或输出 B4 diagnostics 前，先 gate 到真实 legacy AtWorldSite Outdoor LocalMap；正常 Continuous LateUpdate 继续只走 Surface presentation sync。
+- PartyWorldPresenceMode 与 StrategicBoard 注释同步当前 authority；未修改 Gameplay、CharacterEncounter 或 compatibility schema，保持未暂存、未提交。
+
+## 2026-09-21 — LEGACY-FINAL-SEAL-2 dead runtime residue purge（待制作人验收）
+
+- 全仓 caller audit 后删除零调用的 `BattleEngagementKinds`、`FormalArmyLocationKinds`、`HexStrategicRuntime`、`HexTerrainPresentation` 与 `HexTerrainVisualInset`；保留仍有测试 caller 的 `HexMetrics`／`HexWorldMapRenderBounds`。
+- 删除 PlayerParty 退役 FormalArmy pursuit metadata 与 PartyWorld 空写 FormalArmy focus metadata；normal runtime 注释改为当前 Squad／Continuous authority，legacy serialization、numeric enum 与 compatibility adapter 保持不变。
+- 状态继续为 **Implementation Complete / Producer Acceptance Pending**；等待制作人最终 smoke，不提前宣称 Migration Complete 或 Accepted / Sealed。
+
+## 2026-09-21 — FINAL-SEAL CharacterEncounter 最终验收回归修复（待制作人验收）
+
+- 独立战场新增 immutable `Return` 坐标，与 source canonical `Origin`、战场可变 `Tactical` 分离；开战前从真实 EntityView 冻结 Return，Format 4 保存 Return+Tactical，Format 1/2/3 以 Origin 迁移 Return。退出准备不再 nearest-walkable 改写 Origin，倒下／死亡／脱队 participant 战后统一返回 Return。
+- Active／ReadyToEnd CharacterEncounter 成为 participant 唯一 spatial owner；生命状态服务不再触发 SquadWorldMotion handoff。CombatantDefeated 不走普通 residual freeze 或 population reconcile，Host 在 strike 当帧先捕获 Tactical，再在同一个 EntityView 原地刷新弥留／尸体表现。
+- FINAL-SEAL 状态保持 **Implementation Complete / Producer Acceptance Pending**；未提前 Seal。
+
+## 2026-09-21 — LEGACY-FINAL-SEAL compatibility quarantine 与 Architecture Freeze（待制作人验收）
+
+- 删除 zero-caller WorldTravel order wrappers、旧 Hex FactionFlag construction chain 与 dead WorldSite access wrappers；Host roster 与 presence 命名统一为 Squad。
+- Legacy PlayerParty Host 调用统一标明 compatibility-only，并由 LocalVisible／active Outdoor LocalMap／legacy World Hex plan gate；修复 modern Continuous presence repair 解析失败时可能落入 AtHex producer 的 fallthrough。
+- Development guard 增加 Current opening `InitialFormalArmyIds` 与 Continuous Site `AtWorldSite` 检查；诊断页收口为系统／性能与单行 Legacy retired 状态。
+- 最终 authority 与 quarantine freeze 见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。状态：**Implementation Complete / Producer Acceptance Pending**；最终 smoke 前暂不宣称 Migration Complete。
+
 ## 2026-09-21 — LEGACY-FINAL-C Producer Accepted / Sealed
 
 - 制作人已完成人工验收：New Game、Actual Control／WorldMap、PlayerParty Continuous Travel、NPC Squad、CharacterEncounter、residual 精确位置与 Save/Load、Separate Space、Site／economy 及 Legacy Runtime diagnostics 均正常。

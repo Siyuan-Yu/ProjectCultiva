@@ -3,16 +3,9 @@ using XianXia.Core.Simulation;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// SimulationLoop 之后的战略层 Travel 真推进入口。
-    /// PlayerParty modern SurfaceVisible travel is Host/presentation driven. This driver only
-    /// advances genuine legacy World-mode Hex travel.
-    /// PlayerParty pursuit（Phase 5S-B2-3.5）：因 Core 无 PlayerPartyRuntime 引用，pursuit tick
-    /// 由 Host PlayableHostBootstrap.StepTick 在 TickOnce 之后驱动
-    /// （PlayerPartyHexPursuitService.AfterTravelTick(world, party)）—— 其顺序等价于本文件内
-    /// ArmyHexPursuitService.AfterTravelTick：PlayerParty travel 与 FormalArmy target travel 均已
-    /// Advance 后，先检查 SupportArea contact、未接触则按 target 当前 Hex retarget。
-    /// 接战弹窗优先；抵达后不再自动进入残留战场 —— Residual 只是 world population，
-    /// 普通 MoveToHex 到站后自然停在 Hex（Player 加载 LocalMap 时可见弥留／尸体）。
+    /// Core travel tick boundary. SquadWorldMotion and background Surface travel advance here.
+    /// Modern PlayerParty SurfaceVisible movement is Host-driven. The final branch advances only
+    /// an explicitly gated legacy World-mode Hex travel plan with no SurfaceId.
     /// </summary>
     public static class StrategicTravelDriver
     {

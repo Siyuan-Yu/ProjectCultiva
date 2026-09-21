@@ -417,6 +417,10 @@ namespace XianXia.Core.Combat
 
         static void CaptureSquadWorldMotionHandoff(SimulationWorld world, EntityId id)
         {
+            // Active/ReadyToEnd CharacterEncounter is the sole spatial owner. Lifecycle changes
+            // remain in-place on its Tactical position until CommitAndReturn restores Return.
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, id))
+                return;
             if (world?.Strategic?.Squads == null ||
                 !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
                 squad.CommandKind != SquadCommandKind.SquadWorldMotion ||

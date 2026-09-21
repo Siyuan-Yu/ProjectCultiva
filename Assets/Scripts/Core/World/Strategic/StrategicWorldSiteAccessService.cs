@@ -1,31 +1,13 @@
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex \u6218\u7565\uff1aWorldSite LocalMap \u51c6\u5165\uff08\u771f\u6e90 = WorldSite + FormalArmy \u8db3\u8ff9\uff09\u3002</summary>
+    /// <summary>Legacy WorldSite LocalMap compatibility admission.</summary>
     public static class StrategicWorldSiteAccessService
     {
-        public static bool TryGetEnterableWorldSiteAtHex(
-            SimulationWorld world,
-            HexCoord hex,
-            out WorldSite site)
-        {
-            site = null;
-            if (world?.Strategic?.Sites == null ||
-                !world.Strategic.Sites.TryGetAtHex(hex, out site) ||
-                site == null)
-                return false;
-
-            if (string.IsNullOrWhiteSpace(site.LocalMapId))
-                return false;
-
-            return true;
-        }
-
-        public static Result CanOpenWorldSiteLocalMapFromPresence(
-            SimulationWorld world, string siteId, string retiredLegacyArmyId)
+        public static Result CanEnterWorldSiteLocalMap(
+            SimulationWorld world, string siteId)
         {
             if (world == null) return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (StrategicClockFreezeService.IsModalEncounter(world))
@@ -42,10 +24,6 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "无己方角色在此地点，无法进入场景。");
             return Result.Success();
         }
-
-        public static Result CanEnterWorldSiteLocalMap(
-            SimulationWorld world, string siteId, string retiredLegacyArmyId) =>
-            CanOpenWorldSiteLocalMapFromPresence(world, siteId, retiredLegacyArmyId);
 
         /// <summary>
         /// PlayerParty 从相邻 Surface 进入目标 WorldSite 的无副作用准入检查。
@@ -72,12 +50,5 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
-        public static string BuildEnterSiteMenuLabel(WorldSite site)
-        {
-            if (site == null)
-                return "\u8fdb\u5165\u5730\u70b9";
-            var name = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            return "\u8fdb\u5165" + name;
-        }
     }
 }

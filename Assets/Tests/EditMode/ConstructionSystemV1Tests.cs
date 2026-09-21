@@ -1,13 +1,11 @@
 using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Construction;
-using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
-using XianXia.Data.Serialization;
 
 namespace XianXia.Tests
 {
@@ -50,44 +48,6 @@ namespace XianXia.Tests
             spec.Costs.Add(new ConstructionMaterialCost { ItemId = Wood, Count = 10 });
             world.ConstructionCatalog.Register(spec);
             return world;
-        }
-
-        [Test]
-        public void ConstructRequiresMaterialsAndCommitsFlagWithExactCost()
-        {
-            var world = World();
-            world.Inventory.TryAddAll(Wood, 9);
-            var anchor = new HexCoord(5, 5);
-            var failed = ConstructionService.TryConstructFactionFlag(
-                world, Building, Player, anchor, 2f, 3f, out _);
-            Assert.IsTrue(failed.IsFailure);
-            Assert.AreEqual(9, world.Inventory.GetCount(Wood));
-            Assert.IsEmpty(world.Strategic.FactionFlags.Flags);
-
-            world.Inventory.TryAddAll(Wood, 1);
-            var success = ConstructionService.TryConstructFactionFlag(
-                world, Building, Player, anchor, 2f, 3f, out var flagId);
-            Assert.IsTrue(success.IsSuccess, success.IsFailure ? success.Error.ToString() : string.Empty);
-            Assert.AreEqual(0, world.Inventory.GetCount(Wood));
-            Assert.IsTrue(world.Strategic.FactionFlags.Flags.ContainsKey(flagId));
-        }
-
-        [Test]
-        public void InvalidPlacementDoesNotConsumeMaterialsOrCreateFlag()
-        {
-            var world = World();
-            world.Inventory.TryAddAll(Wood, 20);
-            world.Strategic.FactionFlags.Register(new FactionFlagState
-            {
-                FlagId = "flag:enemy", FactionId = "faction:enemy",
-                AnchorHex = new HexCoord(5, 5), EstablishedOrder = 1
-            });
-
-            var result = ConstructionService.TryConstructFactionFlag(
-                world, Building, Player, new HexCoord(6, 5), 0f, 0f, out _);
-            Assert.IsTrue(result.IsFailure);
-            Assert.AreEqual(20, world.Inventory.GetCount(Wood));
-            Assert.AreEqual(1, world.Strategic.FactionFlags.Flags.Count);
         }
 
         [Test]
@@ -174,50 +134,6 @@ namespace XianXia.Tests
             var shell = RuntimeContentShellBootstrap.Rehydrate(world, loaded.Value.Registry);
             Assert.IsTrue(shell.IsSuccess, shell.IsFailure ? shell.Error.ToString() : string.Empty);
             Assert.IsTrue(world.ConstructionCatalog.TryGet(Building, out _));
-        }
-
-        [Test]
-        public void ConstructAndDismantlePersistThroughExistingFlagAndInventorySnapshots()
-        {
-            var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
-            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
-            var world = World();
-            world.Inventory.TryAddAll(Wood, 20);
-            Assert.IsTrue(ConstructionService.TryConstructFactionFlag(
-                world, Building, Player, new HexCoord(5, 5), 1f, 2f, out var flagId).IsSuccess);
-
-            var snapshots = new SnapshotService(new JsonSnapshotSerializer());
-            var builtJson = snapshots.CaptureJson(world, new SimulationLoop(world));
-            Assert.IsTrue(builtJson.IsSuccess);
-            var built = snapshots.RestoreJson(builtJson.Value);
-            Assert.IsTrue(built.IsSuccess);
-            var builtDto = new JsonSnapshotSerializer().Deserialize(builtJson.Value);
-            Assert.IsTrue(builtDto.IsSuccess);
-            built.Value.world.HexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
-            Assert.IsTrue(StrategicSnapshotHelper.RestoreHexPoliticalState(
-                built.Value.world, builtDto.Value.Strategic).IsSuccess);
-            Assert.AreEqual(10, built.Value.world.Inventory.GetCount(Wood));
-            Assert.IsTrue(built.Value.world.Strategic.FactionFlags.Flags.ContainsKey(flagId));
-            Assert.IsTrue(RuntimeContentShellBootstrap.Rehydrate(
-                built.Value.world, loaded.Value.Registry).IsSuccess);
-            Assert.IsTrue(built.Value.world.ConstructionCatalog.TryGet(Building, out _));
-
-            Assert.IsTrue(ConstructionService.TryDismantleFactionFlag(
-                built.Value.world, Building, Player, flagId, out _).IsSuccess);
-            Assert.AreEqual(15, built.Value.world.Inventory.GetCount(Wood));
-            var dismantledJson = snapshots.CaptureJson(built.Value.world, built.Value.loop);
-            Assert.IsTrue(dismantledJson.IsSuccess);
-            var dismantled = snapshots.RestoreJson(dismantledJson.Value);
-            Assert.IsTrue(dismantled.IsSuccess);
-            var dismantledDto = new JsonSnapshotSerializer().Deserialize(dismantledJson.Value);
-            Assert.IsTrue(dismantledDto.IsSuccess);
-            dismantled.Value.world.HexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
-            Assert.IsTrue(StrategicSnapshotHelper.RestoreHexPoliticalState(
-                dismantled.Value.world, dismantledDto.Value.Strategic).IsSuccess);
-            Assert.AreEqual(15, dismantled.Value.world.Inventory.GetCount(Wood));
-            Assert.IsFalse(dismantled.Value.world.Strategic.FactionFlags.Flags.ContainsKey(flagId));
-            Assert.AreNotEqual(flagId, FactionFlagService.NextRuntimeFlagId(
-                dismantled.Value.world, Player, new HexCoord(5, 5)));
         }
 
         [TestCase("base:missing", 0.5)]

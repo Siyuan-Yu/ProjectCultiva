@@ -254,7 +254,7 @@ namespace XianXia.Unity.Host
                 if (atkEnt.TryGet<CombatVitalsComponent>(out var atkHp) && atkHp.CurrentHp <= 0)
                 {
                     CombatLifeStateService.TryEnterIncapacitated(world, atkEnt, _defender);
-                    ApplyDownPresentation(atkId, atkEnt);
+                    ApplyDownPresentation(atkId);
                     Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);
                     continue;
@@ -297,7 +297,7 @@ namespace XianXia.Unity.Host
                         {
                             if (postLife.IsIncapacitated)
                             {
-                                ApplyDownPresentation(_defender, defEnt);
+                                ApplyDownPresentation(_defender);
                                 var name = string.IsNullOrEmpty(defEnt.DisplayName)
                                     ? _defender.ToString()
                                     : defEnt.DisplayName;
@@ -305,7 +305,7 @@ namespace XianXia.Unity.Host
                             }
                             else if (postLife.IsDead)
                             {
-                                ApplyDownPresentation(_defender, defEnt);
+                                ApplyDownPresentation(_defender);
                                 var name = string.IsNullOrEmpty(defEnt.DisplayName)
                                     ? _defender.ToString()
                                     : defEnt.DisplayName;
@@ -360,7 +360,7 @@ namespace XianXia.Unity.Host
                     if (atkDown)
                     {
                         if (world.Entities.TryGet(atkId, out var downEnt))
-                            ApplyDownPresentation(atkId, downEnt);
+                            ApplyDownPresentation(atkId);
                         Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                         bootstrap.DispatchDrainedEvents();
                         RemoveAttacker(atkId, null);
@@ -523,27 +523,11 @@ namespace XianXia.Unity.Host
             ClearInternal(null);
         }
 
-        void ApplyDownPresentation(EntityId id, Entity entity)
+        void ApplyDownPresentation(EntityId id)
         {
-            if (viewSpawner == null || id.IsNone || entity == null)
-                return;
-            // A moving Character can fall between path nodes. Freeze the actual View position
-            // before movement cancellation so Incapacitated and Dead share one persistent anchor.
-            HostSnapshotLocalPlacementCaptureSync.TryCaptureCharacterPlacementFromView(
-                bootstrap?.Session?.World, viewSpawner, id);
-            moveController?.CancelPresentationMovementPublic(id);
-            if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
-                return;
-            if (entity.TryGet<LifecycleComponent>(out var life) && life.IsDead)
-            {
-                view.SetActivityText("尸体");
-                view.SetBaseColor(new Color(0.35f, 0.32f, 0.30f, 0.85f));
-            }
-            else if (entity.TryGet<LifecycleComponent>(out var life2) && life2.IsIncapacitated)
-            {
-                view.SetActivityText("弥留");
-                view.SetBaseColor(new Color(0.72f, 0.45f, 0.42f, 0.92f));
-            }
+            HostLifeStatePresentationSync.RefreshDownedOrDead(
+                bootstrap?.Session?.World, viewSpawner, moveController, id,
+                captureOrdinaryPlacement: true);
         }
 
         void SetFightActivity(EntityId id, bool fighting)

@@ -268,14 +268,14 @@ namespace XianXia.Unity.Host
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
             // Continuous materialization is the current loaded physical scope. It must be
-            // evaluated before WorldPresence/LocationId legacy gates: FormalArmy presence is
+            // evaluated before WorldPresence/LocationId legacy gates: Squad-derived presence is
             // derived and may be absent during a repair boundary, while the runtime already has
             // a legal placement. The shared predicate also prevents stale materialization from
             // leaking into Interior or Encounter-owned presentation.
             if (EvaluateContinuousMaterializedVisibility(world, id, out _))
                 return true;
 
-            // Phase 5S-B2-3.1：普通战略人口（FormalArmy living member / Strategic Residual）
+            // 普通战略人口（living NPC Squad member / Strategic Residual）
             // 已作为正常 LocalMap population materialize 到当前 Loaded Real LocalMap。
             // 物理在场 → 继续显示，不依赖 Battle Encounter / ParticipantSnapshot /
             // BattlefieldSpawnScope —— 这是「实体物理上就在这张地图」，不是战斗临时
@@ -334,9 +334,8 @@ namespace XianXia.Unity.Host
                 }
 
                 // Continuous Outdoor：runtime 的 materialize 集合就是「物理在当前 loaded scope」的权威，
-                // 与 legacy map 的 Phase 5S-B2-3.1 同义（FormalArmy living member 已作为正常人口
-                // materialize）。其中包含驻守该 Site 的 Hex FormalArmy 成员
-                // （StrategicWorldSitePopulationService.CollectArmyMemberIdsAtSite 显式收编）。
+                // 与 legacy map population materialization 同义；其中包含由当前
+                // SquadWorldMotion / Site context 掌权的驻守成员。
                 // 必须在下方「残留 AtSite presence」守卫之前放行，否则会出现
                 // 「Expected=N Materialized=N Views=N-1」——materialized 却永远没有 EntityView。
                 if (!onEncounterMap &&
@@ -348,7 +347,7 @@ namespace XianXia.Unity.Host
                     world.ContinuousOutdoorMaterialization.IsMaterialized(id))
                     return true;
 
-                // Hex FormalArmy 成员若仍残留 AtSite Presence，不得凭 SiteId 误进任意 LocalMap
+                // Legacy AtSite residue 不得凭 SiteId 误进任意 LocalMap。
                 if (!onEncounterMap && IsTravelingSquadMember(world, id))
                     return false;
 

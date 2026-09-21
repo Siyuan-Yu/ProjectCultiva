@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using XianXia.Core.Entities;
@@ -16,7 +17,7 @@ namespace XianXia.Unity.Host
         {
             public int CharacterCount;
             public int PlayerPartyCount;
-            public int FormalArmyCount;
+            public int SquadCount;
             public string WorldLocation = string.Empty;
             public string PlayerPartyDetail = string.Empty;
             public string LocalPlacementsDetail = string.Empty;
@@ -42,7 +43,7 @@ namespace XianXia.Unity.Host
                 return counts;
 
             counts.CharacterCount = CountRegexMatches(json, "\"definitionId\"\\s*:");
-            counts.FormalArmyCount = CountRegexMatches(json, "\"armyId\"\\s*:");
+            counts.SquadCount = CountDistinctStringProperty(json, "squadId");
             counts.PlayerPartyCount = CountPlayerPartyMembersInJson(json);
             counts.WorldLocation = ExtractTravelSite(json);
             counts.PlayerPartyDetail = ExtractSavedPlayerPartyDetail(json);
@@ -63,7 +64,7 @@ namespace XianXia.Unity.Host
             }
 
             counts.PlayerPartyCount = session?.PlayerParty?.Count ?? 0;
-            counts.FormalArmyCount = world.Strategic?.Squads?.Squads?.Count ?? 0;
+            counts.SquadCount = world.Strategic?.Squads?.Squads?.Count ?? 0;
             counts.PlayerPartyDetail = BuildRuntimePlayerPartyDetail(session);
             counts.LocalPlacementsDetail = BuildRuntimeLocalPlacementsDetail(world, session);
 
@@ -196,6 +197,18 @@ namespace XianXia.Unity.Host
             {
                 return 0;
             }
+        }
+
+        static int CountDistinctStringProperty(string json, string propertyName)
+        {
+            var values = new HashSet<string>(StringComparer.Ordinal);
+            var matches = Regex.Matches(
+                json,
+                "\\\"" + Regex.Escape(propertyName) + "\\\"\\s*:\\s*\\\"(?<value>[^\\\"]+)\\\"",
+                RegexOptions.CultureInvariant);
+            for (var i = 0; i < matches.Count; i++)
+                values.Add(matches[i].Groups["value"].Value);
+            return values.Count;
         }
 
         static int CountPlayerPartyMembersInJson(string json)

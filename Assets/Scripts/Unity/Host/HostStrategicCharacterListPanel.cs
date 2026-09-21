@@ -8,7 +8,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>战略层角色列表。CW-U4.1 后产品界面只读，不再创建 FormalArmy。</summary>
+    /// <summary>战略角色列表只读；当前组织身份来自 Squad。</summary>
     public sealed class HostStrategicCharacterListPanel
     {
         const float DoubleClickWindowSec = 0.35f;
@@ -152,8 +152,8 @@ namespace XianXia.Unity.Host
             {
                 _lastClickCharacterId = string.Empty;
                 _selectedCharacterValue = idKey;
-                if (row.IsGrouped && !string.IsNullOrEmpty(row.ArmyId))
-                    onFocusNpcSquad?.Invoke(row.ArmyId);
+                if (row.IsGrouped && !string.IsNullOrEmpty(row.SquadId))
+                    onFocusNpcSquad?.Invoke(row.SquadId);
                 else if (!string.IsNullOrEmpty(row.SiteId))
                     onFocusNode?.Invoke(row.SiteId);
                 return;

@@ -85,6 +85,8 @@ namespace XianXia.Data.Bootstrap
                     "Opening scenario definition missing.",
                     scenarioId.ToString());
             }
+            LegacyRuntimeInvariant.AssertModernOpeningScenario(
+                scenario.InitialFormalArmyIds?.Count ?? 0);
 
             System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = scenario.Spawns;
             if (!string.IsNullOrWhiteSpace(options.CharacterRosterId))

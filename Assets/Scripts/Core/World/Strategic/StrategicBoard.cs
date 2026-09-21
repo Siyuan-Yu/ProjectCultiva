@@ -103,7 +103,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Unified persistent action-group membership authority.</summary>
         public SquadBoard Squads { get; } = new SquadBoard();
         public SquadWorldMotionBoard SquadWorldMotions { get; } = new SquadWorldMotionBoard();
-        /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
+        /// <summary>Continuous world strategic sites and administrative cores.</summary>
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         /// <summary>Site 行政范围的不可改写取得历史；Owner 仍由 WorldSite 提供。</summary>
         public TerritoryClaimBoard TerritoryClaims { get; } = new TerritoryClaimBoard();

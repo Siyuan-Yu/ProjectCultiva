@@ -401,6 +401,10 @@ namespace XianXia.Unity.Host
             var party = session?.PlayerParty;
             if (world == null || party == null)
                 return;
+            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. Modern SurfaceVisible movement has no
+            // LocalMap exit and cannot enter this branch.
+            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
+                return;
 
             var usable = bootstrap.SurfaceExitZonePresenter;
             if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))

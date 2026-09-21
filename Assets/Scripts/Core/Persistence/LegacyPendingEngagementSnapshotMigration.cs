@@ -68,7 +68,9 @@ namespace XianXia.Core.Persistence
                     SourceMode = sourceMode, SourceSiteId = record.PreBattleSiteId ?? string.Empty,
                     SourceSpatialOwnerKind = EncounterSpatialOwnerKind.Squad,
                     SourceSquadId = squad.SquadId, SourceFormalArmyId = string.Empty,
-                    OriginX = point.X, OriginY = point.Y, TacticalX = point.X, TacticalY = point.Y
+                    OriginX = point.X, OriginY = point.Y,
+                    ReturnX = point.X, ReturnY = point.Y,
+                    TacticalX = point.X, TacticalY = point.Y
                 });
                 if (isEnemy) enemy++; else friendly++;
                 minX = Math.Min(minX, point.X); maxX = Math.Max(maxX, point.X);

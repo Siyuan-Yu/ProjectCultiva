@@ -79,40 +79,6 @@ namespace XianXia.Core.World.Strategic
         public static int ComputeAssaultDamage(Entity attacker)
             => StrategicBuildingDamage.Compute(attacker, StructureDefense);
 
-        public static Result ValidatePlacement(
-            SimulationWorld world, string factionId, HexCoord anchor, out int neutralHexGain)
-        {
-            neutralHexGain = 0;
-            if (world?.Strategic == null || string.IsNullOrEmpty(factionId))
-                return Result.Failure(ErrorCode.InvalidArgument, "阵营旗参数无效。");
-            if (world.HexWorld == null || !world.HexWorld.TryGetCell(anchor, out var anchorCell) ||
-                anchorCell == null || !anchorCell.IsPassable)
-                return Result.Failure(ErrorCode.InvalidOperation, "阵营旗只能建立在合法可通行的荒野格。");
-            if (world.Strategic.Sites.TryGetAtHex(anchor, out var site) && site != null)
-                return Result.Failure(ErrorCode.InvalidOperation, "WorldSite 范围内不能建立阵营旗。");
-            if (world.Strategic.FactionFlags.TryGetAt(anchor, out _))
-                return Result.Failure(ErrorCode.InvalidOperation,
-                    "此 Hex 已有阵营控制建筑，需要先移除当前控制建筑。");
-
-            var anchorController = GetLegacyHexController(world, anchor);
-            if (!string.IsNullOrEmpty(anchorController) &&
-                !string.Equals(anchorController, factionId, StringComparison.Ordinal))
-                return Result.Failure(ErrorCode.InvalidOperation, "敌方有效领土内不能建立阵营旗。");
-
-            var nominal = LegacyHexRingUtility.ExpandOneRing(new[] { anchor });
-            for (var i = 0; i < nominal.Count; i++)
-            {
-                var hex = nominal[i];
-                if (!world.HexWorld.Contains(hex))
-                    continue;
-                if (string.IsNullOrEmpty(GetLegacyHexController(world, hex)))
-                    neutralHexGain++;
-            }
-            if (neutralHexGain <= 0)
-                return Result.Failure(ErrorCode.InvalidOperation, "候选范围没有可新增的无主 Hex。");
-            return Result.Success();
-        }
-
         public static Result ValidateSiteCorePlacement(
             SimulationWorld world,
             string factionId,
@@ -323,25 +289,6 @@ namespace XianXia.Core.World.Strategic
                     "新建势力旗未能取得自身核心中心的实际行政控制。", invariant.Error.Message);
             }
             world.Strategic.SitePublicStocks.GetOrCreate(site.SiteId);
-            return Result.Success();
-        }
-
-        public static Result TryPlace(
-            SimulationWorld world, string flagId, string factionId, HexCoord anchor,
-            long establishedOrder, float localX, float localZ, bool hasLocalPosition)
-        {
-            if (world?.Strategic == null || string.IsNullOrEmpty(flagId) || string.IsNullOrEmpty(factionId))
-                return Result.Failure(ErrorCode.InvalidArgument, "阵营旗参数无效。");
-            var placement = ValidatePlacement(world, factionId, anchor, out _);
-            if (placement.IsFailure)
-                return placement;
-            var flag = new FactionFlagState
-            {
-                FlagId=flagId, FactionId=factionId, AnchorHex=anchor, EstablishedOrder=establishedOrder,
-                CurrentHp=100, MaxHp=100, HasLocalPosition=hasLocalPosition, LocalX=localX, LocalZ=localZ
-            };
-            if (!world.Strategic.FactionFlags.Register(flag))
-                return Result.Failure(ErrorCode.InvalidOperation, "阵营旗 ID 或锚点重复。");
             return Result.Success();
         }
 

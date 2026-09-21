@@ -1,5 +1,9 @@
 # LocalMap 建造系统 V1 封板记录
 
+> **2026-09-21 FINAL-SEAL superseding note：** 下文记录 2026-09-06 的历史 Hex placement
+> 实现。当前正式建造入口为 `TryConstructFactionFlagSite → ValidateSiteCorePlacement →
+> TryPlaceSiteCore`；旧 `TryConstructFactionFlag`／`ValidatePlacement`／`TryPlace` 已删除。
+
 > 状态：**已实现／已人工验收／已封板**
 > 日期：2026-09-06
 > 系统真源：[2L](../20-systems/2L-local-map-construction-v1.md)

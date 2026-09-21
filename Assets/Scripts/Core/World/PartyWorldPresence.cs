@@ -1,8 +1,8 @@
 namespace XianXia.Core.World
 {
     /// <summary>
-    /// 队伍宏观镜头焦点摘要。正常 Outdoor 只记录 AtWorldPosition / AtSite；AtHex 仅供旧档、
-    /// retired Outdoor LocalMap 与 Independent Battle compatibility，不是空间真源。
+    /// 队伍宏观镜头焦点摘要。Normal Continuous Outdoor 使用 AtWorldPosition；InSeparateSpace
+    /// 属于 Separate Space。AtSite / AtHex 只用于 legacy LocalMap compatibility，不是现代空间真源。
     /// </summary>
     public sealed class PartyWorldPresence
     {
@@ -10,16 +10,12 @@ namespace XianXia.Core.World
         public string LocalMapId { get; set; } = string.Empty;
         public string EncounterId { get; set; } = string.Empty;
 
-        /// <summary>Hex 战略：当前镜头焦点 WorldSite。</summary>
+        /// <summary>当前 legacy LocalMap compatibility 的 WorldSite focus。</summary>
         public string SiteId { get; set; } = string.Empty;
-
-        /// <summary>从大地图进入地点时的控制焦点 FormalArmy（Spawn/Selection；不限制 LocalMap 人口）。</summary>
-        public string FocusFormalArmyId { get; set; } = string.Empty;
 
         public void ClearSiteFocus()
         {
             SiteId = string.Empty;
-            FocusFormalArmyId = string.Empty;
         }
     }
 }

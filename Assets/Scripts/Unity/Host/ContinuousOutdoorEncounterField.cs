@@ -153,7 +153,15 @@ namespace XianXia.Unity.Host
                 var id = new EntityId(p.CharacterId);
                 var currentView = default(WorldVec2);
                 var hasCurrentView = state.Phase == CharacterEncounterPhase.Preparing &&
-                                     TryGetCurrentEncounterViewWorld(world, id, out currentView);
+                                     TryGetCurrentEncounterViewWorld(world, id, out currentView) &&
+                                     IsValidEncounterWorldPoint(state, currentView);
+                if (hasCurrentView)
+                {
+                    // Freeze the last source-world presentation before the independent field
+                    // takes over. Tactical placement below may be adjusted, Return may not.
+                    p.ReturnX = currentView.X;
+                    p.ReturnY = currentView.Y;
+                }
                 var hasPreferred = hasCurrentView || state.Phase != CharacterEncounterPhase.Preparing;
                 var preferred = hasCurrentView
                     ? currentView : new WorldVec2(p.TacticalX, p.TacticalY);
@@ -216,6 +224,12 @@ namespace XianXia.Unity.Host
             _mapper.PresentationToWorld(point.X, point.Y, out var x, out var y);
             return new WorldVec2(x, y);
         }
+
+        static bool IsValidEncounterWorldPoint(CharacterEncounterState state, WorldVec2 point) =>
+            state != null &&
+            !float.IsNaN(point.X) && !float.IsInfinity(point.X) &&
+            !float.IsNaN(point.Y) && !float.IsInfinity(point.Y) &&
+            state.Contains(point.X, point.Y);
 
         bool PlanIsCurrent(PreparedIndependentField plan, bool restore)
         {
@@ -593,8 +607,10 @@ namespace XianXia.Unity.Host
             if (ready.IsSuccess)
             {
                 if (repairedPresence > 0)
-                    Debug.Log("[IndependentEncounterDisplay] RepairedPresence EncounterId=" +
-                              state.EncounterId + " Count=" + repairedPresence, this);
+                    Debug.LogWarning(
+                        "[IndependentEncounterDisplay] Unexpected presence ownership repair " +
+                        "after lifecycle/tactical processing. EncounterId=" + state.EncounterId +
+                        " Count=" + repairedPresence, this);
                 _lastIndependentViewFailure = string.Empty;
                 _independentViewsHealthy = true;
                 return true;
@@ -636,6 +652,8 @@ namespace XianXia.Unity.Host
                 rows.Append("Id=").Append(id.Value)
                     .Append(" Origin=(").Append(participant.OriginX.ToString("0.###"))
                     .Append(",").Append(participant.OriginY.ToString("0.###"))
+                    .Append(") Return=(").Append(participant.ReturnX.ToString("0.###"))
+                    .Append(',').Append(participant.ReturnY.ToString("0.###"))
                     .Append(") Tactical=(").Append(participant.TacticalX.ToString("0.###"))
                     .Append(",").Append(participant.TacticalY.ToString("0.###"))
                     .Append(") View=").Append(hasView
@@ -844,27 +862,21 @@ namespace XianXia.Unity.Host
 
         public Result PrepareEncounterReturn(CharacterEncounterState state)
         {
-            // The field owns its current clipped grid; do not synchronously compose the whole
-            // source again while closing a battle.
-            if (_compositeWalkGrid == null)
-                return Result.Failure(ErrorCode.InvalidOperation, "Encounter navigation is unavailable for return.");
-            var points = new List<Vector2>();
+            if (state == null || _mapper == null || _compositeWalkGrid == null ||
+                !string.Equals(state.SourceSurfaceId, _surfaceId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Encounter source context is unavailable for return.");
             foreach (var p in state.Participants)
             {
-                _mapper.WorldToPresentation(p.OriginX, p.OriginY, out var px, out var py);
+                var point = new WorldVec2(p.ReturnX, p.ReturnY);
+                if (!IsValidEncounterWorldPoint(state, point))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Immutable return position is invalid: " + p.CharacterId);
+                _mapper.WorldToPresentation(p.ReturnX, p.ReturnY, out var px, out var py);
                 if (!_compositeWalkGrid.TryWorldToCell(px, py, out var x, out var y))
-                    return Result.Failure(ErrorCode.InvalidOperation, "Return anchor outside source: " + p.CharacterId);
-                if (!_compositeWalkGrid.IsWalkable(x, y))
-                {
-                    if (!_compositeWalkGrid.TryFindNearestWalkable(x, y, 1, out x, out y))
-                        return Result.Failure(ErrorCode.InvalidOperation, "No adjacent legal return anchor: " + p.CharacterId);
-                    _compositeWalkGrid.CellToWorldCenter(x, y, out px, out py);
-                }
-                _mapper.PresentationToWorld(px, py, out var wx, out var wy);
-                points.Add(new Vector2(wx, wy));
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Immutable return position is outside the source field: " + p.CharacterId);
             }
-            for (var i = 0; i < points.Count; i++)
-            { state.Participants[i].OriginX = points[i].x; state.Participants[i].OriginY = points[i].y; }
             return Result.Success();
         }
 
@@ -874,6 +886,14 @@ namespace XianXia.Unity.Host
             if (state == null || state.EncounterId != _independentFieldId || _compositeWalkGrid == null) return false;
             foreach (var member in candidate.Members)
             {
+                var id = new EntityId(member.CharacterId);
+                if (TryGetCurrentEncounterViewWorld(
+                        _bootstrap.Session.World, id, out var currentView) &&
+                    IsValidEncounterWorldPoint(state, currentView))
+                {
+                    member.ReturnX = currentView.X;
+                    member.ReturnY = currentView.Y;
+                }
                 _mapper.WorldToPresentation(member.OriginX, member.OriginY, out var px, out var py);
                 if (!_compositeWalkGrid.TryWorldToCell(px, py, out var x, out var y)) return false;
                 if (!_compositeWalkGrid.IsWalkable(x, y))
@@ -936,7 +956,7 @@ namespace XianXia.Unity.Host
                     !CombatLifeStateService.ShouldHideFromSpawn(entity) &&
                     entity.TryGet<EntityLocationComponent>(out var location))
                 {
-                    _mapper.WorldToPresentation(p.OriginX, p.OriginY, out var x, out var y);
+                    _mapper.WorldToPresentation(p.ReturnX, p.ReturnY, out var x, out var y);
                     location.SetPresentationOverride(x, y);
                     if (_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
                         view.transform.position = HostPresentationSpace.FromPresentation(x, y);

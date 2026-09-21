@@ -1,7 +1,7 @@
 # 路线图
 
 > **2026-09-19 当前状态（Handoff）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)／[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)／[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。
-> **当前 WIP（2026-09-21）：LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze。** LEGACY-FINAL-C 已由制作人人工验收并正式 **Producer Accepted / Sealed**，记录见 [250](250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。Final Seal 完成人工 smoke 前暂不宣称 Legacy migration complete。
+> **当前 WIP（2026-09-21）：LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze，Implementation Complete / Producer Acceptance Pending。** LEGACY-FINAL-C 已由制作人人工验收并正式 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。Final Seal 完成人工 smoke 前暂不宣称 Legacy migration complete。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。

@@ -11,7 +11,9 @@ using XianXia.Core.World.Surface;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 2D：Background Character 纯数据层 HexWorld 旅行（非 Party / 非 FormalArmy）。
+    /// Background Character travel. Normal Continuous Outdoor resolves and advances a Surface
+    /// route first. Hex pathing is reachable only when the world is outside the normal Continuous
+    /// policy and remains for old content/save compatibility.
     /// </summary>
     public static class BackgroundCharacterTravelService
     {

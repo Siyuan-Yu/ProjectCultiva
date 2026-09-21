@@ -2040,8 +2040,7 @@ namespace XianXia.Unity.Host
             if (!onEncounterMap)
             {
                 // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
-                // Phase 5S-B2-3.1：补齐 FormalArmy / Residual 战略人口 —— Player 走到 Army A 的
-                // Hex / WorldSite → load LocalMap → Army A members 当场出现，无需 Battle。
+                // 补齐 NPC Squad / residual 战略人口；当前 scope 内成员直接物化，无需 Battle。
                 ReconcileLoadedStrategicPopulation();
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
@@ -2178,7 +2177,7 @@ namespace XianXia.Unity.Host
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
         {
-            // FormalArmy focus presentation retired; Squad presentation is handled by HostNpcSquadContinuousPresenter.
+            // Legacy focus presentation is retired; Squad presentation is handled by HostNpcSquadContinuousPresenter.
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>
@@ -2351,7 +2350,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Phase 5S-B2-3.1：reconcile 当前 Loaded LocalMap 的 FormalArmy / Residual 战略人口。
+        /// Reconcile 当前 Loaded LocalMap 的 NPC Squad / residual 战略人口。
         /// 返回是否发生变化（Added / Removed）。只改变 LocalMap occupant + presentation，
         /// 不修改 WorldMotion / WorldPresence / PlayerParty。
         /// </summary>
@@ -2401,8 +2400,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // Phase 5S-B2-3.1：FormalArmy 世界旅行在 TickOnce 内推进 → 移入 / 移出当前 Hex
-            // 后下一 tick 战略人口自动出现 / 消失（只 changed 才刷新视图）。
+            // SquadWorldMotion 在 TickOnce 内推进；下一 tick 战略人口按当前 scope 出现或消失。
             var strategicPopulationChanged = ReconcileLoadedStrategicPopulation();
             if (strategicPopulationChanged)
             {
@@ -2437,10 +2435,29 @@ namespace XianXia.Unity.Host
 #endif
                     _session.World.Entities.TryGet(defenderId, out var defeatedEntity);
                     var transition = DefeatSpatialTransitionResolver.Resolve(evt, defeatedEntity);
-                    var handledByStrategicEncounter = false;
-                    var handoffAction = handledByStrategicEncounter ? "Preserve" : string.Empty;
-                    var spatialHandled = handledByStrategicEncounter;
-                    if (!handledByStrategicEncounter)
+                    var handledByCharacterEncounter =
+                        CharacterEncounterService.OwnsParticipantSpatialState(
+                            _session.World, defenderId);
+                    var handoffAction = handledByCharacterEncounter
+                        ? "PreserveEncounterTactical"
+                        : string.Empty;
+                    var spatialHandled = handledByCharacterEncounter;
+                    if (handledByCharacterEncounter)
+                    {
+                        if (entityViewSpawner != null &&
+                            entityViewSpawner.Registry.TryGet(defenderId, out var encounterView) &&
+                            encounterView != null)
+                            _continuousOutdoorSurfaceRuntime
+                                ?.TryCaptureIndependentParticipantPosition(
+                                    defenderId, encounterView.transform.position);
+                        HostLifeStatePresentationSync.RefreshDownedOrDead(
+                            _session.World,
+                            entityViewSpawner,
+                            moveController,
+                            defenderId,
+                            captureOrdinaryPlacement: false);
+                    }
+                    else
                     {
                         // Death confirmation is a lifecycle-only change. Existing personal or
                         // encounter authority is a successful spatial result and must not fall
@@ -2500,10 +2517,10 @@ namespace XianXia.Unity.Host
                                 // own presence to belong to the loaded legacy LocalMap; they cannot
                                 // infer a corpse location from PlayerParty.CurrentHex/focus.
                                 spatialHandled = gotLocal
-                                    ? LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                    ? LocalCombatCasualtyHandoffService.TryHandleResidualDefeat(
                                         _session.World, defenderId, localX, localZ,
                                         _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
-                                    : LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                    : LocalCombatCasualtyHandoffService.TryHandleResidualDefeat(
                                         _session.World, defenderId);
                                 handoffAction = spatialHandled ? "LegacyRepair" : "LegacyRepairRejected";
                             }
@@ -2512,7 +2529,7 @@ namespace XianXia.Unity.Host
                                 nonEncounterStrategicPopulationChanged = true;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                             LogLocalCombatDefeatDiagnostics(
-                                defenderId, handledByStrategicEncounter, gotLocal, localX, localZ);
+                                defenderId, handledByCharacterEncounter, gotLocal, localX, localZ);
 #endif
                         }
 
@@ -2637,12 +2654,12 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Development 诊断：Local Combat 倒下者分类确认（普通 Local Combat 非 Encounter 路径）。
-        /// 输出 EntityId / LifeState / 是否 PlayerParty member / FormalArmyId / WorldPresence /
+        /// 输出 EntityId / LifeState / 是否 PlayerParty member / SquadId / WorldPresence /
         /// 是否 Traveling member，用于确认消失者归属哪一层 owner。
         /// </summary>
         void LogLocalCombatDefeatDiagnostics(
             EntityId defenderId,
-            bool handledByStrategicEncounter,
+            bool handledByCharacterEncounter,
             bool gotLocal,
             float localX,
             float localZ)
@@ -2695,7 +2712,7 @@ namespace XianXia.Unity.Host
                 " EntityId=" + defenderId +
                 " Name=" + name +
                 " LifeState=" + lifeState +
-                " HandledByStrategicEncounter=" + handledByStrategicEncounter +
+                " HandledByCharacterEncounter=" + handledByCharacterEncounter +
                 " IsPlayerPartyMember=" + isPartyMember +
                 " IsTravelingPartyMember=" + isTraveling +
                 " SquadId=" + squadId +

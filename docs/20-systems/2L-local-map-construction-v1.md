@@ -1,5 +1,9 @@
 # LocalMap 建造系统 V1
 
+> **2026-09-21 FINAL-SEAL override：** FactionFlag 建造已迁至 Continuous SiteCore 链：
+> `TryConstructFactionFlagSite → ValidateSiteCorePlacement → TryPlaceSiteCore`。旧 Hex
+> placement 描述只保留历史语境，不再是可调用的 runtime API。
+
 > 状态：旧 Wilderness-only V1 已验收；CW-03 旗创建 Site 已实现／制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-13
 > 依赖：2K、2A、FactionFlag Domain、PartyInventory
 > 封板记录：[201](../40-process/201-localmap-construction-v1-sealed-2026-09-06.md)
@@ -52,7 +56,7 @@ Construction 是独立于 Inventory 的 RPG 建筑入口。建筑不是物品；
 玩家在任意已加载 LocalMap 都能进入 placement。几何预览与领域合法性分层：
 
 - WorldSite／Interior：模式保持、可取得布局时继续显示红色预览，并明确提示只能在野外 LocalMap 建造。
-- Wilderness：复用 `FactionFlagService.ValidatePlacement`；不复制 Anchor、WorldSite、重复 Flag、敌方有效领土、Neutral gain、EstablishedOrder 或 Territory Resolver 规则。
+- Continuous Outdoor：复用 `FactionFlagService.ValidateSiteCorePlacement`，以 exact Surface WorldPosition 与 Actual Administrative Control 完成 Domain preflight。
 - 只有 geometry 与 domain 同时合法时左键才提交；Esc／右键取消，不扣材料。
 
 ## 5. 事务

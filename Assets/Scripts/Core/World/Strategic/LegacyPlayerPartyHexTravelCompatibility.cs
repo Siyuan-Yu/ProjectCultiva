@@ -1115,7 +1115,7 @@ namespace XianXia.Core.World.Strategic
                     return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", motion.SiteId);
                 PlayerPartyWorldLocationDebug.LogTransition(
                     world, party, "EnterLocalView.PreserveAutoTravelThroughSite");
-                return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);
+                return WorldTravelService.EnterWorldSiteScene(world, site.SiteId);
             }
 
             var hex = motion.CurrentHex;

@@ -17,11 +17,11 @@ namespace XianXia.Core.World
 
         public EntityId EntityId { get; set; }
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtSite;
-        /// <summary>Pure Hex AtSite 模式：WorldSiteId 战略位置真源。</summary>
+        /// <summary>WorldSite identity; exact Surface position remains modern outdoor authority.</summary>
         public string SiteId { get; set; } = string.Empty;
-        /// <summary>宏观 RTS：跟随的 ArmyStack id；空表示未跟随。</summary>
+        /// <summary>Legacy snapshot compatibility only; modern runtime never writes stack identity.</summary>
         public string FollowStackId { get; set; } = string.Empty;
-        /// <summary>攻击／追击目标栈 id；有值则到站不弹「是否查看」，只走接战。</summary>
+        /// <summary>Legacy snapshot compatibility only; modern runtime never writes pursuit stack identity.</summary>
         public string CombatPursuitStackId { get; set; } = string.Empty;
 
         /// <summary>
@@ -30,7 +30,7 @@ namespace XianXia.Core.World
         /// </summary>
         public bool SuppressArrivalNotice { get; set; }
 
-        /// <summary>AtHex Residual 战略坐标（唯一 Residual 位置真源）。</summary>
+        /// <summary>Legacy AtHex migration storage. Modern residuals use exact Surface position.</summary>
         public int HexQ { get; set; } = InvalidHexComponent;
         public int HexR { get; set; } = InvalidHexComponent;
 

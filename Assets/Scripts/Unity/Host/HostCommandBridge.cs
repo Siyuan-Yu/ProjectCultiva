@@ -879,6 +879,8 @@ namespace XianXia.Unity.Host
         {
             var world = _session?.World;
             var motion = world?.PlayerPartyTravel;
+            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY for the LocalVisible predicate; the
+            // SurfaceVisible predicate above it is the modern path.
             if (motion == null ||
                 (!XianXia.Core.World.Strategic.PlayerPartySurfaceTravelService
                      .IsActiveSurfaceTravel(motion) &&

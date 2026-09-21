@@ -6,9 +6,9 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 2A：Character → WorldHex 权威查询。
-    /// AtSite 存 SiteId，WorldHex 派生自 WorldSite.PresenceHex（不另存可漂移 Hex）。
-    /// FormalArmy 成员战略位置跟随 Army.CurrentHex。
+    /// Character strategic Hex compatibility query. Modern physical authority is an exact
+    /// Surface position or Interior EntityLocation. NPC Squad position derives from
+    /// SquadWorldMotion; returned Hex values are compatibility metadata only.
     /// </summary>
     public static class CharacterWorldPresenceQuery
     {
@@ -17,7 +17,7 @@ namespace XianXia.Core.World.Strategic
             Unknown = 0,
             AtWorldSite = 1,
             AtWildernessHex = 2,
-            FormalArmyMember = 3,
+            SquadMember = 3,
             InEncounter = 4,
         }
 
@@ -101,7 +101,7 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
-                state = PresenceState.FormalArmyMember; // preserved numeric compatibility; runtime authority is Squad.
+                state = PresenceState.SquadMember;
                 worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
                     world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
                 siteId = squadMotion.SiteId;

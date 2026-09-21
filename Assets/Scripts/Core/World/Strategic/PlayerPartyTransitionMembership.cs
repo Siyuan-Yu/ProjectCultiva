@@ -246,17 +246,21 @@ namespace XianXia.Core.World.Strategic
             if (!atSite && !atHex)
                 return;
 
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation))
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
             {
-                for (var i = 0; i < party.Members.Count; i++)
+                if (world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation))
                 {
-                    var id = party.Members[i];
-                    if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id)) continue;
-                    world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
-                        motion.CurrentHex,
-                        string.IsNullOrEmpty(motion.SurfaceId) ? navigation.SurfaceId : motion.SurfaceId);
+                    for (var i = 0; i < party.Members.Count; i++)
+                    {
+                        var id = party.Members[i];
+                        if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id)) continue;
+                        world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
+                            motion.CurrentHex,
+                            string.IsNullOrEmpty(motion.SurfaceId) ? navigation.SurfaceId : motion.SurfaceId);
+                    }
                 }
+                // Normal Continuous must never fall through to the legacy AtHex producer when a
+                // malformed position cannot be resolved. Boundary diagnostics handle that error.
                 return;
             }
 

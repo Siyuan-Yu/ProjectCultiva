@@ -1,4 +1,3 @@
-using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
@@ -8,48 +7,9 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
-    /// <summary>Hex strategic helpers (site enter / party focus). Tick advance is StrategicTravelDriver.AfterTravelTick, not this type.</summary>
+    /// <summary>Party focus and legacy Site/Outdoor LocalMap activation helpers.</summary>
     public static class WorldTravelService
     {
-        public static bool CanReceiveTravelOrder(SimulationWorld world, EntityId id)
-        {
-            if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
-                return false;
-            if (world.Entities.TryGet(id, out var ent) &&
-                ent.TryGet<LifecycleComponent>(out var life) &&
-                (life.IsIncapacitated || life.IsDead || life.IsRemoved))
-                return false;
-            if (StrategicClockFreezeService.IsModalEncounter(world))
-                return false;
-            if (p.Mode == PartyWorldPresenceMode.AtSite)
-                return true;
-            if (p.Mode != PartyWorldPresenceMode.InEncounter)
-                return false;
-            return false;
-        }
-
-        /// <summary>
-        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达�?
-        /// </summary>
-        public static bool CanReceivePlayerMacroTravelOrder(SimulationWorld world, EntityId id)
-        {
-            if (!CanReceiveTravelOrder(world, id))
-                return false;
-            if (!IsPlayerAgent(world, id))
-                return true;
-            return false;
-        }
-
-        static bool IsPlayerAgent(SimulationWorld world, EntityId id)
-        {
-            if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
-                return false;
-            return (entity.Tags & EntityTag.Npc) == 0;
-        }
-
-        public static bool BlocksFormalArmyMemberIndependentTravel(SimulationWorld world, EntityId id) =>
-            SquadWorldMotionService.OwnsCharacter(world, id);
-
         public static void SyncPartyFocus(SimulationWorld world)
         {
             if (world == null)
@@ -137,17 +97,16 @@ namespace XianXia.Core.World
             }
         }
 
-        /// <summary>�?WorldSite 进入 LocalMap（真�?= SiteId + FormalArmy 足迹）�?/summary>
+        /// <summary>Legacy WorldSite LocalMap compatibility activation.</summary>
         public static Result EnterWorldSiteScene(
             SimulationWorld world,
-            string siteId,
-            string formalArmyId)
+            string siteId)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
 
             var access = StrategicWorldSiteAccessService.CanEnterWorldSiteLocalMap(
-                world, siteId, formalArmyId);
+                world, siteId);
             if (access.IsFailure)
                 return access;
 
@@ -165,7 +124,6 @@ namespace XianXia.Core.World
 
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = siteId;
-            world.PartyWorld.FocusFormalArmyId = formalArmyId ?? string.Empty;
             world.PartyWorld.LocalMapId = localMapId;
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
             world.PartyWorld.EncounterId = string.Empty;
@@ -186,7 +144,6 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.InvalidArgument, "Prepared WorldSite scene args invalid.");
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = site.SiteId;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
             world.PartyWorld.LocalMapId = preparedLocalMapId.Trim();
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
             world.PartyWorld.EncounterId = string.Empty;
@@ -218,7 +175,6 @@ namespace XianXia.Core.World
 
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.FocusFormalArmyId = string.Empty;
             world.PartyWorld.LocalMapId = localMapId.Trim();
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
             world.PartyWorld.EncounterId = string.Empty;

@@ -7,14 +7,19 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>?????????????????????????</summary>
+    /// <summary>
+    /// Pre-battle spatial state. Stack fields remain readable only for old snapshot restore;
+    /// modern capture persists precise Surface authority and emits empty stack identity.
+    /// </summary>
     public sealed class PreBattleWorldPresence
     {
         public PartyWorldPresenceMode Mode { get; set; }
         public string SiteId { get; set; } = string.Empty;
         public int HexQ { get; set; } = WorldAgentPresence.InvalidHexComponent;
         public int HexR { get; set; } = WorldAgentPresence.InvalidHexComponent;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string FollowStackId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string CombatPursuitStackId { get; set; } = string.Empty;
         public bool HasWorldPosition { get; set; }
         public float WorldX { get; set; }
@@ -31,8 +36,10 @@ namespace XianXia.Core.World.Strategic
                 SiteId = p.SiteId ?? string.Empty,
                 HexQ = p.HexQ,
                 HexR = p.HexR,
-                FollowStackId = p.FollowStackId ?? string.Empty,
-                CombatPursuitStackId = p.CombatPursuitStackId ?? string.Empty,
+                // Modern capture never re-emits retired stack identity. ApplyTo still accepts
+                // these fields when reading an old participant snapshot.
+                FollowStackId = string.Empty,
+                CombatPursuitStackId = string.Empty,
                 HasWorldPosition = p.HasContinuousWorldPosition,
                 WorldX = p.WorldPosX,
                 WorldY = p.WorldPosY,
@@ -72,7 +79,9 @@ namespace XianXia.Core.World.Strategic
         public BattleParticipantKind Kind { get; set; }
         public EntityId EntityId { get; set; }
         public string SquadId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string ArmyStackId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string FormalArmyId { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
         public int CombatPower { get; set; }
@@ -171,18 +180,25 @@ namespace XianXia.Core.World.Strategic
         }
     }
 
-    /// <summary>BattleOffer ?????????ADR-0023 Phase B?Pure Hex??</summary>
+    /// <summary>
+    /// Frozen battle offer input. Modern combat uses exact Surface anchors and real Character
+    /// participants; Hex and Army fields are accepted only as legacy migration input.
+    /// </summary>
     public sealed class BattleParticipantSnapshot
     {
         public string OfferId { get; set; } = string.Empty;
+        /// <summary>Legacy compatibility metadata; modern encounter authority uses Surface anchor.</summary>
         public int BattleAnchorHexQ { get; set; } = StrategicHexConstants.InvalidHexComponent;
         public int BattleAnchorHexR { get; set; } = StrategicHexConstants.InvalidHexComponent;
         public bool HasBattleAnchorWorldPosition { get; set; }
         public float BattleAnchorWorldX { get; set; }
         public float BattleAnchorWorldY { get; set; }
         public string BattleAnchorSurfaceId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string PrimaryEnemyStackId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string AttackerArmyId { get; set; } = string.Empty;
+        /// <summary>Legacy snapshot compatibility input only.</summary>
         public string DefenderArmyId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } =
             LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
@@ -233,24 +249,6 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < actual.Count; i++)
                 if (actual[i].IsFriendly)
                     list.Add(actual[i].EntityId);
-
-            return list;
-        }
-
-        public List<string> CollectEnemyStackIds()
-        {
-            var list = new List<string>(4);
-            for (var i = 0; i < _records.Count; i++)
-            {
-                var r = _records[i];
-                if (string.IsNullOrEmpty(r.ArmyStackId))
-                    continue;
-                if (r.Kind != BattleParticipantKind.EnemyPrimary &&
-                    r.Kind != BattleParticipantKind.EnemyReinforcement)
-                    continue;
-                if (!list.Contains(r.ArmyStackId))
-                    list.Add(r.ArmyStackId);
-            }
 
             return list;
         }

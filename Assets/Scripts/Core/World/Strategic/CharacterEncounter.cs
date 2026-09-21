@@ -25,6 +25,8 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Legacy snapshot input only.</summary>
         public string SourceFormalArmyId = "";
         public float OriginX, OriginY;
+        /// <summary>Immutable pre-battle physical world position used only for return.</summary>
+        public float ReturnX, ReturnY;
         public float TacticalX, TacticalY;
         public ulong TargetId;
         public float Cooldown;
@@ -49,7 +51,7 @@ namespace XianXia.Core.World.Strategic
 
     public sealed class CharacterEncounterState
     {
-        public const int Format = 3;
+        public const int Format = 4;
         public int Version = Format;
         public string EncounterId = "";
         public string SourceSurfaceId = "";
@@ -254,8 +256,23 @@ namespace XianXia.Core.World.Strategic
                 SourceSpatialOwnerKind = owner,
                 SourceSquadId = owner == EncounterSpatialOwnerKind.Squad ? ownerId ?? string.Empty : string.Empty,
                 SourceFormalArmyId = string.Empty,
-                OriginX = point.X, OriginY = point.Y, TacticalX = point.X, TacticalY = point.Y
+                OriginX = point.X, OriginY = point.Y,
+                ReturnX = point.X, ReturnY = point.Y,
+                TacticalX = point.X, TacticalY = point.Y
             };
+        }
+
+        /// <summary>
+        /// Active and post-battle CharacterEncounter phases exclusively own participant spatial
+        /// state. Lifecycle transitions must not hand the character to ordinary world placement.
+        /// </summary>
+        public static bool OwnsParticipantSpatialState(SimulationWorld world, EntityId id)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            return state != null && !id.IsNone &&
+                   (state.Phase == CharacterEncounterPhase.Active ||
+                    state.Phase == CharacterEncounterPhase.ReadyToEnd) &&
+                   state.Find(id.Value) != null;
         }
 
         public static Result Begin(SimulationWorld world, CharacterEncounterState state)
@@ -298,8 +315,10 @@ namespace XianXia.Core.World.Strategic
             {
                 if (p == null || p.CharacterId == 0 || !seen.Add(p.CharacterId) ||
                     !world.Entities.TryGet(new EntityId(p.CharacterId), out _) ||
-                    !Finite(p.OriginX) || !Finite(p.OriginY) || !Finite(p.TacticalX) || !Finite(p.TacticalY) ||
-                    !state.Contains(p.OriginX, p.OriginY) || !state.Contains(p.TacticalX, p.TacticalY) ||
+                    !Finite(p.OriginX) || !Finite(p.OriginY) || !Finite(p.ReturnX) || !Finite(p.ReturnY) ||
+                    !Finite(p.TacticalX) || !Finite(p.TacticalY) ||
+                    !state.Contains(p.OriginX, p.OriginY) || !state.Contains(p.ReturnX, p.ReturnY) ||
+                    !state.Contains(p.TacticalX, p.TacticalY) ||
                     !Finite(p.Cooldown) || p.Cooldown < 0f || !Finite(p.JoinedAt) || p.JoinedAt < 0 ||
                     p.JoinedAt > state.ElapsedSeconds || string.IsNullOrEmpty(p.SquadId) ||
                     !Enum.IsDefined(typeof(PartyWorldPresenceMode), p.SourceMode) || p.SourceMode == (int)PartyWorldPresenceMode.InEncounter ||
@@ -328,11 +347,13 @@ namespace XianXia.Core.World.Strategic
                 {
                     if (m == null || m.CharacterId == 0 || !candidateIds.Add(m.CharacterId) || m.SquadId != c.SquadId ||
                         !world.Entities.TryGet(new EntityId(m.CharacterId), out _) ||
-                        !Finite(m.OriginX) || !Finite(m.OriginY) || !Finite(m.TacticalX) || !Finite(m.TacticalY) ||
+                        !Finite(m.OriginX) || !Finite(m.OriginY) || !Finite(m.ReturnX) || !Finite(m.ReturnY) ||
+                        !Finite(m.TacticalX) || !Finite(m.TacticalY) ||
                         !Enum.IsDefined(typeof(EncounterSpatialOwnerKind), m.SourceSpatialOwnerKind) ||
                         (m.SourceSpatialOwnerKind == EncounterSpatialOwnerKind.Squad &&
                          string.IsNullOrEmpty(m.SourceSquadId)) ||
-                        !state.Contains(m.OriginX, m.OriginY) || !state.Contains(m.TacticalX, m.TacticalY))
+                        !state.Contains(m.OriginX, m.OriginY) || !state.Contains(m.ReturnX, m.ReturnY) ||
+                        !state.Contains(m.TacticalX, m.TacticalY))
                         return Fail("Invalid candidate personal anchor.");
                     var actual = state.Find(m.CharacterId);
                     if (c.Phase == EncounterCandidatePhase.Joined)
@@ -599,31 +620,40 @@ namespace XianXia.Core.World.Strategic
                             string.Equals(currentSquad.SquadId, p.SourceSquadId, StringComparison.Ordinal) &&
                             world.Strategic.SquadWorldMotions.TryGet(currentSquad.SquadId, out var currentMotion) &&
                             SquadWorldMotionService.IsActiveNpcSquadAuthority(
-                                world, currentSquad, currentMotion))
+                            world, currentSquad, currentMotion))
+                        {
                             continue;
+                        }
                         if (p.SourceSpatialOwnerKind == EncounterSpatialOwnerKind.PlayerParty &&
                             world.Strategic.PlayerPartyContext?.IsMember(id) == true)
+                        {
                             continue;
+                        }
                     }
                     // Group projection is restored after the encounter lock is released.
-                    // A downed, dead or detached participant keeps its own exact battle outcome.
+                    // A downed, dead or detached participant returns to its immutable pre-battle
+                    // physical point; tactical battlefield movement never leaks into world state.
                     presence.Mode = PartyWorldPresenceMode.AtWorldPosition;
                     presence.SiteId = string.Empty;
-                    presence.WorldPosX = p.TacticalX; presence.WorldPosY = p.TacticalY;
+                    presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
                     presence.HasContinuousWorldPosition = true;
                     presence.PersonalSurfaceId = state.SourceSurfaceId;
                     presence.ClearHexPresence();
                     presence.ClearCombatPursuit();
                     continue;
                 }
-                presence.Mode = (PartyWorldPresenceMode)p.SourceMode; presence.SiteId = p.SourceSiteId;
-                presence.WorldPosX = p.OriginX; presence.WorldPosY = p.OriginY;
+                var normalContinuous = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world);
+                presence.Mode = normalContinuous
+                    ? PartyWorldPresenceMode.AtWorldPosition
+                    : (PartyWorldPresenceMode)p.SourceMode;
+                presence.SiteId = normalContinuous ? string.Empty : p.SourceSiteId;
+                presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
                 presence.HasContinuousWorldPosition = true; presence.PersonalSurfaceId = state.SourceSurfaceId;
-                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                if (normalContinuous)
                     presence.ClearHexPresence();
                 else if (world.HexWorld != null)
                 {
-                    var hex = HexMath.WorldToHex(p.OriginX, p.OriginY, world.HexWorld.HexSize);
+                    var hex = HexMath.WorldToHex(p.ReturnX, p.ReturnY, world.HexWorld.HexSize);
                     presence.HexQ = hex.Q; presence.HexR = hex.R;
                 }
                 presence.ClearCombatPursuit();
