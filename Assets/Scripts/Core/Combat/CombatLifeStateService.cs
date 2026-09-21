@@ -10,6 +10,7 @@ using XianXia.Core.Events;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.Actions;
 
 namespace XianXia.Core.Combat
 {
@@ -169,6 +170,7 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Incapacitated;
             life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
+            AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
             if (!responsibleAttackerId.IsNone)
             {
                 if (!entity.TryGet<CombatDeathAttributionComponent>(out var attribution))
@@ -261,6 +263,7 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Dead;
             life.ClearBleedOut();
+            AutonomousActionContinuationService.CancelInvalid(world, target.Id);
             EnsureCorpse(world, target);
 
             if ((target.Tags & EntityTag.Npc) != 0 &&
@@ -384,6 +387,7 @@ namespace XianXia.Core.Combat
 #endif
             life.State = LifecycleState.Removed;
             life.ClearBleedOut();
+            AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
             PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
 
             // 大地图
@@ -421,7 +425,10 @@ namespace XianXia.Core.Combat
             // remain in-place on its Tactical position until CommitAndReturn restores Return.
             if (CharacterEncounterService.OwnsParticipantSpatialState(world, id))
                 return;
+            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id))
+                return;
             if (world?.Strategic?.Squads == null ||
+                !SquadWorldMotionService.OwnsCharacter(world, id) ||
                 !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
                 squad.CommandKind != SquadCommandKind.SquadWorldMotion ||
                 !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
@@ -438,7 +445,6 @@ namespace XianXia.Core.Combat
             presence.WorldPosY = point.Y;
             presence.HasContinuousWorldPosition = true;
             presence.ClearHexPresence();
-            presence.ClearCombatPursuit();
         }
 
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD

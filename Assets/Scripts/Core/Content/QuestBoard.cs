@@ -33,5 +33,25 @@ namespace XianXia.Core.Content
 
         public bool TryGet(string id, out QuestRuntime runtime) =>
             _runtime.TryGetValue(id ?? string.Empty, out runtime);
+
+        internal Dictionary<string, QuestRuntime> CaptureRuntime()
+        {
+            var copy = new Dictionary<string, QuestRuntime>(StringComparer.Ordinal);
+            foreach (var pair in _runtime) copy[pair.Key] = Clone(pair.Value);
+            return copy;
+        }
+
+        internal void RestoreRuntime(IReadOnlyDictionary<string, QuestRuntime> state)
+        {
+            _runtime.Clear();
+            if (state != null) foreach (var pair in state) _runtime[pair.Key] = Clone(pair.Value);
+        }
+
+        static QuestRuntime Clone(QuestRuntime q) => new QuestRuntime
+        {
+            QuestId = q.QuestId, Status = q.Status, ProgressCount = q.ProgressCount,
+            ProgressMax = q.ProgressMax, AcceptedAtDayIndex = q.AcceptedAtDayIndex,
+            DeadlineDayIndexExclusive = q.DeadlineDayIndexExclusive
+        };
     }
 }

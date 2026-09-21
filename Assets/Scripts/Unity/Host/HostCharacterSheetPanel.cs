@@ -119,7 +119,6 @@ namespace XianXia.Unity.Host
 
         void CloseCompetingPanels()
         {
-            bootstrap?.RelationPanel?.Close();
             bootstrap?.CultivationPanel?.Close();
             bootstrap?.CombatArtsPanel?.Close();
             bootstrap?.InventoryPanel?.Close();

@@ -109,14 +109,6 @@ namespace XianXia.Data.Bootstrap
                 {
                     new RegionData { Id = regionId, Name = "青石荒村区域" }
                 },
-                LocalMaps =
-                {
-                    new LocalMapData { Id = 1, RegionId = regionId, Name = "村边山洞" }
-                },
-                Settlements =
-                {
-                    new SettlementData { Id = 1, RegionId = regionId, Name = "青石荒村" }
-                }
             };
         }
 
@@ -163,7 +155,6 @@ namespace XianXia.Data.Bootstrap
             {
                 DefinitionId = def.Id,
                 Name = name,
-                SpiritRootPlaceholder = def.SpiritRootPlaceholder ?? string.Empty,
                 InitialRealmPlaceholder = def.InitialRealmPlaceholder ?? string.Empty,
                 EntityKind = entityKindNpc ? SpawnEntityKind.Npc : SpawnEntityKind.Character
             };

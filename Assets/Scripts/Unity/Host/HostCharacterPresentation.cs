@@ -98,6 +98,14 @@ namespace XianXia.Unity.Host
 
         static string ResolveLocation(PlayableHostSession session, EntityId id, Entity entity)
         {
+            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(session.World, id) &&
+                entity.TryGet<EntityLocationComponent>(out var interiorLocation) &&
+                interiorLocation.HasLocation)
+            {
+                return session.World.LocalPlaces.TryGet(interiorLocation.LocationId, out var interiorPlace)
+                    ? (string.IsNullOrEmpty(interiorPlace.Name) ? interiorPlace.Id : interiorPlace.Name)
+                    : "独立空间 / 室内";
+            }
             var encounter = session.World.Strategic.CharacterEncounter;
             var materialization = session.World.ContinuousOutdoorMaterialization;
             if (encounter != null && materialization.HasIndependentEncounterBinding &&
@@ -113,7 +121,7 @@ namespace XianXia.Unity.Host
             {
                 if (!string.IsNullOrEmpty(siteId))
                     return DescribeSite(session.World, siteId) + (loaded ? " · 当前地图已加载" : string.Empty);
-                return "荒野" + hex;
+                return "户外 " + hex;
             }
             if (entity.TryGet<EntityLocationComponent>(out var location) && location.HasLocation &&
                 session.World.LocalPlaces.TryGet(location.LocationId, out var place))

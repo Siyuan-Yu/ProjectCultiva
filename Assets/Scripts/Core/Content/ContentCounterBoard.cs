@@ -36,5 +36,13 @@ namespace XianXia.Core.Content
         }
 
         public void Clear() => _counts.Clear();
+
+        internal Dictionary<string, int> CaptureState() => new Dictionary<string, int>(_counts, StringComparer.Ordinal);
+
+        internal void RestoreState(IReadOnlyDictionary<string, int> state)
+        {
+            _counts.Clear();
+            if (state != null) foreach (var pair in state) _counts[pair.Key] = pair.Value;
+        }
     }
 }

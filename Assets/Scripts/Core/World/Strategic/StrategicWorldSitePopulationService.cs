@@ -9,7 +9,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与 EnteringArmy / Focus 分离）。
+    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与移动 Squad / Focus 分离）。
     /// </summary>
     public static class StrategicWorldSitePopulationService
     {
@@ -34,7 +34,7 @@ namespace XianXia.Core.World.Strategic
             if (IsPersonalResidualPresentAtSite(world, characterId, site))
                 return true;
 
-            if (IsArmyMemberPhysicallyAtSite(world, characterId, site))
+            if (IsSquadMemberPhysicallyAtSite(world, characterId, site))
                 return true;
 
             return IsPersonalResidentAtSite(world, characterId, site);
@@ -42,7 +42,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Incapacitated / visible corpse at a Site is represented by its own AtSite presence.
-        /// Squad and LegacyArmy membership remain intact but cannot deny this spatial authority.
+        /// Squad membership remains intact but cannot deny this spatial authority.
         /// </summary>
         public static bool IsPersonalResidualPresentAtSite(
             SimulationWorld world,
@@ -129,7 +129,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// 解析应在 WorldSite LocalMap 出现的 Character
-        /// （personal resident / residual + physically present FormalArmy member，按 CharacterId 去重）。
+        /// （personal resident / residual + physically present Squad member，按 CharacterId 去重）。
         /// </summary>
         public static void CollectCharacterIdsPresentAtWorldSite(
             SimulationWorld world,
@@ -142,7 +142,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var seen = new HashSet<ulong>();
-            CollectArmyMemberIdsAtSite(world, site, into, seen);
+            CollectSquadMemberIdsAtSite(world, site, into, seen);
 
             if (candidateCharacterIds != null)
             {
@@ -171,7 +171,7 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void CollectArmyMemberIdsAtSite(
+        static void CollectSquadMemberIdsAtSite(
             SimulationWorld world, WorldSite site, List<EntityId> into, HashSet<ulong> seen)
         {
             if (world?.Strategic?.Squads == null) return;
@@ -193,7 +193,7 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static bool IsArmyMemberPhysicallyAtSite(
+        static bool IsSquadMemberPhysicallyAtSite(
             SimulationWorld world, EntityId characterId, WorldSite site)
         {
             if (!CharacterStrategicQuery.TryGetSquad(world, characterId, out var squad) || squad == null ||

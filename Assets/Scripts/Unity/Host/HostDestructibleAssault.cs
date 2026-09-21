@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Content;
@@ -90,6 +91,8 @@ namespace XianXia.Unity.Host
         {
             if (attacker.IsNone || target == null || target.IsDestroyed)
                 return;
+            if (!AutonomousActionContinuationService.CanContinue(bootstrap?.Session?.World, attacker))
+                return;
 
             for (var i = 0; i < _sessions.Count; i++)
             {
@@ -171,10 +174,12 @@ namespace XianXia.Unity.Host
 
             var world = bootstrap.Session.World;
             var attacker = session.Attacker;
-            if (!world.Entities.TryGet(attacker, out var atk) ||
-                !atk.TryGet<LifecycleComponent>(out var life) ||
-                life.IsDead || life.IsRemoved)
+            if (!AutonomousActionContinuationService.CanContinue(world, attacker) ||
+                !world.Entities.TryGet(attacker, out var atk))
+            {
+                moveController?.CancelPresentationMovementPublic(attacker);
                 return false;
+            }
 
             if (!TryGetPresentation(attacker, out var ax, out var ay))
                 return false;

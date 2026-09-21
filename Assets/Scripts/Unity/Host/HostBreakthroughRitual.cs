@@ -125,7 +125,6 @@ namespace XianXia.Unity.Host
 
             bootstrap.CultivationPanel?.Close();
             bootstrap.CharacterSheetPanel?.Close();
-            bootstrap.RelationPanel?.Close();
             return true;
         }
 
@@ -305,6 +304,11 @@ namespace XianXia.Unity.Host
         bool DetectInterrupt(Entity entity, out string why)
         {
             why = string.Empty;
+            if (!entity.TryGet<LifecycleComponent>(out var life) || life.State != LifecycleState.Alive)
+            {
+                why = "角色倒下，冲击中断。";
+                return true;
+            }
             if (bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(_subject))
             {
                 why = "移动打断了冲击瓶颈。";

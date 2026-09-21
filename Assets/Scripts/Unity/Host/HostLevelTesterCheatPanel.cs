@@ -402,7 +402,7 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x, y, width, 40f),
                 "NPC Squad Runtime: Squads=" + (strategic?.Squads?.Squads?.Count ?? 0) +
                 "  ActiveNpcSquadWorldMotions=" + CountActiveNpcSquadWorldMotions() + "\n" +
-                "Legacy Runtime: RETIRED  Modern AtHex Producers=0  Outdoor LocalMap Active=" +
+                "Legacy Runtime: RETIRED  AtHex Scope=Compatibility Input (boundary invariant)  Outdoor LocalMap Active=" +
                 (world?.LocalMap != null && !world.LocalMap.IsInInterior &&
                  !string.IsNullOrEmpty(world.LocalMap.ActiveMapLayoutId)), _body);
             y += 44f;

@@ -5,12 +5,6 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    public static class StrategicObjectiveKind
-    {
-        public const string ControlCore = "ControlCore";
-        public const string FactionFlag = "FactionFlag";
-    }
-
     /// <summary>
     /// Host-facing lifetime marker for a manual battle presented on the already active
     /// Continuous Outdoor surface. Strategic battle location remains in Participants;
@@ -110,7 +104,6 @@ namespace XianXia.Core.World.Strategic
         /// <summary>SiteId-keyed public administrative resources; ownership remains on WorldSite.</summary>
         public WorldSitePublicStockBoard SitePublicStocks { get; } = new WorldSitePublicStockBoard();
         public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
-        public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
         public ContinuousManualCombatPresentationState ContinuousManualCombat { get; } =
@@ -121,58 +114,12 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Host 注入：Engagement 收集 PlayerParty 时使用（Domain 不依赖 Session）。</summary>
         public PlayerPartyRuntime PlayerPartyContext { get; set; }
 
-        /// <summary>Modern CharacterEncounter intervention radius in continuous world units.</summary>
-        public float ReinforcementWorldRadius { get; set; }
-
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;
-
-        public bool HasArrivalNotice =>
-            ArrivalNotice != null && !ArrivalNotice.Resolved && !string.IsNullOrEmpty(ArrivalNotice.NoticeId);
-
-        public bool HasBlockingInterrupt =>
-            HasArrivalNotice ||
-            (Participants != null && Participants.IsAutoSettlement);
 
         public bool IsWorldTickFrozen => ClockFreeze != null && ClockFreeze.IsWorldTickFrozen;
 
         public bool IsModalEncounter => ClockFreeze != null && ClockFreeze.IsModalEncounter;
 
-        public void ClearArrivalNotice()
-        {
-            ArrivalNotice.NoticeId = string.Empty;
-            ArrivalNotice.Summary = string.Empty;
-            ArrivalNotice.PlaceLabel = string.Empty;
-            ArrivalNotice.FocusNodeId = string.Empty;
-            ArrivalNotice.ClearArrived();
-            ArrivalNotice.Resolved = true;
-        }
-    }
-
-    /// <summary>我方宏观到站提示（非遇敌）。</summary>
-    public sealed class ArrivalNoticePending
-    {
-        public string NoticeId { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
-        public string PlaceLabel { get; set; } = string.Empty;
-        public string FocusNodeId { get; set; } = string.Empty;
-        public bool Resolved { get; set; } = true;
-        readonly List<ulong> _arrivedIds = new List<ulong>(8);
-
-        public IReadOnlyList<ulong> ArrivedIds => _arrivedIds;
-
-        public void SetArrived(IReadOnlyList<EntityId> party)
-        {
-            _arrivedIds.Clear();
-            if (party == null)
-                return;
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (!party[i].IsNone && !_arrivedIds.Contains(party[i].Value))
-                    _arrivedIds.Add(party[i].Value);
-            }
-        }
-
-        public void ClearArrived() => _arrivedIds.Clear();
     }
 }

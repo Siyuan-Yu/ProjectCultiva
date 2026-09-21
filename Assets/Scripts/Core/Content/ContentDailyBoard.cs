@@ -37,5 +37,13 @@ namespace XianXia.Core.Content
         }
 
         public void ClearAll() => _markedDay.Clear();
+
+        internal Dictionary<string, int> CaptureState() => new Dictionary<string, int>(_markedDay, StringComparer.Ordinal);
+
+        internal void RestoreState(IReadOnlyDictionary<string, int> state)
+        {
+            _markedDay.Clear();
+            if (state != null) foreach (var pair in state) _markedDay[pair.Key] = pair.Value;
+        }
     }
 }

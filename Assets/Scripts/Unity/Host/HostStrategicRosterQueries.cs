@@ -23,7 +23,10 @@ namespace XianXia.Unity.Host
         /// <summary>玩家看到的行标签（PlayerParty member：canonical party location；其余：SiteLabel）。</summary>
         public string LocationLabel = string.Empty;
         public string SquadId = string.Empty;
+        public bool HasSquadMembership;
         public bool IsGrouped;
+        public bool HasWorldPosition;
+        public WorldVec2 WorldPosition;
     }
 
     /// <summary>Host ?????????????????? Domain??</summary>
@@ -109,12 +112,11 @@ namespace XianXia.Unity.Host
             };
             var currentParty = partyRuntime ?? world.Strategic.PlayerPartyContext;
             if (currentParty?.IsMember(id) != true &&
-                world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
-                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var groupMotion) &&
-                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, groupMotion))
+                world.Strategic.Squads.TryGetForCharacter(id, out var squad))
             {
                 row.SquadId = squad.SquadId;
-                row.IsGrouped = true;
+                row.HasSquadMembership = true;
+                row.IsGrouped = SquadWorldMotionService.OwnsCharacter(world, id);
             }
 
             // PlayerParty member 的位置来自 canonical PlayerPartyWorldLocationQuery，而不是
@@ -138,7 +140,9 @@ namespace XianXia.Unity.Host
                 {
                     row.SiteId = string.Empty;
                     row.SiteLabel = "?";
-                    row.LocationLabel = DescribeHexLabel(world, resolved.DerivedHex);
+                    row.LocationLabel = DescribeOutdoorPositionLabel(resolved.DerivedHex);
+                    row.HasWorldPosition = true;
+                    row.WorldPosition = resolved.WorldPosition;
                 }
             }
             else
@@ -156,7 +160,15 @@ namespace XianXia.Unity.Host
                 {
                     row.SiteId = string.Empty;
                     row.SiteLabel = string.Empty;
-                    row.LocationLabel = DescribeHexLabel(world, worldHex);
+                    row.LocationLabel = DescribeOutdoorPositionLabel(worldHex);
+                    if (ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                            world, id,
+                            ResolveSurfaceId(world, id),
+                            out var exact, out _, out _, out _))
+                    {
+                        row.HasWorldPosition = true;
+                        row.WorldPosition = exact;
+                    }
                 }
                 else
                 {
@@ -192,6 +204,20 @@ namespace XianXia.Unity.Host
                 !string.IsNullOrEmpty(site.DisplayName))
                 return site.DisplayName;
             return hex.ToString();
+        }
+
+        static string DescribeOutdoorPositionLabel(HexCoord hex) => "户外 " + hex;
+
+        static string ResolveSurfaceId(SimulationWorld world, EntityId id)
+        {
+            if (world.WorldPresence.TryGet(id, out var presence) && presence != null &&
+                !string.IsNullOrEmpty(presence.PersonalSurfaceId))
+                return presence.PersonalSurfaceId;
+            if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion))
+                return motion.SurfaceId;
+            var party = world.Strategic.PlayerPartyContext;
+            return party?.IsMember(id) == true ? world.PlayerPartyTravel?.SurfaceId ?? string.Empty : string.Empty;
         }
 
     }

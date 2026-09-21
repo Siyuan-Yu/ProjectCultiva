@@ -53,5 +53,12 @@ namespace XianXia.Core.Social
         {
             _events.Clear();
         }
+
+        internal void Truncate(int eventCount)
+        {
+            if (eventCount < 0) eventCount = 0;
+            if (eventCount < _events.Count)
+                _events.RemoveRange(eventCount, _events.Count - eventCount);
+        }
     }
 }

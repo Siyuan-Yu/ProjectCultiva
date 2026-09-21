@@ -612,7 +612,8 @@ namespace XianXia.Unity.Host
             if (!world.Strategic.Squads.TryGetForCharacter(id, out var squad) || squad == null ||
                 !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) || motion == null)
                 return false;
-            return motion.HasPosition && string.IsNullOrEmpty(motion.SiteId);
+            return SquadWorldMotionService.OwnsCharacter(world, id) &&
+                   motion.HasPosition && string.IsNullOrEmpty(motion.SiteId);
         }
     }
 }

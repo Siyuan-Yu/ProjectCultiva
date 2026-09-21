@@ -35,5 +35,19 @@ namespace XianXia.Core.Content
         public IReadOnlyCollection<string> All => _flags;
 
         public IReadOnlyList<string> History => _history;
+
+        internal void CaptureState(out List<string> flags, out List<string> history)
+        {
+            flags = new List<string>(_flags);
+            history = new List<string>(_history);
+        }
+
+        internal void RestoreState(IEnumerable<string> flags, IEnumerable<string> history)
+        {
+            _flags.Clear();
+            _history.Clear();
+            if (flags != null) foreach (var flag in flags) _flags.Add(flag);
+            if (history != null) _history.AddRange(history);
+        }
     }
 }

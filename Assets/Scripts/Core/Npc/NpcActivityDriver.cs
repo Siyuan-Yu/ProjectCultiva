@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using XianXia.Core.Actions;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -35,6 +36,12 @@ namespace XianXia.Core.Npc
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||
                     string.IsNullOrEmpty(binding.DefinitionId))
                     continue;
+                if (!AutonomousActionContinuationService.CanContinue(world, entity.Id))
+                {
+                    loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                    world.WorkAreaOccupancy.Release(entity.Id);
+                    continue;
+                }
                 if (!world.TryGetSchedule(binding.DefinitionId, out var definition))
                     continue;
 

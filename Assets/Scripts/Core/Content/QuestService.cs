@@ -45,11 +45,14 @@ namespace XianXia.Core.Content
             if (runtime.Status != QuestStatus.ReadyToClaim)
                 return Result.Failure(ErrorCode.InvalidOperation, "Quest not ready to claim.", questId);
 
-            var rewarded = ContentOutcomeApplier.ApplyAll(world, subject, spec.Rewards);
+            var rewarded = ContentOutcomeApplier.ApplyAll(world, subject, spec.Rewards, () =>
+            {
+                runtime.Status = QuestStatus.Completed;
+                return Result.Success();
+            });
             if (rewarded.IsFailure)
                 return rewarded;
 
-            runtime.Status = QuestStatus.Completed;
             world.Events.Publish(EventType.QuestRewardsClaimed, world.Tick, target: subject, payload: questId);
             return Result.Success();
         }

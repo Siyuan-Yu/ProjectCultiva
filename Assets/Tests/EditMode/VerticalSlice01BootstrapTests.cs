@@ -23,8 +23,6 @@ namespace XianXia.Tests
             var world = result.Value.World;
             Assert.IsNotNull(world.WorldLayout);
             Assert.AreEqual(1, world.WorldLayout.Regions.Count);
-            Assert.AreEqual(1, world.WorldLayout.LocalMaps.Count);
-            Assert.AreEqual(1, world.WorldLayout.Settlements.Count);
             Assert.AreEqual(new RegionId(1), world.RegionId);
         }
 

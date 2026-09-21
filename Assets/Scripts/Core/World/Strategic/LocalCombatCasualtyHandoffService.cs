@@ -245,7 +245,7 @@ namespace XianXia.Core.World.Strategic
         {
             var name = characterId.ToString();
             var lifeState = "(entity missing)";
-            var armyId = "(none)";
+            var squadId = "(none)";
             if (world.Entities.TryGet(characterId, out var entity) && entity != null)
             {
                 name = string.IsNullOrEmpty(entity.DisplayName) ? characterId.ToString() : entity.DisplayName;
@@ -253,7 +253,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (CharacterStrategicQuery.TryGetSquad(world, characterId, out var squad) && squad != null)
-                armyId = squad.SquadId;
+                squadId = squad.SquadId;
 
             var presenceMode = "(none)";
             var presenceSiteId = string.Empty;
@@ -284,7 +284,7 @@ namespace XianXia.Core.World.Strategic
                 " EntityId=" + characterId +
                 " Name=" + name +
                 " LifeState=" + lifeState +
-                " SquadId=" + armyId +
+                " SquadId=" + squadId +
                 " SurfaceKind=" + context.Kind +
                 " SurfaceSiteId=" + (context.Site != null ? context.Site.SiteId : string.Empty) +
                 " SurfaceWildernessHex=" + context.WildernessHex +

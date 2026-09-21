@@ -9,6 +9,9 @@ using XianXia.Core.Results;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.Inventory;
+using XianXia.Core.Combat;
+using XianXia.Core.Attributes;
 
 namespace XianXia.Core.Content
 {
@@ -18,20 +21,51 @@ namespace XianXia.Core.Content
             SimulationWorld world,
             EntityId subject,
             System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes)
-        {
-            if (outcomes == null)
-                return Result.Success();
-            for (var i = 0; i < outcomes.Count; i++)
-            {
-                var r = Apply(world, subject, outcomes[i]);
-                if (r.IsFailure)
-                    return r;
-            }
+            => ApplyAll(world, subject, outcomes, null);
 
-            return Result.Success();
+        internal static Result ApplyAll(
+            SimulationWorld world,
+            EntityId subject,
+            System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes,
+            Func<Result> finalize)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            var transaction = new OutcomeTransaction(world, subject);
+            try
+            {
+                if (outcomes != null)
+                    for (var i = 0; i < outcomes.Count; i++)
+                    {
+                        var r = ApplyOne(world, subject, outcomes[i]);
+                        if (r.IsFailure)
+                        {
+                            transaction.Rollback();
+                            return r;
+                        }
+                    }
+                if (finalize != null)
+                {
+                    var finalized = finalize();
+                    if (finalized.IsFailure)
+                    {
+                        transaction.Rollback();
+                        return finalized;
+                    }
+                }
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                return Result.Failure(ErrorCode.InvalidOperation, "Outcome transaction failed.", ex.Message);
+            }
         }
 
         public static Result Apply(SimulationWorld world, EntityId subject, ContentOutcome o)
+            => ApplyAll(world, subject, new[] { o });
+
+        static Result ApplyOne(SimulationWorld world, EntityId subject, ContentOutcome o)
         {
             if (world == null || o == null || string.IsNullOrEmpty(o.Kind))
                 return Result.Failure(ErrorCode.InvalidArgument, "Outcome invalid.");
@@ -49,14 +83,13 @@ namespace XianXia.Core.Content
                 case "addstock":
                 {
                     var amt = o.Amount <= 0 ? 1 : o.Amount;
-                    var added = world.Inventory.TryAdd(o.Id, amt);
-                    if (added <= 0)
+                    if (!world.Inventory.TryAddAll(o.Id, amt))
                         return Result.Failure(ErrorCode.InvalidOperation, "Party bag full.", o.Id);
                     world.Events.Publish(
                         EventType.PartyInventoryChanged,
                         world.Tick,
                         target: subject,
-                        payload: "bag:" + o.Id + ":+" + added);
+                        payload: "bag:" + o.Id + ":+" + amt);
                     QuestProgressRefresh.AfterWorldChange(world, subject);
                     return Result.Success();
                 }
@@ -149,7 +182,7 @@ namespace XianXia.Core.Content
             if (targetDefs.Count == 0)
                 return Result.Failure(ErrorCode.InvalidDefinitionId, "relationDelta targets missing.");
 
-            var svc = new RelationshipService();
+            var targetIds = new List<EntityId>(targetDefs.Count);
             foreach (var toDef in targetDefs)
             {
                 EntityId to = EntityId.None;
@@ -165,7 +198,15 @@ namespace XianXia.Core.Content
                 if (to.IsNone)
                     return Result.Failure(ErrorCode.EntityNotFound, "relationDelta target missing.", toDef.ToString());
 
-                var r = svc.Record(world, from, to, o.Amount, "content_event");
+                if (to == from)
+                    return Result.Failure(ErrorCode.InvalidArgument, "relationDelta cannot target self.");
+                targetIds.Add(to);
+            }
+
+            var svc = new RelationshipService();
+            for (var i = 0; i < targetIds.Count; i++)
+            {
+                var r = svc.Record(world, from, targetIds[i], o.Amount, "content_event");
                 if (r.IsFailure)
                     return r;
             }
@@ -213,6 +254,87 @@ namespace XianXia.Core.Content
                 AddRaw(o.ToDefinitionId);
 
             return resolved;
+        }
+
+        sealed class OutcomeTransaction
+        {
+            readonly SimulationWorld _world;
+            readonly EntityId _subject;
+            readonly List<InventorySlot> _inventory;
+            readonly List<string> _flags, _flagHistory, _fired, _known;
+            readonly Dictionary<string, int> _counters, _daily;
+            readonly Dictionary<string, QuestRuntime> _quests;
+            readonly string _activeEvent;
+            readonly int _relationshipCount, _eventCursor;
+            readonly ulong _eventNext;
+            readonly List<DomainEvent> _events;
+            readonly CultivationState _cultivation;
+            readonly List<AttributeModifier> _modifiers;
+            readonly ulong _modifierNext;
+
+            public OutcomeTransaction(SimulationWorld world, EntityId subject)
+            {
+                _world = world;
+                _subject = subject;
+                _inventory = world.Inventory.CaptureState();
+                world.Flags.CaptureState(out _flags, out _flagHistory);
+                _counters = world.ContentCounters.CaptureState();
+                _daily = world.ContentDaily.CaptureState();
+                _quests = world.Quests.CaptureRuntime();
+                world.ContentEvents.CaptureState(out _activeEvent, out _fired);
+                _relationshipCount = world.Relationships.EventCount;
+                world.Events.CaptureState(out _events, out _eventCursor, out _eventNext);
+                if (world.Entities.TryGet(subject, out var entity))
+                {
+                    if (entity.TryGet<KnownSitesComponent>(out var known)) _known = new List<string>(known.KnownIds);
+                    if (entity.TryGet<CultivationComponent>(out var cult)) _cultivation = new CultivationState(cult);
+                    if (entity.TryGet<AttributesComponent>(out var attrs))
+                    {
+                        _modifiers = attrs.CaptureModifiers();
+                        _modifierNext = attrs.PeekNextModifierId;
+                    }
+                }
+            }
+
+            public void Rollback()
+            {
+                _world.Inventory.RestoreState(_inventory);
+                _world.Flags.RestoreState(_flags, _flagHistory);
+                _world.ContentCounters.RestoreState(_counters);
+                _world.ContentDaily.RestoreState(_daily);
+                _world.Quests.RestoreRuntime(_quests);
+                _world.ContentEvents.RestoreState(_activeEvent, _fired);
+                _world.Relationships.Truncate(_relationshipCount);
+                RelationshipService.RebuildAllCaches(_world);
+                _world.Events.RestoreState(_events, _eventCursor, _eventNext);
+                if (_world.Entities.TryGet(_subject, out var entity))
+                {
+                    if (_known != null && entity.TryGet<KnownSitesComponent>(out var known)) known.Restore(_known);
+                    if (_cultivation != null && entity.TryGet<CultivationComponent>(out var cult)) _cultivation.Restore(cult);
+                    if (_modifiers != null && entity.TryGet<AttributesComponent>(out var attrs))
+                        attrs.RestoreModifiers(_modifiers, _modifierNext);
+                }
+            }
+
+            sealed class CultivationState
+            {
+                readonly RealmStage _realm; readonly int _minor, _progress, _required, _speed;
+                readonly DefinitionId? _manual; readonly string _requiredRealm; readonly SkillMasteryState _mastery;
+                public CultivationState(CultivationComponent c)
+                {
+                    _realm = c.Realm; _minor = c.MinorStage; _progress = c.Progress;
+                    _required = c.BreakthroughProgressRequired; _speed = c.CultivationSpeed;
+                    _manual = c.LearnedManualId; _requiredRealm = c.RequiredRealmName;
+                    _mastery = c.ManualMastery?.Clone();
+                }
+                public void Restore(CultivationComponent c)
+                {
+                    c.Realm = _realm; c.MinorStage = _minor; c.Progress = _progress;
+                    c.BreakthroughProgressRequired = _required; c.CultivationSpeed = _speed;
+                    c.LearnedManualId = _manual; c.RequiredRealmName = _requiredRealm;
+                    c.ManualMastery = _mastery?.Clone();
+                }
+            }
         }
     }
 }

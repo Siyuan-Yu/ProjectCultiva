@@ -19,17 +19,6 @@ namespace XianXia.Core.World
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtSite;
         /// <summary>WorldSite identity; exact Surface position remains modern outdoor authority.</summary>
         public string SiteId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility only; modern runtime never writes stack identity.</summary>
-        public string FollowStackId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility only; modern runtime never writes pursuit stack identity.</summary>
-        public string CombatPursuitStackId { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 已因接战弹窗消费过本次抵达：撤退／关窗后勿再弹「是否查看」。
-        /// 新的宏观出行下令时清除。
-        /// </summary>
-        public bool SuppressArrivalNotice { get; set; }
-
         /// <summary>Legacy AtHex migration storage. Modern residuals use exact Surface position.</summary>
         public int HexQ { get; set; } = InvalidHexComponent;
         public int HexR { get; set; } = InvalidHexComponent;
@@ -47,10 +36,6 @@ namespace XianXia.Core.World
             HexR != InvalidHexComponent;
 
         public HexCoord ResidualHex => new HexCoord(HexQ, HexR);
-
-        public bool IsFollowingStack => !string.IsNullOrEmpty(FollowStackId);
-
-        public bool IsCombatPursuing => !string.IsNullOrEmpty(CombatPursuitStackId);
 
         public void ClearHexPresence()
         {
@@ -70,8 +55,6 @@ namespace XianXia.Core.World
             HexR = hex.R;
             SiteId = string.Empty;
             HasContinuousWorldPosition = false;
-            ClearFollow();
-            ClearCombatPursuit();
         }
 
         public void SetAtWorldPosition(WorldVec2 pos, HexCoord derivedHex)
@@ -90,8 +73,6 @@ namespace XianXia.Core.World
             WorldPosY = pos.Y;
             HexQ = derivedHex.Q;
             HexR = derivedHex.R;
-            ClearFollow();
-            ClearCombatPursuit();
         }
 
         /// <summary>Legacy input adapter. New runtime code uses SetAtWorldPosition.</summary>
@@ -114,8 +95,6 @@ namespace XianXia.Core.World
             WorldPosX = preciseWorldPosition.X;
             WorldPosY = preciseWorldPosition.Y;
             HasContinuousWorldPosition = true;
-            ClearFollow();
-            ClearCombatPursuit();
         }
 
         /// <summary>
@@ -144,21 +123,22 @@ namespace XianXia.Core.World
             WorldPosX = anchorWorldPosition.X;
             WorldPosY = anchorWorldPosition.Y;
             HasContinuousWorldPosition = true;
-            ClearFollow();
-            ClearCombatPursuit();
         }
 
         public WorldVec2 ContinuousWorldPosition =>
             HasContinuousWorldPosition ? new WorldVec2(WorldPosX, WorldPosY) : default;
 
-        public HexCoord DerivedHexFromWorldPosition =>
-            HexQ != InvalidHexComponent && HexR != InvalidHexComponent
-                ? new HexCoord(HexQ, HexR)
-                : default;
+        public bool TryGetDerivedHexFromWorldPosition(out HexCoord hex)
+        {
+            if (HexQ != InvalidHexComponent && HexR != InvalidHexComponent)
+            {
+                hex = new HexCoord(HexQ, HexR);
+                return true;
+            }
+            hex = default;
+            return false;
+        }
 
-        public void ClearFollow() => FollowStackId = string.Empty;
-
-        public void ClearCombatPursuit() => CombatPursuitStackId = string.Empty;
     }
 
     /// <summary>全员宏观位置；PartyWorld 作「当前镜头／焦点 Site」摘要。</summary>
@@ -206,8 +186,6 @@ namespace XianXia.Core.World
             p.Mode = PartyWorldPresenceMode.AtSite;
             p.ClearHexPresence();
             p.HasContinuousWorldPosition = false;
-            p.ClearFollow();
-            p.ClearCombatPursuit();
         }
 
         /// <summary>AtSite ＋ 精确连续世界锚点（见 <see cref="WorldAgentPresence.SetAtSiteWithAnchor"/>）。</summary>

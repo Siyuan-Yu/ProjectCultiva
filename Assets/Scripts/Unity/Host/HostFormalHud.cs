@@ -151,8 +151,6 @@ namespace XianXia.Unity.Host
                 return;
             if (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen)
                 return;
-            if (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen)
-                return;
             if (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen)
                 return;
             if (session.World.ContentEvents.HasActive)
@@ -171,7 +169,6 @@ namespace XianXia.Unity.Host
             if (bootstrap != null &&
                 ((bootstrap.CultivationPanel != null && bootstrap.CultivationPanel.IsOpen) ||
                  (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen) ||
-                 (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen) ||
                  (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen) ||
                  (bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)))
                 return;
@@ -1099,7 +1096,9 @@ namespace XianXia.Unity.Host
             else if (bootstrap != null &&
                      bootstrap.SkillStudyRitual != null &&
                      bootstrap.SkillStudyRitual.IsChannelingSubject(focus))
-                activity = "参悟中";
+                activity = bootstrap.SkillStudyRitual.IsBreakthroughChanneling
+                    ? "冲击熟练瓶颈"
+                    : "参悟中";
             entity.TryGet<CultivationComponent>(out var cult);
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isActive ? "主控 · 上方可下令" : isPartyMember ? "同行 · 跟随主控" : isRoster ? "己方 · 可邀请同行" : "查看 · 非己方不可下令";
@@ -1159,6 +1158,15 @@ namespace XianXia.Unity.Host
                 new Rect(main.x + 14f, main.yMax - 22f, main.width - 28f, 18f),
                 "右侧 1–6 斗技可点放 · 详情（人物／境界／斗技／关系）· 打坐：F6",
                 _small);
+
+            // The selected-character panel is the stable owner of channel progress presentation.
+            // Drawing here keeps the bar visible after the detail window that started the ritual closes.
+            if (bootstrap?.BreakthroughRitual != null &&
+                bootstrap.BreakthroughRitual.IsChannelingSubject(focus))
+                bootstrap.BreakthroughRitual.DrawChannelBarAbove(main);
+            else if (bootstrap?.SkillStudyRitual != null &&
+                     bootstrap.SkillStudyRitual.IsChannelingSubject(focus))
+                bootstrap.SkillStudyRitual.DrawChannelBarAbove(main);
         }
 
         void DrawCombatArtSideRail(Rect strip, EntityId focus, Entity entity, bool isParty)

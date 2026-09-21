@@ -1,5 +1,27 @@
 # 开发日志
 
+## 2026-09-21 — Skill Mastery 无后续突破灌注修复（待制作人验收）
+
+- 功法／斗技灌注统一由 Core 解析真实 definition、profile、当前 tier 的突破路径与有效门槛；无路径、已满、修为不足分别返回明确原因，执行只在实际熟练增量大于 0 后一次性扣修为并写进度，近上限反馈真实增量。
+- `mastery.tiers` 只提供效果预览，`mastery.breakthroughs` 才定义升级路径。无升级路径时仍扣修为的代码漏洞已修；制作人随后要求当前全部功法／斗技显式配置到化境。四段熟练门槛为 20/30/40/50，灵草＋粗木各需 1/2/3/4；默认旧定义兼容仍仅生成 entry→minor。
+- Host 两个面板使用同一 Core 查询控制灌注按钮并保留操作权限；档位行区分“未配置后续突破”与真正“最高档”。本补丁状态：**Implementation Complete / Producer Acceptance Pending**；未修改 Snapshot schema 或 BaseGame JSON，未打开 Unity、未运行 Test Runner／PlayMode／batchmode，未暂存、未提交、未推送。
+
+## 2026-09-21 — FINAL-SEAL Non-World follow-through（待制作人验收）
+
+- 四类 SkillMastery 判定移除私有 `System.Random`，改用 Snapshot authority `world.Random`；收尾重新校验固定 subject、Alive、秘籍／定义／组件，非法尝试不抽签，合法概率失败仍消耗既有突破材料。
+- 新增窄职责自主行动继续资格：Cultivate/Labor/Work/Move/Rest/Observe 在弥留、死亡、移除时取消，清 action state、本人 movement intent／work slot 与排队旧自主命令；SimulationLoop 每次 Advance 前复核，Host loop 不会复活旧动作；Recovery 与被动 modifier 不受 blanket cancel。
+- `TryAddAll` 改为真正原子；整组 ContentOutcome 对实际可写 Board、关系 cache、修炼／modifier、已发现地点与事件队列精确回滚，Quest Completed 与 event once/active 纳入提交，小游戏只在成功提交后启动。Normal Outdoor 公库资格改为 exact Surface position 的 Actual Control。
+- 删除即时学习 wrapper、空 SelectedUnit/Relation UI、无生产入口的 opening relation seeder、重复派生标签 helper，以及 runtime spawn 的 SpiritRootPlaceholder 搬运和假 LocalMap/Settlement 布局。`InitialRealmPlaceholder`、真实 SpiritRoots、authored opening relations 与 Prototype Demo 的 Build Scene／Prefab／GUID 回归契约保留。
+- 明确债务：Separate Space／Independent Encounter 公库继承政策未定义；WorldFlag/Quest/Chapter/ContentEvent/Counter/Daily 的通用持久化未纳入。全程序集 offline compile `ALL_OK`，集中纯 C# sanity 14/14，Current BaseGame Content validation 与 `git diff --check` 通过，staged 为空。状态：**Implementation Complete / Producer Acceptance Pending**；未打开 Unity、未运行 Unity Test Runner／PlayMode／batchmode，未暂存、未提交、未推送。
+
+## 2026-09-21 — FINAL-SEAL consolidated repair 与 dead-dependency closure（待制作人验收）
+
+- 修正组织 membership 与真实移动／命令 ownership 混用：单人 Squad 不再阻止个人旅行、精确位置、到达物化与恢复；Host roster 仍显示组织归属，但只对真实物理 group 聚焦 Squad。
+- 修正 casualty handoff：失能时只从当时真实 Squad owner 捕获一次，后续 Squad 移动与死亡重复回调不覆盖冻结坐标；Encounter 与 Separate Space 继续独占各自空间状态。
+- 精确位置查询新增 `AtWorldPosition`，有限坐标可直接派生 Hex，真实 `(0,0)` 不再与失败默认值混淆。PlayerParty、Squad、个人后台旅行统一优先显式 `SurfaceId`；旧缺失 ID 仅可唯一推断。
+- Snapshot 后台旅行改为 raw restore + post-content finalize，idle 不重启、moving 必须可重建且现代冲突 fail closed。删除零 caller battle hex/range、arrival notice、旧 battle runtime snapshot 层、follow/pursuit stack、auto-settlement Host 分支及未绑定 aggression prompt；保留旧 DTO/readers、numeric compatibility 与仍有测试 caller 的工具。
+- 纯 C# focused regression（含 Current BaseGame 引用验证）16/16 通过；全量离线编译与最终静态审计见本轮交付。未打开 Unity、未运行 Unity Test Runner/batchmode、未暂存、未提交、未推送。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-21 — LEGACY-FINAL-PRESEAL-FIX modern invariant 与 Host legacy sync 隔离（待制作人验收）
 
 - 修正 `AssertModernNewGame`：idle Continuous PlayerParty 要求 `ExecutionMode=None`，只有 moving 状态要求 `SurfaceVisible` 与 continuous physical destination；同时验证 AtWorldPosition、SurfaceId/registered bounds 与 CurrentHex 单向派生。
@@ -4988,3 +5010,12 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 旧 empty-SurfaceId 与 Continuous AtWorldSite 只按唯一 Surface exact point或正式 SiteArrival 单向迁移。普通 Outdoor 才从 Party motion 同步成员；active Separate Space occupants 与 CharacterEncounter tactical participants 保持其空间 owner。
 - Background Surface travel 移至 Site shell 后按 CharacterId replace/rebuild，并把失败作为带 CharacterId、destination、SurfaceId、reason 的 SnapshotInvalid 返回。Presentation rebuild 不承担 Domain repair；restore invariant、一次性 authority error 和 Surface/pause/input trace 已补齐。
 - Core／Data／Host／Tests 最小离线编译通过；纯 C# sanity 覆盖 idle、moving、旧 empty SurfaceId、旧 AtWorldSite、显式 mismatch、Separate Space、CharacterEncounter、Background travel 与合法 movement sync。未打开 Unity，未运行 Unity Test／PlayMode／batchmode；状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-21 — FINAL-SEAL 熟练系统与集成验收收口（待制作人验收）
+
+- 功法／斗技的研读、自然增长、灌注、突破、效果与恢复统一按当前 Content profile 判定；重复研读幂等，所有前置失败发生在 RNG／扣费之前，灌注零收益不扣修为。
+- 突破材料按 item 聚合，查询与消费一致；合法概率失败只结算一次。mastery parser 明确报告重复 tier、重复／倒退路径和非法 cost，同时允许合法缺失后续路径。
+- Snapshot post-content 阶段规范化门槛缓存并幂等重挂效果；修复 NPC-only Snapshot 被错误要求 ControlledSquadId 的集成回归。
+- 关联复核修复失能 NPC 的 action 前工位预占，以及 Host 农作／拆毁会话在 incapacitated 后仍可继续的缺口；只释放该主体自己的预约与表现移动。
+- 当前 BaseGame 的 5 本功法与 2 门斗技已按制作人要求显式补齐至化境：四段熟练门槛 20/30/40/50，灵草／粗木各 1/2/3/4。选中仪式主体时，常驻角色面板上方直接绘制读条，不再依赖境界／熟练详情页保持打开。
+- Core／Data／Unity／Tests 离线编译通过；稳定 headless 集中矩阵 40/40。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode。状态为 **Implementation Complete / Producer Acceptance Pending**。

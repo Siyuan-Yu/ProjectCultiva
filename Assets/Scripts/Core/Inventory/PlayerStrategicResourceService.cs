@@ -46,6 +46,16 @@ namespace XianXia.Core.Inventory
             var playerFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
             if (motion == null || sites == null || string.IsNullOrEmpty(playerFactionId)) return false;
 
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                if (!motion.HasPosition || string.IsNullOrEmpty(motion.SurfaceId) ||
+                    !WorldSiteAdministrativeControlResolver.TryResolve(
+                        world, motion.SurfaceId, motion.WorldPosition.X, motion.WorldPosition.Y,
+                        out var controlled, out _))
+                    return false;
+                return IsActivePlayerSite(sites, controlled.SiteId, playerFactionId, out site);
+            }
+
             var currentOutdoorSiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty;
             if (!string.IsNullOrEmpty(currentOutdoorSiteId))
                 return IsActivePlayerSite(sites, currentOutdoorSiteId, playerFactionId, out site);
@@ -104,8 +114,10 @@ namespace XianXia.Core.Inventory
                     ? world.Inventory.TryRemoveAll(resourceId, row.Amount)
                     : WorldSitePublicStockService.TryRemove(world, row.SiteId, resourceId, row.Amount).IsSuccess;
                 if (ok) continue;
-                RollbackApplied(world, receipt, applied);
+                var rolledBack = RollbackApplied(world, receipt, applied);
                 receipt = new StrategicResourceWithdrawalReceipt { ResourceId = resourceId };
+                if (rolledBack.IsFailure)
+                    return rolledBack;
                 return Result.Failure(ErrorCode.InvalidOperation, "战略物资扣除失败，事务已回滚。", resourceId);
             }
             receipt.IsApplied = true;

@@ -1,5 +1,17 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
+> **2026-09-21 Skill Mastery acceptance fix：** 功法／斗技灌注统一以真实 `mastery.breakthroughs` 路径计算资格与有效门槛，并在确认 `actualGain > 0` 后原子扣修为／写熟练。制作人随后要求当前全部功法／斗技显式配置到化境：四段门槛依次 20/30/40/50，灵草与粗木分别各需 1/2/3/4。显式 profile 缺失当前 tier 路径仍不回落成默认路径。
+>
+> **本补丁人工 smoke：** 分别查看洞府秘诀与一门斗技的小成／大成／圆满；核对灌注、冲击按钮、10 修为固定扣费、四档材料、近上限实际增量，以及关闭详情页后选中角色面板上方的仪式读条。通过前保持 Pending。
+>
+> **2026-09-21 FINAL-SEAL Non-World follow-through：** 非世界修复与清理已达到 **Implementation Complete / Producer Acceptance Pending**。四类学习／熟练判定统一到可保存 `world.Random`；失能自主行动即时且逐 tick fail-closed、释放本人预约；`TryAddAll` 与整组 outcome／领奖／事件 choice 形成原子提交；Normal Outdoor 公库改用 exact position 的 Actual Control。已删除旧即时学习 wrapper、空 UI、无入口关系种子／派生 helper 和 runtime 假 LocalMap／Settlement 布局；Prototype Demo 因 Build Scene、Prefab 与 GUID 契约整体保留。特殊空间公库政策与通用剧情 Boards 持久化仍待独立定义，不得宣称全游戏状态均已完整 Save/Load。全程序集 offline compile `ALL_OK`；集中纯 C# sanity（含上一轮回归）14/14；Current BaseGame Content reference validation 通过；`git diff --check` 通过且 staged 为空。
+>
+> **本轮制作人集中验收：** 1) 用背包现有功法秘籍／斗技秘本开始研读，中途令固定 subject 弥留，确认不授予且恢复后不会自动续上；2) 让角色执行采集／劳动或打坐，运行中令其弥留，确认进度停止、工位释放、下一条旧自主命令不启动；3) 满包时领取含多项奖励的现有任务／事件，确认无前项奖励、flag、关系或计数残留，腾出空间后仅领取一次；4) 在己方核心 Actual Control 内外移动并观察公库可用量／消费，陈旧地点上下文不得授权；5) 底栏人物入口直接打开统一人物档案的人际页；6) New Game 核对灵根、初始境界、RegionId 与 authored opening relations。通过前保持 Pending。
+>
+> **2026-09-21 FINAL-SEAL consolidated repair：** 已完成 correctness repair 与 dead-dependency closure，状态为 **Implementation Complete / Producer Acceptance Pending**。组织 membership 与实际移动／命令 ownership 已分离；casualty handoff 冻结首次精确位置；精确位置查询、显式 Surface 路由及后台 Snapshot 两阶段恢复已收口；零 caller battle/arrival/旧 runtime snapshot/stack/Host residue 已删除，旧 DTO/readers 与真实工具／测试 caller 保留。架构冻结详见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。本轮未打开 Unity、未暂存、未提交、未推送。
+>
+> **制作人人工 smoke（仍待完成）：** 1) 单人 Squad 成员个人旅行／到达／Save-Load；2) 多人 Squad 成员只随 Squad、不可同时个人旅行；3) A 点失能、Squad 移到 B、再死亡仍留 A；4) WorldMap 精确位置与 `(0,0)` 聚焦；5) 重叠 Surface 上 PlayerParty／Squad／后台个人均留在显式 Surface，跨 Surface 目的地拒绝；6) moving/idle 后台旅行 Save-Load，idle 不重启；7) Encounter 与 Separate Space 的弥留／死亡／返回不被户外 handoff 污染；8) Host roster 显示组织归属但只对真实 group 聚焦 Squad；9) New Game、旧档 migration、WorldSite/economy 与基础内容 smoke。全部通过前不得改为 Accepted / Sealed。
+
 > **2026-09-21 LEGACY-FINAL-SEAL implementation：** Compatibility quarantine、zero-caller API cleanup、runtime naming cleanup、Development boundary guards 与最终 Architecture Freeze 已达到 **Implementation Complete / Producer Acceptance Pending**。冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。LEGACY-FINAL-C 已 Sealed；最终 smoke 通过前暂不宣称 Migration Complete。下一阶段为 Gameplay / Content development，具体玩法尚未指定。
 
 > **2026-09-21 LEGACY-FINAL-C Seal：** Final Strategic Hex / Territory / Residual / Legacy Battle Runtime Retirement 已由制作人完成人工验收并正式 **Producer Accepted / Sealed**。正常 runtime authority 已收口为 Continuous Surface、Squad、WorldSite／Claim、CharacterEncounter 与 Separate Space；当前只进行 **LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze**，完成最终 smoke 前暂不宣称 Migration Complete。
@@ -823,3 +835,19 @@ downed → 封板；2) 再回 MAP-04 从当前代码重做 consumer audit，逐�
 - 本轮**没有**执行 `git add` / `git commit` / `git push`。
 - 本轮实际执行的验证仅为：只读 git 状态查询、文档阅读、Content JSON 解析核对、`findstr` 静态检索、`tools/offline-compile.ps1`（Core/Data/Unity 离线编译 → `ALL_OK`）。
 - 工作树中出现的 `c05a3d2` 提交由**制作人从外部提交**，不是本会话所为（见 §2 并发提交说明）。
+
+---
+
+# 23. FINAL-SEAL Consolidated Acceptance Closure（2026-09-21）
+
+状态：**Implementation Complete / Producer Acceptance Pending**。
+
+熟练系统现在从正式学习、自然增长、修为灌注、突破、效果重挂到 Snapshot 恢复使用同一份已加载 profile。当前全部功法／斗技均显式配置 entry→minor→major→perfect→transcendent，四段门槛为 20/30/40/50，灵草与粗木各需 1/2/3/4。Host 学习仪式在开始和完成时都调用 Core 正式资格；关闭详情页后，选中该角色的常驻面板仍绘制仪式读条。重复学习已知技能幂等且不消耗 RNG。
+
+Snapshot 在 Content rehydrate 后统一规范化 mastery 门槛并幂等恢复 modifier／修炼速度；同时修复 NPC-only Snapshot 被错误要求 ControlledSquadId 的集成回归。任务 `learnmanual` 保持立即直授例外，满熟练不影响正常 CultivateAction 或斗技施放。
+
+关联复核另发现并关闭失能 NPC 在 Action 启动前仍可预占工位、Host 农作／拆毁会话只拦 dead 而未拦 incapacitated 的可达序列；现统一使用自主行动生命资格，且只释放本人的预约／表现移动。
+
+验证：Core／Data／Unity／Tests 离线编译通过；稳定 headless 集中矩阵 40/40，覆盖熟练链、行动取消与预约、奖励事务、普通户外授权、singleton／Surface／Return／Interior 关键回归和 Snapshot。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode。
+
+未扩协议：剧情 Boards 的完整永久存档、特殊空间公库继承仍未定义。制作人只需按洞府／将老两条功法路线、重复研读、概率失败和存读档后的效果做最终 smoke。

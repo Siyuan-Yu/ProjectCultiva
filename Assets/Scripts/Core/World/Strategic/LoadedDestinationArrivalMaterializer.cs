@@ -771,9 +771,14 @@ namespace XianXia.Core.World.Strategic
             EntityId characterId,
             PlayerPartyRuntime party)
         {
-            if (party != null && party.IsMember(characterId))
+            var currentParty = party ?? world.Strategic?.PlayerPartyContext;
+            if (currentParty != null && currentParty.IsMember(characterId))
                 return false;
-            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
+            if (SquadWorldMotionService.OwnsCharacter(world, characterId) ||
+                SquadCommandService.OwnsIndividualSchedule(world, characterId))
+                return false;
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, characterId) ||
+                SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
                 return false;
             if (!world.Entities.TryGet(characterId, out var entity) ||
                 !CombatLifeStateService.CanFight(entity))

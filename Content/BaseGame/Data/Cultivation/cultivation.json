@@ -10,6 +10,54 @@
       "requiredRealm": "凡人",
       "cultivationSpeed": 10,
       "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "cultivationSpeed": 9 },
+          { "tier": "entry", "cultivationSpeed": 10 },
+          { "tier": "minor", "cultivationSpeed": 12 },
+          { "tier": "major", "cultivationSpeed": 14 },
+          { "tier": "perfect", "cultivationSpeed": 16 },
+          { "tier": "transcendent", "cultivationSpeed": 20 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
+            ]
+          }
+        ]
+      },
       "grantedModifiers": [
         {
           "targetAttribute": "MaxHp",
@@ -29,6 +77,54 @@
       "requiredRealm": "Mortal",
       "cultivationSpeed": 25,
       "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "cultivationSpeed": 24 },
+          { "tier": "entry", "cultivationSpeed": 25 },
+          { "tier": "minor", "cultivationSpeed": 31 },
+          { "tier": "major", "cultivationSpeed": 33 },
+          { "tier": "perfect", "cultivationSpeed": 35 },
+          { "tier": "transcendent", "cultivationSpeed": 39 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
+            ]
+          }
+        ]
+      },
       "grantedModifiers": [
         {
           "targetAttribute": "MaxHp",
@@ -54,6 +150,54 @@
       "requiredRealm": "凡人",
       "cultivationSpeed": 15,
       "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "cultivationSpeed": 14 },
+          { "tier": "entry", "cultivationSpeed": 15 },
+          { "tier": "minor", "cultivationSpeed": 19 },
+          { "tier": "major", "cultivationSpeed": 21 },
+          { "tier": "perfect", "cultivationSpeed": 23 },
+          { "tier": "transcendent", "cultivationSpeed": 27 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
+            ]
+          }
+        ]
+      },
       "grantedModifiers": [
         {
           "targetAttribute": "MaxHp",
@@ -94,19 +238,37 @@
           {
             "from": "entry",
             "to": "minor",
-            "progressRequired": 100,
+            "progressRequired": 20,
             "costs": [
-              { "itemId": "base:resource_spirit_herb", "count": 10 },
-              { "itemId": "base:resource_rough_wood", "count": 10 }
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
             ]
           },
           {
             "from": "minor",
             "to": "major",
-            "progressRequired": 150,
+            "progressRequired": 30,
             "costs": [
-              { "itemId": "base:resource_spirit_herb", "count": 20 },
-              { "itemId": "base:resource_rough_wood", "count": 20 }
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
             ]
           }
         ]
@@ -157,10 +319,37 @@
           {
             "from": "entry",
             "to": "minor",
-            "progressRequired": 100,
+            "progressRequired": 20,
             "costs": [
-              { "itemId": "base:resource_spirit_herb", "count": 10 },
-              { "itemId": "base:resource_rough_wood", "count": 10 }
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
             ]
           }
         ]

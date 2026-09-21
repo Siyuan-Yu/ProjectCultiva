@@ -42,6 +42,13 @@ namespace XianXia.Unity.Host
                     "Static content shell rehydrate failed: " + contentShell.Error.Message,
                     contentShell.Error.ToString());
             }
+            var mastery = new XianXia.Core.Cultivation.SkillMasteryService()
+                .NormalizeLoadedMasteryState(world);
+            if (mastery.IsFailure)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Skill mastery restore normalization failed: " + mastery.Error.Message,
+                    mastery.Error.ToString());
 
             var scenarioParsed = XianXia.Core.Domain.Ids.DefinitionId.Parse(bootstrap.OpeningScenarioId ?? string.Empty);
             var scenarioId = scenarioParsed.IsSuccess
@@ -328,7 +335,8 @@ namespace XianXia.Unity.Host
                     continue;
                 if (savedIds.Contains(matching.Value) ||
                     world.WorldPresence.TryGet(matching, out _) ||
-                    CharacterStrategicQuery.TryGetSquad(world, matching, out _))
+                    SquadWorldMotionService.OwnsCharacter(world, matching) ||
+                    SquadCommandService.OwnsIndividualSchedule(world, matching))
                     continue;
                 if (!ContinuousOpeningSpawnPresenceResolver.TryApply(
                         world, surface, matching, definitionId, spawn.WorldSiteId, out var failure))
@@ -356,7 +364,8 @@ namespace XianXia.Unity.Host
             {
                 if (entity == null || (entity.Tags & EntityTag.Character) == 0 ||
                     IsPartyMember(party, entity.Id) ||
-                    CharacterStrategicQuery.TryGetSquad(world, entity.Id, out _) ||
+                    SquadWorldMotionService.OwnsCharacter(world, entity.Id) ||
+                    SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ||
                     world.WorldPresence.TryGet(entity.Id, out _))
                     continue;
                 if (entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&

@@ -79,13 +79,11 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCombatArtsPanel combatArtsPanel;
         [SerializeField] HostCultivationPanel cultivationPanel;
         [SerializeField] HostCharacterSheetPanel characterSheetPanel;
-        [SerializeField] HostRelationPanel relationPanel;
         [SerializeField] HostCultivateConfirmPrompt cultivateConfirm;
         [SerializeField] HostBreakthroughRitual breakthroughRitual;
         [SerializeField] HostSkillStudyRitual skillStudyRitual;
         [SerializeField] HostTicTacToePanel ticTacToePanel;
         [SerializeField] HostCaveSurveyPresenter caveSurveyPresenter;
-        [SerializeField] HostSelectedUnitChrome selectedUnitChrome;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
@@ -161,8 +159,6 @@ namespace XianXia.Unity.Host
         public HostCultivationPanel CultivationPanel => cultivationPanel;
 
         public HostCharacterSheetPanel CharacterSheetPanel => characterSheetPanel;
-
-        public HostRelationPanel RelationPanel => relationPanel;
 
         public HostCultivateConfirmPrompt CultivateConfirm => cultivateConfirm;
 
@@ -358,7 +354,6 @@ namespace XianXia.Unity.Host
                 (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
                 (cultivationPanel == null || !cultivationPanel.IsOpen) &&
                 (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
-                (relationPanel == null || !relationPanel.IsOpen) &&
                 (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
                 (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
                 (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
@@ -791,9 +786,6 @@ namespace XianXia.Unity.Host
             if (characterSheetPanel == null)
                 characterSheetPanel = GetComponent<HostCharacterSheetPanel>() ??
                                      gameObject.AddComponent<HostCharacterSheetPanel>();
-            if (relationPanel == null)
-                relationPanel = GetComponent<HostRelationPanel>() ??
-                               gameObject.AddComponent<HostRelationPanel>();
             if (cultivateConfirm == null)
                 cultivateConfirm = GetComponent<HostCultivateConfirmPrompt>() ??
                                   gameObject.AddComponent<HostCultivateConfirmPrompt>();
@@ -809,9 +801,6 @@ namespace XianXia.Unity.Host
             if (caveSurveyPresenter == null)
                 caveSurveyPresenter = GetComponent<HostCaveSurveyPresenter>() ??
                                      gameObject.AddComponent<HostCaveSurveyPresenter>();
-            if (selectedUnitChrome == null)
-                selectedUnitChrome = GetComponent<HostSelectedUnitChrome>() ??
-                                    gameObject.AddComponent<HostSelectedUnitChrome>();
             if (GetComponent<HostWorkLoop>() == null)
                 gameObject.AddComponent<HostWorkLoop>();
             if (interactSpotPresenter == null)
@@ -870,8 +859,6 @@ namespace XianXia.Unity.Host
                 cultivationPanel.ClearSessionState();
             if (characterSheetPanel != null)
                 characterSheetPanel.ClearSessionState();
-            if (relationPanel != null)
-                relationPanel.ClearSessionState();
             if (cultivateConfirm != null)
                 cultivateConfirm.ClearSessionState();
             if (breakthroughRitual != null)
@@ -1082,7 +1069,6 @@ namespace XianXia.Unity.Host
                 combatArtsPanel.Bind(this, selectionController);
             cultivationPanel.Bind(this, selectionController);
             characterSheetPanel.Bind(this, selectionController);
-            relationPanel.Bind(this);
             cultivateConfirm.Bind(this, selectionController, commandBridge);
             if (breakthroughRitual != null)
                 breakthroughRitual.Bind(this);
@@ -1092,13 +1078,6 @@ namespace XianXia.Unity.Host
                 ticTacToePanel.Bind(this);
             if (caveSurveyPresenter != null)
                 caveSurveyPresenter.Bind(this, selectionController, commandBridge);
-            selectedUnitChrome.Bind(
-                this,
-                selectionController,
-                cultivationPanel,
-                characterSheetPanel,
-                relationPanel,
-                cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             npcSquadContinuousPresenter.Bind(this);
             ActivateSurfaceLocalMapPresentation();

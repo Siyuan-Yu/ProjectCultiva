@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
@@ -56,7 +57,8 @@ namespace XianXia.Unity.Host
             PlayerPartyRuntime partyRuntime,
             Func<SimulationWorld, EntityId, string> labelFn,
             Action<string> onFocusNpcSquad,
-            Action<string> onFocusNode)
+            Action<string> onFocusNode,
+            Action<WorldVec2> onFocusWorldPosition)
         {
             if (!_open || world == null)
                 return;
@@ -89,7 +91,7 @@ namespace XianXia.Unity.Host
                 panelRect.width - listW - 24f,
                 contentBottom - contentTop);
 
-            DrawCharacterList(listRect, onFocusNpcSquad, onFocusNode);
+            DrawCharacterList(listRect, onFocusNpcSquad, onFocusNode, onFocusWorldPosition);
 
             DrawCharacterDetail(detailRect, world, labelFn);
 
@@ -100,7 +102,11 @@ namespace XianXia.Unity.Host
 
         }
 
-        void DrawCharacterList(Rect listRect, Action<string> onFocusNpcSquad, Action<string> onFocusNode)
+        void DrawCharacterList(
+            Rect listRect,
+            Action<string> onFocusNpcSquad,
+            Action<string> onFocusNode,
+            Action<WorldVec2> onFocusWorldPosition)
         {
             var viewH = Mathf.Max(listRect.height, _rows.Count * 52f + 8f);
             _listScroll = GUI.BeginScrollView(
@@ -123,15 +129,15 @@ namespace XianXia.Unity.Host
 
                 const float indent = 0f;
 
-                var armyLabel = row.IsGrouped
+                var squadLabel = row.HasSquadMembership
                     ? "NPC 小队成员"
                     : row.SiteLabel;
                 var label = row.DisplayName + "  ·  " + row.LifeStateLabel + "\n" +
-                            StrategicFactionCatalog.DisplayName(row.FactionId) + "  ·  " + armyLabel;
+                            StrategicFactionCatalog.DisplayName(row.FactionId) + "  ·  " + squadLabel;
                 var labelRect = new Rect(indent, y, itemRect.width - indent, 48f);
                 var prevColor = GUI.color;
                 if (GUI.Button(labelRect, label, _body))
-                    HandleCharacterClick(row, onFocusNpcSquad, onFocusNode);
+                    HandleCharacterClick(row, onFocusNpcSquad, onFocusNode, onFocusWorldPosition);
                 GUI.color = prevColor;
 
                 y += 52f;
@@ -143,7 +149,8 @@ namespace XianXia.Unity.Host
         void HandleCharacterClick(
             StrategicCharacterRosterRow row,
             Action<string> onFocusNpcSquad,
-            Action<string> onFocusNode)
+            Action<string> onFocusNode,
+            Action<WorldVec2> onFocusWorldPosition)
         {
             var idKey = row.CharacterId.Value.ToString();
             var now = Time.realtimeSinceStartupAsDouble;
@@ -154,6 +161,8 @@ namespace XianXia.Unity.Host
                 _selectedCharacterValue = idKey;
                 if (row.IsGrouped && !string.IsNullOrEmpty(row.SquadId))
                     onFocusNpcSquad?.Invoke(row.SquadId);
+                else if (row.HasWorldPosition)
+                    onFocusWorldPosition?.Invoke(row.WorldPosition);
                 else if (!string.IsNullOrEmpty(row.SiteId))
                     onFocusNode?.Invoke(row.SiteId);
                 return;
@@ -183,7 +192,7 @@ namespace XianXia.Unity.Host
             }
 
             var row = FindRow(new EntityId(idVal));
-            var membership = row?.IsGrouped == true ? "NPC 小队成员" : "\u2014";
+            var membership = row?.HasSquadMembership == true ? "NPC 小队成员" : "\u2014";
             GUI.Label(new Rect(detailRect.x, y, detailRect.width, 190f),
                 labelFn(world, entity.Id) + "\n" +
                 "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
@@ -194,8 +203,19 @@ namespace XianXia.Unity.Host
 
         static string FormatWorldPresence(SimulationWorld world, EntityId id)
         {
-            if (world.LocalMap.IsInInterior && world.Strategic.PlayerPartyContext?.IsMember(id) == true)
+            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id))
                 return "位置状态：独立空间 / 室内";
+
+            var encounter = world.Strategic.CharacterEncounter;
+            var encounterParticipant = encounter?.Find(id.Value);
+            if (encounterParticipant != null &&
+                CharacterEncounterService.OwnsParticipantSpatialState(world, id))
+                return "位置状态：遭遇战术空间" +
+                       "\n所在据点：" + (string.IsNullOrEmpty(encounter.SourceSiteId) ? "—" : encounter.SourceSiteId) +
+                       "\n连续世界：" + (string.IsNullOrEmpty(encounter.SourceSurfaceId) ? "—" : "主大陆") +
+                       "\n战术坐标：(" + encounterParticipant.TacticalX.ToString("0.000") + ", " +
+                       encounterParticipant.TacticalY.ToString("0.000") + ")" +
+                       "\n空间归属：CharacterEncounter";
 
             world.WorldPresence.TryGet(id, out var personal);
             var siteId = personal?.SiteId ?? string.Empty;
@@ -206,7 +226,8 @@ namespace XianXia.Unity.Host
                 ? "据点内" : "连续世界";
             var owner = "个人";
 
-            if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+            if (SquadWorldMotionService.OwnsCharacter(world, id) &&
+                world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) && motion.HasPosition)
             {
                 owner = "NPC 小队";

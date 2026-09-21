@@ -242,8 +242,32 @@ namespace XianXia.Core.Inventory
             return amount - remaining;
         }
 
-        public bool TryAddAll(string itemId, int amount) =>
-            TryAdd(itemId, amount) == amount;
+        public bool TryAddAll(string itemId, int amount)
+        {
+            if (amount < 0 || string.IsNullOrEmpty(itemId) || !CanAddAll(itemId, amount))
+                return false;
+            return amount == 0 || TryAdd(itemId, amount) == amount;
+        }
+
+        internal List<InventorySlot> CaptureState()
+        {
+            var copy = new List<InventorySlot>(_slots.Count);
+            for (var i = 0; i < _slots.Count; i++)
+                copy.Add(new InventorySlot { ItemId = _slots[i].ItemId, Count = _slots[i].Count });
+            return copy;
+        }
+
+        internal void RestoreState(IReadOnlyList<InventorySlot> state)
+        {
+            for (var i = 0; i < _slots.Count; i++)
+                _slots[i].Clear();
+            if (state == null) return;
+            for (var i = 0; i < state.Count && i < _slots.Count; i++)
+            {
+                _slots[i].ItemId = state[i].ItemId;
+                _slots[i].Count = state[i].Count;
+            }
+        }
 
         /// <summary>Returns how many were removed.</summary>
         public int TryRemove(string itemId, int amount)

@@ -57,6 +57,9 @@ namespace XianXia.Unity.Host
 
         public bool IsBusy => _channeling || _resultOpen;
         public bool IsChanneling => _channeling;
+        public bool IsBreakthroughChanneling =>
+            _channeling && (_kind == SkillStudyKind.BreakthroughManual ||
+                            _kind == SkillStudyKind.BreakthroughArt);
         public EntityId ChannelSubject => _channeling ? _subject : EntityId.None;
         public float Progress01 =>
             !_channeling || durationSeconds <= 0.01f
@@ -87,17 +90,9 @@ namespace XianXia.Unity.Host
             reason = string.Empty;
             if (!PrepareBegin(subject, out reason))
                 return false;
-            if (string.IsNullOrEmpty(itemId) || manual == null)
-            {
-                reason = "秘籍无效";
+            if (!_mastery.CanBeginManualStudy(
+                    bootstrap.Session.World, subject, itemId, manual, out reason))
                 return false;
-            }
-
-            if (bootstrap.Session.World.Inventory.GetCount(itemId) < 1)
-            {
-                reason = "背包无此秘籍";
-                return false;
-            }
 
             _kind = SkillStudyKind.LearnManual;
             _itemId = itemId;
@@ -111,32 +106,11 @@ namespace XianXia.Unity.Host
             reason = string.Empty;
             if (!PrepareBegin(subject, out reason))
                 return false;
-            if (string.IsNullOrEmpty(itemId))
-            {
-                reason = "秘本无效";
+            if (!_mastery.CanBeginArtStudy(
+                    bootstrap.Session.World, subject, itemId, out reason))
                 return false;
-            }
-
-            if (bootstrap.Session.World.Inventory.GetCount(itemId) < 1)
-            {
-                reason = "背包无此秘本";
-                return false;
-            }
-
-            var artIdText = bootstrap.Session.World.InventoryCatalog.GetTeachesArtId(itemId);
-            if (string.IsNullOrEmpty(artIdText) || !DefinitionId.TryParse(artIdText, out var artId))
-            {
-                reason = "秘本无效";
-                return false;
-            }
-
-            if (bootstrap.Session.World.Entities.TryGet(subject, out var e) &&
-                e.TryGet<CombatArtsComponent>(out var arts) &&
-                arts.Knows(artId))
-            {
-                reason = "已学会该斗技";
-                return false;
-            }
+            DefinitionId.TryParse(
+                bootstrap.Session.World.InventoryCatalog.GetTeachesArtId(itemId), out var artId);
 
             _kind = SkillStudyKind.LearnArt;
             _itemId = itemId;
@@ -334,7 +308,7 @@ namespace XianXia.Unity.Host
             switch (_kind)
             {
                 case SkillStudyKind.LearnManual:
-                    r = _mastery.TryFinishManualStudy(world, _subject, _manual, out report);
+                    r = _mastery.TryFinishManualStudy(world, _subject, _itemId, _manual, out report);
                     break;
                 case SkillStudyKind.LearnArt:
                     r = _mastery.TryFinishArtStudy(world, _subject, _itemId, out report);
@@ -380,7 +354,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (entity.TryGet<LifecycleComponent>(out var life) && (life.IsDead || life.IsRemoved))
+            if (!entity.TryGet<LifecycleComponent>(out var life) || life.State != LifecycleState.Alive)
             {
                 why = "角色倒下";
                 return true;

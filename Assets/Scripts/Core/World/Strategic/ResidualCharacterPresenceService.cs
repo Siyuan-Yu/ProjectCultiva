@@ -44,39 +44,6 @@ namespace XianXia.Core.World.Strategic
             world.WorldPresence.Remove(characterId);
         }
 
-        /// <summary>Compatibility-only migration from an old battle snapshot Hex anchor.</summary>
-        public static bool TryMigrateFromLegacyBattleSnapshot(
-            SimulationWorld world,
-            EntityId characterId,
-            BattleParticipantSnapshot snap)
-        {
-            if (world == null || characterId.IsNone || snap == null)
-                return false;
-            if (snap.HasBattleAnchorWorldPosition ||
-                ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                return false;
-            if (!TryResolveEncounterHex(world, snap, out var hex))
-                return false;
-            PlaceLegacyCharacterAtResidualHex(world, characterId, hex);
-            return true;
-        }
-
-        public static bool TryResolveEncounterHex(
-            SimulationWorld world,
-            BattleParticipantSnapshot snap,
-            out HexCoord hex)
-        {
-            hex = default;
-            // 本场 snap 优先：Active Encounter 结算不得被旧残留 Runtime 污染
-            if (snap.BattleAnchorHexQ != StrategicHexConstants.InvalidHexComponent &&
-                snap.BattleAnchorHexR != StrategicHexConstants.InvalidHexComponent)
-            {
-                hex = new HexCoord(snap.BattleAnchorHexQ, snap.BattleAnchorHexR);
-                return world?.HexWorld == null || !world.HexWorld.HasGrid || world.HexWorld.Contains(hex);
-            }
-            return false;
-        }
-
         public static bool TryGetResidualHex(
             SimulationWorld world,
             EntityId characterId,

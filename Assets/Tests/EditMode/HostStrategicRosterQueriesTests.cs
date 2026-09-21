@@ -50,6 +50,7 @@ namespace XianXia.Tests
         public void Roster_CollectPlayerCharacters_IncludesIncapacitatedAndCorpse_ButNotSelectable()
         {
             var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
+            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
             Assert.IsTrue(world.Entities.TryGet(recruit, out var recruitEnt));
             Assert.IsTrue(XianXia.Core.Combat.CombatLifeStateService.TryEnterIncapacitated(world, recruitEnt));
 
@@ -59,7 +60,11 @@ namespace XianXia.Tests
             Assert.IsTrue(ContainsCharacter(rows, recruit));
             var recruitRow = rows.Find(r => r.CharacterId == recruit);
             Assert.NotNull(recruitRow);
-            Assert.AreEqual("弥留", recruitRow.LifeStateLabel);
+            StringAssert.StartsWith("弥留", recruitRow.LifeStateLabel);
+            Assert.IsTrue(recruitRow.HasSquadMembership,
+                "Organizational singleton membership should remain visible.");
+            Assert.IsFalse(recruitRow.IsGrouped,
+                "An incapacitated roster member must not focus the moving Squad anchor.");
         }
 
         static bool ContainsCharacter(List<StrategicCharacterRosterRow> rows, EntityId id)

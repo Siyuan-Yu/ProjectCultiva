@@ -15,7 +15,8 @@ namespace XianXia.Core.Cultivation
     /// <summary>Learn manual + player-initiated breakthrough along the realm ladder.</summary>
     public sealed class CultivationService
     {
-        public Result LearnManual(SimulationWorld world, EntityId subject, CultivationManualSpec manual)
+        /// <summary>只读校验功法学习前置；同本已学视为合法幂等。</summary>
+        public Result ValidateLearnManual(SimulationWorld world, EntityId subject, CultivationManualSpec manual)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "World is null.");
@@ -53,6 +54,19 @@ namespace XianXia.Core.Cultivation
                     "Realm does not satisfy RequiredRealm.",
                     cultivation.Realm + " vs " + required);
             }
+
+            return Result.Success();
+        }
+
+        public Result LearnManual(SimulationWorld world, EntityId subject, CultivationManualSpec manual)
+        {
+            var validation = ValidateLearnManual(world, subject, manual);
+            if (validation.IsFailure)
+                return validation;
+
+            world.Entities.TryGet(subject, out var entity);
+            entity.TryGet<CultivationComponent>(out var cultivation);
+            entity.TryGet<AttributesComponent>(out var attrs);
 
             if (cultivation.HasLearnedManual &&
                 cultivation.LearnedManualId.HasValue &&
@@ -100,6 +114,7 @@ namespace XianXia.Core.Cultivation
             cultivation.LearnedManualId = manual.Id;
             cultivation.CultivationSpeed = SkillMasteryLookup.ResolveCultivationSpeed(
                 manual, cultivation.ManualMastery.Tier);
+            TryParseRealm(manual.RequiredRealm, out var required);
             cultivation.RequiredRealmName = required.ToString();
             SyncProgressRequired(world, cultivation, manual.BreakthroughProgress);
             return Result.Success();
@@ -184,6 +199,12 @@ namespace XianXia.Core.Cultivation
                 !entity.TryGet<CultivationComponent>(out var cultivation))
             {
                 reason = "无修炼数据";
+                return false;
+            }
+
+            if (!entity.TryGet<LifecycleComponent>(out var life) || life.State != LifecycleState.Alive)
+            {
+                reason = "角色当前无法冲击瓶颈";
                 return false;
             }
 

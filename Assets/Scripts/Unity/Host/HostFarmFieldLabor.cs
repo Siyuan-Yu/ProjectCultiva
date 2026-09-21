@@ -169,6 +169,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap?.Session?.World;
+            if (!AutonomousActionContinuationService.CanContinue(world, id))
+                return false;
             var actingFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
             if (fromNpcSchedule)
             {
@@ -236,11 +238,11 @@ namespace XianXia.Unity.Host
             for (var i = _workers.Count - 1; i >= 0; i--)
             {
                 var w = _workers[i];
-                if (!bootstrap.Session.World.Entities.TryGet(w.Id, out var ent) ||
-                    !ent.TryGet<LifecycleComponent>(out var life) ||
-                    life.IsDead || life.IsRemoved)
+                if (!AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id))
                 {
                     ReleaseReserve(w);
+                    moveController?.CancelPresentationMovementPublic(w.Id);
+                    ClearActivity(w.Id);
                     _workers.RemoveAt(i);
                     continue;
                 }

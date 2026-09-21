@@ -470,7 +470,6 @@ namespace XianXia.Core.World.Strategic
             ReconcileRuntimePresence(world);
             var snapshot = world.Strategic.Participants;
             snapshot.Clear(); snapshot.OfferId = state.EncounterId;
-            snapshot.EncounterLocalMapId = state.EncounterId;
             var draft = new ManualBattleReportDraft { OfferId = state.EncounterId };
             foreach (var p in state.Participants)
             {
@@ -639,7 +638,6 @@ namespace XianXia.Core.World.Strategic
                     presence.HasContinuousWorldPosition = true;
                     presence.PersonalSurfaceId = state.SourceSurfaceId;
                     presence.ClearHexPresence();
-                    presence.ClearCombatPursuit();
                     continue;
                 }
                 var normalContinuous = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world);
@@ -656,7 +654,6 @@ namespace XianXia.Core.World.Strategic
                     var hex = HexMath.WorldToHex(p.ReturnX, p.ReturnY, world.HexWorld.HexSize);
                     presence.HexQ = hex.Q; presence.HexR = hex.R;
                 }
-                presence.ClearCombatPursuit();
             }
         }
 

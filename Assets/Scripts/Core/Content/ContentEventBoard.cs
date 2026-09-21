@@ -36,6 +36,19 @@ namespace XianXia.Core.Content
         public void SetActive(string id) => ActiveEventId = id ?? string.Empty;
 
         public void ClearActive() => ActiveEventId = string.Empty;
+
+        internal void CaptureState(out string active, out List<string> fired)
+        {
+            active = ActiveEventId;
+            fired = new List<string>(_fired);
+        }
+
+        internal void RestoreState(string active, IEnumerable<string> fired)
+        {
+            ActiveEventId = active ?? string.Empty;
+            _fired.Clear();
+            if (fired != null) foreach (var id in fired) _fired.Add(id);
+        }
     }
 }
 

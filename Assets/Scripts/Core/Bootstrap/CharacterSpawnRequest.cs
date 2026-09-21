@@ -12,7 +12,6 @@ namespace XianXia.Core.Bootstrap
         public string Name { get; set; }
         public Dictionary<string, int> BaseAttributes { get; set; } = new Dictionary<string, int>();
         public List<string> PersonalityTags { get; set; } = new List<string>();
-        public string SpiritRootPlaceholder { get; set; }
         public string InitialRealmPlaceholder { get; set; }
         public SpawnEntityKind EntityKind { get; set; } = SpawnEntityKind.Character;
         public Dictionary<string, bool> ActivityCapabilities { get; set; } = new Dictionary<string, bool>();

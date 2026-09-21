@@ -13,32 +13,10 @@ namespace XianXia.Core.World
     }
 
     /// <summary>
-    /// VS0.1 placeholder LocalMap layout. No instance gameplay.
-    /// </summary>
-    public sealed class LocalMapData
-    {
-        public ulong Id { get; set; }
-        public RegionId RegionId { get; set; }
-        public string Name { get; set; }
-    }
-
-    /// <summary>
-    /// VS0.1 placeholder Settlement layout. No work / economy gameplay.
-    /// </summary>
-    public sealed class SettlementData
-    {
-        public ulong Id { get; set; }
-        public RegionId RegionId { get; set; }
-        public string Name { get; set; }
-    }
-
-    /// <summary>
-    /// Minimal world initialization payload for Vertical Slice 0.1 bootstrap.
+    /// Minimal world initialization payload. Region identity is required by runtime/save scope.
     /// </summary>
     public sealed class WorldInitData
     {
         public List<RegionData> Regions { get; set; } = new List<RegionData>();
-        public List<LocalMapData> LocalMaps { get; set; } = new List<LocalMapData>();
-        public List<SettlementData> Settlements { get; set; } = new List<SettlementData>();
     }
 }

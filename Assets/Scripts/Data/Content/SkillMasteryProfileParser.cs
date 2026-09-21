@@ -74,6 +74,8 @@ namespace XianXia.Data.Content
 
             DefinitionSchema.RejectUnknownFields(masteryNode, MasteryRootFields, report, context + ".mastery");
             def = new SkillMasteryProfileDefinition();
+            var seenTiers = new HashSet<SkillMasteryTier>();
+            var seenBreakthroughFrom = new HashSet<SkillMasteryTier>();
 
             if (masteryNode.TryGetProperty("tiers", out var tiersNode))
             {
@@ -93,9 +95,14 @@ namespace XianXia.Data.Content
 
                     DefinitionSchema.RejectUnknownFields(row, TierFields, report, context + ".mastery.tier");
                     var tierText = row.GetString("tier", string.Empty);
-                    if (!TryParseTier(tierText, out _))
+                    if (!TryParseTier(tierText, out var parsedTier))
                     {
                         report.Add(ErrorCode.InvalidArgument, "Unknown mastery tier.", context + ":" + tierText);
+                        continue;
+                    }
+                    if (!seenTiers.Add(parsedTier))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Duplicate mastery tier.", context + ":" + tierText);
                         continue;
                     }
 
@@ -131,9 +138,19 @@ namespace XianXia.Data.Content
                     DefinitionSchema.RejectUnknownFields(row, BreakthroughFields, report, context + ".mastery.break");
                     var from = row.GetString("from", string.Empty);
                     var to = row.GetString("to", string.Empty);
-                    if (!TryParseTier(from, out _) || !TryParseTier(to, out _))
+                    if (!TryParseTier(from, out var parsedFrom) || !TryParseTier(to, out var parsedTo))
                     {
                         report.Add(ErrorCode.InvalidArgument, "breakthrough from/to invalid.", context);
+                        continue;
+                    }
+                    if ((int)parsedTo <= (int)parsedFrom)
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "breakthrough to must be above from.", context);
+                        continue;
+                    }
+                    if (!seenBreakthroughFrom.Add(parsedFrom))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Duplicate breakthrough from tier.", context + ":" + from);
                         continue;
                     }
 
@@ -163,14 +180,20 @@ namespace XianXia.Data.Content
                         foreach (var cost in costsNode.Array)
                         {
                             if (cost.Kind != JsonValueKind.Object)
+                            {
+                                report.Add(ErrorCode.ContentLoadFailed, "mastery cost entry must be object.", context);
                                 continue;
+                            }
                             DefinitionSchema.RejectUnknownFields(cost, CostFields, report, context + ".cost");
                             var itemId = cost.GetString("itemId", string.Empty);
                             var count = cost.TryGetProperty("count", out var cn) && cn.Kind == JsonValueKind.Number
                                 ? (int)cn.Number
                                 : 0;
                             if (string.IsNullOrEmpty(itemId) || count <= 0)
+                            {
+                                report.Add(ErrorCode.InvalidArgument, "mastery cost itemId/count invalid.", context);
                                 continue;
+                            }
                             b.Costs.Add(new SkillMasteryCostDefinition { ItemId = itemId, Count = count });
                         }
                     }

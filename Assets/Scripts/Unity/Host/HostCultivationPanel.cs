@@ -283,13 +283,14 @@ namespace XianXia.Unity.Host
 
             var masterySvc = new SkillMasteryService();
             var footerY = rect.yMax - 44f;
-            GUI.enabled = !mastery.IsAtBottleneck && cult.Progress >= 10;
+            var canInfuse = masterySvc.CanInfuseManual(world, _subject, 10, out var infuseReason);
+            GUI.enabled = canInfuse;
             if (HostImguiStyles.ParchmentBtn(new Rect(x, footerY, 120f, 30f), "灌注修为×10"))
             {
                 if (masterySvc.TryInfuseManual(world, _subject, 10, out var detail).IsSuccess)
                     _status = detail;
                 else
-                    _status = "灌注失败";
+                    _status = detail;
             }
 
             var canBreak = masterySvc.CanBreakthroughManual(world, _subject, out var brReason);
@@ -304,7 +305,11 @@ namespace XianXia.Unity.Host
                 _breakConfirmOpen = true;
 
             GUI.enabled = true;
-            var hint = !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : _status;
+            var hint = !string.IsNullOrEmpty(_status)
+                ? _status
+                : !canInfuse && !string.IsNullOrEmpty(infuseReason)
+                    ? infuseReason
+                    : !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : string.Empty;
             if (!string.IsNullOrEmpty(hint))
                 GUI.Label(new Rect(x + 260f, footerY + 6f, rect.width - 290f, 22f), hint, _small);
         }
@@ -524,7 +529,7 @@ namespace XianXia.Unity.Host
             }
 
             sb.AppendLine();
-            sb.AppendLine("说明：打坐 F6；功法熟练随打坐／灌注增长；入门满后可耗灵药×10＋粗木×10冲击小成。境界突破约 10 秒蓄势。");
+            sb.AppendLine("说明：打坐 F6；功法熟练随打坐／灌注增长；熟练满后按当前档配置消耗材料冲击下一档。境界突破约 10 秒蓄势。");
             sb.AppendLine("天气／灵地细判尚未接入，成功率以配置＋悟性为主。");
             return sb.ToString();
         }

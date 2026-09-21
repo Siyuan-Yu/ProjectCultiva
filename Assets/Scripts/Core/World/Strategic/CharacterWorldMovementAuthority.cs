@@ -1,5 +1,6 @@
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 
@@ -27,13 +28,22 @@ namespace XianXia.Core.World.Strategic
             if (world == null || characterId.IsNone)
                 return false;
 
-            if (party != null && party.IsMember(characterId))
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, characterId) ||
+                SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
+            {
+                authority = CharacterWorldMovementAuthority.LoadedLocalRealtime;
+                return true;
+            }
+
+            var currentParty = party ?? world.Strategic?.PlayerPartyContext;
+            if (currentParty != null && currentParty.IsMember(characterId))
             {
                 authority = CharacterWorldMovementAuthority.PlayerParty;
                 return true;
             }
 
-            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
+            if (SquadWorldMotionService.OwnsCharacter(world, characterId) ||
+                SquadCommandService.OwnsIndividualSchedule(world, characterId))
             {
                 authority = CharacterWorldMovementAuthority.Squad;
                 return true;
@@ -117,15 +127,24 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            if (party != null && party.IsMember(characterId))
+            var currentParty = party ?? world.Strategic?.PlayerPartyContext;
+            if (currentParty != null && currentParty.IsMember(characterId))
             {
                 error = "PlayerParty member cannot use background travel.";
                 return false;
             }
 
-            if (CharacterStrategicQuery.TryGetSquad(world, characterId, out _))
+            if (SquadWorldMotionService.OwnsCharacter(world, characterId) ||
+                SquadCommandService.OwnsIndividualSchedule(world, characterId))
             {
-                error = "Squad member cannot use background travel.";
+                error = "Character is currently owned by Squad movement/command.";
+                return false;
+            }
+
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, characterId) ||
+                SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
+            {
+                error = "Character spatial state is owned by an encounter or separate space.";
                 return false;
             }
 

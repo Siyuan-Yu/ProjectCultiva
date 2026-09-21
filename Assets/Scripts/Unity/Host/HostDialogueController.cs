@@ -131,15 +131,18 @@ namespace XianXia.Unity.Host
                 return false;
 
             var subject = ResolveSubject(session);
-            session.World.ContentEvents.ClearActive();
+            var committed = new ContentEventService().ResolveChoice(session.World, subject, choiceId);
+            if (committed.IsFailure)
+                return false;
             Clear();
+            bootstrap?.DispatchDrainedEvents();
 
             if (!string.Equals(gameId, HostJiangLaoChess.MinigameId, System.StringComparison.OrdinalIgnoreCase))
-                return false;
+                return true;
 
             var panel = bootstrap?.TicTacToePanel;
             if (panel == null)
-                return false;
+                return true;
 
             panel.Open(subject, result =>
             {

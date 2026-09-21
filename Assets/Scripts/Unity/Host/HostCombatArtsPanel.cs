@@ -471,16 +471,18 @@ namespace XianXia.Unity.Host
 
             var masterySvc = new SkillMasteryService();
             var footerY = rect.yMax - 44f;
-            GUI.enabled = isParty && !state.IsAtBottleneck &&
-                          world.Entities.TryGet(_subject, out var ent) &&
-                          ent.TryGet<CultivationComponent>(out var cult) &&
-                          cult.Progress >= 10;
+            var infuseReason = string.Empty;
+            var canInfuse = isParty &&
+                            masterySvc.CanInfuseArt(world, _subject, artId, 10, out infuseReason);
+            if (!isParty)
+                infuseReason = "非己方不可灌注";
+            GUI.enabled = canInfuse;
             if (HostImguiStyles.ParchmentBtn(new Rect(x, footerY, 110f, 30f), "灌注×10"))
             {
                 if (masterySvc.TryInfuseArt(world, _subject, artId, 10, out var detail).IsSuccess)
                     _status = detail;
                 else
-                    _status = "灌注失败";
+                    _status = detail;
             }
 
             string brReason = string.Empty;
@@ -497,7 +499,11 @@ namespace XianXia.Unity.Host
                 _breakConfirmOpen = true;
 
             GUI.enabled = true;
-            var hint = !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : _status;
+            var hint = !string.IsNullOrEmpty(_status)
+                ? _status
+                : !canInfuse && !string.IsNullOrEmpty(infuseReason)
+                    ? infuseReason
+                    : !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : string.Empty;
             if (!string.IsNullOrEmpty(hint))
                 GUI.Label(new Rect(x + 250f, footerY + 6f, rect.width - 280f, 22f), hint, _small);
         }

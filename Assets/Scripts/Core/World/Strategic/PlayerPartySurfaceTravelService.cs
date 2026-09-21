@@ -31,12 +31,11 @@ namespace XianXia.Core.World.Strategic
             if (!motion.HasPosition)
                 return Result.Failure(ErrorCode.InvalidOperation, "Surface travel requires a canonical WorldPosition.");
             if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
-                !world.SurfaceGround.TryResolveShared(motion.WorldPosition, destination, out var navigation))
+                string.IsNullOrEmpty(motion.SurfaceId) ||
+                !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null ||
+                !navigation.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) ||
+                !navigation.Contains(destination.X, destination.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, "Continuous Surface navigation is not ready for this route.");
-            if (string.IsNullOrEmpty(motion.SurfaceId) ||
-                !string.Equals(motion.SurfaceId, navigation.SurfaceId, StringComparison.Ordinal))
-                return Result.Failure(ErrorCode.InvalidOperation,
-                    "PlayerParty SurfaceId does not match the requested route.");
 
             RouteScratch.Clear();
             var status = navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch);
@@ -58,11 +57,12 @@ namespace XianXia.Core.World.Strategic
             WorldVec2 destination, string targetSiteId, float arrivalRadius)
         {
             var motion = world?.PlayerPartyTravel;
-            if (motion == null || !motion.HasPosition || !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
-                !world.SurfaceGround.TryResolveShared(motion.WorldPosition, destination, out var navigation))
-                return false;
-            if (string.IsNullOrEmpty(motion.SurfaceId) ||
-                !string.Equals(motion.SurfaceId, navigation.SurfaceId, StringComparison.Ordinal))
+            if (motion == null || !motion.HasPosition ||
+                !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
+                string.IsNullOrEmpty(motion.SurfaceId) ||
+                !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null ||
+                !navigation.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) ||
+                !navigation.Contains(destination.X, destination.Y))
                 return false;
             RouteScratch.Clear();
             if (navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch) != SurfaceGroundRouteStatus.Found)
@@ -119,15 +119,21 @@ namespace XianXia.Core.World.Strategic
             var position = motion.WorldPosition;
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
-                if (!TryResolveUniqueContainingSurface(world, position, out var surface))
-                    return Result.Failure(ErrorCode.InvalidOperation,
-                        "PlayerParty exact position does not identify one registered Surface.");
-                if (!string.IsNullOrEmpty(motion.SurfaceId) &&
-                    !string.Equals(motion.SurfaceId, surface.SurfaceId, StringComparison.Ordinal))
-                    return Result.Failure(ErrorCode.InvalidOperation,
-                        "PlayerParty SurfaceId conflicts with its exact position.");
-                if (string.IsNullOrEmpty(motion.SurfaceId))
+                SurfaceGroundNavigation surface;
+                if (!string.IsNullOrEmpty(motion.SurfaceId))
+                {
+                    if (!world.SurfaceGround.TryGet(motion.SurfaceId, out surface) || surface == null ||
+                        !surface.Contains(position.X, position.Y))
+                        return Result.Failure(ErrorCode.InvalidOperation,
+                            "PlayerParty SurfaceId conflicts with its exact position.");
+                }
+                else
+                {
+                    if (!TryResolveUniqueContainingSurface(world, position, out surface))
+                        return Result.Failure(ErrorCode.InvalidOperation,
+                            "PlayerParty exact position does not identify one registered Surface.");
                     motion.SetAtSurfacePosition(surface.SurfaceId, position, DeriveHex(world, position));
+                }
                 return Result.Success();
             }
 
@@ -139,11 +145,17 @@ namespace XianXia.Core.World.Strategic
                     "PlayerParty location is not a migratable Continuous Site state.");
 
             var siteId = motion.SiteId;
-            SurfaceGroundNavigation navigation;
-            if (!TryResolveUniqueContainingSurface(world, position, out navigation))
+            SurfaceGroundNavigation navigation = null;
+            if (!string.IsNullOrEmpty(motion.SurfaceId))
             {
-                if (!world.SurfaceGround.TryResolveSiteArrival(
-                        siteId, out var arrivalSurfaceId, out position) ||
+                if (!world.SurfaceGround.TryGet(motion.SurfaceId, out navigation) || navigation == null ||
+                    !navigation.Contains(position.X, position.Y))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "PlayerParty Site position conflicts with its explicit SurfaceId.");
+            }
+            else if (!TryResolveUniqueContainingSurface(world, position, out navigation))
+            {
+                if (!world.SurfaceGround.TryResolveSiteArrival(siteId, out var arrivalSurfaceId, out position) ||
                     !world.SurfaceGround.TryGet(arrivalSurfaceId, out navigation) || navigation == null ||
                     !navigation.Contains(position.X, position.Y))
                     return Result.Failure(ErrorCode.InvalidOperation,

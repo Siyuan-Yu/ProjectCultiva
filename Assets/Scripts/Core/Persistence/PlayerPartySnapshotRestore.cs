@@ -114,14 +114,25 @@ namespace XianXia.Core.Persistence
                         continue;
                     if (!IsPlayerFactionCharacter(world, entity.Id, playerFaction))
                         continue;
-                    if (CharacterStrategicQuery.TryGetSquad(world, entity.Id, out _))
+                    if (!HasOnlyUnassignedSingletonMembership(world, entity.Id))
+                        continue;
+                    if (!world.WorldPresence.TryGet(entity.Id, out var presence) || presence == null ||
+                        presence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                        !presence.HasContinuousWorldPosition ||
+                        !SamePosition(presence.ContinuousWorldPosition, travel.WorldPosition) ||
+                        (!string.IsNullOrEmpty(travel.SurfaceId) &&
+                         !string.Equals(presence.PersonalSurfaceId, travel.SurfaceId,
+                             System.StringComparison.Ordinal)))
                         continue;
                     if (!Contains(members, entity.Id))
                         members.Add(entity.Id);
                 }
             }
 
-            if (members.Count < 1)
+            // A legacy snapshot without an explicit roster/controlled Squad is recoverable only
+            // when its spatial evidence identifies exactly one legal character.  Multiple
+            // player-faction residents at the same Site are ambiguous and must not be recruited.
+            if (members.Count != 1)
                 return false;
 
             members.Sort((a, b) => a.Value.CompareTo(b.Value));
@@ -147,7 +158,7 @@ namespace XianXia.Core.Persistence
                     continue;
                 if (!IsPlayerFactionCharacter(world, presence.EntityId, playerFaction))
                     continue;
-                if (CharacterStrategicQuery.TryGetSquad(world, presence.EntityId, out _))
+                if (!HasOnlyUnassignedSingletonMembership(world, presence.EntityId))
                     continue;
                 if (!Contains(into, presence.EntityId))
                     into.Add(presence.EntityId);
@@ -161,6 +172,19 @@ namespace XianXia.Core.Persistence
             var faction = CharacterStrategicQuery.ResolveFactionId(world, id);
             return string.Equals(faction, playerFaction, System.StringComparison.Ordinal);
         }
+
+        static bool HasOnlyUnassignedSingletonMembership(SimulationWorld world, EntityId id)
+        {
+            if (!CharacterStrategicQuery.TryGetSquad(world, id, out var squad) || squad == null)
+                return true;
+            return squad.MemberCharacterIds.Count == 1 && squad.Contains(id) &&
+                   !SquadWorldMotionService.OwnsCharacter(world, id) &&
+                   !SquadCommandService.OwnsIndividualSchedule(world, id);
+        }
+
+        static bool SamePosition(WorldVec2 a, WorldVec2 b) =>
+            System.Math.Abs(a.X - b.X) <= 0.0001f &&
+            System.Math.Abs(a.Y - b.Y) <= 0.0001f;
 
         static bool Contains(List<EntityId> list, EntityId id)
         {

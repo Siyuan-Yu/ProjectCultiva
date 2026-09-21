@@ -70,9 +70,15 @@ namespace XianXia.Core.World.Strategic
                                     world.Strategic.Sites.TryGet(destinationSiteId, out var siteTarget) &&
                                     WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(siteTarget);
             if (normalOutdoorSite &&
-                world.SurfaceGround.TryResolveSiteArrival(destinationSiteId, out _, out var arrival))
+                world.SurfaceGround.TryResolveSiteArrival(destinationSiteId, out var arrivalSurfaceId, out var arrival))
             {
-                if (!world.SurfaceGround.TryResolveShared(startPos, arrival, out var navigation))
+                if (!TryResolvePersonalStartSurface(world, characterId, startPos,
+                        out var startSurfaceId, out var surfaceFailure))
+                    return Result.Failure(ErrorCode.InvalidOperation, surfaceFailure);
+                if (!string.Equals(startSurfaceId, arrivalSurfaceId, StringComparison.Ordinal) ||
+                    !world.SurfaceGround.TryGet(startSurfaceId, out var navigation) || navigation == null ||
+                    !navigation.Contains(startPos.X, startPos.Y) ||
+                    !navigation.Contains(arrival.X, arrival.Y))
                     return Result.Failure(ErrorCode.InvalidOperation, "No shared Surface for NPC Site travel.");
                 SurfacePathScratch.Clear();
                 var route = navigation.TryFindRoute(startPos, arrival, SurfacePathScratch);
@@ -266,6 +272,41 @@ namespace XianXia.Core.World.Strategic
 #endif
 
             return Result.Success();
+        }
+
+        static bool TryResolvePersonalStartSurface(
+            SimulationWorld world, EntityId characterId, WorldVec2 start,
+            out string surfaceId, out string failure)
+        {
+            surfaceId = string.Empty;
+            failure = string.Empty;
+            if (world.WorldPresence.TryGet(characterId, out var presence) && presence != null &&
+                !string.IsNullOrEmpty(presence.PersonalSurfaceId))
+            {
+                surfaceId = presence.PersonalSurfaceId;
+                if (!world.SurfaceGround.TryGet(surfaceId, out var explicitSurface) || explicitSurface == null ||
+                    !explicitSurface.Contains(start.X, start.Y))
+                {
+                    failure = "Character explicit SurfaceId conflicts with its exact position.";
+                    return false;
+                }
+                return true;
+            }
+
+            var matches = 0;
+            foreach (var pair in world.SurfaceGround.Registered)
+                if (pair.Value != null && pair.Value.Contains(start.X, start.Y))
+                {
+                    surfaceId = pair.Key;
+                    matches++;
+                    if (matches > 1) break;
+                }
+            if (matches == 1) return true;
+            surfaceId = string.Empty;
+            failure = matches == 0
+                ? "Legacy character position is outside every registered Surface."
+                : "Legacy character position belongs to multiple registered Surfaces.";
+            return false;
         }
 
         static void CommitSiteDepartureBoundaryCrossing(
@@ -821,7 +862,8 @@ namespace XianXia.Core.World.Strategic
                 kind = BackgroundCharacterLocationKind.AtWorldPosition;
                 worldPos = presence.ContinuousWorldPosition;
                 derivedHex = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
-                if (derivedHex != presence.DerivedHexFromWorldPosition)
+                if (!presence.TryGetDerivedHexFromWorldPosition(out var cachedDerivedHex) ||
+                    derivedHex != cachedDerivedHex)
                     world.WorldPresence.SetAtWorldPosition(characterId, worldPos, derivedHex,
                         presence.PersonalSurfaceId);
                 return true;

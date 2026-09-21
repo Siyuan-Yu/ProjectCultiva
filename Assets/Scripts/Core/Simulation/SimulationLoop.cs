@@ -154,6 +154,14 @@ namespace XianXia.Core.Simulation
                 if (!_world.ActiveActions.TryGetValue(actionId, out var action))
                     continue;
 
+                if (AutonomousActionContinuationService.IsAutonomous(action) &&
+                    !AutonomousActionContinuationService.CanContinue(_world, action.Subject))
+                {
+                    AutonomousActionContinuationService.CancelInvalid(_world, action.Subject);
+                    TryStartNext(action.Subject);
+                    continue;
+                }
+
                 var advanced = action.Advance(_world);
                 SyncActionState(action);
 
@@ -274,6 +282,10 @@ namespace XianXia.Core.Simulation
                 return;
             if (actionState.HasActiveAction)
                 return;
+
+            if (!AutonomousActionContinuationService.CanContinue(_world, subject))
+                _world.GetOrCreateOrderQueue(subject).RemoveWhere(o =>
+                    AutonomousActionContinuationService.IsAutonomous(o.Type));
 
             var queue = _world.GetOrCreateOrderQueue(subject);
             if (!queue.TryDequeue(out var order))

@@ -62,5 +62,20 @@ namespace XianXia.Core.Events
         {
             _queue.Clear();
         }
+
+        internal void CaptureState(out List<DomainEvent> queued, out int cursor, out ulong nextId)
+        {
+            queued = new List<DomainEvent>(_queue);
+            cursor = _cursor;
+            nextId = _nextId;
+        }
+
+        internal void RestoreState(IEnumerable<DomainEvent> queued, int cursor, ulong nextId)
+        {
+            _queue.Clear();
+            if (queued != null) foreach (var evt in queued) _queue.Enqueue(evt);
+            _cursor = cursor;
+            _nextId = nextId == 0 ? 1UL : nextId;
+        }
     }
 }

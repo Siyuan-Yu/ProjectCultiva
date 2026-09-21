@@ -22,11 +22,12 @@ namespace XianXia.Core.World.Strategic
             { failure = "MissingContinuousSpatialContext"; return false; }
 
             var party = world.Strategic.PlayerPartyContext;
-            if (party != null && party.IsMember(id))
+            if (party != null && party.IsMember(id) &&
+                PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
             {
                 owner = ContinuousSpatialOwnerKind.PlayerParty;
                 var motion = world.PlayerPartyTravel;
-                if (motion == null || !motion.HasPosition ||
+                if (motion == null || !motion.HasPosition || motion.SurfaceId != surfaceId ||
                     !Finite(motion.WorldPosition.X) || !Finite(motion.WorldPosition.Y) ||
                     !world.SurfaceGround.TryGet(surfaceId, out var nav) ||
                     !nav.Contains(motion.WorldPosition.X, motion.WorldPosition.Y))
@@ -37,7 +38,8 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+            if (SquadWorldMotionService.OwnsCharacter(world, id) &&
+                world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {

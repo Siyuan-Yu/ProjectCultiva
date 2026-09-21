@@ -124,21 +124,27 @@ namespace XianXia.Core.Content
             if (!ContentConditionEvaluator.AllPass(world, subject, choice.Conditions))
                 return Result.Failure(ErrorCode.InvalidOperation, "Choice conditions not met.", choiceId);
 
-            var applied = ContentOutcomeApplier.ApplyAll(world, subject, choice.Outcomes);
+            var eventId = spec.Id;
+            var applied = ContentOutcomeApplier.ApplyAll(world, subject, choice.Outcomes, () =>
+            {
+                if (spec.Once)
+                    world.ContentEvents.MarkFired(spec.Id);
+                world.ContentEvents.ClearActive();
+                return Result.Success();
+            });
             if (applied.IsFailure)
                 return applied;
 
-            if (spec.Once)
-                world.ContentEvents.MarkFired(spec.Id);
-            var eventId = spec.Id;
-            world.ContentEvents.ClearActive();
             world.Events.Publish(
                 EventType.ContentEventResolved,
                 world.Tick,
                 target: subject,
                 payload: eventId + ":" + choiceId);
 
-            return new QuestService().Evaluate(world, subject);
+            // Outcome/once/active are already committed. A derived UI/progress refresh must not
+            // turn that committed choice into an apparently retryable failure.
+            new QuestService().Evaluate(world, subject);
+            return Result.Success();
         }
     }
 }

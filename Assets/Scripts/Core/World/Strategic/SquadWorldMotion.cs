@@ -170,7 +170,10 @@ namespace XianXia.Core.World.Strategic
                 !world.Strategic.SquadWorldMotions.TryGet(squadId, out var motion) ||
                 !motion.HasPosition)
                 return Result.Failure(ErrorCode.InvalidArgument, "NPC Squad has no world-motion authority.", squadId ?? string.Empty);
-            if (!world.SurfaceGround.TryResolveShared(motion.WorldPosition, destination, out var navigation))
+            if (string.IsNullOrEmpty(motion.SurfaceId) ||
+                !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null ||
+                !navigation.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) ||
+                !navigation.Contains(destination.X, destination.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, "NPC Squad destination is not on the same Surface.");
             RouteScratch.Clear();
             var status = navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch);

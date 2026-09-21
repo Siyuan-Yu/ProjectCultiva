@@ -1,71 +1,9 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
-using XianXia.Core.Simulation;
-using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>
-    /// Pre-battle spatial state. Stack fields remain readable only for old snapshot restore;
-    /// modern capture persists precise Surface authority and emits empty stack identity.
-    /// </summary>
-    public sealed class PreBattleWorldPresence
-    {
-        public PartyWorldPresenceMode Mode { get; set; }
-        public string SiteId { get; set; } = string.Empty;
-        public int HexQ { get; set; } = WorldAgentPresence.InvalidHexComponent;
-        public int HexR { get; set; } = WorldAgentPresence.InvalidHexComponent;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string FollowStackId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string CombatPursuitStackId { get; set; } = string.Empty;
-        public bool HasWorldPosition { get; set; }
-        public float WorldX { get; set; }
-        public float WorldY { get; set; }
-        public string SurfaceId { get; set; } = string.Empty;
-
-        public static PreBattleWorldPresence Capture(WorldAgentPresence p)
-        {
-            if (p == null)
-                return null;
-            return new PreBattleWorldPresence
-            {
-                Mode = p.Mode,
-                SiteId = p.SiteId ?? string.Empty,
-                HexQ = p.HexQ,
-                HexR = p.HexR,
-                // Modern capture never re-emits retired stack identity. ApplyTo still accepts
-                // these fields when reading an old participant snapshot.
-                FollowStackId = string.Empty,
-                CombatPursuitStackId = string.Empty,
-                HasWorldPosition = p.HasContinuousWorldPosition,
-                WorldX = p.WorldPosX,
-                WorldY = p.WorldPosY,
-                SurfaceId = p.PersonalSurfaceId ?? string.Empty
-            };
-        }
-
-        public void ApplyTo(WorldAgentPresence p)
-        {
-            if (p == null)
-                return;
-            p.Mode = Mode;
-            p.SiteId = SiteId ?? string.Empty;
-            p.HexQ = HexQ;
-            p.HexR = HexR;
-            p.FollowStackId = FollowStackId ?? string.Empty;
-            p.CombatPursuitStackId = CombatPursuitStackId ?? string.Empty;
-            p.HasContinuousWorldPosition = HasWorldPosition;
-            p.WorldPosX = WorldX;
-            p.WorldPosY = WorldY;
-            p.PersonalSurfaceId = SurfaceId ?? string.Empty;
-        }
-    }
-
-    public enum BattleLocalMapResolutionKind { ExplicitEncounterMap = 0, ContinuousSurface = 1, WorldSite = 2 }
-
     public enum BattleParticipantKind
     {
         MandatoryFriendly = 0,
@@ -79,14 +17,9 @@ namespace XianXia.Core.World.Strategic
         public BattleParticipantKind Kind { get; set; }
         public EntityId EntityId { get; set; }
         public string SquadId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string ArmyStackId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string FormalArmyId { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
         public int CombatPower { get; set; }
         public bool Selected { get; set; }
-        public PreBattleWorldPresence PreBattle { get; set; }
         /// <summary>Phase 4 Debug：写入 Participants 的原因。</summary>
         public string IncludedReason { get; set; } = string.Empty;
     }
@@ -181,37 +114,12 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// Frozen battle offer input. Modern combat uses exact Surface anchors and real Character
-    /// participants; Hex and Army fields are accepted only as legacy migration input.
+    /// Frozen modern battle participant input. Legacy pending-engagement fields live only in
+    /// snapshot DTOs and are consumed by the one-way migration adapter.
     /// </summary>
     public sealed class BattleParticipantSnapshot
     {
         public string OfferId { get; set; } = string.Empty;
-        /// <summary>Legacy compatibility metadata; modern encounter authority uses Surface anchor.</summary>
-        public int BattleAnchorHexQ { get; set; } = StrategicHexConstants.InvalidHexComponent;
-        public int BattleAnchorHexR { get; set; } = StrategicHexConstants.InvalidHexComponent;
-        public bool HasBattleAnchorWorldPosition { get; set; }
-        public float BattleAnchorWorldX { get; set; }
-        public float BattleAnchorWorldY { get; set; }
-        public string BattleAnchorSurfaceId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string PrimaryEnemyStackId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string AttackerArmyId { get; set; } = string.Empty;
-        /// <summary>Legacy snapshot compatibility input only.</summary>
-        public string DefenderArmyId { get; set; } = string.Empty;
-        public string EncounterLocalMapId { get; set; } =
-            LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
-        /// <summary>
-        /// 本场 Manual Battle 的地点解析类别（Phase 5S：结束战斗时按类别决定
-        /// 原地留在真实 LocalMap 还是回 ExplicitEncounterMap 旧路径）。
-        /// </summary>
-        public BattleLocalMapResolutionKind LocalMapResolutionKind { get; set; }
-            = BattleLocalMapResolutionKind.ExplicitEncounterMap;
-        public string LastBattleSummary { get; set; } = string.Empty;
-        public bool PlayerWon { get; set; }
-        public bool IsAutoSettlement { get; set; }
-
         readonly List<BattleParticipantRecord> _records = new List<BattleParticipantRecord>(16);
 
         public IReadOnlyList<BattleParticipantRecord> Records => _records;
@@ -219,19 +127,6 @@ namespace XianXia.Core.World.Strategic
         public void Clear()
         {
             OfferId = string.Empty;
-            BattleAnchorHexQ = StrategicHexConstants.InvalidHexComponent;
-            BattleAnchorHexR = StrategicHexConstants.InvalidHexComponent;
-            HasBattleAnchorWorldPosition = false;
-            BattleAnchorWorldX = BattleAnchorWorldY = 0f;
-            BattleAnchorSurfaceId = string.Empty;
-            PrimaryEnemyStackId = string.Empty;
-            AttackerArmyId = string.Empty;
-            DefenderArmyId = string.Empty;
-            EncounterLocalMapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
-            LocalMapResolutionKind = BattleLocalMapResolutionKind.ExplicitEncounterMap;
-            LastBattleSummary = string.Empty;
-            PlayerWon = false;
-            IsAutoSettlement = false;
             _records.Clear();
         }
 
@@ -307,123 +202,6 @@ namespace XianXia.Core.World.Strategic
             return ActualBattleParticipantQuery.TryFind(this, id, out var participant) &&
                    participant.IsFriendly;
         }
-
-        public void CopyFrom(BattleParticipantSnapshot src)
-        {
-            if (src == null)
-            {
-                Clear();
-                return;
-            }
-
-            OfferId = src.OfferId;
-            BattleAnchorHexQ = src.BattleAnchorHexQ;
-            BattleAnchorHexR = src.BattleAnchorHexR;
-            HasBattleAnchorWorldPosition = src.HasBattleAnchorWorldPosition;
-            BattleAnchorWorldX = src.BattleAnchorWorldX;
-            BattleAnchorWorldY = src.BattleAnchorWorldY;
-            BattleAnchorSurfaceId = src.BattleAnchorSurfaceId;
-            PrimaryEnemyStackId = src.PrimaryEnemyStackId;
-            AttackerArmyId = src.AttackerArmyId;
-            DefenderArmyId = src.DefenderArmyId;
-            EncounterLocalMapId = src.EncounterLocalMapId;
-            LocalMapResolutionKind = src.LocalMapResolutionKind;
-            LastBattleSummary = src.LastBattleSummary;
-            PlayerWon = src.PlayerWon;
-            IsAutoSettlement = src.IsAutoSettlement;
-            _records.Clear();
-            for (var i = 0; i < src._records.Count; i++)
-            {
-                var r = src._records[i];
-                if (r == null)
-                    continue;
-                _records.Add(new BattleParticipantRecord
-                {
-                    Kind = r.Kind,
-                    EntityId = r.EntityId,
-                    SquadId = r.SquadId,
-                    ArmyStackId = r.ArmyStackId,
-                    FormalArmyId = r.FormalArmyId,
-                    DisplayLabel = r.DisplayLabel,
-                    CombatPower = r.CombatPower,
-                    Selected = r.Selected,
-                    PreBattle = r.PreBattle == null
-                        ? null
-                        : new PreBattleWorldPresence
-                        {
-                            Mode = r.PreBattle.Mode,
-                            SiteId = r.PreBattle.SiteId,
-                            HexQ = r.PreBattle.HexQ,
-                            HexR = r.PreBattle.HexR,
-                            FollowStackId = r.PreBattle.FollowStackId,
-                            CombatPursuitStackId = r.PreBattle.CombatPursuitStackId,
-                            HasWorldPosition = r.PreBattle.HasWorldPosition,
-                            WorldX = r.PreBattle.WorldX,
-                            WorldY = r.PreBattle.WorldY,
-                            SurfaceId = r.PreBattle.SurfaceId
-                        }
-                });
-            }
-        }
-
-        public void CopyInto(BattleParticipantSnapshot dst) => dst?.CopyFrom(this);
-    }
-
-    /// <summary>?????????????????Pure Hex??</summary>
-    public static class ReinforcementRangeService
-    {
-        public static float DefaultWorldRadius { get; set; } = 0.25f;
-
-        public static float GetWorldRadius(SimulationWorld world)
-        {
-            if (world?.Strategic != null && world.Strategic.ReinforcementWorldRadius > 0f)
-                return world.Strategic.ReinforcementWorldRadius;
-            return DefaultWorldRadius;
-        }
-
-        public static bool IsWithinReinforcementRange(
-            SimulationWorld world,
-            WorldAgentPresence presence,
-            HexCoord anchorHex)
-        {
-            if (!TryGetWorldDistance(world, presence, anchorHex, out var dist))
-                return false;
-            return dist <= GetWorldRadius(world);
-        }
-
-        public static bool TryGetWorldDistance(
-            SimulationWorld world,
-            WorldAgentPresence from,
-            HexCoord anchorHex,
-            out float distance)
-        {
-            distance = float.MaxValue;
-            if (!TryGetPresenceWorldXY(world, from, out var fx, out var fy))
-                return false;
-            HexMath.ToWorldPosition(anchorHex, world.HexWorld.HexSize, out var ax, out var ay);
-            var dx = fx - ax;
-            var dy = fy - ay;
-            distance = (float)Math.Sqrt(dx * dx + dy * dy);
-            return true;
-        }
-
-        public static bool TryGetPresenceWorldXY(
-            SimulationWorld world,
-            WorldAgentPresence presence,
-            out float x,
-            out float y)
-        {
-            x = y = 0f;
-            if (world == null || presence == null)
-                return false;
-            return WorldAgentMapPositionResolver.TryResolve(
-                world,
-                presence.EntityId,
-                presence,
-                out x,
-                out y);
-        }
-
 
     }
 }

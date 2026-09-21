@@ -173,7 +173,7 @@ namespace XianXia.Unity.Host
             SimulationWorld world)
         {
             if (!SkillMasteryLookup.CanBreakthrough(profile, from))
-                return "（满档）";
+                return from == SkillMasteryTier.Transcendent ? "最高档" : "未配置后续突破";
             var costs = SkillMasteryLookup.BreakthroughCosts(profile, from);
             if (costs == null || costs.Count == 0)
                 return "冲击材料\n—";

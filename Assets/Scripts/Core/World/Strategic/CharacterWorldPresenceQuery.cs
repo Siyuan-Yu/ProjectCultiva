@@ -1,4 +1,5 @@
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -19,12 +20,24 @@ namespace XianXia.Core.World.Strategic
             AtWildernessHex = 2,
             SquadMember = 3,
             InEncounter = 4,
+            AtWorldPosition = 5,
         }
 
         public static bool TryGetWorldHex(SimulationWorld world, EntityId characterId, out HexCoord worldHex)
         {
             worldHex = default;
             if (world == null || characterId.IsNone)
+                return false;
+
+            if (world.WorldPresence.TryGet(characterId, out var ownedPresence) &&
+                ownedPresence != null && ownedPresence.Mode == PartyWorldPresenceMode.InEncounter)
+            {
+                if (!string.IsNullOrEmpty(ownedPresence.SiteId))
+                    return world.Strategic.Sites.TryResolveSitePresenceHex(
+                        ownedPresence.SiteId, out worldHex);
+                return false;
+            }
+            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
                 return false;
 
             var motion = world.PlayerPartyTravel;
@@ -42,6 +55,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
+                SquadWorldMotionService.OwnsCharacter(world, characterId) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
@@ -60,9 +74,11 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
-                presence.DerivedHexFromWorldPosition.Q != StrategicHexConstants.InvalidHexComponent)
+                presence.HasContinuousWorldPosition &&
+                Finite(presence.WorldPosX) && Finite(presence.WorldPosY))
             {
-                worldHex = presence.DerivedHexFromWorldPosition;
+                worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
+                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
                 return true;
             }
 
@@ -97,7 +113,22 @@ namespace XianXia.Core.World.Strategic
             if (world == null || characterId.IsNone)
                 return false;
 
+            if (world.WorldPresence.TryGet(characterId, out var ownedPresence) &&
+                ownedPresence != null && ownedPresence.Mode == PartyWorldPresenceMode.InEncounter)
+            {
+                state = PresenceState.InEncounter;
+                siteId = ownedPresence.SiteId ?? string.Empty;
+                if (!string.IsNullOrEmpty(siteId))
+                    world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex);
+                localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
+                return true;
+            }
+
+            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
+                return false;
+
             if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
+                SquadWorldMotionService.OwnsCharacter(world, characterId) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
@@ -111,16 +142,6 @@ namespace XianXia.Core.World.Strategic
 
             if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
-
-            if (presence.Mode == PartyWorldPresenceMode.InEncounter)
-            {
-                state = PresenceState.InEncounter;
-                siteId = presence.SiteId ?? string.Empty;
-                if (!string.IsNullOrEmpty(siteId))
-                    world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex);
-                localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
-                return true;
-            }
 
             if (presence.UsesHexPresence)
             {
@@ -139,6 +160,16 @@ namespace XianXia.Core.World.Strategic
                 if (!world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex))
                     return false;
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
+                return true;
+            }
+
+            if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
+                presence.HasContinuousWorldPosition &&
+                Finite(presence.WorldPosX) && Finite(presence.WorldPosY))
+            {
+                state = PresenceState.AtWorldPosition;
+                worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
+                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
                 return true;
             }
 
@@ -167,5 +198,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return !string.IsNullOrEmpty(world.PartyWorld.LocalMapId);
         }
+
+        static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }
 }

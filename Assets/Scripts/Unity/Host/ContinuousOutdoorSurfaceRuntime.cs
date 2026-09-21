@@ -6,6 +6,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Navigation;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
@@ -310,10 +311,10 @@ namespace XianXia.Unity.Host
 
         bool IsPersonalPositionCaptureOwner(SimulationWorld world, EntityId id) =>
             world != null && !id.IsNone &&
-            (_bootstrap?.Session?.PlayerParty == null || !_bootstrap.Session.PlayerParty.IsMember(id)) &&
+            ((_bootstrap?.Session?.PlayerParty ?? world.Strategic?.PlayerPartyContext)?.IsMember(id) != true) &&
             !SquadWorldMotionService.OwnsCharacter(world, id) &&
-            !CharacterStrategicQuery.TryGetSquad(world, id, out _) &&
             !world.BackgroundCharacterTravel.IsTraveling(id) &&
+            !SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id) &&
             (world.Strategic.ContinuousManualCombat == null ||
              !world.Strategic.ContinuousManualCombat.Contains(id)) &&
             !ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) &&

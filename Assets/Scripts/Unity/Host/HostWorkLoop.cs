@@ -104,6 +104,12 @@ namespace XianXia.Unity.Host
             {
                 var id = new EntityId(scratch[i].Key);
                 var kind = scratch[i].Value;
+                if (!AutonomousActionContinuationService.CanContinue(world, id))
+                {
+                    _looping.Remove(scratch[i].Key);
+                    _partyDerived.Remove(scratch[i].Key);
+                    continue;
+                }
                 if (moveController != null && moveController.IsMoving(id))
                     continue;
                 if (!world.Entities.TryGet(id, out var entity))

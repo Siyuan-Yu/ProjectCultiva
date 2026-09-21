@@ -172,8 +172,6 @@ namespace XianXia.Core.World.Strategic
             if (world?.WorldPresence == null || characterId.IsNone ||
                 !world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return;
-            presence.ClearFollow();
-            presence.ClearCombatPursuit();
         }
 
         static StableResidualSpatialAuthority Build(

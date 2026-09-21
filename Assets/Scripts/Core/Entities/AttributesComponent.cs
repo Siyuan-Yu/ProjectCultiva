@@ -24,6 +24,17 @@ namespace XianXia.Core.Entities
 
         public IReadOnlyList<AttributeModifier> Modifiers => _modifiers;
 
+        internal List<AttributeModifier> CaptureModifiers() => new List<AttributeModifier>(_modifiers);
+
+        internal void RestoreModifiers(IEnumerable<AttributeModifier> modifiers, ulong nextModifierId)
+        {
+            _modifiers.Clear();
+            if (modifiers != null) _modifiers.AddRange(modifiers);
+            _modifierIds.Reset(nextModifierId);
+        }
+
+        internal ulong PeekNextModifierId => _modifierIds.PeekNext;
+
         public void SetBase(AttributeId id, int value) => _base[id] = value;
 
         /// <summary>Compatibility helper for content string keys such as "MaxHp".</summary>

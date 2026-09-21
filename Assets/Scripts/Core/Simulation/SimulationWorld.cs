@@ -104,7 +104,7 @@ namespace XianXia.Core.Simulation
 
         public RegionId RegionId { get; set; }
 
-        /// <summary>Optional VS0.1 layout placeholders (Region/LocalMap/Settlement). Not gameplay.</summary>
+        /// <summary>Bootstrap package/Region identity retained for save and event scope.</summary>
         public WorldInitData WorldLayout { get; set; }
 
         public DefaultOrderTranslator Translator { get; }

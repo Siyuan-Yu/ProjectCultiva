@@ -23,10 +23,37 @@
           {
             "from": "entry",
             "to": "minor",
-            "progressRequired": 100,
+            "progressRequired": 20,
             "costs": [
-              { "itemId": "base:resource_spirit_herb", "count": 10 },
-              { "itemId": "base:resource_rough_wood", "count": 10 }
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
             ]
           }
         ]
@@ -55,10 +82,37 @@
           {
             "from": "entry",
             "to": "minor",
-            "progressRequired": 100,
+            "progressRequired": 20,
             "costs": [
-              { "itemId": "base:resource_spirit_herb", "count": 10 },
-              { "itemId": "base:resource_rough_wood", "count": 10 }
+              { "itemId": "base:resource_spirit_herb", "count": 1 },
+              { "itemId": "base:resource_rough_wood", "count": 1 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 2 },
+              { "itemId": "base:resource_rough_wood", "count": 2 }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 3 },
+              { "itemId": "base:resource_rough_wood", "count": 3 }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 4 },
+              { "itemId": "base:resource_rough_wood", "count": 4 }
             ]
           }
         ]

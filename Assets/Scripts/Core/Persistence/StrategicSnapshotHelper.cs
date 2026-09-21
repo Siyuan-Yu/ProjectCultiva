@@ -774,7 +774,9 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePlayerPartyTravel(world, dto.PlayerPartyTravel);
-            RestoreBackgroundCharacterTravels(world, dto.BackgroundCharacterTravels);
+            var backgroundRestore = RestoreBackgroundCharacterTravels(
+                world, dto.BackgroundCharacterTravels);
+            if (backgroundRestore.IsFailure) return backgroundRestore;
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
             var separateSpace = SeparateSpaceSessionSnapshotRestore.Restore(world, dto);
             if (separateSpace.IsFailure)
@@ -1120,7 +1122,7 @@ namespace XianXia.Core.Persistence
         }
 
         /// <summary>
-        /// Snapshot Restore 后补全 FormalArmy→ArmyStack 展示链路与成员 WorldPresence（Content Shell 就绪后也可重复调用）。
+        /// Snapshot Restore 后收口现代 Squad runtime links（Content Shell 就绪后也可重复调用）。
         /// </summary>
         public static void FinalizeRuntimeLinks(SimulationWorld world)
         {
@@ -1155,7 +1157,9 @@ namespace XianXia.Core.Persistence
             foreach (var entity in world.Entities.All)
                 if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 && !members.Contains(entity.Id.Value))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Character is missing authoritative squad.", entity.Id.ToString());
-            if (string.IsNullOrEmpty(dto.ControlledSquadId) || !byId.ContainsKey(dto.ControlledSquadId))
+            // Core/NPC-only snapshots may legitimately have no PlayerParty control context.
+            // Once a controlled squad is declared it must resolve to authoritative Squad data.
+            if (!string.IsNullOrEmpty(dto.ControlledSquadId) && !byId.ContainsKey(dto.ControlledSquadId))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Controlled squad is missing.", dto.ControlledSquadId);
             // FormalArmy fields, when present beside modern Squad authority, are ignored compatibility input.
             return Result.Success();
@@ -1196,44 +1200,95 @@ namespace XianXia.Core.Persistence
 #endif
         }
 
-        static void RestoreBackgroundCharacterTravels(
+        static Result RestoreBackgroundCharacterTravels(
             SimulationWorld world,
             List<BackgroundCharacterTravelSnapshotDto> travels)
         {
             world?.BackgroundCharacterTravel?.Clear();
             if (world?.BackgroundCharacterTravel == null || travels == null)
-                return;
+                return Result.Success();
 
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
 
+            var seen = new HashSet<ulong>();
             for (var i = 0; i < travels.Count; i++)
             {
                 var t = travels[i];
                 if (t == null || t.CharacterId == 0)
                     continue;
+                if (!seen.Add(t.CharacterId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Duplicate Background Character travel snapshot.",
+                        "CharacterId=" + t.CharacterId);
                 var id = new EntityId(t.CharacterId);
+                if (!Finite(t.WorldX) || !Finite(t.WorldY))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Character position is invalid.",
+                        "CharacterId=" + t.CharacterId);
+
+                if (world.Entities.TryGet(id, out var entity) && entity != null &&
+                    entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var locationAuthority) &&
+                    locationAuthority.SnapshotFieldPresent &&
+                    entity.TryGet<EntityLocationComponent>(out var entityLocation) &&
+                    entityLocation.HasLocation)
+                {
+                    if (t.IsTraveling || t.IsSurfaceRoute || !string.IsNullOrEmpty(t.SurfaceId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background travel conflicts with Interior EntityLocation authority.",
+                            "CharacterId=" + t.CharacterId);
+                    continue;
+                }
+
+                var pos = new WorldVec2(t.WorldX, t.WorldY);
+                if (world.WorldPresence.TryGet(id, out var existing) && existing != null)
+                {
+                    if (existing.Mode == PartyWorldPresenceMode.InEncounter)
+                    {
+                        if (t.IsTraveling || t.IsSurfaceRoute || !string.IsNullOrEmpty(t.SurfaceId))
+                            return Result.Failure(ErrorCode.SnapshotInvalid,
+                                "Background travel conflicts with CharacterEncounter authority.",
+                                "CharacterId=" + t.CharacterId);
+                        continue;
+                    }
+                    if (existing.HasContinuousWorldPosition &&
+                        (((!string.IsNullOrEmpty(t.SurfaceId) || t.IsSurfaceRoute) &&
+                          ((t.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite) !=
+                           (existing.Mode == PartyWorldPresenceMode.AtSite))) ||
+                         !SamePosition(existing.ContinuousWorldPosition, pos) ||
+                         (!string.IsNullOrEmpty(t.SurfaceId) &&
+                          !string.IsNullOrEmpty(existing.PersonalSurfaceId) &&
+                          !string.Equals(t.SurfaceId, existing.PersonalSurfaceId,
+                              StringComparison.Ordinal))))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background travel conflicts with CharacterWorldPresence authority.",
+                            "CharacterId=" + t.CharacterId);
+                    // Modern CharacterWorldPresence is primary. Never downgrade its exact anchor.
+                    if (existing.HasContinuousWorldPosition)
+                        goto RestoreLegacyRoute;
+                }
+
                 if (t.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
                     !string.IsNullOrEmpty(t.SiteId))
                 {
-                    world.WorldPresence.SetAtSite(id, t.SiteId);
+                    if (!string.IsNullOrEmpty(t.SurfaceId))
+                        world.WorldPresence.SetAtSiteWithAnchor(id, t.SiteId, pos, t.SurfaceId);
+                    else
+                        world.WorldPresence.SetAtSite(id, t.SiteId);
                 }
                 else
                 {
-                    var pos = new WorldVec2(t.WorldX, t.WorldY);
                     var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-                    world.SurfaceGround.TryResolveContaining(pos, out var surface);
+                    // SurfaceGround is intentionally unavailable in phase one.  Preserve the DTO
+                    // provenance verbatim; post-content finalization validates or migrates it.
                     world.WorldPresence.SetAtWorldPosition(id, pos, derived,
-                        surface?.SurfaceId ?? string.Empty);
+                        t.SurfaceId ?? string.Empty);
                 }
 
+            RestoreLegacyRoute:
                 if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
                 {
-                    if (t.IsTraveling && !t.IsSurfaceRoute &&
-                        !string.IsNullOrEmpty(t.DestinationSiteId))
-                        BackgroundCharacterTravelService.BeginTravelToWorldSite(
-                            world, id, t.DestinationSiteId);
                     continue;
                 }
 
@@ -1262,6 +1317,7 @@ namespace XianXia.Core.Persistence
                     ? t.LastProcessedWorldTick
                     : world.Tick.Value;
             }
+            return Result.Success();
         }
 
         public static Result RestoreBackgroundSurfaceTravels(
@@ -1274,7 +1330,7 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < travels.Count; i++)
             {
                 var item = travels[i];
-                if (item == null || !item.IsTraveling || !item.IsSurfaceRoute || item.CharacterId == 0)
+                if (item == null || item.CharacterId == 0)
                     continue;
                 if (!seen.Add(item.CharacterId))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
@@ -1284,9 +1340,78 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < travels.Count; i++)
             {
                 var item = travels[i];
-                if (item == null || !item.IsTraveling || !item.IsSurfaceRoute ||
-                    item.CharacterId == 0 || string.IsNullOrEmpty(item.DestinationSiteId)) continue;
+                if (item == null || item.CharacterId == 0) continue;
                 var id = new EntityId(item.CharacterId);
+                if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id) ||
+                    CharacterEncounterService.OwnsParticipantSpatialState(world, id))
+                {
+                    if (item.IsTraveling || item.IsSurfaceRoute || !string.IsNullOrEmpty(item.SurfaceId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background travel conflicts with another spatial owner.",
+                            "CharacterId=" + item.CharacterId);
+                    continue;
+                }
+                if (!Finite(item.WorldX) || !Finite(item.WorldY))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Character position is invalid after content shell.",
+                        "CharacterId=" + item.CharacterId);
+
+                var position = new WorldVec2(item.WorldX, item.WorldY);
+                XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
+                if (!string.IsNullOrEmpty(item.SurfaceId))
+                {
+                    if (!world.SurfaceGround.TryGet(item.SurfaceId, out surface) || surface == null ||
+                        !surface.Contains(position.X, position.Y))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background Character explicit SurfaceId conflicts with its position.",
+                            "CharacterId=" + item.CharacterId + " SurfaceId=" + item.SurfaceId);
+                }
+                else
+                {
+                    TryResolveUniqueContainingSurface(world, position, out surface, out var matchCount);
+                    if (matchCount != 1)
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Legacy Background Character position does not identify one Surface.",
+                            "CharacterId=" + item.CharacterId + " MatchCount=" + matchCount);
+                }
+
+                if (!string.IsNullOrEmpty(item.DestinationSiteId))
+                {
+                    if (!world.SurfaceGround.TryResolveSiteArrival(
+                            item.DestinationSiteId, out var destinationSurfaceId, out var arrival) ||
+                        !string.Equals(surface.SurfaceId, destinationSurfaceId, StringComparison.Ordinal))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background destination Site is on a different or unknown Surface.",
+                            "CharacterId=" + item.CharacterId +
+                            " DestinationSiteId=" + item.DestinationSiteId);
+                    if (item.IsSurfaceRoute &&
+                        (!Finite(item.SurfaceDestinationX) || !Finite(item.SurfaceDestinationY) ||
+                         !SamePosition(new WorldVec2(item.SurfaceDestinationX, item.SurfaceDestinationY), arrival)))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background Surface destination conflicts with SiteArrival.",
+                            "CharacterId=" + item.CharacterId);
+                }
+
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize : 1f;
+                if (item.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(item.SiteId))
+                    world.WorldPresence.SetAtSiteWithAnchor(
+                        id, item.SiteId, position, surface.SurfaceId);
+                else
+                    world.WorldPresence.SetAtWorldPosition(
+                        id, position, HexMath.WorldToHex(position.X, position.Y, hexSize),
+                        surface.SurfaceId);
+
+                if (!item.IsTraveling)
+                {
+                    world.BackgroundCharacterTravel.Remove(id);
+                    continue;
+                }
+                if (string.IsNullOrEmpty(item.DestinationSiteId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Moving Background Surface travel has no destination Site.",
+                        "CharacterId=" + item.CharacterId);
                 world.BackgroundCharacterTravel.Remove(id);
                 var restored = BackgroundCharacterTravelService.BeginTravelToWorldSite(
                     world, id, item.DestinationSiteId);
@@ -1315,6 +1440,9 @@ namespace XianXia.Core.Persistence
             }
             return Result.Success();
         }
+
+        static bool SamePosition(WorldVec2 a, WorldVec2 b) =>
+            Math.Abs(a.X - b.X) <= 0.0001f && Math.Abs(a.Y - b.Y) <= 0.0001f;
 
         /// <summary>
         /// Second phase of PlayerParty travel restore. Call only after SurfaceGround and authored

@@ -146,24 +146,27 @@ namespace XianXia.Core.Cultivation
 
         public static int ProgressRequiredToNext(SkillMasteryProfile profile, SkillMasteryTier tier)
         {
-            if (profile != null &&
-                profile.TryGetBreakthroughFrom(tier, out var b) &&
-                b.ProgressRequired > 0)
-                return b.ProgressRequired;
+            if (profile != null)
+            {
+                if (profile.TryGetBreakthroughFrom(tier, out var b) && b.ProgressRequired > 0)
+                    return b.ProgressRequired;
+                return 0;
+            }
             return SkillMasteryRules.ProgressRequiredToNext(tier);
         }
 
         public static bool CanBreakthrough(SkillMasteryProfile profile, SkillMasteryTier tier)
         {
-            if (profile != null && profile.TryGetBreakthroughFrom(tier, out var b))
-                return b != null && b.ProgressRequired > 0;
+            if (profile != null)
+                return profile.TryGetBreakthroughFrom(tier, out var b) &&
+                       b != null && b.ProgressRequired > 0;
             return SkillMasteryRules.CanBreakthrough(tier);
         }
 
         public static SkillMasteryTier NextTier(SkillMasteryProfile profile, SkillMasteryTier from)
         {
-            if (profile != null && profile.TryGetBreakthroughFrom(from, out var b))
-                return b.To;
+            if (profile != null)
+                return profile.TryGetBreakthroughFrom(from, out var b) ? b.To : from;
             return SkillMasteryRules.NextTier(from);
         }
 
