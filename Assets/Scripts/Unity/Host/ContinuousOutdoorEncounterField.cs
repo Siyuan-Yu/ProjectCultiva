@@ -961,7 +961,7 @@ namespace XianXia.Unity.Host
             foreach (var participant in completed.Participants)
             {
                 var id = new EntityId(participant.CharacterId);
-                if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, id))
+                if (!ResidualCharacterPresenceService.IsResidualLifeCandidate(world, id))
                     continue;
 
                 world.Entities.TryGet(id, out var entity);

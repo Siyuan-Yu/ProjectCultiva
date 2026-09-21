@@ -14,7 +14,6 @@ namespace XianXia.Data.Bootstrap
             OpeningScenarioDefinition scenario,
             GameStartLookup openingLookup = null)
         {
-            world.Strategic.Ch01FormationScenarioCompat = true;
             Ch01ScenarioProgressionHooks.Register(world);
             var opening = StrategicOpeningContentBootstrap.Apply(world, registry, scenario);
             if (opening.IsFailure)
@@ -43,7 +42,6 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.ContentLoadFailed,
                     "Opening Surface definition missing.", scenario?.OpeningSurfaceId ?? string.Empty);
             world.Strategic.Sites.Clear();
-            world.Strategic.TerritoryRegions.Clear();
             world.Strategic.FactionFlags.Clear();
             TerritoryClaimService.ResetForContentBootstrap(world);
             if (surface.SiteRegions == null || surface.SiteRegions.Count == 0)
@@ -63,13 +61,6 @@ namespace XianXia.Data.Bootstrap
                     UsesContinuousOutdoorSurface = true
                 };
                 world.Strategic.Sites.Register(site);
-                if (!string.IsNullOrWhiteSpace(region.TerritoryRegionId))
-                    world.Strategic.TerritoryRegions.Register(new TerritoryRegion
-                    {
-                        RegionId = region.TerritoryRegionId,
-                        PrimaryWorldSiteId = region.SiteId,
-                        ControlFactionId = region.OwnerFactionId ?? string.Empty
-                    });
             }
             if (surface.FactionFlags != null)
                 foreach (var flag in surface.FactionFlags)

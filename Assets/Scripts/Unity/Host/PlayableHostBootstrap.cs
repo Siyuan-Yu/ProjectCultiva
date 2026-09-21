@@ -1613,94 +1613,6 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        void LogWorldCombatAssembly(
-            SimulationWorld world,
-            string resolvedBattleLocalMapId,
-            string activeMapBeforePresentation,
-            string phase)
-        {
-            var strategic = world?.Strategic;
-            var encounter = strategic?.Encounter;
-            var snapshot = strategic?.Participants;
-            if (encounter == null || snapshot == null)
-                return;
-
-            var tracked = BattlefieldSpawnScope.GetSpawnList(world);
-            var trackedCount = tracked?.Count ?? 0;
-            var livingTrackedCount = 0;
-            var presentedTrackedCount = 0;
-            if (tracked != null)
-            {
-                for (var i = 0; i < tracked.Count; i++)
-                {
-                    var id = new XianXia.Core.Domain.Ids.EntityId(tracked[i]);
-                    if (!world.Entities.TryGet(id, out var entity))
-                        continue;
-                    if (entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location) &&
-                        location.HasPresentationOverride)
-                        presentedTrackedCount++;
-                    if (entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) &&
-                        life.State == XianXia.Core.Entities.LifecycleState.Alive)
-                        livingTrackedCount++;
-                }
-            }
-
-            var enemyIds = new List<XianXia.Core.Domain.Ids.EntityId>(8);
-            snapshot.CollectEnemyEntityIds(enemyIds);
-            var enemyEntityCount = 0;
-            var visibleEnemyCount = 0;
-            for (var i = 0; i < enemyIds.Count; i++)
-            {
-                if (world.Entities.TryGet(enemyIds[i], out _))
-                    enemyEntityCount++;
-                if (LocalMapVisibility.IsEntityVisible(world, enemyIds[i]))
-                    visibleEnemyCount++;
-            }
-
-            var selectedFriendlyCount = 0;
-            var friendlyFormalArmyParticipantCount = 0;
-            var visibleFriendlyArmyCount = 0;
-            for (var i = 0; i < snapshot.Records.Count; i++)
-            {
-                var record = snapshot.Records[i];
-                var selectedFriendly =
-                    record.Kind == BattleParticipantKind.MandatoryFriendly ||
-                    (record.Kind == BattleParticipantKind.OptionalFriendly && record.Selected);
-                if (selectedFriendly)
-                    selectedFriendlyCount++;
-                if (!selectedFriendly || string.IsNullOrEmpty(record.FormalArmyId))
-                    continue;
-
-                friendlyFormalArmyParticipantCount++;
-                if (LocalMapVisibility.IsEntityVisible(world, record.EntityId))
-                    visibleFriendlyArmyCount++;
-            }
-
-            var activeMap = world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
-            var reuseCurrentMap = string.Equals(
-                activeMapBeforePresentation?.Trim(),
-                resolvedBattleLocalMapId?.Trim(),
-                System.StringComparison.Ordinal);
-            Debug.Log(
-                "[WorldCombatAssembly] " + phase +
-                " SpawnOnNextMapLoad=" + encounter.SpawnOnNextMapLoad +
-                " ParticipantCount=" + snapshot.Records.Count +
-                " SelectedFriendlyCount=" + selectedFriendlyCount +
-                " EnemyStackCount=" + snapshot.CollectEnemyStackIds().Count +
-                " EngagedPartyCount=" + encounter.EngagedPartyIds.Count +
-                " TrackedCount=" + trackedCount +
-                " LivingTrackedCount=" + livingTrackedCount +
-                " PresentedTrackedCount=" + presentedTrackedCount +
-                " EnemyEntityCount=" + enemyEntityCount +
-                " FriendlyFormalArmyParticipantCount=" + friendlyFormalArmyParticipantCount +
-                " VisibleEnemyCount=" + visibleEnemyCount +
-                " VisibleFriendlyArmyCount=" + visibleFriendlyArmyCount +
-                " ActiveMapLayoutId=" + activeMap +
-                " ResolvedBattleLocalMapId=" + (resolvedBattleLocalMapId ?? string.Empty) +
-                " ReuseCurrentLocalMap=" + reuseCurrentMap,
-                this);
-        }
-
         /// <summary>LocalMap 进出后：PreferredMapLayout、重建灰盒／实体／寻路/summary>
         /// <param name="frameCamera">勘查显形等轻量刷新应false，避免镜头乱跳/param>
         public void ReloadLocalMapPresentation(bool frameCamera = true)
@@ -1825,8 +1737,6 @@ namespace XianXia.Unity.Host
             _loadedStrategicWildernessBounds = null;
             _loadedStrategicSiteBounds = null;
             _session.PreferredMapLayoutId = string.Empty;
-            if (world.Strategic?.Encounter != null)
-                world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
             if (entityViewSpawner != null)
                 entityViewSpawner.Clear();
             if (mapGraybox != null)
@@ -1891,12 +1801,10 @@ namespace XianXia.Unity.Host
 
             var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
             var onEncounterMap = false;
-            var sameMapWorldCombat = false;
 
             // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
             // Wilderness：CanLoadMapLayoutForParty 已认 AtHex + PartyWorld.LocalMapId
             if (!string.IsNullOrWhiteSpace(targetMap) &&
-                !(world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad) &&
                 !LocalMapVisibility.CanLoadMapLayoutForParty(
                     world, _session.CharacterIds, targetMap.Trim()) &&
                 !SnapshotActiveControlledLocalMapResolver.ActiveAuthorizesMapLoad(
@@ -2129,22 +2037,8 @@ namespace XianXia.Unity.Host
             if (playerPartyMaterializationAttempted && !playerPartyMaterialized)
                 return;
 
-            if (sameMapWorldCombat)
-                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "Before");
-            if (sameMapWorldCombat)
-                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "AfterPresentation");
             if (!onEncounterMap)
             {
-                if (world.Strategic?.Encounter != null)
-                {
-                    world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
-                    if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
-                    {
-                        _session.RefreshViewableEntityIds();
-                        entityViewSpawner?.Rebuild(_session);
-                    }
-                }
-
                 // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
                 // Phase 5S-B2-3.1：补齐 FormalArmy / Residual 战略人口 —— Player 走到 Army A 的
                 // Hex / WorldSite → load LocalMap → Army A members 当场出现，无需 Battle。
@@ -2156,8 +2050,6 @@ namespace XianXia.Unity.Host
 
             // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
             var startId = world.LocalPlaces.StartLocationId;
-            var encounter = world.Strategic?.Encounter;
-            var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
             // Wilderness AtWorldPosition：Materialize 已按 WorldPosition 投影，禁止再吸回 startLocation。
             var skipStartSnapForWilderness =
                 world.PlayerPartyTravel != null &&
@@ -2179,8 +2071,6 @@ namespace XianXia.Unity.Host
                 for (var i = 0; i < _session.CharacterIds.Count; i++)
                 {
                     var id = _session.CharacterIds[i];
-                    if (filterEngaged && !encounter.IsEngaged(id))
-                        continue;
                     if (!LocalMapVisibility.IsEntityVisible(world, id))
                         continue;
                     var activeMapId = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
@@ -2289,12 +2179,6 @@ namespace XianXia.Unity.Host
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
         {
             // FormalArmy focus presentation retired; Squad presentation is handled by HostNpcSquadContinuousPresenter.
-        }
-
-        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap</summary>
-        public void EnterLingeringBattlefield(IReadOnlyList<EntityId> party)
-        {
-            // Legacy ArmyStack battlefield entry retired. Character residuals keep personal spatial authority.
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>

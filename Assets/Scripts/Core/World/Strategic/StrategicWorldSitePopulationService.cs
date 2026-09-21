@@ -72,7 +72,7 @@ namespace XianXia.Core.World.Strategic
                 rejectionReason = "RemovedOrHidden";
                 return false;
             }
-            if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+            if (!ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
             {
                 rejectionReason = "NotResidualLifeCandidate";
                 return false;
@@ -185,7 +185,7 @@ namespace XianXia.Core.World.Strategic
                 {
                     var memberId = new EntityId(squad.MemberCharacterIds[i]);
                     if (memberId.IsNone || seen.Contains(memberId.Value) ||
-                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId) ||
+                        !CharacterLifeStateQuery.IsLivingForMacroOrder(world, memberId) ||
                         !world.Entities.TryGet(memberId, out var entity) || entity == null ||
                         CombatLifeStateService.ShouldHideFromSpawn(entity)) continue;
                     if (seen.Add(memberId.Value)) into.Add(memberId);
@@ -200,7 +200,7 @@ namespace XianXia.Core.World.Strategic
                 !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
                 !SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, motion) ||
                 !string.Equals(motion.SiteId, site.SiteId, StringComparison.Ordinal)) return false;
-            return LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, characterId);
+            return CharacterLifeStateQuery.IsLivingForMacroOrder(world, characterId);
         }
 
         static bool IsPersonalResidentAtSite(
@@ -229,7 +229,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             // A residual uses personal AtSite presence even while legacy membership remains.
-            if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+            if (ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
                 return true;
 
             // Living Squad members with group motion are projected by the group authority pass.

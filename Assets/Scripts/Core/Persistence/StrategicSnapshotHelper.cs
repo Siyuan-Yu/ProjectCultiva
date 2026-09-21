@@ -145,26 +145,6 @@ namespace XianXia.Core.Persistence
             if (publicStocks.IsFailure)
                 return publicStocks;
 
-            // Legacy TerritoryRegionControllers are intentionally ignored. Region/Hex control is
-            // a pure projection rebuilt from Site Owner + exact administrative Claim authority.
-            StrategicTerritoryCoverageResolver.Rebuild(world);
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            foreach (var pair in world.Strategic.Sites.Sites)
-            {
-                var site = pair.Value;
-                if (site == null || string.IsNullOrEmpty(site.TerritoryRegionId) ||
-                    !world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) ||
-                    region == null)
-                    continue;
-                if (!string.Equals(site.OwnerFactionId ?? string.Empty,
-                        region.ControlFactionId ?? string.Empty, StringComparison.Ordinal))
-                {
-                    System.Diagnostics.Debug.Fail("[TerritoryRestore] Site/Region controller mismatch: " +
-                        site.SiteId + ".");
-                }
-            }
-#endif
             return CharacterEncounterService.ValidateObjectiveWorldState(world);
         }
 
@@ -173,7 +153,7 @@ namespace XianXia.Core.Persistence
             var dto = new StrategicSnapshotDto
             {
                 PlayerFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty,
-                Ch01FormationScenarioCompat = world?.Strategic?.Ch01FormationScenarioCompat ?? false
+                Ch01FormationScenarioCompat = false
             };
             if (world?.Strategic == null)
                 return dto;
@@ -234,20 +214,7 @@ namespace XianXia.Core.Persistence
             // FormalArmy and ArmyMembership DTO collections are legacy input only.
             // Modern capture deliberately leaves both collections empty.
 
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var presence = kv.Value;
-                if (presence == null || !presence.UsesHexPresence)
-                    continue;
-                if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, presence.EntityId))
-                    continue;
-                dto.ResidualCharacterPresences.Add(new ResidualCharacterPresenceDto
-                {
-                    CharacterId = presence.EntityId.Value,
-                    HexQ = presence.HexQ,
-                    HexR = presence.HexR
-                });
-            }
+            // ResidualCharacterPresences is legacy input only. Modern saves leave it empty.
 
             foreach (var kv in world.WorldPresence.All)
             {
@@ -275,21 +242,9 @@ namespace XianXia.Core.Persistence
                     continue;
                 }
 
+                // AtHex is accepted only as old input. It is never re-emitted by modern capture.
                 if (presence.UsesHexPresence)
-                {
-                    dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
-                    {
-                        CharacterId = presence.EntityId.Value,
-                        Mode = (int)PartyWorldPresenceMode.AtHex,
-                        PersonalSurfaceId = presence.PersonalSurfaceId,
-                        HexQ = presence.HexQ,
-                        HexR = presence.HexR,
-                        HasWorldPosition = presence.HasContinuousWorldPosition,
-                        WorldX = presence.WorldPosX,
-                        WorldY = presence.WorldPosY
-                    });
                     continue;
-                }
 
                 if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
                     presence.HasContinuousWorldPosition)
@@ -412,23 +367,7 @@ namespace XianXia.Core.Persistence
                 });
             }
 
-            foreach (var kv in world.Strategic.RetreatingArmies.All)
-            {
-                var retreat = kv.Value;
-                if (retreat == null)
-                    continue;
-                var rDto = new RetreatingArmySnapshotDto
-                {
-                    RetreatingArmyId = retreat.RetreatingArmyId,
-                    SourceArmyId = retreat.SourceArmyId,
-                    FactionId = retreat.FactionId,
-                    HexQ = retreat.UsesHexPosition ? retreat.HexQ : int.MinValue,
-                    HexR = retreat.UsesHexPosition ? retreat.HexR : int.MinValue
-                };
-                for (var i = 0; i < retreat.MemberCharacterIds.Count; i++)
-                    rDto.MemberCharacterIds.Add(retreat.MemberCharacterIds[i]);
-                dto.RetreatingArmies.Add(rDto);
-            }
+            // RetreatingArmy is legacy input only. Modern saves intentionally keep the DTO empty.
 
             dto.HasControlCoreSnapshotAuthority = true;
             foreach (var kv in world.ControlCores.All)
@@ -541,6 +480,7 @@ namespace XianXia.Core.Persistence
             // FormalArmy/ArmyMembership arrays remain in the schema as legacy inputs only.
             dto.FormalArmies.Clear();
             dto.ArmyMemberships.Clear();
+            LegacyRuntimeInvariant.AssertModernSnapshot(dto);
             return dto;
         }
 
@@ -566,14 +506,12 @@ namespace XianXia.Core.Persistence
                 }
 
             world.Strategic.PlayerFactionId = dto.PlayerFactionId ?? string.Empty;
-            world.Strategic.Ch01FormationScenarioCompat = dto.Ch01FormationScenarioCompat;
             world.Strategic.Squads.Clear();
             world.Strategic.SquadWorldMotions.Clear();
             world.Strategic.Wars.Clear();
             world.Strategic.Diplomacy.Clear();
             world.Strategic.Alliances.Clear();
             world.Strategic.Vassalages.Clear();
-            world.Strategic.RetreatingArmies.Clear();
             world.ControlCores.PrepareRuntimeRestore();
 
             if (dto.HasSquadSnapshotAuthority && dto.Squads != null)
@@ -614,7 +552,7 @@ namespace XianXia.Core.Persistence
 
             // CharacterWorldPresences 是新版 authority（可携带 precise WorldPosition）；
             // 恢复时记录已恢复 id —— 旧 ResidualCharacterPresences 只作 legacy fallback，
-            // 不覆盖新版（否则 SetAtHex 会把 HasContinuousWorldPosition 清掉）。
+            // 不覆盖新版（否则 SetLegacyAtHex 会把 HasContinuousWorldPosition 清掉）。
             var restoredCharacterWorldPresenceIds = new HashSet<ulong>();
             if (dto.CharacterWorldPresences != null)
             {
@@ -672,16 +610,14 @@ namespace XianXia.Core.Persistence
                                 continue;
                             }
                         }
+                        if (!string.IsNullOrEmpty(p.PersonalSurfaceId))
+                            return Result.Failure(ErrorCode.SnapshotInvalid,
+                                "AtHex legacy presence could not migrate to its Continuous Surface: CharacterId=" + p.CharacterId);
                         if (p.HasWorldPosition)
-                        {
-                            // 精确连续落点（Local Combat 倒下时 EntityView local → surface mapping）
-                            world.WorldPresence.SetAtResidualWorldPosition(
+                            world.WorldPresence.SetLegacyResidualWorldPosition(
                                 id, hex, new WorldVec2(p.WorldX, p.WorldY));
-                        }
                         else
-                        {
-                            world.WorldPresence.SetAtHex(id, hex);
-                        }
+                            world.WorldPresence.SetLegacyAtHex(id, hex);
                         world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
                         continue;
                     }
@@ -713,7 +649,20 @@ namespace XianXia.Core.Persistence
                     var id = new EntityId(r.CharacterId);
                     if (!world.Entities.TryGet(id, out _))
                         continue;
-                    world.WorldPresence.SetAtHex(id, new HexCoord(r.HexQ, r.HexR));
+                    var hex = new HexCoord(r.HexQ, r.HexR);
+                    if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                    {
+                        var size = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                            ? world.HexWorld.HexSize : 1f;
+                        HexMath.ToWorldPosition(hex, size, out var x, out var y);
+                        var point = new WorldVec2(x, y);
+                        if (!world.SurfaceGround.TryResolveContaining(point, out var surface))
+                            return Result.Failure(ErrorCode.SnapshotInvalid,
+                                "Legacy residual Hex cannot migrate to a Continuous Surface: CharacterId=" + r.CharacterId);
+                        world.WorldPresence.SetAtWorldPosition(id, point, hex, surface.SurfaceId);
+                    }
+                    else
+                        world.WorldPresence.SetLegacyAtHex(id, hex);
                 }
             }
 
@@ -735,56 +684,17 @@ namespace XianXia.Core.Persistence
                     var r = dto.TerritoryRegionControllers[i];
                     if (r == null || string.IsNullOrEmpty(r.RegionId))
                         continue;
-                    TerritoryControlService.SetRegionController(
-                        world,
-                        r.RegionId,
-                        r.ControlFactionId ?? string.Empty);
-                }
-            }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Phase 2J invariant（Load 后校验，不静默修）：绑定 Region 的 Fixed Site，
-            // Owner == Region Controller == 全部 Hex.ControlFactionId。
-            if (world.Strategic.Sites != null && world.Strategic.TerritoryRegions != null)
-            {
-                foreach (var siteKv in world.Strategic.Sites.Sites)
-                {
-                    var site = siteKv.Value;
-                    if (site == null || string.IsNullOrEmpty(site.TerritoryRegionId))
-                        continue;
-                    if (!world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) || region == null)
+                    foreach (var sitePair in world.Strategic.Sites.Sites)
                     {
-                        System.Diagnostics.Debug.Fail(
-                            "[TerritoryRestore] WorldSite '" + site.SiteId +
-                            "' TerritoryRegionId '" + site.TerritoryRegionId + "' missing after restore.");
-                        continue;
-                    }
-
-                    var owner = site.OwnerFactionId ?? string.Empty;
-                    var controller = region.ControlFactionId ?? string.Empty;
-                    if (!string.Equals(owner, controller, System.StringComparison.Ordinal))
-                    {
-                        System.Diagnostics.Debug.Fail(
-                            "[TerritoryRestore] Owner/Controller mismatch after restore: WorldSite '" +
-                            site.SiteId + "' Owner='" + owner + "' Region '" + region.RegionId +
-                            "' Controller='" + controller + "'.");
-                    }
-
-                    for (var i = 0; i < region.Hexes.Count; i++)
-                    {
-                        var hex = region.Hexes[i];
-                        if (world.HexWorld != null && world.HexWorld.TryGetCell(hex, out var cell) && cell != null &&
-                            !string.Equals(cell.ControlFactionId ?? string.Empty, controller, System.StringComparison.Ordinal))
-                        {
-                            System.Diagnostics.Debug.Fail(
-                                "[TerritoryRestore] Hex " + hex + " controller '" +
-                                (cell.ControlFactionId ?? string.Empty) + "' != Region '" +
-                                region.RegionId + "' Controller '" + controller + "'.");
-                        }
+                        var site = sitePair.Value;
+                        if (site == null || !string.IsNullOrEmpty(site.OwnerFactionId) ||
+                            !string.Equals(site.TerritoryRegionId, r.RegionId, StringComparison.Ordinal))
+                            continue;
+                        WorldSiteOwnershipService.SetOwner(
+                            world, site.SiteId, r.ControlFactionId ?? string.Empty);
                     }
                 }
             }
-#endif
 
             if (dto.Wars != null)
             {
@@ -834,32 +744,8 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            if (dto.RetreatingArmies != null)
-            {
-                for (var i = 0; i < dto.RetreatingArmies.Count; i++)
-                {
-                    var r = dto.RetreatingArmies[i];
-                    if (r == null || string.IsNullOrEmpty(r.RetreatingArmyId))
-                        continue;
-                    var retreat = new RetreatingArmy
-                    {
-                        RetreatingArmyId = r.RetreatingArmyId,
-                        SourceArmyId = r.SourceArmyId ?? string.Empty,
-                        FactionId = r.FactionId ?? string.Empty,
-                        HexQ = r.HexQ,
-                        HexR = r.HexR
-                    };
-                    var members = new List<EntityId>(r.MemberCharacterIds?.Count ?? 0);
-                    if (r.MemberCharacterIds != null)
-                    {
-                        for (var j = 0; j < r.MemberCharacterIds.Count; j++)
-                            members.Add(new EntityId(r.MemberCharacterIds[j]));
-                    }
-
-                    retreat.SetMembers(members);
-                    world.Strategic.RetreatingArmies.Register(retreat);
-                }
-            }
+            // Old RetreatingArmy containers are not restored. Real members already restored above
+            // keep their Character presence/lifecycle; synthetic army identity is discarded.
 
             if (dto.HasControlCoreSnapshotAuthority)
             {

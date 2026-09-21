@@ -82,7 +82,6 @@ namespace XianXia.Tests
                 FlagId = "flag:enemy", FactionId = "faction:enemy",
                 AnchorHex = new HexCoord(5, 5), EstablishedOrder = 1
             });
-            StrategicTerritoryCoverageResolver.Rebuild(world);
 
             var result = ConstructionService.TryConstructFactionFlag(
                 world, Building, Player, new HexCoord(6, 5), 0f, 0f, out _);
@@ -101,14 +100,11 @@ namespace XianXia.Tests
                 FlagId = "flag:authored", FactionId = Player, AnchorHex = anchor,
                 EstablishedOrder = 1, CurrentHp = 1, MaxHp = 100
             });
-            StrategicTerritoryCoverageResolver.Rebuild(world);
-            Assert.AreEqual(Player, TerritoryControlService.GetController(world, anchor));
 
             var result = ConstructionService.TryDismantleFactionFlag(
                 world, Building, Player, "flag:authored", out var refunds);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : string.Empty);
             Assert.IsEmpty(world.Strategic.FactionFlags.Flags);
-            Assert.AreEqual(string.Empty, TerritoryControlService.GetController(world, anchor));
             Assert.AreEqual(5, world.Inventory.GetCount(Wood));
             Assert.AreEqual(5, refunds[0].Count);
         }
@@ -141,7 +137,6 @@ namespace XianXia.Tests
                 FlagId = "flag:full", FactionId = Player,
                 AnchorHex = new HexCoord(5, 5), EstablishedOrder = 1
             });
-            StrategicTerritoryCoverageResolver.Rebuild(world);
 
             var result = ConstructionService.TryDismantleFactionFlag(
                 world, Building, Player, "flag:full", out _);

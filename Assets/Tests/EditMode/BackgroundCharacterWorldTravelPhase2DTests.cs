@@ -135,7 +135,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out var siteA, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             Assert.IsTrue(BackgroundCharacterTravelService.BeginTravelToHex(
                 world, a, new HexCoord(mid.Q + 2, mid.R)).IsSuccess);
             Assert.Greater(world.BackgroundCharacterTravel.GetOrCreate(a).HexPathCount, 1);
@@ -146,7 +146,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out var siteA, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 3, mid.R));
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p));
             Assert.IsTrue(p.HasContinuousWorldPosition);
@@ -157,7 +157,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 16);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p) && p.HasContinuousWorldPosition);
@@ -171,7 +171,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 2, mid.R));
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var before));
             var startX = before.WorldPosX;
@@ -185,7 +185,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 3, mid.R));
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var before));
             var x = before.WorldPosX;
@@ -199,14 +199,14 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 4);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var slow));
             var slowX = slow.WorldPosX;
             var world2 = BuildTravelWorld(out _, out _, out mid);
             var a2 = Spawn(world2, "A2");
-            world2.WorldPresence.SetAtHex(a2, mid);
+            world2.WorldPresence.SetLegacyAtHex(a2, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world2, a2, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world2, 16);
             Assert.IsTrue(world2.WorldPresence.TryGet(a2, out var fast));
@@ -218,7 +218,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 2, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 1);
             var motion = world.BackgroundCharacterTravel.GetOrCreate(a);
@@ -232,7 +232,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 8, mid.R));
             var motion = world.BackgroundCharacterTravel.GetOrCreate(a);
             Assert.Greater(motion.HexPathCount, 3);
@@ -247,7 +247,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 3);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var atCancel));
@@ -303,7 +303,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             var dest = new HexCoord(mid.Q + 3, mid.R);
             Assert.IsTrue(BackgroundCharacterTravelService.BeginTravelToHex(world, a, dest).IsSuccess);
             BackgroundCharacterTravelService.AdvanceAll(world, 128);
@@ -331,7 +331,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out var siteA, out var siteB, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             Assert.IsTrue(BackgroundCharacterTravelService.BeginTravelToHex(
                 world, a, siteB.PresenceHex).IsSuccess);
             BackgroundCharacterTravelService.AdvanceAll(world, 256);
@@ -351,7 +351,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             var dest = new HexCoord(mid.Q + 2, mid.R);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, dest);
             BackgroundCharacterTravelService.AdvanceAll(world, 256);
@@ -368,7 +368,7 @@ namespace XianXia.Tests
             var active = Spawn(world, "Active");
             var bg = Spawn(world, "Bg");
             PlaceAtSite(world, active, siteA);
-            world.WorldPresence.SetAtHex(bg, siteA.PresenceHex);
+            world.WorldPresence.SetLegacyAtHex(bg, siteA.PresenceHex);
             BackgroundCharacterTravelService.BeginTravelToHex(world, bg, siteB.PresenceHex);
             var party = new PlayerPartyRuntime();
             party.TryInitialize(active, out _);
@@ -396,7 +396,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 3, mid.R));
             Assert.IsTrue(world.Entities.TryGet(a, out var ent));
             ent.Get<LifecycleComponent>().State = LifecycleState.Incapacitated;
@@ -409,7 +409,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 5);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var before));
@@ -428,7 +428,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             var dest = new HexCoord(mid.Q + 4, mid.R);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, dest);
             BackgroundCharacterTravelService.AdvanceAll(world, 2);
@@ -448,7 +448,7 @@ namespace XianXia.Tests
         {
             var world = BuildTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "A");
-            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 2, mid.R));
             var motion = world.BackgroundCharacterTravel.GetOrCreate(a);
             Assert.Greater(motion.HexPathCount, 0);
@@ -461,7 +461,7 @@ namespace XianXia.Tests
             for (var i = 0; i < 16; i++)
                 id = Spawn(world, "bucket0_" + i);
             Assert.AreEqual(0, BackgroundSimulationScheduler.ResolveTravelBucket(id));
-            world.WorldPresence.SetAtHex(id, at);
+            world.WorldPresence.SetLegacyAtHex(id, at);
             BackgroundCharacterTravelService.BeginTravelToHex(world, id, dest);
             return id;
         }
@@ -501,7 +501,7 @@ namespace XianXia.Tests
             for (var i = 0; i < 500; i++)
             {
                 var id = Spawn(world, "bg500_" + i);
-                world.WorldPresence.SetAtHex(id, mid);
+                world.WorldPresence.SetLegacyAtHex(id, mid);
                 if (i % 2 == 0)
                 {
                     Assert.IsTrue(

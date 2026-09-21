@@ -46,22 +46,20 @@ namespace XianXia.Core.World.Strategic
                 Add(ids, pair.Value?.FactionId);
             foreach (var pair in world.Strategic.Sites.Sites)
                 Add(ids, pair.Value?.OwnerFactionId);
-            foreach (var pair in world.Strategic.TerritoryRegions.Regions)
-                Add(ids, pair.Value?.ControlFactionId);
-
             into.AddRange(ids);
             into.Sort(CompareFactionIds);
         }
 
-        public static int CountControlledTerritoryRegions(SimulationWorld world, string factionId)
+        public static int CountControlledSites(SimulationWorld world, string factionId)
         {
-            if (world?.Strategic?.TerritoryRegions == null || string.IsNullOrEmpty(factionId))
+            if (world?.Strategic?.Sites == null || string.IsNullOrEmpty(factionId))
                 return 0;
 
             var count = 0;
-            foreach (var pair in world.Strategic.TerritoryRegions.Regions)
+            foreach (var pair in world.Strategic.Sites.Sites)
             {
-                if (string.Equals(pair.Value?.ControlFactionId, factionId, StringComparison.Ordinal))
+                if (pair.Value != null && pair.Value.IsCoreActive &&
+                    string.Equals(pair.Value.OwnerFactionId, factionId, StringComparison.Ordinal))
                     count++;
             }
 

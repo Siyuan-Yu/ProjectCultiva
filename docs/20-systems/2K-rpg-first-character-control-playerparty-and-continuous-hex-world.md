@@ -1,5 +1,7 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 Legacy FormalArmy Adapter
 
+> **2026-09-21 LEGACY-FINAL-C Seal：** 现代 Character residual 统一为 `AtWorldPosition + SurfaceId + exact WorldPosition`；AtHex 只允许旧档、旧 Outdoor LocalMap／Hex travel 与非连续兼容输入。旧 StrategicEncounter、RetreatingArmy 与 LingeringBattlefield runtime 已退出，旧玩家 travel helper 使用明确 Legacy compatibility 名称。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
+
 > **2026-09-21 LEGACY-FINAL-B Seal：** 正常 PlayerParty Outdoor authority 已收口为 `SurfaceId + exact WorldPosition`；现代 WorldMap travel 使用 Surface route 与 `SurfaceVisible`，不创建 HexPath。正常 WorldSite 内仍为 `AtWorldPosition`，Site 只作为 `CurrentOutdoorWorldSiteId` 空间 context。`CurrentHex` 仅为单向派生 compatibility metadata；`LocalVisible` 与 Hex/Wilderness transition 仅保留旧 Outdoor LocalMap／旧档兼容。制作人已人工验收，状态：**Producer Accepted / Sealed**，详见 [249](../40-process/249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。当前进入 LEGACY-FINAL-C。
 
 > **2026-09-21 LEGACY-FINAL-A Seal：** 正常 NPC group 已统一为 Squad + SquadWorldMotion，FormalArmy／ArmyStack／ArmyMembership runtime 已退休并经制作人人工验收。A 正式 **Accepted / Sealed**。当前进入 LEGACY-FINAL-B，将 PlayerParty 正常旅行进一步收口为 `SurfaceId + exact WorldPosition + SurfaceVisible`；Hex／Outdoor LocalMap 保留为旧档／旧内容兼容边界。

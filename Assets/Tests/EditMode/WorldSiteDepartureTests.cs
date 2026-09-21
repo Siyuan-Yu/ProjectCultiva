@@ -192,7 +192,7 @@ namespace XianXia.Tests
             var dist = WorldVec2.Distance(before, target);
             Assert.IsTrue(dist > 0.001f, "formal boundary distinct from canonical");
 
-            PlayerPartyHexTravelService.AdvanceDistanceBudget(world, dist * 0.3f);
+            LegacyPlayerPartyHexTravelCompatibility.AdvanceDistanceBudget(world, dist * 0.3f);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, m.LocationKind,
                 "not committed before boundary");
             Assert.IsTrue(
@@ -201,7 +201,7 @@ namespace XianXia.Tests
             Assert.IsTrue(m.IsMoving, "still moving");
 
             // 精确预算直达 boundary：恰好 commit（不递归推进后续段），验证 commit 瞬间 route hex。
-            PlayerPartyHexTravelService.AdvanceDistanceBudget(world, dist + 0.001f);
+            LegacyPlayerPartyHexTravelCompatibility.AdvanceDistanceBudget(world, dist + 0.001f);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, m.LocationKind,
                 "committed at boundary (egress)");
             Assert.AreEqual(exitHex, m.CurrentHex, "route hex = exit hex (no WorldToHex tie)");
@@ -292,7 +292,7 @@ namespace XianXia.Tests
                 "resolve exit conn");
 
             m.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
-            var cross = PlayerPartyLocalVisibleAutoTravelService
+            var cross = LegacyPlayerPartyLocalVisibleTravelCompatibility
                 .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, conn);
             Assert.IsTrue(cross.IsSuccess, "egress success" + (cross.IsSuccess ? string.Empty : " " + cross.Error));
 
@@ -317,7 +317,7 @@ namespace XianXia.Tests
             Assert.IsTrue(WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
                 world, site, footprint, outside, HexSize, TestBounds, out var connection));
 
-            var result = PlayerPartyWildernessTransitionService
+            var result = LegacyPlayerPartyOutdoorLocalMapCompatibility
                 .TryCommitWorldSiteEgressToContinuousWilderness(world, party, connection);
 
             Assert.IsTrue(result.IsSuccess, result.IsSuccess ? string.Empty : result.Error.ToString());
@@ -345,7 +345,7 @@ namespace XianXia.Tests
             m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
             m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
 
-            var cancel = PlayerPartyHexTravelService.CancelTravel(world);
+            var cancel = LegacyPlayerPartyHexTravelCompatibility.CancelTravel(world);
             Assert.IsTrue(cancel.IsSuccess, "CancelTravel success");
             Assert.IsFalse(m.IsMoving, "not moving after cancel");
             Assert.IsFalse(m.IsSiteDeparturePending, "departure cleared");
@@ -408,7 +408,7 @@ namespace XianXia.Tests
             var fp1 = new HexCoord(81, 52); // 仍在 footprint 内
             SetAtSite(world, site, party, fp0, new WorldVec2(138.2f, 76.5f));
 
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, fp1);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, fp1);
 
             Assert.IsTrue(result.IsFailure, "BeginTravel rejected for same-site target");
             Assert.IsFalse(world.PlayerPartyTravel.IsSiteDeparturePending, "no departure created");

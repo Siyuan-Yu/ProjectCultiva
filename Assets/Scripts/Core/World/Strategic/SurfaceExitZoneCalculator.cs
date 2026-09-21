@@ -361,7 +361,7 @@ namespace XianXia.Core.World.Strategic
 
             for (var dir = 0; dir < 6; dir++)
             {
-                if (!PlayerPartyWildernessTransitionService.TryEvaluateSurfaceExitLegality(
+                if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.TryEvaluateSurfaceExitLegality(
                         world, dir, out var neighbor, out var passable))
                 {
                     availabilityOut.Add(new SurfaceExitAvailability(dir, false, default));
@@ -688,7 +688,7 @@ namespace XianXia.Core.World.Strategic
         /// RepresentativeSource 不保证等于本次实际跨越的 destination footprint 格。
         /// <paramref name="bounds"/> 仅用于 slot rect（Local 平面）几何，不影响 BoundaryContactWorld
         /// （完全由 footprint + HexMath 真实几何决定）；此处传名义 bounds，与既有
-        /// <c>PlayerPartyWildernessTransitionService.TryFindSiteConnectionByDestination</c> 一致。
+        /// <c>LegacyPlayerPartyOutdoorLocalMapCompatibility.TryFindSiteConnectionByDestination</c> 一致。
         /// 匹配失败（无合法 connection / footprint 格不在 Site / fromHex 不是外部格）→ 明确失败，
         /// 不静默回退 Presence/Anchor/ingressHex center。
         /// </summary>

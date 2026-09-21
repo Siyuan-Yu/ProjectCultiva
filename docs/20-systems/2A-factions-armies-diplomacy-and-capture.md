@@ -1,5 +1,7 @@
 # 势力、军队、外交与战略占领
 
+> **2026-09-21 LEGACY-FINAL-C Seal：** 正常 runtime 的 TerritoryRegion board／service 已退休。现代政治与行政 authority 仅为 `WorldSite.OwnerFactionId + TerritoryClaim history + WorldSiteAdministrativeControlResolver / Actual Administrative Control`；Hex 控制与旧 TerritoryRegion 仅为旧 Content／Snapshot migration 输入或派生展示。旧 StrategicEncounter、RetreatingArmy、LingeringBattlefield runtime 同步退休。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
+
 > **CW-U0 现行组织／参战规则：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 与 [23](23-combat.md) §2～3 替代本页旧 FormalArmy 专属产品入口及守备／同势力自动进入初始名单。唯一通用小队、初始仅冲突两队，第三方仅从开战范围内有限候选介入；政治、建筑宣战及真实战果不变。旧军队服务只作当前兼容，CW-U2B 迁移。
 
 > 状态：最终冲突／接管规则已确认；旧 Control Asset + FactionFlag V1 基线已验收，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12
@@ -9,7 +11,7 @@
 > **本页是战略势力层（Faction／外交／War／Capture／Army 军事规则）的产品真源。**
 > **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**
 > **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。
-> **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。Territory／Site Footprint／Bandit 专题以 **2J** 为准；本文 § 中 **Node Owner / Node Territory** 表述为 Legacy，Pure Hex 下以 **ControlFactionId + TerritoryRegion** 为准。
+> **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24 历史基线）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。其中 `ControlFactionId + TerritoryRegion` runtime authority 已由上方 LEGACY-FINAL-C 补丁替代；旧 schema 仅留兼容输入。
 > **FactionFlag V1（2026-09-06）：** 阵营旗是非 Character 战略目标，攻击必须通过正式 War 门槛。Anchor+完整一环内的真实防守 FormalArmy 会建立 BattleOffer；旗本身不是参战 Character，战后不自动续拆。几何与领地求解以 2J 为准。
 > **SEALED historical baseline（2026-09-06）：** Control Asset Territory、FactionFlag 战略建筑交互、Authoring、SaveLoad 与 WorldMap 图层在当时版本已人工验收，见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。该记录继续证明旧能力，不再冻结 `EstablishedOrder` 对 SiteCore 新增范围的全局追溯优先、footprint 精确行政范围或 Army 类型特权；这些冲突点由 ADR-0032／0034 替代。
 > **2026-09-12 当前补丁：** 人物／建筑冲突、战内升级与接管、OR 胜利及飞舟／Army 职责以 [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md)／[ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 为准；旧 V1 验收不等于这些目标已实现。
@@ -442,7 +444,7 @@ Faction 态度不应只剩一个最终数字。概念上允许记录原因，例
 
 WorldMap 的「战略 → 势力」是**运行时只读可见性**，不是开局内容预览，也不是外交操作界面。
 
-- 势力列表从当前 `SimulationWorld.Strategic` 被正式引用的势力汇总：玩家势力、活动战争、联盟、附庸、FormalArmy、WorldSite 与 `TerritoryRegion`；展示名称从已安装的 faction Content 元数据读取。
+- 势力列表从当前 `SimulationWorld.Strategic` 被正式引用的势力汇总：玩家势力、活动战争、联盟、附庸、Squad 与 WorldSite；展示名称从已安装的 faction Content 元数据读取。
 - 当前关系统一经 `FactionDiplomacyRelationQuery` 查询：`自己 → 战争 → 联盟 → 直接附庸 → 普通`。战争优先保证起事后不会继续把旧附庸显示为宗主关系。
 - 关系方向以观察者为准：A 是 B 的宗主时，`GetRelation(A, B) = 附庸`，`GetRelation(B, A) = 宗主`。
 - 页面可读取领地区域数、FormalArmy 数、宗主／附庸和任意两势力之间的当前关系；不得在 Host 拼装 War／Alliance／Vassalage 规则，也不得读 `strategicOpening` 作为当前状态。

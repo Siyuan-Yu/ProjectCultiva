@@ -1,5 +1,7 @@
 # Hex Territory、Multi-Hex WorldSite 与动态山贼系统
 
+> **SUPERSEDED（2026-09-21，LEGACY-FINAL-C Sealed）：** `TerritoryRegion`、`TerritoryRegionBoard`、`TerritoryControlService` 与 Hex controller 不再是 normal runtime authority。现代行政控制只使用 WorldSite Owner、TerritoryClaim history 与 Actual Administrative Control；本页 TerritoryRegion V1 段落保留为历史实现和旧 Content／Snapshot 输入说明。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
+
 > **2026-09-16 MAP-02 Accepted：** 主 Continuous Surface 的 WorldMap 已迁为同源 Surface strategic view；Hex 仍服务于未迁出的 travel、行政／物理区域 query、战斗范围、Site footprint 与旧 Content compatibility。下文 Pure Hex、Footprint 与 WorldMap 表述保留为 compatibility／历史基线，不代表 Hex 已删除。
 
 > 状态：Hex 战略叠加保留；旧 Control Asset V1 已验收，SiteCore 实际范围目标待迁移／核查｜优先级：P0｜最后更新：2026-09-12

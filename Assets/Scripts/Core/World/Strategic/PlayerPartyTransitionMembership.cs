@@ -287,7 +287,7 @@ namespace XianXia.Core.World.Strategic
                         wp.Mode != PartyWorldPresenceMode.AtHex ||
                         wp.UsesHexPresence && !wp.ResidualHex.Equals(motion.CurrentHex))
                     {
-                        world.WorldPresence.SetAtHex(id, motion.CurrentHex);
+                        world.WorldPresence.SetLegacyAtHex(id, motion.CurrentHex);
                         changed = true;
                     }
                 }

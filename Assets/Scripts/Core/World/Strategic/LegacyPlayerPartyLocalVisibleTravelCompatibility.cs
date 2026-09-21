@@ -13,7 +13,7 @@ namespace XianXia.Core.World.Strategic
     /// All Exit geometry reuses the existing formal Wilderness Surface Exit (Phase 2C).
     /// </summary>
     /// <summary>Legacy Outdoor LocalMap compatibility only. Normal Continuous Surface travel never calls this service.</summary>
-    public static class PlayerPartyLocalVisibleAutoTravelService
+    public static class LegacyPlayerPartyLocalVisibleTravelCompatibility
     {
         public static bool IsActiveLocalVisibleAutoTravel(PlayerPartyWorldMotion motion) =>
             motion != null &&
@@ -284,7 +284,7 @@ namespace XianXia.Core.World.Strategic
                 {
                     motion.SetWorldPositionInternal(boundary, destinationHex);
                     ApplyTravelingMembersAtHex(world, destinationHex);
-                    return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                         world, party, destSite, destinationHex);
                 }
 
@@ -293,7 +293,7 @@ namespace XianXia.Core.World.Strategic
                     boundary,
                     motion.CurrentHex,
                     destinationHex);
-                if (!PlayerPartyHexTravelService.TryCommitThroughSitePassage(
+                if (!LegacyPlayerPartyHexTravelCompatibility.TryCommitThroughSitePassage(
                         world,
                         motion,
                         destSite,
@@ -341,7 +341,7 @@ namespace XianXia.Core.World.Strategic
             motion.SetWorldPositionInternal(newWorldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);
 
-            if (!WildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
+            if (!LegacyWildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
 
@@ -349,7 +349,7 @@ namespace XianXia.Core.World.Strategic
             if (motion.SegmentIndex + 1 < motion.HexPathCount)
                 motion.SetSegment(motion.SegmentIndex + 1, 0f);
 
-            return WorldTravelService.EnterWildernessLocalMap(world, destinationHex, mapId);
+            return WorldTravelService.EnterLegacyWildernessLocalMap(world, destinationHex, mapId);
         }
 
         static bool IsNeighborHex(HexCoord a, HexCoord b)
@@ -390,7 +390,7 @@ namespace XianXia.Core.World.Strategic
                     world.WorldPresence.SetAtWorldPosition(
                         id, world.PlayerPartyTravel.WorldPosition, hex, navigation.SurfaceId);
                 else
-                    world.WorldPresence.SetAtHex(id, hex);
+                    world.WorldPresence.SetLegacyAtHex(id, hex);
             }
         }
 
@@ -470,7 +470,7 @@ namespace XianXia.Core.World.Strategic
                 : new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
             motion.SetWorldPositionInternal(boundary, prepared.DestinationHex);
             // Route progress 对齐到已提交 connection 的 DestinationHex（不重复推进、不跳过下一段）。
-            PlayerPartyHexTravelService.AlignRouteProgressAfterSiteEgress(motion, prepared.DestinationHex);
+            LegacyPlayerPartyHexTravelCompatibility.AlignRouteProgressAfterSiteEgress(motion, prepared.DestinationHex);
 
             // LocalVisible AutoTravel 直连 Site→Site（external 属于另一 Site footprint）：与手动
             // exit 同规则 —— 必须建立目标 Site 正式 ingress context；无正式 destination ingress →
@@ -478,12 +478,14 @@ namespace XianXia.Core.World.Strategic
             if (prepared.EntersWorldSite)
             {
                 motion.SurfaceEdgeGate?.SetIngressContext(prepared.DestinationIngress);
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                     world, party, prepared.DestinationSite, prepared.DestinationHex);
             }
             ApplyTravelingMembersAtHex(world, prepared.DestinationHex);
-            return WorldTravelService.EnterWildernessLocalMap(
+            return WorldTravelService.EnterLegacyWildernessLocalMap(
                 world, prepared.DestinationHex, prepared.DestinationLocalMapId);
         }
     }
 }
+
+

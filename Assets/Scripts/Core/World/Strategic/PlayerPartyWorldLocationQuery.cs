@@ -154,7 +154,7 @@ namespace XianXia.Core.World.Strategic
             // 因此 map 与 DerivedHex（权威 Hex，供 reopen 加载 / presence / legal location）
             // 统一取已提交 Context，不再从连续位置反推。
             var contextHex = motion.CurrentHex;
-            WildernessLocalMapFallback.TryResolve(world, contextHex, out var mapId);
+            LegacyWildernessLocalMapFallback.TryResolve(world, contextHex, out var mapId);
             resolved = new Resolved
             {
                 HasValue = true,

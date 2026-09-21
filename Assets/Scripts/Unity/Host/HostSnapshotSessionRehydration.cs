@@ -209,7 +209,7 @@ namespace XianXia.Unity.Host
                 : (world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty);
             if (mapId == "base:map_world_node_stub")
             {
-                mapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+                mapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
                 world.PartyWorld.LocalMapId = mapId;
             }
             if (!world.LocalMap.IsActive && IsRetiredOutdoorMapId(mapId))

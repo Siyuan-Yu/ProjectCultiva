@@ -1,7 +1,7 @@
 # 路线图
 
 > **2026-09-19 当前状态（Handoff）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)／[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)／[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。
-> **当前 WIP（2026-09-21）：LEGACY-FINAL-C — Final Strategic Hex / Territory / Residual / Legacy Battle Runtime Retirement。** LEGACY-FINAL-B 已由制作人人工验收并正式 **Producer Accepted / Sealed**；正常玩家链使用 `SurfaceId + exact WorldPosition + SurfaceVisible`，记录见 [249](249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。C 完成并验收前不得宣称 Legacy migration complete。
+> **当前 WIP（2026-09-21）：LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze。** LEGACY-FINAL-C 已由制作人人工验收并正式 **Producer Accepted / Sealed**，记录见 [250](250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。Final Seal 完成人工 smoke 前暂不宣称 Legacy migration complete。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
@@ -23,7 +23,7 @@
 > 现状（2026-09-15 实测，未变）：External Editor 仍是 10 个独立工程、`publish.ps1` 硬编码发布列表、输出 `Apps/<Editor>/<Editor>.exe`；Content 侧仍是 37 mapLayout／35 localPlaceSet／2 hexWorld／1 worldRegion，主 Surface 646 个 chunk 的 source 全部是 wilderness fallback 图。**不得把 ADR-0037 读作「工具链或 Content 已迁移」。**
 
 
-> **当前唯一主线（2026-09-21）：** 已封板 CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A 与 LEGACY-FINAL-B；当前实施 LEGACY-FINAL-C。
+> **当前唯一主线（2026-09-21）：** 已封板 CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A、LEGACY-FINAL-B 与 LEGACY-FINAL-C；当前实施 LEGACY-FINAL-SEAL。
 
 > 状态：CW-10 与 CW-10.5 均为 **Producer Accepted / Sealed（2026-09-20）**。保持既有编号，不重排 CW-06 / CW-07。
 >

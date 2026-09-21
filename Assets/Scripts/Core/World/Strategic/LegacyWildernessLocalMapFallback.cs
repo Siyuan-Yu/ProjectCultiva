@@ -6,7 +6,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// Phase 2C：普通 Hex → Wilderness LocalMap Template（不得指向任何 Fixed WorldSite 专属图）。
     /// </summary>
-    public static class WildernessLocalMapFallback
+    public static class LegacyWildernessLocalMapFallback
     {
         /// <summary>道路 Hex 专用 Fallback（非 Site）。</summary>
         public const string RoadWildernessLocalMapId = "base:map_wilderness_road_fallback";
@@ -21,7 +21,7 @@ namespace XianXia.Core.World.Strategic
         public const string MountainWildernessLocalMapId = "base:map_wilderness_mountain_fallback";
 
         /// <summary>遗留：遭遇 stub，仅作最后兜底（非普通 Hex 主路径）。</summary>
-        public const string GenericWildernessLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+        public const string GenericWildernessLocalMapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
 
         /// <summary>禁止再作为普通 Hex Fallback 的 Fixed Site LocalMap。</summary>
         public const string ForbiddenHuangyuanSiteLocalMapId = "base:map_site_a";
@@ -80,3 +80,5 @@ namespace XianXia.Core.World.Strategic
         }
     }
 }
+
+

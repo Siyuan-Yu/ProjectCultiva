@@ -203,7 +203,7 @@ namespace XianXia.Unity.Host
             }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (StrategicResidualPresenceService.IsResidualLifeCandidate(session.World, id))
+            if (ResidualCharacterPresenceService.IsResidualLifeCandidate(session.World, id))
                 Debug.LogWarning(
                     "[ResidualViewFallback] EntityId=" + id.Value +
                     " Reason=NoResolvablePersonalPresentationAuthority" +

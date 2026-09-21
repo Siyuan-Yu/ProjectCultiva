@@ -191,7 +191,7 @@ namespace XianXia.Core.Persistence
 
             if (wp.Mode == PartyWorldPresenceMode.AtHex && wp.UsesHexPresence)
             {
-                if (!WildernessLocalMapFallback.TryResolve(world, wp.ResidualHex, out var mapId) ||
+                if (!LegacyWildernessLocalMapFallback.TryResolve(world, wp.ResidualHex, out var mapId) ||
                     string.IsNullOrEmpty(mapId))
                     return false;
 
@@ -214,7 +214,7 @@ namespace XianXia.Core.Persistence
                 // address a legacy Outdoor LocalMap. Quarantine that old map-loading contract as
                 // AtHex presentation context; it is not a modern Continuous authority downgrade.
                 var hex = wp.ResidualHex;
-                if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
+                if (!LegacyWildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
                     string.IsNullOrEmpty(mapId))
                     return false;
 

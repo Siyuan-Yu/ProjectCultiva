@@ -189,7 +189,7 @@ namespace XianXia.Core.World.Strategic
                 !world.Strategic.Squads.TryGetForCharacter(id, out var squad) || squad == null ||
                 !world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion) ||
                 !IsActiveNpcSquadAuthority(world, squad, motion) ||
-                !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
+                !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id))
                 return false;
             return squad.MemberCharacterIds.Count > 0;
         }
@@ -267,7 +267,7 @@ namespace XianXia.Core.World.Strategic
                 !IsActiveNpcSquadAuthority(world, squad, motion)) return;
             var hasLiving = false;
             for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
-                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world,
+                if (CharacterLifeStateQuery.IsLivingForMacroOrder(world,
                     new EntityId(squad.MemberCharacterIds[i]))) { hasLiving = true; break; }
             if (!hasLiving) return;
             if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation)) return;

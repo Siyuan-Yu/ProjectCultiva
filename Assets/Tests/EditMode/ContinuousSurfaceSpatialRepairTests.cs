@@ -141,16 +141,16 @@ namespace XianXia.Tests.EditMode
             var traveler = world.Entities.CreateCharacter(new DefinitionId("test", "egress_traveler"), "traveler").Value.Id;
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(0f, 0f), current);
             world.PlayerPartyTravel.CaptureTravelingMembers(new[] { traveler });
-            world.WorldPresence.SetAtHex(traveler, current);
+            world.WorldPresence.SetLegacyAtHex(traveler, current);
             targetTile.Terrain = HexTerrainType.Plain; targetTile.IsPassable = true;
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCommitContinuousSurfaceBoundaryEgress(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitContinuousSurfaceBoundaryEgress(
                 world, new WorldVec2(1f, 0f), target).IsSuccess);
             Assert.AreEqual(target, world.PlayerPartyTravel.CurrentHex);
             Assert.IsTrue(world.WorldPresence.TryGet(traveler, out var presence));
             Assert.AreEqual(target, presence.ResidualHex);
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(0f, 0f), current);
             targetTile.Terrain = HexTerrainType.Water;
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCommitContinuousSurfaceBoundaryEgress(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitContinuousSurfaceBoundaryEgress(
                 world, new WorldVec2(1f, 0f), target).IsFailure);
             Assert.AreEqual(current, world.PlayerPartyTravel.CurrentHex);
         }

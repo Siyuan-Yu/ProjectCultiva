@@ -204,7 +204,7 @@ namespace XianXia.Core.World
         /// Compatibility-only Outdoor LocalMap activation for old Hex content and saves.
         /// Normal Continuous Outdoor must retain SurfaceId + exact WorldPosition authority.
         /// </summary>
-        public static Result EnterWildernessLocalMap(
+        public static Result EnterLegacyWildernessLocalMap(
             SimulationWorld world,
             HexCoord wildernessHex,
             string localMapId)

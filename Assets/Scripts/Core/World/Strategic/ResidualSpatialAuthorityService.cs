@@ -137,7 +137,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Initial downing on a Continuous Surface: freeze the character's own current point while
-        /// retaining AtSite / AtWorldPosition / AtHex semantics and all organization membership.
+        /// normalizing spatial authority to AtWorldPosition without changing organization membership.
         /// </summary>
         public static bool TryFreezeAtPreciseWorldPosition(
             SimulationWorld world,
@@ -147,30 +147,20 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || characterId.IsNone ||
                 !IsFinite(worldPosition.X) || !IsFinite(worldPosition.Y) ||
-                !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(surfaceId) &&
+                world.SurfaceGround.TryResolveContaining(worldPosition, out var containingSurface))
+                surfaceId = containingSurface.SurfaceId;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                string.IsNullOrWhiteSpace(surfaceId))
                 return false;
 
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
             var derived = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, hexSize);
-            world.WorldPresence.TryGet(characterId, out var existing);
-            if (existing != null && existing.Mode == PartyWorldPresenceMode.AtSite &&
-                !string.IsNullOrEmpty(existing.SiteId))
-            {
-                world.WorldPresence.SetAtSiteWithAnchor(
-                    characterId, existing.SiteId, worldPosition, surfaceId);
-                return true;
-            }
-
-            if (existing != null && existing.Mode == PartyWorldPresenceMode.AtHex &&
-                existing.UsesHexPresence)
-            {
-                world.WorldPresence.SetAtResidualWorldPosition(
-                    characterId, existing.ResidualHex, worldPosition, surfaceId);
-                return true;
-            }
-
             world.WorldPresence.SetAtWorldPosition(
                 characterId, worldPosition, derived, surfaceId);
             return true;

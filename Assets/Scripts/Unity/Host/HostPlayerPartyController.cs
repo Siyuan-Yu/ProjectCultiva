@@ -944,7 +944,7 @@ namespace XianXia.Unity.Host
                 }
                 return false; // Internal chunk/Hex seams are ordinary movement, never SurfaceExit.
             }
-            if (!PlayerPartyWildernessTransitionService.IsSurfaceHexEdgeTransitionEnabled(world))
+            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
                 return false;
 
             var gate = world.PlayerPartyTravel?.SurfaceEdgeGate;
@@ -986,7 +986,7 @@ namespace XianXia.Unity.Host
             if (!IsUsableSurfaceExit(edgeConnection))
                 return false;
 
-            var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+            var cross = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
                 world, party, edgeConnection);
             if (!cross.IsSuccess)
                 return false;
@@ -1023,12 +1023,12 @@ namespace XianXia.Unity.Host
             // Phase 5C-W1: LocalVisible AutoTravel in Wilderness keeps Host sync + edge enabled;
             // normal moving (World execution) still early-returns (World Advance drives position).
             var localVisibleAutoTravel =
-                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion);
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion);
             if (motion.IsMoving && !localVisibleAutoTravel)
                 return;
             if (localVisibleAutoTravel && motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return; // WorldSite LocalVisible: keep Phase 5B (stand still, no Site Egress logic).
-            if (!PlayerPartyWildernessTransitionService.IsSurfaceHexEdgeTransitionEnabled(world))
+            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
                 return;
 
             if (_spawner == null ||
@@ -1072,7 +1072,7 @@ namespace XianXia.Unity.Host
                         world, prevX, prevY, localX, localY, bounds, depth, out var siteConnection) &&
                     IsUsableSurfaceExit(siteConnection))
                 {
-                    var exit = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                    var exit = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
                         world, party, siteConnection);
                     if (exit.IsSuccess)
                     {
@@ -1092,7 +1092,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
+            LegacyPlayerPartyOutdoorLocalMapCompatibility.TrySyncLocalMovementToWorldPosition(
                 world, localX, localY, bounds);
 
             // Phase 5C-W2 修复 2：LocalVisible AutoTravel 时唯一 Executor 是
@@ -1113,7 +1113,7 @@ namespace XianXia.Unity.Host
             {
                 if (IsUsableSurfaceExit(connection))
                 {
-                    var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                    var cross = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
                         world, party, connection);
                     if (cross.IsSuccess)
                     {
@@ -1163,7 +1163,7 @@ namespace XianXia.Unity.Host
                 sy = view.transform.position.y;
             }
 
-            PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+            LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(
                 world, bounds, sx, sy);
         }
 
@@ -1526,7 +1526,7 @@ namespace XianXia.Unity.Host
             if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
                 return;
 
-            if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
+            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.TryResolveActiveLeg(
                     motion, out var currentHex, out var nextHex, out var directionIndex))
             {
                 // No remaining leg: either the path ended at the final Wilderness destination hex
@@ -1543,7 +1543,7 @@ namespace XianXia.Unity.Host
             if (!TryResolveWildernessBounds(out var bounds))
                 return;
 
-            if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveWildernessExitConnection(
+            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.TryResolveWildernessExitConnection(
                     world, bounds, currentHex, nextHex, directionIndex, out var connection))
             {
                 LastTransitionStatus = "NoExit";
@@ -1606,7 +1606,7 @@ namespace XianXia.Unity.Host
                     return;
                 }
 
-                var cross = PlayerPartyLocalVisibleAutoTravelService
+                var cross = LegacyPlayerPartyLocalVisibleTravelCompatibility
                     .TryCrossWildernessEdgePreservingLocalVisibleAutoTravel(
                         world, party, connection.DestinationHex);
                 if (cross.IsSuccess)
@@ -2021,7 +2021,7 @@ namespace XianXia.Unity.Host
         ///  3. Local A* 驱动 → 到达正式 SlotRect 触发带（approach 目标权威 clamp 进触发带内，
         ///     不再停在带外）→ TransitionCommit（B4 停）→
         ///     TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel 正式 egress
-        ///     （AtWorldSite → AtWorldPosition + EnterWildernessLocalMap），原 route 继续。
+        ///     （AtWorldSite → AtWorldPosition + EnterLegacyWildernessLocalMap），原 route 继续。
         /// 任何失败：不 teleport、不 fallback，保留 AtWorldSite + 当前 Canonical，throttled 诊断。
         /// cross 失败回退 Approaching（恢复 B4），不残留 TransitionCommit 卡死。
         /// </summary>
@@ -2133,9 +2133,9 @@ namespace XianXia.Unity.Host
                                             connection.BoundaryContactWorldY,
                                             out _);
                 var cross = exitsToContinuous
-                    ? PlayerPartyWildernessTransitionService.TryCommitWorldSiteEgressToContinuousWilderness(
+                    ? LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitWorldSiteEgressToContinuousWilderness(
                         world, party, connection)
-                    : PlayerPartyLocalVisibleAutoTravelService
+                    : LegacyPlayerPartyLocalVisibleTravelCompatibility
                         .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, connection);
                 if (cross.IsSuccess)
                 {
@@ -2233,7 +2233,7 @@ namespace XianXia.Unity.Host
                 if (IsUsableSurfaceExit(candidate))
                     ReachableExitHexScratch.Add(candidate.DestinationHex);
             }
-            return PlayerPartyHexTravelService.TryReplanCurrentWorldSiteDeparture(
+            return LegacyPlayerPartyHexTravelCompatibility.TryReplanCurrentWorldSiteDeparture(
                 world, party, ReachableExitHexScratch);
         }
 
@@ -2244,7 +2244,7 @@ namespace XianXia.Unity.Host
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
-            PlayerPartyLocalVisibleAutoTravelService.SyncSegmentProgressFromWorldPosition(motion, hexSize);
+            LegacyPlayerPartyLocalVisibleTravelCompatibility.SyncSegmentProgressFromWorldPosition(motion, hexSize);
         }
 
         /// <summary>
@@ -2258,7 +2258,7 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             PlayerPartyWorldMotion motion)
         {
-            if (!PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion))
                 return;
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return; // WorldSite：不在此范围。
@@ -2285,9 +2285,9 @@ namespace XianXia.Unity.Host
             if (arrived)
             {
                 // 最后一次 LocalPosition → WorldPosition sync（保持连续位置一致，不 Snap）。
-                PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
+                LegacyPlayerPartyOutdoorLocalMapCompatibility.TrySyncLocalMovementToWorldPosition(
                     world, pos.x, pos.y, bounds);
-                var finish = PlayerPartyHexTravelService.CompleteWildernessFinalArrival(world);
+                var finish = LegacyPlayerPartyHexTravelCompatibility.CompleteWildernessFinalArrival(world);
                 if (finish.IsFailure)
                 {
                     LastTransitionStatus = "FinalArrivalRejected";
@@ -2331,7 +2331,7 @@ namespace XianXia.Unity.Host
             var motion = world.PlayerPartyTravel;
             if (motion == null ||
                 (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
-                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion)))
+                 !LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion)))
                 return;
 
             PlayerPartyTravelRuntimeService.CancelTravel(world);
@@ -2972,7 +2972,7 @@ namespace XianXia.Unity.Host
 
             if (world?.PlayerPartyTravel != null &&
                 (PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(world.PlayerPartyTravel) ||
-                 PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel)) &&
+                 LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel)) &&
                 (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
                  // Phase 5R-B6.2：WorldSite DepartureApproach（AtWorldSite + departure pending + LocalVisible
                  // AutoTravel）也是 LocalVisible execution —— Camera 跟随 Active Character。

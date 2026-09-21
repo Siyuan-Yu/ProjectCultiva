@@ -153,7 +153,6 @@ namespace XianXia.Core.World.Strategic
                     site.CoreRangeWidth, site.CoreRangeHeight));
             }
             world.Strategic.TerritoryClaims.ReplaceAll(claims, true);
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             return ValidateActiveCoreCenters(world, ErrorCode.InvalidOperation);
         }
 
@@ -378,7 +377,6 @@ namespace XianXia.Core.World.Strategic
             {
                 site.CoreLevel = targetLevel;
                 world.Strategic.SpatialRules.Bind(world, site);
-                StrategicTerritoryCoverageResolver.Rebuild(world);
                 return Result.Success();
             }
             catch (Exception ex)
@@ -387,7 +385,6 @@ namespace XianXia.Core.World.Strategic
                 site.CoreRangeWidth = oldWidth;
                 site.CoreRangeHeight = oldHeight;
                 TerritoryClaimService.RollbackClaim(world, claimId);
-                StrategicTerritoryCoverageResolver.Rebuild(world);
                 return Result.Failure(ErrorCode.InvalidOperation, "Core upgrade rolled back.", ex.Message);
             }
         }

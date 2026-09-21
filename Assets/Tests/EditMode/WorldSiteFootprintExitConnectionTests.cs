@@ -386,9 +386,9 @@ namespace XianXia.Tests
             SurfaceExitZoneCalculator.CollectConnections(world, bounds, Depth, before);
 
             var exit = before[0];
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryExitWorldSiteByConnection(
                 world, party, exit).IsSuccess);
-            Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, site).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(world, party, site).IsSuccess);
 
             var after = new List<SurfaceExitConnection>(16);
             SurfaceExitZoneCalculator.CollectConnections(world, bounds, Depth, after);
@@ -405,13 +405,13 @@ namespace XianXia.Tests
         {
             var world = BuildFourHexSiteWorld(out var site);
             var party = BuildParty(world, Spawn(world, "Lead"));
-            Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, site).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(world, party, site).IsSuccess);
 
             var connections = new List<SurfaceExitConnection>(16);
             SurfaceExitZoneCalculator.CollectConnections(world, DefaultBounds(), Depth, connections);
             Assert.Greater(connections.Count, 0);
             var target = connections[0];
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryExitWorldSiteByConnection(
                 world, party, target).IsSuccess);
             Assert.AreEqual(target.DestinationHex, world.PlayerPartyTravel.CurrentHex);
         }

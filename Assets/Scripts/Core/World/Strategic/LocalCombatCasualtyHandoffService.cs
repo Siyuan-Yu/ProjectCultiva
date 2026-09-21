@@ -10,15 +10,10 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 非战略 Encounter / 非 FormalArmy 的 Local Combat casualty handoff。
-    /// 职责窄：CombatantDefeated 未被 <see cref="StrategicEncounterSpawner.OnCombatantDefeated"/>
-    /// 接管、也非 <see cref="FormalArmyCasualtyService.TryHandleNonEncounterDefeat"/> 的 FormalArmy
-    /// casualty 时，若该角色已进入 residual life state（Incapacitated / visible Corpse），
-    /// 就把它自己的 WorldPresence 固定到倒下位置，保留 AtSite / AtWorldPosition / AtHex
-    /// 空间语义，绝不另建第二套 residual 数据。移动 owner 处理链（互斥，仅一个 owner）：
-    ///   Strategic Encounter → FormalArmy casualty → 本 service（PlayerParty / 普通 LocalCharacter）。
+    /// Local Combat casualty handoff。角色进入 residual life state（Incapacitated / visible Corpse）后，
+    /// 把自己的 WorldPresence 固定到倒下位置，不建立第二套 residual 数据。
     /// 规则：任何角色一旦 Incapacitated / visible Corpse，即停止跟随其原移动 owner，并在倒下的
-    /// 真实 hex 获得稳定 WorldPresence；LocalMap 离开/重进只按该 authority 重建。
+    /// 真实位置获得稳定 WorldPresence；LocalMap 离开/重进只按该 authority 重建。
     /// 不改 Lifecycle；不 TryRemoveMember；不写 PresentationOverride。
     /// </summary>
     public static class LocalCombatCasualtyHandoffService
@@ -33,7 +28,7 @@ namespace XianXia.Core.World.Strategic
             EntityId characterId)
         {
             if (world?.Strategic == null || characterId.IsNone ||
-                !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
                 return false;
 
             // Idempotent delayed/repeated event: an existing personal authority is already a
@@ -56,12 +51,13 @@ namespace XianXia.Core.World.Strategic
             // Hex-only fallback（无 EntityView local point）：仅 Wilderness 可用（Context Hex 即权威）；
             // WorldSite multi-hex 下无法从"没有 local point"推出角色自己的 footprint hex ——
             // 不再用主控 WorldPosition 派生（那会把 Follower 的 residual hex 按主控位置决定）。
-            if (context.Kind != LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex)
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
+                context.Kind != LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex)
                 return false;
             if (!world.HexWorld.Contains(context.WildernessHex))
                 return false;
 
-            StrategicResidualPresenceService.PlaceCharacterAtResidualHex(
+            ResidualCharacterPresenceService.PlaceLegacyCharacterAtResidualHex(
                 world, characterId, context.WildernessHex);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             LogHandoff(world, characterId, context, context.WildernessHex, true, null);
@@ -86,7 +82,7 @@ namespace XianXia.Core.World.Strategic
             WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
         {
             if (world?.Strategic == null || characterId.IsNone ||
-                !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
                 return false;
 
             return TryPlacePreciseResidualFromLoadedLocalPosition(
@@ -100,7 +96,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// 把 residual 角色自己的当前 LocalMap 精确落点写回 WorldPresence。
-        /// 这里不修改 Squad/LegacyArmy membership，并保留角色原有 presence mode。
+        /// 这里不修改 Squad membership；现代 Continuous 统一为 AtWorldPosition。
         /// </summary>
         public static bool TryPlacePreciseResidualFromLoadedLocalPosition(
             SimulationWorld world,
@@ -111,7 +107,7 @@ namespace XianXia.Core.World.Strategic
             WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
         {
             if (world?.Strategic == null || characterId.IsNone ||
-                !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
                 return false;
 
             if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context))
@@ -148,7 +144,9 @@ namespace XianXia.Core.World.Strategic
                             out precise))
                     {
                         // 无精确 bounds → hex-only（Context Hex 仍是权威）。
-                        StrategicResidualPresenceService.PlaceCharacterAtResidualHex(world, characterId, hex);
+                        if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                            return false;
+                        ResidualCharacterPresenceService.PlaceLegacyCharacterAtResidualHex(world, characterId, hex);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                         LogHandoff(world, characterId, context, hex, true, null);
 #endif

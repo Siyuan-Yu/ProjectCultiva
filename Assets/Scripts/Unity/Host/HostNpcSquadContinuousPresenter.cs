@@ -44,7 +44,7 @@ namespace XianXia.Unity.Host
                 {
                     var id = new EntityId(_members[slot]);
                     if (world.Strategic.PlayerPartyContext?.IsMember(id) == true ||
-                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) ||
+                        !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id) ||
                         ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) ||
                         !runtime.TryResolveSquadMemberPresentationPosition(squad, pair.Value, slot, null, out var presentation) ||
                         !_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null) continue;

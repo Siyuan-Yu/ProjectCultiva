@@ -11,15 +11,6 @@ namespace XianXia.Core.World.Strategic
         public const string FactionFlag = "FactionFlag";
     }
 
-    /// <summary>BattleOffer 来源：决定决策按钮集合（Local-origin 禁 Auto）与宣战 commitment 语义。</summary>
-    public enum BattleOfferOrigin
-    {
-        /// <summary>WorldMap 战略指令（FormalArmy / PlayerParty remote attack、追击到站、残留再入）。</summary>
-        StrategicCommand = 0,
-        /// <summary>LocalMap 玩家主动 hostile action（对 FormalArmy member 的军事攻击）。</summary>
-        LocalMapHostileAction = 1
-    }
-
     /// <summary>
     /// Host-facing lifetime marker for a manual battle presented on the already active
     /// Continuous Outdoor surface. Strategic battle location remains in Participants;
@@ -109,22 +100,17 @@ namespace XianXia.Core.World.Strategic
         public WarBoard Wars { get; } = new WarBoard();
         public AllianceBoard Alliances { get; } = new AllianceBoard();
         public VassalageBoard Vassalages { get; } = new VassalageBoard();
-        public RetreatingArmyBoard RetreatingArmies { get; } = new RetreatingArmyBoard();
         /// <summary>Unified persistent action-group membership authority.</summary>
         public SquadBoard Squads { get; } = new SquadBoard();
         public SquadWorldMotionBoard SquadWorldMotions { get; } = new SquadWorldMotionBoard();
         /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
-        /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
-        public TerritoryRegionBoard TerritoryRegions { get; } = new TerritoryRegionBoard();
         /// <summary>Site 行政范围的不可改写取得历史；Owner 仍由 WorldSite 提供。</summary>
         public TerritoryClaimBoard TerritoryClaims { get; } = new TerritoryClaimBoard();
         /// <summary>SiteId-keyed public administrative resources; ownership remains on WorldSite.</summary>
         public WorldSitePublicStockBoard SitePublicStocks { get; } = new WorldSitePublicStockBoard();
         public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
-        public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();
-        public LingeringBattlefieldRegistry LingeringBattlefields { get; } = new LingeringBattlefieldRegistry();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
         public ContinuousManualCombatPresentationState ContinuousManualCombat { get; } =
@@ -132,46 +118,11 @@ namespace XianXia.Core.World.Strategic
         public ManualBattleSettlementState ManualBattleSettlement { get; } =
             new ManualBattleSettlementState();
 
-        /// <summary>Ch01 / LevelTester：启用 presence-based 组军场景 Adapter。</summary>
-        public bool Ch01FormationScenarioCompat { get; set; }
-
         /// <summary>Host 注入：Engagement 收集 PlayerParty 时使用（Domain 不依赖 Session）。</summary>
         public PlayerPartyRuntime PlayerPartyContext { get; set; }
 
-        /// <summary>ReinforcementRange 战略 TravelCost 阈值（遗留）。≤0 忽略。</summary>
-        public int ReinforcementTravelCostThreshold { get; set; }
-
-        /// <summary>支援最大节点跳数（遗留）。&lt;0 忽略。</summary>
-        public int ReinforcementMaxHops { get; set; } = -1;
-
-        /// <summary>支援世界坐标半径（大地图 XY）。≤0 用默认 ≈2～3 人头像宽。</summary>
+        /// <summary>Modern CharacterEncounter intervention radius in continuous world units.</summary>
         public float ReinforcementWorldRadius { get; set; }
-
-        /// <summary>派人探望弥留成功后，到站打开大地图时衔接「进入残留战场」菜单。</summary>
-        public ulong PendingLingeringVisitIncapId { get; set; }
-
-        readonly List<ulong> _pendingLingeringVisitPartyIds = new List<ulong>(8);
-
-        public IReadOnlyList<ulong> PendingLingeringVisitPartyIds => _pendingLingeringVisitPartyIds;
-
-        public void SetPendingLingeringVisit(ulong focusIncapId, IReadOnlyList<EntityId> party)
-        {
-            PendingLingeringVisitIncapId = focusIncapId;
-            _pendingLingeringVisitPartyIds.Clear();
-            if (party == null)
-                return;
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (!party[i].IsNone)
-                    _pendingLingeringVisitPartyIds.Add(party[i].Value);
-            }
-        }
-
-        public void ClearPendingLingeringVisit()
-        {
-            PendingLingeringVisitIncapId = 0;
-            _pendingLingeringVisitPartyIds.Clear();
-        }
 
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;

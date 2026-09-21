@@ -6,7 +6,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// Fixed WorldSite 政治易主的唯一事务入口。
     /// WorldSite.OwnerFactionId 是政治 cause，TerritoryClaim 是历史空间 authority；
-    /// TerritoryRegion／Hex 仅由 coverage rebuild 生成 compatibility projection，不是 Capture 前置条件。
+    /// 现代行政控制只由 Site Owner + TerritoryClaim + Actual Control resolver 表达。
     /// </summary>
     public static class WorldSiteTerritoryTransferService
     {
@@ -22,7 +22,6 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.NotFound, "WorldSite not found.", siteId);
 
             WorldSiteOwnershipService.SetOwner(world, siteId, newFactionId);
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             return Result.Success();
         }
     }

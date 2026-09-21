@@ -27,7 +27,7 @@ namespace XianXia.Core.World.Strategic
         Approaching = 2,
 
         /// <summary>已到达正式 SurfaceExit，transition authority 接管 → B4 停止，随后正式 egress
-        /// （AtWorldSite → AtWorldPosition + EnterWildernessLocalMap）。</summary>
+        /// （AtWorldSite → AtWorldPosition + EnterLegacyWildernessLocalMap）。</summary>
         TransitionCommit = 3,
     }
 

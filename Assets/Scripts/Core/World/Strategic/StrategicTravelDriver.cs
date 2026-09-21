@@ -31,7 +31,7 @@ namespace XianXia.Core.World.Strategic
             if (motion != null && motion.IsMoving &&
                 motion.ExecutionMode == PlayerPartyTravelExecutionMode.World &&
                 motion.HexPathCount > 0 && string.IsNullOrEmpty(motion.SurfaceId))
-                PlayerPartyHexTravelService.AdvanceAll(world, ticks);
+                LegacyPlayerPartyHexTravelCompatibility.AdvanceAll(world, ticks);
         }
     }
 }

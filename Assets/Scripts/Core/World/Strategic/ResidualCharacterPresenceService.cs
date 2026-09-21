@@ -7,11 +7,11 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 战后 Downed / Visible Corpse 的战略 Hex Presence 收口（非 Residual Group Domain）。
+    /// 战后 Downed / Visible Corpse 的个人空间收口。现代 Continuous 使用精确 Surface 位置。
     /// </summary>
-    public static class StrategicResidualPresenceService
+    public static class ResidualCharacterPresenceService
     {
-        public static void PlaceCharacterAtResidualHex(
+        public static void PlaceLegacyCharacterAtResidualHex(
             SimulationWorld world,
             EntityId characterId,
             HexCoord encounterHex)
@@ -24,46 +24,8 @@ namespace XianXia.Core.World.Strategic
                 return;
 
 
-            world.WorldPresence.SetAtHex(characterId, encounterHex);
+            world.WorldPresence.SetLegacyAtHex(characterId, encounterHex);
 
-        }
-
-        /// <summary>
-        /// AtHex Residual + 精确连续落点：ResidualHex 仍是战略归属 authority，
-        /// HasContinuousWorldPosition/WorldPosX/Y 保存该角色在当前 LocalMap surface 内
-        /// 倒下的精确物理位置（Host 在倒下瞬间从 EntityView local → surface mapping 得到）。
-        /// Mode 保持 AtHex，不改成 BackgroundCharacter AtWorldPosition。
-        /// </summary>
-        public static void PlaceCharacterAtResidualWorldPosition(
-            SimulationWorld world,
-            EntityId characterId,
-            HexCoord residualHex,
-            WorldVec2 preciseWorldPosition)
-        {
-            PlaceCharacterAtResidualWorldPosition(
-                world, characterId, residualHex, preciseWorldPosition, string.Empty);
-        }
-
-        /// <summary>Continuous precise residual placement which retains explicit Surface provenance.</summary>
-        public static void PlaceCharacterAtResidualWorldPosition(
-            SimulationWorld world,
-            EntityId characterId,
-            HexCoord residualHex,
-            WorldVec2 preciseWorldPosition,
-            string surfaceId)
-        {
-            if (world == null || characterId.IsNone)
-                return;
-            if (!world.Entities.TryGet(characterId, out var ent) || ent == null)
-                return;
-            if (!IsResidualLifeCandidate(world, characterId))
-                return;
-
-            world.WorldPresence.SetAtResidualWorldPosition(
-                characterId,
-                residualHex,
-                preciseWorldPosition,
-                surfaceId);
         }
 
         public static void ClearResidualPresence(SimulationWorld world, EntityId characterId)
@@ -72,13 +34,13 @@ namespace XianXia.Core.World.Strategic
                 return;
             if (!world.WorldPresence.TryGet(characterId, out var wp) || wp == null)
                 return;
-            if (wp.Mode != PartyWorldPresenceMode.AtHex)
+            if (!IsResidualLifeCandidate(world, characterId))
                 return;
             world.WorldPresence.Remove(characterId);
         }
 
         /// <summary>从 BattleParticipantSnapshot 解析 EncounterHex 并放置（Hex 模式）。</summary>
-        public static bool TryPlaceFromBattleSnapshot(
+        public static bool TryMigrateFromLegacyBattleSnapshot(
             SimulationWorld world,
             EntityId characterId,
             BattleParticipantSnapshot snap)
@@ -90,7 +52,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!TryResolveEncounterHex(world, snap, out var hex))
                 return false;
-            PlaceCharacterAtResidualHex(world, characterId, hex);
+            PlaceLegacyCharacterAtResidualHex(world, characterId, hex);
             return true;
         }
 
@@ -120,9 +82,15 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!world.WorldPresence.TryGet(characterId, out var wp) || wp == null)
                 return false;
-            if (!wp.UsesHexPresence)
+            if (wp.HasContinuousWorldPosition)
+            {
+                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                hex = HexMath.WorldToHex(wp.WorldPosX, wp.WorldPosY, size);
+            }
+            else if (wp.UsesHexPresence)
+                hex = wp.ResidualHex;
+            else
                 return false;
-            hex = wp.ResidualHex;
             if (world.HexWorld != null && world.HexWorld.HasGrid && !world.HexWorld.Contains(hex))
                 return false;
             return true;
@@ -160,23 +128,7 @@ namespace XianXia.Core.World.Strategic
             return TryGetResidualHex(world, characterId, out _);
         }
 
-        public static bool IsRetreatingArmyMember(SimulationWorld world, EntityId characterId)
-        {
-            if (world?.Strategic?.RetreatingArmies == null || characterId.IsNone)
-                return false;
-            foreach (var kv in world.Strategic.RetreatingArmies.All)
-            {
-                var retreat = kv.Value;
-                if (retreat?.MemberCharacterIds == null)
-                    continue;
-                for (var i = 0; i < retreat.MemberCharacterIds.Count; i++)
-                {
-                    if (retreat.MemberCharacterIds[i] == characterId.Value)
-                        return true;
-                }
-            }
-
-            return false;
-        }
     }
 }
+
+

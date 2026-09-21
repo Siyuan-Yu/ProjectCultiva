@@ -1,5 +1,17 @@
 # 开发日志
 
+## 2026-09-21 — LEGACY-FINAL-C Producer Accepted / Sealed
+
+- 制作人已完成人工验收：New Game、Actual Control／WorldMap、PlayerParty Continuous Travel、NPC Squad、CharacterEncounter、residual 精确位置与 Save/Load、Separate Space、Site／economy 及 Legacy Runtime diagnostics 均正常。
+- LEGACY-FINAL-C 正式封板；当前只进行 LEGACY-FINAL-SEAL compatibility quarantine、dead API cleanup 与 architecture freeze。最终 smoke 前暂不宣称 Continuous World Legacy Migration Complete。
+
+## 2026-09-21 — LEGACY-FINAL-C 战略 Hex／Territory／Residual／旧战斗 runtime 退役（待制作人验收）
+
+- `StrategicBoard` 删除 TerritoryRegion、RetreatingArmy、LingeringBattlefield 与旧 StrategicEncounter runtime；现代行政控制只读 WorldSite Owner、TerritoryClaim 与 Actual Administrative Control，外交概览改为“控制据点”。
+- 现代 residual 统一为 `LifecycleState + AtWorldPosition + SurfaceId + exact WorldPosition`；所有仍可生成 Hex presence 的 API 明确标为 Legacy，旧 AtHex 只作单向迁移输入。
+- 旧 active battle 仅在真实 Character／Squad 与精确 Surface anchor 均可唯一恢复时迁到 CharacterEncounter；否则 SnapshotInvalid。现代存档不再输出 TerritoryRegion、AtHex residual、RetreatingArmy、LingeringBattlefield、PendingEngagement 或 Ch01 compatibility authority。
+- 旧 Hex／Outdoor LocalMap travel helper 收进明确 Legacy compatibility 命名；正常 LEGACY-FINAL-B SurfaceVisible 链不变。完整边界与验收清单见 [250](250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。状态：**Implementation Complete / Producer Acceptance Pending**，不得提前宣称 Legacy Finalization Complete。
+
 ## 2026-09-21 — LEGACY-FINAL-B Producer Accepted / Sealed
 
 - 制作人已完成人工验收；PlayerParty 正常 Outdoor authority 正式固定为 `SurfaceId + exact WorldPosition + SurfaceVisible`，WorldSite 只保留空间／行政 context，Hex／Outdoor LocalMap travel 仅作旧档与旧内容兼容。

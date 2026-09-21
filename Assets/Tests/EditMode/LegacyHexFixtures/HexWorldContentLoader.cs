@@ -57,7 +57,6 @@ namespace XianXia.Data.Content
             }
 
             world.Strategic.Sites.Clear();
-            world.Strategic.TerritoryRegions.Clear();
             world.Strategic.FactionFlags.Clear();
             TerritoryClaimService.ResetForContentBootstrap(world);
             var controlOrders = new HashSet<long>();
@@ -132,22 +131,6 @@ namespace XianXia.Data.Content
                 }
             }
 
-            var errors = TerritoryInvariantValidator.Validate(world);
-            if (errors.Count > 0)
-            {
-                var sb = new StringBuilder(512);
-                for (var i = 0; i < errors.Count; i++)
-                {
-                    if (i > 0)
-                        sb.Append("\n");
-                    sb.Append(errors[i]);
-                }
-
-                return Result.Failure(ErrorCode.ContentLoadFailed, "Territory content error: " + sb);
-            }
-
-            StrategicTerritoryCoverageResolver.Rebuild(world);
-
             return Result.Success();
         }
 
@@ -191,53 +174,33 @@ namespace XianXia.Data.Content
             TerritoryRegionContentDefinition src,
             Dictionary<HexCoord, string> standaloneHexes)
         {
-            var region = new TerritoryRegion
-            {
-                RegionId = src.RegionId ?? string.Empty,
-                PrimaryWorldSiteId = src.PrimaryWorldSiteId ?? string.Empty,
-                ControlFactionId = src.ControlFactionId ?? string.Empty,
-            };
-            if (src.Hexes != null)
-            {
-                var coords = new HexCoord[src.Hexes.Count];
-                for (var i = 0; i < src.Hexes.Count; i++)
-                    coords[i] = new HexCoord(src.Hexes[i].Q, src.Hexes[i].R);
-                region.SetHexes(coords);
-            }
+            var regionId = src.RegionId ?? string.Empty;
+            var primarySiteId = src.PrimaryWorldSiteId ?? string.Empty;
+            var controller = src.ControlFactionId ?? string.Empty;
 
-            if (!string.IsNullOrEmpty(region.PrimaryWorldSiteId))
+            if (!string.IsNullOrEmpty(primarySiteId))
             {
-                if (!world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId, out var site) || site == null)
+                if (!world.Strategic.Sites.TryGet(primarySiteId, out var site) || site == null)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "TerritoryRegion '" + region.RegionId + "' PrimaryWorldSiteId '" +
-                        region.PrimaryWorldSiteId + "' missing.");
-                if (!string.Equals(site.TerritoryRegionId, region.RegionId, StringComparison.Ordinal))
+                        "TerritoryRegion '" + regionId + "' PrimaryWorldSiteId '" +
+                        primarySiteId + "' missing.");
+                if (!string.Equals(site.TerritoryRegionId, regionId, StringComparison.Ordinal))
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "WorldSite '" + site.SiteId + "'.TerritoryRegionId '" + site.TerritoryRegionId +
-                        "' != TerritoryRegion '" + region.RegionId + "'.");
+                        "' != TerritoryRegion '" + regionId + "'.");
             }
 
-            try
+            for (var i = 0; i < (src.Hexes?.Count ?? 0); i++)
             {
-                world.Strategic.TerritoryRegions.Register(region);
-            }
-            catch (System.InvalidOperationException ex)
-            {
-                // Register 的跨 Region overlap 是硬错误（2J §6.6）；转 Result 使 Apply 契约不被异常击穿。
-                return Result.Failure(ErrorCode.ContentLoadFailed, ex.Message);
-            }
-
-            for (var i = 0; i < region.Hexes.Count; i++)
-            {
-                var hex = region.Hexes[i];
+                var hex = new HexCoord(src.Hexes[i].Q, src.Hexes[i].R);
                 if (standaloneHexes.ContainsKey(hex))
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Hex " + hex + " belongs to both standaloneTerritoryHexes and TerritoryRegion '" +
-                        region.RegionId + "' (standalone controller='" + standaloneHexes[hex] + "').");
+                        regionId + "' (standalone controller='" + standaloneHexes[hex] + "').");
                 if (!world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "TerritoryRegion '" + region.RegionId + "' hex " + hex + " missing in grid.");
-                cell.ControlFactionId = region.ControlFactionId;
+                        "TerritoryRegion '" + regionId + "' hex " + hex + " missing in grid.");
+                cell.ControlFactionId = controller;
             }
 
             return Result.Success();

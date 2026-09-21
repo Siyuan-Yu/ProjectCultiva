@@ -242,7 +242,7 @@ namespace XianXia.Core.World.Strategic
         public static bool OwnsIndividualSchedule(SimulationWorld world, EntityId id)
         {
             if (world?.Strategic?.Squads == null || !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
-                !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id)) return false;
+                !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id)) return false;
             // An idle field formation still owns its members; stopping its route must not
             // let Core start work while the Host continues to hold formation. Garrisoned
             // members are excluded by the same authority predicate used by the Host.

@@ -578,7 +578,6 @@ namespace XianXia.Core.World.Strategic
             state.Phase = CharacterEncounterPhase.Committed;
             world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
             world.Strategic.Participants.Clear();
-            world.Strategic.Encounter.ClearCompletedWorldCombatSession();
             world.Strategic.ClockFreeze.Clear();
             RestorePlayerPartyMembersFromGroup(world, state);
             return Result.Success();

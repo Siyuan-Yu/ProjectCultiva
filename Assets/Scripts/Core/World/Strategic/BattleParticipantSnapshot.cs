@@ -185,7 +185,7 @@ namespace XianXia.Core.World.Strategic
         public string AttackerArmyId { get; set; } = string.Empty;
         public string DefenderArmyId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } =
-            StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
         /// <summary>
         /// 本场 Manual Battle 的地点解析类别（Phase 5S：结束战斗时按类别决定
         /// 原地留在真实 LocalMap 还是回 ExplicitEncounterMap 旧路径）。
@@ -211,7 +211,7 @@ namespace XianXia.Core.World.Strategic
             PrimaryEnemyStackId = string.Empty;
             AttackerArmyId = string.Empty;
             DefenderArmyId = string.Empty;
-            EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            EncounterLocalMapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
             LocalMapResolutionKind = BattleLocalMapResolutionKind.ExplicitEncounterMap;
             LastBattleSummary = string.Empty;
             PlayerWon = false;

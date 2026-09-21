@@ -88,7 +88,7 @@ namespace XianXia.Tests
             HexMath.ToWorldPosition(new HexCoord(81, 52), HexSize, out var cx, out var cy);
             Assert.IsTrue(motion.TryUpdateWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy)), "canonical set");
 
-            PlayerPartyHexTravelService.TryResolvePartyWorldHex(world, party, out var startHex);
+            LegacyPlayerPartyHexTravelCompatibility.TryResolvePartyWorldHex(world, party, out var startHex);
             Assert.AreEqual(new HexCoord(81, 52), startHex, "startHex = canonical derived");
 
             // Phase 5R-B7A：WorldSite overlay 不再构造 PlayerParty blocked topology；
@@ -96,7 +96,7 @@ namespace XianXia.Tests
             IReadOnlyCollection<HexCoord> blocked = null;
 
             // 目标 site_b：hex 距离最近格 (105,26) 实际 A* cost 69-70；A* 最优 (107,26) cost 67-68。
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
             Assert.IsTrue(result.IsSuccess, "BeginTravel to site_b");
 
             var goal = motion.DestinationHex;
@@ -179,7 +179,7 @@ namespace XianXia.Tests
             motion.SetAtWorldSite(huangcun.SiteId, huangcun.PresenceHex, HexSize);
             HexMath.ToWorldPosition(new HexCoord(81, 52), HexSize, out var cx, out var cy);
             motion.TryUpdateWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy));
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
             Assert.IsTrue(result.IsSuccess, "BeginTravel");
             return motion.DestinationHex;
         }

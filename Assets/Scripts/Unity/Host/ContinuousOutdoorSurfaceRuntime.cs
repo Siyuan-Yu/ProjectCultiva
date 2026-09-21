@@ -342,7 +342,7 @@ namespace XianXia.Unity.Host
                 for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
                 {
                     var id = new EntityId(squad.MemberCharacterIds[i]);
-                    if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
+                    if (!CharacterLifeStateQuery.IsLivingForMacroOrder(world, id))
                         continue;
                     living++;
                     if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
@@ -1647,7 +1647,7 @@ namespace XianXia.Unity.Host
                 {
                     var id = new EntityId(_squadMemberScratch[slot]);
                     if (id.IsNone || (party != null && party.IsMember(id)) ||
-                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) ||
+                        !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id) ||
                         !world.Entities.TryGet(id, out var entity) ||
                         !world.Strategic.Squads.TryGetForCharacter(id, out var boundSquad) ||
                         !string.Equals(boundSquad.SquadId, squad.SquadId, StringComparison.Ordinal))

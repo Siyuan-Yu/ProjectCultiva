@@ -1089,23 +1089,6 @@ namespace XianXia.Data.Serialization
                 }
             }
 
-            var residuals = new List<JsonValue>();
-            if (strategic.ResidualCharacterPresences != null)
-            {
-                for (var i = 0; i < strategic.ResidualCharacterPresences.Count; i++)
-                {
-                    var r = strategic.ResidualCharacterPresences[i];
-                    if (r == null)
-                        continue;
-                    residuals.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
-                    {
-                        ["characterId"] = U(r.CharacterId),
-                        ["hexQ"] = JsonValue.FromNumber(r.HexQ),
-                        ["hexR"] = JsonValue.FromNumber(r.HexR)
-                    }));
-                }
-            }
-
             var characterWorldPresences = new List<JsonValue>();
             if (strategic.CharacterWorldPresences != null)
             {
@@ -1249,33 +1232,6 @@ namespace XianXia.Data.Serialization
                 }
             }
 
-            var retreating = new List<JsonValue>();
-            if (strategic.RetreatingArmies != null)
-            {
-                for (var i = 0; i < strategic.RetreatingArmies.Count; i++)
-                {
-                    var r = strategic.RetreatingArmies[i];
-                    if (r == null)
-                        continue;
-                    var retreatMembers = new List<JsonValue>();
-                    if (r.MemberCharacterIds != null)
-                    {
-                        for (var j = 0; j < r.MemberCharacterIds.Count; j++)
-                            retreatMembers.Add(U(r.MemberCharacterIds[j]));
-                    }
-
-                    retreating.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
-                    {
-                        ["retreatingArmyId"] = JsonValue.FromString(r.RetreatingArmyId ?? string.Empty),
-                        ["sourceArmyId"] = JsonValue.FromString(r.SourceArmyId ?? string.Empty),
-                        ["factionId"] = JsonValue.FromString(r.FactionId ?? string.Empty),
-                        ["hexQ"] = JsonValue.FromNumber(r.HexQ),
-                        ["hexR"] = JsonValue.FromNumber(r.HexR),
-                        ["memberCharacterIds"] = JsonValue.FromArray(retreatMembers)
-                    }));
-                }
-            }
-
             var controlCores = new List<JsonValue>();
             if (strategic.ControlCores != null)
             {
@@ -1323,7 +1279,6 @@ namespace XianXia.Data.Serialization
             var root = new Dictionary<string, JsonValue>
             {
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
-                ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
                 ["hasSquadSnapshotAuthority"] = JsonValue.FromBool(strategic.HasSquadSnapshotAuthority),
                 ["hasSquadWorldMotionSnapshotAuthority"] = JsonValue.FromBool(strategic.HasSquadWorldMotionSnapshotAuthority),
                 ["controlledSquadId"] = JsonValue.FromString(strategic.ControlledSquadId ?? string.Empty),
@@ -1331,7 +1286,6 @@ namespace XianXia.Data.Serialization
                 ["squadWorldMotions"] = JsonValue.FromArray(squadWorldMotions),
                 ["formalArmies"] = JsonValue.FromArray(armies),
                 ["armyMemberships"] = JsonValue.FromArray(memberships),
-                ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
                 ["characterWorldPresences"] = JsonValue.FromArray(characterWorldPresences),
                 ["worldSiteOwners"] = JsonValue.FromArray(siteOwners),
                 ["runtimeWorldSites"] = JsonValue.FromArray(runtimeWorldSites),
@@ -1340,7 +1294,6 @@ namespace XianXia.Data.Serialization
                 ["wars"] = JsonValue.FromArray(wars),
                 ["alliances"] = JsonValue.FromArray(alliances),
                 ["vassalages"] = JsonValue.FromArray(vassalages),
-                ["retreatingArmies"] = JsonValue.FromArray(retreating),
                 ["controlCores"] = JsonValue.FromArray(controlCores),
                 ["worldSitePublicStocks"] = JsonValue.FromArray(worldSitePublicStocks)
             };

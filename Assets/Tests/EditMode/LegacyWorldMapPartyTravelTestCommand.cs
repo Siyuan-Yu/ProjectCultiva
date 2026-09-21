@@ -130,13 +130,13 @@ namespace XianXia.Core.World.Strategic
                     motion.TryGetActiveStepHexes(out var fromHex, out _) &&
                     !motion.CurrentHex.Equals(fromHex))
                     motion.AlignCurrentHex(fromHex);
-                var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(
+                var enter = LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(
                     world, party, allowWhileTraveling: true);
                 if (enter.IsFailure) return enter;
                 motion.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
                 return XianXia.Core.Results.Result.Success();
             }
-            return PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
+            return LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(world, party);
         }
 
         public static void ResumeWorldTravelExecutionIfNeeded(

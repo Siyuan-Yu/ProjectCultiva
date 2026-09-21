@@ -90,6 +90,7 @@ namespace XianXia.Core.Persistence
     public sealed class StrategicSnapshotDto
     {
         public string PlayerFactionId { get; set; } = string.Empty;
+        /// <summary>Legacy JSON input only; modern capture leaves false and omits the field.</summary>
         public bool Ch01FormationScenarioCompat { get; set; }
         public bool HasSquadSnapshotAuthority { get; set; }
         public List<SquadSnapshotDto> Squads { get; set; } = new List<SquadSnapshotDto>();
@@ -98,7 +99,7 @@ namespace XianXia.Core.Persistence
         public string ControlledSquadId { get; set; } = string.Empty;
         public List<FormalArmySnapshotDto> FormalArmies { get; set; } = new List<FormalArmySnapshotDto>();
         public List<ArmyMembershipSnapshotDto> ArmyMemberships { get; set; } = new List<ArmyMembershipSnapshotDto>();
-        /// <summary>Detached Residual Character Hex Presence（非 Group Domain）。</summary>
+        /// <summary>Legacy detached residual Hex input; modern capture uses CharacterWorldPresences.</summary>
         public List<ResidualCharacterPresenceDto> ResidualCharacterPresences { get; set; } =
             new List<ResidualCharacterPresenceDto>();
         /// <summary>
@@ -198,7 +199,7 @@ namespace XianXia.Core.Persistence
         public string OfferTitle { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } = string.Empty;
-        /// <summary>BattleOfferOrigin（Local-origin 决策态恢复用）。</summary>
+        /// <summary>Legacy serialized offer-origin numeric value; migration input only.</summary>
         public int OfferOrigin { get; set; }
         public bool OfferRequiresWarDeclaration { get; set; }
         public string PendingWarAttackerFactionId { get; set; } = string.Empty;
@@ -498,7 +499,7 @@ namespace XianXia.Core.Persistence
         public bool CoreIsRemovable { get; set; }
     }
 
-    /// <summary>TerritoryRegion 运行时 Controller（2J §17）；Region/Hexes/PrimaryWorldSiteId 属 Content identity 不重复持久化。</summary>
+    /// <summary>Legacy TerritoryRegion controller input; migrated directly to an unowned matching WorldSite.</summary>
     public sealed class TerritoryRegionControllerSnapshotDto
     {
         public string RegionId { get; set; }

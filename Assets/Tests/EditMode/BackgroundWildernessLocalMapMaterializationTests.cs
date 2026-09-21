@@ -50,7 +50,7 @@ namespace XianXia.Tests
             PlayerPartyRuntime party,
             EntityId active)
         {
-            Assert.IsTrue(WildernessLocalMapFallback.TryResolve(world, hex, out var mapId));
+            Assert.IsTrue(LegacyWildernessLocalMapFallback.TryResolve(world, hex, out var mapId));
             world.LocalMap.ActiveMapLayoutId = mapId;
             world.LocalMap.OverworldMapLayoutId = mapId;
             world.LocalMap.SetPlayableBounds(0f, 0f, 1f, 16, 16);
@@ -166,7 +166,7 @@ namespace XianXia.Tests
             var world = BuildWildernessWorld(out var hexA, out var hexB);
             var active = Spawn(world, "Hero");
             var bg = Spawn(world, "Companion");
-            world.WorldPresence.SetAtHex(bg, hexB);
+            world.WorldPresence.SetLegacyAtHex(bg, hexB);
 
             var party = new PlayerPartyRuntime();
             Assert.IsTrue(party.TryInitialize(active, out _));
@@ -191,7 +191,7 @@ namespace XianXia.Tests
             var hexC = new HexCoord(hexA.Q + 2, hexA.R);
             var active = Spawn(world, "Hero");
             var bg = Spawn(world, "Companion");
-            world.WorldPresence.SetAtHex(bg, hexB);
+            world.WorldPresence.SetLegacyAtHex(bg, hexB);
 
             var party = new PlayerPartyRuntime();
             Assert.IsTrue(party.TryInitialize(active, out _));
@@ -302,7 +302,7 @@ namespace XianXia.Tests
             var world = BuildWildernessWorld(out var hexA, out var hexB);
             var active = Spawn(world, "Hero");
             var bg = Spawn(world, "Companion");
-            world.WorldPresence.SetAtHex(bg, hexB);
+            world.WorldPresence.SetLegacyAtHex(bg, hexB);
 
             var party = new PlayerPartyRuntime();
             Assert.IsTrue(party.TryInitialize(active, out _));

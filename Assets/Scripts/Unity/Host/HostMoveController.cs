@@ -422,11 +422,11 @@ namespace XianXia.Unity.Host
             var result = world.PlayerPartyTravel != null &&
                          world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite
                 ? (exitsToContinuous
-                    ? PlayerPartyWildernessTransitionService.TryCommitWorldSiteEgressToContinuousWilderness(
+                    ? LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitWorldSiteEgressToContinuousWilderness(
                         world, party, connection)
-                    : PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+                    : LegacyPlayerPartyOutdoorLocalMapCompatibility.TryExitWorldSiteByConnection(
                         world, party, connection))
-                : PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                : LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
                     world, party, connection);
             if (result.IsFailure)
             {
@@ -703,7 +703,7 @@ namespace XianXia.Unity.Host
             var motion = world?.PlayerPartyTravel;
             if (motion == null ||
                 (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
-                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion)))
+                 !LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion)))
                 return;
             PlayerPartyTravelRuntimeService.CancelTravel(world);
         }

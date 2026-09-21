@@ -1,5 +1,7 @@
 # 战斗
 
+> **2026-09-21 LEGACY-FINAL-C Seal：** 现代 CharacterEncounter 已与旧 `StrategicEncounterRuntime`、`RetreatingArmyBoard`、`LingeringBattlefieldRegistry` 解耦；战斗只保存真实 Character／Squad、精确 Surface anchor、生命周期与现代 settlement／participant state。旧 active battle 仅作严格 one-way migration input。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
+
 > **2026-09-14 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 的 CW-U2A～U4 核心正常路线已经制作人多轮验收；ReadyToEnd 当前修复范围 Producer Accepted。CW-U4.1 已退役玩家 WorldMap Army／AttackArmy 产品入口，状态为 Implementation Completed / Producer Acceptance Pending。
 
 > **⚠️ 2026-09-12 · 当前设计替代：** [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 已替代 186 的普通户外“原地战斗”目标。所有新的玩家实战进入取自接战地点当前状态的临时独立战场；186 只保留为当时实现记录。

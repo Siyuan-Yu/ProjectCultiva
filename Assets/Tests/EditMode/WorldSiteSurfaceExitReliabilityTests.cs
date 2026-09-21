@@ -125,7 +125,7 @@ namespace XianXia.Tests
             Assert.Greater(conns.Count, 0, "connections exist");
             foreach (var c in conns)
             {
-                PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.ResolveWorldSiteExitApproachLocalPoint(
                     c, RealSiteBounds, RealDepth, out var ax, out var ay);
                 Assert.IsTrue(
                     SurfaceExitZoneCalculator.PointBelongsToConnection(ax, ay, c, RealDepth),
@@ -144,7 +144,7 @@ namespace XianXia.Tests
             Assert.AreEqual(10, conns.Count, "10 connections");
             foreach (var c in conns)
             {
-                PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.ResolveWorldSiteExitApproachLocalPoint(
                     c, RealSiteBounds, RealDepth, out var ax, out var ay);
                 // 最坏停点：停在距目标 arriveEpsilon 处、朝带外（-LocalDirection）方向。
                 var wx = ax - c.LocalDirectionX * ArriveEpsilon;
@@ -178,7 +178,7 @@ namespace XianXia.Tests
 
             foreach (var c in conns)
             {
-                PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.ResolveWorldSiteExitApproachLocalPoint(
                     c, RealSiteBounds, RealDepth, out var ax, out var ay);
                 for (var i = 0; i < starts.Length; i++)
                 {
@@ -212,7 +212,7 @@ namespace XianXia.Tests
             var grid = BuildHuangcunGrid();
             foreach (var c in corners)
             {
-                PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.ResolveWorldSiteExitApproachLocalPoint(
                     c, RealSiteBounds, RealDepth, out var ax, out var ay);
                 Assert.IsTrue(InRect(c.SlotRect, ax, ay, 0f),
                     "[" + c.DestinationHex + "] approach ∈ SlotRect");

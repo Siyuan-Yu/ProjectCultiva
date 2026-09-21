@@ -145,7 +145,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.PlayerPartyContext.IsMember(id)) return Failed("不能对玩家小队使用此验收命令。");
             var living = 0;
             for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
-                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, new EntityId(squad.MemberCharacterIds[i]))) living++;
+                if (CharacterLifeStateQuery.IsLivingForMacroOrder(world, new EntityId(squad.MemberCharacterIds[i]))) living++;
             if (living < 2) return Failed("所选 NPC 小队需要至少两名存活成员。");
             var player = world.PlayerPartyTravel;
             if (player == null || !player.HasPosition || !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation))

@@ -13,7 +13,7 @@ namespace XianXia.Core.World.Strategic
     /// Legacy Hex world travel and Outdoor LocalMap compatibility only.
     /// Normal Continuous Outdoor uses PlayerPartySurfaceTravelService.
     /// </summary>
-    public static class PlayerPartyHexTravelService
+    public static class LegacyPlayerPartyHexTravelCompatibility
     {
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
 
@@ -1081,7 +1081,7 @@ namespace XianXia.Core.World.Strategic
 
             // AtWorldPosition：唯一依据 DerivedHex → Terrain Fallback。
             var hex = resolved.DerivedHex;
-            if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
+            if (!LegacyWildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for hex.");
 
@@ -1089,7 +1089,7 @@ namespace XianXia.Core.World.Strategic
             EnsureMotionHasContinuousStart(world, hex);
             ApplyTravelingMembersPresence(world);
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterLocalView.Wilderness");
-            return WorldTravelService.EnterWildernessLocalMap(world, hex, mapId);
+            return WorldTravelService.EnterLegacyWildernessLocalMap(world, hex, mapId);
         }
 
         /// <summary>
@@ -1119,13 +1119,13 @@ namespace XianXia.Core.World.Strategic
             }
 
             var hex = motion.CurrentHex;
-            if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
+            if (!LegacyWildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for hex.");
 
             PlayerPartyWorldLocationDebug.LogTransition(
                 world, party, "EnterLocalView.PreserveAutoTravel");
-            return WorldTravelService.EnterWildernessLocalMap(world, hex, mapId);
+            return WorldTravelService.EnterLegacyWildernessLocalMap(world, hex, mapId);
         }
 
         public static Result EnterWorldSiteAsParty(
@@ -1355,7 +1355,7 @@ namespace XianXia.Core.World.Strategic
                     world.WorldPresence.SetAtWorldPosition(id,
                         world.PlayerPartyTravel.WorldPosition, hex, navigation.SurfaceId);
                 else
-                    world.WorldPresence.SetAtHex(id, hex);
+                    world.WorldPresence.SetLegacyAtHex(id, hex);
             }
         }
 
@@ -1415,3 +1415,5 @@ namespace XianXia.Core.World.Strategic
         }
     }
 }
+
+

@@ -55,7 +55,7 @@ namespace XianXia.Core.World.Strategic
             if (world?.HexWorld == null || site == null || !site.IsCoreActive)
                 return result;
             if (!site.HasContinuousCore)
-                return new List<HexCoord>(StrategicTerritoryCoverageResolver.ExpandOneRing(site.EnumerateFootprintHexes()));
+                return new List<HexCoord>(LegacyHexRingUtility.ExpandOneRing(site.EnumerateFootprintHexes()));
             for (var r = 0; r < world.HexWorld.Height; r++)
             for (var q = 0; q < world.HexWorld.Width; q++)
             {
@@ -94,18 +94,18 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "此 Hex 已有阵营控制建筑，需要先移除当前控制建筑。");
 
-            var anchorController = TerritoryControlService.GetController(world, anchor);
+            var anchorController = GetLegacyHexController(world, anchor);
             if (!string.IsNullOrEmpty(anchorController) &&
                 !string.Equals(anchorController, factionId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "敌方有效领土内不能建立阵营旗。");
 
-            var nominal = StrategicTerritoryCoverageResolver.ExpandOneRing(new[] { anchor });
+            var nominal = LegacyHexRingUtility.ExpandOneRing(new[] { anchor });
             for (var i = 0; i < nominal.Count; i++)
             {
                 var hex = nominal[i];
                 if (!world.HexWorld.Contains(hex))
                     continue;
-                if (string.IsNullOrEmpty(TerritoryControlService.GetController(world, hex)))
+                if (string.IsNullOrEmpty(GetLegacyHexController(world, hex)))
                     neutralHexGain++;
             }
             if (neutralHexGain <= 0)
@@ -174,7 +174,7 @@ namespace XianXia.Core.World.Strategic
                 IsCoreActive = true
             };
             foreach (var hex in WorldSiteCoreCoverageResolver.BuildStrategicSummary(world, probe))
-                if (string.IsNullOrEmpty(TerritoryControlService.GetController(world, hex))) neutralHexGain++;
+                if (string.IsNullOrEmpty(GetLegacyHexController(world, hex))) neutralHexGain++;
             return Result.Success();
         }
 
@@ -303,7 +303,6 @@ namespace XianXia.Core.World.Strategic
                 siteId = string.Empty;
                 return claimed;
             }
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             var identityValid = FactionFlagSiteCoreQuery.TryResolveFlagForSite(
                 world, site, out var resolvedFlag) && ReferenceEquals(resolvedFlag, flag);
             var invariant = identityValid
@@ -319,7 +318,6 @@ namespace XianXia.Core.World.Strategic
                     TerritoryClaimService.RollbackClaim(world, claimIds[i]);
                 world.Strategic.FactionFlags.Remove(flagId);
                 world.Strategic.Sites.RemoveRuntimeSite(siteId);
-                StrategicTerritoryCoverageResolver.Rebuild(world);
                 siteId = string.Empty;
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "新建势力旗未能取得自身核心中心的实际行政控制。", invariant.Error.Message);
@@ -344,7 +342,6 @@ namespace XianXia.Core.World.Strategic
             };
             if (!world.Strategic.FactionFlags.Register(flag))
                 return Result.Failure(ErrorCode.InvalidOperation, "阵营旗 ID 或锚点重复。");
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             return Result.Success();
         }
 
@@ -395,7 +392,6 @@ namespace XianXia.Core.World.Strategic
                 string.Equals(site.CoreAssetId, flag.FlagId, StringComparison.Ordinal))
                 site.IsCoreActive = false;
             // 不删除 TerritoryClaim：核心失效后历史保留，但 resolver 会忽略该 Site。
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             CharacterEncounterService.NotifyStrategicObjectiveResolved(world, flag.SiteId, flag.FlagId);
             return Result.Success();
         }
@@ -408,8 +404,16 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(flag.SiteId, out var site) && site != null &&
                 string.Equals(site.CoreAssetId, flag.FlagId, StringComparison.Ordinal))
                 site.IsCoreActive = true;
-            StrategicTerritoryCoverageResolver.Rebuild(world);
             return true;
+        }
+
+        // Legacy non-Site flag placement only. Modern Continuous Site cores use exact
+        // WorldSiteAdministrativeControlResolver before reaching this compatibility path.
+        static string GetLegacyHexController(SimulationWorld world, HexCoord hex)
+        {
+            if (world?.HexWorld == null || !world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
+                return string.Empty;
+            return cell.ControlFactionId ?? string.Empty;
         }
 
         static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

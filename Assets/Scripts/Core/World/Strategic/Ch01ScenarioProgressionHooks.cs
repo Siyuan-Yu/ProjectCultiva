@@ -22,7 +22,7 @@ namespace XianXia.Core.World.Strategic
             string attackerFactionId,
             string defenderFactionId)
         {
-            if (world?.Strategic?.Ch01FormationScenarioCompat != true ||
+            if (world?.Strategic == null ||
                 !string.Equals(attackerFactionId, StrategicFactionCatalog.PlayerFactionId, StringComparison.Ordinal) ||
                 !string.Equals(defenderFactionId, StrategicFactionCatalog.HuangcunLaborId, StringComparison.Ordinal))
                 return;

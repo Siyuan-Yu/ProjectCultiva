@@ -11,7 +11,7 @@ namespace XianXia.Core.World.Strategic
     /// Phase 2C：Wilderness LocalMap 内移动同步、边缘跨 Hex、WorldSite 出站。
     /// </summary>
     /// <summary>Legacy Hex / Outdoor LocalMap transition compatibility only.</summary>
-    public static class PlayerPartyWildernessTransitionService
+    public static class LegacyPlayerPartyOutdoorLocalMapCompatibility
     {
         /// <summary>
         /// 仅 Surface World Location LocalMap 启用 Hex 边界跨格；Interior（洞窟／室内）禁用。
@@ -31,7 +31,7 @@ namespace XianXia.Core.World.Strategic
             // Host driver can cross into the next hex. WorldSite LocalVisible stays
             // stand-still (Phase 5B behavior).
             var localVisible =
-                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion);
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion);
             if (motion.IsMoving && !localVisible)
                 return false;
             if (localVisible && motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
@@ -261,8 +261,8 @@ namespace XianXia.Core.World.Strategic
             if (motion.IsMoving)
             {
                 // Phase 5C-W1: LocalVisible AutoTravel crosses while preserving path (Wilderness only).
-                if (PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
-                    return PlayerPartyLocalVisibleAutoTravelService
+                if (LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion))
+                    return LegacyPlayerPartyLocalVisibleTravelCompatibility
                         .TryCrossWildernessEdgePreservingLocalVisibleAutoTravel(world, party, destinationHex);
                 return Result.Failure(ErrorCode.InvalidOperation, "Stop travel before crossing hex edge.");
             }
@@ -332,7 +332,7 @@ namespace XianXia.Core.World.Strategic
                 motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
                 motion.SetAtWorldPosition(boundaryWorld, destinationHex);
                 ApplyTravelingMembersAtHex(world, destinationHex);
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                     world, party, site, destinationHex);
             }
 
@@ -355,11 +355,11 @@ namespace XianXia.Core.World.Strategic
             motion.SetAtWorldPosition(newWorldPos, derivedHex);
             ApplyTravelingMembersAtHex(world, derivedHex);
 
-            if (!WildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
+            if (!LegacyWildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for neighbor.");
 
-            return WorldTravelService.EnterWildernessLocalMap(world, destinationHex, mapId);
+            return WorldTravelService.EnterLegacyWildernessLocalMap(world, destinationHex, mapId);
         }
 
         public static Result TryExitWorldSiteByDirection(
@@ -463,7 +463,7 @@ namespace XianXia.Core.World.Strategic
                         " into " + external + " (Site→Site).");
                 }
             }
-            else if (!WildernessLocalMapFallback.TryResolve(
+            else if (!LegacyWildernessLocalMapFallback.TryResolve(
                          world, external, out destinationMapId) ||
                      string.IsNullOrEmpty(destinationMapId))
             {
@@ -491,7 +491,7 @@ namespace XianXia.Core.World.Strategic
                     destinationIngress.BoundaryContactWorldY);
                 motion.SurfaceEdgeGate?.SetIngressContext(destinationIngress);
                 motion.SetAtWorldPosition(boundaryWorld, external);
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                     world, party, destSite, external);
             }
 
@@ -501,7 +501,7 @@ namespace XianXia.Core.World.Strategic
             motion.SetAtWorldPosition(worldPos, external);
             ApplyTravelingMembersAtHex(world, external);
 
-            return WorldTravelService.EnterWildernessLocalMap(world, external, destinationMapId);
+            return WorldTravelService.EnterLegacyWildernessLocalMap(world, external, destinationMapId);
         }
 
         /// <summary>W1D temporary migration commit for WorldSite → covered continuous
@@ -857,8 +857,10 @@ namespace XianXia.Core.World.Strategic
                     world.WorldPresence.SetAtWorldPosition(
                         id, world.PlayerPartyTravel.WorldPosition, hex, navigation.SurfaceId);
                 else
-                    world.WorldPresence.SetAtHex(id, hex);
+                    world.WorldPresence.SetLegacyAtHex(id, hex);
             }
         }
     }
 }
+
+

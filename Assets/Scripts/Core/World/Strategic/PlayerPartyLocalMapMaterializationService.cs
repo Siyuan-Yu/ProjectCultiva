@@ -435,7 +435,7 @@ namespace XianXia.Core.World.Strategic
                 world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
                 world.PlayerPartyTravel.SurfaceEdgeGate.TransitionInProgress)
             {
-                PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+                LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(
                     world, wildernessPlayableBounds.Value, px, pz);
             }
             else if (world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
@@ -450,7 +450,7 @@ namespace XianXia.Core.World.Strategic
                     siteBounds.Value.MaxX,
                     siteBounds.Value.MinY,
                     siteBounds.Value.MaxY);
-                PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+                LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(
                     world, realSiteBounds, px, pz);
             }
 

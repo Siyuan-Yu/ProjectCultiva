@@ -79,7 +79,7 @@ namespace XianXia.Tests
             Assert.IsTrue(
                 motion.TryUpdateWorldPositionWithinSite(site.SiteId, canonical),
                 "canonical set: " + canonical);
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, goal);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, goal);
             Assert.IsTrue(result.IsSuccess, "BeginTravel failed");
             Assert.IsTrue(motion.IsSiteDeparturePending, "departure pending");
         }

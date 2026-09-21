@@ -882,7 +882,7 @@ namespace XianXia.Unity.Host
             if (motion == null ||
                 (!XianXia.Core.World.Strategic.PlayerPartySurfaceTravelService
                      .IsActiveSurfaceTravel(motion) &&
-                 !XianXia.Core.World.Strategic.PlayerPartyLocalVisibleAutoTravelService
+                 !XianXia.Core.World.Strategic.LegacyPlayerPartyLocalVisibleTravelCompatibility
                      .IsActiveLocalVisibleAutoTravel(motion)))
                 return;
             XianXia.Core.World.Strategic.PlayerPartyTravelRuntimeService.CancelTravel(world);

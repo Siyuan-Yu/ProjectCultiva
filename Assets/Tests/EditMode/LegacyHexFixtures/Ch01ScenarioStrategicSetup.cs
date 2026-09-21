@@ -26,7 +26,6 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return;
 
-            world.Strategic.Ch01FormationScenarioCompat = true;
             Ch01ScenarioProgressionHooks.Register(world);
         }
 
@@ -43,7 +42,7 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public static void EnsureLevelTesterFixtures(SimulationWorld world)
         {
-            if (world?.Strategic == null || !world.Strategic.Ch01FormationScenarioCompat)
+            if (world?.Strategic == null)
                 return;
             if (world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SitePlayerCamp, out _))
                 return;

@@ -54,7 +54,7 @@ namespace XianXia.Tests
             var party = NewParty();
             HexMath.ToWorldPosition(start, HexSize, out var x, out var y);
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), start);
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, goal);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, goal);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : string.Empty);
             return new List<HexCoord>(world.PlayerPartyTravel.HexPath);
         }
@@ -106,7 +106,7 @@ namespace XianXia.Tests
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
-            var result = PlayerPartyHexTravelService.BeginTravel(
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(
                 world, party, SiteB, "test:through_site");
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:through_site", out var site));
@@ -124,7 +124,7 @@ namespace XianXia.Tests
             var sawSite = false;
             for (var i = 0; i < 200 && motion.IsMoving; i++)
             {
-                PlayerPartyHexTravelService.AdvanceDistanceBudget(world, 0.25f);
+                LegacyPlayerPartyHexTravelCompatibility.AdvanceDistanceBudget(world, 0.25f);
                 if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
                 {
                     sawSite = true;
@@ -146,7 +146,7 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:through_site", out var site));
             var party = NewParty();
             world.PlayerPartyTravel.SetAtWorldSite(site.SiteId, SiteA, HexSize);
-            var result = PlayerPartyHexTravelService.BeginTravel(world, party, Goal);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal);
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolveRouteStartHex(
                 world, world.PlayerPartyTravel, out _, out var pathIndex));
@@ -167,7 +167,7 @@ namespace XianXia.Tests
             var entryIndex = IndexOf(motion.HexPath, SiteA);
             Assert.Greater(entryIndex, 0);
             HexMath.ToWorldPosition(SiteA, HexSize, out var x, out var y);
-            Assert.IsTrue(PlayerPartyHexTravelService.TryCommitThroughSitePassage(
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.TryCommitThroughSitePassage(
                 world, motion, site, new WorldVec2(x, y), SiteA, HexSize, out var resolvedEntry));
             Assert.AreEqual(entryIndex, resolvedEntry);
             Assert.AreEqual(SiteB, motion.SiteDepartureFootprintHex);
@@ -188,7 +188,7 @@ namespace XianXia.Tests
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, Goal).IsFailure);
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal).IsFailure);
         }
 
         [Test]
@@ -203,7 +203,7 @@ namespace XianXia.Tests
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
             world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, Goal).IsFailure);
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal).IsFailure);
         }
 
         static int IndexOf(IReadOnlyList<HexCoord> path, HexCoord hex)

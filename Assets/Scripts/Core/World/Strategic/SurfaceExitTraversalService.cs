@@ -97,7 +97,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
-            if (!WildernessLocalMapFallback.TryResolve(
+            if (!LegacyWildernessLocalMapFallback.TryResolve(
                     world, connection.DestinationHex, out var wildernessMap) ||
                 string.IsNullOrEmpty(wildernessMap))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");

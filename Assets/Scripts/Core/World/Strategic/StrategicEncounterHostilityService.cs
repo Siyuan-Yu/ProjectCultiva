@@ -6,19 +6,14 @@ using XianXia.Core.Social;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 战略 Encounter / Lingering 场景下的敌对判定：优先 Faction + WarGate，非 Personality 标签。
+    /// 现代 CharacterEncounter / Continuous Manual Combat 敌对判定。
     /// </summary>
     public static class StrategicEncounterHostilityService
     {
         public static bool IsInStrategicEncounterLocalMap(SimulationWorld world)
         {
-            if (world?.Strategic?.Encounter == null)
-                return false;
-            var rt = world.Strategic.Encounter;
-            return !string.IsNullOrEmpty(rt.ActiveBattlefieldId) ||
-                   rt.HasEngagedParty ||
-                   rt.SpawnOnNextMapLoad ||
-                   rt.SpawnedEntityIds.Count > 0;
+            return world?.Strategic?.CharacterEncounter != null ||
+                   world?.Strategic?.ContinuousManualCombat?.IsActive == true;
         }
 
         public static bool IsStrategicCombatParticipant(SimulationWorld world, EntityId npcId)
@@ -30,9 +25,9 @@ namespace XianXia.Core.World.Strategic
             if (continuous != null && continuous.IsActive)
                 return continuous.Contains(npcId);
 
-            if (BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, npcId))
+            var encounter = world.Strategic?.CharacterEncounter;
+            if (encounter?.Find(npcId.Value) != null)
                 return true;
-
             var snap = world.Strategic?.Participants;
             return snap != null && snap.FindByEntity(npcId) != null;
         }
@@ -50,11 +45,8 @@ namespace XianXia.Core.World.Strategic
             if (continuous != null && continuous.IsActive)
                 return continuous.Contains(id);
 
-            if (BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, id))
-                return true;
-
-            var rt = world.Strategic?.Encounter;
-            if (rt != null && rt.IsEngaged(id))
+            var encounter = world.Strategic?.CharacterEncounter;
+            if (encounter?.Find(id.Value) != null)
                 return true;
 
             var rec = world.Strategic?.Participants?.FindByEntity(id);

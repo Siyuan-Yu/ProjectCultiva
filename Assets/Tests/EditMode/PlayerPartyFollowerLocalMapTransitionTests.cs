@@ -149,7 +149,7 @@ namespace XianXia.Tests
             var gate = world.PlayerPartyTravel.SurfaceEdgeGate;
             if (gate != null && !gate.TransitionInProgress && gate.LastExitDirection < 0)
                 gate.BeginTransition(exitDir);
-            PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(world, bounds, x, y);
+            LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(world, bounds, x, y);
         }
 
         static void AssertFollowerCanIssueFreshPath(
@@ -193,14 +193,14 @@ namespace XianXia.Tests
             var b = Spawn(world, "WangChen");
             var party = BuildParty(world, siteA, a, b);
             world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
-            world.WorldPresence.SetAtHex(a, mid);
-            world.WorldPresence.SetAtHex(b, mid);
+            world.WorldPresence.SetLegacyAtHex(a, mid);
+            world.WorldPresence.SetLegacyAtHex(b, mid);
 
             // 模拟开局 bootstrap：TravelingMembers 仅含 Active。
             world.PlayerPartyTravel.CaptureTravelingMembers(new List<EntityId> { a });
 
             var neighbor = HexMath.Neighbor(mid, 1);
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCrossWildernessEdge(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCrossWildernessEdge(
                 world, party, neighbor).IsSuccess);
 
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var followerPresence));
@@ -234,9 +234,9 @@ namespace XianXia.Tests
             var party = BuildParty(world, siteA, a, b);
             world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
-            PlayerPartyHexTravelService.ApplyMembersAtHex(world, party, mid);
+            LegacyPlayerPartyHexTravelCompatibility.ApplyMembersAtHex(world, party, mid);
 
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+            Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
                 world, party, 1).IsSuccess);
             FinishEdgeGateForTests(world, 1);
             PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
@@ -371,9 +371,9 @@ namespace XianXia.Tests
                     active,
                     follower,
                     MapB,
-                    WildernessLocalMapFallback.PlainsWildernessLocalMapId);
+                    LegacyWildernessLocalMapFallback.PlainsWildernessLocalMapId);
                 Assert.AreEqual(
-                    WildernessLocalMapFallback.PlainsWildernessLocalMapId,
+                    LegacyWildernessLocalMapFallback.PlainsWildernessLocalMapId,
                     bootstrap.MoveController.BoundLocalMapId);
                 AssertFollowerCanIssueFreshPath(bootstrap, active, follower, 14f);
             }

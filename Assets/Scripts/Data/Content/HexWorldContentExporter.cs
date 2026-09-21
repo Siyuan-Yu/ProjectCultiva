@@ -66,36 +66,7 @@ namespace XianXia.Data.Content
 
             definition.Sites.Sort((a, b) => string.CompareOrdinal(a.SiteId, b.SiteId));
 
-            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
-            {
-                var region = kv.Value;
-                if (region == null)
-                    continue;
-                var regionDto = new TerritoryRegionContentDefinition
-                {
-                    RegionId = region.RegionId,
-                    PrimaryWorldSiteId = region.PrimaryWorldSiteId,
-                    ControlFactionId = region.ControlFactionId,
-                };
-                foreach (var hex in region.Hexes)
-                    regionDto.Hexes.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });
-                regionDto.Hexes.Sort((a, b) => a.R != b.R ? a.R.CompareTo(b.R) : a.Q.CompareTo(b.Q));
-                definition.TerritoryRegions.Add(regionDto);
-            }
-
-            definition.TerritoryRegions.Sort((a, b) => string.CompareOrdinal(a.RegionId, b.RegionId));
-
-            // standalone = 有 ControlFactionId 但不属于任何 TerritoryRegion 的荒野 Hex
-            var regionHexes = new HashSet<HexCoord>();
-            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
-            {
-                var region = kv.Value;
-                if (region == null)
-                    continue;
-                foreach (var hex in region.Hexes)
-                    regionHexes.Add(hex);
-            }
-
+            // TerritoryRegion is import-only legacy data. Runtime export never recreates it.
             for (var r = 0; r < grid.Height; r++)
             {
                 for (var q = 0; q < grid.Width; q++)
@@ -105,8 +76,6 @@ namespace XianXia.Data.Content
                     if (string.IsNullOrEmpty(cell.ControlFactionId))
                         continue;
                     var hex = new HexCoord(q, r);
-                    if (regionHexes.Contains(hex))
-                        continue;
                     definition.StandaloneTerritoryHexes.Add(new HexWorldStandaloneHexControlDefinition
                     {
                         Q = q,

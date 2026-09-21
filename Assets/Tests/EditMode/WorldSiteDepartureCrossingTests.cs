@@ -145,7 +145,7 @@ namespace XianXia.Tests
             Assert.Greater(all.Count, 0);
             foreach (var c in all)
             {
-                PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                LegacyPlayerPartyLocalVisibleTravelCompatibility.ResolveWorldSiteExitApproachLocalPoint(
                     c, RealSiteBounds, RealDepth, out var ax, out var ay);
                 Assert.IsTrue(
                     SurfaceExitZoneCalculator.PointBelongsToConnection(ax, ay, c, RealDepth),
@@ -219,7 +219,7 @@ namespace XianXia.Tests
 
             var before = m.WorldPosition;
             var beforeKind = m.LocationKind;
-            var result = PlayerPartyLocalVisibleAutoTravelService
+            var result = LegacyPlayerPartyLocalVisibleTravelCompatibility
                 .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, conn);
 
             Assert.IsFalse(result.IsSuccess, "不可通行 external → cross 失败");

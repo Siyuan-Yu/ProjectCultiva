@@ -244,6 +244,10 @@ namespace XianXia.Data.Bootstrap
             loop.AddDayBoundaryHandler(new StrategicDayHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 
+            // All opening placement, party and runtime-content work is complete here. Keep the
+            // development-only legacy authority proof at the real New Game boundary.
+            LegacyRuntimeInvariant.AssertModernNewGame(world);
+
             return Result.Ok(new PlayableDayBootstrapResult(
                 world,
                 loop,

@@ -147,7 +147,7 @@ namespace XianXia.Unity.Host
             foreach (var value in _selected)
             {
                 var candidate = new EntityId(value);
-                if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, candidate)) continue;
+                if (!CharacterLifeStateQuery.IsLivingForMacroOrder(world, candidate)) continue;
                 id = candidate;
                 return true;
             }
