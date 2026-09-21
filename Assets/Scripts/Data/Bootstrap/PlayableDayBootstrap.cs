@@ -86,7 +86,7 @@ namespace XianXia.Data.Bootstrap
                     scenarioId.ToString());
             }
             LegacyRuntimeInvariant.AssertModernOpeningScenario(
-                scenario.InitialFormalArmyIds?.Count ?? 0);
+                scenario.InitialLegacyFormalArmyIds?.Count ?? 0);
 
             System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = scenario.Spawns;
             if (!string.IsNullOrWhiteSpace(options.CharacterRosterId))
@@ -180,7 +180,7 @@ namespace XianXia.Data.Bootstrap
                 return Result.Fail<PlayableDayBootstrapResult>(economy.Error);
 
             // §5：所有会 spawn entity 的 opening bootstrap 结束之后，统一补一次 presence 归一化。
-            // 只补「完全没有 WorldPresence」的实体，不覆盖任何已有 authority（含 FormalArmy）。
+            // 只补「完全没有 WorldPresence」的实体，不覆盖任何已有 authority（含 SquadWorldMotion ownership）。
             _openingPopulationDiagnostics.Clear();
             var openingCensus = ContinuousOutdoorOpeningPopulationBootstrap.BuildCensus(
                 world, DefaultStartSiteId);
@@ -243,7 +243,6 @@ namespace XianXia.Data.Bootstrap
             loop.AddDayBoundaryHandler(new ChapterDayHandler());
             loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
             loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
-            loop.AddDayBoundaryHandler(new StrategicDayHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             // All opening placement, party and runtime-content work is complete here. Keep the

@@ -23,12 +23,12 @@ namespace XianXia.Tests
         static SimulationWorld BuildWorldWithHex(HexCoord hex, out PlayerPartyRuntime party)
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 12; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -36,8 +36,8 @@ namespace XianXia.Tests
             var site = new WorldSite
             {
                 SiteId = "test:site",
-                AnchorHex = new HexCoord(0, 0),
-                PresenceHex = new HexCoord(0, 0),
+                LegacyAnchorHex = new HexCoord(0, 0),
+                LegacyPresenceHex = new HexCoord(0, 0),
                 LocalMapId = "base:map_test",
             };
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
@@ -47,7 +47,7 @@ namespace XianXia.Tests
             id.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
             party = new PlayerPartyRuntime();
             Assert.IsTrue(party.TryInitialize(id.Value.Id, out _));
-            world.PlayerPartyTravel.SnapToHexCenter(hex, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SnapToLegacyHexCenter(hex, world.LegacyHexWorld.HexSize);
             world.LocalMap.ActiveMapLayoutId = "w";
             world.LocalMap.OverworldMapLayoutId = "w";
             return world;
@@ -67,11 +67,11 @@ namespace XianXia.Tests
             for (var dir = 0; dir < 6; dir++)
             {
                 var neighbor = HexMath.Neighbor(hex, dir);
-                if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null ||
+                if (!world.LegacyHexWorld.TryGetTile(neighbor, out var tile) || tile == null ||
                     tile.Terrain == HexTerrainType.Water || !tile.IsPassable)
                     continue;
                 Assert.IsTrue(SurfaceExitZoneCalculator.TryBuildConnectionBetweenHexes(
-                    world, hex, neighbor, dir, world.HexWorld.HexSize, bounds, Depth,
+                    world, hex, neighbor, dir, world.LegacyHexWorld.HexSize, bounds, Depth,
                     SurfaceExitZoneCalculator.DefaultSlotSpanFraction, out var c));
                 list.Add(c);
             }

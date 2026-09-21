@@ -24,13 +24,13 @@ namespace XianXia.Tests
             out HexCoord midHex)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:tiny_travel_world";
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:tiny_travel_world";
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -40,18 +40,18 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_huangcun",
                 DisplayName = "青石荒村",
-                AnchorHex = aAnchor,
-                PresenceHex = new HexCoord(3, 4),
+                LegacyAnchorHex = aAnchor,
+                LegacyPresenceHex = new HexCoord(3, 4),
                 LocalMapId = "base:map_ch01_reference",
             };
-            siteA.SetFootprint(new[]
+            siteA.SetLegacyHexFootprint(new[]
             {
                 aAnchor, new HexCoord(3, 4), new HexCoord(2, 5), new HexCoord(3, 5),
             });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, siteA);
 
             midHex = new HexCoord(6, 4);
-            Assert.IsTrue(world.HexWorld.TryGetTile(midHex, out var mid) && mid.IsPassable);
+            Assert.IsTrue(world.LegacyHexWorld.TryGetTile(midHex, out var mid) && mid.IsPassable);
             return world;
         }
 
@@ -81,7 +81,7 @@ namespace XianXia.Tests
 
         static void SetupWildernessAtHex(SimulationWorld world, HexCoord hex, PlayerPartyRuntime party)
         {
-            world.PlayerPartyTravel.SnapToHexCenter(hex, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SnapToLegacyHexCenter(hex, world.LegacyHexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
             world.LocalMap.ActiveMapLayoutId = "w";
             world.LocalMap.OverworldMapLayoutId = "w";
@@ -93,7 +93,7 @@ namespace XianXia.Tests
             for (var d = 0; d < 6; d++)
             {
                 var n = HexMath.Neighbor(hex, d);
-                if (!world.HexWorld.TryGetTile(n, out var tile) || tile == null)
+                if (!world.LegacyHexWorld.TryGetTile(n, out var tile) || tile == null)
                     continue;
                 if (tile.Terrain == HexTerrainType.Water || !tile.IsPassable)
                     continue;
@@ -108,7 +108,7 @@ namespace XianXia.Tests
             HexCoord sourceHex,
             SurfaceExitConnection connection)
         {
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.LegacyHexWorld.HexSize;
             HexMath.ToWorldPosition(sourceHex, hexSize, out var sx, out var sy);
             HexMath.ToWorldPosition(connection.DestinationHex, hexSize, out var dx, out var dy);
             var worldDx = dx - sx;
@@ -149,10 +149,10 @@ namespace XianXia.Tests
         public void MissingNeighborProducesNoExitConnection()
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(3, 3, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(3, 3, HexTerrainType.Plain);
             var corner = new HexCoord(0, 0);
-            world.PlayerPartyTravel.SetAtWorldPosition(
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(
                 new WorldVec2(0f, 0f), corner);
             world.LocalMap.ActiveMapLayoutId = "w";
 
@@ -170,7 +170,7 @@ namespace XianXia.Tests
             SetupWildernessAtHex(world, mid, party);
             const int blockedDir = 1;
             var blocked = HexMath.Neighbor(mid, blockedDir);
-            Assert.IsTrue(world.HexWorld.TryGetCell(blocked, out var cell) && cell != null);
+            Assert.IsTrue(world.LegacyHexWorld.TryGetCell(blocked, out var cell) && cell != null);
             cell.Terrain = HexTerrainType.Water;
             cell.IsPassable = false;
 
@@ -203,7 +203,7 @@ namespace XianXia.Tests
             var party = BuildParty(world, siteA, Spawn(world, "LinQing"));
             SetupWildernessAtHex(world, mid, party);
             var bounds = DefaultBounds();
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.LegacyHexWorld.HexSize;
             HexMath.ToWorldPosition(mid, hexSize, out var sx, out var sy);
 
             var connections = new List<SurfaceExitConnection>(6);
@@ -270,10 +270,10 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out _);
             var party = BuildParty(world, siteA, Spawn(world, "LinQing"));
             var hex = new HexCoord(4, 4);
-            Assert.IsTrue(world.HexWorld.TryGetTile(hex, out _));
+            Assert.IsTrue(world.LegacyHexWorld.TryGetTile(hex, out _));
             SetupWildernessAtHex(world, hex, party);
 
-            var siteNeighbor = siteA.PresenceHex;
+            var siteNeighbor = siteA.LegacyPresenceHex;
             var dir = -1;
             for (var d = 0; d < 6; d++)
             {

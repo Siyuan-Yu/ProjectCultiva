@@ -94,11 +94,11 @@ namespace XianXia.Core.World.Strategic
                     CoreRangeHeight = range.HeightWorld,
                     IsCoreActive = true,
                     CoreIsRemovable = true,
-                    AnchorHex = flag.AnchorHex,
-                    PresenceHex = flag.AnchorHex,
+                    LegacyAnchorHex = flag.AnchorHex,
+                    LegacyPresenceHex = flag.AnchorHex,
                     LocalMapId = string.Empty
                 };
-                site.SetFootprint(new[] { flag.AnchorHex });
+                site.SetLegacyHexFootprint(new[] { flag.AnchorHex });
                 try
                 {
                     world.Strategic.Sites.Register(site);

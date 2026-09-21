@@ -37,7 +37,7 @@ namespace XianXia.Data.Content
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 
             ValidateScenarios(registry, locations, report);
-            ValidateFormalArmies(registry, report);
+            ValidateLegacyFormalArmyDefinitions(registry, report);
             ValidateNpcSquads(registry, report);
             ValidateStrategicFactions(registry, report);
             ValidateWorldRegions(registry, locations, report);
@@ -425,40 +425,6 @@ namespace XianXia.Data.Content
             }
         }
 
-        /// <summary>
-        /// characterRoster.entries 与 openingScenario.spawns 同形，支持 optional authored placement。
-        /// definitionId → character；jobId → job；localLocationId → 已存在地点表。
-        /// worldSiteId 依赖配对 scenario 的 HexWorld context，此处不猜测。
-        /// </summary>
-        void ValidateCharacterRosters(
-            DefinitionRegistry registry,
-            HashSet<string> locations,
-            ValidationReport report)
-        {
-            foreach (var kv in registry.CharacterRosters)
-            {
-                var roster = kv.Value;
-                var ctx = kv.Key.ToString();
-                if (roster.Entries == null)
-                    continue;
-                for (var i = 0; i < roster.Entries.Count; i++)
-                {
-                    var entry = roster.Entries[i];
-                    RequireDef(registry, entry.DefinitionId, "character", ctx + ".entry[" + i + "]", report);
-                    if (!string.IsNullOrWhiteSpace(entry.JobId))
-                        RequireDef(registry, entry.JobId, "job", ctx + ".entry[" + i + "].jobId", report);
-                    if (!string.IsNullOrWhiteSpace(entry.LocalLocationId) &&
-                        !locations.Contains(entry.LocalLocationId))
-                    {
-                        report.Add(
-                            ErrorCode.NotFound,
-                            "roster.entry.localLocationId missing in any localPlaceSet/worldRegion.",
-                            ctx + ".entry[" + i + "].localLocationId:" + entry.LocalLocationId);
-                    }
-                }
-            }
-        }
-
         void ValidateScenarios(
             DefinitionRegistry registry,
             HashSet<string> locations,
@@ -630,15 +596,15 @@ namespace XianXia.Data.Content
                     }
                 }
 
-                if (s.InitialFormalArmyIds != null)
+                if (s.InitialLegacyFormalArmyIds != null)
                 {
-                    for (var i = 0; i < s.InitialFormalArmyIds.Count; i++)
+                    for (var i = 0; i < s.InitialLegacyFormalArmyIds.Count; i++)
                     {
-                        var armyId = s.InitialFormalArmyIds[i];
+                        var armyId = s.InitialLegacyFormalArmyIds[i];
                         RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
-                        ValidateInitialFormalArmySurfacePosition(registry, armyId,
+                        ValidateInitialLegacyFormalArmySurfacePosition(registry, armyId,
                             ctx + ".initialFormalArmyIds[" + i + "]", report);
-                        ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
+                        ValidateInitialLegacyFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
                     }
                 }
                 if (s.InitialNpcSquadIds != null)
@@ -650,11 +616,11 @@ namespace XianXia.Data.Content
             }
         }
 
-        static void ValidateInitialFormalArmySurfacePosition(
+        static void ValidateInitialLegacyFormalArmySurfacePosition(
             DefinitionRegistry registry, string armyIdText, string ctx, ValidationReport report)
         {
             if (!DefinitionId.TryParse(armyIdText, out var armyId) ||
-                !registry.FormalArmies.TryGetValue(armyId, out var def) ||
+                !registry.LegacyFormalArmyDefinitions.TryGetValue(armyId, out var def) ||
                 def == null)
                 return;
             if (def.InitialSurfaceDeployment != null)
@@ -726,7 +692,7 @@ namespace XianXia.Data.Content
         /// 选的 OpeningHexWorld。在 bounds 内且 passable、且不属于任何 WorldSite footprint
         /// 才合法（footprint 内应改用 assemblySiteId 的 AtWorldSite 部署）。
         /// </summary>
-        static void ValidateInitialFormalArmyHex(
+        static void ValidateInitialLegacyFormalArmyHex(
             DefinitionRegistry registry,
             string armyIdText,
             HexWorldContentDefinition hexWorld,
@@ -736,7 +702,7 @@ namespace XianXia.Data.Content
             if (string.IsNullOrWhiteSpace(armyIdText) ||
                 !DefinitionId.TryParse(armyIdText, out var armyId))
                 return;
-            if (!registry.FormalArmies.TryGetValue(armyId, out var def) || def == null)
+            if (!registry.LegacyFormalArmyDefinitions.TryGetValue(armyId, out var def) || def == null)
                 return;
             if (def.InitialHex == null)
                 return;
@@ -877,7 +843,7 @@ namespace XianXia.Data.Content
                 }
             }
 
-            foreach (var kv in registry.FormalArmies)
+            foreach (var kv in registry.LegacyFormalArmyDefinitions)
             {
                 var def = kv.Value;
                 if (def == null)
@@ -1137,12 +1103,13 @@ namespace XianXia.Data.Content
             }
         }
 
-        static void ValidateFormalArmies(DefinitionRegistry registry, ValidationReport report)
+        static void ValidateLegacyFormalArmyDefinitions(
+            DefinitionRegistry registry, ValidationReport report)
         {
             var seenArmyIds = new HashSet<string>(StringComparer.Ordinal);
             var seenStackIds = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var kv in registry.FormalArmies)
+            foreach (var kv in registry.LegacyFormalArmyDefinitions)
             {
                 var def = kv.Value;
                 var ctx = def.Id.ToString();
@@ -1801,7 +1768,7 @@ namespace XianXia.Data.Content
                     ok = registry.SpawnTables.ContainsKey(id);
                     break;
                 case "formalArmy":
-                    ok = registry.FormalArmies.ContainsKey(id);
+                    ok = registry.LegacyFormalArmyDefinitions.ContainsKey(id);
                     break;
                 case "npcSquad":
                     ok = registry.NpcSquads.ContainsKey(id);

@@ -22,20 +22,20 @@ namespace XianXia.Tests
         static SimulationWorld BuildWorld(bool withSite = true)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:b7a";
-            world.HexWorld.HexSize = HexSize;
-            world.HexWorld.FillRectangle(9, 5, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:b7a";
+            world.LegacyHexWorld.HexSize = HexSize;
+            world.LegacyHexWorld.FillRectangle(9, 5, HexTerrainType.Plain);
             if (withSite)
             {
                 var site = new WorldSite
                 {
                     SiteId = "test:through_site",
                     DisplayName = "Through Site",
-                    AnchorHex = SiteA,
-                    PresenceHex = SiteA,
+                    LegacyAnchorHex = SiteA,
+                    LegacyPresenceHex = SiteA,
                     LocalMapId = "test:site_map",
                 };
-                site.SetFootprint(new[] { SiteA, SiteB });
+                site.SetLegacyHexFootprint(new[] { SiteA, SiteB });
                 world.Strategic.Sites.Register(site);
             }
 
@@ -53,10 +53,10 @@ namespace XianXia.Tests
         {
             var party = NewParty();
             HexMath.ToWorldPosition(start, HexSize, out var x, out var y);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), start);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(x, y), start);
             var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, goal);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : string.Empty);
-            return new List<HexCoord>(world.PlayerPartyTravel.HexPath);
+            return new List<HexCoord>(world.PlayerPartyTravel.LegacyHexPath);
         }
 
         [Test]
@@ -83,7 +83,7 @@ namespace XianXia.Tests
             var before = BeginRoute(beforeWorld, Start, Goal);
             var afterWorld = BuildWorld();
             Assert.IsTrue(afterWorld.Strategic.Sites.TryGet("test:through_site", out var site));
-            site.AnchorHex = SiteB;
+            site.LegacyAnchorHex = SiteB;
             var after = BeginRoute(afterWorld, Start, Goal);
             CollectionAssert.AreEqual(before, after);
         }
@@ -94,7 +94,7 @@ namespace XianXia.Tests
             var before = BeginRoute(BuildWorld(), Start, Goal);
             var afterWorld = BuildWorld();
             Assert.IsTrue(afterWorld.Strategic.Sites.TryGet("test:through_site", out var site));
-            site.PresenceHex = SiteB;
+            site.LegacyPresenceHex = SiteB;
             var after = BeginRoute(afterWorld, Start, Goal);
             CollectionAssert.AreEqual(before, after);
         }
@@ -105,13 +105,13 @@ namespace XianXia.Tests
             var world = BuildWorld();
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(x, y), Start);
             var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(
                 world, party, SiteB, "test:through_site");
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:through_site", out var site));
-            Assert.IsTrue(site.OccupiesHex(world.PlayerPartyTravel.DestinationHex));
-            Assert.AreEqual(SiteA, world.PlayerPartyTravel.DestinationHex,
+            Assert.IsTrue(site.OccupiesLegacyHex(world.PlayerPartyTravel.LegacyDestinationHex));
+            Assert.AreEqual(SiteA, world.PlayerPartyTravel.LegacyDestinationHex,
                 "planner chooses the lowest-cost ingress in the whole footprint");
         }
 
@@ -129,13 +129,13 @@ namespace XianXia.Tests
                 {
                     sawSite = true;
                     Assert.IsTrue(motion.IsMoving, "through-Site must preserve AutoTravel");
-                    Assert.AreEqual(Goal, motion.DestinationHex);
+                    Assert.AreEqual(Goal, motion.LegacyDestinationHex);
                 }
             }
 
             Assert.IsTrue(sawSite, "route entered Site Context");
             Assert.IsFalse(motion.IsMoving, "route eventually completes at final surface goal");
-            Assert.AreEqual(Goal, motion.CurrentHex);
+            Assert.AreEqual(Goal, motion.LegacyCurrentHex);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
         }
 
@@ -145,16 +145,16 @@ namespace XianXia.Tests
             var world = BuildWorld();
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:through_site", out var site));
             var party = NewParty();
-            world.PlayerPartyTravel.SetAtWorldSite(site.SiteId, SiteA, HexSize);
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(site.SiteId, SiteA, HexSize);
             var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal);
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolveRouteStartHex(
                 world, world.PlayerPartyTravel, out _, out var pathIndex));
-            Assert.Less(pathIndex, world.PlayerPartyTravel.HexPathCount);
+            Assert.Less(pathIndex, world.PlayerPartyTravel.LegacyHexPathCount);
             Assert.AreEqual(
-                world.PlayerPartyTravel.SiteDepartureExitHex,
-                world.PlayerPartyTravel.HexPath[pathIndex]);
-            Assert.IsFalse(site.OccupiesHex(world.PlayerPartyTravel.HexPath[pathIndex]));
+                world.PlayerPartyTravel.LegacySiteDepartureExitHex,
+                world.PlayerPartyTravel.LegacyHexPath[pathIndex]);
+            Assert.IsFalse(site.OccupiesLegacyHex(world.PlayerPartyTravel.LegacyHexPath[pathIndex]));
         }
 
         [Test]
@@ -164,16 +164,16 @@ namespace XianXia.Tests
             BeginRoute(world, Start, Goal);
             var motion = world.PlayerPartyTravel;
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:through_site", out var site));
-            var entryIndex = IndexOf(motion.HexPath, SiteA);
+            var entryIndex = IndexOf(motion.LegacyHexPath, SiteA);
             Assert.Greater(entryIndex, 0);
             HexMath.ToWorldPosition(SiteA, HexSize, out var x, out var y);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.TryCommitThroughSitePassage(
                 world, motion, site, new WorldVec2(x, y), SiteA, HexSize, out var resolvedEntry));
             Assert.AreEqual(entryIndex, resolvedEntry);
-            Assert.AreEqual(SiteB, motion.SiteDepartureFootprintHex);
-            Assert.AreEqual(motion.HexPath[entryIndex + 2], motion.SiteDepartureExitHex);
+            Assert.AreEqual(SiteB, motion.LegacySiteDepartureFootprintHex);
+            Assert.AreEqual(motion.LegacyHexPath[entryIndex + 2], motion.LegacySiteDepartureExitHex);
             Assert.IsTrue(motion.IsMoving);
-            Assert.AreEqual(Goal, motion.DestinationHex);
+            Assert.AreEqual(Goal, motion.LegacyDestinationHex);
         }
 
         [Test]
@@ -182,12 +182,12 @@ namespace XianXia.Tests
             var world = BuildWorld(false);
             for (var r = 0; r < 5; r++)
             {
-                Assert.IsTrue(world.HexWorld.TryGetTile(new HexCoord(4, r), out var tile));
+                Assert.IsTrue(world.LegacyHexWorld.TryGetTile(new HexCoord(4, r), out var tile));
                 tile.Terrain = HexTerrainType.Water;
             }
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(x, y), Start);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal).IsFailure);
         }
 
@@ -197,12 +197,12 @@ namespace XianXia.Tests
             var world = BuildWorld(false);
             for (var r = 0; r < 5; r++)
             {
-                Assert.IsTrue(world.HexWorld.TryGetTile(new HexCoord(4, r), out var tile));
+                Assert.IsTrue(world.LegacyHexWorld.TryGetTile(new HexCoord(4, r), out var tile));
                 tile.IsPassable = false;
             }
             var party = NewParty();
             HexMath.ToWorldPosition(Start, HexSize, out var x, out var y);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), Start);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(x, y), Start);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goal).IsFailure);
         }
 
@@ -221,7 +221,7 @@ namespace XianXia.Tests
             var total = 0f;
             for (var i = 0; i < path.Count; i++)
             {
-                Assert.IsTrue(world.HexWorld.TryGetTile(path[i], out var tile));
+                Assert.IsTrue(world.LegacyHexWorld.TryGetTile(path[i], out var tile));
                 total += tile.ResolveMovementCost();
             }
             return total;

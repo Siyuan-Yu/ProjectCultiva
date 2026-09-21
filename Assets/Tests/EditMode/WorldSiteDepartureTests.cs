@@ -14,7 +14,7 @@ namespace XianXia.Tests
     /// 覆盖：DeparturePlan 形成（route first outside hex）、formal SurfaceExitConnection、
     /// WorldMap open 不虚拟推进、close 后 LocalVisible approach（B4 继续）、
     /// TransitionCommit 停 B4、正式 egress（BoundaryContactWorld + route 继续）、
-    /// override/Stop 取消、reopen/换目标、同 Site 目标拒绝、失败不 teleport、CurrentHex 不重构。
+    /// override/Stop 取消、reopen/换目标、同 Site 目标拒绝、失败不 teleport、LegacyCurrentHex 不重构。
     /// 真实 fixture：ch01_hex_world.json（base:site_huangcun，4-Hex footprint）。
     /// </summary>
     public sealed class WorldSiteDepartureTests
@@ -46,8 +46,8 @@ namespace XianXia.Tests
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.AnchorHex = hexes[0];
-                site.SetFootprint(hexes);
+                site.LegacyAnchorHex = hexes[0];
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
             Assert.Fail("huangcun site not found");
@@ -58,8 +58,8 @@ namespace XianXia.Tests
         {
             var site = LoadHuangcun();
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
             world.Strategic.Sites.Register(site);
 
             var party = new PlayerPartyRuntime();
@@ -75,9 +75,9 @@ namespace XianXia.Tests
             WorldVec2 canonical)
         {
             var m = world.PlayerPartyTravel;
-            m.SetAtWorldSite(site.SiteId, footprintHex, HexSize);
+            m.SetAtLegacyWorldSite(site.SiteId, footprintHex, HexSize);
             m.CaptureTravelingMembers(party.Members);
-            Assert.IsTrue(m.TryUpdateWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
+            Assert.IsTrue(m.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
         }
 
         static PlayerPartyWorldMotion BeginDeparture(
@@ -91,7 +91,7 @@ namespace XianXia.Tests
         {
             SetAtSite(world, site, party, footprintHex, canonical);
             var m = world.PlayerPartyTravel;
-            m.BeginSiteDepartureTravel(
+            m.BeginLegacySiteDepartureTravel(
                 new List<HexCoord> { footprintHex, exitHex, goalHex },
                 goalHex,
                 string.Empty,
@@ -112,8 +112,8 @@ namespace XianXia.Tests
                 hasActiveView: true,
                 isAtWorldSite: m.LocationKind == PlayerPartyLocationKind.AtWorldSite,
                 hasSiteId: !string.IsNullOrEmpty(m.SiteId),
-                isDepartureTransitionCommit: m.DeparturePhase == PlayerPartyDeparturePhase.TransitionCommit,
-                usesTravelPresentation: m.UsesTravelPresentation,
+                isDepartureTransitionCommit: m.LegacyDeparturePhase == LegacyPlayerPartyDeparturePhase.TransitionCommit,
+                usesTravelPresentation: m.LegacyUsesTravelPresentation,
                 isMaterializeHeld: false,
                 hasGeometry: true);
             return WorldSiteLocalVisibleSyncPolicy.CanSync(ctx);
@@ -132,10 +132,10 @@ namespace XianXia.Tests
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
 
             Assert.IsTrue(m.IsMoving, "AutoTravel active");
-            Assert.IsTrue(m.IsSiteDeparturePending, "IsSiteDeparturePending");
-            Assert.AreEqual(PlayerPartyDeparturePhase.Planned, m.DeparturePhase, "phase == Planned");
-            Assert.AreEqual(outsideWest, m.SiteDepartureExitHex, "exitHex == first outside hex");
-            Assert.AreEqual(fp0, m.SiteDepartureFootprintHex, "footprintHex == fp0");
+            Assert.IsTrue(m.IsLegacySiteDeparturePending, "IsLegacySiteDeparturePending");
+            Assert.AreEqual(LegacyPlayerPartyDeparturePhase.Planned, m.LegacyDeparturePhase, "phase == Planned");
+            Assert.AreEqual(outsideWest, m.LegacySiteDepartureExitHex, "exitHex == first outside hex");
+            Assert.AreEqual(fp0, m.LegacySiteDepartureFootprintHex, "footprintHex == fp0");
         }
 
         [Test]
@@ -148,9 +148,9 @@ namespace XianXia.Tests
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
 
-            Assert.AreNotEqual(site.AnchorHex, m.SiteDepartureExitHex, "exit != Anchor");
-            Assert.AreNotEqual(site.PresenceHex, m.SiteDepartureExitHex, "exit != Presence");
-            Assert.AreEqual(outsideWest, m.SiteDepartureExitHex, "exit == route first outside hex");
+            Assert.AreNotEqual(site.LegacyAnchorHex, m.LegacySiteDepartureExitHex, "exit != Anchor");
+            Assert.AreNotEqual(site.LegacyPresenceHex, m.LegacySiteDepartureExitHex, "exit != Presence");
+            Assert.AreEqual(outsideWest, m.LegacySiteDepartureExitHex, "exit == route first outside hex");
         }
 
         [Test]
@@ -182,13 +182,13 @@ namespace XianXia.Tests
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
             var before = m.WorldPosition;
-            var exitHex = m.SiteDepartureExitHex;
-            Assert.IsTrue(m.IsSiteDeparturePending, "plan exists after Begin");
+            var exitHex = m.LegacySiteDepartureExitHex;
+            Assert.IsTrue(m.IsLegacySiteDeparturePending, "plan exists after Begin");
 
             // Phase 5R-B6.5-B：WorldMap open（ExecutionMode=World）→ World executor 推进 Canonical
             // 朝正式 BoundaryContactWorld（唯一 physical truth），到达后正式 egress commit
             // （AtWorldPosition + route 对齐 DestinationHex）。不再抑制（旧 B6 语义）。
-            var target = m.SiteDepartureBoundaryEntry;
+            var target = m.LegacySiteDepartureBoundaryEntry;
             var dist = WorldVec2.Distance(before, target);
             Assert.IsTrue(dist > 0.001f, "formal boundary distinct from canonical");
 
@@ -204,7 +204,7 @@ namespace XianXia.Tests
             LegacyPlayerPartyHexTravelCompatibility.AdvanceDistanceBudget(world, dist + 0.001f);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, m.LocationKind,
                 "committed at boundary (egress)");
-            Assert.AreEqual(exitHex, m.CurrentHex, "route hex = exit hex (no WorldToHex tie)");
+            Assert.AreEqual(exitHex, m.LegacyCurrentHex, "route hex = exit hex (no WorldToHex tie)");
             Assert.IsTrue(m.IsMoving, "route continues after commit");
         }
 
@@ -220,7 +220,7 @@ namespace XianXia.Tests
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
             // CloseWorldMapTakeover: IsMoving → ExecutionMode=LocalVisible（Host 驱动层语义）
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
 
             Assert.AreEqual(PlayerPartyTravelExecutionMode.LocalVisible, m.ExecutionMode, "LocalVisible");
             Assert.IsTrue(B4Allowed(m), "B4 allowed during approach (phase=Planned)");
@@ -235,8 +235,8 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, m.LocationKind, "LocationKind AtWorldSite");
             Assert.AreEqual(site.SiteId, m.SiteId, "SiteId unchanged");
@@ -251,8 +251,8 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.IsTrue(B4Allowed(m), "B4 allowed during Approaching");
         }
@@ -266,8 +266,8 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.TransitionCommit);
 
             Assert.IsFalse(B4Allowed(m), "B4 blocked at TransitionCommit");
         }
@@ -283,15 +283,15 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.IsTrue(
                 WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
                     world, site, fp0, outsideWest, HexSize, TestBounds, out var conn),
                 "resolve exit conn");
 
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.TransitionCommit);
             var cross = LegacyPlayerPartyLocalVisibleTravelCompatibility
                 .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, conn);
             Assert.IsTrue(cross.IsSuccess, "egress success" + (cross.IsSuccess ? string.Empty : " " + cross.Error));
@@ -299,12 +299,12 @@ namespace XianXia.Tests
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, m.LocationKind, "AtWorldPosition after egress");
             Assert.AreEqual(conn.BoundaryContactWorldX, m.WorldPosition.X, 1e-4f, "canonical X == BoundaryContactWorld");
             Assert.AreEqual(conn.BoundaryContactWorldY, m.WorldPosition.Y, 1e-4f, "canonical Y == BoundaryContactWorld");
-            Assert.IsFalse(m.IsSiteDeparturePending, "departure cleared");
+            Assert.IsFalse(m.IsLegacySiteDeparturePending, "departure cleared");
 
-            Assert.IsTrue(m.HexPathCount >= 3, "route preserved (hexPath count=" + m.HexPathCount + ")");
-            Assert.AreEqual(goalFar, m.DestinationHex, "destination preserved");
+            Assert.IsTrue(m.LegacyHexPathCount >= 3, "route preserved (hexPath count=" + m.LegacyHexPathCount + ")");
+            Assert.AreEqual(goalFar, m.LegacyDestinationHex, "destination preserved");
             Assert.IsTrue(m.IsMoving, "AutoTravel preserved");
-            Assert.AreEqual(1, m.SegmentIndex, "segment advanced to exit->goal");
+            Assert.AreEqual(1, m.LegacyHexSegmentIndex, "segment advanced to exit->goal");
         }
 
         [Test]
@@ -323,7 +323,7 @@ namespace XianXia.Tests
             Assert.IsTrue(result.IsSuccess, result.IsSuccess ? string.Empty : result.Error.ToString());
             var motion = world.PlayerPartyTravel;
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
-            Assert.AreEqual(outside, motion.CurrentHex);
+            Assert.AreEqual(outside, motion.LegacyCurrentHex);
             Assert.AreEqual(connection.BoundaryContactWorldX, motion.WorldPosition.X, 1e-4f);
             Assert.AreEqual(connection.BoundaryContactWorldY, motion.WorldPosition.Y, 1e-4f);
             Assert.IsEmpty(world.PartyWorld.SiteId);
@@ -342,14 +342,14 @@ namespace XianXia.Tests
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
             var canonicalBefore = m.WorldPosition;
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             var cancel = LegacyPlayerPartyHexTravelCompatibility.CancelTravel(world);
             Assert.IsTrue(cancel.IsSuccess, "CancelTravel success");
             Assert.IsFalse(m.IsMoving, "not moving after cancel");
-            Assert.IsFalse(m.IsSiteDeparturePending, "departure cleared");
-            Assert.AreEqual(PlayerPartyDeparturePhase.None, m.DeparturePhase, "phase == None");
+            Assert.IsFalse(m.IsLegacySiteDeparturePending, "departure cleared");
+            Assert.AreEqual(LegacyPlayerPartyDeparturePhase.None, m.LegacyDeparturePhase, "phase == None");
             Assert.AreEqual(canonicalBefore, m.WorldPosition, "canonical preserved (no snap)");
         }
 
@@ -362,8 +362,8 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
             var canonicalBefore = m.WorldPosition;
 
             LegacyPlayerPartyTravelTestCompatibility.ResumeWorldTravelExecutionIfNeeded(world);
@@ -374,7 +374,7 @@ namespace XianXia.Tests
                 "reopen switches to World executor");
             Assert.AreEqual(canonicalBefore, m.WorldPosition,
                 "canonical preserved at switch (advance only on tick)");
-            Assert.IsTrue(m.IsSiteDeparturePending, "departure plan persists");
+            Assert.IsTrue(m.IsLegacySiteDeparturePending, "departure plan persists");
         }
 
         [Test]
@@ -389,13 +389,13 @@ namespace XianXia.Tests
 
             BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
             var m = world.PlayerPartyTravel;
-            m.BeginSiteDepartureTravel(
+            m.BeginLegacySiteDepartureTravel(
                 new List<HexCoord> { fp0, exit2, goal2 }, goal2, string.Empty,
                 fp0, exit2, new WorldVec2(139.8f, 77.2f), new WorldVec2(142.0f, 78.0f),
                 HexTravelMode.Ground, HexSize);
 
-            Assert.AreEqual(exit2, m.SiteDepartureExitHex, "exit updated to new route");
-            Assert.AreEqual(goal2, m.DestinationHex, "destination updated");
+            Assert.AreEqual(exit2, m.LegacySiteDepartureExitHex, "exit updated to new route");
+            Assert.AreEqual(goal2, m.LegacyDestinationHex, "destination updated");
         }
 
         // ============================ [6] 同 Site / 失败 ============================
@@ -411,7 +411,7 @@ namespace XianXia.Tests
             var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, fp1);
 
             Assert.IsTrue(result.IsFailure, "BeginTravel rejected for same-site target");
-            Assert.IsFalse(world.PlayerPartyTravel.IsSiteDeparturePending, "no departure created");
+            Assert.IsFalse(world.PlayerPartyTravel.IsLegacySiteDeparturePending, "no departure created");
             Assert.IsFalse(world.PlayerPartyTravel.IsMoving, "no AutoTravel");
         }
 
@@ -440,11 +440,11 @@ namespace XianXia.Tests
             var goalFar = new HexCoord(40, 40);
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
-            m.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            m.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
 
-            // B6 不写 CurrentHex：path 起点仍是 footprint hex、段 0 为 footprint 内段
-            Assert.AreEqual(fp0, m.HexPath[0], "path origin footprint hex");
-            Assert.AreEqual(0, m.SegmentIndex, "segment 0 (footprint 内段)");
+            // B6 不写 LegacyCurrentHex：path 起点仍是 footprint hex、段 0 为 footprint 内段
+            Assert.AreEqual(fp0, m.LegacyHexPath[0], "path origin footprint hex");
+            Assert.AreEqual(0, m.LegacyHexSegmentIndex, "segment 0 (footprint 内段)");
         }
 
         [Test]

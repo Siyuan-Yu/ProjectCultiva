@@ -60,7 +60,7 @@ namespace XianXia.Data.Content
         public List<string> InitialNpcSquadIds { get; set; } = new List<string>();
 
         /// <summary>[Legacy content input only] Loaded through a one-way migration adapter.</summary>
-        public List<string> InitialFormalArmyIds { get; set; } = new List<string>();
+        public List<string> InitialLegacyFormalArmyIds { get; set; } = new List<string>();
     }
 
     public sealed class OpeningStrategicStateDefinition

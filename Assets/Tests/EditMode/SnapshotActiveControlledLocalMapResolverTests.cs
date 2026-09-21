@@ -40,10 +40,10 @@ namespace XianXia.Tests
             party.TryRestoreFromSnapshot(active, new[] { active }, out _);
 
             world.WorldPresence.SetAtSite(active, Ch01HexPrototypeMapBuilder.SitePlayerCamp);
-            world.PlayerPartyTravel.SetAtWorldSite(
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(
                 Ch01HexPrototypeMapBuilder.SiteHuangcun,
                 Ch01HexPrototypeMapBuilder.HuangcunHex,
-                world.HexWorld.HexSize);
+                world.LegacyHexWorld.HexSize);
 
             Assert.IsTrue(SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
                 world, party, out var resolved));
@@ -60,10 +60,10 @@ namespace XianXia.Tests
             party.TryRestoreFromSnapshot(active, new[] { active }, out _);
 
             var hex = Ch01HexPrototypeMapBuilder.HuangcunHex;
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.LegacyHexWorld.HexSize;
             HexMath.ToWorldPosition(hex, hexSize, out var wx, out var wy);
             world.WorldPresence.SetAtWorldPosition(active, new WorldVec2(wx, wy), hex);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(wx, wy), hex);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(wx, wy), hex);
 
             Assert.IsTrue(SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
                 world, party, out var resolved));

@@ -19,8 +19,8 @@ namespace XianXia.Tests
             var definition = HexWorldContentExporter.Export(world);
             var loaded = new SimulationWorld();
             Assert.IsTrue(HexWorldContentLoader.Apply(loaded, definition).IsSuccess);
-            Assert.AreEqual(world.HexWorld.Width, loaded.HexWorld.Width);
-            Assert.AreEqual(world.HexWorld.Height, loaded.HexWorld.Height);
+            Assert.AreEqual(world.LegacyHexWorld.Width, loaded.LegacyHexWorld.Width);
+            Assert.AreEqual(world.LegacyHexWorld.Height, loaded.LegacyHexWorld.Height);
         }
 
         [Test]
@@ -53,11 +53,11 @@ namespace XianXia.Tests
 
             var world = new SimulationWorld();
             Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
-            Assert.IsTrue(world.HexWorld.TryGetCell(new HexCoord(4, 4), out var forest));
+            Assert.IsTrue(world.LegacyHexWorld.TryGetCell(new HexCoord(4, 4), out var forest));
             Assert.AreEqual(HexTerrainType.Forest, forest.Terrain);
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:site_village", out var site));
             Assert.AreEqual("测试村", site.DisplayName);
-            Assert.AreEqual(new HexCoord(5, 2), site.AnchorHex);
+            Assert.AreEqual(new HexCoord(5, 2), site.LegacyAnchorHex);
         }
 
         [Test]
@@ -67,7 +67,7 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
             Assert.IsTrue(world.Strategic.Sites.TryGet("test:site_probe", out var site));
-            Assert.AreEqual(new HexCoord(42, 17), site.AnchorHex);
+            Assert.AreEqual(new HexCoord(42, 17), site.LegacyAnchorHex);
         }
 
         [Test]
@@ -81,7 +81,7 @@ namespace XianXia.Tests
 
             var world = new SimulationWorld();
             Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
-            Assert.IsTrue(world.HexWorld.TryGetCell(new HexCoord(11, 10), out var cell));
+            Assert.IsTrue(world.LegacyHexWorld.TryGetCell(new HexCoord(11, 10), out var cell));
             Assert.IsTrue(cell.IsRoad);
             Assert.AreEqual(HexTerrainType.Road, cell.Terrain);
         }

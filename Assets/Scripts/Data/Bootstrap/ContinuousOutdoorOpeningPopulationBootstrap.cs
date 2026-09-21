@@ -19,7 +19,7 @@ namespace XianXia.Data.Bootstrap
         public int OpeningCharacterCount;
         public int OpeningNpcCount;
         public int WorldPresenceAtOpeningSiteCount;
-        public int FormalArmyCharacterAtOpeningSiteCount;
+        public int SquadMotionCharacterAtOpeningSiteCount;
         public int ExpectedContinuousPopulationCount;
 
         public string Describe() =>
@@ -27,7 +27,7 @@ namespace XianXia.Data.Bootstrap
             " OpeningCharacter=" + OpeningCharacterCount +
             " OpeningNpc=" + OpeningNpcCount +
             " PresenceAtSite=" + WorldPresenceAtOpeningSiteCount +
-            " ArmyAtSite=" + FormalArmyCharacterAtOpeningSiteCount +
+            " SquadMotionAtSite=" + SquadMotionCharacterAtOpeningSiteCount +
             " ExpectedPopulation=" + ExpectedContinuousPopulationCount;
     }
 
@@ -37,7 +37,7 @@ namespace XianXia.Data.Bootstrap
         public int NormalizedAtSite;
         public int NormalizedAtSiteWithAnchor;
         public int SkippedExistingPresence;
-        public int SkippedArmyMember;
+        public int SkippedSquadMotionMember;
         public int SkippedIndependentSpace;
         public int Unresolved;
         public List<string> Ambiguities;
@@ -47,7 +47,7 @@ namespace XianXia.Data.Bootstrap
     /// NewGame opening population 的 presence 归一化（§5–§9）。
     ///
     /// 只补「完全没有 WorldPresence」的实体，绝不覆盖已有 authority（AtSite／AtWorldPosition／
-    /// AtHex／InEncounter／FormalArmy member 战略位置）。解析必须唯一：LocationId 跨 Site 复用而
+    /// AtHex／InEncounter／SquadWorldMotion-owned member 战略位置）。解析必须唯一：LocationId 跨 Site 复用而
     /// 无法用 source LocalMap 消解时 **不猜**，记入 ambiguity（Content validation error）。
     ///
     /// 它不决定「谁在运行中被 materialize」——那只属于 Continuous Outdoor 的 loaded neighborhood；
@@ -72,7 +72,7 @@ namespace XianXia.Data.Bootstrap
                 "[OpeningPopulation] normalized=" + report.NormalizedAtSite +
                 " withAnchor=" + report.NormalizedAtSiteWithAnchor +
                 " skippedExisting=" + report.SkippedExistingPresence +
-                " skippedArmy=" + report.SkippedArmyMember +
+                " skippedSquadMotion=" + report.SkippedSquadMotionMember +
                 " skippedIndependent=" + report.SkippedIndependentSpace +
                 " unresolved=" + report.Unresolved);
             return Result.Success();
@@ -125,11 +125,11 @@ namespace XianXia.Data.Bootstrap
                 if (!isCharacter && !isNpc)
                     continue;
 
-                // FormalArmy member 的战略位置由 FormalArmyDefinition.factionId／Army context 决定；
-                // normalize 绝不为它臆造 AtSite（否则会把部队成员钉进某个 Site population）。
+                // SquadWorldMotion-owned member 的战略位置由 squad motion authority 决定；
+                // normalize 绝不为它臆造 AtSite（否则会把小队成员钉进某个 Site population）。
                 if (SquadWorldMotionService.OwnsCharacter(world, entity.Id))
                 {
-                    report.SkippedArmyMember++;
+                    report.SkippedSquadMotionMember++;
                     continue;
                 }
 
@@ -233,7 +233,7 @@ namespace XianXia.Data.Bootstrap
             for (var i = 0; i < expected.Count; i++)
             {
                 if (SquadWorldMotionService.OwnsCharacter(world, expected[i]))
-                    census.FormalArmyCharacterAtOpeningSiteCount++;
+                    census.SquadMotionCharacterAtOpeningSiteCount++;
             }
 
             return census;

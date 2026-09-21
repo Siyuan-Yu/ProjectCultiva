@@ -143,8 +143,8 @@ namespace XianXia.Core.World.Strategic
                 return 0;
 
             var motion = world.PlayerPartyTravel;
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             var depth = NormalizeDepth(exitTriggerDepth, bounds);
             var spanFraction = DefaultSlotSpanFraction;
@@ -152,7 +152,7 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
                 CollectOrdinaryHexConnections(
-                    world, motion.CurrentHex, hexSize, bounds, depth, spanFraction, connectionsOut);
+                    world, motion.LegacyCurrentHex, hexSize, bounds, depth, spanFraction, connectionsOut);
             }
             else if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                      !string.IsNullOrEmpty(motion.SiteId))
@@ -474,11 +474,11 @@ namespace XianXia.Core.World.Strategic
         {
             connection = default;
             var neighbor = HexMath.Neighbor(sourceHex, directionIndex);
-            if (world.HexWorld == null ||
-                !world.HexWorld.TryGetTile(neighbor, out var tile) ||
+            if (world.LegacyHexWorld == null ||
+                !world.LegacyHexWorld.TryGetTile(neighbor, out var tile) ||
                 tile == null)
                 return false;
-            if (!IsGroundPassable(world.HexWorld, neighbor))
+            if (!IsGroundPassable(world.LegacyHexWorld, neighbor))
                 return false;
 
             return TryBuildConnectionBetweenHexes(
@@ -547,7 +547,7 @@ namespace XianXia.Core.World.Strategic
             var kind = SurfaceExitDestinationKind.WildernessHex;
             var siteId = string.Empty;
             if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
+                world.Strategic.Sites.TryGetAtLegacyHex(destinationHex, out var site) &&
                 site != null)
             {
                 kind = SurfaceExitDestinationKind.WorldSite;
@@ -670,10 +670,10 @@ namespace XianXia.Core.World.Strategic
         /// <summary>统计 Footprint 外围唯一可通行 Outside Hex 数（与 Connection 数一致）。</summary>
         public static int CountUniqueTraversableOutsideNeighbors(SimulationWorld world, WorldSite site)
         {
-            if (world?.HexWorld == null || site == null)
+            if (world?.LegacyHexWorld == null || site == null)
                 return 0;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             CollectAggregates(world, site, hexSize, ScratchAggregates);
             return ScratchAggregates.Count;
         }
@@ -701,9 +701,9 @@ namespace XianXia.Core.World.Strategic
             out SurfaceExitConnection connection)
         {
             connection = default;
-            if (world?.HexWorld == null || site == null || hexSize <= 0.0001f)
+            if (world?.LegacyHexWorld == null || site == null || hexSize <= 0.0001f)
                 return false;
-            if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(fromWildernessHex))
+            if (!site.OccupiesLegacyHex(footprintHex) || site.OccupiesLegacyHex(fromWildernessHex))
                 return false;
             var direction = -1;
             for (var dir = 0; dir < 6; dir++)
@@ -714,7 +714,7 @@ namespace XianXia.Core.World.Strategic
                 break;
             }
             if (direction < 0 ||
-                !world.HexWorld.TryGetTile(fromWildernessHex, out var outsideTile) ||
+                !world.LegacyHexWorld.TryGetTile(fromWildernessHex, out var outsideTile) ||
                 outsideTile == null || !outsideTile.IsPassable || outsideTile.Terrain == HexTerrainType.Water)
                 return false;
 
@@ -787,9 +787,9 @@ namespace XianXia.Core.World.Strategic
             out SurfaceExitConnection connection)
         {
             connection = default;
-            if (world?.HexWorld == null || site == null || hexSize <= 0.0001f)
+            if (world?.LegacyHexWorld == null || site == null || hexSize <= 0.0001f)
                 return false;
-            if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(exitHex))
+            if (!site.OccupiesLegacyHex(footprintHex) || site.OccupiesLegacyHex(exitHex))
                 return false;
             var routeEdgeExists = false;
             for (var direction = 0; direction < HexMath.DirectionCount; direction++)
@@ -830,7 +830,7 @@ namespace XianXia.Core.World.Strategic
             float spanFraction,
             IList<SurfaceExitConnection> connectionsOut)
         {
-            if (connectionsOut == null || world?.HexWorld == null || site == null)
+            if (connectionsOut == null || world?.LegacyHexWorld == null || site == null)
                 return 0;
 
             connectionsOut.Clear();
@@ -892,14 +892,14 @@ namespace XianXia.Core.World.Strategic
             // 若按 (hex,dir) 全局顺序写，SharedSegOffset/Count 的连续读会串入别的 dest 的段）。
             // pass 1：统计每个 dest 的共享边数（并选 RepresentativeSource）；
             // pass 2：按 dest 前缀和 offset 连续填充段表。
-            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            foreach (var footprintHex in site.EnumerateLegacyFootprintHexes())
             {
                 for (var dir = 0; dir < 6; dir++)
                 {
                     var neighbor = HexMath.Neighbor(footprintHex, dir);
-                    if (site.OccupiesHex(neighbor))
+                    if (site.OccupiesLegacyHex(neighbor))
                         continue;
-                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null)
+                    if (!world.LegacyHexWorld.TryGetTile(neighbor, out var tile) || tile == null)
                         continue;
                     if (!IsGroundPassable(tile))
                         continue;
@@ -935,14 +935,14 @@ namespace XianXia.Core.World.Strategic
             }
 
             var cursor = new int[aggregatesOut.Count];
-            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            foreach (var footprintHex in site.EnumerateLegacyFootprintHexes())
             {
                 for (var dir = 0; dir < 6; dir++)
                 {
                     var neighbor = HexMath.Neighbor(footprintHex, dir);
-                    if (site.OccupiesHex(neighbor))
+                    if (site.OccupiesLegacyHex(neighbor))
                         continue;
-                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null)
+                    if (!world.LegacyHexWorld.TryGetTile(neighbor, out var tile) || tile == null)
                         continue;
                     if (!IsGroundPassable(tile))
                         continue;
@@ -1129,7 +1129,7 @@ namespace XianXia.Core.World.Strategic
             centerX = 0f;
             centerY = 0f;
             var count = 0;
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
                 HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);
                 centerX += x;

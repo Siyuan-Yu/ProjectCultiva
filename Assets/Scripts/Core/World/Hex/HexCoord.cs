@@ -3,8 +3,8 @@ using System;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// Hex 战略空间身份（Odd-R offset：Q=列, R=行；pointy-top 布局）。
-    /// 禁止用 float 世界坐标作 Domain 身份；邻居/距离必须走 <see cref="HexMath"/>。
+    /// Legacy grid／tool Hex 坐标（Odd-R offset：Q=列, R=行；pointy-top 布局）。
+    /// 在该兼容几何内，邻居／距离必须走 <see cref="HexMath"/>；正常 Surface 仍以 exact WorldPosition 为真源。
     /// </summary>
     public readonly struct HexCoord : IEquatable<HexCoord>
     {

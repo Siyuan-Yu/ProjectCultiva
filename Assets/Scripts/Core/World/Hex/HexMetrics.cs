@@ -3,9 +3,10 @@ using System;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// Hex 几何真源：Renderer 与 Mouse Picking 必须只读此配置。
+    /// Legacy Hex compatibility、工具与回归测试的几何配置；不是正常 Continuous Surface
+    /// Gameplay 的物理或导航 authority。Hex renderer／picking 只能在该兼容范围内读取此配置。
     /// Pointy-top + Odd-R offset：Compact 网格 Q=列、R=行（见 HexWorldLayout）。
-    /// 拓扑 Authority：HexMath.Neighbor / Distance（禁止把存储坐标当 axial）。
+    /// Legacy Hex 拓扑计算由 HexMath.Neighbor / Distance 提供（禁止把存储坐标当 axial）。
     /// HexWorldEditor 镜像：ExternalTools Shared HexWorldLayoutShared（必须保持公式一致）。
     /// </summary>
     public static class HexMetrics

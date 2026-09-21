@@ -34,7 +34,7 @@ namespace XianXia.Tests
         static SimulationWorld World()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
             world.Strategic.PlayerFactionId = Player;
             world.InventoryCatalog.Register(Wood, "粗木", 99, new[] { "resource" });
             var spec = new BuildingConstructionSpec

@@ -55,7 +55,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var derived = presence.HasContinuousWorldPosition
                 ? HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY, hexSize)
                 : default;
@@ -66,7 +66,7 @@ namespace XianXia.Core.World.Strategic
                      " CharacterMode=" + presence.Mode +
                      " CharacterDerivedHex=" + derived +
                      " PartyCurrentHex=" + (world.PlayerPartyTravel?.HasPosition == true
-                         ? world.PlayerPartyTravel.CurrentHex.ToString()
+                         ? world.PlayerPartyTravel.LegacyCurrentHex.ToString()
                          : "None") +
                      " NotifyEnteredEqualsLoaded=" + enteredHexForNotify.Equals(loaded.WildernessHex) +
                      " BelongsToLoadedMap=" + belongs +

@@ -63,7 +63,7 @@ namespace XianXia.Core.Simulation
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             SurfaceGround = new SurfaceGroundAuthority();
             SurfaceSpatial = new OutdoorSurfaceSpatialAuthority();
-            HexWorld = new HexWorld();
+            LegacyHexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
             PartyWorld = new PartyWorldPresence();
@@ -127,7 +127,7 @@ namespace XianXia.Core.Simulation
         /// <summary>Loaded continuous outdoor sites, places and entity presentation membership.</summary>
         public ContinuousOutdoorMaterializationBoard ContinuousOutdoorMaterialization { get; }
 
-        /// <summary>Region-limited checked-in Surface ground/nav authority; outside its cells Hex compatibility remains active.</summary>
+        /// <summary>Region-limited checked-in Surface ground/nav authority; outside its cells legacy Hex compatibility may remain active.</summary>
         public SurfaceGroundAuthority SurfaceGround { get; }
 
         /// <summary>Complete Outdoor Surface identity/metric/chunk coverage; never a walkability authority.</summary>
@@ -136,11 +136,8 @@ namespace XianXia.Core.Simulation
         /// <summary>Explicit administrative asset identity to canonical management position.</summary>
         public OutdoorAdministrativeAssetAnchorBoard OutdoorAdministrativeAssetAnchors { get; }
 
-        /// <summary>Hex 战略世界真源（155+）。</summary>
-        public HexWorld HexWorld { get; }
-
-        /// <summary>兼容旧属性名。</summary>
-        public HexWorld HexGrid => HexWorld;
+        /// <summary>旧网格内容、兼容路径及几何／工具查询所用的 Hex 模型；不是正常 Continuous Surface authority。</summary>
+        public HexWorld LegacyHexWorld { get; }
 
         /// <summary>各角色宏观位置。</summary>
         public WorldPresenceBoard WorldPresence { get; }

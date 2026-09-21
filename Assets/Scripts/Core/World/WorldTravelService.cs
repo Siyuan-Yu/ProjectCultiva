@@ -1,5 +1,3 @@
-using XianXia.Core.Domain.Ids;
-using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -10,75 +8,6 @@ namespace XianXia.Core.World
     /// <summary>Party focus and legacy Site/Outdoor LocalMap activation helpers.</summary>
     public static class WorldTravelService
     {
-        public static void SyncPartyFocus(SimulationWorld world)
-        {
-            if (world == null)
-                return;
-
-            // Domain authority: once PlayerPartyWorldMotion has a position, never let NPC AtSite
-            // presence rewrite PartyWorld (that revived departure Site after ordinary Hex TravelComplete).
-            var travel = world.PlayerPartyTravel;
-            if (travel != null && travel.HasPosition)
-                return;
-
-            string bestLivingWithMap = null;
-            string bestLiving = null;
-            string bestAnyWithMap = null;
-            string bestAny = null;
-
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var p = kv.Value;
-                if (p == null)
-                    continue;
-
-                var id = new EntityId(kv.Key);
-                if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
-                    continue;
-                if ((ent.Tags & EntityTag.Npc) != 0)
-                    continue;
-
-                string siteId = null;
-                if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
-                    siteId = p.SiteId;
-                else if (!string.IsNullOrEmpty(p.SiteId) &&
-                         world.Strategic.Sites.TryGet(p.SiteId, out var nodeAsSite) &&
-                         nodeAsSite != null)
-                    siteId = nodeAsSite.SiteId;
-
-                if (string.IsNullOrEmpty(siteId))
-                    continue;
-
-                bestAny = siteId;
-                var hasMap = world.Strategic.Sites.TryGet(siteId, out var site) &&
-                             site != null &&
-                             !string.IsNullOrWhiteSpace(ResolveWorldSiteLocalMapId(site));
-                if (hasMap)
-                    bestAnyWithMap = siteId;
-
-                var living = true;
-                if (ent.TryGet<LifecycleComponent>(out var life) && life != null)
-                    living = !life.IsIncapacitated && !life.IsDead && !life.IsRemoved;
-                if (!living)
-                    continue;
-
-                bestLiving = siteId;
-                if (hasMap)
-                    bestLivingWithMap = siteId;
-            }
-
-            var focusSiteId = bestLivingWithMap ?? bestLiving ?? bestAnyWithMap ?? bestAny ??
-                              world.PartyWorld.SiteId;
-            if (string.IsNullOrEmpty(focusSiteId) ||
-                !world.Strategic.Sites.TryGet(focusSiteId, out var focusSite) ||
-                focusSite == null)
-                return;
-
-            world.PartyWorld.SiteId = focusSiteId;
-            world.PartyWorld.LocalMapId = ResolveWorldSiteLocalMapId(focusSite);
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
-        }
-
         public static void ApplyLocalMapSessionFromFocus(SimulationWorld world)
         {
             LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(world, null);
@@ -170,7 +99,7 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (string.IsNullOrWhiteSpace(localMapId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Wilderness LocalMapId required.");
-            if (!world.HexWorld.HasGrid || !world.HexWorld.Contains(wildernessHex))
+            if (!world.LegacyHexWorld.HasGrid || !world.LegacyHexWorld.Contains(wildernessHex))
                 return Result.Failure(ErrorCode.InvalidArgument, "Wilderness hex out of bounds.");
 
             world.PartyWorld.ClearSiteFocus();

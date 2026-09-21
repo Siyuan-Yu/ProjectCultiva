@@ -1,9 +1,9 @@
 # 角色、修士与凡人人口
 
-> 状态：四层模拟边界已冻结；Party 接替／势力继承设计已确认，实施与验收待完成 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：四层模拟与现行 PlayerParty／Squad 生命周期已冻结；队内接替已落地，完整势力继承仍为 Future | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`24`、`26`、`2B`、`28`、`23`、`../30-tech/33`、`../30-tech/34`
-> **本阶段不写实现代码。** 分层形状以 `33` §3／§19／§20 与 `34` 为准。
+> 当前实现边界以 `33`、`34` 与 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 为准；Future／Not Implemented 条目不构成当前开发授权。
 
 ## 1. 这个系统解决什么问题
 
@@ -44,7 +44,7 @@
 
 > **2026-08-22 修订（ADR-0024）：** 旧表述「第三层普通修士群体不模拟每人位置、用 CultivatorPopulation 聚合」**已 superseded**。新核心区别：**修士 = 真实个体化；凡人 = 允许群体化**。战略 Army 见 [2A](2A-factions-armies-diplomacy-and-capture.md)。
 
-**势力外交／战争战略**建立在真实 Character Roster + Army 载体之上（见 [2A](2A-factions-armies-diplomacy-and-capture.md)），不得用匿名 `QiRefiningCount` 代表不存在的修士，也不得把离屏修士偷偷做成全员 LocalMap Actor。
+**势力外交／战争战略**建立在真实 Character／Squad roster 之上；旧 FormalArmy 只允许作为旧输入迁移边界（见 [2A](2A-factions-armies-diplomacy-and-capture.md)）。不得用匿名 `QiRefiningCount` 代表不存在的修士，也不得把离屏修士偷偷做成全员 LocalMap Actor。
 
 四层可以转化：凡人筛出灵根者可进入更高层；关键 NPC 死亡后可由群体“涌现”替代者（规则待确定）。
 

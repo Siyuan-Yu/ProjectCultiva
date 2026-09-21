@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// Hex 拓扑 Authority。
+    /// Legacy grid／tool Hex 拓扑与几何 authority；不承担正常 Continuous Surface 的世界位置 authority。
     /// 存储坐标为 <b>Odd-R offset</b>（Q=列, R=行），布局为 pointy-top。
     /// 邻居 / 距离一律：Odd-R → axial → 计算 → 必要时再转回 Odd-R。
     /// 禁止把存储坐标直接当 axial 加减方向表。

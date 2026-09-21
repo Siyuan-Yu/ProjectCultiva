@@ -1,7 +1,7 @@
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// Hex 战略旅行模式。V1 仅 Ground；Flight 预留，避免寻路 API 只能绑 FormalArmy。
+    /// Legacy Hex compatibility travel mode。V1 仅 Ground；不是正常 Continuous Surface 的移动模式 authority。
     /// </summary>
     public enum HexTravelMode
     {

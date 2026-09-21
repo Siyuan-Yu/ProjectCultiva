@@ -8,15 +8,15 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// 现代 CharacterEncounter / Continuous Manual Combat 敌对判定。
     /// </summary>
-    public static class StrategicEncounterHostilityService
+    public static class CharacterEncounterHostilityService
     {
-        public static bool IsInStrategicEncounterLocalMap(SimulationWorld world)
+        public static bool IsInEncounterCombatContext(SimulationWorld world)
         {
             return world?.Strategic?.CharacterEncounter != null ||
                    world?.Strategic?.ContinuousManualCombat?.IsActive == true;
         }
 
-        public static bool IsStrategicCombatParticipant(SimulationWorld world, EntityId npcId)
+        public static bool IsEncounterCombatParticipant(SimulationWorld world, EntityId npcId)
         {
             if (world == null || npcId.IsNone)
                 return false;
@@ -61,7 +61,7 @@ namespace XianXia.Core.World.Strategic
                    rec.Kind == BattleParticipantKind.EnemyReinforcement;
         }
 
-        public static bool IsHostileStrategicNpc(SimulationWorld world, Entity entity)
+        public static bool IsHostileEncounterParticipant(SimulationWorld world, Entity entity)
         {
             if (world == null || entity == null)
                 return false;
@@ -70,10 +70,10 @@ namespace XianXia.Core.World.Strategic
             if (continuous != null && continuous.IsActive)
                 return continuous.IsEnemy(entity.Id);
 
-            if (!IsInStrategicEncounterLocalMap(world))
+            if (!IsInEncounterCombatContext(world))
                 return false;
 
-            if (!IsStrategicCombatParticipant(world, entity.Id))
+            if (!IsEncounterCombatParticipant(world, entity.Id))
                 return false;
 
             if (!entity.TryGet<FactionMembershipComponent>(out var mem) || mem == null)

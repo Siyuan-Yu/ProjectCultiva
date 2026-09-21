@@ -18,7 +18,6 @@ using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
-using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -79,40 +78,8 @@ namespace XianXia.Unity.Host
         static readonly Color BarViolet = new Color(0.62f, 0.42f, 0.72f, 1f);
         static readonly Color AccentGold = new Color(0.95f, 0.78f, 0.28f, 1f);
 
-        static readonly AttributeId[] AttributeDisplayOrder =
-        {
-            AttributeId.Physique,
-            AttributeId.MaxHp,
-            AttributeId.Attack,
-            AttributeId.Defense,
-            AttributeId.Speed,
-            AttributeId.Stamina,
-            AttributeId.SpiritSense,
-            AttributeId.Comprehension,
-            AttributeId.SpiritPower,
-            AttributeId.Cultivation,
-            AttributeId.MindState
-        };
-
-        static readonly SpiritRootKind[] SpiritRootDisplayOrder =
-        {
-            SpiritRootKind.Fire,
-            SpiritRootKind.Metal,
-            SpiritRootKind.Earth,
-            SpiritRootKind.Wood,
-            SpiritRootKind.Thunder,
-            SpiritRootKind.Wind,
-            SpiritRootKind.Ice,
-            SpiritRootKind.Poison
-        };
-
         readonly List<EntityId> _housingResidentsScratch = new List<EntityId>(16);
-        readonly List<EntityId> _housingCandidatesScratch = new List<EntityId>(32);
-        readonly List<(ScheduleActivity Activity, int Priority)> _tendencyScratch =
-            new List<(ScheduleActivity Activity, int Priority)>(16);
-        Vector2 _housingAssignScroll;
         Vector2 _scheduleEditScroll;
-        Vector2 _unitPanelScroll;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -885,14 +852,6 @@ namespace XianXia.Unity.Host
             });
         }
 
-        static void ResumeSession(PlayableHostSession session)
-        {
-            if (session == null)
-                return;
-            if (!session.World.ContentEvents.HasActive)
-                session.IsPaused = false;
-        }
-
         static string FormatEntityNames(PlayableHostSession session, List<EntityId> ids)
         {
             var sb = new StringBuilder();
@@ -1046,7 +1005,6 @@ namespace XianXia.Unity.Host
             if (_unitPanelFocus != focus)
             {
                 _unitPanelFocus = focus;
-                _unitPanelScroll = Vector2.zero;
             }
 
             var isPartyMember = session.PlayerParty.IsMember(focus);
@@ -1482,203 +1440,6 @@ namespace XianXia.Unity.Host
                 _parchmentBody);
         }
 
-        void DrawAttributesTab(Entity entity, Rect area)
-        {
-            if (!entity.TryGet<AttributesComponent>(out var attrs))
-            {
-                GUI.Label(area, "无属性数据", _parchmentBody);
-                return;
-            }
-
-            var viewH = AttributeDisplayOrder.Length * 24f + 8f;
-            _unitPanelScroll = GUI.BeginScrollView(
-                area,
-                _unitPanelScroll,
-                new Rect(0f, 0f, area.width - 18f, viewH));
-            var colW = (area.width - 28f) * 0.5f;
-            for (var i = 0; i < AttributeDisplayOrder.Length; i++)
-            {
-                var id = AttributeDisplayOrder[i];
-                var col = i % 2;
-                var row = i / 2;
-                var x = col * (colW + 10f);
-                var y = row * 24f;
-                var v = attrs.GetFinal(id);
-                DrawStatBar(x, y, colW, AttributeName(id), v, AttributeBarMax(id, v), AttributeBarColor(id));
-            }
-
-            GUI.EndScrollView();
-        }
-
-        void DrawSpiritRootsTab(Entity entity, Rect area)
-        {
-            if (!entity.TryGet<SpiritRootComponent>(out var roots))
-            {
-                GUI.Label(area, "无灵根数据", _parchmentBody);
-                return;
-            }
-
-            var viewH = SpiritRootDisplayOrder.Length * 24f + 8f;
-            _unitPanelScroll = GUI.BeginScrollView(
-                area,
-                _unitPanelScroll,
-                new Rect(0f, 0f, area.width - 18f, viewH));
-            var colW = (area.width - 28f) * 0.5f;
-            for (var i = 0; i < SpiritRootDisplayOrder.Length; i++)
-            {
-                var kind = SpiritRootDisplayOrder[i];
-                var col = i % 2;
-                var row = i / 2;
-                var x = col * (colW + 10f);
-                var y = row * 24f;
-                var v = roots.Get(kind);
-                DrawStatBar(x, y, colW, SpiritRootName(kind), v, SpiritRootComponent.DefaultMax, BarTeal);
-            }
-
-            GUI.EndScrollView();
-        }
-
-        void DrawCultivationTab(Entity entity, CultivationComponent cult, Rect area)
-        {
-            if (cult == null)
-            {
-                GUI.Label(area, "无修炼数据", _parchmentBody);
-                return;
-            }
-
-            var req = Mathf.Max(1, cult.BreakthroughProgressRequired > 0
-                ? cult.BreakthroughProgressRequired
-                : 100);
-            var y = area.y;
-            GUI.Label(
-                new Rect(area.x, y, area.width, 22f),
-                "境界 " + RealmName(cult.Realm, cult.MinorStage),
-                _parchmentBody);
-            y += 24f;
-            DrawStatBar(area.x, y, area.width, "修为进度", cult.Progress, req, BarBlue);
-            y += 26f;
-            GUI.Label(
-                new Rect(area.x, y, area.width, 22f),
-                "突破所需 " + cult.BreakthroughProgressRequired +
-                " · 修炼速度 " + cult.CultivationSpeed,
-                _parchmentBody);
-            y += 24f;
-            GUI.Label(
-                new Rect(area.x, y, area.width, 22f),
-                "功法 " + ManualShortName(cult, bootstrap?.Session?.World),
-                _parchmentBody);
-            y += 24f;
-            if (!string.IsNullOrEmpty(cult.RequiredRealmName))
-            {
-                GUI.Label(
-                    new Rect(area.x, y, area.width, 22f),
-                    "所需境界名 " + cult.RequiredRealmName,
-                    _parchmentBody);
-            }
-
-            if (entity.TryGet<AttributesComponent>(out var attrs))
-            {
-                y += 28f;
-                var cultAttr = attrs.GetFinal(AttributeId.Cultivation);
-                DrawStatBar(
-                    area.x,
-                    y,
-                    area.width,
-                    "修为属性",
-                    cultAttr,
-                    Mathf.Max(100, cultAttr),
-                    BarViolet);
-            }
-        }
-
-        void DrawPersonalityTab(Entity entity, Rect area)
-        {
-            var sb = new StringBuilder(512);
-            if (entity.TryGet<CharacterBioComponent>(out var bio))
-            {
-                if (!string.IsNullOrEmpty(bio.Hometown))
-                    sb.Append("籍贯 ").Append(bio.Hometown).Append('\n');
-                sb.Append("声望 ").Append(bio.Reputation).Append('\n');
-                if (bio.Goals.Count > 0)
-                {
-                    sb.Append("目标\n");
-                    for (var i = 0; i < bio.Goals.Count; i++)
-                        sb.Append("· ").Append(bio.Goals[i]).Append('\n');
-                }
-
-                if (bio.Desires.Count > 0)
-                {
-                    sb.Append("欲求\n");
-                    for (var i = 0; i < bio.Desires.Count; i++)
-                        sb.Append("· ").Append(bio.Desires[i]).Append('\n');
-                }
-            }
-
-            if (entity.TryGet<PersonalityProfileComponent>(out var profile) && profile.Count > 0)
-            {
-                sb.Append("标签\n");
-                foreach (var tag in profile.Tags)
-                    sb.Append("· ").Append(tag).Append('\n');
-            }
-
-            if (sb.Length == 0)
-                sb.Append("无性格／履历数据");
-            DrawScrollText(area, sb.ToString());
-        }
-
-        void DrawTendencyTab(Entity entity, Rect area)
-        {
-            if (!entity.TryGet<ActivityTendencyComponent>(out var tendency))
-            {
-                GUI.Label(area, "无活动倾向数据", _parchmentBody);
-                return;
-            }
-
-            var sb = new StringBuilder(512);
-            if (!string.IsNullOrEmpty(tendency.HomeWorkAreaId))
-                sb.Append("住房工区 ").Append(ShortId(tendency.HomeWorkAreaId)).Append('\n');
-            if (tendency.PreferredWorkAreaIds.Count > 0)
-            {
-                sb.Append("偏好工区 ");
-                for (var i = 0; i < tendency.PreferredWorkAreaIds.Count; i++)
-                {
-                    if (i > 0) sb.Append('、');
-                    sb.Append(ShortId(tendency.PreferredWorkAreaIds[i]));
-                }
-
-                sb.Append('\n');
-            }
-
-            sb.Append("可做活动（按优先级）\n");
-            tendency.CopyPrioritiesTo(_tendencyScratch);
-            if (_tendencyScratch.Count == 0)
-            {
-                sb.Append("· （未配置，默认均可）\n");
-            }
-            else
-            {
-                for (var i = 0; i < _tendencyScratch.Count; i++)
-                {
-                    var item = _tendencyScratch[i];
-                    sb.Append("· ").Append(ActivityName(item.Activity))
-                        .Append("  优先 ").Append(item.Priority).Append('\n');
-                }
-            }
-
-            DrawScrollText(area, sb.ToString());
-        }
-
-        void DrawScrollText(Rect area, string text)
-        {
-            var viewH = Mathf.Max(area.height, _parchmentBody.CalcHeight(new GUIContent(text), area.width - 18f) + 8f);
-            _unitPanelScroll = GUI.BeginScrollView(
-                area,
-                _unitPanelScroll,
-                new Rect(0f, 0f, area.width - 18f, viewH));
-            GUI.Label(new Rect(0f, 0f, area.width - 18f, viewH), text, _parchmentBody);
-            GUI.EndScrollView();
-        }
-
         void DrawStatBar(float x, float y, float w, string label, int cur, int max, Color fill)
         {
             GUI.Label(new Rect(x, y, 56f, 20f), label, _parchmentBody);
@@ -1714,72 +1475,6 @@ namespace XianXia.Unity.Host
             }
 
             return "还没有学功法";
-        }
-
-        static string AttributeName(AttributeId id) => HostAttributeLabels.Name(id);
-
-        static int AttributeBarMax(AttributeId id, int value)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp:
-                    return Mathf.Max(1, value);
-                case AttributeId.MindState:
-                case AttributeId.Stamina:
-                case AttributeId.SpiritPower:
-                case AttributeId.Cultivation:
-                    return Mathf.Max(100, value);
-                case AttributeId.Physique:
-                default:
-                    return Mathf.Max(50, value);
-            }
-        }
-
-        static Color AttributeBarColor(AttributeId id)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp:
-                case AttributeId.Physique:
-                case AttributeId.Attack:
-                case AttributeId.Defense:
-                case AttributeId.Speed:
-                case AttributeId.Stamina:
-                    return BarOrange;
-                case AttributeId.SpiritSense:
-                case AttributeId.Comprehension:
-                case AttributeId.MindState:
-                    return BarViolet;
-                default:
-                    return BarBlue;
-            }
-        }
-
-        static string SpiritRootName(SpiritRootKind kind)
-        {
-            switch (kind)
-            {
-                case SpiritRootKind.Fire: return "火";
-                case SpiritRootKind.Metal: return "金";
-                case SpiritRootKind.Earth: return "土";
-                case SpiritRootKind.Wood: return "木";
-                case SpiritRootKind.Thunder: return "雷";
-                case SpiritRootKind.Wind: return "风";
-                case SpiritRootKind.Ice: return "冰";
-                case SpiritRootKind.Poison: return "毒";
-                default: return kind.ToString();
-            }
-        }
-
-        static string FactionRoleName(FactionRoleKind role)
-        {
-            switch (role)
-            {
-                case FactionRoleKind.LaborDisciple: return "杂役";
-                case FactionRoleKind.Member: return "门人";
-                case FactionRoleKind.Supervisor: return "主管";
-                default: return role.ToString();
-            }
         }
 
         void DrawPanel(Rect rect, string title, string body)
@@ -2008,10 +1703,10 @@ namespace XianXia.Unity.Host
             if (stockParts.Count > 0)
                 return string.Join("；", stockParts);
 
-            return SummarizeTrackedObjectivesLegacy(spec);
+            return SummarizeTrackedObjectivesFallback(spec);
         }
 
-        static string SummarizeTrackedObjectivesLegacy(QuestSpec spec)
+        static string SummarizeTrackedObjectivesFallback(QuestSpec spec)
         {
             if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
                 return "（无）";
@@ -2059,34 +1754,6 @@ namespace XianXia.Unity.Host
             }
 
             return parts.Count == 0 ? "（无）" : string.Join("；", parts);
-        }
-
-        string BuildRelationText(PlayableHostSession session, EntityId focus)
-        {
-            var sb = new StringBuilder(256);
-            if (!session.World.Entities.TryGet(focus, out var self) ||
-                !self.TryGet<RelationshipComponent>(out var rel))
-            {
-                sb.Append("无关系数据");
-                return sb.ToString();
-            }
-
-            var n = 0;
-            foreach (var e in session.World.Entities.All)
-            {
-                if (e.Id == focus)
-                    continue;
-                if (!rel.TryGetCachedToward(e.Id, out var score))
-                    continue;
-                var nm = string.IsNullOrEmpty(e.DisplayName) ? e.Id.ToString() : e.DisplayName;
-                sb.Append("· ").Append(nm).Append("  ").Append(score).Append('\n');
-                if (++n >= 10)
-                    break;
-            }
-
-            if (n == 0)
-                sb.Append("暂无显著关系");
-            return sb.ToString();
         }
 
         string BuildEventText(PlayableHostSession session)

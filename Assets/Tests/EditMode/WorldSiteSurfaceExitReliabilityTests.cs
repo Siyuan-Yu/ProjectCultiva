@@ -32,8 +32,8 @@ namespace XianXia.Tests
         static readonly WildernessLocalWorldProjection.WildernessLocalMapBounds RealBounds =
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
 
-        static readonly WorldSiteSpatialMapping.WorldSiteLocalMapBounds RealSiteBounds =
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
+        static readonly WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds RealSiteBounds =
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
 
         static WorldSite LoadHuangcun()
         {
@@ -50,8 +50,8 @@ namespace XianXia.Tests
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.AnchorHex = hexes[0];
-                site.SetFootprint(hexes);
+                site.LegacyAnchorHex = hexes[0];
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
 
@@ -63,9 +63,9 @@ namespace XianXia.Tests
         {
             var site = LoadHuangcun();
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
             world.Strategic.Sites.Register(site);
 
             var conns = new List<SurfaceExitConnection>(16);

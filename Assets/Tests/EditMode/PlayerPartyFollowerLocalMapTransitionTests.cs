@@ -69,13 +69,13 @@ namespace XianXia.Tests
         static SimulationWorld BuildTinyTravelWorld(out WorldSite siteA, out WorldSite siteB, out HexCoord midHex)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:follower_transition";
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:follower_transition";
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -86,11 +86,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_huangcun",
                 DisplayName = "青石荒村",
-                AnchorHex = aAnchor,
-                PresenceHex = aPresence,
+                LegacyAnchorHex = aAnchor,
+                LegacyPresenceHex = aPresence,
                 LocalMapId = MapA,
             };
-            siteA.SetFootprint(new[]
+            siteA.SetLegacyHexFootprint(new[]
             {
                 aAnchor, aPresence, new HexCoord(2, 5), new HexCoord(3, 5),
             });
@@ -101,11 +101,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_chengzhen",
                 DisplayName = "青石镇",
-                AnchorHex = bAnchor,
-                PresenceHex = bAnchor,
+                LegacyAnchorHex = bAnchor,
+                LegacyPresenceHex = bAnchor,
                 LocalMapId = MapC,
             };
-            siteB.SetFootprint(new[]
+            siteB.SetLegacyHexFootprint(new[]
             {
                 bAnchor, new HexCoord(11, 4), new HexCoord(10, 5), new HexCoord(11, 5),
             });
@@ -146,7 +146,7 @@ namespace XianXia.Tests
                 -20f, -20f, 1f, 40, 40);
             var entry = WildernessLocalWorldProjection.OppositeDirection(exitDir);
             WildernessLocalWorldProjection.GetLocalPositionNearEdge(bounds, entry, out var x, out var y);
-            var gate = world.PlayerPartyTravel.SurfaceEdgeGate;
+            var gate = world.PlayerPartyTravel.LegacySurfaceEdgeGate;
             if (gate != null && !gate.TransitionInProgress && gate.LastExitDirection < 0)
                 gate.BeginTransition(exitDir);
             LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(world, bounds, x, y);
@@ -192,7 +192,7 @@ namespace XianXia.Tests
             var a = Spawn(world, "LinQing");
             var b = Spawn(world, "WangChen");
             var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SnapToLegacyHexCenter(mid, world.LegacyHexWorld.HexSize);
             world.WorldPresence.SetLegacyAtHex(a, mid);
             world.WorldPresence.SetLegacyAtHex(b, mid);
 
@@ -232,7 +232,7 @@ namespace XianXia.Tests
             var a = Spawn(world, "LinQing");
             var b = Spawn(world, "WangChen");
             var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SnapToLegacyHexCenter(mid, world.LegacyHexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
             LegacyPlayerPartyHexTravelCompatibility.ApplyMembersAtHex(world, party, mid);
 

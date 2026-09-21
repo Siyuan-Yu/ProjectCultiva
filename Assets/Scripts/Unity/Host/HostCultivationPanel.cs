@@ -534,13 +534,6 @@ namespace XianXia.Unity.Host
             return sb.ToString();
         }
 
-        EntityId ResolveFocus()
-        {
-            if (selectionController != null && selectionController.State.Count > 0)
-                return selectionController.State.SelectedIds[0];
-            return EntityId.None;
-        }
-
         void EnsureStyles()
         {
             if (_title != null)

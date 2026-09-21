@@ -4,11 +4,11 @@
 > `TryConstructFactionFlagSite → ValidateSiteCorePlacement → TryPlaceSiteCore`。旧 Hex
 > placement 描述只保留历史语境，不再是可调用的 runtime API。
 
-> 状态：旧 Wilderness-only V1 已验收；CW-03 旗创建 Site 已实现／制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-13
+> 状态：Construction V1 与 Continuous SiteCore／FactionFlag 建造链已 Producer Accepted / Sealed；未来建设扩展未实现 | 优先级：P0 | 最后更新：2026-09-21
 > 依赖：2K、2A、FactionFlag Domain、PartyInventory
 > 封板记录：[201](../40-process/201-localmap-construction-v1-sealed-2026-09-06.md)
 
-> **2026-09-13 当前状态：** 最新建设范围与 SiteCore 生命周期见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。CW-03 已接通“正常建筑入口→Continuous 鼠标真实落点→材料与新 Site／唯一旗核心一次提交→表现／地图→存读档→拆旗失效”；复杂重叠扩张与资产管理接续仍后置。制作人尚未验收 CW-03。
+> **现行状态：** 建设范围与 SiteCore 生命周期见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。正常建筑入口、Continuous 精确落点、材料事务、新 Site／唯一旗核心、表现／WorldMap、存读档与拆旗失效均已验收；产权等扩展仍为 Future。
 
 > **2026-09-15 Legacy 语境：** 本文的 Construction／SiteCore／旗核心规则仍是现行规则，但「LocalMap」作为普通 Outdoor WorldSite 的空间载体属 **Legacy Compatibility**（ADR-0036／ADR-0037）。普通 Outdoor 未来退出 `LocalPlaceSet → LocalMap` 路线；真 Interior／Cave／Dungeon 仍保留独立空间。
 

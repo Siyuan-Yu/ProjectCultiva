@@ -141,7 +141,7 @@ namespace XianXia.Tests
                 world, character, out var state, out var siteId, out var hex, out _));
             Assert.AreEqual(CharacterWorldPresenceQuery.PresenceState.AtWorldPosition, state);
             Assert.AreEqual(string.Empty, siteId);
-            Assert.AreEqual(HexMath.WorldToHex(0f, 0f, world.HexWorld.HexSize), hex);
+            Assert.AreEqual(HexMath.WorldToHex(0f, 0f, world.LegacyHexWorld.HexSize), hex);
             Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, character, out var queried));
             Assert.AreEqual(hex, queried);
         }

@@ -7,6 +7,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
 using XianXia.Core.World.Surface;
+using XianXia.Data.Content.Compatibility;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Data.Content
@@ -275,7 +276,7 @@ namespace XianXia.Data.Content
                         LoadRealmLadder(item, parsed.Value, registry, report);
                         break;
                     case "formalArmy":
-                        LoadFormalArmy(item, parsed.Value, registry, report);
+                        LoadLegacyFormalArmy(item, parsed.Value, registry, report);
                         break;
                     case "npcSquad":
                         LoadNpcSquad(item, parsed.Value, registry, report);
@@ -1003,7 +1004,7 @@ namespace XianXia.Data.Content
                         continue;
                     }
 
-                    scenario.InitialFormalArmyIds.Add(armyIdNode.String);
+                    scenario.InitialLegacyFormalArmyIds.Add(armyIdNode.String);
                 }
             }
 
@@ -1154,18 +1155,18 @@ namespace XianXia.Data.Content
             if (registered.IsFailure) report.Add(registered.Error);
         }
 
-        static void LoadFormalArmy(
+        static void LoadLegacyFormalArmy(
             JsonValue item,
             DefinitionId id,
             DefinitionRegistry registry,
             ValidationReport report)
         {
             var errorsBefore = report.Errors.Count;
-            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.FormalArmyFields, report, id.ToString());
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.LegacyFormalArmyFields, report, id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
 
-            var def = new FormalArmyDefinition
+            var def = new LegacyFormalArmyDefinition
             {
                 Id = id,
                 Name = item.GetString("name", string.Empty),
@@ -1183,8 +1184,8 @@ namespace XianXia.Data.Content
                     return;
                 }
                 DefinitionSchema.RejectUnknownFields(surfaceNode,
-                    DefinitionSchema.FormalArmyInitialSurfacePositionFields, report, id + ".initialSurfacePosition");
-                def.InitialSurfacePosition = new FormalArmyInitialSurfacePositionDefinition
+                    DefinitionSchema.LegacyFormalArmyInitialSurfacePositionFields, report, id + ".initialSurfacePosition");
+                def.InitialSurfacePosition = new LegacyFormalArmyInitialSurfacePositionDefinition
                 {
                     SurfaceId = surfaceNode.GetString("surfaceId", string.Empty),
                     WorldX = ReadFloat(surfaceNode, "worldX", 0f),
@@ -1201,7 +1202,7 @@ namespace XianXia.Data.Content
                     return;
                 }
                 DefinitionSchema.RejectUnknownFields(deploymentNode,
-                    DefinitionSchema.FormalArmyInitialSurfaceDeploymentFields,
+                    DefinitionSchema.LegacyFormalArmyInitialSurfaceDeploymentFields,
                     report, id + ".initialSurfaceDeployment");
                 if (!deploymentNode.TryGetProperty("offsetCellsX", out var offsetX) ||
                     !deploymentNode.TryGetProperty("offsetCellsY", out var offsetY) ||
@@ -1217,7 +1218,7 @@ namespace XianXia.Data.Content
                         id.ToString());
                     return;
                 }
-                def.InitialSurfaceDeployment = new FormalArmyInitialSurfaceDeploymentDefinition
+                def.InitialSurfaceDeployment = new LegacyFormalArmyInitialSurfaceDeploymentDefinition
                 {
                     SurfaceId = deploymentNode.GetString("surfaceId", string.Empty),
                     AnchorSiteId = deploymentNode.GetString("anchorSiteId", string.Empty),
@@ -1236,13 +1237,13 @@ namespace XianXia.Data.Content
 
                 var hexErrorsBefore = report.Errors.Count;
                 DefinitionSchema.RejectUnknownFields(
-                    hexNode, DefinitionSchema.FormalArmyInitialHexFields, report, id + ".initialHex");
+                    hexNode, DefinitionSchema.LegacyFormalArmyInitialHexFields, report, id + ".initialHex");
                 if (report.Errors.Count > hexErrorsBefore)
                     return;
 
                 // (0,0) 是合法 Hex：以 InitialHex != null 为 presence authority，
                 // 不能靠 Q/R 是否为 0 判断有没有 initialHex。
-                def.InitialHex = new FormalArmyInitialHexDefinition
+                def.InitialHex = new LegacyFormalArmyInitialHexDefinition
                 {
                     Q = hexNode.TryGetProperty("q", out var qNode) && qNode.Kind == JsonValueKind.Number
                         ? (int)qNode.Number
@@ -1294,11 +1295,11 @@ namespace XianXia.Data.Content
 
                 var memberErrorsBefore = report.Errors.Count;
                 DefinitionSchema.RejectUnknownFields(
-                    memberNode, DefinitionSchema.FormalArmyMemberFields, report, id + ".member");
+                    memberNode, DefinitionSchema.LegacyFormalArmyMemberFields, report, id + ".member");
                 if (report.Errors.Count > memberErrorsBefore)
                     continue;
 
-                var member = new FormalArmyMemberDefinition
+                var member = new LegacyFormalArmyMemberDefinition
                 {
                     CharacterDefinitionId = memberNode.GetString("characterDefinitionId", string.Empty),
                     DisplayName = memberNode.GetString("displayName", string.Empty),
@@ -1331,7 +1332,7 @@ namespace XianXia.Data.Content
                 return;
             }
 
-            var reg = registry.RegisterFormalArmy(def);
+            var reg = registry.RegisterLegacyFormalArmyDefinition(def);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

@@ -231,7 +231,7 @@ namespace XianXia.Data.Bootstrap
         /// 无 LocalMap bounds／映射失败 → false（调用方退回 Site-only presence，不伪造锚点）。
         ///
         /// <para>§2：必须与 SitePlacements／SitePlaces／OpeningEntityAnchors 走<b>同一个</b>
-        /// <see cref="WorldSiteOutdoorBakeTransform"/>（authored bake truth），不得另开一套。</para>
+        /// <see cref="WorldSiteHexFootprintBakeTransform"/>（authored bake truth），不得另开一套。</para>
         /// </summary>
         public static bool TryResolveCanonicalAnchor(
             SimulationWorld world,
@@ -242,10 +242,10 @@ namespace XianXia.Data.Bootstrap
             out WorldVec2 anchor)
         {
             anchor = default;
-            if (world?.HexWorld == null || site == null || sourceLayout == null)
+            if (world?.LegacyHexWorld == null || site == null || sourceLayout == null)
                 return false;
 
-            var bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 sourceLayout.OriginX,
                 sourceLayout.OriginY,
                 sourceLayout.CellSize,
@@ -254,11 +254,11 @@ namespace XianXia.Data.Bootstrap
             if (!bounds.IsValid)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : HexWorldScale.DefaultHexOuterRadius;
 
-            return WorldSiteOutdoorBakeTransform.TryBake(
+            return WorldSiteHexFootprintBakeTransform.TryBake(
                 site,
                 hexSize,
                 bounds,

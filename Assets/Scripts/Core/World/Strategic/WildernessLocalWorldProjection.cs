@@ -115,7 +115,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>
         /// 5R-B3A：World → Local 走共享 <see cref="HexFootprintSpatialMapping"/>，使用<b>调用方给出的
         /// 当前 Wilderness context Hex</b>（不自行 WorldToHex 推导）。恰在 polygon 顶点 / 多 hex 共享边界
-        /// 的数值歧义下，由该 context hex 决定映射域，roundtrip 稳定。不切换任何 CurrentHex / Context
+        /// 的数值歧义下，由该 context hex 决定映射域，roundtrip 稳定。不切换任何 LegacyCurrentHex / Context
         /// （Hex Context transition 仍由 SurfaceExit / transition authority 提交）。
         /// </summary>
         public static bool TryProjectWorldToLocal(

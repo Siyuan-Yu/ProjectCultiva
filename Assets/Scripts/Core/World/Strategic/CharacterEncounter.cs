@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
         public EncounterSpatialOwnerKind SourceSpatialOwnerKind;
         public string SourceSquadId = "";
         /// <summary>Legacy snapshot input only.</summary>
-        public string SourceFormalArmyId = "";
+        public string LegacySourceFormalArmyId = "";
         public float OriginX, OriginY;
         /// <summary>Immutable pre-battle physical world position used only for return.</summary>
         public float ReturnX, ReturnY;
@@ -207,7 +207,7 @@ namespace XianXia.Core.World.Strategic
                         continue;
                     if (!CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
                             world, id, surfaceId, out var point, out var owner,
-                            out var armyId, out failure))
+                            out var ownerId, out failure))
                         return Fail("Necessary squad member encounter space: " +
                             CharacterEncounterSpatialAuthorityResolver.DescribeFailure(world, id,
                                 squad.SquadId, surfaceId, owner, failure));
@@ -217,7 +217,7 @@ namespace XianXia.Core.World.Strategic
                                 squad.SquadId, surfaceId, owner, "OutsideFrozenRange"));
                     if (world.Strategic.Participants.FindByEntity(id) != null) return Fail("Squad member already locked: " + raw);
                     state.Participants.Add(CreateEntry(world, id, squad.SquadId,
-                        (squad == targets) == attackerFriendly, point, owner, armyId));
+                        (squad == targets) == attackerFriendly, point, owner, ownerId));
                 }
             // Reserve identity only after full read-only qualification. Character allocation is not used.
             state.EncounterId = "encounter:" + world.Entities.Ids.Next().Value;
@@ -255,7 +255,7 @@ namespace XianXia.Core.World.Strategic
                 SourceSiteId = sourceSiteId ?? string.Empty,
                 SourceSpatialOwnerKind = owner,
                 SourceSquadId = owner == EncounterSpatialOwnerKind.Squad ? ownerId ?? string.Empty : string.Empty,
-                SourceFormalArmyId = string.Empty,
+                LegacySourceFormalArmyId = string.Empty,
                 OriginX = point.X, OriginY = point.Y,
                 ReturnX = point.X, ReturnY = point.Y,
                 TacticalX = point.X, TacticalY = point.Y
@@ -419,13 +419,13 @@ namespace XianXia.Core.World.Strategic
                     return Fail("守军小队成员已被当前战场占用。CharacterId=" + raw);
                 if (!CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
                         world, id, state.SourceSurfaceId, out var point, out var owner,
-                        out var armyId, out var failure))
+                        out var ownerId, out var failure))
                     return Fail("守军小队成员空间校验失败：" +
                         CharacterEncounterSpatialAuthorityResolver.DescribeFailure(world, id,
                             squad.SquadId, state.SourceSurfaceId, owner, failure));
                 if (!state.Contains(point.X, point.Y))
                     return Fail("守军小队成员不在当前战场范围内。CharacterId=" + raw);
-                var entry = CreateEntry(world, id, squad.SquadId, true, point, owner, armyId);
+                var entry = CreateEntry(world, id, squad.SquadId, true, point, owner, ownerId);
                 entry.JoinedAt = state.ElapsedSeconds;
                 joining.Members.Add(entry);
             }
@@ -649,9 +649,9 @@ namespace XianXia.Core.World.Strategic
                 presence.HasContinuousWorldPosition = true; presence.PersonalSurfaceId = state.SourceSurfaceId;
                 if (normalContinuous)
                     presence.ClearHexPresence();
-                else if (world.HexWorld != null)
+                else if (world.LegacyHexWorld != null)
                 {
-                    var hex = HexMath.WorldToHex(p.ReturnX, p.ReturnY, world.HexWorld.HexSize);
+                    var hex = HexMath.WorldToHex(p.ReturnX, p.ReturnY, world.LegacyHexWorld.HexSize);
                     presence.HexQ = hex.Q; presence.HexR = hex.R;
                 }
             }
@@ -661,7 +661,8 @@ namespace XianXia.Core.World.Strategic
         {
             Action<EncounterCharacter> migrate = participant =>
             {
-                if (participant == null || participant.SourceSpatialOwnerKind != EncounterSpatialOwnerKind.FormalArmy)
+                if (participant == null ||
+                    participant.SourceSpatialOwnerKind != EncounterSpatialOwnerKind.LegacyFormalArmy)
                     return;
                 var id = new EntityId(participant.CharacterId);
                 if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null)
@@ -675,7 +676,7 @@ namespace XianXia.Core.World.Strategic
                     participant.SourceSpatialOwnerKind = EncounterSpatialOwnerKind.Personal;
                     participant.SourceSquadId = string.Empty;
                 }
-                participant.SourceFormalArmyId = string.Empty;
+                participant.LegacySourceFormalArmyId = string.Empty;
             };
             foreach (var participant in state.Participants) migrate(participant);
             foreach (var candidate in state.Candidates)
@@ -718,10 +719,10 @@ namespace XianXia.Core.World.Strategic
                     if (!IsLiving(world, raw) || world.Strategic.Participants.FindByEntity(id) != null ||
                         !CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
                             world, id, state.SourceSurfaceId, out var point, out var owner,
-                            out var armyId, out _) ||
+                            out var ownerId, out _) ||
                         !state.Contains(point.X, point.Y)) continue;
                     candidate.Members.Add(CreateEntry(world, id, squad.SquadId,
-                        false, point, owner, armyId));
+                        false, point, owner, ownerId));
                 }
                 if (candidate.Members.Count > 0) state.Candidates.Add(candidate);
             }
@@ -738,9 +739,9 @@ namespace XianXia.Core.World.Strategic
                     squad.SquadId != candidate.SquadId || !state.Contains(member.OriginX, member.OriginY) ||
                     !CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
                         world, id, state.SourceSurfaceId, out var current, out var owner,
-                        out var armyId, out _) ||
+                        out var ownerId, out _) ||
                     owner != member.SourceSpatialOwnerKind ||
-                    !string.Equals(owner == EncounterSpatialOwnerKind.Squad ? armyId : string.Empty,
+                    !string.Equals(owner == EncounterSpatialOwnerKind.Squad ? ownerId : string.Empty,
                         member.SourceSquadId, StringComparison.Ordinal) ||
                     Math.Abs(current.X - member.OriginX) > .0001f ||
                     Math.Abs(current.Y - member.OriginY) > .0001f) return false;

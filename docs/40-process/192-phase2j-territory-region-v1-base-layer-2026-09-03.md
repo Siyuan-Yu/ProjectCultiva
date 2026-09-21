@@ -1,7 +1,7 @@
 # 192 · Phase 2J — Hex Territory / TerritoryRegion V1 基础层硬化封板（2026-09-03）
 
 > 状态：**代码完成 + Content 修复完成，待 Unity 人工验收** ｜ 日期：2026-09-03
-> 上级：[191 Phase 5S Persistence 收口 + Hex Territory V1 基础层封板](191-phase5s-persistence-closure-and-hex-territory-v1-2026-09-03.md)／[2J Hex Territory 规则](docs/20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
+> 上级：[191 Phase 5S Persistence 收口 + Hex Territory V1 基础层封板](191-phase5s-persistence-closure-and-hex-territory-v1-2026-09-03.md)／[2J Hex Territory 规则](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
 > 本文 = 2J「TerritoryRegion / 固定 WorldSite 拥有明确 Territory」V1 指令（0~44 节）的落地归档：
 > 在 **191 已封板的基础层**之上做四类增量——① Domain 硬化缺口；② Site+Territory 一次易主事务；
 > ③ **ch01 Content 形状修复（上轮固化 Region hexes ≠ footprint+1-ring，本轮权威重生成）**；

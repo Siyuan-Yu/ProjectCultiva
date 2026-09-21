@@ -92,7 +92,7 @@ Runtime WorldMap
 
 - Node 可视化编辑
 - Route 连线编辑
-- `WorldGraphEditor` 作为 Node/Route Authoring 工具的旧描述（见 [128](128-worldgraph-editor-2026-08-18.md) 部分 supersede）
+- `WorldGraphEditor` 作为 Node/Route Authoring 工具的旧描述（见 [128](128-world-graph-editor-usage.md)，现已 superseded）
 
 ---
 

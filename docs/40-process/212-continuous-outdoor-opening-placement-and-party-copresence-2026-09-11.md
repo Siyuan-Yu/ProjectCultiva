@@ -1,5 +1,7 @@
 # 212 — Opening NPC Authored Placement Fidelity + PlayerParty Follow 移除 LocalMap gate
 
+> **2026-09-22 实现现名索引（不改历史正文）：** 下文 `WorldSiteOutdoorBakeTransform` 当前名为 `WorldSiteHexFootprintBakeTransform`，`WorldSiteSpatialMapping` 当前名为 `WorldSiteHexFootprintSpatialMapping`。前者仍被 `sitePlacements`／`sitePlaces`／`OpeningEntityAnchors` 与旧 LocalPosition migration 的 opening 链消费，不是 dead legacy runtime；两者的几何约束只针对 Hex footprint 输入，不是 Continuous Surface 或 Actual Administrative Control 的通用规则。
+
 日期：2026-09-11
 状态：**PRODUCER ACCEPTED（当前观察范围）** —— 后续制作人已确认 Opening authored spawn、NPC Schedule realtime movement 与 Continuous Follow 均 PASS；完整当前状态见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)。
 范围：**只修制作人点名的两项 migration regression**（A opening placement fidelity／B 同伴 Follow 的 LocalMap gate）。不进入下一阶段。

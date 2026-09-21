@@ -1,7 +1,7 @@
 # 连续世界制作、合成与去 Hex 产品方向
-> **2026-09-21 FINAL-SEAL freeze：** Continuous Surface 已是正常 Outdoor authority；旧 Hex／Outdoor LocalMap 仅可作为旧数据输入或明确 compatibility adapter。最终矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。状态：**Implementation Complete / Producer Acceptance Pending**。
-> **2026-09-21 LEGACY-FINAL-C Seal：** normal Continuous runtime 已不再拥有 TerritoryRegion、StrategicEncounter、RetreatingArmy 或 LingeringBattlefield board；现代 residual 只使用 exact Surface position，AtHex／Outdoor LocalMap 只留 legacy input／compatibility。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。当前进入 FINAL-SEAL compatibility quarantine 与 architecture freeze。
-> **2026-09-21 LEGACY-FINAL-B Seal：** PlayerParty 正常 New Game、WorldMap travel、direct movement 与 snapshot authority 已统一为 `SurfaceId + exact WorldPosition + SurfaceVisible`。WorldSite／Runtime Chunk／旧 Hex seam 不再建立 Outdoor LocalMap 或改变 modern location kind；Hex、LocalVisible 与 Wilderness transition 只作 compatibility。制作人已人工验收，状态为 **Producer Accepted / Sealed**，见 [249](../40-process/249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。当前进入 LEGACY-FINAL-C。
+> **2026-09-22 FINAL-SEAL：** Continuous Surface 已是正常 Outdoor authority；旧 Hex／Outdoor LocalMap 仅可作为旧数据输入或明确 compatibility adapter。最终矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。专项状态：**Implementation Complete / Producer Accepted / Sealed**。
+> **2026-09-21 LEGACY-FINAL-C Seal：** normal Continuous runtime 已不再拥有 TerritoryRegion、StrategicEncounter、RetreatingArmy 或 LingeringBattlefield board；现代 residual 只使用 exact Surface position，AtHex／Outdoor LocalMap 只留 legacy input／compatibility。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
+> **2026-09-21 LEGACY-FINAL-B Seal：** PlayerParty 正常 New Game、WorldMap travel、direct movement 与 snapshot authority 已统一为 `SurfaceId + exact WorldPosition + SurfaceVisible`。WorldSite／Runtime Chunk／旧 Hex seam 不再建立 Outdoor LocalMap 或改变 modern location kind；Hex、LocalVisible 与 Wilderness transition 只作 compatibility。状态：**Producer Accepted / Sealed**，见 [249](../40-process/249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。
 > 状态：**MAP-01 / MAP-02 / MAP-03 / MAP-04 / SPACE-01 Producer Accepted / Sealed**｜优先级：P0｜最后更新：2026-09-20
 > 上级：[总览](../00-project/00-overview.md)｜决策：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图方向）、[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧 Content 迁移方向）
 > 关联：[24 世界与据点](24-world-and-settlements.md)、[2J Hex Territory](2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../40-process/41-roadmap.md)
@@ -9,9 +9,9 @@
 
 ## 1. 状态边界
 
-当前阶段结论：MAP-01～MAP-04 与 SPACE-01 均已完成制作人人工验收并封板；SPACE-01 seal checkpoint 为 `49f8650`。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；`ContinuousWildernessPair` 已物理删除；WorldRegion 只剩旧包 schema / parser；Outdoor LocalMap 与 `AtHex` 只剩明确的 migration、compatibility、Independent Battle / residual 路径。Separate Space 继续合法保留 LocalMap infrastructure。后续旧军队／玩家旧旅行／TerritoryRegion 收尾分别进入 LEGACY-FINAL-A／B／C。
+当前阶段结论：MAP-01～MAP-04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已完成制作人人工验收并封板。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；WorldRegion 只剩旧包 schema／parser，Outdoor LocalMap 与 `AtHex` 只剩明确 migration／compatibility。Separate Space 继续合法保留 LocalMap infrastructure。
 
-> **2026-09-21 LEGACY-FINAL-A Seal：** NPC group runtime zero-state 已由制作人完整人工验收并正式 **Accepted / Sealed**：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。当前进入 LEGACY-FINAL-B；LEGACY-FINAL-C 仍未完成。
+> **2026-09-21 LEGACY-FINAL-A Seal：** NPC group runtime zero-state 已由制作人完整人工验收并正式 **Accepted / Sealed**：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。
 
 > 本页只记系统与产品方向。当前仓库真实状态、Milestone 表、Known Issues、Do Not Regress、Resume Order 与可复制上下文见 [247 Project Handoff — Current State](../40-process/247-project-handoff-current-state-2026-09-18.md)；MAP-04 审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)；SPACE-01 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 
@@ -32,7 +32,7 @@
 
 ### Deferred / Open Design Question
 
-自动水文、道路自动寻路、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling，以及 MAP-04 legacy content/editor retirement 仍为后续范围。MAP-01 V1 的 source schema、确定性 terrain expansion、道路/河流曲线、Blueprint quarter rotation 与合成顺序见 §3 和 [242](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)。
+自动水文、道路自动寻路、detail scatter、minor POI、terrain compatibility matrix 与 Runtime Chunk profiling 仍为 Future / Not Implemented；MAP-04 legacy retirement 已完成，不属于该 Future 列表。MAP-01 V1 的 source schema、确定性 terrain expansion、道路/河流曲线、Blueprint quarter rotation 与合成顺序见 §3 和 [242](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)。
 
 ## 2. 统一术语与比例
 
@@ -118,4 +118,4 @@ MAP-01 当前交付：
 
 MAP-02 令主 Continuous Surface 的 WorldMap 直接消费同源地图 cache，按 exact `WorldPosition` 投影、反投影与点选；Surface 模式不再把画面、点击或路线目标降格为 Hex center。Surface terrain、森林与既有 Site／party／路线呈现在同一 world-space 中；旧 Hex WorldMap 分支仅保留给尚未迁出的 compatibility world。
 
-MAP-02 本身不是完整去 Hex；MAP-03 正常 gameplay consumer cutover 已完成并于 2026-09-17 通过制作人人工验收。MAP-04 已进入物理清理实施，但 `PlayerPartyHexTravelService` 的旧 Hex 路线、Site `PresenceHex`、Flag strategic anchor 和 LocalMap/Outdoor compatibility 尚未全部删除。当前完成与残留清单见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。
+MAP-02 本身不是完整去 Hex；MAP-03 正常 gameplay consumer cutover 与 MAP-04 物理清理均已完成并通过制作人人工验收。仍保留的 Hex／Outdoor LocalMap 符号必须能落入 ADR-0038 的旧输入、明确 compatibility、工具或测试边界；[245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md) 是该阶段的历史审计记录。

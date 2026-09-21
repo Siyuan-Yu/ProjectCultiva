@@ -13,7 +13,6 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCaveSurveyPresenter : MonoBehaviour
     {
-        const string PauseOwner = "CaveSurvey";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
@@ -21,13 +20,7 @@ namespace XianXia.Unity.Host
         string _hintToast = string.Empty;
         string _flashToast = string.Empty;
         float _flashUntil;
-        bool _modalOpen;
-        string _modalTitle = string.Empty;
-        string _modalBody = string.Empty;
-        bool _heldPauseForModal;
         GUIStyle _toastStyle;
-        GUIStyle _modalTitleStyle;
-        GUIStyle _modalBodyStyle;
         Texture2D _px;
         int _lastFoundCount = -1;
 
@@ -43,7 +36,6 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
-            CloseModal();
             _hintToast = string.Empty;
             _flashToast = string.Empty;
             _lastFoundCount = -1;
@@ -208,32 +200,6 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void ShowSenseModal(string title, string body)
-        {
-            _modalOpen = true;
-            _modalTitle = title ?? string.Empty;
-            _modalBody = body ?? string.Empty;
-            if (bootstrap?.Session != null && !_heldPauseForModal)
-            {
-                bootstrap.Session.AcquireModalPause(PauseOwner);
-                _heldPauseForModal = true;
-            }
-        }
-
-        void OnDisable() => CloseModal();
-
-        void CloseModal()
-        {
-            _modalOpen = false;
-            _modalTitle = string.Empty;
-            _modalBody = string.Empty;
-            if (_heldPauseForModal && bootstrap?.Session != null)
-            {
-                bootstrap.Session.ReleaseModalPause(PauseOwner);
-                _heldPauseForModal = false;
-            }
-        }
-
         struct Probe
         {
             public float X;
@@ -337,12 +303,6 @@ namespace XianXia.Unity.Host
                 return;
             EnsureStyles();
 
-            if (_modalOpen)
-            {
-                DrawSenseModal();
-                return;
-            }
-
             var msg = string.Empty;
             if (!string.IsNullOrEmpty(_flashToast) && Time.unscaledTime <= _flashUntil)
                 msg = _flashToast;
@@ -362,28 +322,6 @@ namespace XianXia.Unity.Host
             GUI.DrawTexture(r, _px);
             GUI.color = prev;
             GUI.Label(r, msg, _toastStyle);
-        }
-
-        void DrawSenseModal()
-        {
-            HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, Screen.height));
-            var prev = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.55f);
-            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _px);
-            GUI.color = prev;
-
-            var w = Mathf.Min(420f, Screen.width - 48f);
-            var h = 168f;
-            var r = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
-            HostUiHitTest.Block(r);
-            GUI.color = new Color(0.92f, 0.86f, 0.74f, 0.98f);
-            GUI.DrawTexture(r, _px);
-            GUI.color = prev;
-
-            GUI.Label(new Rect(r.x + 16f, r.y + 14f, r.width - 32f, 28f), _modalTitle, _modalTitleStyle);
-            GUI.Label(new Rect(r.x + 16f, r.y + 48f, r.width - 32f, 72f), _modalBody, _modalBodyStyle);
-            if (GUI.Button(new Rect(r.x + r.width * 0.5f - 48f, r.yMax - 44f, 96f, 28f), "知道了"))
-                CloseModal();
         }
 
         void EnsureStyles()
@@ -407,28 +345,6 @@ namespace XianXia.Unity.Host
                 _toastStyle.normal.textColor = new Color(0.95f, 0.88f, 0.72f);
             }
 
-            if (_modalTitleStyle == null)
-            {
-                _modalTitleStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleLeft,
-                    fontSize = 16,
-                    fontStyle = FontStyle.Bold,
-                    wordWrap = true
-                };
-                _modalTitleStyle.normal.textColor = new Color(0.2f, 0.14f, 0.08f);
-            }
-
-            if (_modalBodyStyle == null)
-            {
-                _modalBodyStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.UpperLeft,
-                    fontSize = 13,
-                    wordWrap = true
-                };
-                _modalBodyStyle.normal.textColor = new Color(0.28f, 0.2f, 0.12f);
-            }
         }
     }
 }

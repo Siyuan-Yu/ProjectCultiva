@@ -90,8 +90,8 @@ namespace XianXia.Core.World.Strategic
 
             var hasPrecise = IsFinitePrecisePosition(presence);
             var hasHex = presence.UsesHexPresence &&
-                         (world.HexWorld == null || !world.HexWorld.HasGrid ||
-                          world.HexWorld.Contains(presence.ResidualHex));
+                         (world.LegacyHexWorld == null || !world.LegacyHexWorld.HasGrid ||
+                          world.LegacyHexWorld.Contains(presence.ResidualHex));
 
             switch (presence.Mode)
             {
@@ -157,8 +157,8 @@ namespace XianXia.Core.World.Strategic
                 string.IsNullOrWhiteSpace(surfaceId))
                 return false;
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             var derived = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, hexSize);
             world.WorldPresence.SetAtWorldPosition(

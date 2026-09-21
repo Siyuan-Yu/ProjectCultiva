@@ -3,7 +3,8 @@ using System;
 namespace XianXia.Core.World
 {
     /// <summary>
-    /// Core 连续世界平面坐标（不依赖 UnityEngine）。Odd-R HexLayout 世界平面。
+    /// Core 连续世界平面 X/Y 向量（不依赖 UnityEngine）。
+    /// 不规定 Odd-R 或其它格网布局；格网与连续平面的转换由对应几何工具负责。
     /// </summary>
     public struct WorldVec2 : IEquatable<WorldVec2>
     {

@@ -2,6 +2,7 @@ using System;
 
 namespace XianXia.Core.World.Hex
 {
+    /// <summary>Legacy grid／tool／prototype terrain costs; not Continuous Surface ground authority.</summary>
     public static class HexTerrainCatalog
     {
         public static float DefaultMovementCost(HexTerrainType terrain, bool isRoad)

@@ -114,21 +114,21 @@ namespace XianXia.Unity.Host
                        " chunk=" + HostPlayerPartyController.SurfaceCurrentChunk +
                        " navGen=" + HostPlayerPartyController.SurfaceNavigationGeneration +
                        " gridRev=" + HostPlayerPartyController.SurfaceCompositeGridRevision +
-                       " derivedHex=" + motion.CurrentHex;
+                       " derivedHex=" + motion.LegacyCurrentHex;
             }
 
-            var path = motion.HexPath;
+            var path = motion.LegacyHexPath;
             var nextHex = "-";
             if (motion.IsMoving && path != null &&
-                motion.SegmentIndex >= 0 && motion.SegmentIndex + 1 < path.Count)
-                nextHex = path[motion.SegmentIndex + 1].ToString();
+                motion.LegacyHexSegmentIndex >= 0 && motion.LegacyHexSegmentIndex + 1 < path.Count)
+                nextHex = path[motion.LegacyHexSegmentIndex + 1].ToString();
 
-            var gate = motion.SurfaceEdgeGate;
+            var gate = motion.LegacySurfaceEdgeGate;
             var activeId = session.PlayerParty != null ? session.PlayerParty.ActiveCharacterId : default;
             var activeExists = !activeId.IsNone && world.Entities.TryGet(activeId, out _);
-            return "hex=" + motion.CurrentHex +
+            return "hex=" + motion.LegacyCurrentHex +
                    " next=" + nextHex +
-                   " seg=" + motion.SegmentIndex + "/" + (path != null ? path.Count : 0) +
+                   " seg=" + motion.LegacyHexSegmentIndex + "/" + (path != null ? path.Count : 0) +
                    " gateArmed=" + (gate != null ? gate.EdgeArmed.ToString() : "n/a") +
                    " canAttempt=" + (gate != null ? gate.CanAttemptEdgeTransition.ToString() : "n/a") +
                    " tInProg=" + (gate != null ? gate.TransitionInProgress.ToString() : "n/a") +

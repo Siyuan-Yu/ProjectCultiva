@@ -179,7 +179,7 @@ namespace XianXia.Core.Persistence
                     LegacyArmyId = string.Empty,
                     CommandKind = (int)(isControlledSquad
                         ? SquadCommandKind.FollowLeader
-                        : squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion
+                        : squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion
                             ? SquadCommandKind.SquadWorldMotion : squad.CommandKind),
                     CommandRevision = squad.CommandRevision,
                     CommandTargetCharacterId = isControlledSquad && controllingParty?.HasActive == true
@@ -292,8 +292,8 @@ namespace XianXia.Core.Persistence
                     SiteType = site.SiteType,
                     OwnerFactionId = site.OwnerFactionId,
                     ControlEstablishedOrder = site.ControlEstablishedOrder,
-                    AnchorQ = site.AnchorHex.Q,
-                    AnchorR = site.AnchorHex.R,
+                    AnchorQ = site.LegacyAnchorHex.Q,
+                    AnchorR = site.LegacyAnchorHex.R,
                     CoreAssetId = site.CoreAssetId,
                     SurfaceId = site.CoreSurfaceId,
                     HasWorldPosition = site.HasCoreWorldPosition,
@@ -412,14 +412,14 @@ namespace XianXia.Core.Persistence
                     CurrentOutdoorWorldSiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty,
                     WorldX = motion.WorldPosition.X,
                     WorldY = motion.WorldPosition.Y,
-                    CurrentHexQ = motion.CurrentHex.Q,
-                    CurrentHexR = motion.CurrentHex.R,
+                    CurrentHexQ = motion.LegacyCurrentHex.Q,
+                    CurrentHexR = motion.LegacyCurrentHex.R,
                     IsMoving = motion.IsMoving,
                     HasContinuousPhysicalDestination = motion.HasContinuousPhysicalDestination,
                     DestinationWorldX = motion.ContinuousPhysicalDestination.X,
                     DestinationWorldY = motion.ContinuousPhysicalDestination.Y,
                     ArrivalRadius = motion.ContinuousPhysicalArrivalRadius,
-                    DestinationSiteId = motion.DestinationSiteId ?? string.Empty,
+                    DestinationSiteId = motion.LegacyDestinationSiteId ?? string.Empty,
                     ExecutionMode = (int)motion.ExecutionMode
                 };
             }
@@ -527,7 +527,7 @@ namespace XianXia.Core.Persistence
                         item.SquadId, dto.ControlledSquadId, StringComparison.Ordinal);
                     var restoredCommand = isControlledSquad
                         ? SquadCommandKind.FollowLeader
-                        : item.CommandKind == (int)SquadCommandKind.FormalArmyWorldMotion
+                        : item.CommandKind == (int)SquadCommandKind.LegacyFormalArmyWorldMotion
                             ? SquadCommandKind.SquadWorldMotion : (SquadCommandKind)item.CommandKind;
                     var created = SquadMembershipService.Create(world, item.SquadId, members,
                         new EntityId(item.LeaderCharacterId),
@@ -624,8 +624,8 @@ namespace XianXia.Core.Persistence
 
                     if (p.Mode == (int)PartyWorldPresenceMode.AtWorldPosition)
                     {
-                        var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                            ? world.HexWorld.HexSize
+                        var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                            ? world.LegacyHexWorld.HexSize
                             : 1f;
                         var pos = new WorldVec2(p.WorldX, p.WorldY);
                         var derived = p.HexQ != int.MinValue && p.HexR != int.MinValue
@@ -652,8 +652,8 @@ namespace XianXia.Core.Persistence
                     var hex = new HexCoord(r.HexQ, r.HexR);
                     if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
                     {
-                        var size = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                            ? world.HexWorld.HexSize : 1f;
+                        var size = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                            ? world.LegacyHexWorld.HexSize : 1f;
                         HexMath.ToWorldPosition(hex, size, out var x, out var y);
                         var point = new WorldVec2(x, y);
                         if (!world.SurfaceGround.TryResolveContaining(point, out var surface))
@@ -803,7 +803,7 @@ namespace XianXia.Core.Persistence
                     !IsFinite(item.WorldX) || !IsFinite(item.WorldY) || item.CoreLevel < 1 ||
                     item.ControlEstablishedOrder <= 0 ||
                     (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                     (world.HexWorld == null || !world.HexWorld.IsInBounds(item.AnchorQ, item.AnchorR))) ||
+                     (world.LegacyHexWorld == null || !world.LegacyHexWorld.IsInBounds(item.AnchorQ, item.AnchorR))) ||
                     !ids.Add(item.SiteId) || !coreIds.Add(item.CoreAssetId))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid runtime WorldSite snapshot entry.", "Index=" + i);
@@ -828,7 +828,7 @@ namespace XianXia.Core.Persistence
                 var item = source[i];
                 var anchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
                     ? HexMath.WorldToHex(item.WorldX, item.WorldY,
-                        world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                        world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
                     : new HexCoord(item.AnchorQ, item.AnchorR);
                 ResolvedWorldSpatialRange controlRange;
                 try { controlRange = world.Strategic.SpatialRules.ResolveLevel(world, item.CoreLevel, item.SurfaceId); }
@@ -852,11 +852,11 @@ namespace XianXia.Core.Persistence
                     CoreRangeHeight = controlRange.HeightWorld,
                     IsCoreActive = item.IsCoreActive,
                     CoreIsRemovable = item.CoreIsRemovable,
-                    AnchorHex = anchor,
-                    PresenceHex = anchor,
+                    LegacyAnchorHex = anchor,
+                    LegacyPresenceHex = anchor,
                     LocalMapId = string.Empty
                 };
-                site.SetFootprint(new[] { anchor });
+                site.SetLegacyHexFootprint(new[] { anchor });
                 try { world.Strategic.Sites.Register(site); }
                 catch (Exception ex)
                 {
@@ -1112,7 +1112,7 @@ namespace XianXia.Core.Persistence
                     if (!world.Strategic.SquadWorldMotions.Register(motion))
                         return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate Squad world-motion.", item.SquadId);
                     squad.LegacyArmyId = string.Empty;
-                    if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion)
+                    if (squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion)
                         squad.SetCommand(SquadCommandKind.SquadWorldMotion);
                 }
                 return Result.Success();
@@ -1208,8 +1208,8 @@ namespace XianXia.Core.Persistence
             if (world?.BackgroundCharacterTravel == null || travels == null)
                 return Result.Success();
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
 
             var seen = new HashSet<ulong>();
@@ -1392,8 +1392,8 @@ namespace XianXia.Core.Persistence
                             "CharacterId=" + item.CharacterId);
                 }
 
-                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize : 1f;
+                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                    ? world.LegacyHexWorld.HexSize : 1f;
                 if (item.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
                     !string.IsNullOrEmpty(item.SiteId))
                     world.WorldPresence.SetAtSiteWithAnchor(
@@ -1508,8 +1508,8 @@ namespace XianXia.Core.Persistence
                     "PlayerParty exact position does not identify one registered Surface.",
                     "Position=" + position + " SavedSurfaceId=" + savedSurfaceId);
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             var motion = world.PlayerPartyTravel;
             motion.SetAtSurfacePosition(surface.SurfaceId, position,
@@ -1556,14 +1556,14 @@ namespace XianXia.Core.Persistence
                     "LocationKind=" + motion.LocationKind +
                     " SurfaceId=" + (motion.SurfaceId ?? string.Empty) +
                     " WorldPosition=" + motion.WorldPosition);
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
-            if (!motion.CurrentHex.Equals(derived))
+            if (!motion.LegacyCurrentHex.Equals(derived))
                 return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "PlayerParty compatibility CurrentHex is not derived from WorldPosition.",
-                    "Saved=" + motion.CurrentHex + " Derived=" + derived);
+                    "PlayerParty compatibility LegacyCurrentHex is not derived from WorldPosition.",
+                    "Saved=" + motion.LegacyCurrentHex + " Derived=" + derived);
             if (motion.IsMoving &&
                 (motion.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible ||
                  !motion.HasContinuousPhysicalDestination ||
@@ -1615,8 +1615,8 @@ namespace XianXia.Core.Persistence
             // CW-U4.1: old PlayerParty AttackArmy/attack-chase orders are retired on load.
             // Preserve the canonical position, restore Idle, and never auto-declare war/create an encounter.
             var pos = new WorldVec2(travel.WorldX, travel.WorldY);
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
 
             if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
@@ -1684,15 +1684,15 @@ namespace XianXia.Core.Persistence
                     authoredSite != null)
                     sitePosition = new WorldVec2(authoredSite.CoreWorldX, authoredSite.CoreWorldY);
                 // Snapshot 的 AtWorldSite WorldX/Y 是 Site 内连续 Canonical 位置；不能用
-                // PresenceHex center 覆盖，否则 Load 后 LocalVisible 出口路径会以错误起点重建。
-                motion.RestoreIdleAtWorldSite(
+                // LegacyPresenceHex center 覆盖，否则 Load 后 LocalVisible 出口路径会以错误起点重建。
+                motion.RestoreIdleAtLegacyWorldSite(
                     travel.SiteId,
                     sitePosition,
                     new HexCoord(travel.CurrentHexQ, travel.CurrentHexR));
                 if (travel.IsMoving && travel.HasContinuousPhysicalDestination &&
                     ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
                 {
-                    motion.SetAtWorldPosition(motion.WorldPosition, motion.CurrentHex);
+                    motion.SetAtLegacyWorldPosition(motion.WorldPosition, motion.LegacyCurrentHex);
                     PlayerPartySurfaceTravelService.TryResumeAfterRestore(
                         world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
                         travel.DestinationSiteId, travel.ArrivalRadius);
@@ -1712,7 +1712,7 @@ namespace XianXia.Core.Persistence
                     pos = migrated;
             }
             var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-            motion.SetAtWorldPosition(pos, derived);
+            motion.SetAtLegacyWorldPosition(pos, derived);
             if (travel.IsMoving && travel.HasContinuousPhysicalDestination)
             {
                 // Route is deliberately recomputed from canonical position + exact intent.

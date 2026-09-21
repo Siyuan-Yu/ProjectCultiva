@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
+using XianXia.Data.Content.Compatibility;
 
 namespace XianXia.Data.Content
 {
@@ -58,8 +59,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, LocalPlaceSetDefinition>();
         readonly Dictionary<DefinitionId, HexWorldContentDefinition> _hexWorldContents =
             new Dictionary<DefinitionId, HexWorldContentDefinition>();
-        readonly Dictionary<DefinitionId, FormalArmyDefinition> _formalArmies =
-            new Dictionary<DefinitionId, FormalArmyDefinition>();
+        readonly Dictionary<DefinitionId, LegacyFormalArmyDefinition> _legacyFormalArmyDefinitions =
+            new Dictionary<DefinitionId, LegacyFormalArmyDefinition>();
         readonly Dictionary<DefinitionId, NpcSquadDefinition> _npcSquads =
             new Dictionary<DefinitionId, NpcSquadDefinition>();
         readonly Dictionary<DefinitionId, StrategicFactionDefinition> _strategicFactions =
@@ -93,7 +94,8 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
         public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
-        public IReadOnlyDictionary<DefinitionId, FormalArmyDefinition> FormalArmies => _formalArmies;
+        public IReadOnlyDictionary<DefinitionId, LegacyFormalArmyDefinition> LegacyFormalArmyDefinitions =>
+            _legacyFormalArmyDefinitions;
         public IReadOnlyDictionary<DefinitionId, NpcSquadDefinition> NpcSquads => _npcSquads;
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
         public IReadOnlyDictionary<DefinitionId, OutdoorWorldSurfaceDefinition> OutdoorSurfaces => _outdoorSurfaces;
@@ -124,7 +126,7 @@ namespace XianXia.Data.Content
             _spawnTables.ContainsKey(id) ||
             _localPlaceSets.ContainsKey(id) ||
             _hexWorldContents.ContainsKey(id) ||
-            _formalArmies.ContainsKey(id) ||
+            _legacyFormalArmyDefinitions.ContainsKey(id) ||
             _npcSquads.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
             _outdoorSurfaces.ContainsKey(id) ||
@@ -285,11 +287,11 @@ namespace XianXia.Data.Content
             return Register(_hexWorldContents, definition, definition.Id);
         }
 
-        public Result RegisterFormalArmy(FormalArmyDefinition definition)
+        public Result RegisterLegacyFormalArmyDefinition(LegacyFormalArmyDefinition definition)
         {
             if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "FormalArmyDefinition is null.");
-            return Register(_formalArmies, definition, definition.Id);
+                return Result.Failure(ErrorCode.InvalidArgument, "LegacyFormalArmyDefinition is null.");
+            return Register(_legacyFormalArmyDefinitions, definition, definition.Id);
         }
 
         public Result RegisterNpcSquad(NpcSquadDefinition definition)
@@ -399,8 +401,9 @@ namespace XianXia.Data.Content
         public bool TryGetHexWorldContent(DefinitionId id, out HexWorldContentDefinition definition) =>
             _hexWorldContents.TryGetValue(id, out definition);
 
-        public bool TryGetFormalArmy(DefinitionId id, out FormalArmyDefinition definition) =>
-            _formalArmies.TryGetValue(id, out definition);
+        public bool TryGetLegacyFormalArmyDefinition(
+            DefinitionId id, out LegacyFormalArmyDefinition definition) =>
+            _legacyFormalArmyDefinitions.TryGetValue(id, out definition);
 
         public bool TryGetNpcSquad(DefinitionId id, out NpcSquadDefinition definition) =>
             _npcSquads.TryGetValue(id, out definition);

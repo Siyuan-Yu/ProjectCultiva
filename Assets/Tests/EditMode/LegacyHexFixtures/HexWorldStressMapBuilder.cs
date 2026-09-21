@@ -13,7 +13,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null)
                 return;
 
-            var grid = world.HexWorld;
+            var grid = world.LegacyHexWorld;
             grid.Clear();
             grid.MapId = MapId;
             grid.MapName = "Hex Stress 200x100";

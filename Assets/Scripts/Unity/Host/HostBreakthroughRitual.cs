@@ -398,18 +398,6 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
-            if (_channeling)
-            {
-                var panelW = 560f;
-                var panelH = 192f;
-                var panel = new Rect(
-                    (Screen.width - panelW) * 0.5f,
-                    Screen.height - panelH - 10f,
-                    panelW,
-                    panelH);
-                DrawChannelBarAbove(panel);
-            }
-
             if (!_resultOpen || _report == null)
                 return;
             EnsureStyles();

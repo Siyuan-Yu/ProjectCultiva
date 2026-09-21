@@ -1,13 +1,13 @@
 # 世界与据点
 
-> **2026-09-16 MAP-01 / MAP-02 Accepted：** Final Continuous Surface 的 Composer/FineEditor、compatibility publish 与主 Surface WorldMap strategic view 已验收。下文 Region／LocalMap／格子与旧 WorldGraph 规则仍须按历史或 Legacy Compatibility 阅读；WorldSite 的 `PresenceHex`、物理区域 query 与 LocalMap adapter 尚待后续 MAP-03 consumer migration。
+> **2026-09-21 Final Seal：** MAP-01～04 均已验收封板。Final Continuous Surface、Composer/FineEditor、Surface WorldMap 与正常 Gameplay authority 已落地；下文 Region／Outdoor LocalMap／Hex／旧 WorldGraph 规则只按历史或明确 Legacy Compatibility 阅读。
 
-> 状态：Continuous Outdoor 与 SiteCore 最终设计已确认；实现部分存在、迁移／核查及制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：Continuous Outdoor、WorldSite／SiteCore 与 Actual Administrative Control 已实现并封板；Future 内容制作能力除外 | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
 > **世界结构（历史实现说明，现为 Legacy Compatibility）：** [113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) 描述的节／路由／按需 LocalMap 模型已被 [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)与 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede；113 页已加 Legacy 注记，不再是新 Outdoor 制作依据。
 > 下文 §2「Region = 较大连续区域」已被 113 取代：历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。
-> **⚠️ 2026-08-24 Pure Hex supersede（Legacy Compatibility）：** 战略空间曾以 **HexWorld + WorldSite.FootprintHexes**（ADR-0025、155）为真源；Multi-Hex Site、TerritoryRegion、Fixed/Dynamic WorldSite 规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**。**当前仍有 Hex compatibility consumers，但 future product authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede。**
+> **Pure Hex（Legacy Compatibility）：** 战略空间曾以 **HexWorld + WorldSite.FootprintHexes** 为真源；现行正常产品 authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 替代。Hex 只允许派生摘要、旧输入、工具或测试消费者。
 > **⚠️ 2026-09-12 当前目标：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 的 Continuous Outdoor 已从 Future 入口提升为正式目标；SiteCore 与范围见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。下方旧 World／Region／LocalMap 内容仅作历史实现说明。
 
 ## 1. 这个系统解决什么问题
@@ -44,7 +44,7 @@ World
 ### 20.1 World
 
 整个修仙世界。承载 Region 间关系、战略观察、跨 Region 路线（Route）。
-**不做**整片大陆完全连续无缝大地图。
+该“跨 Region、非整大陆连续”的限制只描述历史结构；正常 Outdoor 现为每大陆一张 Continuous Surface。
 
 规模方向（体验目标，非硬编码屏数）：暂定约 3 块大陆级分区、合计约 30 个城市级 Region。
 

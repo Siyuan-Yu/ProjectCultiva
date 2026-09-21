@@ -126,12 +126,6 @@ namespace XianXia.Unity.Host
             _viewReady = false;
         }
 
-        public void NotifyAfterBattleResolved(SimulationWorld world)
-        {
-            if (world == null) return;
-            RefreshStrategicPresentation(world);
-        }
-
         public void RefreshStrategicPresentation(SimulationWorld world)
         {
             if (world == null) return;
@@ -151,17 +145,6 @@ namespace XianXia.Unity.Host
                 return true;
             }
             return false;
-        }
-
-        public void SelectArrivedParty(IReadOnlyList<ulong> arrivedIds)
-        {
-            _selected.Clear();
-            if (arrivedIds != null)
-                foreach (var id in arrivedIds)
-                    if (id != 0) _selected.Add(id);
-            _selectedSiteId = string.Empty;
-            _selectedSquadId = string.Empty;
-            _status = "已选到站角色 " + _selected.Count + " 人";
         }
 
         public void FocusCameraOnSquad(string squadId)
@@ -289,7 +272,8 @@ namespace XianXia.Unity.Host
                     if (wasOpen) _factionPanel.Close(); else _factionPanel.Open();
                 }
             }
-            _toolbar.SyncFromPanels(_characterPanel?.IsOpen == true, false,
+            _toolbar.SyncFromPanels(
+                _characterPanel?.IsOpen == true,
                 _factionPanel?.IsOpen == true);
             if (world.PlayerPartyTravel.IsMoving &&
                 GUI.Button(new Rect(16, 44, 95, 27), "停止旅行"))

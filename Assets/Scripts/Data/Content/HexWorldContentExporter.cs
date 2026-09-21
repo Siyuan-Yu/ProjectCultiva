@@ -11,7 +11,7 @@ namespace XianXia.Data.Content
     {
         public static HexWorldContentDefinition Export(SimulationWorld world)
         {
-            var grid = world.HexWorld;
+            var grid = world.LegacyHexWorld;
             var definition = new HexWorldContentDefinition
             {
                 Id = DefinitionId.Parse(
@@ -51,15 +51,15 @@ namespace XianXia.Data.Content
                     SiteId = site.SiteId,
                     DisplayName = site.DisplayName,
                     SiteType = site.SiteType,
-                    AnchorQ = site.AnchorHex.Q,
-                    AnchorR = site.AnchorHex.R,
-                    PresenceQ = site.AnchorHex.Q,
-                    PresenceR = site.AnchorHex.R,
+                    AnchorQ = site.LegacyAnchorHex.Q,
+                    AnchorR = site.LegacyAnchorHex.R,
+                    PresenceQ = site.LegacyAnchorHex.Q,
+                    PresenceR = site.LegacyAnchorHex.R,
                     LocalMapId = site.LocalMapId,
                     OwnerFactionId = site.OwnerFactionId,
                     TerritoryRegionId = site.TerritoryRegionId,
                 };
-                foreach (var hex in site.EnumerateFootprintHexes())
+                foreach (var hex in site.EnumerateLegacyFootprintHexes())
                     dto.Footprint.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });
                 definition.Sites.Add(dto);
             }

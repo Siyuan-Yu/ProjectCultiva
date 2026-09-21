@@ -65,7 +65,7 @@ namespace XianXia.Unity.Host
                              world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
             var wilderness = continuous || (hasContext &&
                 context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex);
-            var anchor = continuous ? world.PlayerPartyTravel.CurrentHex :
+            var anchor = continuous ? world.PlayerPartyTravel.LegacyCurrentHex :
                 (hasContext ? context.WildernessHex : default);
             SyncVisuals(world, wilderness, continuous, wilderness ? anchor : default);
 
@@ -268,7 +268,7 @@ namespace XianXia.Unity.Host
                 return false;
             }
             var anchor = HexMath.WorldToHex(worldX, worldY,
-                world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
             request = new FactionFlagSitePlacementRequest
             {
                 SurfaceId = continuous.ActiveSurfaceId,

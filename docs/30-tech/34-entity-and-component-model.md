@@ -1,9 +1,9 @@
 # 实体与能力模块模型
 
-> 状态：**已冻结并按 ADR-0032～0034 定向补充**；新生命周期实现待迁移／核查 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：**已冻结并按 ADR-0032～0035／0038 定向补充**；现行 Character／Squad／Encounter／Surface 生命周期已落地，Future 扩展除外 | 优先级：P0 | 最后更新：2026-09-21
 > 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`
 > 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1
-> **本阶段不写实现代码。**
+> 新功能仍需单独授权；Final Seal 不改变本页领域模型。
 
 ## 1. 目标
 
@@ -38,9 +38,9 @@
 |---|---|
 | `MortalPopulation` / `SettlementPopulation` | 第四层：凡人／据点人口统计 |
 | `ArmyGroup` | **仅**凡人／大规模非修士军队的群体数据（ADR-0008 收窄）；**不是**修士战略 Army |
-| `Party` | 最多六人的真实同行编组；一个 Active，其余 AI；不同于 FormalArmy |
+| `Squad`／`PlayerParty` | 正常活动人物唯一组织；PlayerParty 是玩家所控 Squad 与 Active 的控制投影 |
 
-> **2026-08-22（ADR-0024）：** `CultivatorPopulation` **不再**作为正式修士数量或战争真源。所有修士 = 持久 `Character` + LOD 模拟。修士战略 Army = `MemberCharacterIDs[]` 载体，见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。`LocalMap Actor` 只是 Hot 层表现，≠ Character 生命周期。
+> **现行修订：** `CultivatorPopulation` 不作为修士数量或战争真源；所有修士 = 持久 `Character` + LOD 模拟。正常多人组织由 Squad roster 表达；旧 FormalArmy member DTO 只在 load 边界迁移。`LocalMap Actor` 只是 Hot 层表现，≠ Character 生命周期。
 
 ## 4. 薄 IEntity 契约
 

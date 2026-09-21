@@ -7,9 +7,11 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// Outdoor WorldSite 的<b>唯一</b> Site source LocalMap → Continuous WorldPosition bake transform。
+    /// 这里的形状约束只针对 authored Hex footprint 输入，不是 Continuous Surface 或
+    /// Actual Administrative Control 的通用形状规则。
     ///
     /// <para>
-    /// 输入：source MapLayout bounds（LocalMap grid 世界单位）＋ Site physical footprint（OccupiedHexes）
+    /// 输入：source MapLayout bounds（LocalMap grid 世界单位）＋ Site physical footprint（LegacyOccupiedHexes）
     /// ＋ hexSize ＋ 一个 source local point。
     /// 输出：canonical Continuous WorldPosition。
     /// </para>
@@ -37,13 +39,13 @@ namespace XianXia.Core.World.Strategic
     /// <item><see cref="HexFootprintSpatialMapping.TryLocalToWorldSurface"/>：同一线性候选点 +
     /// <b>footprint 内含性投影</b>（candidate 不在 footprint hex 内时投到最近多边形边）。
     /// 实测与 authored bake 不一致（68 个 placement 有 39 个不同），因此<b>不是</b> bake truth。</item>
-    /// <item><see cref="WorldSiteSpatialMapping"/>：V2 radial kernel 映射（LocalMap 与 Wilderness
+    /// <item><see cref="WorldSiteHexFootprintSpatialMapping"/>：V2 radial kernel 映射（LocalMap 与 Wilderness
     /// 的 Legacy LocalVisible 同步语义），与 authored bake 同样不一致。</item>
     /// </list>
     /// 本类是 SitePlacements／SitePlaces／OpeningEntityAnchors 共用的 authored bake truth。
     /// </para>
     /// </summary>
-    public static class WorldSiteOutdoorBakeTransform
+    public static class WorldSiteHexFootprintBakeTransform
     {
         /// <summary>Site physical footprint 的 world AABB（全部 hex 角点外接框）。</summary>
         public static bool TryComputeFootprintDomain(
@@ -62,7 +64,7 @@ namespace XianXia.Core.World.Strategic
             out float maxX,
             out float minY,
             out float maxY) =>
-            TryComputeFootprintDomain(site?.OccupiedHexes, hexSize, out minX, out maxX, out minY, out maxY);
+            TryComputeFootprintDomain(site?.LegacyOccupiedHexes, hexSize, out minX, out maxX, out minY, out maxY);
 
         /// <summary>
         /// source LocalMap point → canonical Continuous WorldPosition。
@@ -71,7 +73,7 @@ namespace XianXia.Core.World.Strategic
         public static bool TryBake(
             IReadOnlyList<HexCoord> footprint,
             float hexSize,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 sourceLocalPosition,
             out WorldVec2 canonicalWorldPosition)
         {
@@ -94,17 +96,17 @@ namespace XianXia.Core.World.Strategic
         public static bool TryBake(
             WorldSite site,
             float hexSize,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 sourceLocalPosition,
             out WorldVec2 canonicalWorldPosition) =>
-            TryBake(site?.OccupiedHexes, hexSize, sourceBounds, sourceLocalPosition, out canonicalWorldPosition);
+            TryBake(site?.LegacyOccupiedHexes, hexSize, sourceBounds, sourceLocalPosition, out canonicalWorldPosition);
 
         /// <summary>
         /// authored bake 的纯公式部分（domain 已解析）。SitePlacements／SitePlaces／OpeningEntityAnchors
         /// 与内容 bake 工具必须全部走这里，避免第二套公式漂移。
         /// </summary>
         public static WorldVec2 Bake(
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 sourceLocalPosition,
             float domainMinX,
             float domainMinY,
@@ -121,7 +123,7 @@ namespace XianXia.Core.World.Strategic
         public static bool TryUnbake(
             IReadOnlyList<HexCoord> footprint,
             float hexSize,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 canonicalWorldPosition,
             out WorldVec2 sourceLocalPosition)
         {

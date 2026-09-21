@@ -247,9 +247,9 @@ namespace XianXia.Unity.Host
                     squad.MemberCharacterIds.Count != plan.SquadCounts[p.SquadId] ||
                     !CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(
                         plan.World, id, plan.SurfaceId, out var point, out var owner,
-                        out var armyId, out _) ||
+                        out var ownerId, out _) ||
                     owner != p.SourceSpatialOwnerKind ||
-                    !string.Equals(owner == EncounterSpatialOwnerKind.Squad ? armyId : string.Empty,
+                    !string.Equals(owner == EncounterSpatialOwnerKind.Squad ? ownerId : string.Empty,
                         p.SourceSquadId, StringComparison.Ordinal) ||
                     Math.Abs(point.X - p.OriginX) > .0001f || Math.Abs(point.Y - p.OriginY) > .0001f) return false;
             }

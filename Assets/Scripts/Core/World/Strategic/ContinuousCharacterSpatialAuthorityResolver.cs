@@ -5,7 +5,13 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    public enum ContinuousSpatialOwnerKind { Personal = 0, PlayerParty = 1, FormalArmy = 2, Squad = 3 }
+    public enum ContinuousSpatialOwnerKind
+    {
+        Personal = 0,
+        PlayerParty = 1,
+        LegacyFormalArmy = 2,
+        Squad = 3
+    }
 
     /// <summary>Read-only normal Surface position, with group motion ahead of personal presence.</summary>
     public static class ContinuousCharacterSpatialAuthorityResolver

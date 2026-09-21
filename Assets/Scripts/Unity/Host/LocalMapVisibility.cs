@@ -205,11 +205,9 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 解析「当前 LocalMap 可见性焦点 WorldSite」。
-        /// 优先 PartyWorld.SiteId（正式 EnterWorldSiteScene / AtSite）；当玩家以 AtHex / AtWorldPosition
-        /// （Wilderness 邻接 / travel 呈现）停留在某 Site footprint hex 上时，画面已是该 Site LocalMap，
-        /// 按玩家物理 hex 反查所属 Site 作为焦点 —— 与 garrison materialize 的 wilderness reconcile
-        /// （army.CurrentHex == 玩家 hex）同源一致。荒野 hex（不属于任何 Site）→ false（resident 不泄漏）。
+        /// 解析 legacy Outdoor LocalMap compatibility 的当前 WorldSite 焦点。
+        /// 优先已激活的 PartyWorld Site；旧档缺少该焦点时，才从 PlayerParty 的精确位置派生 Hex，
+        /// 再匹配 Site footprint。普通荒野没有焦点，resident 不得泄漏到当前地图。
         /// </summary>
         static bool TryResolveVisibilityFocusSite(SimulationWorld world, out WorldSite site)
         {
@@ -224,11 +222,11 @@ namespace XianXia.Unity.Host
                 ? HexMath.WorldToHex(
                     travel.WorldPosition.X,
                     travel.WorldPosition.Y,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f)
-                : travel.CurrentHex;
+                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
+                : travel.LegacyCurrentHex;
 
             return world.Strategic?.Sites != null &&
-                   world.Strategic.Sites.TryGetAtHex(hex, out site) &&
+                   world.Strategic.Sites.TryGetAtLegacyHex(hex, out site) &&
                    site != null;
         }
 
@@ -281,7 +279,7 @@ namespace XianXia.Unity.Host
             // BattlefieldSpawnScope —— 这是「实体物理上就在这张地图」，不是战斗临时
             // visibility exception。必须在 WorldSite 硬门禁之前判定。
             // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
-            // 禁止世界其它地点NPC／Army 成员落到同一张图（含开局荒村）
+            // 禁止世界其它地点的 NPC／Squad 成员落到同一张图（含开局荒村）
             // WorldPresence、仅LocationId 的场NPC（守卫／商人等）仍走下方地点过滤
             if (!onEncounterMap &&
                 StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
@@ -363,7 +361,7 @@ namespace XianXia.Unity.Host
                     if (!string.IsNullOrEmpty(focusSite) &&
                         string.Equals(wp.SiteId, focusSite, System.StringComparison.Ordinal))
                         return !onEncounterMap ||
-                               StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
+                               CharacterEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return false;
                 }
             }
@@ -376,7 +374,7 @@ namespace XianXia.Unity.Host
                 if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
                 {
                     if (onEncounterMap)
-                        return StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
+                        return CharacterEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return false;
                 }
                 return false;
@@ -467,8 +465,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Exact Continuous Outdoor visibility gate shared by gameplay and the one-shot Army
-        /// diagnostic. A true result still flows through EntityViewSpawner, never a second spawner.
+        /// Exact Continuous Outdoor visibility gate shared by gameplay and materialization
+        /// diagnostics. A true result still flows through EntityViewSpawner, never a second spawner.
         /// </summary>
         public static bool EvaluateContinuousMaterializedVisibility(
             SimulationWorld world,

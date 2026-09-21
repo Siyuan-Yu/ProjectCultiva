@@ -196,16 +196,6 @@ namespace XianXia.Unity.Host
             return siteId;
         }
 
-        public static string DescribeHexLabel(SimulationWorld world, HexCoord hex)
-        {
-            if (world?.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(hex, out var site) &&
-                site != null &&
-                !string.IsNullOrEmpty(site.DisplayName))
-                return site.DisplayName;
-            return hex.ToString();
-        }
-
         static string DescribeOutdoorPositionLabel(HexCoord hex) => "户外 " + hex;
 
         static string ResolveSurfaceId(SimulationWorld world, EntityId id)

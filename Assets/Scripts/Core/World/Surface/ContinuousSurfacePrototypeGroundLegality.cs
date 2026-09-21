@@ -16,12 +16,5 @@ namespace XianXia.Core.World.Surface
                    tile.Terrain != HexTerrainType.Water && tile.IsPassable;
         }
 
-        public static bool CanMoveTo(HexWorld world, HexCoord committed, WorldVec2 position, float size)
-        {
-            var derived = HexMath.WorldToHex(position.X, position.Y, size);
-            var next = ContinuousSurfaceHexCommitResolver.Resolve(committed, position, size);
-            // Do not let the commit hysteresis band accumulate a canonical position in water.
-            return CanCross(world, committed, derived) && CanCross(world, committed, next);
-        }
     }
 }

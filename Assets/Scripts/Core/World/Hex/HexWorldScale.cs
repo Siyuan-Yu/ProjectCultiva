@@ -3,16 +3,13 @@ using System;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// RimWorld 式战略 Hex 尺度与第一版正式地图规格。
-    /// Playable V1：100×50 ≈ 5000 cells；架构可扩展至 10万+ lightweight cells。
+    /// Legacy grid／tool／prototype 的 Hex 尺度与历史验收规格。
+    /// 仍被兼容预算与测试只读消费；不是正常 Continuous Surface 的地图尺度 authority。
     /// </summary>
     public static class HexWorldScale
     {
         /// <summary>Pointy-top 外接圆半径（逻辑世界单位）。视觉大小由 Camera Zoom 决定。</summary>
         public const float DefaultHexOuterRadius = 1f;
-
-        /// <summary>兼容旧名。</summary>
-        public const float DefaultHexSize = DefaultHexOuterRadius;
 
         /// <summary>第一版正式验收地图宽（q 方向，格）。</summary>
         public const int PlayableV1Width = 100;
@@ -33,9 +30,6 @@ namespace XianXia.Core.World.Hex
 
         /// <summary>最大放大：横向约 7 Hex（约为旧版 4× 放大）。</summary>
         public const float CloseHexesAcross = 7f;
-
-        /// <summary>Legacy 内容导入比例：每 1 个 world 单位对应多少 Hex 步。</summary>
-        public const int LegacyWorldHexStepsPerUnit = 4;
 
         /// <summary>内容 Site 在 100×50 地图内的布局原点（q,r）。</summary>
         public const int PlayableOriginQ = 8;

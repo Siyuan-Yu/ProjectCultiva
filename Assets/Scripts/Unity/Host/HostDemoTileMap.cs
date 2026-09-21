@@ -463,8 +463,9 @@ namespace XianXia.Unity.Host
         SurfacePresentationInstance EndInstanceBuild()
         {
             var key = _buildingInstanceKey;
-            // 批量 owner build 收尾：三个 registry 的 flatten／index 只重建一次。
-            // Continuous chunk build 会一次注册几十／上百格；逐格 rebuild 是 O(N²) 卡顿尖峰。
+            // HostInteractSpots.EndOwnerBuild only marks its flattened query cache dirty; the existing
+            // query path refreshes it lazily. The map-object and farm registries retain symmetric
+            // EndOwnerBuild APIs but perform no final rebuild here.
             HostInteractSpots.EndOwnerBuild();
             HostMapObjectRegistry.EndOwnerBuild();
             HostFarmFieldRegistry.EndOwnerBuild();
@@ -825,11 +826,6 @@ namespace XianXia.Unity.Host
             AlignBoundsCenter(go, intended);
             TrackBuilt(go);
             return go;
-        }
-
-        static string ResolveHousePath()
-        {
-            return MapKindCatalog.HouseFallback;
         }
 
         void AttachPlot(

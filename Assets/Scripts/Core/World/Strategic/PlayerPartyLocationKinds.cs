@@ -3,7 +3,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>PlayerParty 世界位置种类（与 MovementState 分离）。</summary>
     public enum PlayerPartyLocationKind
     {
-        /// <summary>位于 WorldSite LocalMap；世界投影 = PresenceHex。</summary>
+        /// <summary>位于 WorldSite LocalMap；世界投影 = LegacyPresenceHex。</summary>
         AtWorldSite = 0,
         /// <summary>位于 Continuous Surface；真源 = SurfaceId + exact WorldPosition。</summary>
         AtWorldPosition = 1,

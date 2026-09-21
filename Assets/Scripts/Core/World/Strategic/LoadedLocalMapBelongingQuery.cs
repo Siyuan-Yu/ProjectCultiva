@@ -87,7 +87,7 @@ namespace XianXia.Core.World.Strategic
                 LoadedLocalMapKind.WildernessHex,
                 activeMap,
                 null,
-                motion.CurrentHex);
+                motion.LegacyCurrentHex);
             return true;
         }
 
@@ -120,7 +120,7 @@ namespace XianXia.Core.World.Strategic
                     if (presence.Mode == PartyWorldPresenceMode.AtHex &&
                         presence.UsesHexPresence &&
                         loadedContext.Site != null &&
-                        loadedContext.Site.OccupiesHex(presence.ResidualHex))
+                        loadedContext.Site.OccupiesLegacyHex(presence.ResidualHex))
                         return true;
                     return false;
 
@@ -133,7 +133,7 @@ namespace XianXia.Core.World.Strategic
                         !presence.HasContinuousWorldPosition)
                         return false;
 
-                    var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                    var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
                     var derived = HexMath.WorldToHex(
                         presence.WorldPosX,
                         presence.WorldPosY,

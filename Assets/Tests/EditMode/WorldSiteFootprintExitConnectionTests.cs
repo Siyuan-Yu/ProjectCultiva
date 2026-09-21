@@ -30,12 +30,12 @@ namespace XianXia.Tests
         static SimulationWorld BuildFourHexSiteWorld(out WorldSite site)
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 20, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 20, HexTerrainType.Plain);
             for (var r = 0; r < 20; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -46,11 +46,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_four",
                 DisplayName = "四格测试",
-                AnchorHex = anchor,
-                PresenceHex = presence,
+                LegacyAnchorHex = anchor,
+                LegacyPresenceHex = presence,
                 LocalMapId = "test:map_four",
             };
-            site.SetFootprint(new[]
+            site.SetLegacyHexFootprint(new[]
             {
                 anchor, presence, new HexCoord(5, 6), new HexCoord(6, 6),
             });
@@ -61,18 +61,18 @@ namespace XianXia.Tests
         static SimulationWorld BuildSingleHexSiteWorld(out WorldSite site)
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
             var hex = new HexCoord(4, 4);
             site = new WorldSite
             {
                 SiteId = "test:site_single",
                 DisplayName = "单格",
-                AnchorHex = hex,
-                PresenceHex = hex,
+                LegacyAnchorHex = hex,
+                LegacyPresenceHex = hex,
                 LocalMapId = "test:map_single",
             };
-            site.SetFootprint(new[] { hex });
+            site.SetLegacyHexFootprint(new[] { hex });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
             return world;
         }
@@ -95,8 +95,8 @@ namespace XianXia.Tests
         static void SetupAtSite(SimulationWorld world, WorldSite site, PlayerPartyRuntime party)
         {
             world.LocalMap.ActiveMapLayoutId = site.LocalMapId;
-            world.PlayerPartyTravel.SetAtWorldSite(
-                site.SiteId, site.PresenceHex, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(
+                site.SiteId, site.LegacyPresenceHex, world.LegacyHexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
         }
 
@@ -114,9 +114,9 @@ namespace XianXia.Tests
             for (var d = 0; d < 6; d++)
             {
                 var n = HexMath.Neighbor(onlyHex, d);
-                if (site.OccupiesHex(n))
+                if (site.OccupiesLegacyHex(n))
                     continue;
-                if (!world.HexWorld.TryGetTile(n, out var tile) || tile == null)
+                if (!world.LegacyHexWorld.TryGetTile(n, out var tile) || tile == null)
                     continue;
                 if (tile.Terrain == HexTerrainType.Water || !tile.IsPassable)
                     continue;
@@ -145,8 +145,8 @@ namespace XianXia.Tests
             var world = BuildFourHexSiteWorld(out var site);
             var full = WorldSiteFootprintExitConnectionResolver.CountUniqueTraversableOutsideNeighbors(
                 world, site);
-            var anchorOnly = CountOutsideFromHexOnly(world, site, site.AnchorHex);
-            var presenceOnly = CountOutsideFromHexOnly(world, site, site.PresenceHex);
+            var anchorOnly = CountOutsideFromHexOnly(world, site, site.LegacyAnchorHex);
+            var presenceOnly = CountOutsideFromHexOnly(world, site, site.LegacyPresenceHex);
             Assert.Greater(full, anchorOnly);
             Assert.Greater(full, presenceOnly);
         }
@@ -156,16 +156,16 @@ namespace XianXia.Tests
         {
             var world = BuildFourHexSiteWorld(out var site);
             var connections = CollectSiteConnections(world, site);
-            var anchorOnly = CountOutsideFromHexOnly(world, site, site.AnchorHex);
+            var anchorOnly = CountOutsideFromHexOnly(world, site, site.LegacyAnchorHex);
             Assert.Greater(connections.Count, anchorOnly);
         }
 
         [Test]
-        public void WorldSiteExitResolverDoesNotUsePresenceHexOnly()
+        public void WorldSiteExitResolverDoesNotUseLegacyPresenceHexOnly()
         {
             var world = BuildFourHexSiteWorld(out var site);
             var connections = CollectSiteConnections(world, site);
-            var presenceOnly = CountOutsideFromHexOnly(world, site, site.PresenceHex);
+            var presenceOnly = CountOutsideFromHexOnly(world, site, site.LegacyPresenceHex);
             Assert.Greater(connections.Count, presenceOnly);
         }
 
@@ -175,7 +175,7 @@ namespace XianXia.Tests
             var world = BuildFourHexSiteWorld(out var site);
             var connections = CollectSiteConnections(world, site);
             foreach (var c in connections)
-                Assert.IsFalse(site.OccupiesHex(c.DestinationHex));
+                Assert.IsFalse(site.OccupiesLegacyHex(c.DestinationHex));
         }
 
         [Test]
@@ -211,7 +211,7 @@ namespace XianXia.Tests
         public void WorldSiteBoundaryContactUsesActualFootprintBoundary()
         {
             var world = BuildFourHexSiteWorld(out var site);
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.LegacyHexWorld.HexSize;
             WorldSiteFootprintExitConnectionResolver.ComputeFootprintWorldCenter(
                 site, hexSize, out var cx, out var cy);
             var connections = CollectSiteConnections(world, site);
@@ -239,7 +239,7 @@ namespace XianXia.Tests
             contactX = 0f;
             contactY = 0f;
             var count = 0;
-            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            foreach (var footprintHex in site.EnumerateLegacyFootprintHexes())
             {
                 for (var d = 0; d < 6; d++)
                 {
@@ -262,7 +262,7 @@ namespace XianXia.Tests
         public void WorldSiteExitProjectionUsesActualWorldDirection()
         {
             var world = BuildFourHexSiteWorld(out var site);
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.LegacyHexWorld.HexSize;
             WorldSiteFootprintExitConnectionResolver.ComputeFootprintWorldCenter(
                 site, hexSize, out var fcx, out var fcy);
             var bounds = DefaultBounds();
@@ -361,8 +361,8 @@ namespace XianXia.Tests
             var first = new List<SurfaceExitConnection>(16);
             SurfaceExitZoneCalculator.CollectConnections(world, bounds, Depth, first);
 
-            world.PlayerPartyTravel.SetAtWorldSite(
-                site.SiteId, site.PresenceHex, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(
+                site.SiteId, site.LegacyPresenceHex, world.LegacyHexWorld.HexSize);
             var second = new List<SurfaceExitConnection>(16);
             SurfaceExitZoneCalculator.CollectConnections(world, bounds, Depth, second);
 
@@ -413,24 +413,24 @@ namespace XianXia.Tests
             var target = connections[0];
             Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryExitWorldSiteByConnection(
                 world, party, target).IsSuccess);
-            Assert.AreEqual(target.DestinationHex, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(target.DestinationHex, world.PlayerPartyTravel.LegacyCurrentHex);
         }
 
         [Test]
         public void OrdinaryHexExitTestsRemainPASS()
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(8, 8, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(8, 8, HexTerrainType.Plain);
             var hex = new HexCoord(3, 3);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(0f, 0f), hex);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(0f, 0f), hex);
             world.LocalMap.ActiveMapLayoutId = "w";
 
             var count = 0;
             for (var d = 0; d < 6; d++)
             {
                 var n = HexMath.Neighbor(hex, d);
-                if (world.HexWorld.TryGetTile(n, out var tile) && tile != null && tile.IsPassable)
+                if (world.LegacyHexWorld.TryGetTile(n, out var tile) && tile != null && tile.IsPassable)
                     count++;
             }
 
@@ -454,8 +454,8 @@ namespace XianXia.Tests
             var expected = WorldSiteFootprintExitConnectionResolver.CountUniqueTraversableOutsideNeighbors(
                 world, site);
             world.LocalMap.ActiveMapLayoutId = site.LocalMapId;
-            world.PlayerPartyTravel.SetAtWorldSite(
-                site.SiteId, site.PresenceHex, world.HexWorld.HexSize);
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(
+                site.SiteId, site.LegacyPresenceHex, world.LegacyHexWorld.HexSize);
             var list = new List<SurfaceExitConnection>(16);
             SurfaceExitZoneCalculator.CollectConnections(world, DefaultBounds(), Depth, list);
             Assert.AreEqual(expected, list.Count, siteId);

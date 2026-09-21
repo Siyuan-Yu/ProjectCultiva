@@ -1,5 +1,18 @@
 # Project Handoff — Continuous World Current State
-## Resume Snapshot — 2026-09-18
+
+> **Current handoff — 2026-09-22：** MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C，以及废弃运行入口清理、Hex／Army 命名与兼容身份、WorldSite／Hex footprint 命名尾项均已 **Implementation Complete / Producer Accepted / Sealed**。制作人已确认此前运行行为人工验收通过；后续限定同体改名与说明收尾经静态复核通过，无需追加游戏验收。正常 authority 已冻结为 Continuous Surface + exact WorldPosition、Squad／SquadWorldMotion、CharacterEncounter、WorldSite Owner + TerritoryClaim + Actual Administrative Control。最终矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
+
+> **当前没有待恢复的 A／B／C、MAP、SPACE 或 Final Seal 实施／验收顺序。** 下方 `Resume Snapshot` 与 §1～22 是 2026-09-18～21 的历史恢复／实施记录；其中 Pending、smoke、WIP、Known Issues、Resume Order、Git 状态和可复制指令均已归档，不得作为新会话当前任务。§23～26 的当轮 Pending 状态也已由本页当前摘要与 ADR-0038 §6 的正式 Seal 取代。
+
+> **审查基线：** `Scripts(20260921-181251).zip`。当前本地 branch 为 `dev_openworld`，可读 HEAD 为 `25e69b86722e0375895fe60f5d0502ca1d18ab65`；封板实现仍在未提交工作区中，不能把该 HEAD 冒充成包含本专项改动的封板提交。下一步等待制作人讨论后确定，尚未授权新功能实施。
+
+> **封板边界：** 真实 Hex 几何、Hex footprint 工具、工具／原型契约及明确 `Legacy*` compatibility 继续保留，不能冒充 Surface authority，也不得为避开名称而伪装成 Surface 算法。旧 Army Content 使用 `squad:migrated:`／`squad:legacy:`，旧 Snapshot 使用 `squad:army:`；wire key、稳定枚举值与 ID 不改。`ContinuousWorldMovementScale` 仍只读适配 `LegacyHexWorld.HexSize`，原两层阈值、公式与 ticks 行为不变。`Armies/` 等历史目录名不代表 `formalArmy` runtime。后续只有具体错误调用、authority 越界、失真说明或回归证据才可提出问题；`Hex`／`Army` 字符串命中本身不构成重开清理的理由。
+
+## Historical Resume Snapshot — 2026-09-18～21（已归档）
+> **2026-09-21 FINAL LEGACY CLOSEOUT：** Continuous World / Legacy Runtime Migration 已完成最终 Scripts-only 实现清理，状态为 **Implementation Complete / Producer Acceptance Pending**。PlayerParty authority 为 `SurfaceId + WorldPosition + SurfaceVisible / ContinuousSurfaceRoute`；NPC group 为 `Squad + SquadWorldMotion`；角色空间为 `AtWorldPosition / AtSite(background-resident) / InSeparateSpace / InEncounter`；领土为 `WorldSite + TerritoryClaim + Actual Administrative Control`；战斗为 `CharacterEncounter`；独立空间为 Interior LocalMap / `EntityLocation`。旧 Hex／FormalArmy／TerritoryRegion／Outdoor LocalMap 只保留 old input、migration、derived metadata、显式 compatibility 与 Demo/test contract。以后不得因搜索到 Legacy 名字自动开启 cleanup；仅在它重新成为现代 authority，或产品明确终止旧兼容时再处理。
+>
+> **本轮最终 smoke：** 复验 New Game、WorldMap／PlayerParty movement、行进 Save/Load、洞府进入离开、CharacterEncounter／战报／Return、NPC Squad marker，以及旧档 Outdoor LocalMap／Hex compatibility fixture。通过前不 git seal。
+>
 > **2026-09-21 Skill Mastery acceptance fix：** 功法／斗技灌注统一以真实 `mastery.breakthroughs` 路径计算资格与有效门槛，并在确认 `actualGain > 0` 后原子扣修为／写熟练。制作人随后要求当前全部功法／斗技显式配置到化境：四段门槛依次 20/30/40/50，灵草与粗木分别各需 1/2/3/4。显式 profile 缺失当前 tier 路径仍不回落成默认路径。
 >
 > **本补丁人工 smoke：** 分别查看洞府秘诀与一门斗技的小成／大成／圆满；核对灌注、冲击按钮、10 修为固定扣费、四档材料、近上限实际增量，以及关闭详情页后选中角色面板上方的仪式读条。通过前保持 Pending。
@@ -49,7 +62,11 @@
 
 ---
 
-# 1. Executive Summary
+# Archived Recovery Snapshot（2026-09-18～19，不可执行）
+
+以下 §1～22 保留当时事实与审计过程；所有“当前／下一步／恢复顺序”只描述当时状态。
+
+# 1. Executive Summary（历史）
 
 本项目是 **Unity 2D top-down 仙侠 RPG**（修仙世界模拟 + 角色扮演 + 战略层）。
 
@@ -567,36 +584,9 @@ MAP-04 继续 **Paused / Producer Acceptance Pending**。
 
 ---
 
-# 17. Recommended Resume Order
+# 17. Recommended Resume Order（已归档）
 
-> **不要**从 MAP-04 删除工作直接乱接。推荐顺序：
-
-### 1. SPACE-01 Final Hardening（优先）
-
-- transition membership strictness（去掉 `CollectTransitionMembers` 的 all-player fallback）；
-- downed / corpse / stranded / detached behavior（明确四态，不被错误 teleport）；
-- `PartyWorldPresenceMode.InSeparateSpace` semantic；
-- 所有 active Cave Character（含 resident/enemy）local-position snapshot。
-
-### 2. SPACE-01 Producer Acceptance / Seal
-
-完整人工验收：**discover → reveal → enter → combat → save/load → physical exit → downed edge case**。
-
-### 3. Return to MAP-04 Final Consumer Audit
-
-重新从**当前代码**搜残留：Hex / WorldRegion / Outdoor LocalMap / Legacy Editor / HexWorld exporter；建立“文件 → 谁是 normal gameplay 消费者 → 可删/需迁移”的清单。
-
-### 4. Finish MAP-04 physical deletion
-
-按审计清单分批删除（先 Runtime 死代码，再 Content，再测试 fixture）。
-
-### 5. Producer Acceptance（MAP-04）
-
-包含 WorldMap Surface-only 视觉/交互人工验收 + 旧档迁移人工验收 + Build All 重跑成功。
-
-### 6. MAP-04 seal / commit / push
-
-**在 SPACE-01 未封板时，不要继续 aggressively 删除地图 runtime。**
+本节原顺序已全部失效：SPACE-01、MAP-04 与 LEGACY-FINAL-A／B／C 后续均已验收封板。不得复制旧 hardening／consumer audit／seal 指令重新开工。当前只按页首摘要完成 Final Seal housekeeping smoke，之后等待制作人明确提交授权。
 
 ---
 
@@ -764,11 +754,12 @@ e133d57 mp-03 暂时版
 
 ---
 
-# 21. Copy-Paste Context for a New ChatGPT Session
+# 21. Archived Copy-Paste Context（禁止继续使用）
 
-> 以下整段可直接复制给一个**没有本仓库聊天记录**的新会话。（实测长度：3791 字符（含换行与英文技术词/文件名），其中汉字 822 个。）
+> 以下整段仅保留 2026-09-18～19 的历史恢复证据，包含已完成的 WIP 与过期指令。**不得复制到新会话。** 新会话只读页首 Current handoff、ADR-0038 与最新 devlog。
 
 ```text
+ARCHIVED / DO NOT EXECUTE — SPACE-01、MAP-04、LEGACY-FINAL-A/B/C 已全部封板。
 项目：Unity 2D top-down 仙侠 RPG（修仙世界模拟 + RPG + 战略层）。仓库 D:\UnityProjects\XianXia，分支 dev_openworld，最新提交 c05a3d2。请把它当成“已实现大量内容、正在收口”的项目，不要重新设计架构。
 
 【架构（已冻结）】
@@ -816,9 +807,7 @@ F) 以上完成前不得封板。
 docs/00-project/03-glossary.md；不要修改已封板的历史文档（240/242/243/244）。Core/Data 禁止 UnityEngine；随机用 IRandomSource；
 WorldTick 是唯一世界时间轴；RelationshipLedger 是唯一关系真源；Dead ≠ Removed。
 
-【建议的下一步】1) 先做 SPACE-01 final hardening（A~E）→ 制作人完整验收 discover/reveal/enter/combat/save-load/physical exit/
-downed → 封板；2) 再回 MAP-04 从当前代码重做 consumer audit，逐文件判定后分批删除 → 验收 → seal；3) SPACE-01 未封板前
-不要激进删除地图 runtime。
+【历史建议，已完成，禁止执行】SPACE-01 hardening、MAP-04 consumer audit 与物理清理、LEGACY-FINAL-A/B/C 均已验收封板。
 
 【入口文档】交接 docs/40-process/247-project-handoff-current-state-2026-09-18.md；SPACE-01 = 246；MAP-04 = 245；
 系统真源 = docs/20-systems/2N-continuous-surface-world-authoring-and-composition.md；决策 ADR-0036 / ADR-0037；
@@ -840,7 +829,7 @@ downed → 封板；2) 再回 MAP-04 从当前代码重做 consumer audit，逐�
 
 # 23. FINAL-SEAL Consolidated Acceptance Closure（2026-09-21）
 
-状态：**Implementation Complete / Producer Acceptance Pending**。
+状态：上一轮 **Producer Accepted / Sealed**；后续 Legacy-only 最小静态尾项已完成，保持未提交。
 
 熟练系统现在从正式学习、自然增长、修为灌注、突破、效果重挂到 Snapshot 恢复使用同一份已加载 profile。当前全部功法／斗技均显式配置 entry→minor→major→perfect→transcendent，四段门槛为 20/30/40/50，灵草与粗木各需 1/2/3/4。Host 学习仪式在开始和完成时都调用 Core 正式资格；关闭详情页后，选中该角色的常驻面板仍绘制仪式读条。重复学习已知技能幂等且不消耗 RNG。
 
@@ -850,4 +839,41 @@ Snapshot 在 Content rehydrate 后统一规范化 mastery 门槛并幂等恢复 
 
 验证：Core／Data／Unity／Tests 离线编译通过；稳定 headless 集中矩阵 40/40，覆盖熟练链、行动取消与预约、奖励事务、普通户外授权、singleton／Surface／Return／Interior 关键回归和 Snapshot。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode。
 
-未扩协议：剧情 Boards 的完整永久存档、特殊空间公库继承仍未定义。制作人只需按洞府／将老两条功法路线、重复研读、概率失败和存读档后的效果做最终 smoke。
+未扩协议：剧情 Boards 的完整永久存档、特殊空间公库继承仍未定义。对应轮次的运行行为人工验收已由制作人确认通过；这些未定义政策不是本专项授权的新实施任务。
+
+# 24. Legacy-only concentrated closeout（2026-09-21）
+
+状态：**Producer Accepted / Sealed（2026-09-22）**。本节原 Pending／smoke 说明仅保留为当轮历史记录，不再是当前任务。
+
+本轮删除匿名 modal pause 兼容计数、无调用 StrategicClockFreeze host-presentation 闭包、Host saved-speed／旧原地战包装、退役住房 UI 字段与未使用 snapshot 局部变量；保留具名 pause owner、现代 CharacterEncounter freeze、ManualPaused 和输入限制。该测试契约当前现名为 `LegacyPartyFocusCompatibility.SyncPartyFocus`，因 EditMode 回归仍有四个直接调用而保留。
+
+代码注释与局部命名已从 Army／StrategicEncounter／WORLD_COMBAT 旧语境改为 Squad／CharacterEncounter／owner；`HexMetrics` 明确只服务 legacy Hex、工具与测试，不是 Continuous Surface authority。项目入口、systems／tech 正文、路线图、ADR 索引与本交接统一指向 ADR-0038；§1～22 的旧 WIP、Resume Order 与复制指令已归档且禁止继续执行。
+
+验证：Core／Data／Unity／EditMode Tests assembly 离线编译 `ALL_OK`；现代 CharacterEncounter 定向纯 C# 回归 8/8；目标符号、已知链接与 `git diff --check` 通过。旧 Phase2C Hex／Outdoor LocalMap 测试套件仍在共同 fixture 前置失败，本轮未删除或改写这些历史测试。
+
+上一轮窄范围 smoke 覆盖具名 modal 暂停恢复、CharacterEncounter 全流程、Continuous travel／WorldMap 与合法旧档兼容读取；不要求重跑 A／B／C、MAP、SPACE 的完整历史验收。
+
+制作人已确认上述上一轮人工 smoke 全部通过。其后静态尾项只删除空 `StrategicDayHandler`／bootstrap 注册、恒空 `LegacyArmyId` 诊断，并修正 `HostDemoTileMap.EndInstanceBuild` 注释；不要求重跑玩法验收。`SyncPartyFocus` 因 `PlayerPartyContinuousWorldPhase2CTests.ARRIVAL_02／07／11` 共 4 次调用而继续保留，仅服务旧 travel fixture 的防回写契约，不是现代 Gameplay 入口。静态尾项离线编译 Core／Data／Unity／Tests `ALL_OK`，引用复查与 `git diff --check` 通过。
+
+# 25. Hex／Army naming compatibility documentation closure（2026-09-22）
+
+状态：**Producer Accepted / Sealed（2026-09-22）。** 本节不改 ADR-0038 Freeze，也不重写 245／166／221 等历史事实。
+
+- **A — Army Content 输入：** 外部协议继续接受 `formalArmy` 与 `initialFormalArmyIds`；内部现名为 `LegacyFormalArmyDefinition`、`InitialLegacyFormalArmyIds`，启动链为 `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`。不创建 FormalArmy／ArmyStack。旧 Content 的 `squad:migrated:`／`squad:legacy:` 规则不变；旧 Snapshot 另由 `LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId` 生成稳定 `squad:army:`，两条 identity 边界不可混用。
+- **B — 稳定 Snapshot／Encounter 协议：** `SquadCommandKind.LegacyFormalArmyWorldMotion = 2`、Encounter spatial `LegacyFormalArmy = 2` 保持数值；`EncounterCharacter.LegacySourceFormalArmyId` 对应 wire `sourceFormalArmyId`。PlayerParty Snapshot `CurrentHexQ/R` 与 JSON `currentHexQ/R` 不改。
+- **C — Hex 合法保留边界：** runtime 容器现名 `SimulationWorld.LegacyHexWorld`。`HexCoord`、`HexMath`、Odd-R Q/R、`HexWorld` 保留真实几何／工具身份；`LegacyHexMetadataProjection` 只迁原测试消费者，不接正常 Gameplay。
+- **D — PlayerParty compatibility：** `PlayerPartyWorldMotion` 的旧专用 API 已逐成员显式 Legacy：`LegacyCurrentHex`、Legacy path／destination、`LegacyHexSegmentIndex/Progress`、Legacy departure／travel presentation 状态，以及无 SurfaceId 的 WorldPosition 写入、Hex-center snap 与旧 route 方法均不再以普通名称暴露。正常 Surface 上 `LegacyCurrentHex` 是兼容摘要；旧 executor 中可为已提交路线格／旧缓存，不保证即时投影。`LegacyPartyFocusCompatibility.SyncPartyFocus` 只服务旧 EditMode fixture。
+- **E — 尺度、删除项与 authority：** `ContinuousWorldMovementScale.Resolve` 仍只读 `LegacyHexWorld.HexSize`，故真实依赖尚在；两层 fallback／阈值与 `scale * sqrt(3.0) / 8f` 运算顺序保持等价。`ModuleId.Army`／`armyOpen` 已删除。正常 authority 仍为 `SurfaceId + exact WorldPosition`、`SquadWorldMotion`、`CharacterEncounter`。
+
+本轮复验：Core／Data／Unity／Tests offline compile `ALL_OK`，阈值定向纯 C# 检查 10/10，`git diff --check` 通过。本轮未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode。
+
+# 26. WorldSite／Hex footprint naming documentation closure（2026-09-22）
+
+状态：**Producer Accepted / Sealed（2026-09-22）。** 本节只登记当前磁盘实现名；不改 ADR-0038 Freeze、稳定协议、GUID 或既有行为。
+
+- `WorldSite` 当前兼容成员为 `LegacyAnchorHex`、`LegacyPresenceHex`、`LegacyOccupiedHexes`、`SetLegacyHexFootprint`、`EnsureLegacyPresenceHexValid`、`HasLegacyPresenceAnchorMismatch`、`EnumerateLegacyFootprintHexes`、`OccupiesLegacyHex`；旧 `WorldSite.HexCoord` alias 已删除。
+- `WorldSiteBoard` 当前查询为 `TryGetAtLegacyHex`、`GetSiteIdsAtLegacyHex`、`TryResolveLegacySitePresenceHex`。相关类为 `LegacyWorldSiteHexLocationCompatibility`、`WorldSiteHexFootprintValidator`、`WorldSiteHexFootprintSpatialMapping`、`WorldSiteHexFootprintBakeTransform`；`WorldSitePhysicalRegionQuery` 与 `WorldSiteOutdoorMigrationPolicy` 保持现名。
+- 当前 compatibility invariant 强制 `LegacyPresenceHex == LegacyAnchorHex`。`LegacyPresenceHex` 是旧兼容代表格，不随 Surface 位置即时派生；`DerivedPresenceHex` 才是 `WorldToHex(CanonicalWorldSurfacePosition)` 的独立只读结果。
+- Hex footprint 的非空、六邻接连通、star-shaped non-empty kernel 三项规则只约束旧 Hex footprint 输入，不是 Continuous Surface、SiteCore 理论范围或 Actual Administrative Control 的通用几何规则。`WorldSiteHexFootprintBakeTransform` 仍有 `sitePlacements`／`sitePlaces`／`OpeningEntityAnchors` 与旧 LocalPosition migration 消费者，不是 dead legacy runtime。
+- 历史页 ADR-0027、212、213、245 仅增加旧名到现名索引；正文历史、旧 devlog 与已 superseded 的 ADR-0025 等保持原样。外部 `anchorQ/R`、`presenceQ/R`、`footprint[]` key 不变。
+- `WorldVec2`、`HostStrategicRosterPanelLayout`、`PlayableHostSession` 的代码改动仅为注释纠正，无行为变化。Core／Data／Unity／Editor／Tests／PlayModeTests／Assembly-CSharp 离线编译 `ALL_OK`；旧精确符号、外部 key、脚本 GUID 唯一性与 `git diff --check` 均已复核。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode；工作区保持未暂存、未提交。

@@ -40,7 +40,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> NpcSquadMemberFields = new HashSet<string>(StringComparer.Ordinal)
         { "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn" };
 
-        public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> LegacyFormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "initialSurfacePosition", "initialSurfaceDeployment", "members"
         };
@@ -50,22 +50,22 @@ namespace XianXia.Data.Content
             "id", "type", "name", "mapColor", "territorySelectable", "sortOrder"
         };
 
-        public static readonly HashSet<string> FormalArmyInitialHexFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> LegacyFormalArmyInitialHexFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "q", "r"
         };
 
-        public static readonly HashSet<string> FormalArmyInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> LegacyFormalArmyInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "surfaceId", "worldX", "worldY"
         };
 
-        public static readonly HashSet<string> FormalArmyInitialSurfaceDeploymentFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> LegacyFormalArmyInitialSurfaceDeploymentFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "surfaceId", "anchorSiteId", "offsetCellsX", "offsetCellsY"
         };
 
-        public static readonly HashSet<string> FormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> LegacyFormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn"
         };

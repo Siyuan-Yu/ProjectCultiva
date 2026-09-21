@@ -10,7 +10,7 @@ namespace XianXia.Tests.EditMode
     /// 验证与 WorldSite 共享 <see cref="HexFootprintSpatialMapping"/>（单 Hex footprint）：
     /// Local 中心 → Hex 中心；Local 边缘 → 真实 Hex polygon boundary；不同 LocalMap 尺寸
     /// normalized 语义一致；roundtrip 误差小；Local 角落经投影后仍位于合法 Hex polygon。
-    /// WorldSiteSpatialMapping 原 B1/B1.1 回归见 <see cref="WorldSiteSpatialMappingTests"/>。
+    /// WorldSiteHexFootprintSpatialMapping 原 B1/B1.1 回归见 <see cref="WorldSiteHexFootprintSpatialMappingTests"/>。
     /// 无 per-call 堆分配断言在独立 dotnet 验证工程执行（NUnit 不依赖 GC API，保持 Editor 编译面最小）。
     /// </summary>
     public sealed class WildernessLocalWorldProjectionTests

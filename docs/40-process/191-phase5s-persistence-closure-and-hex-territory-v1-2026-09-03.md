@@ -1,7 +1,7 @@
 # 191 · Phase 5S Persistence 收口 + Hex Territory V1 基础层 封板（2026-09-03）
 
 > 状态：**已封板（代码完成，待 Unity 验收）** ｜ 日期：2026-09-03
-> 上级：[190 Local Combat 弥留者 ownership 封板](190-local-combat-casualty-ownership-residual-handoff-and-precise-position-2026-09-03.md)／[189 Phase 5S CLOSED Checkpoint](189-phase-5s-closed-world-local-continuity-v1-checkpoint-2026-09-03.md)／[2J Hex Territory 规则](docs/20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
+> 上级：[190 Local Combat 弥留者 ownership 封板](190-local-combat-casualty-ownership-residual-handoff-and-precise-position-2026-09-03.md)／[189 Phase 5S CLOSED Checkpoint](189-phase-5s-closed-world-local-continuity-v1-checkpoint-2026-09-03.md)／[2J Hex Territory 规则](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
 > 本文 = 2026-09-03 两批未提交工作（① Phase 5S persistence 收口：PendingEngagement/BattleOffer JSON Save-Load；② Hex Territory + TerritoryRegion V1 基础层）的**封板归档**。devlog 已按两轮主题逐条记录，本文固化最终 authority 与 invariant，不重写历史细节。
 
 ---

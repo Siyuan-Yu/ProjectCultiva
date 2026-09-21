@@ -1,6 +1,6 @@
 namespace XianXia.Core.World.Hex
 {
-    /// <summary>战略世界最小空间单位。</summary>
+    /// <summary>Legacy grid／tool／prototype 的 Hex 单元；不是正常 Continuous Surface 的最小空间 authority。</summary>
     public sealed class HexCell
     {
         public HexCoord Coord { get; set; }
@@ -10,13 +10,6 @@ namespace XianXia.Core.World.Hex
         public bool IsPassable { get; set; } = true;
         public string WorldSiteId { get; set; } = string.Empty;
         public string ControlFactionId { get; set; } = string.Empty;
-
-        /// <summary>兼容旧字段名。</summary>
-        public string StrategicSiteId
-        {
-            get => WorldSiteId;
-            set => WorldSiteId = value;
-        }
 
         public bool HasSite => !string.IsNullOrEmpty(WorldSiteId);
 

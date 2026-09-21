@@ -1,10 +1,12 @@
 # MAP-04 — Physical Legacy Cleanup
 
+> **2026-09-22 实现现名索引（不改历史清单／正文）：** 历史 diff 中的 `WorldSiteOutdoorBakeTransform`、`WorldSiteSpatialMapping`、`WorldSiteFootprintLocationAuthority` 当前分别对应 `WorldSiteHexFootprintBakeTransform`、`WorldSiteHexFootprintSpatialMapping`、`WorldSitePhysicalRegionQuery`／`LegacyWorldSiteHexLocationCompatibility` 的收窄职责。测试名与下方历史路径按当时事实保留。
+
 > 日期：2026-09-17
 > 状态：**Producer Accepted / Sealed（2026-09-20）**
 > **2026-09-20 封板：** 制作人已完成人工验收；最终 Cave Loot persistence 补丁亦通过。MAP-04 正式封板，后续 Legacy Finalization 另立 LEGACY-FINAL-A／B／C，不回写本阶段验收范围。
-> **当前 checkpoint（2026-09-19 核实）：** 第一批大清理 = `596d9c9`；第二批 + FormalArmy／Snapshot 回归修复 = `54141d1`。**无 seal 提交。** 剩余 consumer 清单与新会话入口见 [247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md) §13。
-> **未通过的 Completion Gate 状态未变：** ① Build All Apps 切换失败（`Apps/` 仍为 2026-09-16 旧产物，含已删除的 `RegionEditor.exe`／`WorldGraphEditor.exe`）；② Legacy Hex gameplay 源码面仍广（Hex 命名文件 36 个、`PlayerPartyHexTravelService`／`ArmyHex*`／Hex pathfinder 仍在 Runtime）；③ Surface-only WorldMap 未做 Unity 视觉／交互验收；④ 缺等价的独立可视化外交／开局战略编辑窗口；⑤ 历史 EditMode Hex 测试未运行。
+> **历史 checkpoint（2026-09-19）：** 第一批大清理 = `596d9c9`；第二批 + FormalArmy／Snapshot 回归修复 = `54141d1`。当时尚无 seal 提交；[247](247-project-handoff-current-state-2026-09-18.md) §13 的 consumer 数量与 gate 是封板前审计快照，不再是当前待办。
+> **封板后的兼容边界：** 源码中的 Legacy／Hex 命名只有在旧 Content／Snapshot、显式 compatibility、工具或测试契约中才可保留；判断标准见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)，不得按旧文件数量重新开启 MAP-04。
 > 制作人约束：不暂存、不提交（除非授权 checkpoint）；不打开 Unity，不运行 PlayMode、Test Runner 或 batchmode。
 
 ## 2026-09-20 Final Acceptance Patch — Cave Loot Persistence

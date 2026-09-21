@@ -1,8 +1,8 @@
 # 术语表
 
-> **CW-U0 术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 最终是玩家小队／Active 控制投影；FormalArmy 是旧迁移适配。Encounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)。设计确认，运行待迁移。
+> **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影；FormalArmy 仅为旧 Content／Snapshot 单向迁移输入。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
-> 状态：持续维护 | 最后更新：2026-09-15
+> 状态：持续维护 | 最后更新：2026-09-21
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -19,8 +19,9 @@
 
 > 真源：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图与去 Hex 产品方向）／[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧地图 Content 迁移方向）／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。
 >
-> - **Current（已存在）**：Continuous Surface runtime 已存在并承担正常 Outdoor 物理空间；Runtime Chunk 当前为 50×50 Surface Cells；Actual Administrative Control 已是 world-space；WorldMap 仍有 Hex shell，`mapLayout`／`localPlaceSet`／`hexWorld`／`worldRegion`／W2A／fallback 仍是现行 compatibility Content。
-> - **Future（未实现）**：World Composer／Fine Editor、World Editor Cell 10×10、Blueprint／DetailPatch、Authoring Source 与 Runtime Content 分离、WorldMap Surface LOD、Final Continuous Surface bake 与完整 de-Hex／de-LocalMap；**MAP-01 未开始**。下表术语锁定方向，**不表示已实施**。
+> - **Current（已存在）**：Continuous Surface 是正常 Outdoor 物理真源；Runtime Chunk 为 50×50 Surface Cells；Actual Administrative Control 为 world-space；WorldComposer／FineEditor、Authoring Source 与 Runtime Content 分离、WorldMap Surface LOD 及 MAP-01～04 已实现并封板。
+> - **Legacy Compatibility**：`mapLayout`／`localPlaceSet`／`hexWorld`／`worldRegion`、AtHex 与 Hex travel 只允许旧输入、明确 adapter、独立空间、工具或测试契约，不是正常 Gameplay authority。
+> - **Future（未实现）**：自动水文、道路自动寻路、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling 等后续制作能力。不得从 MAP 封板推断这些功能已实现。
 > - **Authoring Source ≠ Runtime Content**：地图 authoring 源（Composer／FineEditor 编辑）与 bake 后的 runtime 产物不是同一类 JSON；见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §10～§13。
 > - **150×150 Surface Cells** 只表示 Level 1 SiteCore 的**理论行政控制范围**，**不是** Runtime Chunk、World Editor Cell、WorldSite Blueprint 或地图 authoring 最小尺寸。
 
@@ -153,11 +154,14 @@
 | 玩家冒险队 | PlayerParty | 当前玩家本人所在少人数 RPG 队：1 Active + Followers；上限 6 | **≠ FormalArmy**；见 [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) |
 | 当前主控角色 | ActiveControlledCharacter | 任意时刻玩家唯一可直接即时控制的 Character | 对齐 DirectControl；切换仅限 Party 成员（Succession 例外） |
 | 跟随者 | Follower | PlayerParty 内非 Active 成员；AI 控制 | Follow ≡ 加入 PlayerParty |
-| 后台角色 | Background Character | 非 Party、非 FormalArmy 的真实角色 | 可后台旅行／战斗；WorldMap 不常驻可手操头像；组织类型本身不决定政治接管资格 |
+| 后台角色 | Background Character | 非 PlayerParty、由个人或 NPC Squad authority 管理的真实角色 | 可后台旅行／战斗；WorldMap 不常驻可手操头像；组织类型本身不决定政治接管资格 |
 | 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
 | 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生战略查询结果**，不落盘为位置真源 | 普通户外不经 Site LocalMap mapping，也不 clamp 到 Site Footprint；见 2K／ADR-0031 |
-| 连续 Hex 世界 | Continuous Hex World | HexWorld 一度被定义为唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | **Legacy Compatibility**：当前仍有正常 compatibility consumers（WorldMap Hex shell、`hexWorld` Content、`DerivedPresenceHex` 等），但 future product authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede；非必须 Unity 无缝开放世界 |
-| 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
+| Legacy Hex 几何 | Legacy Hex Geometry | `HexCoord`、`HexMath`、Odd-R offset 的 Q/R 与 `HexWorld` 几何／寻路工具 | 真实保留的兼容、工具与测试身份；runtime 容器入口为 `SimulationWorld.LegacyHexWorld`，不等于正常 Gameplay authority |
+| Legacy Hex 摘要 | LegacyCurrentHex | `PlayerPartyWorldMotion.LegacyCurrentHex` 保存的兼容摘要 | 正常 Surface 可为派生摘要；旧兼容路径中也可表示已提交路线格或旧缓存，**不承诺每帧即时投影**。Snapshot `CurrentHexQ/R` 与 JSON `currentHexQ/R` 协议名保持不变 |
+| Legacy Hex 元数据投影 | LegacyHexMetadataProjection | exact `WorldPosition` 到序列化 Hex 摘要的兼容投影 | 只迁移原测试消费者，不接入正常 Gameplay；保留既有相邻格 hysteresis、两层 fallback 与阈值 |
+| 连续 Hex 世界 | Continuous Hex World | HexWorld 一度被定义为唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | **Legacy Compatibility**：产品 authority 已由 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) supersede；`hexWorld` Content 与几何／工具类型可按兼容契约保留 |
+| 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为派生查询；`LegacyCurrentHex` 仅兼容摘要／旧路线提交或缓存；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
 | 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**（仅指这个泛化概念本身）；它与已实现的 `Continuous Outdoor World Surface` 不是同一个东西；见 203 |
 | 连续室外世界表面 | Continuous Outdoor World Surface | 一个大陆内普通 Outdoor Geography 的真实连续物理世界 | **Current：runtime 已存在并承担正常 Outdoor 物理空间**（ADR-0031）；Indoor / Cave 等独立 Space 不在其中。**Future：新的 World Authoring／Composition／完整 de-Hex 与 Final Surface bake 尚未实现**（ADR-0036／ADR-0037）；不得再把「未实现」读成整个 Continuous Surface 不存在 |
 | 世界空间标识 | WorldSpaceId | 标识一个独立 Physical World Space（例如一块大陆或特殊独立世界） | 长期 Outdoor Physical Position = `WorldSpaceId + WorldPosition`；Future 架构 |
@@ -288,7 +292,7 @@
 | 理论核心范围 | Nominal SiteCore Range | SiteCore 当前等级产生、尚未解析重叠的行政／建设候选区域 | Footprint+一环只是旧 V1 实现；最终等级范围为后续内容参数 |
 | 有效控制范围 | Effective Control Range | 应用既得控制和稳定交接后，实际归某 Site／Faction 管理的区域 | 每个位置／建筑唯一；同势力 Union 不重复计数 |
 | Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` 是 Control Asset Resolver 的派生投影，不是因果真源；见 2J |
-| 辖区 | TerritoryRegion | 绑定 Primary WorldSite 的兼容地图组织单元 | Runtime `Hexes[]` 由 Control Asset Resolver 重建；不是政治真源 |
+| 辖区（旧） | TerritoryRegion | 旧 Content／Snapshot 的兼容地图组织单元 | Runtime board 已退休；读取时单向迁移，不是政治或行政真源 |
 | 地点足迹 | WorldSite Strategic Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离，且不等于 Exact Physical Boundary；见 ADR-0031 |
 | 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器参考点／默认镜头焦点 | 禁止作为 PlayerParty AtSite 的实际位置（ADR-0027）；进入用 Footprint.Contains |
 | 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |

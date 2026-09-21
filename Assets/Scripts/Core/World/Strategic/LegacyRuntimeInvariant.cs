@@ -7,13 +7,13 @@ namespace XianXia.Core.World.Strategic
     /// <summary>Development-only proof that a modern Continuous session owns no retired runtime authority.</summary>
     public static class LegacyRuntimeInvariant
     {
-        public static void AssertModernOpeningScenario(int initialFormalArmyCount)
+        public static void AssertModernOpeningScenario(int initialLegacyFormalArmyCount)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (initialFormalArmyCount > 0)
+            if (initialLegacyFormalArmyCount > 0)
                 System.Diagnostics.Debug.Fail(
-                    "[LegacyRuntimeInvariant] Current opening scenario still declares InitialFormalArmyIds: " +
-                    initialFormalArmyCount);
+                    "[LegacyRuntimeInvariant] Current opening scenario still declares InitialLegacyFormalArmyIds: " +
+                    initialLegacyFormalArmyCount);
 #endif
         }
 
@@ -65,14 +65,14 @@ namespace XianXia.Core.World.Strategic
                         travel.ExecutionMode);
                 }
 
-                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize
+                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                    ? world.LegacyHexWorld.HexSize
                     : 1f;
                 var derivedHex = HexMath.WorldToHex(
                     travel.WorldPosition.X, travel.WorldPosition.Y, hexSize);
-                if (travel.CurrentHex != derivedHex)
+                if (travel.LegacyCurrentHex != derivedHex)
                     System.Diagnostics.Debug.Fail(
-                        "[LegacyRuntimeInvariant] Modern PlayerParty CurrentHex is not derived from WorldPosition.");
+                        "[LegacyRuntimeInvariant] Modern PlayerParty LegacyCurrentHex is not derived from WorldPosition.");
             }
             if (travel != null && travel.HasPosition &&
                 travel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&

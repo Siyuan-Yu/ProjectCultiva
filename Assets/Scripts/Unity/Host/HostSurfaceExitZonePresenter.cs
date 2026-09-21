@@ -96,8 +96,8 @@ namespace XianXia.Unity.Host
             {
                 var connection = _zones[i].Connection;
                 HexCell tile = null;
-                if (world.HexWorld != null)
-                    world.HexWorld.TryGetTile(connection.DestinationHex, out tile);
+                if (world.LegacyHexWorld != null)
+                    world.LegacyHexWorld.TryGetTile(connection.DestinationHex, out tile);
                 var structural = SurfaceExitTraversalService.TryPrepareTraversal(
                     world, session.PlayerParty, connection, out _);
                 var destinationValid = structural.IsSuccess;
@@ -114,7 +114,7 @@ namespace XianXia.Unity.Host
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log("[SurfaceExitAudit] ContextKind=" + world.PlayerPartyTravel.LocationKind +
                     " SiteId=" + (world.PlayerPartyTravel.SiteId ?? string.Empty) +
-                    " CurrentHex=" + world.PlayerPartyTravel.CurrentHex +
+                    " LegacyCurrentHex=" + world.PlayerPartyTravel.LegacyCurrentHex +
                     " SourceHex=" + connection.SourceHex + " DestinationHex=" + connection.DestinationHex +
                     " DirectionIndex=" + connection.DirectionIndex + " DestinationKind=" + connection.DestinationKind +
                     " DestinationTerrain=" + (tile != null ? tile.Terrain.ToString() : "Missing") +
@@ -232,11 +232,6 @@ namespace XianXia.Unity.Host
                 presentationX, presentationY, connection, _cachedDepth);
         }
 
-        static bool SameIdentity(SurfaceExitConnection left, SurfaceExitConnection right) =>
-            left.SourceHex.Equals(right.SourceHex) &&
-            left.DestinationHex.Equals(right.DestinationHex) &&
-            left.DirectionIndex == right.DirectionIndex;
-
         internal void WriteTopologyAudit(
             XianXia.Core.Simulation.SimulationWorld world,
             int currentStrategicExitCount,
@@ -245,11 +240,11 @@ namespace XianXia.Unity.Host
             int currentExactDuplicateCount)
         {
             var sites = world?.Strategic?.Sites;
-            if (sites == null || world.HexWorld == null)
+            if (sites == null || world.LegacyHexWorld == null)
                 return;
 
             var currentSiteId = world.PlayerPartyTravel?.SiteId ?? string.Empty;
-            var hexSize = world.HexWorld.HexSize > 0.0001f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0.0001f ? world.LegacyHexWorld.HexSize : 1f;
             var nominalBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
                 0f, 0f, 1f, 16, 16);
             var connections = new List<SurfaceExitConnection>(16);
@@ -278,7 +273,7 @@ namespace XianXia.Unity.Host
                 {
                     var c = connections[i];
                     uniqueDestinationHexes.Add(c.DestinationHex);
-                    world.HexWorld.TryGetTile(c.DestinationHex, out var tile);
+                    world.LegacyHexWorld.TryGetTile(c.DestinationHex, out var tile);
                     var valid = tile != null && tile.IsPassable &&
                                 tile.Terrain != XianXia.Core.World.Hex.HexTerrainType.Water;
                     if (!valid)
@@ -293,7 +288,7 @@ namespace XianXia.Unity.Host
                     }
 
                     var sharedBoundaryEdgeCount = 0;
-                    foreach (var footprintHex in site.EnumerateFootprintHexes())
+                    foreach (var footprintHex in site.EnumerateLegacyFootprintHexes())
                     {
                         for (var direction = 0; direction < HexMath.DirectionCount; direction++)
                         {
@@ -303,7 +298,7 @@ namespace XianXia.Unity.Host
                     }
 
                     var destinationSiteId = string.Empty;
-                    if (sites.TryGetAtHex(c.DestinationHex, out var destinationSite) &&
+                    if (sites.TryGetAtLegacyHex(c.DestinationHex, out var destinationSite) &&
                         destinationSite != null)
                     {
                         destinationSiteId = destinationSite.SiteId;
@@ -322,7 +317,7 @@ namespace XianXia.Unity.Host
                         " SourceHex=" + c.SourceHex +
                         " DestinationHex=" + c.DestinationHex +
                         " DestinationKind=" + c.DestinationKind +
-                        " DestinationSiteId=" + destinationSiteId +
+                        " LegacyDestinationSiteId=" + destinationSiteId +
                         " Terrain=" + (tile != null ? tile.Terrain.ToString() : "Missing") +
                         " Passable=" + (tile != null && tile.IsPassable) +
                         " SharedBoundaryEdgeCount=" + sharedBoundaryEdgeCount,
@@ -354,7 +349,7 @@ namespace XianXia.Unity.Host
                 if (locallyUnavailable > 0)
                     totalLocallyUnavailable += locallyUnavailable;
                 var footprintHexCount = 0;
-                foreach (var _ in site.EnumerateFootprintHexes())
+                foreach (var _ in site.EnumerateLegacyFootprintHexes())
                     footprintHexCount++;
                 Debug.Log(
                     "[SurfaceExitTopology] SiteId=" + site.SiteId +

@@ -11,8 +11,8 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public sealed class WorldSite
     {
-        readonly List<HexCoord> _occupiedHexes = new List<HexCoord>(8);
-        ReadOnlyCollection<HexCoord> _occupiedHexesView;
+        readonly List<HexCoord> _legacyOccupiedHexes = new List<HexCoord>(8);
+        ReadOnlyCollection<HexCoord> _legacyOccupiedHexesView;
 
         public string SiteId { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
@@ -45,108 +45,95 @@ namespace XianXia.Core.World.Strategic
         public bool IsCoreActive { get; set; } = true;
         public bool CoreIsRemovable { get; set; }
 
-        public HexCoord AnchorHex { get; set; }
+        public HexCoord LegacyAnchorHex { get; set; }
 
         /// <summary>
-        /// Character 位于该 Site LocalMap 时的 HexWorld 位置代理（兼容字段；必须与 <see cref="AnchorHex"/> 相同）。
+        /// Character 位于该 Site LocalMap 时的 HexWorld 位置代理（兼容字段；必须与 <see cref="LegacyAnchorHex"/> 相同）。
         /// Authoring／Content 固定；Runtime 不随 LocalPosition 漂移。
         /// </summary>
-        public HexCoord PresenceHex { get; set; }
+        public HexCoord LegacyPresenceHex { get; set; }
 
-        /// <summary>兼容旧字段名。</summary>
-        public HexCoord HexCoord
+        public IReadOnlyList<HexCoord> LegacyOccupiedHexes =>
+            _legacyOccupiedHexesView ?? (_legacyOccupiedHexesView = _legacyOccupiedHexes.AsReadOnly());
+
+        public void SetLegacyHexFootprint(IEnumerable<HexCoord> hexes)
         {
-            get => AnchorHex;
-            set => AnchorHex = value;
-        }
-
-        /// <summary>兼容旧字段名。</summary>
-        public string Kind
-        {
-            get => SiteType;
-            set => SiteType = value;
-        }
-
-        public IReadOnlyList<HexCoord> OccupiedHexes =>
-            _occupiedHexesView ?? (_occupiedHexesView = _occupiedHexes.AsReadOnly());
-
-        public void SetFootprint(IEnumerable<HexCoord> hexes)
-        {
-            _occupiedHexes.Clear();
+            _legacyOccupiedHexes.Clear();
             if (hexes == null)
             {
-                if (!AnchorHex.Equals(default))
-                    _occupiedHexes.Add(AnchorHex);
-                EnsurePresenceHexValid();
+                if (!LegacyAnchorHex.Equals(default))
+                    _legacyOccupiedHexes.Add(LegacyAnchorHex);
+                EnsureLegacyPresenceHexValid();
                 return;
             }
 
             foreach (var hex in hexes)
             {
-                if (_occupiedHexes.Contains(hex))
+                if (_legacyOccupiedHexes.Contains(hex))
                     continue;
-                _occupiedHexes.Add(hex);
+                _legacyOccupiedHexes.Add(hex);
             }
 
-            if (!AnchorHex.Equals(default) && !_occupiedHexes.Contains(AnchorHex))
-                _occupiedHexes.Insert(0, AnchorHex);
+            if (!LegacyAnchorHex.Equals(default) && !_legacyOccupiedHexes.Contains(LegacyAnchorHex))
+                _legacyOccupiedHexes.Insert(0, LegacyAnchorHex);
 
-            EnsurePresenceHexValid();
+            EnsureLegacyPresenceHexValid();
         }
 
         /// <summary>
-        /// 确保 PresenceHex 在 Footprint 内，并强制 PresenceHex == AnchorHex（兼容 invariant）。
+        /// 确保 LegacyPresenceHex 在 Hex footprint 内，并强制
+        /// LegacyPresenceHex == LegacyAnchorHex（兼容 invariant）。
         /// </summary>
-        public void EnsurePresenceHexValid()
+        public void EnsureLegacyPresenceHexValid()
         {
-            if (!OccupiesHex(PresenceHex) && OccupiesHex(AnchorHex))
+            if (!OccupiesLegacyHex(LegacyPresenceHex) && OccupiesLegacyHex(LegacyAnchorHex))
             {
-                PresenceHex = AnchorHex;
+                LegacyPresenceHex = LegacyAnchorHex;
             }
-            else if (!OccupiesHex(PresenceHex))
+            else if (!OccupiesLegacyHex(LegacyPresenceHex))
             {
-                foreach (var hex in EnumerateFootprintHexes())
+                foreach (var hex in EnumerateLegacyFootprintHexes())
                 {
-                    PresenceHex = hex;
+                    LegacyPresenceHex = hex;
                     break;
                 }
             }
 
-            if (OccupiesHex(AnchorHex))
-                PresenceHex = AnchorHex;
+            if (OccupiesLegacyHex(LegacyAnchorHex))
+                LegacyPresenceHex = LegacyAnchorHex;
         }
 
-        /// <summary>PresenceHex 是否与 AnchorHex 不一致（加载旧 Content 时可用来打 Development warning）。</summary>
-        public bool HasPresenceAnchorMismatch(HexCoord loadedPresence) =>
-            !loadedPresence.Equals(default) && loadedPresence != AnchorHex;
+        /// <summary>LegacyPresenceHex 是否与 LegacyAnchorHex 不一致（加载旧 Content 时可用来打 Development warning）。</summary>
+        public bool HasLegacyPresenceAnchorMismatch(HexCoord loadedPresence) =>
+            !loadedPresence.Equals(default) && loadedPresence != LegacyAnchorHex;
 
-        public IEnumerable<HexCoord> EnumerateFootprintHexes()
+        public IEnumerable<HexCoord> EnumerateLegacyFootprintHexes()
         {
-            if (_occupiedHexes.Count > 0)
+            if (_legacyOccupiedHexes.Count > 0)
             {
-                for (var i = 0; i < _occupiedHexes.Count; i++)
-                    yield return _occupiedHexes[i];
+                for (var i = 0; i < _legacyOccupiedHexes.Count; i++)
+                    yield return _legacyOccupiedHexes[i];
                 yield break;
             }
 
-            if (!AnchorHex.Equals(default))
-                yield return AnchorHex;
+            if (!LegacyAnchorHex.Equals(default))
+                yield return LegacyAnchorHex;
         }
 
-        public bool OccupiesHex(HexCoord coord)
+        public bool OccupiesLegacyHex(HexCoord coord)
         {
-            if (_occupiedHexes.Count > 0)
+            if (_legacyOccupiedHexes.Count > 0)
             {
-                for (var i = 0; i < _occupiedHexes.Count; i++)
+                for (var i = 0; i < _legacyOccupiedHexes.Count; i++)
                 {
-                    if (_occupiedHexes[i] == coord)
+                    if (_legacyOccupiedHexes[i] == coord)
                         return true;
                 }
 
                 return false;
             }
 
-            return AnchorHex == coord;
+            return LegacyAnchorHex == coord;
         }
 
         public bool HasContinuousCore =>

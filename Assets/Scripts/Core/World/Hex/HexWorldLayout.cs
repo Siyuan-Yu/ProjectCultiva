@@ -3,8 +3,8 @@ using System;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// 矩形 Hex 世界布局（Odd-R offset）：HexCoord.Q = 列，HexCoord.R = 行。
-    /// 仅影响世界平面坐标与视口 fit；Domain 位置真源仍为 <see cref="HexCoord"/>。
+    /// Legacy grid／tool 矩形布局（Odd-R offset）：HexCoord.Q = 列，HexCoord.R = 行。
+    /// 仅影响 Hex 几何与视口 fit；正常 Continuous Surface 的位置真源是 exact WorldPosition。
     /// </summary>
     public static class HexWorldLayout
     {

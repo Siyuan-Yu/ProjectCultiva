@@ -2,14 +2,18 @@
 
 > **SUPERSEDED（2026-09-21，LEGACY-FINAL-C Sealed）：** `TerritoryRegion`、`TerritoryRegionBoard`、`TerritoryControlService` 与 Hex controller 不再是 normal runtime authority。现代行政控制只使用 WorldSite Owner、TerritoryClaim history 与 Actual Administrative Control；本页 TerritoryRegion V1 段落保留为历史实现和旧 Content／Snapshot 输入说明。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 
+> **现名注记（2026-09-22）：** 下文 `FormalArmy.CurrentHex`、`SimulationWorld.HexWorld`、`WorldSite.AnchorHex`／`PresenceHex`／`OccupiedHexes`、`WorldSiteSpatialMapping` 等均是当时旧名／历史模型。当前代码对应为 `SimulationWorld.LegacyHexWorld`、`PlayerPartyWorldMotion.LegacyCurrentHex`；WorldSite 兼容输入对应 `LegacyAnchorHex`／`LegacyPresenceHex`／`LegacyOccupiedHexes` 与 `SetLegacyHexFootprint`／`EnsureLegacyPresenceHexValid`／`EnumerateLegacyFootprintHexes`／`OccupiesLegacyHex`，Board 查询为 `TryGetAtLegacyHex`／`GetSiteIdsAtLegacyHex`／`TryResolveLegacySitePresenceHex`。类型现名为 `LegacyWorldSiteHexLocationCompatibility`、`WorldSiteHexFootprintValidator`、`WorldSiteHexFootprintSpatialMapping`、`WorldSiteHexFootprintBakeTransform`；`WorldSitePhysicalRegionQuery` 与 `WorldSiteOutdoorMigrationPolicy` 保持现名。`WorldSite.HexCoord` alias 已删除。`HexCoord`／`HexMath`／Odd-R Q/R／`HexWorld` 几何类型本身仍合法用于旧 Content、工具、测试与迁移，不构成正常 Gameplay authority。
+>
+> **当前 invariant：** `LegacyPresenceHex == LegacyAnchorHex`；前者是旧兼容代表格，不是即时 Surface 派生。`DerivedPresenceHex = WorldToHex(CanonicalWorldSurfacePosition)` 是另一项只读查询，可与 `LegacyAnchorHex` 不同。下文“Presence 可与 Anchor 不同”只描述 2026-08-25 历史模型，不是当前 API 规则。Hex footprint 的非空、六邻接连通、star-shaped non-empty kernel 三项检查只约束旧 Hex footprint 输入，不约束 Continuous Surface 或 Actual Administrative Control；`WorldSiteHexFootprintBakeTransform` 仍有 opening authoring／migration 消费者，不是 dead legacy runtime。
+
 > **2026-09-16 MAP-02 Accepted：** 主 Continuous Surface 的 WorldMap 已迁为同源 Surface strategic view；Hex 仍服务于未迁出的 travel、行政／物理区域 query、战斗范围、Site footprint 与旧 Content compatibility。下文 Pure Hex、Footprint 与 WorldMap 表述保留为 compatibility／历史基线，不代表 Hex 已删除。
 
-> 状态：Hex 战略叠加保留；旧 Control Asset V1 已验收，SiteCore 实际范围目标待迁移／核查｜优先级：P0｜最后更新：2026-09-12
+> 状态：**Legacy／Historical**；TerritoryRegion runtime 已退休，SiteCore／Claim／Actual Administrative Control 已封板｜优先级：P0｜最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、`ADR-0031`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)
 > 被引用：`03-glossary.md`、`41-roadmap`
 > **本页只继续作为 Hex 战略叠加／摘要与 Dynamic Site 历史入口。SiteCore 的真实行政／建设范围以 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) 和 [26](26-territory-management.md) 为准。**
-> **PresenceHex 仅为 `WorldToHex(CanonicalWorldSurfacePosition)` 的战略派生；不得 clamp 到 Footprint，也不决定 CurrentSite 或建筑归属。**
+> **DerivedPresenceHex 仅为 `WorldToHex(CanonicalWorldSurfacePosition)` 的战略派生；不得 clamp 到 Footprint，也不决定 CurrentSite 或建筑归属。** `LegacyPresenceHex` 则是始终等于 `LegacyAnchorHex` 的旧兼容代表格。
 > **Continuous Surface 当前规则：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 保留 Hex 为战略摘要；WorldSite Footprint、Anchor 与 Surface Chunk 都不等于实际物理／行政边界，普通 Outdoor 不使用一 Site 一 LocalMap。
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
@@ -43,14 +47,14 @@
 
 > 本节从此处至 “Supersede 声明” 仅描述 2026-09-03／09-06 运行时基线。它不覆盖上方 2026-09-12 目标；尤其 overlap validation、固定 Region geometry、EstablishedOrder first-claim 和 footprint+一环都须迁移／核查。
 
-- **TerritoryRegion V1 implemented**：`TerritoryRegion` / `TerritoryRegionBoard`（hex→region O(1) 索引 + Register overlap 硬校验）/ `TerritoryControlService`（唯一写入口）/ `TerritoryInvariantValidator` / `WorldSiteTerritoryTransferService`（Site+Region 一次易主事务）。
+- **历史 TerritoryRegion V1（2026-09-03 已实现、现已退休）**：曾使用 `TerritoryRegionBoard`／`TerritoryControlService`／`WorldSiteTerritoryTransferService`；normal runtime 已由 ADR-0038 的 Site／Claim／Actual Control 链替代。
 - **`HexCell.ControlFactionId` authoritative**：每 Hex 最终政治控制唯一真源；Runtime 不另建第二套 controller dictionary。
 - **Fixed WorldSite radius-1 initial regions authored**：`ch01_hex_world.json` 30 个 Region = 整个 footprint + 1 跳 ring（地图边缘裁剪），已固化进 Content。
 - **Runtime 不根据 radius 重算 Territory**：`Region.Hexes[]` 是唯一 membership 真源；没有 RecalculateAllTerritories()。
 - **Initial overlap forbidden by current producer decision**：Region 重叠 = Content validation failure（loader/validator fail；Board.Register throw）；不做 distance / tie-break 自动裁决（见 §6.12 SUPERSEDED 提示）。
 - **Dynamic WorldSite 无 Territory**：`TerritoryRegionId == ""` → 无 Region、无 Territory 色；Capture 无 Region fallback 只改 Owner。
 - **WorldMap Territory tint**：淡 faction tint（强度 0.22）每帧实时 resolve `ControlFactionId`（terrain fill 内混合，0 GameObject per Hex）；易主后自动刷新，无需 invalidate。
-- **Snapshot**：只存 `TerritoryRegionControllerSnapshotDto`（RegionId + ControlFactionId，不含 Hexes/Geometry）；Load 经 `TerritoryControlService.SetRegionController` 恢复，Development 下校验 Owner == Region Controller == 每 Hex。
+- **旧 Snapshot 输入**：`TerritoryRegionControllerSnapshotDto` 仅在读取边界单向迁移；现代 Load 不再恢复 TerritoryRegion board，现代 Save 不输出该 authority。
 - **Future player-built rule（仅记录，不实现）**：新建 WorldSite 只能取得当前无 Territory 归属的候选 Hex（first claim wins）；已属某 Region 的 Hex 永不因后来建设被抢走；之后不动态重新分界。
 
 ---

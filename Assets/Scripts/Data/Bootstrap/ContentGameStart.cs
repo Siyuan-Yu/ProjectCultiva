@@ -221,12 +221,5 @@ namespace XianXia.Data.Bootstrap
             return Result.Ok(spawn);
         }
 
-        static SpawnEntityKind ParseEntityKind(string text)
-        {
-            if (!string.IsNullOrEmpty(text) &&
-                string.Equals(text.Trim(), "npc", StringComparison.OrdinalIgnoreCase))
-                return SpawnEntityKind.Npc;
-            return SpawnEntityKind.Character;
-        }
     }
 }

@@ -478,7 +478,6 @@ namespace XianXia.Unity.Host
 
             var partyMembers = session.PlayerParty?.Count ?? 0;
             var active = session.PlayerParty?.ActiveCharacterId.Value ?? 0UL;
-            var armyCount = world.Strategic?.Squads?.Squads?.Count ?? 0;
 
             SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
                 world,

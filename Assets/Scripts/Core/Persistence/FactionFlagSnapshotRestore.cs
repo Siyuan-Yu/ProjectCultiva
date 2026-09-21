@@ -83,10 +83,10 @@ namespace XianXia.Core.Persistence
                     return Invalid(i, item, "Site-Core world position is outside its Surface");
                 if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) && isSiteCore)
                 {
-                    var size = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                    var size = world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
                     anchor = HexMath.WorldToHex(worldX, worldY, size);
                 }
-                else if (world.HexWorld == null || !world.HexWorld.IsInBounds(anchor.Q, anchor.R))
+                else if (world.LegacyHexWorld == null || !world.LegacyHexWorld.IsInBounds(anchor.Q, anchor.R))
                     return Invalid(i, item, "anchor is out of bounds");
                 if (item.SiteCoreFormat == 1 && authored != null && !isSiteCore)
                     return Invalid(i, item, "authored Site-Core flag is disabled by an authoritative snapshot entry");

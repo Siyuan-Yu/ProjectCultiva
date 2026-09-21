@@ -184,8 +184,8 @@ namespace XianXia.Core.Exploration
             if (continuousReturn && world.PlayerPartyTravel != null)
             {
                 var position = new WorldVec2(session.ReturnWorldX, session.ReturnWorldY);
-                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize
+                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                    ? world.LegacyHexWorld.HexSize
                     : 1f;
                 var derivedHex = HexMath.WorldToHex(position.X, position.Y, hexSize);
                 world.PlayerPartyTravel.SetAtSurfacePosition(

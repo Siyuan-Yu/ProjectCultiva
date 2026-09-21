@@ -10,7 +10,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null)
                 return;
-            if (world.HexWorld.HasGrid)
+            if (world.LegacyHexWorld.HasGrid)
                 return;
             Ch01HexPrototypeMapBuilder.BuildMinimalTwoSitePrototype(world);
         }
@@ -19,7 +19,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null)
                 return;
-            if (world.HexWorld.HasGrid)
+            if (world.LegacyHexWorld.HasGrid)
                 return;
             Ch01HexPrototypeMapBuilder.Build(world);
         }

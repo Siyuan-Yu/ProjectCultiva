@@ -83,7 +83,7 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
                 world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
-                    motion.CurrentHex, motion.SurfaceId ?? string.Empty);
+                    motion.LegacyCurrentHex, motion.SurfaceId ?? string.Empty);
                 return;
             }
 
@@ -137,8 +137,8 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : HexWorldScale.DefaultHexOuterRadius;
             world.WorldPresence.SetAtWorldPosition(
                 id, preciseWorldPosition, HexMath.WorldToHex(preciseWorldPosition.X, preciseWorldPosition.Y, hexSize),
@@ -223,7 +223,7 @@ namespace XianXia.Core.World.Strategic
         /// PlayerParty member WorldPresence 单向 consistency guard：motion（PlayerPartyWorldMotion）
         /// 是 strategic truth，individual member presence 只是兼容/查询状态。
         /// 只允许 motion → member presence 单向 repair；绝对禁止 member presence → motion
-        /// （SiteId / CurrentHex / WorldPosition）反向覆盖。
+        /// （SiteId / LegacyCurrentHex / WorldPosition）反向覆盖。
         /// 调用点：成功 EnterWorldSiteAsParty / surface LocalMap materialize / final arrival 后。
         /// 实际发生 repair 时打一次 diagnostics（member id / old / new / motion context / phase）。
         /// </summary>
@@ -255,7 +255,7 @@ namespace XianXia.Core.World.Strategic
                         var id = party.Members[i];
                         if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id)) continue;
                         world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
-                            motion.CurrentHex,
+                            motion.LegacyCurrentHex,
                             string.IsNullOrEmpty(motion.SurfaceId) ? navigation.SurfaceId : motion.SurfaceId);
                     }
                 }
@@ -289,9 +289,9 @@ namespace XianXia.Core.World.Strategic
                     if (!world.WorldPresence.TryGet(id, out var wp) ||
                         wp == null ||
                         wp.Mode != PartyWorldPresenceMode.AtHex ||
-                        wp.UsesHexPresence && !wp.ResidualHex.Equals(motion.CurrentHex))
+                        wp.UsesHexPresence && !wp.ResidualHex.Equals(motion.LegacyCurrentHex))
                     {
-                        world.WorldPresence.SetLegacyAtHex(id, motion.CurrentHex);
+                        world.WorldPresence.SetLegacyAtHex(id, motion.LegacyCurrentHex);
                         changed = true;
                     }
                 }
@@ -303,9 +303,9 @@ namespace XianXia.Core.World.Strategic
                         " member=" + id.Value +
                         " kind=" + motion.LocationKind +
                         " site=" + (motion.SiteId ?? string.Empty) +
-                        " hex=" + motion.CurrentHex +
+                        " hex=" + motion.LegacyCurrentHex +
                         " -> At" +
-                        (atSite ? "Site(" + motion.SiteId + ")" : "Hex(" + motion.CurrentHex + ")"));
+                        (atSite ? "Site(" + motion.SiteId + ")" : "Hex(" + motion.LegacyCurrentHex + ")"));
                 }
             }
         }

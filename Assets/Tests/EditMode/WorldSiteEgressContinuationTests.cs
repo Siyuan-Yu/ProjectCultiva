@@ -14,7 +14,7 @@ namespace XianXia.Tests
     /// A. Multi-Hex WorldSite Egress Continuation —— crossing 后 Route Progress 必须对齐到
     ///    已提交的 FormalConnection.DestinationHex（first outside hex），不依赖
     ///    WorldToHex(BoundaryContactWorld) 的 perimeter tie；LocalVisible departure 全程
-    ///    SegmentIndex 恒 0，旧 SetSegment(+1) 在 HexPath 前部含多个 footprint hex 时会卡在
+    ///    LegacyHexSegmentIndex 恒 0，旧 SetLegacyHexSegment(+1) 在 LegacyHexPath 前部含多个 footprint hex 时会卡在
     ///    footprint 内部段（multi-hex Site 内部 seam 出发即触发）→ 修复后至少继续 2 个 segment。
     /// B. World Pause / Travel Executor —— AtWorldSite + departure + World executor（WorldMap
     ///    open + Running）：Canonical 是唯一 physical truth，朝正式 BoundaryContactWorld 直线
@@ -46,13 +46,13 @@ namespace XianXia.Tests
                 if (s.GetString("siteId") != siteId)
                     continue;
                 var site = new WorldSite { SiteId = siteId };
-                site.AnchorHex = new HexCoord(s.GetInt("anchorQ"), s.GetInt("anchorR"));
-                site.PresenceHex = new HexCoord(s.GetInt("presenceQ"), s.GetInt("presenceR"));
+                site.LegacyAnchorHex = new HexCoord(s.GetInt("anchorQ"), s.GetInt("anchorR"));
+                site.LegacyPresenceHex = new HexCoord(s.GetInt("presenceQ"), s.GetInt("presenceR"));
                 var fp = s.GetArray("footprint");
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.SetFootprint(hexes);
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
 
@@ -63,16 +63,16 @@ namespace XianXia.Tests
         static SimulationWorld BuildWorld(params string[] siteIds)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.HexSize = HexSize;
-            world.HexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.HexSize = HexSize;
+            world.LegacyHexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
             for (var i = 0; i < siteIds.Length; i++)
             {
                 var s = LoadSite(siteIds[i]);
                 world.Strategic.Sites.Register(s);
-                foreach (var h in s.EnumerateFootprintHexes())
+                foreach (var h in s.EnumerateLegacyFootprintHexes())
                 {
-                    if (world.HexWorld.TryGetTile(h, out var t) && t != null)
+                    if (world.LegacyHexWorld.TryGetTile(h, out var t) && t != null)
                         t.IsPassable = true;
                 }
             }
@@ -129,7 +129,7 @@ namespace XianXia.Tests
             return list;
         }
 
-        // 5 个外部战略目标方向（远点，保证 HexPath ≥ 3 段：能验证"至少继续 2 段"）。
+        // 5 个外部战略目标方向（远点，保证 LegacyHexPath ≥ 3 段：能验证"至少继续 2 段"）。
         static readonly HexCoord[] Goals =
         {
             new HexCoord(60, 30),   // 西南
@@ -147,7 +147,7 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
 
             var positions = InternalSeamPositions(site);
             Assert.AreEqual(5, positions.Count);
@@ -158,23 +158,23 @@ namespace XianXia.Tests
                 {
                     var pos = positions[p];
                     // 每轮迭代重置 AtWorldSite context（上一轮已模拟 crossing → AtWorldPosition）。
-                    motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+                    motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
                     Assert.IsTrue(
-                        motion.TryUpdateWorldPositionWithinSite(site.SiteId, pos),
+                        motion.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, pos),
                         "canonical set [" + p + "][" + g + "]");
                     var begin = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goals[g]);
                     Assert.IsTrue(begin.IsSuccess, "BeginTravel [" + p + "][" + g + "] to " + Goals[g]);
-                    Assert.IsTrue(motion.IsSiteDeparturePending, "departure pending [" + p + "][" + g + "]");
+                    Assert.IsTrue(motion.IsLegacySiteDeparturePending, "departure pending [" + p + "][" + g + "]");
 
                     var connOk = WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
-                        world, site, motion.SiteDepartureFootprintHex, motion.SiteDepartureExitHex,
+                        world, site, motion.LegacySiteDepartureFootprintHex, motion.LegacySiteDepartureExitHex,
                         HexSize, Bounds, out var conn);
                     Assert.IsTrue(connOk, "formal connection resolved [" + p + "][" + g + "]");
 
                     // 模拟 LocalVisible crossing 的状态变更（与 TryCrossWorldSiteEdge 内部一致）：
                     // Canonical = BoundaryContactWorld；Route hex = FormalConnection.DestinationHex；
                     // Route Progress 对齐到 DestinationHex。
-                    motion.SetWorldPositionInternal(
+                    motion.SetLegacyWorldPositionAndHex(
                         new WorldVec2(conn.BoundaryContactWorldX, conn.BoundaryContactWorldY),
                         conn.DestinationHex);
                     LegacyPlayerPartyHexTravelCompatibility.AlignRouteProgressAfterSiteEgress(motion, conn.DestinationHex);
@@ -185,7 +185,7 @@ namespace XianXia.Tests
                         "LocationKind after egress [" + p + "][" + g + "]");
                     Assert.IsTrue(motion.IsMoving, "route still moving [" + p + "][" + g + "]");
                     Assert.AreEqual(
-                        conn.DestinationHex, motion.CurrentHex,
+                        conn.DestinationHex, motion.LegacyCurrentHex,
                         "committed route hex = FormalConnection.DestinationHex [" + p + "][" + g + "]");
 
                     Assert.IsTrue(
@@ -196,10 +196,10 @@ namespace XianXia.Tests
                         conn.DestinationHex, cur,
                         "leg starts at first outside hex [" + p + "][" + g + "]");
 
-                    var idx = IndexOf(motion.HexPath, conn.DestinationHex);
-                    Assert.GreaterOrEqual(idx, 0, "DestinationHex in HexPath [" + p + "][" + g + "]");
+                    var idx = IndexOf(motion.LegacyHexPath, conn.DestinationHex);
+                    Assert.GreaterOrEqual(idx, 0, "DestinationHex in LegacyHexPath [" + p + "][" + g + "]");
                     Assert.GreaterOrEqual(
-                        motion.HexPathCount, idx + 3,
+                        motion.LegacyHexPathCount, idx + 3,
                         "at least 2 segments continue after egress [" + p + "][" + g + "]");
                 }
             }
@@ -213,20 +213,20 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
 
             var seam = Midpoint(new HexCoord(80, 52), new HexCoord(81, 52));
             Assert.IsTrue(
-                motion.TryUpdateWorldPositionWithinSite(site.SiteId, new WorldVec2(seam.X - 0.05f, seam.Y)),
+                motion.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, new WorldVec2(seam.X - 0.05f, seam.Y)),
                 "canonical at seam epsilon left");
             var begin = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goals[1]);
             Assert.IsTrue(begin.IsSuccess, "BeginTravel");
-            Assert.IsTrue(motion.IsSiteDeparturePending, "departure pending");
+            Assert.IsTrue(motion.IsLegacySiteDeparturePending, "departure pending");
             Assert.AreEqual(PlayerPartyTravelExecutionMode.World, motion.ExecutionMode, "World executor mode");
 
-            var target = motion.SiteDepartureBoundaryEntry;
+            var target = motion.LegacySiteDepartureBoundaryEntry;
             Assert.IsFalse(float.IsNaN(target.X) || float.IsNaN(target.Y), "formal boundary");
-            var exitHex = motion.SiteDepartureExitHex; // commit 前保存（commit 会清 departure 状态）
+            var exitHex = motion.LegacySiteDepartureExitHex; // commit 前保存（commit 会清 departure 状态）
             var before = motion.WorldPosition;
             var dist = WorldVec2.Distance(before, target);
 
@@ -243,7 +243,7 @@ namespace XianXia.Tests
             Assert.AreEqual(
                 PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind,
                 "committed to AtWorldPosition");
-            Assert.AreEqual(exitHex, motion.CurrentHex, "route hex = exit hex (commit instant)");
+            Assert.AreEqual(exitHex, motion.LegacyCurrentHex, "route hex = exit hex (commit instant)");
             Assert.IsTrue(motion.IsMoving, "route continues after commit");
 
             Assert.IsTrue(
@@ -252,14 +252,14 @@ namespace XianXia.Tests
                 "active leg after commit");
             Assert.AreEqual(exitHex, cur, "leg starts at first outside hex");
 
-            var idx = IndexOf(motion.HexPath, exitHex);
-            Assert.GreaterOrEqual(idx, 0, "exit hex in HexPath");
-            Assert.GreaterOrEqual(motion.HexPathCount, idx + 3, "at least 2 segments continue");
+            var idx = IndexOf(motion.LegacyHexPath, exitHex);
+            Assert.GreaterOrEqual(idx, 0, "exit hex in LegacyHexPath");
+            Assert.GreaterOrEqual(motion.LegacyHexPathCount, idx + 3, "at least 2 segments continue");
 
             // 后续 World tick：route 继续推进（不停在 first outside hex）。
             LegacyPlayerPartyHexTravelCompatibility.AdvanceDistanceBudget(world, 3f);
             Assert.IsTrue(motion.IsMoving, "still moving after further ticks");
-            Assert.Greater(motion.SegmentIndex, idx, "route progressed past exit segment");
+            Assert.Greater(motion.LegacyHexSegmentIndex, idx, "route progressed past exit segment");
         }
 
         [Test]
@@ -270,20 +270,20 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
 
             var seam = Midpoint(new HexCoord(80, 52), new HexCoord(81, 52));
             Assert.IsTrue(
-                motion.TryUpdateWorldPositionWithinSite(site.SiteId, seam),
+                motion.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, seam),
                 "canonical exactly on seam");
             Assert.IsTrue(
                 LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goals[0]).IsSuccess,
                 "BeginTravel");
-            Assert.IsTrue(motion.IsSiteDeparturePending);
+            Assert.IsTrue(motion.IsLegacySiteDeparturePending);
 
-            var target = motion.SiteDepartureBoundaryEntry;
+            var target = motion.LegacySiteDepartureBoundaryEntry;
             var dist = WorldVec2.Distance(motion.WorldPosition, target);
-            var exitHex = motion.SiteDepartureExitHex; // commit 前保存
+            var exitHex = motion.LegacySiteDepartureExitHex; // commit 前保存
 
             // 模拟多个 World tick（Running）：每 tick 走一小段，越过 crossing 后继续沿 route。
             // 目标足够远（(30,15)，直线 ~53 hex ≈ 92 单位），60 ticks×0.8=48 单位不足以到达。
@@ -295,16 +295,16 @@ namespace XianXia.Tests
                     motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
                 {
                     commitSeen = true;
-                    Assert.AreEqual(exitHex, motion.CurrentHex, "committed at exit hex");
+                    Assert.AreEqual(exitHex, motion.LegacyCurrentHex, "committed at exit hex");
                 }
             }
 
             Assert.IsTrue(commitSeen, "egress committed during world ticks");
             Assert.IsTrue(motion.IsMoving, "still moving (goal is far, not arrived)");
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
-            var exitIdx = IndexOf(motion.HexPath, exitHex);
+            var exitIdx = IndexOf(motion.LegacyHexPath, exitHex);
             Assert.GreaterOrEqual(exitIdx, 0, "exit hex in path");
-            Assert.Greater(motion.SegmentIndex, exitIdx, "route progressed past exit segment (no stop)");
+            Assert.Greater(motion.LegacyHexSegmentIndex, exitIdx, "route progressed past exit segment (no stop)");
         }
 
         [Test]
@@ -315,23 +315,23 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
 
             var seam = Midpoint(new HexCoord(80, 52), new HexCoord(81, 52));
             Assert.IsTrue(
-                motion.TryUpdateWorldPositionWithinSite(site.SiteId, new WorldVec2(seam.X + 0.05f, seam.Y)),
+                motion.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, new WorldVec2(seam.X + 0.05f, seam.Y)),
                 "canonical at seam epsilon right");
             Assert.IsTrue(
                 LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goals[2]).IsSuccess,
                 "BeginTravel");
 
             var connOk = WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
-                world, site, motion.SiteDepartureFootprintHex, motion.SiteDepartureExitHex,
+                world, site, motion.LegacySiteDepartureFootprintHex, motion.LegacySiteDepartureExitHex,
                 HexSize, Bounds, out var conn);
             Assert.IsTrue(connOk, "formal connection resolved");
 
             // LocalVisible egress（完整 crossing 服务路径）。
-            motion.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+            motion.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
             var cross = LegacyPlayerPartyLocalVisibleTravelCompatibility
                 .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, conn);
             Assert.IsTrue(cross.IsSuccess, "cross success");
@@ -341,7 +341,7 @@ namespace XianXia.Tests
                 PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind,
                 "LocationKind after cross");
             Assert.IsTrue(motion.IsMoving, "route continues after cross");
-            Assert.AreEqual(conn.DestinationHex, motion.CurrentHex, "committed route hex");
+            Assert.AreEqual(conn.DestinationHex, motion.LegacyCurrentHex, "committed route hex");
             Assert.IsFalse(string.IsNullOrEmpty(world.PartyWorld.LocalMapId), "wilderness LocalMap entered");
 
             Assert.IsTrue(
@@ -350,8 +350,8 @@ namespace XianXia.Tests
                 "active leg after cross");
             Assert.AreEqual(conn.DestinationHex, cur, "leg starts at first outside hex");
 
-            var idx = IndexOf(motion.HexPath, conn.DestinationHex);
-            Assert.GreaterOrEqual(motion.HexPathCount, idx + 3, "at least 2 segments continue");
+            var idx = IndexOf(motion.LegacyHexPath, conn.DestinationHex);
+            Assert.GreaterOrEqual(motion.LegacyHexPathCount, idx + 3, "at least 2 segments continue");
         }
 
         [Test]
@@ -365,11 +365,11 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(site.SiteId, site.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, HexSize);
 
             var seam = Midpoint(new HexCoord(80, 52), new HexCoord(81, 52));
             Assert.IsTrue(
-                motion.TryUpdateWorldPositionWithinSite(site.SiteId, seam),
+                motion.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, seam),
                 "canonical set");
             Assert.IsTrue(
                 LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, Goals[3]).IsSuccess,

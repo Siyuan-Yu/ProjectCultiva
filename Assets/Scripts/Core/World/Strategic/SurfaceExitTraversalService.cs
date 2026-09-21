@@ -43,7 +43,7 @@ namespace XianXia.Core.World.Strategic
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
-                if (!connection.SourceHex.Equals(motion.CurrentHex))
+                if (!connection.SourceHex.Equals(motion.LegacyCurrentHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "Exit source is not current wilderness hex.");
             }
             else if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
@@ -51,8 +51,8 @@ namespace XianXia.Core.World.Strategic
             {
                 if (world.Strategic?.Sites == null ||
                     !world.Strategic.Sites.TryGet(motion.SiteId, out var sourceSite) || sourceSite == null ||
-                    !sourceSite.OccupiesHex(connection.SourceHex) ||
-                    sourceSite.OccupiesHex(connection.DestinationHex))
+                    !sourceSite.OccupiesLegacyHex(connection.SourceHex) ||
+                    sourceSite.OccupiesLegacyHex(connection.DestinationHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "Exit does not leave current WorldSite.");
             }
             else
@@ -60,14 +60,14 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Current context cannot traverse a surface exit.");
             }
 
-            if (world.HexWorld == null ||
-                !world.HexWorld.TryGetTile(connection.DestinationHex, out var tile) || tile == null ||
+            if (world.LegacyHexWorld == null ||
+                !world.LegacyHexWorld.TryGetTile(connection.DestinationHex, out var tile) || tile == null ||
                 !tile.IsPassable || tile.Terrain == HexTerrainType.Water)
                 return Result.Failure(ErrorCode.InvalidOperation, "Exit destination hex is impassable.");
 
             WorldSite destinationSite = null;
             var hasDestinationSite = world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(connection.DestinationHex, out destinationSite) &&
+                world.Strategic.Sites.TryGetAtLegacyHex(connection.DestinationHex, out destinationSite) &&
                 destinationSite != null;
             if (hasDestinationSite !=
                 (connection.DestinationKind == SurfaceExitDestinationKind.WorldSite))
@@ -83,7 +83,7 @@ namespace XianXia.Core.World.Strategic
                 if (admission.IsFailure)
                     return admission;
                 var mapId = WorldTravelService.ResolveWorldSiteLocalMapId(destinationSite);
-                var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
                 if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
                         world,
                         destinationSite,

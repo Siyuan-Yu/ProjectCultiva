@@ -1,8 +1,8 @@
 # 文档通读指南
 
-> **当前主线入口：** [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) → [26 Territory Management](../20-systems/26-territory-management.md) → [223～229 CW-04](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md) → [232～234 CW-05](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) → [235／236 CW-08～09.5](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) → [237 CW-10 Site Economy](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) → [239 CW-10.5 战略物资／储藏室](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md)。
+> **当前入口：** [ADR-0038 最终冻结](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) → [247 当前交接](../40-process/247-project-handoff-current-state-2026-09-18.md) → [2N Continuous Surface](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)／[2K 控制与 PlayerParty](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[23 CharacterEncounter](../20-systems/23-combat.md)。
 
-> 状态：现行 | 最后更新：2026-09-15
+> 状态：现行 | 最后更新：2026-09-22
 > 上级：[`00-overview.md`](00-overview.md)
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -27,23 +27,24 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-09-12）
+## 1.1 当前制作人入口（2026-09-22）
 
 | 目的 | 读什么 |
 |------|--------|
-| **当前阶段与下一阶段** | [235 SiteCore Warfare](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 与 [236 CW-09.5](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 已封板，[238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 亦已 Producer Accepted / Sealed；[237 CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) 与 [239 CW-10.5 战略物资／储藏室](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending |
+| **当前状态与交付** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结现代 authority／compatibility 矩阵；[247](../40-process/247-project-handoff-current-state-2026-09-18.md) 是唯一当前交接。A／B／C、MAP-01～04、SPACE-01 及 Legacy 清理／Hex·Army／WorldSite 命名边界专项均已 **Sealed**；下一步等待制作人讨论，尚未授权新功能实施 |
 | **旧 Editor 生命周期（Legacy Compatibility）** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §5～§6；用法页顶部 banner：[128 WorldGraph](../40-process/128-world-graph-editor-usage.md)／[112 MapEditor](../40-process/112-map-editor-usage.md)／[109 RegionEditor](../40-process/109-content-studio-region-editor-usage.md)／[130 LocalPlaceEditor](../40-process/130-local-place-editor-usage.md)。Active 工具（PackageBrowser／CharacterNpcEditor／ManualArtEditor／QuestEditor／EventEditor／WorkAreaEditor）不在此列 |
-| **连续世界地图当前进度** | [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) → [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) → [245 MAP-04 审计](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。MAP-01～03 已验收，MAP-04 实施中 |
-| **未来 Editor 工具链／旧地图 Content 迁移方向（非当前实现）** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（唯一 Build All、`Apps/` 平铺输出、Editor manifest 与生命周期、Authoring Source ≠ Runtime Content、MAP 分期）。**Accepted Design Direction / Not Implemented**；当前 External Editor 与 Content 未改 |
+| **连续世界地图当前进度** | [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) → [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) → [245 MAP-04 历史审计](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。MAP-01～04 均已验收封板 |
+| **Editor 工具链／旧地图 Content** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 MAP 范围已落地；WorldComposer／FineEditor 为现行 Surface authoring，旧 WorldGraph／Region 工具已退休。自动水文等后续能力仍是 Future |
 | **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
-| **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
+| **最终规则、替代矩阵与兼容边界** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) |
+| **当前代码命名／wire 兼容对照** | [248](../40-process/248-legacy-final-a-unified-npc-squad-world-motion-2026-09-20.md) 的现行实现注记 + [247](../40-process/247-project-handoff-current-state-2026-09-18.md) §25；内部 `Legacy*` 命名不改外部 `formalArmy`／`initialFormalArmyIds`、Snapshot 与 JSON wire key |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |
 | **同源独立遭遇／回位保战果** | [23](../20-systems/23-combat.md) + [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) |
 | **冲突／继承／飞舟与地图移动** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) + [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) |
-| **RPG-First 控制／Party／连续世界／Army 边界（最新真源）** | [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) |
+| **RPG-First 控制／Party／连续世界／Legacy Army 边界（最新真源）** | [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)；ADR-0026 为被后续决策定向替代的历史基线 |
 | **迁移计划／代码冲突审计** | [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
 | **战略势力层（外交／Capture／Army 军事仍有效部分）** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)（跨点必须 Army 已 supersede） |
-| **Hex Territory／Multi-Hex Site** | [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md) |
+| **Hex Territory／Multi-Hex Site（历史／旧输入）** | [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)；normal runtime 已由 ADR-0038 的 Actual Control 替代 |
 | **修士真实 Character（部分 superseded）** | [ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) |
 | **Pure Hex 收束** | [162](../40-process/162-pure-hex-final-audit-and-snapshot-v6-json-2026-08-24.md)／[161](../40-process/161-pure-hex-legacy-purge-and-post-fix-rollup-2026-08-24.md) |
 | **LocalPlaceEditor** | [130](../40-process/130-local-place-editor-usage.md) |

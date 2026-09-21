@@ -15,7 +15,7 @@ namespace XianXia.Core.World.Strategic
         None = 0,
         FollowLeader = 1,
         /// <summary>Legacy serialized numeric value; immediately upgraded during migration.</summary>
-        FormalArmyWorldMotion = 2,
+        LegacyFormalArmyWorldMotion = 2,
         SquadWorldMotion = 3
     }
 
@@ -91,7 +91,6 @@ namespace XianXia.Core.World.Strategic
     public static class SquadMembershipService
     {
         public const string PlayerSquadId = "squad:player";
-        public static string ArmySquadId(string armyId) => "squad:army:" + (armyId ?? string.Empty);
         public static string SingletonSquadId(EntityId id) => "squad:character:" + id.Value;
 
         public static Result<SquadState> Create(

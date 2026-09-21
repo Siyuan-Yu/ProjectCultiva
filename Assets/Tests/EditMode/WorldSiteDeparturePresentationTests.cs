@@ -44,8 +44,8 @@ namespace XianXia.Tests
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.AnchorHex = hexes[0];
-                site.SetFootprint(hexes);
+                site.LegacyAnchorHex = hexes[0];
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
             Assert.Fail("huangcun site not found");
@@ -56,8 +56,8 @@ namespace XianXia.Tests
         {
             var site = LoadHuangcun();
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
             world.Strategic.Sites.Register(site);
 
             var party = new PlayerPartyRuntime();
@@ -73,9 +73,9 @@ namespace XianXia.Tests
             WorldVec2 canonical)
         {
             var m = world.PlayerPartyTravel;
-            m.SetAtWorldSite(site.SiteId, footprintHex, HexSize);
+            m.SetAtLegacyWorldSite(site.SiteId, footprintHex, HexSize);
             m.CaptureTravelingMembers(party.Members);
-            Assert.IsTrue(m.TryUpdateWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
+            Assert.IsTrue(m.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
         }
 
         static PlayerPartyWorldMotion BeginDeparture(
@@ -89,7 +89,7 @@ namespace XianXia.Tests
         {
             SetAtSite(world, site, party, footprintHex, canonical);
             var m = world.PlayerPartyTravel;
-            m.BeginSiteDepartureTravel(
+            m.BeginLegacySiteDepartureTravel(
                 new List<HexCoord> { footprintHex, exitHex, goalHex },
                 goalHex,
                 string.Empty,
@@ -129,15 +129,15 @@ namespace XianXia.Tests
                 world, site, party, new HexCoord(80, 51), new HexCoord(79, 51), new HexCoord(40, 40), canonical);
 
             Assert.IsTrue(m.IsMoving, "fixture: IsMoving");
-            Assert.AreEqual(PlayerPartyDeparturePhase.Planned, m.DeparturePhase, "fixture: Planned");
+            Assert.AreEqual(LegacyPlayerPartyDeparturePhase.Planned, m.LegacyDeparturePhase, "fixture: Planned");
             var virtualPos = new WorldVec2(139.8f, 77.2f);
-            Assert.AreEqual(virtualPos, m.SiteDepartureVirtualPosition,
+            Assert.AreEqual(virtualPos, m.LegacySiteDepartureVirtualPosition,
                 "fixture: departure virtual 与 canonical 不同");
 
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var r), "resolve");
             Assert.AreEqual(canonical, r.WorldPosition,
                 "Planned + IsMoving → 仍 Canonical（不被 IsMoving→TravelPresentation 抢走）");
-            Assert.AreNotEqual(virtualPos, r.WorldPosition, "不得返回 SiteDepartureVirtualPosition");
+            Assert.AreNotEqual(virtualPos, r.WorldPosition, "不得返回 LegacySiteDepartureVirtualPosition");
             Assert.IsFalse(r.IsLegacyFallback, "not legacy fallback");
         }
 
@@ -150,7 +150,7 @@ namespace XianXia.Tests
             var canonical = new WorldVec2(138.2f, 76.5f);
             var m = BeginDeparture(
                 world, site, party, new HexCoord(80, 51), new HexCoord(79, 51), new HexCoord(40, 40), canonical);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.IsTrue(m.IsMoving, "fixture: IsMoving during approach");
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var r), "resolve");
@@ -168,12 +168,12 @@ namespace XianXia.Tests
             var b = new WorldVec2(141.6f, 76.5f);
             var m = BeginDeparture(
                 world, site, party, new HexCoord(80, 51), new HexCoord(79, 51), new HexCoord(40, 40), a);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var ra), "resolve A");
             Assert.AreEqual(a, ra.WorldPosition, "位置 A");
 
-            Assert.IsTrue(m.TryUpdateWorldPositionWithinSite(site.SiteId, b), "canonical B");
+            Assert.IsTrue(m.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, b), "canonical B");
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var rb), "resolve B");
             Assert.AreEqual(b, rb.WorldPosition, "位置 B 连续（不量化 hex center）");
             Assert.AreNotEqual(a, rb.WorldPosition, "移动后 Query 位置随之变化");
@@ -186,8 +186,8 @@ namespace XianXia.Tests
         {
             var (world, site, party) = BuildWorld();
             var m = world.PlayerPartyTravel;
-            m.SetWorldPositionInternal(new WorldVec2(100f, 60f), new HexCoord(50, 30));
-            m.BeginAutoTravel(
+            m.SetLegacyWorldPositionAndHex(new WorldVec2(100f, 60f), new HexCoord(50, 30));
+            m.BeginLegacyHexAutoTravel(
                 new List<HexCoord> { new HexCoord(50, 30), new HexCoord(49, 30) },
                 new HexCoord(49, 30),
                 string.Empty,
@@ -196,7 +196,7 @@ namespace XianXia.Tests
             Assert.IsTrue(m.IsMoving, "fixture: world travel");
 
             var tp = new WorldVec2(95.5f, 62.5f);
-            m.SetTravelPresentation(tp, new HexCoord(49, 30));
+            m.SetLegacyTravelPresentation(tp, new HexCoord(49, 30));
 
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var r), "resolve");
             Assert.AreEqual(tp, r.WorldPosition,
@@ -216,26 +216,26 @@ namespace XianXia.Tests
 
             foreach (var phase in new[]
                      {
-                         PlayerPartyDeparturePhase.Planned,
-                         PlayerPartyDeparturePhase.Approaching,
+                         LegacyPlayerPartyDeparturePhase.Planned,
+                         LegacyPlayerPartyDeparturePhase.Approaching,
                      })
             {
-                m.SetDeparturePhase(phase);
+                m.SetLegacyDeparturePhase(phase);
                 var beforeKind = m.LocationKind;
                 var beforeSite = m.SiteId;
                 var beforePos = m.WorldPosition;
-                var beforeHex = m.CurrentHex;
+                var beforeHex = m.LegacyCurrentHex;
                 var beforeMoving = m.IsMoving;
-                var beforeDep = m.DeparturePhase;
+                var beforeDep = m.LegacyDeparturePhase;
 
                 PlayerPartyWorldLocationQuery.TryResolve(world, party, out _);
 
                 Assert.AreEqual(beforeKind, m.LocationKind, "LocationKind 未变 (" + phase + ")");
                 Assert.AreEqual(beforeSite, m.SiteId, "SiteId 未变 (" + phase + ")");
                 Assert.AreEqual(beforePos, m.WorldPosition, "WorldPosition 未变 (" + phase + ")");
-                Assert.AreEqual(beforeHex, m.CurrentHex, "CurrentHex 未变 (" + phase + ")");
+                Assert.AreEqual(beforeHex, m.LegacyCurrentHex, "LegacyCurrentHex 未变 (" + phase + ")");
                 Assert.AreEqual(beforeMoving, m.IsMoving, "IsMoving 未变 (" + phase + ")");
-                Assert.AreEqual(beforeDep, m.DeparturePhase, "DeparturePhase 未变 (" + phase + ")");
+                Assert.AreEqual(beforeDep, m.LegacyDeparturePhase, "LegacyDeparturePhase 未变 (" + phase + ")");
             }
         }
 
@@ -248,15 +248,15 @@ namespace XianXia.Tests
             var canonical = new WorldVec2(141.6f, 76.5f);
             var m = BeginDeparture(
                 world, site, party, new HexCoord(80, 51), new HexCoord(79, 51), new HexCoord(40, 40), canonical);
-            m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            m.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var before), "baseline");
             Assert.AreEqual(canonical, before.WorldPosition, "baseline: canonical");
 
-            var oldPresence = site.PresenceHex;
-            var oldAnchor = site.AnchorHex;
-            site.PresenceHex = new HexCoord(5, 5);
-            site.AnchorHex = new HexCoord(6, 6);
+            var oldPresence = site.LegacyPresenceHex;
+            var oldAnchor = site.LegacyAnchorHex;
+            site.LegacyPresenceHex = new HexCoord(5, 5);
+            site.LegacyAnchorHex = new HexCoord(6, 6);
 
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var after), "after");
             Assert.AreEqual(before.WorldPosition, after.WorldPosition,
@@ -264,8 +264,8 @@ namespace XianXia.Tests
             Assert.AreEqual(canonical, after.WorldPosition, "仍是 Canonical");
             Assert.IsFalse(after.IsLegacyFallback, "not legacy fallback");
 
-            site.PresenceHex = oldPresence;
-            site.AnchorHex = oldAnchor;
+            site.LegacyPresenceHex = oldPresence;
+            site.LegacyAnchorHex = oldAnchor;
         }
     }
 }

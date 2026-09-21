@@ -21,13 +21,13 @@ namespace XianXia.Tests
         static SimulationWorld BuildTravelWorld(out WorldSite siteA, out WorldSite siteB, out HexCoord midHex)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:bg_travel";
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:bg_travel";
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -38,11 +38,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_huangcun",
                 DisplayName = "青石荒村",
-                AnchorHex = aAnchor,
-                PresenceHex = aPresence,
+                LegacyAnchorHex = aAnchor,
+                LegacyPresenceHex = aPresence,
                 LocalMapId = "base:map_ch01_reference",
             };
-            siteA.SetFootprint(new[]
+            siteA.SetLegacyHexFootprint(new[]
             {
                 aAnchor, aPresence, new HexCoord(2, 5), new HexCoord(3, 5),
             });
@@ -53,11 +53,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_chengzhen",
                 DisplayName = "青石镇",
-                AnchorHex = bAnchor,
-                PresenceHex = bAnchor,
+                LegacyAnchorHex = bAnchor,
+                LegacyPresenceHex = bAnchor,
                 LocalMapId = "base:map_site_chengzhen",
             };
-            siteB.SetFootprint(new[]
+            siteB.SetLegacyHexFootprint(new[]
             {
                 bAnchor, new HexCoord(11, 4), new HexCoord(10, 5), new HexCoord(11, 5),
             });
@@ -161,7 +161,7 @@ namespace XianXia.Tests
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, new HexCoord(mid.Q + 4, mid.R));
             BackgroundCharacterTravelService.AdvanceAll(world, 16);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p) && p.HasContinuousWorldPosition);
-            var derived = HexMath.WorldToHex(p.WorldPosX, p.WorldPosY, world.HexWorld.HexSize);
+            var derived = HexMath.WorldToHex(p.WorldPosX, p.WorldPosY, world.LegacyHexWorld.HexSize);
             Assert.AreEqual(derived.Q, p.HexQ);
             Assert.AreEqual(derived.R, p.HexR);
         }
@@ -281,12 +281,12 @@ namespace XianXia.Tests
             BackgroundCharacterSiteDepartureResolver.CollectTraversableOutsideNeighbors(world, siteA, outside);
             Assert.Greater(outside.Count, 1);
             Assert.IsTrue(BackgroundCharacterSiteDepartureResolver.TryResolveDepartureHex(
-                world, siteA, siteB.PresenceHex, out var exitHex));
-            Assert.IsFalse(siteA.OccupiesHex(exitHex));
+                world, siteA, siteB.LegacyPresenceHex, out var exitHex));
+            Assert.IsFalse(siteA.OccupiesLegacyHex(exitHex));
         }
 
         [Test]
-        public void BackgroundWorldSiteDepartureDoesNotAssumePresenceHexAsExit()
+        public void BackgroundWorldSiteDepartureDoesNotAssumeLegacyPresenceHexAsExit()
         {
             var world = BuildTravelWorld(out var siteA, out var siteB, out _);
             var a = Spawn(world, "A");
@@ -295,7 +295,7 @@ namespace XianXia.Tests
                 world, a, siteB.SiteId, debugOverrideLocalOccupant: true).IsSuccess);
             var path = world.BackgroundCharacterTravel.GetOrCreate(a).HexPath;
             Assert.Greater(path.Count, 0);
-            Assert.AreNotEqual(siteA.PresenceHex, path[0]);
+            Assert.AreNotEqual(siteA.LegacyPresenceHex, path[0]);
         }
 
         [Test]
@@ -333,7 +333,7 @@ namespace XianXia.Tests
             var a = Spawn(world, "A");
             world.WorldPresence.SetLegacyAtHex(a, mid);
             Assert.IsTrue(BackgroundCharacterTravelService.BeginTravelToHex(
-                world, a, siteB.PresenceHex).IsSuccess);
+                world, a, siteB.LegacyPresenceHex).IsSuccess);
             BackgroundCharacterTravelService.AdvanceAll(world, 256);
             Assert.IsFalse(world.BackgroundCharacterTravel.IsTraveling(a));
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var presence));
@@ -343,7 +343,7 @@ namespace XianXia.Tests
                 world, a, out var kind, out var siteId, out _, out var derivedHex));
             Assert.AreEqual(BackgroundCharacterLocationKind.AtWorldSite, kind);
             Assert.AreEqual(siteB.SiteId, siteId);
-            Assert.AreEqual(siteB.PresenceHex, derivedHex);
+            Assert.AreEqual(siteB.LegacyPresenceHex, derivedHex);
         }
 
         [Test]
@@ -355,7 +355,7 @@ namespace XianXia.Tests
             var dest = new HexCoord(mid.Q + 2, mid.R);
             BackgroundCharacterTravelService.BeginTravelToHex(world, a, dest);
             BackgroundCharacterTravelService.AdvanceAll(world, 256);
-            HexMath.ToWorldPosition(dest, world.HexWorld.HexSize, out var cx, out var cy);
+            HexMath.ToWorldPosition(dest, world.LegacyHexWorld.HexSize, out var cx, out var cy);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p));
             Assert.AreEqual(cx, p.WorldPosX, FloatTol);
             Assert.AreEqual(cy, p.WorldPosY, FloatTol);
@@ -368,8 +368,8 @@ namespace XianXia.Tests
             var active = Spawn(world, "Active");
             var bg = Spawn(world, "Bg");
             PlaceAtSite(world, active, siteA);
-            world.WorldPresence.SetLegacyAtHex(bg, siteA.PresenceHex);
-            BackgroundCharacterTravelService.BeginTravelToHex(world, bg, siteB.PresenceHex);
+            world.WorldPresence.SetLegacyAtHex(bg, siteA.LegacyPresenceHex);
+            BackgroundCharacterTravelService.BeginTravelToHex(world, bg, siteB.LegacyPresenceHex);
             var party = new PlayerPartyRuntime();
             party.TryInitialize(active, out _);
             world.LocalMap.ClearOccupants();
@@ -386,7 +386,7 @@ namespace XianXia.Tests
             var world = BuildTravelWorld(out var siteA, out var siteB, out _);
             var a = Spawn(world, "A");
             PlaceAtSite(world, a, siteA);
-            BackgroundCharacterTravelService.BeginTravelToHex(world, a, siteB.PresenceHex, debugOverrideLocalOccupant: true);
+            BackgroundCharacterTravelService.BeginTravelToHex(world, a, siteB.LegacyPresenceHex, debugOverrideLocalOccupant: true);
             BackgroundCharacterTravelService.CancelTravelIfAny(world, a);
             Assert.IsFalse(world.BackgroundCharacterTravel.IsTraveling(a));
         }

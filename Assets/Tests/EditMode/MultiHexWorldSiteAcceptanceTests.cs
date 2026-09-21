@@ -30,7 +30,7 @@ namespace XianXia.Tests
                 new(0, 0),
                 new(2, 0),
             };
-            Assert.IsFalse(WorldSiteFootprintValidator.IsFootprintConnected(footprint));
+            Assert.IsFalse(WorldSiteHexFootprintValidator.IsFootprintConnected(footprint));
         }
 
         [Test]
@@ -46,29 +46,29 @@ namespace XianXia.Tests
                 HexMath.Neighbor(anchor, 3),
                 HexMath.Neighbor(anchor, 4),
             };
-            Assert.IsTrue(WorldSiteFootprintValidator.IsFootprintConnected(footprint));
+            Assert.IsTrue(WorldSiteHexFootprintValidator.IsFootprintConnected(footprint));
         }
 
         [Test]
-        public void MH03_SixHexWorldSite_TryGetAtHexFromEveryFootprintCell()
+        public void MH03_SixHexWorldSite_TryGetAtLegacyHexFromEveryFootprintCell()
         {
             var world = BuildSixHexSiteWorld(out var site, out var footprint);
-            Assert.AreEqual(6, WorldSiteFootprintValidator.CountFootprintHexes(site));
+            Assert.AreEqual(6, WorldSiteHexFootprintValidator.CountFootprintHexes(site));
             foreach (var hex in footprint)
             {
-                Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(hex, out var found), hex.ToString());
+                Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(hex, out var found), hex.ToString());
                 Assert.AreEqual(site.SiteId, found.SiteId);
             }
         }
 
         [Test]
-        public void MH04_FourHexWorldSite_TryGetAtHexFromEveryFootprintCell()
+        public void MH04_FourHexWorldSite_TryGetAtLegacyHexFromEveryFootprintCell()
         {
             var world = BuildFourHexSiteWorld(out var site, out var footprint);
-            Assert.AreEqual(4, WorldSiteFootprintValidator.CountFootprintHexes(site));
+            Assert.AreEqual(4, WorldSiteHexFootprintValidator.CountFootprintHexes(site));
             foreach (var hex in footprint)
             {
-                Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(hex, out var found), hex.ToString());
+                Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(hex, out var found), hex.ToString());
                 Assert.AreEqual(site.SiteId, found.SiteId);
             }
         }
@@ -80,12 +80,12 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_bad_anchor",
                 DisplayName = "Bad Anchor",
-                AnchorHex = new HexCoord(1, 1),
+                LegacyAnchorHex = new HexCoord(1, 1),
             };
-            site.SetFootprint(new[] { new HexCoord(1, 1), new HexCoord(2, 1) });
-            // 事后把 Anchor 改到 Footprint 外：校验器必须拒绝（SetFootprint 本身会吸收当时的 Anchor）。
-            site.AnchorHex = new HexCoord(5, 5);
-            Assert.IsFalse(WorldSiteFootprintValidator.IsAnchorInFootprint(site));
+            site.SetLegacyHexFootprint(new[] { new HexCoord(1, 1), new HexCoord(2, 1) });
+            // 事后把 Anchor 改到 Footprint 外：校验器必须拒绝（SetLegacyHexFootprint 本身会吸收当时的 Anchor）。
+            site.LegacyAnchorHex = new HexCoord(5, 5);
+            Assert.IsFalse(WorldSiteHexFootprintValidator.IsAnchorInFootprint(site));
         }
 
         [Test]
@@ -105,35 +105,35 @@ namespace XianXia.Tests
             foreach (var sample in Ch01MultiHexSamples)
             {
                 Assert.IsTrue(world.Strategic.Sites.TryGet(sample.SiteId, out var site), sample.SiteId);
-                Assert.AreEqual(sample.Anchor, site.AnchorHex, sample.SiteId);
-                Assert.AreEqual(sample.ExpectedCount, WorldSiteFootprintValidator.CountFootprintHexes(site), sample.SiteId);
-                Assert.IsTrue(WorldSiteFootprintValidator.IsAnchorInFootprint(site), sample.SiteId);
-                Assert.IsTrue(WorldSiteFootprintValidator.IsPresenceInFootprint(site), sample.SiteId);
+                Assert.AreEqual(sample.Anchor, site.LegacyAnchorHex, sample.SiteId);
+                Assert.AreEqual(sample.ExpectedCount, WorldSiteHexFootprintValidator.CountFootprintHexes(site), sample.SiteId);
+                Assert.IsTrue(WorldSiteHexFootprintValidator.IsAnchorInFootprint(site), sample.SiteId);
+                Assert.IsTrue(WorldSiteHexFootprintValidator.IsPresenceInFootprint(site), sample.SiteId);
 
                 var seen = new HashSet<HexCoord>();
-                foreach (var hex in site.EnumerateFootprintHexes())
+                foreach (var hex in site.EnumerateLegacyFootprintHexes())
                 {
                     Assert.IsTrue(seen.Add(hex), $"{sample.SiteId} duplicate footprint hex {hex}");
-                    Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(hex, out var atHex));
+                    Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(hex, out var atHex));
                     Assert.AreEqual(sample.SiteId, atHex.SiteId);
                 }
             }
         }
 
         [Test]
-        public void MH07_NonAnchorFootprintHex_TryGetAtHexReturnsSameSite()
+        public void MH07_NonAnchorFootprintHex_TryGetAtLegacyHexReturnsSameSite()
         {
             var world = BuildSixHexSiteWorld(out var site, out var footprint);
             var nonAnchor = footprint[3];
-            Assert.AreNotEqual(site.AnchorHex, nonAnchor);
-            Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(nonAnchor, out var atHex));
+            Assert.AreNotEqual(site.LegacyAnchorHex, nonAnchor);
+            Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(nonAnchor, out var atHex));
             Assert.AreEqual(site.SiteId, atHex.SiteId);
         }
 
         static SimulationWorld BuildSixHexSiteWorld(out WorldSite site, out List<HexCoord> footprint)
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(20, 20);
+            world.LegacyHexWorld.FillRectangle(20, 20);
             var anchor = new HexCoord(8, 8);
             footprint = new List<HexCoord>
             {
@@ -149,10 +149,10 @@ namespace XianXia.Tests
                 SiteId = "test:site_wild_six",
                 DisplayName = "六格荒原",
                 SiteType = "Wild",
-                AnchorHex = anchor,
+                LegacyAnchorHex = anchor,
                 LocalMapId = "test:map_wild_six",
             };
-            site.SetFootprint(footprint);
+            site.SetLegacyHexFootprint(footprint);
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
             return world;
         }
@@ -160,7 +160,7 @@ namespace XianXia.Tests
         static SimulationWorld BuildFourHexSiteWorld(out WorldSite site, out List<HexCoord> footprint)
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(20, 20);
+            world.LegacyHexWorld.FillRectangle(20, 20);
             var anchor = new HexCoord(5, 5);
             footprint = new List<HexCoord>
             {
@@ -174,10 +174,10 @@ namespace XianXia.Tests
                 SiteId = "test:site_town_four",
                 DisplayName = "四格镇",
                 SiteType = "Town",
-                AnchorHex = anchor,
+                LegacyAnchorHex = anchor,
                 LocalMapId = "test:map_town_four",
             };
-            site.SetFootprint(footprint);
+            site.SetLegacyHexFootprint(footprint);
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
             return world;
         }

@@ -40,7 +40,7 @@ namespace XianXia.Unity.Host
         // 键控，仅地图切换时重建一次 WalkGrid，StepTick 每帧复用；避免刷日志 / 每帧重建）。
         string _loadedStrategicBoundsMapId = string.Empty;
         WildernessLocalWorldProjection.WildernessLocalMapBounds? _loadedStrategicWildernessBounds;
-        WorldSiteSpatialMapping.WorldSiteLocalMapBounds? _loadedStrategicSiteBounds;
+        WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? _loadedStrategicSiteBounds;
         [HideInInspector]
         [SerializeField] TextAsset mapLayoutJsonOverride;
 
@@ -402,16 +402,6 @@ namespace XianXia.Unity.Host
             return speed < 1 ? 1 : speed;
         }
 
-        /// <summary>ADR-0023：Resolve 后恢复开战前倍速/summary>
-        public void ApplySavedSpeedMultiplier(int multiplier)
-        {
-            EnsureDebugHud();
-            if (debugHud == null)
-                return;
-            var m = multiplier < 1 ? 1 : multiplier;
-            debugHud.SetSpeedMultiplier(m);
-        }
-
         /// <summary>
         /// 正常 NewGame 的 Continuous Outdoor 启动事务：Prepare → Preflight → Commit → Activate。
         ///
@@ -463,7 +453,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            // C：旧 content／compatibility —— LocalMap geometry → WorldSiteSpatialMapping。
+            // C：旧 content／compatibility —— LocalMap geometry → WorldSiteHexFootprintSpatialMapping。
             if (!TryResolveLegacyContinuousStartupAnchor(
                     world, site, siteId, out var worldX, out var worldY, out failure))
                 return false;
@@ -535,10 +525,10 @@ namespace XianXia.Unity.Host
                 py = start.PresentationZ;
             }
 
-            var bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 layout.OriginX, layout.OriginY, layout.CellSize, layout.Width, layout.Height);
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            if (!WorldSiteSpatialMapping.TryLocalToWorldSurface(
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
+            if (!WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
                     site, bounds, new WorldVec2(px, py), hexSize, out var canonical))
             {
                 failure = "SiteId=" + siteId + " AuthoredLocalToWorld=failed local=" + px + "," + py;
@@ -560,7 +550,7 @@ namespace XianXia.Unity.Host
             var motion = world?.PlayerPartyTravel;
             if (motion == null)
                 return;
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var canonical = new WorldVec2(plan.CanonicalWorldX, plan.CanonicalWorldY);
             var derived = HexMath.WorldToHex(canonical.X, canonical.Y, hexSize);
             motion.SetAtSurfacePosition(plan.SurfaceId, canonical, derived);
@@ -1867,7 +1857,7 @@ namespace XianXia.Unity.Host
                 // NewGame（首次 AtWorldSite 展开）= BootstrapFromAuthoredLocal（StartLocation→Canonical）；
                 // Snapshot restore = LegacyRestoreLocal（snapshot local placement→bootstrap，无则保持默认）；
                 // 其余（Wilderness→Site 进入 / WorldMap 重开 / 新格式 restore）= ProjectCanonicalWorldToLocal。
-                WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds = null;
+                WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? siteBounds = null;
                 var siteMode = PlayerPartySiteMaterializeMode.Default;
                 // Phase 5R-B3C1：消费决策 out 提升到本方法层（isSiteExpand 块外也要读，见 Materialize 消费段）。
                 var consumeBootstrapNow = false;
@@ -1879,7 +1869,7 @@ namespace XianXia.Unity.Host
                     var walkForSite = ResolveWalkGrid();
                     if (walkForSite != null)
                     {
-                        siteBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                        siteBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                             walkForSite.OriginX, walkForSite.OriginY, walkForSite.CellSize,
                             walkForSite.Width, walkForSite.Height);
                     }
@@ -2005,12 +1995,6 @@ namespace XianXia.Unity.Host
                         this);
                 }
             }
-            else
-            {
-                // 遭遇／无 Party：保留旧 Army／Encounter 落点逻辑
-                PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
-            }
-
             // 物化失败时必须保留 ingress one-shot 与当前领域状态，禁止继续执行依赖新落点的
             // participant assembly、人口 reconcile、视图重建、相机和恢复流程。
             if (playerPartyMaterializationAttempted && !playerPartyMaterialized)
@@ -2018,9 +2002,7 @@ namespace XianXia.Unity.Host
 
             if (!onEncounterMap)
             {
-                // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
-                // 补齐 NPC Squad / residual 战略人口；当前 scope 内成员直接物化，无需 Battle。
-                ReconcileLoadedStrategicPopulation();
+                // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出。
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
                 FlushLoadedDestinationArrivals();
@@ -2152,11 +2134,6 @@ namespace XianXia.Unity.Host
             PlayerPartyController?.ValidateAndRepairPlayerPartyMaterializedPlacement();
             PlayerPartyController?.OnLocalMapMaterialized(localMapId);
             RefreshSurfaceExitZones();
-        }
-
-        void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
-        {
-            // Legacy focus presentation is retired; Squad presentation is handled by HostNpcSquadContinuousPresenter.
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>
@@ -2323,42 +2300,22 @@ namespace XianXia.Unity.Host
             else if (!string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId))
             {
                 _loadedStrategicSiteBounds =
-                    WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                    WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                         walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
             }
         }
 
-        /// <summary>
-        /// Reconcile 当前 Loaded LocalMap 的 NPC Squad / residual 战略人口。
-        /// 返回是否发生变化（Added / Removed）。只改变 LocalMap occupant + presentation，
-        /// 不修改 WorldMotion / WorldPresence / PlayerParty。
-        /// </summary>
-        public bool ReconcileLoadedStrategicPopulation()
-        {
-            return false;
-        }
-
-        /// <summary>Phase 5S-B2-3.1：reconcile + 条件视图刷新（Changed 才 Refresh/Spawn/Prune）。</summary>
+        /// <summary>Refreshes the real current visibility/materialization view when explicitly requested.</summary>
         public void RefreshLoadedStrategicPopulation(bool refreshViewsWhenUnchanged = false)
         {
             if (!_session.IsInitialized || entityViewSpawner == null)
                 return;
-            if (!ReconcileLoadedStrategicPopulation() && !refreshViewsWhenUnchanged)
+            if (!refreshViewsWhenUnchanged)
                 return;
 
             _session.RefreshViewableEntityIds();
             entityViewSpawner.SpawnMissingVisibleViews(_session);
             entityViewSpawner.PruneHiddenViews(_session);
-        }
-
-        /// <summary>当前真实 surface 上原地开启 WORLD_COMBAT：只增量装配参战者，绝不重载地图或重刷 PlayerParty。</summary>
-        public void ActivateRealWorldCombatOnCurrentLoadedSurface()
-        {
-            if (!_session.IsInitialized || entityViewSpawner == null) return;
-            _session.RefreshViewableEntityIds();
-            entityViewSpawner.SpawnMissingVisibleViews(_session);
-            entityViewSpawner.PruneHiddenViews(_session);
-            entityViewSpawner.SyncLocations(_session);
         }
 
         public void StepTick()
@@ -2377,14 +2334,6 @@ namespace XianXia.Unity.Host
                 _status = "TICK FAILED: " + tick.Error;
                 Debug.LogError("[PlayableHost] " + tick.Error, this);
                 return;
-            }
-
-            // SquadWorldMotion 在 TickOnce 内推进；下一 tick 战略人口按当前 scope 出现或消失。
-            var strategicPopulationChanged = ReconcileLoadedStrategicPopulation();
-            if (strategicPopulationChanged)
-            {
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.SpawnMissingVisibleViews(_session);
             }
 
             // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹
@@ -2494,7 +2443,7 @@ namespace XianXia.Unity.Host
                             {
                                 // Compatibility only. Both services now require the character's
                                 // own presence to belong to the loaded legacy LocalMap; they cannot
-                                // infer a corpse location from PlayerParty.CurrentHex/focus.
+                                // infer a corpse location from PlayerParty.LegacyCurrentHex/focus.
                                 spatialHandled = gotLocal
                                     ? LocalCombatCasualtyHandoffService.TryHandleResidualDefeat(
                                         _session.World, defenderId, localX, localZ,
@@ -2604,7 +2553,6 @@ namespace XianXia.Unity.Host
             var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null
                 ? squad.SquadId
                 : string.Empty;
-            var legacyArmyId = string.Empty;
             var encounterId = world.Strategic.CharacterEncounter?.EncounterId ?? string.Empty;
             var changed = before.Mode != after.Mode || before.SiteId != after.SiteId ||
                           before.SurfaceId != after.SurfaceId || before.HasPrecise != after.HasPrecise ||
@@ -2614,7 +2562,6 @@ namespace XianXia.Unity.Host
                           " Name=" + (entity?.DisplayName ?? string.Empty) +
                           " Transition=" + transition +
                           " SquadId=" + squadId +
-                          " LegacyArmyId=" + legacyArmyId +
                           " EncounterId=" + encounterId +
                           " Mode=" + before.Mode + "->" + after.Mode +
                           " SiteId=" + before.SiteId + "->" + after.SiteId +
@@ -2697,7 +2644,7 @@ namespace XianXia.Unity.Host
                 " SquadId=" + squadId +
                 " WorldPresenceMode=" + presenceMode +
                 " WorldPresenceSiteId=" + presenceSiteId +
-                " WorldPresenceHex=" + presenceHex +
+                " WorldLegacyPresenceHex=" + presenceHex +
                 " GotViewLocal=" + gotLocal +
                 " ViewLocal=(" + localX.ToString("0.###") + "," + localZ.ToString("0.###") + ")",
                 this);
@@ -2773,7 +2720,7 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 在启动链（TryInitialize）真正执行。
-        /// Authored StartLocation → WorldSiteSpatialMapping.LocalToWorld → Canonical WorldPosition。
+        /// Authored StartLocation → WorldSiteHexFootprintSpatialMapping.LocalToWorld → Canonical WorldPosition。
         /// 复用 Materialize BootstrapFromAuthoredLocal（不复制 mapping）；成功才消费 token，失败不消费。
         /// </summary>
         void TryRunInitialSiteBootstrap()
@@ -2809,7 +2756,7 @@ namespace XianXia.Unity.Host
                     "[PlayableHost] Initial site bootstrap: no walk grid for " + mapId, this);
                 return; // 不消费
             }
-            var siteBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            var siteBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
 
             var result = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(

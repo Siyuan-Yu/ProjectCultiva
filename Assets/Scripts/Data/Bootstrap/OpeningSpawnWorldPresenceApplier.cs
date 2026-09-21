@@ -33,7 +33,7 @@ namespace XianXia.Data.Bootstrap
     /// LocalMap；以及既有 <c>PersonalityProfile</c> tag "cave"），不是启发式。
     ///
     /// §5/§6/§7：<c>spawn.LocalPosition</c> 是 legacy Site LocalMap presentation 坐标，
-    /// 必须经 source LocalMap bounds ／ <see cref="WorldSiteSpatialMapping"/> 转换为 canonical
+    /// 必须经 source LocalMap bounds ／ <see cref="WorldSiteHexFootprintSpatialMapping"/> 转换为 canonical
     /// Outdoor WorldPosition 后才作为锚点保存（绝不直接当 Continuous 坐标）。
     /// </summary>
     public static class OpeningSpawnWorldPresenceApplier
@@ -153,7 +153,7 @@ namespace XianXia.Data.Bootstrap
             // §4/§5/§8/§10：Normal Continuous NewGame 的 presence 只表达 Site membership。
             // Opening precise position 由 checked-in baked opening entity anchor 在第一次 materialize
             // 时解析（ContinuousOutdoorOpeningAnchorResolver）。
-            // legacy LocalMap LocalPosition → WorldSiteSpatialMapping 不再作为 Normal NewGame 的
+            // legacy LocalMap LocalPosition → WorldSiteHexFootprintSpatialMapping 不再作为 Normal NewGame 的
             // 位置权威（它保留给 old save / legacy LocalMap / migration tooling）。
             if (site != null && WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
             {
@@ -325,7 +325,7 @@ namespace XianXia.Data.Bootstrap
             out WorldVec2 anchor)
         {
             anchor = default;
-            if (spawn?.LocalPosition == null || site == null || world?.HexWorld == null)
+            if (spawn?.LocalPosition == null || site == null || world?.LegacyHexWorld == null)
                 return false;
             if (string.IsNullOrEmpty(site.LocalMapId) || registry == null)
                 return false;
@@ -333,7 +333,7 @@ namespace XianXia.Data.Bootstrap
             if (parsed.IsFailure || !registry.TryGetMapLayout(parsed.Value, out var layout) || layout == null)
                 return false;
 
-            var bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 layout.OriginX,
                 layout.OriginY,
                 layout.CellSize,
@@ -342,11 +342,11 @@ namespace XianXia.Data.Bootstrap
             if (!bounds.IsValid)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : HexWorldScale.DefaultHexOuterRadius;
 
-            return WorldSiteOutdoorBakeTransform.TryBake(
+            return WorldSiteHexFootprintBakeTransform.TryBake(
                 site,
                 hexSize,
                 bounds,

@@ -1,5 +1,7 @@
 # Continuous Outdoor World — Current Handoff / Recovery Checkpoint
 
+> **2026-09-22 实现现名索引（不改历史正文）：** 下文 `WorldSiteOutdoorBakeTransform` 当前名为 `WorldSiteHexFootprintBakeTransform`，`WorldSiteSpatialMapping` 当前名为 `WorldSiteHexFootprintSpatialMapping`。前者仍有 opening authoring／migration 消费者，不是 dead legacy runtime；相关几何规则只约束 Hex footprint 输入，不约束 Continuous Surface 或 Actual Administrative Control。
+
 > **2026-09-14 后续状态：** 本页是 2026-09-11 的历史恢复 checkpoint，不再是最新全局入口。其“Outdoor stateful object JSON 尚未闭环”等当日 Known Issue 已在后续实现中关闭；Opening／Schedule／Follow 已通过制作人验收，streaming seam 当前表现可接受。请先读 [230 近期开发对照与统一交接](230-recent-development-alignment-and-handoff-2026-09-14.md)，再按需回读本页的迁移细节。
 
 > 本文档是 Continuous Outdoor / Outdoor WorldSite migration 的 **Canonical Handoff**。

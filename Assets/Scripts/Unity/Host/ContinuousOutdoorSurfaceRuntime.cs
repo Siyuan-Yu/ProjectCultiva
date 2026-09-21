@@ -134,8 +134,8 @@ namespace XianXia.Unity.Host
             " SpatialInvalid=[" + OpeningPopulationSpatialInvalid + "]";
         public IEnumerable<SurfaceChunkCoord> LoadedChunks => _loaded;
         public OutdoorSurfaceCoordinateMapper Mapper => _mapper;
-        public float ActiveHexSize => _bootstrap?.Session?.World?.HexWorld?.HexSize > 0f
-            ? _bootstrap.Session.World.HexWorld.HexSize : 1f;
+        public float ActiveHexSize => _bootstrap?.Session?.World?.LegacyHexWorld?.HexSize > 0f
+            ? _bootstrap.Session.World.LegacyHexWorld.HexSize : 1f;
         public bool TryGetBakedPlacementFootprint(
             string kind, string boundLocationId,
             out float minX, out float maxX, out float minY, out float maxY)
@@ -585,47 +585,6 @@ namespace XianXia.Unity.Host
             GridPathfinder.IsWorldSegmentWalkable(
                 _compositeWalkGrid, anchor.x, anchor.y, candidate.x, candidate.y);
 
-        /// <summary>Resolves the formal physical endpoint without requiring its chunk to be loaded.</summary>
-        public bool TryResolveContinuousAutoTravelGoal(
-            HexCoord requestedHex,
-            string destinationSiteId,
-            out WorldVec2 goal,
-            out float arrivalRadius,
-            out string failureReason)
-        {
-            goal = default;
-            arrivalRadius = 0f;
-            failureReason = string.Empty;
-            if (!IsActive || !TryResolveSurface(out var surface))
-            {
-                failureReason = "ContinuousSurfaceInactive";
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(destinationSiteId))
-            {
-                var region = surface.SiteRegions?.Find(r =>
-                    r != null && string.Equals(r.SiteId, destinationSiteId, StringComparison.Ordinal));
-                if (region == null)
-                {
-                    failureReason = "OutdoorSiteArrivalMissing:" + destinationSiteId;
-                    return false;
-                }
-                goal = new WorldVec2(region.ArrivalWorldX, region.ArrivalWorldY);
-            }
-            else
-            {
-                var size = _bootstrap.Session.World.HexWorld.HexSize > 0f
-                    ? _bootstrap.Session.World.HexWorld.HexSize
-                    : 1f;
-                HexMath.ToWorldPosition(requestedHex, size, out var x, out var y);
-                goal = new WorldVec2(x, y);
-            }
-
-            arrivalRadius = Math.Max(0.001f, surface.CellSize * 0.75f);
-            return true;
-        }
-
         /// <summary>Called after all realtime writers. Canonical is the last accepted safe point;
         /// rejected transforms never become position authority. No Stop command / CancelTravel.</summary>
         public void SyncPartyPresentation()
@@ -806,18 +765,18 @@ namespace XianXia.Unity.Host
                 return;
             _legacyOutdoorRestoreMigrationWorld = world;
             var motion = world?.PlayerPartyTravel;
-            if (world?.HexWorld == null || motion == null ||
+            if (world?.LegacyHexWorld == null || motion == null ||
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
                 string.IsNullOrEmpty(motion.SiteId) ||
                 !world.Strategic.Sites.TryGet(motion.SiteId, out var site) ||
                 !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) ||
                 motion.IsMoving)
                 return;
-            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var size = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var position = motion.WorldPosition;
             if (!motion.HasPosition)
             {
-                HexMath.ToWorldPosition(site.PresenceHex, size, out var x, out var y);
+                HexMath.ToWorldPosition(site.LegacyPresenceHex, size, out var x, out var y);
                 position = new WorldVec2(x, y);
             }
             var hex = HexMath.WorldToHex(position.X, position.Y, size);
@@ -1583,7 +1542,7 @@ namespace XianXia.Unity.Host
             _materializePointUses.Clear();
 
             // ManualEncounter/PostBattle owns an isolated character scope on this Surface.
-            // Keep only the frozen actual participants; ordinary Party, Army, Site and residual
+            // Keep only the frozen actual participants; ordinary PlayerParty, Squad, Site and residual
             // population passes resume after the offer-owned context is cleared.
             var combat = world.Strategic?.ContinuousManualCombat;
             if (combat != null && combat.IsActive &&
@@ -1699,8 +1658,8 @@ namespace XianXia.Unity.Host
                         !world.Entities.TryGet(id, out var entity)) continue;
                     // Only members actually claimed by the SquadWorldMotion pass above are skipped
                     // here. StrategicWorldSitePopulationService is the authority for every
-                    // army member it resolves at this loaded Site, including the opening
-                    // supervisor whose army remains Idle rather than Garrisoned.
+                    // resident it resolves at this loaded Site, including an opening supervisor
+                    // whose Squad exists but has no active SquadWorldMotion ownership here.
                     if (_continuousSquadPopulation.Contains(id))
                         continue;
                     if (world.WorldPresence.TryGet(id, out var scopedPresence) &&
@@ -1833,7 +1792,7 @@ namespace XianXia.Unity.Host
                 }
                 else if (presence.Mode == PartyWorldPresenceMode.AtHex && presence.UsesHexPresence)
                 {
-                    HexMath.ToWorldPosition(presence.ResidualHex, world.HexWorld.HexSize, out var hx, out var hy);
+                    HexMath.ToWorldPosition(presence.ResidualHex, world.LegacyHexWorld.HexSize, out var hx, out var hy);
                     position = new WorldVec2(hx, hy);
                 }
                 else continue;

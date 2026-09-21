@@ -16,7 +16,7 @@ namespace XianXia.Data.Content
             HexStrategicMapBootstrap.ClearLoadError();
             if (!HexStrategicMapBootstrap.UseHexStrategicMap || world == null)
                 return Result.Success();
-            if (world.HexWorld.HasGrid)
+            if (world.LegacyHexWorld.HasGrid)
                 return Result.Success();
 
             if (registry == null)

@@ -97,7 +97,7 @@ namespace XianXia.Core.World.Strategic
             if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "NPC destination has no valid Continuous Surface route.");
-            if (!world.HexWorld.HasGrid)
+            if (!world.LegacyHexWorld.HasGrid)
                 return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
 
             var requestedHex = destinationHex;
@@ -110,7 +110,7 @@ namespace XianXia.Core.World.Strategic
                 targetSite != null)
                 goalHex = ResolveDeterministicSiteApproachHex(world, startHex, targetSite);
 
-            if (!world.HexWorld.TryGetTile(goalHex, out var destTile) ||
+            if (!world.LegacyHexWorld.TryGetTile(goalHex, out var destTile) ||
                 destTile == null ||
                 !destTile.IsPassable)
                 return Result.Failure(ErrorCode.InvalidArgument, "Destination hex is not passable.");
@@ -140,7 +140,7 @@ namespace XianXia.Core.World.Strategic
                 if (!TryBuildPathLeavingSite(world, fromSite, goalHex, FullPathScratch, out var exitHex, out var departureFootprintHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "No path leaving WorldSite.");
 
-                var hexSizeForDeparture = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                var hexSizeForDeparture = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
                 if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureBoundaryEntryWorldPosition(
                         departureFootprintHex,
                         exitHex,
@@ -168,7 +168,7 @@ namespace XianXia.Core.World.Strategic
                 var isTravelingAfterBegin = motion.IsMoving;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                var derivedBeforeCommit = fromSite.PresenceHex;
+                var derivedBeforeCommit = fromSite.LegacyPresenceHex;
                 var previousLocationDesc = "AtWorldSite(" + startSiteId + ")";
                 var segmentStart = FullPathScratch.Count >= 1
                     ? FullPathScratch[0].ToString()
@@ -224,14 +224,14 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
-            if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, goalHex, FullPathScratch) ||
+            if (!HexPathfinder.TryFindPath(world.LegacyHexWorld, startHex, goalHex, FullPathScratch) ||
                 FullPathScratch.Count < 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 
             if (debugOverrideLocalOccupant && world.LocalMap != null)
                 world.LocalMap.RemoveOccupant(characterId);
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var derivedBeforeCommitWild = startHex;
             var previousLocationDescWild = startKind == BackgroundCharacterLocationKind.AtWorldSite && !string.IsNullOrEmpty(startSiteId)
                 ? "AtWorldSite(" + startSiteId + ")"
@@ -318,7 +318,7 @@ namespace XianXia.Core.World.Strategic
             if (!motion.IsSiteDeparturePending)
                 return;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var boundaryEntry = motion.SiteDepartureBoundaryEntry;
             var enteredHex = motion.SiteDepartureExitHex;
             var ingressFromHex = motion.SiteDepartureFootprintHex;
@@ -384,7 +384,7 @@ namespace XianXia.Core.World.Strategic
                 presence.Mode == PartyWorldPresenceMode.AtSite)
             {
                 pos = motion.SiteDepartureVirtualPosition;
-                if (world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out var siteHex))
+                if (world.Strategic.Sites.TryResolveLegacySitePresenceHex(presence.SiteId, out var siteHex))
                     previousDerived = siteHex;
                 isSiteDepartureVirtual = true;
                 return true;
@@ -393,7 +393,7 @@ namespace XianXia.Core.World.Strategic
             if (!presence.HasContinuousWorldPosition)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             pos = presence.ContinuousWorldPosition;
             previousDerived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
             return true;
@@ -460,7 +460,7 @@ namespace XianXia.Core.World.Strategic
                     budget = 0f;
                 }
             }
-            var hexSize = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var derived = HexMath.WorldToHex(position.X, position.Y, hexSize);
             if (!motion.TryGetSurfaceWaypoint(out _))
             {
@@ -508,7 +508,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var remainingBudget = distanceBudget;
             var guard = 0;
             while (remainingBudget > 0.0001f && motion.IsMoving && guard++ < 64)
@@ -806,7 +806,7 @@ namespace XianXia.Core.World.Strategic
                 return into.Count >= 2;
 
             PathScratch.Clear();
-            if (!HexPathfinder.TryFindPath(world.HexWorld, exitHex, goalHex, PathScratch) ||
+            if (!HexPathfinder.TryFindPath(world.LegacyHexWorld, exitHex, goalHex, PathScratch) ||
                 PathScratch.Count < 1)
                 return false;
 
@@ -834,7 +834,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
 
             if (presence.Mode == PartyWorldPresenceMode.AtSite &&
                 !string.IsNullOrEmpty(presence.SiteId))
@@ -847,7 +847,7 @@ namespace XianXia.Core.World.Strategic
                     derivedHex = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
                     return true;
                 }
-                if (world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out derivedHex))
+                if (world.Strategic.Sites.TryResolveLegacySitePresenceHex(siteId, out derivedHex))
                 {
                     worldPos = HexCenter(derivedHex, hexSize);
                     return true;
@@ -885,11 +885,11 @@ namespace XianXia.Core.World.Strategic
             HexCoord from,
             WorldSite site)
         {
-            HexCoord best = site.PresenceHex;
+            HexCoord best = site.LegacyPresenceHex;
             var bestDist = int.MaxValue;
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
-                if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+                if (!world.LegacyHexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
                     continue;
                 var d = HexMath.Distance(from, hex);
                 if (d < bestDist ||
@@ -917,7 +917,7 @@ namespace XianXia.Core.World.Strategic
                 return destinationSiteId;
 
             if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
+                world.Strategic.Sites.TryGetAtLegacyHex(destinationHex, out var site) &&
                 site != null)
             {
                 canonicalizedFromFootprint = true;

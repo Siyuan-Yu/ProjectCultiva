@@ -105,7 +105,7 @@ namespace XianXia.Unity.Host
                 return false;
             if (!session.World.Entities.TryGet(npcId, out var entity))
                 return false;
-            if (StrategicEncounterHostilityService.IsHostileStrategicNpc(session.World, entity))
+            if (CharacterEncounterHostilityService.IsHostileEncounterParticipant(session.World, entity))
                 return true;
 
             if (!HostileActionClassificationService.TryClassifyTarget(

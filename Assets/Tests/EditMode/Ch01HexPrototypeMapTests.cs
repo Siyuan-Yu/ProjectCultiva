@@ -13,11 +13,11 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.Build(world);
 
-            Assert.IsTrue(world.HexWorld.HasGrid);
+            Assert.IsTrue(world.LegacyHexWorld.HasGrid);
             Assert.IsTrue(world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SiteHuangcun, out var huangcun));
             Assert.IsTrue(world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SiteQingyunLu, out var qingyun));
 
-            var distance = HexMath.Distance(huangcun.HexCoord, qingyun.HexCoord);
+            var distance = HexMath.Distance(huangcun.LegacyAnchorHex, qingyun.LegacyAnchorHex);
             Assert.Greater(distance, 3, "Sites should not be adjacent; strategic marching distance required.");
         }
     }

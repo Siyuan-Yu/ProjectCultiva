@@ -44,7 +44,7 @@ namespace XianXia.Core.World
         }
 
         /// <summary>
-        /// Compatibility-only residual placement for old saves and independent battle teardown.
+        /// Compatibility-only residual placement for old serialized Outdoor world state.
         /// Normal Continuous Outdoor callers must use SetAtWorldPosition / SetAtSiteWithAnchor.
         /// </summary>
         public void SetLegacyAtHex(HexCoord hex)
@@ -103,7 +103,7 @@ namespace XianXia.Core.World
         /// <c>HasContinuousWorldPosition</c>/<c>WorldPosX/Y</c> 携带该 resident 在
         /// 所属 Outdoor surface 内的 authored／baked 精确世界落点（Opening LocalPosition → canonical
         /// ，或 Continuous Site materializer 使用的锚点）。<see cref="SetAtSite"/> 继续表示
-        /// 「只有 Site、无精确锚点」（普通 Background／Army／旧存档）。
+        /// 「只有 Site、无精确锚点」（background resident／兼容输入／旧存档）。
         /// </summary>
         public void SetAtSiteWithAnchor(string siteId, WorldVec2 anchorWorldPosition)
         {
@@ -258,5 +258,6 @@ namespace XianXia.Core.World
                     into.Add(p.EntityId);
             }
         }
+
     }
 }

@@ -1,6 +1,7 @@
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Bootstrap.Compatibility;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -25,9 +26,11 @@ namespace XianXia.Data.Bootstrap
             if (squads.IsFailure) return squads;
             // Only old content enters the one-way formalArmy migration adapter. Current content
             // has no legacy ids and therefore never invokes the adapter during New Game startup.
-            if (scenario.InitialFormalArmyIds != null && scenario.InitialFormalArmyIds.Count > 0)
+            if (scenario.InitialLegacyFormalArmyIds != null &&
+                scenario.InitialLegacyFormalArmyIds.Count > 0)
             {
-                var legacySquads = FormalArmyContentBootstrap.Apply(world, registry, scenario, openingLookup);
+                var legacySquads = LegacyArmyContentToSquadMigration.Apply(
+                    world, registry, scenario, openingLookup);
                 if (legacySquads.IsFailure) return legacySquads;
             }
             return Result.Success();

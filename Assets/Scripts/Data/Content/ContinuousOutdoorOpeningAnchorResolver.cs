@@ -272,7 +272,7 @@ namespace XianXia.Data.Content
         /// §6/§7：某个 location 的 authored placement 内，按稳定 slot index 生成 canonical anchor。
         ///
         /// <para>
-        /// 实现已收敛到 <see cref="WorldSiteOutdoorOpeningAnchorBake"/> + <see cref="WorldSiteOutdoorBakeTransform"/>
+        /// 实现已收敛到 <see cref="WorldSiteOutdoorOpeningAnchorBake"/> + <see cref="WorldSiteHexFootprintBakeTransform"/>
         /// 的<b>单一 bake truth</b>（与 SitePlacements／SitePlaces 同一公式）：slot 先在 source LocalMap
         /// 坐标系定位，再经共享 transform 烘到 canonical。因此这里必须给出 Site physical footprint
         /// 与 hexSize。
@@ -294,7 +294,7 @@ namespace XianXia.Data.Content
             if (surface == null || sourceLayout == null || slotIndex < 0)
                 return false;
 
-            var sourceBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            var sourceBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 sourceLayout.OriginX, sourceLayout.OriginY, sourceLayout.CellSize,
                 sourceLayout.Width, sourceLayout.Height);
             if (!sourceBounds.IsValid)

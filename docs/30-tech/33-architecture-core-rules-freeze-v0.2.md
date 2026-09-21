@@ -1,5 +1,7 @@
 # 架构核心规则冻结 v0.2
 
+> **2026-09-21 Final Seal（不改 Freeze v0.2 历史正文）：** [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结当前实现后的 authority／compatibility 矩阵。正常 Outdoor = Continuous Surface + exact WorldPosition；正常多人组织 = Squad；现代战斗 = CharacterEncounter；行政 = WorldSite Owner + TerritoryClaim + Actual Administrative Control。旧 FormalArmy／ArmyStack／TerritoryRegion／AtHex／Outdoor LocalMap／Hex travel 只允许明确旧输入、兼容、工具或测试边界。
+
 > **2026-09-12 定向补丁（不改 Freeze 正文）：** 本文件未被整体废弃；以下冲突条款已由后续已采纳 ADR 精确替代。设计已确认，运行时迁移／核查与制作人验收仍未完成。
 >
 > | Freeze／旧补丁范围 | 当前权威 |
@@ -24,8 +26,8 @@
 > - **修士战略 Army** = 真实 `MemberCharacterIDs[]` 载体；**`ArmyGroup` 仅**凡人／大规模非修士军队（ADR-0008 部分 superseded）。  
 > - 战略 Faction / 外交 / 占点真源：[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。  
 > - **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)。  
-> - 当前 Host `PartyWorldPresence`／`ArmyStack`／WorldMap RTS 多选为 **Prototype**；详见 §4／§10 注记。  
-> - **2026-08-25 RPG-First（[ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）：** 单 Active／PlayerParty／连续 HexWorld；**废除「跨点必须 Army」**；FormalArmy=军事远征层。**不升级 Freeze v0.3**；本注记为 v0.2 补丁引用。
+> - 历史 Host `ArmyStack`／WorldMap RTS 多选已退休；`PartyWorldPresence` 的旧形状只在兼容边界存在。详见 ADR-0038。
+> - **2026-08-25 RPG-First 历史补丁：** 单 Active／PlayerParty 曾先废除「跨点必须 Army」；后续 A／B／C 又将正常组织与移动收口到 Squad／Continuous Surface。现行状态以 ADR-0038／2K 为准。
 
 ## 0. 冻结纪律
 

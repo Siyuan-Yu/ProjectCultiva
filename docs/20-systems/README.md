@@ -1,13 +1,13 @@
 # 系统设计索引
 
-> **MAP 状态（2026-09-17）：** [MAP-01](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 Producer Accepted / Sealed；[MAP-04](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md) 实施中，尚未验收。
-> **Editor Toolchain / Legacy Content Direction：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 继续锁定 Authoring Source ≠ Runtime Content、旧 Content 迁移及后续 legacy retirement；现有 Hex/LocalMap consumers 仍是 compatibility，不因 MAP-02 自动退役。
+> **当前状态（2026-09-21）：** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已 Producer Accepted / Sealed。正常 Outdoor、NPC Squad、PlayerParty、CharacterEncounter 与 Actual Administrative Control 的 authority／compatibility 边界以 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 为准。
+> **Editor Toolchain / Legacy Content：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 MAP 范围已落地；旧 Hex／Outdoor LocalMap 仅保留明确迁移、兼容、工具或测试消费者。
 
-> 最后更新：2026-09-15（ADR-0036／ADR-0037 生命周期与术语一致性清理；实现与制作人验收按各页状态）
+> 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：** CW-04～CW-09.5 与 [238 恢复处／队伍战斗作弊](../40-process/238-recovery-spot-and-party-combat-cheats-2026-09-15.md) 已 Producer Accepted / Sealed；[CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)／[CW-10.5](../40-process/239-cw-10-5-strategic-resource-access-and-storage-room-2026-09-15.md) 为 Implementation Completed / Producer Acceptance Pending。MAP-01/MAP-02/MAP-03 已封板，MAP-04 实施中；旧 Editor 生命周期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。** 当前状态与依赖见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
+> **当前阶段：** Final Seal housekeeping 已实施，等待制作人一次性验收；不重新开启 CW／MAP／SPACE／LEGACY-FINAL 分期。当前交接见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md)。
 
 ## 规则
 
@@ -24,16 +24,16 @@
 | 编号 | 系统 | 优先级 | 状态 | 说明 |
 |---|---|---|---|---|
 | 20 | [开局体验](20-opening-experience.md) | P0 | 40分～1小时入炼气；隐藏修士 | |
-| 21 | [核心循环与统一时间](21-core-loop-and-time.md) | P0 | 设计确认／文档更新；Encounter 时间实施待核查 | |
+| 21 | [核心循环与统一时间](21-core-loop-and-time.md) | P0 | WorldTick／ActionClock 与 CharacterEncounter 冻结边界已落地 | |
 | 22 | [境界与机制能力](22-realms-and-abilities.md) | P0 | 炼气四能力方向已冻结 | |
-| 23 | [战斗](23-combat.md) | P0 | 同源独立遭遇设计确认；实施／验收待完成 | ADR-0033 |
-| 24 | [世界与据点](24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore 设计确认；部分实施 | ADR-0031/0032 |
+| 23 | [战斗](23-combat.md) | P0 | CharacterEncounter 正式主线已实现并封板；Future 扩展除外 | ADR-0033/0035/0038 |
+| 24 | [世界与据点](24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore 已落地；旧结构仅兼容 | ADR-0031/0032/0038 |
 | 25 | [修炼与突破](25-cultivation-and-breakthrough.md) | P0 | 突破=事件已冻结方向 | |
-| 26 | [领地经营](26-territory-management.md) | P0 | SiteCore 管理设计确认；新范围待迁移 | ADR-0032 |
-| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层已存在；接替／继承待迁移 | ADR-0034 |
-| 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger V1 已验收；预警／敌情待实现 | |
+| 26 | [领地经营](26-territory-management.md) | P0 | SiteCore／Actual Administrative Control 已落地；未来经济扩展未实现 | ADR-0032/0038 |
+| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层与当前 Party／Squad 生命周期已落地；完整继承仍属 Future | ADR-0034 |
+| 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger V1 已验收；预警／敌情明确为 Future | |
 | 29 | [世界观哲学](29-karma-and-consequence.md) | P1 | 设计方向已定 | |
-| 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | 旧 Control Asset 已验收；新冲突／接管待迁移 | ADR-0033/0034 |
+| 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | WorldSite／Claim／Actual Control 与现行冲突接管已落地；旧 Army 仅兼容 | ADR-0033/0034/0038 |
 | 2B | [角色属性与修仙成长](2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 | |
 | 2C | [属性与 Modifier 管道](2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** | |
 | 2D | [功法、斗技与装备](2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 | |
@@ -43,10 +43,10 @@
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
 | 2I | [荒村杂役阶段叙事](2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | **Draft v0.1／待审核**；非线性阶段框架 | |
 | 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | Hex 战略摘要保留；旧 Footprint 精确范围已被 SiteCore 实际范围替代 | ADR-0032 |
-| 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | 旧阶段已验收；继承／飞舟／统一移动待迁移 | ADR-0034 |
+| 2K | [RPG-First：Active／PlayerParty／Continuous Surface／Legacy FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | PlayerParty／Squad／Surface authority 已封板；飞舟等仍为 Future | ADR-0034/0038 |
 | 2L | [LocalMap 建造系统 V1](2L-local-map-construction-v1.md) | P0 | **已实现／已人工验收／已封板** | 建筑目录、材料事务与主动拆除 |
 | 2M | [角色社会关系 V1](2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板** | Social Bond、五维态度、社会事件、击杀后果与统一人物档案 |
-| 2N | [连续世界制作、合成与去 Hex 产品方向](2N-continuous-surface-world-authoring-and-composition.md) | P0 | **MAP-01～03 已验收；MAP-04 实施中** | Composer、Fine Editor、Final Surface、WorldMap LOD、物理旧系统清理 |
+| 2N | [连续世界制作、合成与去 Hex 产品方向](2N-continuous-surface-world-authoring-and-composition.md) | P0 | **MAP-01～04 已验收封板** | Composer、Fine Editor、Final Surface、WorldMap LOD、兼容隔离 |
 
 ## 架构文档（`30-tech`）
 

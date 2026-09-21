@@ -1,5 +1,7 @@
 # ADR-0027：Canonical World Surface Position 与 WorldSite Spatial Mapping
 
+> **2026-09-22 实现现名索引（不改历史正文）：** 本 ADR 的 `WorldSiteSpatialMapping` 当前名为 `WorldSiteHexFootprintSpatialMapping`；`WorldSiteFootprintLocationAuthority` 的现行物理区域查询入口为 `WorldSitePhysicalRegionQuery`，旧 Hex location adapter 为 `LegacyWorldSiteHexLocationCompatibility`。`WorldSite.AnchorHex`／`PresenceHex`／`OccupiedHexes` 当前分别为 `LegacyAnchorHex`／`LegacyPresenceHex`／`LegacyOccupiedHexes`；当前 invariant 强制 `LegacyPresenceHex == LegacyAnchorHex`，即时 Surface 派生另称 `DerivedPresenceHex`。正文保留 2026-08-30 的决策与弃用分期原貌。
+
 > **2026-09-12 部分 SUPERSEDED：** 普通户外 WorldSite 已成为 Continuous Surface 上的 SiteCore 行政 Context，不再以一张 Outdoor LocalMap 投影定义物理范围。下文 Decision #4 的 normalized LocalMap→footprint 映射、#6～#8 的 footprint/ring 战斗与 MandatoryTransit，以及 #9／#11 的 SurfaceExit 主链只保留旧阶段实现背景。当前普通户外直接使用 Canonical WorldPosition；当前 Site 由真实位置与有效行政控制解析；Hex 仅作战略摘要。Canonical WorldPosition 与 Context／Physical 分离仍保留；见 [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)、[ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md) 与 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
 - **状态：** 已采纳

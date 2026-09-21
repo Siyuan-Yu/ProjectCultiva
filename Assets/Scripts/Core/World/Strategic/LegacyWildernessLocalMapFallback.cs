@@ -20,9 +20,6 @@ namespace XianXia.Core.World.Strategic
         /// <summary>山地 Fallback（非 Site；不再复用矿山 Site LocalMap）。</summary>
         public const string MountainWildernessLocalMapId = "base:map_wilderness_mountain_fallback";
 
-        /// <summary>遗留：遭遇 stub，仅作最后兜底（非普通 Hex 主路径）。</summary>
-        public const string GenericWildernessLocalMapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
-
         /// <summary>禁止再作为普通 Hex Fallback 的 Fixed Site LocalMap。</summary>
         public const string ForbiddenHuangyuanSiteLocalMapId = "base:map_site_a";
 
@@ -52,8 +49,8 @@ namespace XianXia.Core.World.Strategic
         public static bool TryResolve(SimulationWorld world, HexCoord hex, out string localMapId)
         {
             localMapId = string.Empty;
-            if (world?.HexWorld == null ||
-                !world.HexWorld.TryGetTile(hex, out var tile) ||
+            if (world?.LegacyHexWorld == null ||
+                !world.LegacyHexWorld.TryGetTile(hex, out var tile) ||
                 tile == null ||
                 !tile.IsPassable)
                 return false;
@@ -69,15 +66,6 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        public static bool IsForbiddenSiteLocalMapReuse(string localMapId)
-        {
-            if (string.IsNullOrEmpty(localMapId))
-                return false;
-            return string.Equals(localMapId, ForbiddenHuangyuanSiteLocalMapId, System.StringComparison.Ordinal) ||
-                   string.Equals(localMapId, "base:map_site_linjian", System.StringComparison.Ordinal) ||
-                   string.Equals(localMapId, "base:map_site_kuangshan", System.StringComparison.Ordinal) ||
-                   string.Equals(localMapId, "base:map_site_b", System.StringComparison.Ordinal);
-        }
     }
 }
 

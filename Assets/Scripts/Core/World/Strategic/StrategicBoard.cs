@@ -6,9 +6,10 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Host-facing lifetime marker for a manual battle presented on the already active
-    /// Continuous Outdoor surface. Strategic battle location remains in Participants;
-    /// this state only identifies which physical presentation owns the active session.
+    /// Runtime-only presentation binding for the modern CharacterEncounter/manual-combat path
+    /// when participants are shown on a Continuous Outdoor surface. CharacterEncounter and its
+    /// participant records remain the domain authority; this state only scopes the active Host
+    /// presentation and participant visibility.
     /// It is intentionally runtime-only and is rebuilt, never serialized.
     /// </summary>
     public sealed class ContinuousManualCombatPresentationState

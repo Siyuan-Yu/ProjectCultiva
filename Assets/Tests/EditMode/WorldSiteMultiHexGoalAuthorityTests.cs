@@ -38,13 +38,13 @@ namespace XianXia.Tests
                 if (s.GetString("siteId") != siteId)
                     continue;
                 var site = new WorldSite { SiteId = siteId };
-                site.AnchorHex = new HexCoord(s.GetInt("anchorQ"), s.GetInt("anchorR"));
-                site.PresenceHex = new HexCoord(s.GetInt("presenceQ"), s.GetInt("presenceR"));
+                site.LegacyAnchorHex = new HexCoord(s.GetInt("anchorQ"), s.GetInt("anchorR"));
+                site.LegacyPresenceHex = new HexCoord(s.GetInt("presenceQ"), s.GetInt("presenceR"));
                 var fp = s.GetArray("footprint");
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.SetFootprint(hexes);
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
 
@@ -55,16 +55,16 @@ namespace XianXia.Tests
         static SimulationWorld BuildWorld(params string[] siteIds)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.HexSize = HexSize;
-            world.HexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.HexSize = HexSize;
+            world.LegacyHexWorld.FillRectangle(200, 100, HexTerrainType.Plain);
             for (var i = 0; i < siteIds.Length; i++)
             {
                 var s = LoadSite(siteIds[i]);
                 world.Strategic.Sites.Register(s);
-                foreach (var h in s.EnumerateFootprintHexes())
+                foreach (var h in s.EnumerateLegacyFootprintHexes())
                 {
-                    if (world.HexWorld.TryGetTile(h, out var t) && t != null)
+                    if (world.LegacyHexWorld.TryGetTile(h, out var t) && t != null)
                         t.IsPassable = true;
                 }
             }
@@ -84,9 +84,9 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(huangcun.SiteId, huangcun.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(huangcun.SiteId, huangcun.LegacyPresenceHex, HexSize);
             HexMath.ToWorldPosition(new HexCoord(81, 52), HexSize, out var cx, out var cy);
-            Assert.IsTrue(motion.TryUpdateWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy)), "canonical set");
+            Assert.IsTrue(motion.TryUpdateLegacyWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy)), "canonical set");
 
             LegacyPlayerPartyHexTravelCompatibility.TryResolvePartyWorldHex(world, party, out var startHex);
             Assert.AreEqual(new HexCoord(81, 52), startHex, "startHex = canonical derived");
@@ -96,24 +96,24 @@ namespace XianXia.Tests
             IReadOnlyCollection<HexCoord> blocked = null;
 
             // 目标 site_b：hex 距离最近格 (105,26) 实际 A* cost 69-70；A* 最优 (107,26) cost 67-68。
-            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.LegacyPresenceHex, siteB.SiteId);
             Assert.IsTrue(result.IsSuccess, "BeginTravel to site_b");
 
-            var goal = motion.DestinationHex;
+            var goal = motion.LegacyDestinationHex;
             var path = new List<HexCoord>(64);
             Assert.IsTrue(
-                HexPathfinder.TryFindPath(world.HexWorld, startHex, goal, path, HexTravelMode.Ground, blocked),
+                HexPathfinder.TryFindPath(world.LegacyHexWorld, startHex, goal, path, HexTravelMode.Ground, blocked),
                 "goal reachable from start");
             var goalCost = path.Count;
 
             // 验证 goal 的 A* cost == 全局最小（footprint 中所有可达格的最小 cost）
             var minCost = int.MaxValue;
-            foreach (var h in siteB.EnumerateFootprintHexes())
+            foreach (var h in siteB.EnumerateLegacyFootprintHexes())
             {
-                if (!world.HexWorld.TryGetTile(h, out var t) || t == null || !t.IsPassable)
+                if (!world.LegacyHexWorld.TryGetTile(h, out var t) || t == null || !t.IsPassable)
                     continue;
                 var p = new List<HexCoord>(64);
-                if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, h, p, HexTravelMode.Ground, blocked))
+                if (!HexPathfinder.TryFindPath(world.LegacyHexWorld, startHex, h, p, HexTravelMode.Ground, blocked))
                     continue;
                 if (p.Count < minCost)
                     minCost = p.Count;
@@ -134,7 +134,7 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(huangcun.SiteId, huangcun.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(huangcun.SiteId, huangcun.LegacyPresenceHex, HexSize);
 
             // 点击 site_a 不同 footprint 格 → TargetSiteId 相同 + DestinationHex 相同（goal 由 planner 决定）
             var clicked1 = new HexCoord(68, 39);
@@ -146,8 +146,8 @@ namespace XianXia.Tests
             Assert.AreEqual(cmd1.DestinationHex, cmd2.DestinationHex,
                 "clicked hex 不强制 destination：同一 Site 语义相同");
 
-            foreach (var h in siteA.EnumerateFootprintHexes())
-                Assert.IsTrue(siteA.OccupiesHex(h), "cmd destination ∈ site_a footprint: " + h);
+            foreach (var h in siteA.EnumerateLegacyFootprintHexes())
+                Assert.IsTrue(siteA.OccupiesLegacyHex(h), "cmd destination ∈ site_a footprint: " + h);
         }
 
         [Test]
@@ -162,8 +162,8 @@ namespace XianXia.Tests
             var before = ResolveGoalToSiteB(world, huangcun, siteB, party);
 
             // 改 Anchor / Presence → goal 不变（goal 只由 footprint + 起点 + blocked 决定）
-            siteB.AnchorHex = new HexCoord(106, 25);
-            siteB.PresenceHex = new HexCoord(106, 27);
+            siteB.LegacyAnchorHex = new HexCoord(106, 25);
+            siteB.LegacyPresenceHex = new HexCoord(106, 27);
             var after = ResolveGoalToSiteB(world, huangcun, siteB, party);
 
             Assert.AreEqual(before, after, "Anchor/Presence 改变不影响 route goal（B6.4 §八 C/D）");
@@ -176,12 +176,12 @@ namespace XianXia.Tests
             PlayerPartyRuntime party)
         {
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(huangcun.SiteId, huangcun.PresenceHex, HexSize);
+            motion.SetAtLegacyWorldSite(huangcun.SiteId, huangcun.LegacyPresenceHex, HexSize);
             HexMath.ToWorldPosition(new HexCoord(81, 52), HexSize, out var cx, out var cy);
-            motion.TryUpdateWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy));
-            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
+            motion.TryUpdateLegacyWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy));
+            var result = LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.LegacyPresenceHex, siteB.SiteId);
             Assert.IsTrue(result.IsSuccess, "BeginTravel");
-            return motion.DestinationHex;
+            return motion.LegacyDestinationHex;
         }
 
         [Test]
@@ -217,22 +217,22 @@ namespace XianXia.Tests
             var party = NewParty();
             party.TryInitialize(new EntityId(1), out _);
             var motion = world.PlayerPartyTravel;
-            motion.SetAtWorldSite(huangcun.SiteId, huangcun.PresenceHex, HexSize); // CurrentHex=presence
+            motion.SetAtLegacyWorldSite(huangcun.SiteId, huangcun.LegacyPresenceHex, HexSize); // LegacyCurrentHex=presence
             HexMath.ToWorldPosition(new HexCoord(81, 52), HexSize, out var cx, out var cy);
-            Assert.IsTrue(motion.TryUpdateWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy)), "canonical set");
+            Assert.IsTrue(motion.TryUpdateLegacyWorldPositionWithinSite(huangcun.SiteId, new WorldVec2(cx, cy)), "canonical set");
 
             var derived = HexMath.WorldToHex(cx, cy, HexSize);
             Assert.AreEqual(new HexCoord(81, 52), derived, "fixture derived hex");
-            Assert.AreEqual(huangcun.PresenceHex, motion.CurrentHex, "fixture CurrentHex 冻结为 presence");
+            Assert.AreEqual(huangcun.LegacyPresenceHex, motion.LegacyCurrentHex, "fixture LegacyCurrentHex 冻结为 presence");
 
             Assert.IsTrue(WorldMapPartyTravelCommand.TryResolve(world, new HexCoord(69, 39), out var cmd), "cmd");
 
             // 修复后 cmd 的 from = Canonical 派生 hex（TryResolve→DerivedHex=(81,52)），不再用
-            // presence 冻结 CurrentHex。site_a footprint 中从 (81,52) 出发 hex 距离最近（tie 取 Q 小）
+            // presence 冻结 LegacyCurrentHex。site_a footprint 中从 (81,52) 出发 hex 距离最近（tie 取 Q 小）
             // = (68,41)：距离 max(|-13|,|-11|,|-24|)=24，与 (69,40) tie，Q 68 < 69 胜出。
             Assert.AreEqual(new HexCoord(68, 41), cmd.DestinationHex,
                 "cmd.DestinationHex 基于 Canonical 派生 from（(81,52) 出发 hex 距离最近 + tie Q 最小）");
-            Assert.IsTrue(siteA.OccupiesHex(cmd.DestinationHex), "cmd.DestinationHex ∈ site_a footprint");
+            Assert.IsTrue(siteA.OccupiesLegacyHex(cmd.DestinationHex), "cmd.DestinationHex ∈ site_a footprint");
             Assert.AreEqual(derived, new HexCoord(81, 52), "derived fixture");
         }
     }

@@ -10,14 +10,14 @@ namespace XianXia.Core.World.Strategic
     ///
     /// 统一两种 footprint 的 world-surface 几何语义（真实 Pointy-Top / Odd-R Hex polygon）：
     ///  - Wilderness：footprint = 单个 Hex（LocalMap 边缘 → 该 Hex 的真实 polygon boundary）；
-    ///  - WorldSite：footprint = Site.OccupiedHexes（多 Hex 外接域 + irregular 空洞投影）。
+    ///  - WorldSite：footprint = Site.LegacyOccupiedHexes（多 Hex 外接域 + irregular 空洞投影）。
     ///
     /// 职责边界（ADR-0027 §11）：只做 Local ↔ World 物理位置映射；不负责 Battle / Travel /
     /// PlayerParty Context / Army / Presence / Materialization / Ingress-Egress 行为。
     ///
     /// 无 UnityEngine / XianXia.Data 依赖（Core 零引用程序集）。<b>无 per-call 堆分配</b>：
     ///  - 六角角点用 static readonly 常量（不 new float[]）；
-    ///  - 多 Hex 直接消费调用方已有的 IReadOnlyList（WorldSite.OccupiedHexes 为缓存 ReadOnlyCollection）；
+    ///  - 多 Hex 直接消费调用方已有的 IReadOnlyList（WorldSite.LegacyOccupiedHexes 为缓存 ReadOnlyCollection）；
     ///  - 单 Hex 用 struct 包装（SingleHexFootprint）经泛型单核调用，无装箱、无列表分配；
     ///  - 全部算法只走一个泛型核心，不存在第二套会漂移的复制公式。
     /// </summary>

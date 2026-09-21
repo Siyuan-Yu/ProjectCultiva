@@ -6,6 +6,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Persistence.Compatibility;
 
 namespace XianXia.Core.Persistence
 {
@@ -37,7 +38,7 @@ namespace XianXia.Core.Persistence
                     return Invalid(legacy, "roster contains no restored Character");
                 var leader = new EntityId(legacy.LeaderCharacterId);
                 if (leader.IsNone || !members.Contains(leader)) leader = members[0];
-                var squadId = SquadMembershipService.ArmySquadId(legacy.ArmyId);
+                var squadId = LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId(legacy.ArmyId);
                 var created = SquadMembershipService.Create(world, squadId, members, leader,
                     string.Empty, SquadCommandKind.SquadWorldMotion, importingSnapshot: true,
                     displayName: string.Empty, factionId: legacy.FactionId ?? string.Empty);
@@ -92,8 +93,8 @@ namespace XianXia.Core.Persistence
                 else if (legacy.LocationKind == 0 ||
                          !world.SurfaceGround.TryResolveContaining(position, out var containing))
                 {
-                    var scale = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                        ? world.HexWorld.HexSize : 1f;
+                    var scale = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                        ? world.LegacyHexWorld.HexSize : 1f;
                     HexMath.ToWorldPosition(new HexCoord(legacy.CurrentHexQ, legacy.CurrentHexR),
                         scale, out var x, out var y);
                     position = new WorldVec2(x, y);
@@ -129,8 +130,8 @@ namespace XianXia.Core.Persistence
                         destination = siteArrival;
                     else
                     {
-                        var scale = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                            ? world.HexWorld.HexSize : 1f;
+                        var scale = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                            ? world.LegacyHexWorld.HexSize : 1f;
                         HexMath.ToWorldPosition(new HexCoord(legacy.DestinationHexQ, legacy.DestinationHexR),
                             scale, out var x, out var y);
                         destination = new WorldVec2(x, y);
@@ -147,7 +148,7 @@ namespace XianXia.Core.Persistence
         {
             squad = null;
             if (world?.Strategic?.Squads == null) return false;
-            var generatedId = SquadMembershipService.ArmySquadId(legacyArmyId);
+            var generatedId = LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId(legacyArmyId);
             if (!string.IsNullOrEmpty(legacyArmyId) && world.Strategic.Squads.TryGet(generatedId, out squad))
                 return true;
             foreach (var candidate in world.Strategic.Squads.Squads.Values)

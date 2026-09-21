@@ -46,8 +46,8 @@ namespace XianXia.Core.World.Strategic
                     "Target is outside the active manual battle participant scope.");
             }
 
-            // Active WORLD_COMBAT owns its participant set; never create another engagement from a tactical strike.
-            if (StrategicEncounterHostilityService.IsHostileStrategicNpc(world, target))
+            // The active CharacterEncounter owns its participant set; a tactical strike must not create another encounter.
+            if (CharacterEncounterHostilityService.IsHostileEncounterParticipant(world, target))
                 return new HostileActionRouteResult(HostileActionRoute.LocalCombat, empty, false, string.Empty);
 
             if (!HostileActionClassificationService.TryClassifyTarget(world, targetId, out var classification, out var reason))
@@ -215,9 +215,5 @@ namespace XianXia.Core.World.Strategic
             reason = result.Error.Message;
             return false;
         }
-
-        /// <summary>旧调用点兼容别名；新代码应使用 TryPreview + TryCommit。</summary>
-        public static bool TryEscalateToWar(SimulationWorld world, string attackerFactionId, string defenderFactionId, out string reason) =>
-            TryCommit(world, attackerFactionId, defenderFactionId, out reason);
     }
 }

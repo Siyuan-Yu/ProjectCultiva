@@ -1,8 +1,8 @@
 # 江湖关系
 
-> **CW-U0 战斗接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；关系第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。既有 RelationshipLedger、Bond／Attitude 与已验收社交不改；介入运行待 CW-U3。
+> **CharacterEncounter 接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。该现代介入链已封板；完整关系经营与报复玩法仍为 Future。
 
-> 状态：Social Relations V1 历史基线已封板；私人敌对／附近敌情设计已确认，实施与新验收待完成 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：Social Relations V1 与 CharacterEncounter 关系候选接线已封板；私人预警／敌情扩展为 Future / Not Implemented | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`27`、`2E`、`../30-tech/34-entity-and-component-model.md`
 > **本阶段不写实现代码。**

@@ -219,9 +219,9 @@ namespace XianXia.Unity.Host
             GUIStyle body)
         {
             var motion = world.PlayerPartyTravel;
-            var dest = !string.IsNullOrEmpty(motion.DestinationSiteId)
-                ? motion.DestinationSiteId
-                : motion.DestinationHex.ToString();
+            var dest = !string.IsNullOrEmpty(motion.LegacyDestinationSiteId)
+                ? motion.LegacyDestinationSiteId
+                : motion.LegacyDestinationHex.ToString();
             var localMap = world.PartyWorld?.LocalMapId ?? "-";
             var localPos = "-";
             if (party.HasActive &&
@@ -239,10 +239,10 @@ namespace XianXia.Unity.Host
             y = DrawLine(x, y, width, lineH, body, "MovementKind", motion.MovementKind.ToString());
             y = DrawLine(x, y, width, lineH, body, "ExecutionMode", motion.ExecutionMode.ToString());
             y = DrawLine(x, y, width, lineH, body, "Destination", dest);
-            y = DrawLine(x, y, width, lineH, body, "CurrentHex", motion.CurrentHex.ToString());
+            y = DrawLine(x, y, width, lineH, body, "LegacyCurrentHex", motion.LegacyCurrentHex.ToString());
             y = DrawLine(
                 x, y, width, lineH, body, "Segment",
-                motion.SegmentIndex + " / " + motion.SegmentProgress.ToString("F2"));
+                motion.LegacyHexSegmentIndex + " / " + motion.LegacyHexSegmentProgress.ToString("F2"));
             y = DrawLine(x, y, width, lineH, body, "WorldPos", motion.WorldPosition.ToString());
             y = DrawLine(x, y, width, lineH, body, "LocalMapId", localMap);
             y = DrawLine(x, y, width, lineH, body, "LocalPos", localPos);

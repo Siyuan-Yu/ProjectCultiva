@@ -49,18 +49,18 @@ namespace XianXia.Core.World.Strategic
             _ = clickWorldX;
             _ = clickWorldY;
 
-            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
+            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.HasGrid)
                 return false;
-            if (!world.HexWorld.TryGetTile(clickedHex, out var tile) || tile == null)
+            if (!world.LegacyHexWorld.TryGetTile(clickedHex, out var tile) || tile == null)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             resolved.TargetHex = clickedHex;
             resolved.TargetSiteId = string.Empty;
             resolved.DestinationHex = clickedHex;
 
             if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(clickedHex, out var site) &&
+                world.Strategic.Sites.TryGetAtLegacyHex(clickedHex, out var site) &&
                 site != null)
             {
                 resolved.TargetSiteId = site.SiteId;
@@ -81,10 +81,10 @@ namespace XianXia.Core.World.Strategic
             WorldSite site,
             HexCoord fallback)
         {
-            HexCoord best = site.PresenceHex;
+            HexCoord best = site.LegacyPresenceHex;
             var bestDist = int.MaxValue;
             // Phase 5R-B6.4：from 用 Canonical 派生 hex（PlayerPartyWorldLocationQuery 权威，
-            // 与 BeginTravel 的 startHex 同源），不再用 AtWorldSite 冻结的 CurrentHex（= presence）。
+            // 与 BeginTravel 的 startHex 同源），不再用 AtWorldSite 冻结的 LegacyCurrentHex（= presence）。
             // 无有效位置时才回退 clickedHex。
             var from = fallback;
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.HasPosition &&
@@ -92,9 +92,9 @@ namespace XianXia.Core.World.Strategic
                 resolved.HasValue)
                 from = resolved.DerivedHex;
 
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
-                if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+                if (!world.LegacyHexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
                     continue;
                 var d = HexMath.Distance(from, hex);
                 if (d < bestDist ||
@@ -126,14 +126,14 @@ namespace XianXia.Core.World.Strategic
             var motion = world.PlayerPartyTravel;
             if (motion != null && motion.IsMoving)
             {
-                if (motion.SegmentProgress < 1f &&
-                    motion.TryGetActiveStepHexes(out var fromHex, out _) &&
-                    !motion.CurrentHex.Equals(fromHex))
-                    motion.AlignCurrentHex(fromHex);
+                if (motion.LegacyHexSegmentProgress < 1f &&
+                    motion.TryGetActiveLegacyHexStep(out var fromHex, out _) &&
+                    !motion.LegacyCurrentHex.Equals(fromHex))
+                    motion.AlignLegacyCurrentHex(fromHex);
                 var enter = LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(
                     world, party, allowWhileTraveling: true);
                 if (enter.IsFailure) return enter;
-                motion.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+                motion.SetLegacyExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
                 return XianXia.Core.Results.Result.Success();
             }
             return LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(world, party);
@@ -145,7 +145,7 @@ namespace XianXia.Core.World.Strategic
             var motion = world?.PlayerPartyTravel;
             if (motion == null || motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
                 return;
-            motion.SetExecutionMode(motion.IsMoving
+            motion.SetLegacyExecutionMode(motion.IsMoving
                 ? PlayerPartyTravelExecutionMode.World
                 : PlayerPartyTravelExecutionMode.None);
         }

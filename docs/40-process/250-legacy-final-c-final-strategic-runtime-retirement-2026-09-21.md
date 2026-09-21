@@ -8,7 +8,7 @@
 
 正常 New Game、现代存档与正常 Continuous runtime 不再拥有旧战略世界 authority。Hex 类型、旧 Content schema
 和旧 Snapshot DTO 可以继续存在，但只能作为派生摘要、诊断或单向迁移输入。LEGACY-FINAL-C 已完成人工验收并封板；
-后续仅进行 FINAL-SEAL compatibility quarantine、dead API cleanup 与 architecture freeze。
+后续 FINAL-SEAL compatibility quarantine、dead API cleanup 与 architecture freeze 已实施，状态为 Implementation Complete / Producer Acceptance Pending；不再开启新的迁移分期。
 
 ## 2. Territory runtime 退役
 

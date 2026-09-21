@@ -1,13 +1,13 @@
-using XianXia.Core.World;
 using System;
 using XianXia.Core.World.Hex;
 
-namespace XianXia.Core.World.Surface
+namespace XianXia.Core.World.Compatibility
 {
-    /// <summary>Compatibility projection from exact WorldPosition to serialized CurrentHex metadata.</summary>
-    public static class ContinuousSurfaceHexCommitResolver
+    /// <summary>Compatibility projection from exact WorldPosition to serialized legacy Hex metadata.</summary>
+    public static class LegacyHexMetadataProjection
     {
         public const float HysteresisFraction = 0.04f;
+
         public static HexCoord Resolve(HexCoord committed, WorldVec2 position, float hexSize)
         {
             var size = hexSize > 0f ? hexSize : 1f;

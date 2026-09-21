@@ -239,7 +239,7 @@ namespace XianXia.Core.World.Strategic
             var changed = world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out _);
             world.Strategic.SquadWorldMotions.Remove(squad.SquadId);
             if (squad.CommandKind == SquadCommandKind.SquadWorldMotion ||
-                squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion)
+                squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion)
             {
                 var target = party.HasActive ? party.ActiveCharacterId : squad.LeaderCharacterId;
                 changed |= SquadCommandService.SetExecution(world, squad.SquadId,
@@ -251,8 +251,10 @@ namespace XianXia.Core.World.Strategic
         public static void AdvanceAll(SimulationWorld world, int ticks)
         {
             if (world?.Strategic?.SquadWorldMotions == null || ticks < 1) return;
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var budget = PlayerPartyTravelRuntimeService.WorldUnitsPerTick(hexSize) * ticks;
+            // Read-only compatibility scale adapter: movement remains exact Surface world-space
+            // and does not grant the legacy grid route or position authority.
+            var scale = ContinuousWorldMovementScale.Resolve(world);
+            var budget = PlayerPartyTravelRuntimeService.WorldUnitsPerTick(scale) * ticks;
             MotionScratch.Clear();
             foreach (var pair in world.Strategic.SquadWorldMotions.Motions)
                 if (pair.Value?.IsMoving == true &&

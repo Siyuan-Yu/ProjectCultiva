@@ -20,13 +20,13 @@ namespace XianXia.Tests
         static SimulationWorld BuildWildernessWorld(out HexCoord hexA, out HexCoord hexB)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:bg_wilderness";
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:bg_wilderness";
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -59,8 +59,8 @@ namespace XianXia.Tests
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.LocalMapId = mapId;
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
-            HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out var x, out var y);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(x, y), hex);
+            HexMath.ToWorldPosition(hex, world.LegacyHexWorld.HexSize, out var x, out var y);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(x, y), hex);
             world.LocalMap.AddOccupant(active);
             if (party != null)
             {
@@ -328,12 +328,12 @@ namespace XianXia.Tests
         static SimulationWorld BuildTravelWorldWithSite(out WorldSite site, out HexCoord outsideHex)
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.HexSize = 1f;
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
             }
@@ -345,11 +345,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_huangcun",
                 DisplayName = "青石荒村",
-                AnchorHex = anchor,
-                PresenceHex = presence,
+                LegacyAnchorHex = anchor,
+                LegacyPresenceHex = presence,
                 LocalMapId = "base:map_ch01_reference",
             };
-            site.SetFootprint(new[] { anchor, presence, new HexCoord(2, 5), new HexCoord(3, 5) });
+            site.SetLegacyHexFootprint(new[] { anchor, presence, new HexCoord(2, 5), new HexCoord(3, 5) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
             return world;
         }

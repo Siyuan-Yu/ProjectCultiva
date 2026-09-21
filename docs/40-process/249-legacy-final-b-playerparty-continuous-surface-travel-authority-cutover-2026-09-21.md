@@ -3,7 +3,7 @@
 > 日期：2026-09-21  
 > 状态：**Producer Accepted / Sealed**（2026-09-21）  
 > 前置：LEGACY-FINAL-A 已 Producer Accepted / Sealed  
-> 后续：LEGACY-FINAL-C
+> 历史后续：LEGACY-FINAL-C 已 Producer Accepted / Sealed；现行最终入口为 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)
 
 ## 1. 正式 authority
 
@@ -99,7 +99,7 @@ validation、New Game invariant、现代 route、snapshot JSON round-trip、旧 
 PlayMode 或 batchmode。
 
 制作人已于 2026-09-21 完成人工验收，本阶段正式 **Producer Accepted / Sealed**。
-LEGACY-FINAL-C 随后开始；C 完成并验收前不得宣称 Legacy Finalization Complete。
+LEGACY-FINAL-C 随后已完成并验收封板；当前总状态以 ADR-0038 为准。
 
 ## 9. Producer Acceptance 修复：Surface route 到 Composite physical execution
 

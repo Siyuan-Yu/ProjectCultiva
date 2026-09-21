@@ -153,7 +153,7 @@ namespace XianXia.Core.Persistence
                     {
                         HasValue = true, LocalMapId = string.Empty, SiteId = site.SiteId,
                         PartyWorldMode = PartyWorldPresenceMode.AtSite,
-                        WildernessHex = site.PresenceHex,
+                        WildernessHex = site.LegacyPresenceHex,
                         WorldLocationLabel = "ContinuousSite(" + site.SiteId + ")",
                         Source = "ActiveWorldPresence.ContinuousSite"
                     };
@@ -166,7 +166,7 @@ namespace XianXia.Core.Persistence
                     LocalMapId = site.LocalMapId ?? string.Empty,
                     SiteId = site.SiteId,
                     PartyWorldMode = PartyWorldPresenceMode.AtSite,
-                    WildernessHex = site.PresenceHex,
+                    WildernessHex = site.LegacyPresenceHex,
                     WorldLocationLabel = "AtWorldSite(" + site.SiteId + ")",
                     Source = "ActiveWorldPresence.AtSite"
                 };

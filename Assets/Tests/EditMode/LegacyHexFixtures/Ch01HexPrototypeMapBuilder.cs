@@ -35,12 +35,12 @@ namespace XianXia.Core.World.Strategic
             RegisterSite(world, SiteQingyunLu, "青石路", "Road", QingyunLuHex, "base:map_qingyun_lu");
             ApplyTerrainForSite(world, HuangcunHex, "Village");
             ApplyTerrainForSite(world, QingyunLuHex, "Road");
-            PaintRoadPath(world.HexWorld, HuangcunHex, QingyunLuHex);
+            PaintRoadPath(world.LegacyHexWorld, HuangcunHex, QingyunLuHex);
         }
 
         static void BuildPlayableRectangle(SimulationWorld world, string mapId, string mapName)
         {
-            var grid = world.HexWorld;
+            var grid = world.LegacyHexWorld;
             grid.Clear();
             grid.MapId = mapId;
             grid.MapName = mapName;
@@ -80,12 +80,12 @@ namespace XianXia.Core.World.Strategic
                 SiteId = siteId,
                 DisplayName = displayName,
                 SiteType = kind,
-                AnchorHex = anchor,
+                LegacyAnchorHex = anchor,
                 LocalMapId = localMapId,
             };
-            site.SetFootprint(BuildFootprintForKind(world.HexWorld, anchor, kind));
-            site.PresenceHex = anchor;
-            site.EnsurePresenceHexValid();
+            site.SetLegacyHexFootprint(BuildFootprintForKind(world.LegacyHexWorld, anchor, kind));
+            site.LegacyPresenceHex = anchor;
+            site.EnsureLegacyPresenceHexValid();
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
         }
 
@@ -151,21 +151,21 @@ namespace XianXia.Core.World.Strategic
 
         static void ApplyTerrainForSite(SimulationWorld world, HexCoord hex, string kind)
         {
-            if (world?.HexWorld == null)
+            if (world?.LegacyHexWorld == null)
                 return;
 
-            foreach (var pad in BuildFootprintForKind(world.HexWorld, hex, kind))
-                PaintRoadTile(world.HexWorld, pad);
+            foreach (var pad in BuildFootprintForKind(world.LegacyHexWorld, hex, kind))
+                PaintRoadTile(world.LegacyHexWorld, pad);
         }
 
         /// <summary>Prototype 山匪巡逻 Hex：相对荒村锚点外圈 7～8 格，避开 Site 占地。</summary>
         public static HexCoord ResolvePrototypeBanditPatrolHex(SimulationWorld world, int preferredDistance = 8)
         {
-            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
+            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.HasGrid)
                 return QingyunLuHex;
 
             var origin = ResolveHuangcunAnchorHex(world);
-            var grid = world.HexWorld;
+            var grid = world.LegacyHexWorld;
             var minDistance = System.Math.Max(1, preferredDistance - 1);
             for (var ring = preferredDistance; ring >= minDistance; ring--)
             {
@@ -195,7 +195,7 @@ namespace XianXia.Core.World.Strategic
             weakPatrolHex = new HexCoord(origin.Q + 7, origin.R - 1);
             casualtyTestHex = new HexCoord(origin.Q - 4, origin.R - 2);
 
-            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
+            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.HasGrid)
                 return;
 
             if (!TryResolveStationaryTestHex(
@@ -224,7 +224,7 @@ namespace XianXia.Core.World.Strategic
             out HexCoord picked)
         {
             picked = preferred;
-            if (IsStationaryTestBanditCandidate(world, world.HexWorld, origin, preferred))
+            if (IsStationaryTestBanditCandidate(world, world.LegacyHexWorld, origin, preferred))
                 return true;
 
             if (TryPickDirectionalTestHex(
@@ -240,7 +240,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             picked = ResolveNorthWestCasualtyFallbackHex(world, origin);
-            return IsStationaryTestBanditCandidate(world, world.HexWorld, origin, picked);
+            return IsStationaryTestBanditCandidate(world, world.LegacyHexWorld, origin, picked);
         }
 
         static HexCoord ResolveNorthWestCasualtyFallbackHex(SimulationWorld world, HexCoord origin)
@@ -273,7 +273,7 @@ namespace XianXia.Core.World.Strategic
                 for (var dq = -localRadius; dq <= localRadius; dq++)
                 {
                     var hex = new HexCoord(preferred.Q + dq, preferred.R + dr);
-                    if (!IsStationaryTestBanditCandidate(world, world.HexWorld, origin, hex))
+                    if (!IsStationaryTestBanditCandidate(world, world.LegacyHexWorld, origin, hex))
                         continue;
                     if (!MatchesStationaryTestBanditDirection(origin, hex, direction))
                         continue;
@@ -322,7 +322,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (HexMath.Distance(origin, hex) > 10)
                 return false;
-            if (world.Strategic.Sites.TryGetAtHex(hex, out _))
+            if (world.Strategic.Sites.TryGetAtLegacyHex(hex, out _))
                 return false;
             return true;
         }
@@ -330,21 +330,21 @@ namespace XianXia.Core.World.Strategic
         /// <summary>测试山匪驻点：若 Content 未画路，则临时开格保证可放置／接战。</summary>
         public static void EnsurePrototypeTestBanditHexPassable(SimulationWorld world, HexCoord hex)
         {
-            if (world?.HexWorld == null || !world.HexWorld.HasGrid || hex.Equals(default))
+            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.HasGrid || hex.Equals(default))
                 return;
 
-            if (!world.HexWorld.IsInBounds(hex))
+            if (!world.LegacyHexWorld.IsInBounds(hex))
                 return;
 
-            PaintRoadTile(world.HexWorld, hex);
+            PaintRoadTile(world.LegacyHexWorld, hex);
         }
 
         static HexCoord ResolveHuangcunAnchorHex(SimulationWorld world)
         {
             if (world.Strategic.Sites.TryGet(SiteHuangcun, out var site) &&
                 site != null &&
-                !site.AnchorHex.Equals(default))
-                return site.AnchorHex;
+                !site.LegacyAnchorHex.Equals(default))
+                return site.LegacyAnchorHex;
 
             return HuangcunHex;
         }
@@ -393,7 +393,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!grid.TryGetCell(hex, out var cell) || cell == null || !cell.IsPassable)
                 return false;
-            if (world.Strategic.Sites.TryGetAtHex(hex, out _))
+            if (world.Strategic.Sites.TryGetAtLegacyHex(hex, out _))
                 return false;
             return true;
         }
@@ -421,7 +421,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>LevelTester 专用：Player-controlled WorldSite；不修改 Ch01 剧情 Site 归属。</summary>
         public static void EnsureLevelTesterPlayerCampSite(SimulationWorld world)
         {
-            if (world?.Strategic?.Sites == null || !world.HexWorld.HasGrid)
+            if (world?.Strategic?.Sites == null || !world.LegacyHexWorld.HasGrid)
                 return;
 
             var localMapId = PlayerCampLocalMapId;
@@ -440,13 +440,13 @@ namespace XianXia.Core.World.Strategic
                 SiteId = SitePlayerCamp,
                 DisplayName = "TEST 主角营地",
                 SiteType = "Camp",
-                AnchorHex = anchor,
-                PresenceHex = anchor,
+                LegacyAnchorHex = anchor,
+                LegacyPresenceHex = anchor,
                 LocalMapId = localMapId,
                 OwnerFactionId = StrategicFactionCatalog.PlayerFactionId,
             };
-            site.SetFootprint(new[] { anchor });
-            site.EnsurePresenceHexValid();
+            site.SetLegacyHexFootprint(new[] { anchor });
+            site.EnsureLegacyPresenceHexValid();
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
         }
 
@@ -456,9 +456,9 @@ namespace XianXia.Core.World.Strategic
             for (var d = 0; d < 6; d++)
             {
                 var hex = HexMath.Neighbor(huangcun, d);
-                if (!world.HexWorld.IsInBounds(hex))
+                if (!world.LegacyHexWorld.IsInBounds(hex))
                     continue;
-                if (world.Strategic.Sites.TryGetAtHex(hex, out _))
+                if (world.Strategic.Sites.TryGetAtLegacyHex(hex, out _))
                     continue;
                 return hex;
             }

@@ -14,7 +14,7 @@ namespace XianXia.Tests.EditMode
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.BuildMinimalTwoSitePrototype(world);
 
-            HexWorldLayout.ComputeWorldBounds(world.HexWorld, out var minX, out var maxX, out var minY, out var maxY);
+            HexWorldLayout.ComputeWorldBounds(world.LegacyHexWorld, out var minX, out var maxX, out var minY, out var maxY);
             var width = maxX - minX;
             var height = maxY - minY;
 
@@ -48,8 +48,8 @@ namespace XianXia.Tests.EditMode
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.BuildMinimalTwoSitePrototype(world);
 
-            var wideHalf = HexWorldLayout.ComputeFitViewHalf(1200f, 700f, world.HexWorld);
-            var tallHalf = HexWorldLayout.ComputeFitViewHalf(700f, 1200f, world.HexWorld);
+            var wideHalf = HexWorldLayout.ComputeFitViewHalf(1200f, 700f, world.LegacyHexWorld);
+            var tallHalf = HexWorldLayout.ComputeFitViewHalf(700f, 1200f, world.LegacyHexWorld);
             Assert.Greater(wideHalf, 0f);
             Assert.Greater(tallHalf, 0f);
         }
@@ -62,15 +62,15 @@ namespace XianXia.Tests.EditMode
             Ch01HexPrototypeMapBuilder.Build(world);
 
             HexWorldLayout.ComputeWorldBounds(
-                world.HexWorld,
+                world.LegacyHexWorld,
                 out var minX,
                 out var maxX,
                 out var minY,
                 out var maxY);
 
-            var pad = world.HexWorld.HexSize * 1.2f;
+            var pad = world.LegacyHexWorld.HexSize * 1.2f;
             var count = HexWorldMapRenderBounds.CountVisibleCells(
-                world.HexWorld,
+                world.LegacyHexWorld,
                 minX,
                 maxX,
                 minY,

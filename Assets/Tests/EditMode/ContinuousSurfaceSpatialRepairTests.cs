@@ -4,6 +4,7 @@ using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
+using XianXia.Core.World.Compatibility;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
@@ -85,16 +86,40 @@ namespace XianXia.Tests.EditMode
         {
             var a = new HexCoord(0, 0); var b = HexMath.Neighbor(a, 0);
             var edge = (float)Math.Sqrt(3) / 2f;
-            var h = ContinuousSurfaceHexCommitResolver.HysteresisFraction;
-            Assert.AreEqual(a, ContinuousSurfaceHexCommitResolver.Resolve(a, new WorldVec2(edge - 0.01f, 0f), 1f));
-            Assert.AreEqual(a, ContinuousSurfaceHexCommitResolver.Resolve(a, new WorldVec2(edge + h / 2, 0f), 1f));
-            Assert.AreEqual(b, ContinuousSurfaceHexCommitResolver.Resolve(a, new WorldVec2(edge + h * 1.1f, 0f), 1f));
-            Assert.AreEqual(b, ContinuousSurfaceHexCommitResolver.Resolve(b, new WorldVec2(edge - h / 2, 0f), 1f));
-            Assert.AreEqual(a, ContinuousSurfaceHexCommitResolver.Resolve(b, new WorldVec2(edge - h * 1.1f, 0f), 1f));
+            var h = LegacyHexMetadataProjection.HysteresisFraction;
+            Assert.AreEqual(a, LegacyHexMetadataProjection.Resolve(a, new WorldVec2(edge - 0.01f, 0f), 1f));
+            Assert.AreEqual(a, LegacyHexMetadataProjection.Resolve(a, new WorldVec2(edge + h / 2, 0f), 1f));
+            Assert.AreEqual(b, LegacyHexMetadataProjection.Resolve(a, new WorldVec2(edge + h * 1.1f, 0f), 1f));
+            Assert.AreEqual(b, LegacyHexMetadataProjection.Resolve(b, new WorldVec2(edge - h / 2, 0f), 1f));
+            Assert.AreEqual(a, LegacyHexMetadataProjection.Resolve(b, new WorldVec2(edge - h * 1.1f, 0f), 1f));
             var far = new HexCoord(4, 3);
             HexMath.ToWorldPosition(far, 1f, out var x, out var y);
-            Assert.AreEqual(far, ContinuousSurfaceHexCommitResolver.Resolve(a, new WorldVec2(x, y), 1f));
+            Assert.AreEqual(far, LegacyHexMetadataProjection.Resolve(a, new WorldVec2(x, y), 1f));
             Assert.AreEqual(a, WildernessLocalWorldProjection.ResolveAuthoritativeWildernessHex(a, new WorldVec2(1.5f, 0f), 1f));
+        }
+
+        [Test]
+        public void ContinuousMovementScale_PreservesLegacyTwoLayerFloatPath()
+        {
+            Assert.AreEqual(8f, LegacyPlayerPartyHexTravelCompatibility.GroundBaseStepTicks);
+            foreach (var raw in new[] { -1f, 0f, 0.00005f, 0.0001f, 0.00011f, 1f })
+            {
+                var world = new SimulationWorld();
+                world.LegacyHexWorld.HexSize = raw;
+
+                var oldFirstLayer = raw > 0f ? raw : 1f;
+                var oldSecondLayer = oldFirstLayer > 0.0001f ? oldFirstLayer : 1f;
+                var expected = oldSecondLayer * (float)Math.Sqrt(3.0) / 8f;
+                var resolved = ContinuousWorldMovementScale.Resolve(world);
+                var actual = PlayerPartyTravelRuntimeService.WorldUnitsPerTick(resolved);
+
+                Assert.AreEqual(oldFirstLayer, resolved, "first layer raw=" + raw);
+                Assert.AreEqual(expected, actual, "two-layer path raw=" + raw);
+                Assert.AreEqual(
+                    actual,
+                    LegacyPlayerPartyHexTravelCompatibility.WorldUnitsPerTick(resolved),
+                    "legacy delegate raw=" + raw);
+            }
         }
 
         [Test]
@@ -133,26 +158,26 @@ namespace XianXia.Tests.EditMode
         public void BoundaryHandoffGroundGate_AllowsPassableAndRejectsWater()
         {
             var world = new SimulationWorld();
-            world.HexWorld.HexSize = 1f;
+            world.LegacyHexWorld.HexSize = 1f;
             var current = new HexCoord(0, 0);
             var target = new HexCoord(1, 0);
-            world.HexWorld.GetOrCreate(current);
-            var targetTile = world.HexWorld.GetOrCreate(target);
+            world.LegacyHexWorld.GetOrCreate(current);
+            var targetTile = world.LegacyHexWorld.GetOrCreate(target);
             var traveler = world.Entities.CreateCharacter(new DefinitionId("test", "egress_traveler"), "traveler").Value.Id;
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(0f, 0f), current);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(0f, 0f), current);
             world.PlayerPartyTravel.CaptureTravelingMembers(new[] { traveler });
             world.WorldPresence.SetLegacyAtHex(traveler, current);
             targetTile.Terrain = HexTerrainType.Plain; targetTile.IsPassable = true;
             Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitContinuousSurfaceBoundaryEgress(
                 world, new WorldVec2(1f, 0f), target).IsSuccess);
-            Assert.AreEqual(target, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(target, world.PlayerPartyTravel.LegacyCurrentHex);
             Assert.IsTrue(world.WorldPresence.TryGet(traveler, out var presence));
             Assert.AreEqual(target, presence.ResidualHex);
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(0f, 0f), current);
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(0f, 0f), current);
             targetTile.Terrain = HexTerrainType.Water;
             Assert.IsTrue(LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitContinuousSurfaceBoundaryEgress(
                 world, new WorldVec2(1f, 0f), target).IsFailure);
-            Assert.AreEqual(current, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(current, world.PlayerPartyTravel.LegacyCurrentHex);
         }
 
         [Test]

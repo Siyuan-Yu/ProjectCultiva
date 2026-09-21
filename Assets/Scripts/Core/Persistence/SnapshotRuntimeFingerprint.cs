@@ -10,7 +10,7 @@ namespace XianXia.Core.Persistence
 {
     /// <summary>
     /// Development-only Runtime Mutable Truth fingerprint for Snapshot Before/After Diff.
-    /// Excludes Presentation InstanceId／GameObject／Derived CurrentHex.
+    /// Excludes Presentation InstanceId／GameObject／Derived LegacyCurrentHex.
     /// </summary>
     public static class SnapshotRuntimeFingerprint
     {

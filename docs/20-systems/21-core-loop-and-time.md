@@ -1,10 +1,10 @@
 # 核心循环与统一时间
 
-> 状态：Tick／ActionClock 已冻结；同源独立遭遇时间规则已确认，实施／验收待完成 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：Tick／ActionClock 已冻结；CharacterEncounter 战略停表与 Host 具名 Modal ownership 已落地并封板 | 优先级：P0 | 最后更新：2026-09-21
 > 关联：`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、ADR-0018、`35`
 > **WorldTick = 世界唯一时间轴；ActionClock = 行动 Duration。** 禁止两套世界时间。
 
-> **2026-09-12 补丁：** 新玩家实战使用同源独立遭遇；主世界停表、战斗局部时间及回位结算以 [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 为准，部分替代 ADR-0023 的战后 `BattleAnchor` 位置规则。
+> **现行边界：** 新玩家实战使用现代 CharacterEncounter；主世界停表、战斗局部时间及回位结算以 [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 为准。旧 StrategicEncounter 的冻结闭包不再是当前入口。
 
 ## 1. 这个系统解决什么问题
 

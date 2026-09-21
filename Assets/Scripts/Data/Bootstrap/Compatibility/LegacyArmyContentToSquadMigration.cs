@@ -3,29 +3,30 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 using XianXia.Data.Content;
+using XianXia.Data.Content.Compatibility;
 
-namespace XianXia.Data.Bootstrap
+namespace XianXia.Data.Bootstrap.Compatibility
 {
     /// <summary>Legacy content migration only; never creates runtime FormalArmy or ArmyStack.</summary>
-    public static class FormalArmyContentBootstrap
+    public static class LegacyArmyContentToSquadMigration
     {
         public static Result Apply(SimulationWorld world, DefinitionRegistry registry,
             OpeningScenarioDefinition scenario, GameStartLookup openingLookup = null)
         {
-            if (scenario?.InitialFormalArmyIds == null) return Result.Success();
-            for (var i = 0; i < scenario.InitialFormalArmyIds.Count; i++)
+            if (scenario?.InitialLegacyFormalArmyIds == null) return Result.Success();
+            for (var i = 0; i < scenario.InitialLegacyFormalArmyIds.Count; i++)
             {
-                var parsed = DefinitionId.Parse(scenario.InitialFormalArmyIds[i]);
+                var parsed = DefinitionId.Parse(scenario.InitialLegacyFormalArmyIds[i]);
                 if (parsed.IsFailure) return Result.Failure(parsed.Error);
-                if (!registry.TryGetFormalArmy(parsed.Value, out var legacy) || legacy == null)
-                    return Result.Failure(ErrorCode.NotFound, "Legacy FormalArmyDefinition is missing.", scenario.InitialFormalArmyIds[i]);
+                if (!registry.TryGetLegacyFormalArmyDefinition(parsed.Value, out var legacy) || legacy == null)
+                    return Result.Failure(ErrorCode.NotFound, "LegacyFormalArmyDefinition is missing.", scenario.InitialLegacyFormalArmyIds[i]);
                 var result = NpcSquadContentBootstrap.ApplyDefinition(world, registry, Convert(world, legacy), openingLookup);
                 if (result.IsFailure) return result;
             }
             return Result.Success();
         }
 
-        static NpcSquadDefinition Convert(SimulationWorld world, FormalArmyDefinition legacy)
+        static NpcSquadDefinition Convert(SimulationWorld world, LegacyFormalArmyDefinition legacy)
         {
             var definition = new NpcSquadDefinition
             {
@@ -44,9 +45,9 @@ namespace XianXia.Data.Bootstrap
                     SurfaceId = legacy.InitialSurfaceDeployment.SurfaceId, AnchorSiteId = legacy.InitialSurfaceDeployment.AnchorSiteId,
                     OffsetCellsX = legacy.InitialSurfaceDeployment.OffsetCellsX, OffsetCellsY = legacy.InitialSurfaceDeployment.OffsetCellsY
                 };
-            else if (legacy.InitialHex != null && world?.HexWorld?.HasGrid == true)
+            else if (legacy.InitialHex != null && world?.LegacyHexWorld?.HasGrid == true)
             {
-                HexMath.ToWorldPosition(new HexCoord(legacy.InitialHex.Q, legacy.InitialHex.R), world.HexWorld.HexSize, out var x, out var y);
+                HexMath.ToWorldPosition(new HexCoord(legacy.InitialHex.Q, legacy.InitialHex.R), world.LegacyHexWorld.HexSize, out var x, out var y);
                 definition.InitialSurfacePosition = new NpcSquadInitialSurfacePositionDefinition
                 { SurfaceId = ResolveOnlySurfaceId(world), WorldX = x, WorldY = y };
             }

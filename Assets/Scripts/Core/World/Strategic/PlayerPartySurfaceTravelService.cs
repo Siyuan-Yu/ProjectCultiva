@@ -190,8 +190,8 @@ namespace XianXia.Core.World.Strategic
 
         static HexCoord DeriveHex(SimulationWorld world, WorldVec2 position)
         {
-            var size = world?.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var size = world?.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             return HexMath.WorldToHex(position.X, position.Y, size);
         }
@@ -231,8 +231,8 @@ namespace XianXia.Core.World.Strategic
                 !motion.HasContinuousPhysicalDestination)
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "Continuous Surface final arrival state is invalid.");
-            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
-                motion.SetCurrentOutdoorWorldSiteContext(motion.DestinationSiteId);
+            if (!string.IsNullOrEmpty(motion.LegacyDestinationSiteId))
+                motion.SetCurrentOutdoorWorldSiteContext(motion.LegacyDestinationSiteId);
             else if (WorldSitePhysicalRegionQuery.TryResolve(world, motion.WorldPosition, out var site))
                 motion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
             motion.CancelAutoTravelPreservePosition();

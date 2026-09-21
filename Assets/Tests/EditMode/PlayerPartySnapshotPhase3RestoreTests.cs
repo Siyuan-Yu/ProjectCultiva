@@ -91,10 +91,10 @@ namespace XianXia.Tests
             var world = CreateWorld();
             var a = SpawnCharacter(world, "A");
             var b = SpawnCharacter(world, "B");
-            world.PlayerPartyTravel.SetAtWorldSite(
+            world.PlayerPartyTravel.SetAtLegacyWorldSite(
                 Ch01HexPrototypeMapBuilder.SiteHuangcun,
                 Ch01HexPrototypeMapBuilder.HuangcunHex,
-                world.HexWorld.HexSize);
+                world.LegacyHexWorld.HexSize);
             world.PartyWorld.SiteId = Ch01HexPrototypeMapBuilder.SiteHuangcun;
             world.PartyWorld.LocalMapId = MapId;
             world.LocalMap.AddOccupant(a);
@@ -174,7 +174,7 @@ namespace XianXia.Tests
             var world = CreateWorld();
             var savedPosition = new WorldVec2(12.375f, -8.625f);
             var savedHex = new HexCoord(3, -2);
-            Assert.IsTrue(world.PlayerPartyTravel.RestoreIdleAtWorldSite(
+            Assert.IsTrue(world.PlayerPartyTravel.RestoreIdleAtLegacyWorldSite(
                 "test:site_a", savedPosition, savedHex));
 
             var service = new SnapshotService(new JsonSnapshotSerializer());
@@ -188,7 +188,7 @@ namespace XianXia.Tests
             Assert.AreEqual("test:site_a", motion.SiteId);
             Assert.AreEqual(savedPosition.X, motion.WorldPosition.X, 0.0001f);
             Assert.AreEqual(savedPosition.Y, motion.WorldPosition.Y, 0.0001f);
-            Assert.AreEqual(savedHex, motion.CurrentHex);
+            Assert.AreEqual(savedHex, motion.LegacyCurrentHex);
             Assert.AreEqual(PlayerPartyMovementKind.Idle, motion.MovementKind);
             Assert.AreEqual(PlayerPartyTravelExecutionMode.None, motion.ExecutionMode);
         }

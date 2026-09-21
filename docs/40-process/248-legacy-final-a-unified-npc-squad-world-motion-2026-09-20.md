@@ -3,7 +3,8 @@
 > 日期：2026-09-20  
 > 状态：**Producer Accepted / Sealed — 2026-09-21**
 > 前置封板：MAP-04、CW-10、CW-10.5、Cave Loot persistence 已 Accepted / Sealed  
-> 后续：LEGACY-FINAL-B（PlayerParty movement legacy）→ LEGACY-FINAL-C（TerritoryRegion 等剩余边界）
+> 历史后续：LEGACY-FINAL-B／C 均已 Producer Accepted / Sealed；现行最终入口为 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)
+> **现名注记（2026-09-22）：** 本文保留 2026-09-20～21 的实施历史；凡仍充当当前引用的旧 C# 名，以 §18 的最终映射为准。外部 JSON／Snapshot wire 名不随 C# 改名。
 
 ## 1. 本轮结论
 
@@ -21,7 +22,7 @@
 | 分类 | 处理结果 |
 |---|---|
 | A — normal modern New Game / Continuous runtime | Content bootstrap、Host presenter、Continuous materialization、WorldMap marker、空间解析、NPC schedule ownership、CharacterEncounter 与 snapshot authority 均迁到 Squad/SquadWorldMotion。 |
-| B — old save/content migration | 保留 `FormalArmyDefinition`、旧 JSON parser、`InitialFormalArmyIds`、FormalArmy/ArmyMembership snapshot DTO 与旧字段解析；只在 load/import 边界读取并立即升级。 |
+| B — old save/content migration | 保留 `LegacyFormalArmyDefinition`、旧 JSON parser、内部 `InitialLegacyFormalArmyIds`（外部 key 仍为 `initialFormalArmyIds`）、FormalArmy/ArmyMembership snapshot DTO 与旧字段解析；只在 load/import 边界读取并立即升级。 |
 | C — retired Army battle compatibility | ArmyStack、Hex army travel/pursuit、army-vs-army pending engagement 与对应 active services 已删除；旧 snapshot DTO 仅在 load boundary 单向迁移为真实 Character + Squad identity 的 `CharacterEncounter`。无法唯一恢复真实人物与精确 Surface 位置时明确 `SnapshotInvalid`。 |
 | D — dead / no real caller | 删除旧军队创建/列表 UI、对应 `ArmyUiCommands`、无 caller 的 `SiteDefenseService`，并删除 normal `HostFormalArmyContinuousPresenter`。 |
 
@@ -38,13 +39,13 @@
 
 `SquadWorldMotionBoard` 只按 `SquadId` 索引。`SquadWorldMotionService` 负责初始化、下令和推进。正常路径只使用 `SurfaceGroundNavigation`；不以 CurrentHex、DestinationHex、Outdoor LocalMap 或 WorldRegion 作为位置真源。速度沿用既有 continuous travel 参数，未调整平衡。
 
-`SquadCommandKind` 以 additive 方式增加 `SquadWorldMotion = 3`；旧数值不重排。`FormalArmyWorldMotion = 2` 仅供旧 snapshot 迁移读取，新 runtime 会升级为现代 command。
+`SquadCommandKind` 以 additive 方式增加 `SquadWorldMotion = 3`；旧数值不重排。当前现名 `LegacyFormalArmyWorldMotion = 2` 仅供旧 snapshot 迁移读取，新 runtime 会升级为现代 command。
 
 ## 4. Content 与 New Game
 
 新增 `NpcSquadDefinition`，正式 authored 字段包括稳定 SquadId、名称、FactionId、成员、Leader、Surface 部署、精确位置或 authored core offset，以及可选 SiteId。
 
-Current BaseGame 的六个原 FormalArmy authored group 已改为 `npcSquad`，OpeningScenario 改用 `InitialNpcSquadIds`。人数、名称、Faction、Leader 与 authored Surface 部署保持原设计。正常 bootstrap 先执行 `NpcSquadContentBootstrap`；只有旧场景确实存在 `InitialFormalArmyIds` 时才调用 `FormalArmyContentBootstrap` 单向 adapter。adapter 直接产生 Squad 与 SquadWorldMotion，不创建 FormalArmy 或 ArmyStack。
+Current BaseGame 的六个原 FormalArmy authored group 已改为 `npcSquad`，OpeningScenario 改用 `InitialNpcSquadIds`。人数、名称、Faction、Leader 与 authored Surface 部署保持原设计。正常 bootstrap 先执行 `NpcSquadContentBootstrap`；只有旧场景外部 JSON 确实存在 `initialFormalArmyIds`（内部 `InitialLegacyFormalArmyIds`）时才调用 `LegacyArmyContentToSquadMigration` 单向 adapter。adapter 继续进入 `NpcSquadContentBootstrap`，直接产生 Squad 与 SquadWorldMotion，不创建 FormalArmy 或 ArmyStack。
 
 ## 5. Formation、travel 与 Host
 
@@ -80,8 +81,8 @@ Current BaseGame 的六个原 FormalArmy authored group 已改为 `npcSquad`，O
 
 特意保留：
 
-- `FormalArmyDefinition` 与 `formalArmy` JSON parser；
-- `OpeningScenarioDefinition.InitialFormalArmyIds` parser；
+- `LegacyFormalArmyDefinition` 与 `formalArmy` JSON parser；
+- `OpeningScenarioDefinition.InitialLegacyFormalArmyIds` parser（外部 key `initialFormalArmyIds`）；
 - FormalArmy/ArmyMembership snapshot DTO 与旧格式字段；
 - `FormalArmySnapshotDto`、`ArmyMembershipSnapshotDto`、旧 PendingEngagement DTO 与对应 JSON 字段，仅作为旧存档输入。
 
@@ -95,7 +96,7 @@ LevelTester 现显示：
 
 战斗作弊页提供“让所选 NPC 小队移动到主控附近测试点”。它要求单选现代非玩家 Squad 的 NPC，且至少两名 living member；目标是主控附近的安全固定偏移，并只调用正式 `SquadWorldMotionService.MoveToWorldPosition`。它不 teleport、不写 Transform、不使用 Hex destination。
 
-## 10. 明确未做
+## 10. 本阶段当时明确未做（历史）
 
 - 未改 PlayerParty movement/follow、速度、repath、arrival epsilon 或 formation timing；
 - 未做 TerritoryRegion 最终清理；
@@ -162,7 +163,7 @@ A2 完成最后一层 runtime 退役，状态保持 **Implementation Complete / 
 - 旧 CharacterEncounter FormalArmy owner 在 validate 前改写为 Squad owner；旧 army-vs-army PendingEngagement runtime 已删除，旧 active snapshot 通过 `LegacyPendingEngagementSnapshotMigration` 直接转为真实 Character + Squad 的 CharacterEncounter，证据不足则 SnapshotInvalid。
 - FormalArmy/ArmyStack 创建、变更、旅行、追击、战斗 roster、残留和 Host presentation services 已删除。normal spatial resolver、Host/UI、opening/rehydration 和 snapshot fingerprint 只读取 Squad/SquadWorldMotion/Character。
 - `StrategicTravelDriver` 不再执行 army travel、ArmyStack sync 或 army pursuit；PlayerParty Hex compatibility 留给 LEGACY-FINAL-B，TerritoryRegion 留给 LEGACY-FINAL-C。
-- 旧 Content schema/parser/validator、FormalArmyDefinition、FormalArmy content adapter、FormalArmy/ArmyMembership/Pending snapshot DTO 与 JSON reader 继续保留，只允许在兼容输入边界使用。
+- 旧 Content schema/parser/validator、`LegacyFormalArmyDefinition`、`LegacyArmyContentToSquadMigration`、FormalArmy/ArmyMembership/Pending snapshot DTO 与 JSON reader 继续保留，只允许在兼容输入边界使用。
 
 本阶段不声明 Accepted / Sealed，等待制作人人工验收。
 
@@ -191,5 +192,18 @@ A2 完成最后一层 runtime 退役，状态保持 **Implementation Complete / 
 
 制作人已于 2026-09-21 完整人工验收 New Game NPC Squad、FormalArmy／ArmyStack runtime 退役、NPC Squad Continuous movement、WorldMap marker、PlayerParty 与 NPC Squad authority isolation、SiteArrival、CharacterEncounter 的 Offer／Start／End／Report／CloseReport、active encounter Save／Load、Site blocker tactical placement 与 Separate Space regression。
 
-LEGACY-FINAL-A 正式状态为 **Producer Accepted / Sealed**。已验收实现 checkpoint 为 `e97f53f`；seal 文档 checkpoint 另行记录。后续进入 LEGACY-FINAL-B，LEGACY-FINAL-C 仍未完成，因此不得宣称 Legacy Finalization Complete。
+LEGACY-FINAL-A 正式状态为 **Producer Accepted / Sealed**。已验收实现 checkpoint 为 `e97f53f`；seal 文档 checkpoint 另行记录。历史上的后续 LEGACY-FINAL-B／C 现也已封板；当前总状态以 ADR-0038 为准。
+
+## 18. 当前实现名称映射（2026-09-22）
+
+以下映射 supersede 本文中仍可能被误读为当前 API 的旧名字，不改写当时历史事实：
+
+- Army Content：`FormalArmyDefinition` → `LegacyFormalArmyDefinition`；`FormalArmyContentBootstrap` → `LegacyArmyContentToSquadMigration`；`InitialFormalArmyIds` → 内部 `InitialLegacyFormalArmyIds`，外部 JSON `initialFormalArmyIds` 不变。
+- 旧 Snapshot 迁移 identity：`LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId`，稳定输出前缀仍为 `squad:army:`；旧 Content adapter 继续使用独立的 `squad:migrated:`／`squad:legacy:` 规则。
+- 稳定数值／wire：`SquadCommandKind.LegacyFormalArmyWorldMotion = 2`；Encounter spatial `LegacyFormalArmy = 2`；`EncounterCharacter.LegacySourceFormalArmyId` 映射 JSON `sourceFormalArmyId`。
+- Hex runtime 容器：`SimulationWorld.HexWorld` → `SimulationWorld.LegacyHexWorld`；`HexCoord`／`HexMath`／Odd-R Q/R／`HexWorld` 几何类型仍真实保留。
+- 元数据与 PlayerParty：`LegacyHexMetadataProjection` 只迁原测试 consumer；`PlayerPartyWorldMotion` 的旧 path／destination、segment、departure、travel presentation、无 SurfaceId 的 WorldPosition 写入与 Hex-center snap API 均已逐成员显式使用 `Legacy`／`LegacyHex` 名称。正常 Surface 上的 `LegacyCurrentHex` 是兼容摘要；旧路径中可为已提交路线格／旧缓存，绝不承诺即时投影。Snapshot `CurrentHexQ/R` 与 JSON `currentHexQ/R` 不变。
+- 其它边界：`LegacyPartyFocusCompatibility.SyncPartyFocus` 只服务旧测试 fixture；`ContinuousWorldMovementScale.Resolve` 仍只读适配 `LegacyHexWorld.HexSize`，未消除真实尺度依赖；`ModuleId.Army` 与 `armyOpen` 已删除。
+
+正常 authority 始终是 `SurfaceId + exact WorldPosition`、`SquadWorldMotion` 与 `CharacterEncounter`。
 

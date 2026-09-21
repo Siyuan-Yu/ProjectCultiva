@@ -8,7 +8,7 @@ namespace XianXia.Core.World.Strategic
     {
         readonly Dictionary<string, WorldSite> _sitesById =
             new Dictionary<string, WorldSite>(StringComparer.Ordinal);
-        readonly Dictionary<HexCoord, List<string>> _siteIdsByHex =
+        readonly Dictionary<HexCoord, List<string>> _siteIdsByLegacyHex =
             new Dictionary<HexCoord, List<string>>();
 
         public IReadOnlyDictionary<string, WorldSite> Sites => _sitesById;
@@ -16,7 +16,7 @@ namespace XianXia.Core.World.Strategic
         public void Clear()
         {
             _sitesById.Clear();
-            _siteIdsByHex.Clear();
+            _siteIdsByLegacyHex.Clear();
         }
 
         public void Register(WorldSite site)
@@ -27,13 +27,13 @@ namespace XianXia.Core.World.Strategic
             if (_sitesById.ContainsKey(site.SiteId))
                 throw new InvalidOperationException("WorldSite identity already registered: " + site.SiteId);
             _sitesById[site.SiteId] = site;
-            site.EnsurePresenceHexValid();
-            foreach (var hex in site.EnumerateFootprintHexes())
+            site.EnsureLegacyPresenceHexValid();
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
-                if (!_siteIdsByHex.TryGetValue(hex, out var ids))
+                if (!_siteIdsByLegacyHex.TryGetValue(hex, out var ids))
                 {
                     ids = new List<string>();
-                    _siteIdsByHex.Add(hex, ids);
+                    _siteIdsByLegacyHex.Add(hex, ids);
                 }
                 ids.Add(site.SiteId);
                 ids.Sort(StringComparer.Ordinal);
@@ -43,10 +43,10 @@ namespace XianXia.Core.World.Strategic
         public bool TryGet(string siteId, out WorldSite site) =>
             _sitesById.TryGetValue(siteId, out site) && site != null;
 
-        public bool TryGetAtHex(HexCoord coord, out WorldSite site)
+        public bool TryGetAtLegacyHex(HexCoord coord, out WorldSite site)
         {
             site = null;
-            if (!_siteIdsByHex.TryGetValue(coord, out var ids))
+            if (!_siteIdsByLegacyHex.TryGetValue(coord, out var ids))
                 return false;
             for (var i = 0; i < ids.Count; i++)
                 if (TryGet(ids[i], out site) &&
@@ -55,9 +55,9 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        public IReadOnlyList<string> GetSiteIdsAtHex(HexCoord coord)
+        public IReadOnlyList<string> GetSiteIdsAtLegacyHex(HexCoord coord)
         {
-            if (!_siteIdsByHex.TryGetValue(coord, out var ids)) return Array.Empty<string>();
+            if (!_siteIdsByLegacyHex.TryGetValue(coord, out var ids)) return Array.Empty<string>();
             var active = new List<string>(ids.Count);
             for (var i = 0; i < ids.Count; i++)
                 if (TryGet(ids[i], out var site) &&
@@ -72,13 +72,13 @@ namespace XianXia.Core.World.Strategic
                 !site.IsRuntimeCreated)
                 return false;
             _sitesById.Remove(siteId);
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
-                if (!_siteIdsByHex.TryGetValue(hex, out var ids))
+                if (!_siteIdsByLegacyHex.TryGetValue(hex, out var ids))
                     continue;
                 ids.Remove(siteId);
                 if (ids.Count == 0)
-                    _siteIdsByHex.Remove(hex);
+                    _siteIdsByLegacyHex.Remove(hex);
             }
             return true;
         }
@@ -93,28 +93,18 @@ namespace XianXia.Core.World.Strategic
                 RemoveRuntimeSite(ids[i]);
         }
 
-        public bool TryResolveSiteAnchorHex(string siteId, out HexCoord coord)
+        /// <summary>
+        /// Character World Presence 旧格兼容：Site → LegacyPresenceHex；
+        /// 当前 invariant 为 LegacyPresenceHex == LegacyAnchorHex。
+        /// </summary>
+        public bool TryResolveLegacySitePresenceHex(string siteId, out HexCoord coord)
         {
             coord = default;
             if (!TryGet(siteId, out var site) || site == null)
                 return false;
-            coord = site.AnchorHex;
+            site.EnsureLegacyPresenceHexValid();
+            coord = site.LegacyPresenceHex;
             return true;
         }
-
-        /// <summary>Character World Presence 用：Site → PresenceHex（≠ Anchor 展示锚点）。</summary>
-        public bool TryResolveSitePresenceHex(string siteId, out HexCoord coord)
-        {
-            coord = default;
-            if (!TryGet(siteId, out var site) || site == null)
-                return false;
-            site.EnsurePresenceHexValid();
-            coord = site.PresenceHex;
-            return true;
-        }
-
-        /// <summary>兼容旧调用：仍返回 AnchorHex（Army／UI 展示锚）。Character 世界格请用 <see cref="TryResolveSitePresenceHex"/>。</summary>
-        public bool TryResolveSiteHex(string siteId, out HexCoord coord) =>
-            TryResolveSiteAnchorHex(siteId, out coord);
     }
 }

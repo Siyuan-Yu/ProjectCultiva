@@ -40,11 +40,11 @@ namespace XianXia.Core.World.Strategic
             TravelingScratch.Clear();
         }
 
-        public static float DistanceBudgetFromElapsedSimulationTicks(float hexSize, ulong elapsedSimulationTicks)
+        public static float DistanceBudgetFromElapsedSimulationTicks(float scale, ulong elapsedSimulationTicks)
         {
             if (elapsedSimulationTicks == 0)
                 return 0f;
-            return PlayerPartyTravelRuntimeService.WorldUnitsPerTick(hexSize) * elapsedSimulationTicks;
+            return PlayerPartyTravelRuntimeService.WorldUnitsPerTick(scale) * elapsedSimulationTicks;
         }
 
         public static int ResolveTravelBucket(EntityId characterId) =>
@@ -101,8 +101,10 @@ namespace XianXia.Core.World.Strategic
                 !motion.IsMoving)
                 return;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var budget = DistanceBudgetFromElapsedSimulationTicks(hexSize, elapsedSimulationTicks);
+            // Read-only compatibility scale adapter. Travel ownership, routing and destination
+            // remain on the existing continuous Surface/background-motion authorities.
+            var scale = ContinuousWorldMovementScale.Resolve(world);
+            var budget = DistanceBudgetFromElapsedSimulationTicks(scale, elapsedSimulationTicks);
             if (budget <= 0f)
                 return;
 

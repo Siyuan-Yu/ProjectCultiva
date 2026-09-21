@@ -1,12 +1,11 @@
 # 路线图
 
-> **2026-09-19 当前状态（Handoff）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)／[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)／[MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。
-> **当前 WIP（2026-09-21）：LEGACY-FINAL-SEAL — Compatibility Quarantine / Dead API Cleanup / Architecture Freeze，Implementation Complete / Producer Acceptance Pending。** LEGACY-FINAL-C 已由制作人人工验收并正式 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。Final Seal 完成人工 smoke 前暂不宣称 Legacy migration complete。
+> **当前状态（2026-09-22）：LEGACY-FINAL-SEAL 及其废弃入口、Hex／Army、WorldSite／Hex footprint 命名与兼容边界收尾已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。制作人已确认此前运行行为人工验收通过，后续限定同体改名／说明收尾的静态复核也已通过，无需追加游戏验收。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
-> **Editor 工具链／旧 Content 迁移：** [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 已锁定方向，MAP-01/MAP-02/MAP-03 已完成；下列为后续边界，而非本轮开工授权：
+> **Editor 工具链／旧 Content 迁移：** [ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 MAP-01～04 已完成；下列分期图是历史实施顺序，不是当前任务：
 >
 > ```
 > Editor Toolchain Cleanup          // 唯一 Build All、Apps/ 平铺输出、staging all-or-nothing、
@@ -27,15 +26,15 @@
 
 > 状态：CW-10 与 CW-10.5 均为 **Producer Accepted / Sealed（2026-09-20）**。保持既有编号，不重排 CW-06 / CW-07。
 >
-> **工具链与地图方向：** MAP-01/MAP-02/MAP-03 已验收并封板；MAP-04（legacy content/editor retirement）正在实施。WorldGraphEditor／RegionEditor 已删除；MapEditor／LocalPlaceEditor 只维护独立 LocalMap。
+> **工具链与地图方向：** MAP-01～04 已验收并封板。WorldGraphEditor／RegionEditor 已删除；MapEditor／LocalPlaceEditor 只维护合法独立空间。
 
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **下一步：** 制作人按 237／239 的正常玩法路线验收青石荒村接管前后 NPC 劳作、公库变化、战略物资访问与储藏室，以及 Save/Load。后续只记录更完整仓储物流、税赋、跨 Site 运输和离屏生产设计，不在本轮预实现。
-- **地图后续：** MAP-03 已由制作人人工验收；MAP-04 物理清理目前 **Paused**，Chunk 的 MapLayout 桥和两套旧 Editor 已移除，Scenario、Site opening、Hex WorldMap 等仍待迁。**恢复顺序：SPACE-01 final hardening → SPACE-01 验收/封板 → MAP-04 final consumer audit → 物理删除 → 验收 → seal。** 当前审计、剩余 consumer 与未通过 gate 见 [247](247-project-handoff-current-state-2026-09-18.md) §13／§15 与 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。方向边界见 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
+- **当前下一步：** 等待制作人讨论后确定；尚未授权新功能、迁移阶段或新的关键词清理。后续发现 `Hex`／`Army` 字符串本身不构成重开专项的理由。
+- **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
-- **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；NPC 自动攻城与普通建筑战争。
+- **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 
@@ -68,7 +67,7 @@
 - **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) HexWorld Pipeline；[155](155-hex-strategic-worldmap-migration-2026-08-23.md) Hex 迁移。
 - Demo Runtime 继续冻结。旧 WorldMap **纯 RTS** 路径（139／152／154）视为 **Legacy Prototype**，迁移见 163。
 
-### RPG-First 迁移分期
+### RPG-First 迁移分期（历史）
 
 - [x] **Phase 0** 文档 + 架构审计 + Supersede — ✅
 - [x] **Phase 1** Single Active Character／PlayerParty 控制模型 — **Accepted / Sealed**（2026-08-25）
@@ -90,7 +89,7 @@
   - **Deferred / Future Regression：** 敌军主动攻击 Retreat 人工验收；AI vs AI 主动接战人工验收（缺战略 AI）
   - **Deferred（原）：** Legacy 战斗入口删除、PlayerParty 作 Initiator
   - 附带验收：WorldMap 列表滚动收紧、Zoom In 扩大、Cheat Tools 与 F10 解耦
-- [x] **Phase 5** Continuous LocalMap ↔ HexWorld Transition — **In Progress**（5A/5B Accepted / Sealed；5C 未开始）
+- [x] **Phase 5** Continuous LocalMap ↔ HexWorld Transition — **历史阶段已由 MAP／LEGACY-FINAL 后续决策替代并封板**
 - [ ] **Phase 6** WorldMap Auto Travel — **Not Started**
 - [ ] **Phase 7** Wilderness LocalMap — **Not Started**
 - [ ] **Phase 8** Character Policy V1 — **Not Started**
@@ -204,7 +203,7 @@
 
 完成标准：能向别人口述一局 Demo 的完整过程（凡人→修炼→突破→隐藏→反抗→占领→管理），对方听完想玩。
 
-## M2 — 技术骨架（当前阶段）
+## M2 — 技术骨架（历史阶段）
 
 目标：把架构约束落成可运行的空壳。
 

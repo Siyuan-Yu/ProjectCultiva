@@ -1,15 +1,15 @@
 # ADR-0036：连续世界制作与去 Hex 化产品方向
 
 > 日期：2026-09-15
-> 状态：**Accepted Direction；MAP-01 / MAP-02 / MAP-03 已 Producer Accepted / Sealed；MAP-04 未开始**
+> 状态：**Accepted；MAP-01～MAP-04 已 Producer Accepted / Sealed**
 > 决策者：制作人
 > 关联：[ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)、[ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)、[2N 连续世界制作与合成](../../20-systems/2N-continuous-surface-world-authoring-and-composition.md)、[24 世界与据点](../../20-systems/24-world-and-settlements.md)、[2J Hex Territory](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)
 
 ## Context
 
-Continuous Outdoor runtime、Surface Cell、Chunk streaming、Canonical WorldPosition 与 world-space Actual Control 已经存在或正在使用。MAP-01 已完成 Composer/FineEditor 与兼容发布，MAP-02 已将主 Surface WorldMap 切到同源的 strategic Surface view，MAP-03 已使玩家旅行、WorldSite、FactionFlag、NPC／Squad／FormalArmy 和战斗位置的正常路径使用 Surface authority；旧 Hex／Outdoor LocalMap 路径仍作 compatibility，当前大量 chunk 仍使用 wilderness fallback。
+Continuous Outdoor runtime、Surface Cell、Chunk streaming、Canonical WorldPosition 与 world-space Actual Control 已落地。MAP-01 完成 Composer/FineEditor 与发布，MAP-02 将主 Surface WorldMap 切到同源 strategic view，MAP-03 将正常 Gameplay 切到 Surface authority，MAP-04 完成旧内容／runtime 物理清理与兼容隔离。
 
-这不是“当前所有世界地图制作和战略空间都已经迁移”的声明。MAP-01/MAP-02/MAP-03 的已验收范围分别由 [242](../242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[243](../243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [244](../244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 记录；MAP-04 旧内容物理清理仍须单独授权。
+MAP-01～04 的验收范围分别见 [242](../242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[243](../243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)、[244](../244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 与 [245](../245-map-04-physical-legacy-cleanup-2026-09-17.md)。自动水文、道路生成等 Future 能力仍不因 MAP 封板而视为已实现。
 
 ## Decision
 

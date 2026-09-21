@@ -33,41 +33,6 @@ namespace XianXia.Core.World.Strategic
 
         }
 
-        public static void ClearResidualPresence(SimulationWorld world, EntityId characterId)
-        {
-            if (world == null || characterId.IsNone)
-                return;
-            if (!world.WorldPresence.TryGet(characterId, out var wp) || wp == null)
-                return;
-            if (!IsResidualLifeCandidate(world, characterId))
-                return;
-            world.WorldPresence.Remove(characterId);
-        }
-
-        public static bool TryGetResidualHex(
-            SimulationWorld world,
-            EntityId characterId,
-            out HexCoord hex)
-        {
-            hex = default;
-            if (world == null || characterId.IsNone)
-                return false;
-            if (!world.WorldPresence.TryGet(characterId, out var wp) || wp == null)
-                return false;
-            if (wp.HasContinuousWorldPosition)
-            {
-                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                hex = HexMath.WorldToHex(wp.WorldPosX, wp.WorldPosY, size);
-            }
-            else if (wp.UsesHexPresence)
-                hex = wp.ResidualHex;
-            else
-                return false;
-            if (world.HexWorld != null && world.HexWorld.HasGrid && !world.HexWorld.Contains(hex))
-                return false;
-            return true;
-        }
-
         /// <summary>LifeState 候选：Incapacitated 或 Dead+VisibleCorpse；排除 Removed / Captured。</summary>
         public static bool IsResidualLifeCandidate(SimulationWorld world, EntityId characterId)
         {
@@ -82,23 +47,6 @@ namespace XianXia.Core.World.Strategic
             if (life.IsIncapacitated)
                 return true;
             return Combat.CombatLifeStateService.HasVisibleCorpse(ent);
-        }
-
-        /// <summary>
-        /// Modern candidates use lifecycle plus precise Surface authority. Legacy sessions may
-        /// fall back to a valid migrated Hex presence.
-        /// </summary>
-        public static bool IsStrategicResidualCandidate(SimulationWorld world, EntityId characterId)
-        {
-            if (!IsResidualLifeCandidate(world, characterId))
-                return false;
-            // Squad/legacy Army identity does not authorize moving an incapacitated body.
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
-                    world, characterId, out var authority) && authority.HasPrecisePosition &&
-                !string.IsNullOrEmpty(authority.SurfaceId))
-                return true;
-            return TryGetResidualHex(world, characterId, out _);
         }
 
     }

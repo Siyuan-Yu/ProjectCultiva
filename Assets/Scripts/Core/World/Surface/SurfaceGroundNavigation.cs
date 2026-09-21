@@ -227,15 +227,5 @@ namespace XianXia.Core.World.Surface
             return false;
         }
 
-        public bool TryOverrideHexCompatibility(WorldVec2 from, WorldVec2 to, out bool walkable)
-        {
-            walkable = false;
-            if (TryResolveShared(from, to, out var navigation))
-            {
-                walkable = navigation.IsSegmentWalkable(from.X, from.Y, to.X, to.Y);
-                return true;
-            }
-            return false;
-        }
     }
 }

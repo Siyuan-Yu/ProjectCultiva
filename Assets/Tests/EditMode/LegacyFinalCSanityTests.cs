@@ -61,7 +61,7 @@ namespace XianXia.Tests
             var precise = legacy.CharacterWorldPresences.First(p =>
                 p != null && p.HasWorldPosition && !string.IsNullOrEmpty(p.PersonalSurfaceId));
             var preciseHex = HexMath.WorldToHex(precise.WorldX, precise.WorldY,
-                world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
             precise.Mode = (int)PartyWorldPresenceMode.AtHex;
             precise.HexQ = preciseHex.Q;
             precise.HexR = preciseHex.R;
@@ -70,7 +70,7 @@ namespace XianXia.Tests
                 p != null && p.CharacterId != precise.CharacterId &&
                 p.HasWorldPosition && !string.IsNullOrEmpty(p.PersonalSurfaceId));
             var residualHex = HexMath.WorldToHex(residualSource.WorldX, residualSource.WorldY,
-                world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
             legacy.CharacterWorldPresences.Remove(residualSource);
             legacy.ResidualCharacterPresences.Add(new ResidualCharacterPresenceDto
             {

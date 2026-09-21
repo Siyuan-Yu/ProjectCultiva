@@ -120,7 +120,7 @@ namespace XianXia.Unity.Host
         bool _siteSyncHeld;
         string _siteSyncCacheSiteId = string.Empty;
         string _siteSyncCacheMapId = string.Empty;
-        WorldSiteSpatialMapping.WorldSiteLocalMapBounds _siteSyncCacheBounds;
+        WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds _siteSyncCacheBounds;
         HexFootprintSpatialGeometry _siteSyncCacheGeometry;
         string _siteSyncLastFailureKind = string.Empty;
         float _siteSyncLastFailureTime = -10f;
@@ -613,7 +613,7 @@ namespace XianXia.Unity.Host
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float depth)
         {
-            if (world?.HexWorld == null || world.Strategic == null)
+            if (world?.LegacyHexWorld == null || world.Strategic == null)
                 return false;
             ExitSlotScratch.Clear();
             SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, ExitSlotScratch);
@@ -714,16 +714,6 @@ namespace XianXia.Unity.Host
         {
             _resumeSurfaceTravelRequested = true;
             ResetSurfaceAutoTravelTracking(preserveResumeRequest: true);
-        }
-
-        /// <summary>Legacy LocalMap materialization still requires dropping the old map path.</summary>
-        public void OnLegacyLocalVisibleTravelTakeover()
-        {
-            _localVisibleTakeoverActive = false;
-            ResetLocalVisibleAutoTravelTracking();
-            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            if (!active.IsNone)
-                _move?.CancelPresentationMovementPublic(active);
         }
 
         /// <summary>
@@ -948,7 +938,7 @@ namespace XianXia.Unity.Host
             if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
                 return false;
 
-            var gate = world.PlayerPartyTravel?.SurfaceEdgeGate;
+            var gate = world.PlayerPartyTravel?.LegacySurfaceEdgeGate;
             if (gate != null && !gate.CanAttemptEdgeTransition)
                 return false;
 
@@ -1048,7 +1038,7 @@ namespace XianXia.Unity.Host
             var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
             SyncExitTriggerDepthToSession(world, depth);
 
-            var gate = motion.SurfaceEdgeGate;
+            var gate = motion.LegacySurfaceEdgeGate;
             var prevX = localX;
             var prevY = localY;
             var hasPrev = gate != null && gate.HasLastLocal;
@@ -1100,7 +1090,7 @@ namespace XianXia.Unity.Host
             // Phase 5C-W2 修复 2：LocalVisible AutoTravel 时唯一 Executor 是
             // TickLocalVisibleAutoTravelMovement（TravelPlan official NextHex → resolved
             // connection → TryAttemptSurfaceEdgeTransition）。这里保留 Local→World sync /
-            // SurfaceEdgeGate.TickRearm / NoteLocalPosition，但禁止 Generic Edge Detector
+            // LegacySurfaceEdgeGate.TickRearm / NoteLocalPosition，但禁止 Generic Edge Detector
             // 自行选出口触发 Transition，以免物理 Trigger 选了另一个 Exit →
             // "Exit destination is not the active NextHex"。
             if (localVisibleAutoTravel)
@@ -1146,7 +1136,7 @@ namespace XianXia.Unity.Host
 
         void EnsureEdgeGateCompletedAfterExpand(XianXia.Core.Simulation.SimulationWorld world)
         {
-            var gate = world?.PlayerPartyTravel?.SurfaceEdgeGate;
+            var gate = world?.PlayerPartyTravel?.LegacySurfaceEdgeGate;
             if (gate == null || !gate.TransitionInProgress)
                 return;
             if (!TryResolveWildernessBounds(out var bounds))
@@ -1276,8 +1266,8 @@ namespace XianXia.Unity.Host
                 hasActiveView: true,
                 isAtWorldSite: motion.LocationKind == PlayerPartyLocationKind.AtWorldSite,
                 hasSiteId: !string.IsNullOrEmpty(motion.SiteId),
-                isDepartureTransitionCommit: motion.DeparturePhase == PlayerPartyDeparturePhase.TransitionCommit,
-                usesTravelPresentation: motion.UsesTravelPresentation,
+                isDepartureTransitionCommit: motion.LegacyDeparturePhase == LegacyPlayerPartyDeparturePhase.TransitionCommit,
+                usesTravelPresentation: motion.LegacyUsesTravelPresentation,
                 isMaterializeHeld: false,
                 hasGeometry: true);
             if (!WorldSiteLocalVisibleSyncPolicy.CanSync(ctx))
@@ -1299,7 +1289,7 @@ namespace XianXia.Unity.Host
         bool TryResolveSiteSyncGeometry(
             XianXia.Core.Simulation.SimulationWorld world,
             PlayerPartyWorldMotion motion,
-            out WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds,
+            out WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds bounds,
             out HexFootprintSpatialGeometry geometry)
         {
             bounds = default;
@@ -1330,10 +1320,10 @@ namespace XianXia.Unity.Host
             if (!TryResolveSiteSyncBounds(out var newBounds))
                 return false;
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
-            if (!WorldSiteSpatialMapping.TryBuildGeometry(site, hexSize, out var newGeometry) ||
+            if (!WorldSiteHexFootprintSpatialMapping.TryBuildGeometry(site, hexSize, out var newGeometry) ||
                 !newGeometry.HasKernel)
                 return false;
 
@@ -1347,7 +1337,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>与 <see cref="TryResolveWildernessBounds"/> 同源解析：MapLayout → WorldSiteLocalMapBounds。</summary>
-        bool TryResolveSiteSyncBounds(out WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds)
+        bool TryResolveSiteSyncBounds(out WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds bounds)
         {
             bounds = default;
             var session = bootstrap?.Session;
@@ -1362,7 +1352,7 @@ namespace XianXia.Unity.Host
                     layout.Height > 0)
                 {
                     var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
-                    bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                    bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                         layout.OriginX, layout.OriginY, cs, layout.Width, layout.Height);
                     return true;
                 }
@@ -1371,7 +1361,7 @@ namespace XianXia.Unity.Host
             var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
             if (grid == null)
                 return false;
-            bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+            bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
                 grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
             return true;
         }
@@ -1476,7 +1466,7 @@ namespace XianXia.Unity.Host
                 motion.IsMoving &&
                 motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
                 motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                motion.IsSiteDeparturePending)
+                motion.IsLegacySiteDeparturePending)
             {
                 TickWorldSiteDepartureApproach(world, motion, party);
                 return;
@@ -1507,7 +1497,7 @@ namespace XianXia.Unity.Host
 
             // Rising edge: ExecutionMode entered LocalVisible (1st / 2nd / 3rd Close behave
             // identically). Every takeover re-arms the CURRENT leg unconditionally, regardless of
-            // a previously issued Order, a different SegmentIndex, a stale paused flag or an
+            // a previously issued Order, a different LegacyHexSegmentIndex, a stale paused flag or an
             // identical last target.
             if (!_localVisibleTakeoverActive)
             {
@@ -1518,13 +1508,13 @@ namespace XianXia.Unity.Host
             // Crossed into the next hex DURING this LocalVisible session: the new Wilderness
             // LocalMap is loading. Wait for the edge presentation to finish, then re-arm the
             // CURRENT (new) leg and continue driving automatically (no one-map pause).
-            var gate = motion.SurfaceEdgeGate;
+            var gate = motion.LegacySurfaceEdgeGate;
             if (_autoTravelLegSegmentIndex >= 0 &&
-                motion.SegmentIndex != _autoTravelLegSegmentIndex)
+                motion.LegacyHexSegmentIndex != _autoTravelLegSegmentIndex)
             {
                 if (gate != null && gate.TransitionInProgress)
                     return; // new LocalMap still finalizing; retry next frame
-                _autoTravelLegSegmentIndex = motion.SegmentIndex;
+                _autoTravelLegSegmentIndex = motion.LegacyHexSegmentIndex;
                 _lastAutoTravelTarget = default; // force re-issue for the new leg
             }
 
@@ -1593,7 +1583,7 @@ namespace XianXia.Unity.Host
 
             if (arrivedAtExit)
             {
-                // SurfaceEdgeGate 未 armed：不向外推（LocalMap bounds 不允许真正离图）。
+                // LegacySurfaceEdgeGate 未 armed：不向外推（LocalMap bounds 不允许真正离图）。
                 // 先让 Active 走向地图中心（Safe Interior），TickRearm 途中重新 armed，
                 // 下一轮到达 Exit 即可触发 —— 绝不永久顶在边缘（不重写 Gate）。
                 if (gate != null && !gate.CanAttemptEdgeTransition)
@@ -2051,8 +2041,8 @@ namespace XianXia.Unity.Host
                 ReArmCurrentLocalLeg(motion, cancelPresentationMovement: true);
             }
 
-            if (motion.DeparturePhase == PlayerPartyDeparturePhase.Planned)
-                motion.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+            if (motion.LegacyDeparturePhase == LegacyPlayerPartyDeparturePhase.Planned)
+                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
 
             var active = party != null ? party.ActiveCharacterId : EntityId.None;
             if (active.IsNone || _spawner == null ||
@@ -2071,8 +2061,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
 
             // 真实 Site LocalMap playable bounds（与 HostSurfaceExitZonePresenter 同源）→
@@ -2090,8 +2080,8 @@ namespace XianXia.Unity.Host
             if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
                     world,
                     site,
-                    motion.SiteDepartureFootprintHex,
-                    motion.SiteDepartureExitHex,
+                    motion.LegacySiteDepartureFootprintHex,
+                    motion.LegacySiteDepartureExitHex,
                     hexSize,
                     wildBounds,
                     out var connection))
@@ -2114,9 +2104,9 @@ namespace XianXia.Unity.Host
                 {
                     LogWorldSiteDepartureReplan(
                         connection.DestinationHex,
-                        motion.SiteDepartureExitHex,
+                        motion.LegacySiteDepartureExitHex,
                         activePos);
-                    LastTransitionStatus = "DepartureReplanned " + connection.DestinationHex + "→" + motion.SiteDepartureExitHex;
+                    LastTransitionStatus = "DepartureReplanned " + connection.DestinationHex + "→" + motion.LegacySiteDepartureExitHex;
                     _lastAutoTravelTarget = default;
                     _move.CancelPresentationMovementPublic(active);
                     return;
@@ -2137,7 +2127,7 @@ namespace XianXia.Unity.Host
             if (arrivedAtExit)
             {
                 // 正式 egress：先置 TransitionCommit（B4 停止），随后 egress 保留原 route。
-                motion.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
+                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.TransitionCommit);
                 var exitsToContinuous = bootstrap?.Session?.Registry != null &&
                                         OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
                                             bootstrap.Session.Registry,
@@ -2165,7 +2155,7 @@ namespace XianXia.Unity.Host
 
                 // Phase 5R-B6.2：cross 失败 → 回退 Approaching（恢复 B4 sync），不残留
                 // TransitionCommit 卡死；保留当前位置可重试，不 teleport。
-                motion.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
                 LastTransitionStatus = "SiteExitRejected";
                 LastTransitionFailureReason = cross.Error.ToString();
                 _autoTravelRetryCooldownUntil = Time.time + 0.5f;
@@ -2253,8 +2243,8 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             PlayerPartyWorldMotion motion)
         {
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             LegacyPlayerPartyLocalVisibleTravelCompatibility.SyncSegmentProgressFromWorldPosition(motion, hexSize);
         }
@@ -2264,7 +2254,7 @@ namespace XianXia.Unity.Host
         /// AutoTravel / LocalVisible，驱动 Active 用既有 Local A* 真实走向该 LocalMap 中心；
         /// 到达中心附近后才走 CompleteWildernessFinalArrival —— 只结束 AutoTravel，不 Snap /
         /// 不 ClearPartyWorldPresentationCache / 不重新 Materialize，位置保持一致。
-        /// 走向中心的过程会让 SurfaceEdgeGate 自然离开边缘并 re-arm。
+        /// 走向中心的过程会让 LegacySurfaceEdgeGate 自然离开边缘并 re-arm。
         /// </summary>
         void TryDriveFinalWildernessArrival(
             XianXia.Core.Simulation.SimulationWorld world,
@@ -2275,7 +2265,7 @@ namespace XianXia.Unity.Host
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return; // WorldSite：不在此范围。
             if (!motion.HasContinuousPhysicalDestination &&
-                !motion.CurrentHex.Equals(motion.DestinationHex))
+                !motion.LegacyCurrentHex.Equals(motion.LegacyDestinationHex))
                 return; // 尚未跨入目标 Hex。
 
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
@@ -2416,14 +2406,14 @@ namespace XianXia.Unity.Host
         /// <summary>
         /// Fresh LocalVisible takeover: unconditionally re-arm the current leg.
         /// - clears the paused flag
-        /// - anchors the leg to the CURRENT SegmentIndex
+        /// - anchors the leg to the CURRENT LegacyHexSegmentIndex
         /// - clears last target / any issued Local Move so the A* re-issues for the current Exit
         /// </summary>
         void ReArmCurrentLocalLeg(
             PlayerPartyWorldMotion motion,
             bool cancelPresentationMovement)
         {
-            _autoTravelLegSegmentIndex = motion != null ? motion.SegmentIndex : -1;
+            _autoTravelLegSegmentIndex = motion != null ? motion.LegacyHexSegmentIndex : -1;
             _lastAutoTravelTarget = default;
             _autoTravelRetryCooldownUntil = 0f;
 
@@ -2524,7 +2514,7 @@ namespace XianXia.Unity.Host
                 " CanonicalDelta=" + canonicalDelta.ToString("0.###") +
                 " WaitingReason=" + (_continuousWaitingReason ?? string.Empty) +
                 " HostMove.IsMoving=" + hostMoving +
-                " derivedHex=" + motion.CurrentHex,
+                " derivedHex=" + motion.LegacyCurrentHex,
                 this);
         }
 
@@ -2534,9 +2524,9 @@ namespace XianXia.Unity.Host
         /// </summary>
         void TryRearmEdgeGateIfInSafeInterior(PlayerPartyWorldMotion motion)
         {
-            if (motion?.SurfaceEdgeGate == null)
+            if (motion?.LegacySurfaceEdgeGate == null)
                 return;
-            if (motion.SurfaceEdgeGate.CanAttemptEdgeTransition)
+            if (motion.LegacySurfaceEdgeGate.CanAttemptEdgeTransition)
                 return; // 已 armed：无需处理。
 
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
@@ -2551,7 +2541,7 @@ namespace XianXia.Unity.Host
             if (!WildernessLocalWorldProjection.IsInSafeInterior(pos.x, pos.y, bounds))
                 return; // 不在 Safe Interior：保持现有规则，不绕过。
 
-            motion.SurfaceEdgeGate.TickRearm(pos.x, pos.y, bounds);
+            motion.LegacySurfaceEdgeGate.TickRearm(pos.x, pos.y, bounds);
         }
 
         static Vector2 ReadWasdDirection()
@@ -2989,7 +2979,7 @@ namespace XianXia.Unity.Host
                  // Phase 5R-B6.2：WorldSite DepartureApproach（AtWorldSite + departure pending + LocalVisible
                  // AutoTravel）也是 LocalVisible execution —— Camera 跟随 Active Character。
                  (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                  world.PlayerPartyTravel.IsSiteDeparturePending)))
+                  world.PlayerPartyTravel.IsLegacySiteDeparturePending)))
             {
                 if (!_hasAutoTravelSession)
                 {

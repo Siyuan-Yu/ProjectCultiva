@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-**Architecture Freeze v0.2＋定向 ADR 补丁。** Continuous Outdoor、统一 Squad／CharacterEncounter 与 CW-04 实际行政控制已经进入实现后的分阶段验收；已通过范围、待验收范围和仍保留的兼容层统一见 [近期开发对照与交接](docs/40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)。设计真源仍以 Freeze、系统页和 ADR 为准，不能从“已实现”反推未授权阶段已经开工。
+**Architecture Freeze v0.2＋ADR-0038 最终冻结。** Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已完成制作人验收并封板。正常 Outdoor authority 与合法 compatibility 边界见 [ADR-0038](docs/40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)，当前工作区状态见 [247 交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)。
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
 远端：https://github.com/Siyuan-Yu/ProjectCultiva
@@ -28,7 +28,7 @@ Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 5. `docs/30-tech/33-architecture-core-rules-freeze-v0.2.md` — 架构主契约  
 6. `docs/00-project/04-reading-guide.md` — 通读顺序  
 7. `docs/40-process/42-devlog.md` — 最近决策与理由  
-8. 最新的 `docs/40-process/44-session-handoff-*.md` — 跨设备快速恢复（若有）  
+8. `docs/40-process/247-project-handoff-current-state-2026-09-18.md` — 当前实现／兼容边界与恢复入口
 9. （Demo 参考）`45`～`49` — 原型范围与美术；正式语义以 Freeze／`32` 为准  
 10. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴与不做
 

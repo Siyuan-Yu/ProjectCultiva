@@ -2,7 +2,7 @@ using System;
 
 namespace XianXia.Core.World.Hex
 {
-    /// <summary>Hex WorldMap 可见格范围（紧凑存储 q,r 迭代）。</summary>
+    /// <summary>Legacy Hex tool／test 可见格范围（紧凑存储 q,r 迭代）；不是当前 Surface WorldMap authority。</summary>
     public static class HexWorldMapRenderBounds
     {
         public static void ComputeVisibleCompactRange(

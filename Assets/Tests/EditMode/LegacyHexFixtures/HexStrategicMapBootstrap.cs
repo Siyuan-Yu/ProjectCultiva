@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
             ClearLoadError();
             if (!UseHexStrategicMap || world == null)
                 return Result.Success();
-            if (world.HexWorld.HasGrid)
+            if (world.LegacyHexWorld.HasGrid)
                 return Result.Success();
 
             Ch01HexPrototypeMapBuilder.Build(world);

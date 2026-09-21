@@ -20,7 +20,7 @@ namespace XianXia.Core.World.Strategic
             out HexCoord exitHex)
         {
             exitHex = default;
-            if (world?.HexWorld == null || site == null)
+            if (world?.LegacyHexWorld == null || site == null)
                 return false;
 
             CollectTraversableOutsideNeighbors(world, site, OutsideScratch);
@@ -32,7 +32,7 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < OutsideScratch.Count; i++)
             {
                 var outside = OutsideScratch[i];
-                if (!HexPathfinder.TryFindPath(world.HexWorld, outside, destinationHex, PathScratch) ||
+                if (!HexPathfinder.TryFindPath(world.LegacyHexWorld, outside, destinationHex, PathScratch) ||
                     PathScratch.Count < 1)
                     continue;
 
@@ -66,7 +66,7 @@ namespace XianXia.Core.World.Strategic
             {
                 var outside = OutsideScratch[i];
                 if (!Contains(allowedOutsideHexes, outside) ||
-                    !HexPathfinder.TryFindPath(world.HexWorld, outside, destinationHex, PathScratch) ||
+                    !HexPathfinder.TryFindPath(world.LegacyHexWorld, outside, destinationHex, PathScratch) ||
                     PathScratch.Count < 1)
                     continue;
                 var dist = PathScratch.Count;
@@ -93,18 +93,18 @@ namespace XianXia.Core.World.Strategic
             List<HexCoord> into)
         {
             into.Clear();
-            if (world?.HexWorld == null || site == null)
+            if (world?.LegacyHexWorld == null || site == null)
                 return;
 
             var seen = new HashSet<HexCoord>();
-            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            foreach (var footprintHex in site.EnumerateLegacyFootprintHexes())
             {
                 for (var dir = 0; dir < 6; dir++)
                 {
                     var neighbor = HexMath.Neighbor(footprintHex, dir);
-                    if (site.OccupiesHex(neighbor))
+                    if (site.OccupiesLegacyHex(neighbor))
                         continue;
-                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null || !tile.IsPassable)
+                    if (!world.LegacyHexWorld.TryGetTile(neighbor, out var tile) || tile == null || !tile.IsPassable)
                         continue;
                     if (seen.Add(neighbor))
                         into.Add(neighbor);
@@ -131,7 +131,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             var found = false;
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
                 for (var dir = 0; dir < 6; dir++)
                 {

@@ -68,25 +68,16 @@ namespace XianXia.Unity.Host
         public bool ManualPaused { get; set; } = true;
 
         readonly HashSet<string> _modalPauseOwners = new HashSet<string>(StringComparer.Ordinal);
-        int _legacyModalPauseDepth;
 
         /// <summary>
         /// Modal／Popup 强制暂停层：与 ManualPaused 独立分层。Modal 打开期间 EffectivePaused 恒 true，
-        /// Space／Pause-UI 不能解除；Modal 关闭（PopModalPause）后恢复到底层 ManualPaused 状态。
+        /// Space／Pause-UI 不能解除；具名 owner 释放后恢复到底层 ManualPaused 状态。
         /// </summary>
-        public bool ModalHardPaused => _legacyModalPauseDepth > 0 || _modalPauseOwners.Count > 0;
-        public string ModalPauseDiagnostics => string.Join(",", _modalPauseOwners) + ";legacyDepth=" + _legacyModalPauseDepth;
+        public bool ModalHardPaused => _modalPauseOwners.Count > 0;
+        public string ModalPauseDiagnostics => string.Join(",", _modalPauseOwners);
 
         public bool HasModalPauseOwner(string owner) =>
             !string.IsNullOrWhiteSpace(owner) && _modalPauseOwners.Contains(owner);
-
-        public void PushModalPause() => _legacyModalPauseDepth++;
-
-        public void PopModalPause()
-        {
-            if (_legacyModalPauseDepth > 0)
-                _legacyModalPauseDepth--;
-        }
 
         public void AcquireModalPause(string owner)
         {
@@ -211,7 +202,6 @@ namespace XianXia.Unity.Host
             InitialBootstrapSiteId = string.Empty;
             InitialBootstrapPending = false;
             ManualPaused = true;
-            _legacyModalPauseDepth = 0;
             _modalPauseOwners.Clear();
         }
 
@@ -331,7 +321,7 @@ namespace XianXia.Unity.Host
             Add(recruitableNpc);
 
             // 候选列表可含全世界 NPC；真正刷图由 LocalMapVisibility.IsEntityVisible 按当前 LocalMap 过滤。
-            // 禁止在此「无条件全部显示」——否则其它地点／战略 Army 会落到同一张图。
+            // 禁止在此「无条件全部显示」——否则其它地点／小队中的角色会错误落到同一张图。
             if (world != null)
             {
                 foreach (var entity in world.Entities.All)

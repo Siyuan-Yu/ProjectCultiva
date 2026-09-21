@@ -12,19 +12,19 @@ namespace XianXia.Tests
         public void SITE01_WorldSitePlacedOnHex()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(6, 6);
+            world.LegacyHexWorld.FillRectangle(6, 6);
             var site = new WorldSite
             {
                 SiteId = "base:site_test",
                 DisplayName = "Test Village",
-                AnchorHex = new HexCoord(2, 3),
+                LegacyAnchorHex = new HexCoord(2, 3),
             };
-            site.SetFootprint(new[] { new HexCoord(2, 3) });
+            site.SetLegacyHexFootprint(new[] { new HexCoord(2, 3) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_test", out var loaded));
-            Assert.AreEqual(new HexCoord(2, 3), loaded.AnchorHex);
-            Assert.IsTrue(world.HexWorld.TryGetTile(new HexCoord(2, 3), out var tile));
+            Assert.AreEqual(new HexCoord(2, 3), loaded.LegacyAnchorHex);
+            Assert.IsTrue(world.LegacyHexWorld.TryGetTile(new HexCoord(2, 3), out var tile));
             Assert.AreEqual("base:site_test", tile.WorldSiteId);
         }
 
@@ -32,15 +32,15 @@ namespace XianXia.Tests
         public void SITE02_SiteRegistrationPreservesLocalMapId()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(4, 4);
+            world.LegacyHexWorld.FillRectangle(4, 4);
             var site = new WorldSite
             {
                 SiteId = "base:site_huangcun",
                 DisplayName = "Huangcun",
-                AnchorHex = new HexCoord(1, 1),
+                LegacyAnchorHex = new HexCoord(1, 1),
                 LocalMapId = "base:map_huangcun",
             };
-            site.SetFootprint(new[] { new HexCoord(1, 1) });
+            site.SetLegacyHexFootprint(new[] { new HexCoord(1, 1) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
             Assert.AreEqual(string.Empty, site.OwnerFactionId);
@@ -51,15 +51,15 @@ namespace XianXia.Tests
         public void SITE03_SiteLocalMapMappingPreserved()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(4, 4);
+            world.LegacyHexWorld.FillRectangle(4, 4);
             var site = new WorldSite
             {
                 SiteId = "base:site_qingyun_lu",
                 DisplayName = "Qingyun Lu",
-                AnchorHex = new HexCoord(3, 2),
+                LegacyAnchorHex = new HexCoord(3, 2),
                 LocalMapId = "base:map_qingyun_lu",
             };
-            site.SetFootprint(new[] { new HexCoord(3, 2) });
+            site.SetLegacyHexFootprint(new[] { new HexCoord(3, 2) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
             Assert.IsTrue(world.Strategic.Sites.TryGet(site.SiteId, out var loaded));
@@ -70,16 +70,16 @@ namespace XianXia.Tests
         public void SITE04_MultiHexFootprintRegistersAllCells()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(8, 8);
+            world.LegacyHexWorld.FillRectangle(8, 8);
             var anchor = new HexCoord(3, 3);
             var site = new WorldSite
             {
                 SiteId = "base:site_city",
                 DisplayName = "Test City",
                 SiteType = "City",
-                AnchorHex = anchor,
+                LegacyAnchorHex = anchor,
             };
-            site.SetFootprint(new[]
+            site.SetLegacyHexFootprint(new[]
             {
                 anchor,
                 HexMath.Neighbor(anchor, 0),
@@ -87,9 +87,9 @@ namespace XianXia.Tests
             });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
-            Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(anchor, out var atAnchor));
+            Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(anchor, out var atAnchor));
             Assert.AreEqual("base:site_city", atAnchor.SiteId);
-            Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(HexMath.Neighbor(anchor, 0), out _));
+            Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(HexMath.Neighbor(anchor, 0), out _));
         }
     }
 }

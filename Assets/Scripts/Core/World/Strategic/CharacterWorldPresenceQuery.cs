@@ -33,7 +33,7 @@ namespace XianXia.Core.World.Strategic
                 ownedPresence != null && ownedPresence.Mode == PartyWorldPresenceMode.InEncounter)
             {
                 if (!string.IsNullOrEmpty(ownedPresence.SiteId))
-                    return world.Strategic.Sites.TryResolveSitePresenceHex(
+                    return world.Strategic.Sites.TryResolveLegacySitePresenceHex(
                         ownedPresence.SiteId, out worldHex);
                 return false;
             }
@@ -47,10 +47,10 @@ namespace XianXia.Core.World.Strategic
             {
                 if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                     !string.IsNullOrEmpty(motion.SiteId) &&
-                    world.Strategic.Sites.TryResolveSitePresenceHex(motion.SiteId, out worldHex))
+                    world.Strategic.Sites.TryResolveLegacySitePresenceHex(motion.SiteId, out worldHex))
                     return true;
 
-                worldHex = motion.CurrentHex;
+                worldHex = motion.LegacyCurrentHex;
                 return true;
             }
 
@@ -60,7 +60,7 @@ namespace XianXia.Core.World.Strategic
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
                 worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
                 return true;
             }
 
@@ -78,13 +78,13 @@ namespace XianXia.Core.World.Strategic
                 Finite(presence.WorldPosX) && Finite(presence.WorldPosY))
             {
                 worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
                 return true;
             }
 
             if (presence.Mode == PartyWorldPresenceMode.AtSite &&
                 !string.IsNullOrEmpty(presence.SiteId))
-                return world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out worldHex);
+                return world.Strategic.Sites.TryResolveLegacySitePresenceHex(presence.SiteId, out worldHex);
 
             return false;
         }
@@ -94,7 +94,7 @@ namespace XianXia.Core.World.Strategic
         {
             worldHex = default;
             if (world?.PlayerPartyTravel?.HasPosition == true)
-            { worldHex = world.PlayerPartyTravel.CurrentHex; return true; }
+            { worldHex = world.PlayerPartyTravel.LegacyCurrentHex; return true; }
             return party != null && party.HasActive && TryGetWorldHex(world, party.ActiveCharacterId, out worldHex);
         }
 
@@ -119,7 +119,7 @@ namespace XianXia.Core.World.Strategic
                 state = PresenceState.InEncounter;
                 siteId = ownedPresence.SiteId ?? string.Empty;
                 if (!string.IsNullOrEmpty(siteId))
-                    world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex);
+                    world.Strategic.Sites.TryResolveLegacySitePresenceHex(siteId, out worldHex);
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
                 return true;
             }
@@ -134,7 +134,7 @@ namespace XianXia.Core.World.Strategic
             {
                 state = PresenceState.SquadMember;
                 worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
                 siteId = squadMotion.SiteId;
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
                 return true;
@@ -147,7 +147,7 @@ namespace XianXia.Core.World.Strategic
             {
                 state = PresenceState.AtWildernessHex;
                 worldHex = presence.ResidualHex;
-                if (world.Strategic.Sites.TryGetAtHex(worldHex, out var atHexSite) && atHexSite != null)
+                if (world.Strategic.Sites.TryGetAtLegacyHex(worldHex, out var atHexSite) && atHexSite != null)
                     siteId = atHexSite.SiteId;
                 return true;
             }
@@ -157,7 +157,7 @@ namespace XianXia.Core.World.Strategic
             {
                 state = PresenceState.AtWorldSite;
                 siteId = presence.SiteId;
-                if (!world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex))
+                if (!world.Strategic.Sites.TryResolveLegacySitePresenceHex(siteId, out worldHex))
                     return false;
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
                 return true;
@@ -169,7 +169,7 @@ namespace XianXia.Core.World.Strategic
             {
                 state = PresenceState.AtWorldPosition;
                 worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
                 return true;
             }
 

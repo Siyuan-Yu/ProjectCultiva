@@ -67,7 +67,7 @@ namespace XianXia.Core.Persistence
                     CharacterId = record.EntityId, SquadId = squad.SquadId, Enemy = isEnemy,
                     SourceMode = sourceMode, SourceSiteId = record.PreBattleSiteId ?? string.Empty,
                     SourceSpatialOwnerKind = EncounterSpatialOwnerKind.Squad,
-                    SourceSquadId = squad.SquadId, SourceFormalArmyId = string.Empty,
+                    SourceSquadId = squad.SquadId, LegacySourceFormalArmyId = string.Empty,
                     OriginX = point.X, OriginY = point.Y,
                     ReturnX = point.X, ReturnY = point.Y,
                     TacticalX = point.X, TacticalY = point.Y

@@ -14,7 +14,7 @@ Content/BaseGame/
       characters.json
       ch01_reference_characters.json
       strategic_bandits.json
-    Armies/                    # type = formalArmy（战略军团 · Phase 5S）
+    Armies/                    # 当前文件为 type = npcSquad；目录名仅为历史内容分组
       ch01_test_armies.json
     Factions/                  # type = strategicFaction（战略势力身份/名/地图色；全局唯一真源）
       factions.json
@@ -99,6 +99,8 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorldContentLoader.Apply` 加载。加载顺序：cells → sites → territoryRegions（territory 最后写 cell.ControlFactionId）。
 
+> **Legacy compatibility schema：** 本节外部 key 保持稳定，不随内部 C# 重命名。`anchorQ/R`、`presenceQ/R`、`footprint[]` 分别读入 `WorldSite.LegacyAnchorHex`、`LegacyPresenceHex`、`LegacyOccupiedHexes`；加载后 `EnsureLegacyPresenceHexValid` 强制 `LegacyPresenceHex == LegacyAnchorHex`。`presenceQ/R` 是旧兼容代表格，不是即时 Surface `DerivedPresenceHex`。
+
 | Field | Notes |
 |---|---|
 | `width`／`height`／`hexSize` | 网格尺寸与六边形外半径（存储坐标 = Odd-R offset，pointy-top；禁止把存储坐标当 axial） |
@@ -115,8 +117,8 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `siteId` | 唯一；`base:site_*` |
 | `displayName`／`siteType` | 可读名／类型（Town/Sect/Mine/...） |
 | `anchorQ`／`anchorR` | Site 图标/镜头锚点；不是“是否位于 Site”的判断 |
-| `presenceQ`／`presenceR` | 缺省=anchor（ADR-0027 后 PresenceHex 为 Derived，兼容字段） |
-| `footprint[]` | 明确 HexCoord 列表（禁止运行时自动猜形状）；不同 Site footprint 绝不重叠 |
+| `presenceQ`／`presenceR` | 外部 key 保留；缺省=anchor。若旧输入与 anchor 不同，Development 可诊断，但 Runtime 规范化为 `LegacyPresenceHex == LegacyAnchorHex`；不得解释为即时 Surface 派生 |
+| `footprint[]` | 旧 Hex footprint 输入，读入 `LegacyOccupiedHexes`（禁止运行时自动猜形状）；其非空、六邻接连通、star-shaped non-empty kernel 规则只约束 Hex footprint mapping／bake，不是 Continuous Surface 或 Actual Administrative Control 的通用约束 |
 | `localMapId` | 该 Site 唯一 LocalMap |
 | `ownerFactionId` | 政治 Owner（可空=无主） |
 | `territoryRegionId` | 绑定 TerritoryRegion（必须与对应 region 的 `primaryWorldSiteId` 一致；owner == region.controller 硬不变式） |
@@ -243,7 +245,8 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 | `openingChapterId` | Chapter Production：开局激活章节 |
 | `spawns[]` | 见下 |
 | `openingRelations[]` | from／to／delta／reasonTag／mutual |
-| `initialFormalArmyIds[]` | Phase 5S：开局实例化的 `formalArmy` definition id 列表（顺序即创建顺序）。缺省为空（不生成任何军团） |
+| `initialNpcSquadIds[]` | 正常 BaseGame NPC group authoring；启动时由 `NpcSquadContentBootstrap` 建立 `Squad + SquadWorldMotion` |
+| `initialFormalArmyIds[]` | **支持的 Legacy Content compatibility input**。外部 key 保持不变；Loader 写入内部 `InitialLegacyFormalArmyIds`，随后单向迁移成 NPC Squad。正常 BaseGame authoring 应使用 `initialNpcSquadIds`，不得把该字段当作 runtime Army 入口 |
 
 `strategicOpening` 只定义新游戏 Tick 0 的战略状态：`playerFactionId`、`vassalages[]`（附庸／宗主）、`alliances[]`（两势力联盟）与 `initialWars[]`（宣战者／目标）。它与 `openingRelations[]` 的人物 RelationshipLedger 完全不同；读档以保存的 Runtime Strategic Snapshot 为准，绝不重新应用此初始状态。
 
@@ -258,14 +261,16 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 
 未声明的势力对为 Neutral／Other。本轮不支持 author `Friendly`／`Hostile` stance；`openingRelations` 是人物关系，不是势力外交。
 
-## type = formalArmy（Phase 5S · Content 驱动的战略军团）
+## type = formalArmy（Legacy Content compatibility input）
+
+`Content/BaseGame/Data/Armies/` 目录与其中 JSON **实际仍存在**，Loader／validator 继续支持 `type=formalArmy`；这不表示 normal BaseGame authoring 或 runtime 仍有 Army 产品层。当前 C# 定义类型为 `LegacyFormalArmyDefinition`。
 
 | Field | Notes |
 |---|---|
-| `runtimeArmyId` | 稳定 FormalArmy runtime id（`army:...`）；迁移前与代码 fixture 完全一致，Save/Load 依赖 |
-| `runtimeStackId` | ArmyStack 兼容视图 id（`army:...`）；同样须与迁移前一致 |
-| `factionId` | 军团势力（如 `base:faction_bandits`） |
-| `assemblySiteId` | 成员 spawn 后先放置的 Site；再由 scenario placement policy 移至实际 Hex |
+| `runtimeArmyId` | 旧 Content 协议稳定 id；仅作为转换来源。Content adapter 保持既有规则：非空时生成 `squad:migrated:{runtimeArmyId}`，缺失时生成 `squad:legacy:{definitionId}`。旧 Snapshot 的 `squad:army:` 是另一条独立迁移规则，不得混用 |
+| `runtimeStackId` | 旧 ArmyStack 协议字段；兼容读取，不创建 runtime ArmyStack |
+| `factionId` | 迁移后 NPC Squad 的势力（如 `base:faction_bandits`） |
+| `assemblySiteId` | 旧 authored assembly context；由迁移 adapter 转为现代 Site／Surface 部署 |
 | `members[]` | 见下；至少 1 名且**恰好 1 名 leader** |
 
 ### formalArmy member
@@ -276,7 +281,9 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 | `displayName` | 同名 CharacterDefinition 可被多个成员复用，靠本字段区分（如 BanditA／BanditB） |
 | `leader` | bool；整支军团恰好 1 名 leader，且必须是 macro-order living |
 
-正式启动链：`openingScenario.initialFormalArmyIds` → `FormalArmyContentBootstrap` → 每个成员经 `BuildSpawnFromDefinition`＋`SpawnIntoWorld`（NPC）→ `ArmyService.CreateAuthoredArmy` → `ArmyStackAdapter.EnsureLinkedStackView`。运行时的 Travel／Battle／Residual 不区分来源。
+兼容启动链：外部 `openingScenario.initialFormalArmyIds` → 内部 `OpeningScenarioDefinition.InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`。结果为真实 Character + `Squad` + `SquadWorldMotion`；**不会**创建 FormalArmy、ArmyStack 或 Army 产品 UI。正常新内容使用 `npcSquad`／`initialNpcSquadIds`。
+
+稳定兼容协议：`SquadCommandKind.LegacyFormalArmyWorldMotion = 2`、Encounter spatial owner `LegacyFormalArmy = 2`；`EncounterCharacter.LegacySourceFormalArmyId` 对应 JSON `sourceFormalArmyId`。这些数值／wire 名不得随 C# 内部改名。
 
 ### spawn entry
 
@@ -296,11 +303,11 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 |---|---|
 | `name` | 展示名（如 `朔风堡`）；`StrategicFactionCatalog.DisplayName` 的正常数据来源 |
 | `mapColor` | `#RRGGBB`；WorldMap Territory tint / marker 色的正常数据来源（0..255）。加载期严格校验格式；非法 = Content error |
-| `territorySelectable` | bool（缺省 true）。是否可作为 authored Territory 的 Controller（山匪 = false）。仍是合法 faction：Army / Character 可属于它 |
+| `territorySelectable` | bool（缺省 true）。是否可作为 authored Territory 的 Controller（山匪 = false）。仍是合法 faction：Squad／Character 可属于它；旧 formalArmy 输入会先迁为 Squad |
 | `sortOrder` | int；目录/下拉排序。`StrategicFactionCatalog.InstalledFactions` 按它升序 |
 
 只保存「这个势力是谁」：禁止保存成员／领土／WorldSite（各自 authority：Spawn/Army JSON、HexWorld JSON、TerritoryRegion）。
-所有其它 Content 的 `factionId` 引用（formalArmy / spawn / roster / site.ownerFactionId / territoryRegion.controlFactionId / standaloneTerritory）必须存在于本文件（cross-ref validation，未知引用 = Content error）。`territorySelectable` 只限制领土控制者，不限制 Character Membership 或 FormalArmy。
+所有其它 Content 的 `factionId` 引用（含 legacy formalArmy、spawn、roster、site.ownerFactionId、旧 territoryRegion.controlFactionId）必须存在于本文件（cross-ref validation，未知引用 = Content error）。`territorySelectable` 只限制领土控制者，不限制 Character Membership 或迁移后的 Squad。
 Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionContentInstaller.Install` → `StrategicFactionCatalog.Install`（Core presentation；未装 Content 时 Catalog 回退 hardcoded 表）。
 
 ## type = resource（VS0.8）

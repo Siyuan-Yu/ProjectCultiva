@@ -17,7 +17,7 @@ namespace XianXia.Core.World
         /// <summary>Continuous Outdoor：同一个 active Continuous Surface presentation scope。</summary>
         ContinuousOutdoorPresentation = 1,
 
-        /// <summary>Legacy LocalMap／Interior／Cave：仍要求同一 LocalMap occupant。</summary>
+        /// <summary>独立空间 Interior／Cave 的正式规则，以及已退役 Outdoor LocalMap 的兼容规则：要求同一 LocalMap occupant。</summary>
         LegacyLocalMap = 2
     }
 
@@ -60,7 +60,7 @@ namespace XianXia.Core.World
     /// </para>
     ///
     /// <para>
-    /// Legacy／Interior／Cave 保持原规则：必须同一 LocalMap occupant（真正独立空间不得隔墙跟随）。
+    /// Interior／Cave 独立空间使用正式同图规则；已退役 Outdoor LocalMap 兼容输入沿用同一判定。
     /// </para>
     /// </summary>
     public static class PlayerPartyLocalCoPresenceQuery
@@ -120,7 +120,7 @@ namespace XianXia.Core.World
 
         /// <summary>
         /// 统一 co-presence 判定。Continuous Outdoor 只要求同一 presentation scope；
-        /// Legacy／Interior 继续要求同一 LocalMap occupant。
+        /// Interior／Cave 独立空间及退役 Outdoor LocalMap 兼容输入要求同一 LocalMap occupant。
         /// </summary>
         public static PlayerPartyCoPresenceResult Evaluate(
             SimulationWorld world,

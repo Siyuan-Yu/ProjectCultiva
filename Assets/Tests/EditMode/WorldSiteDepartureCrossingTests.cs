@@ -32,8 +32,8 @@ namespace XianXia.Tests
         // huangcun_01.json 真实 layout：origin(-40,-25) cellSize=1 80×50，exitTriggerDepth=1.25。
         static readonly WildernessLocalWorldProjection.WildernessLocalMapBounds RealBounds =
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
-        static readonly WorldSiteSpatialMapping.WorldSiteLocalMapBounds RealSiteBounds =
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
+        static readonly WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds RealSiteBounds =
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 80, 50);
         const float RealDepth = 1.25f;
 
         static WorldSite LoadHuangcun()
@@ -51,8 +51,8 @@ namespace XianXia.Tests
                 var hexes = new List<HexCoord>();
                 for (var f = 0; f < fp.Length; f++)
                     hexes.Add(new HexCoord(fp[f].GetInt("q"), fp[f].GetInt("r")));
-                site.AnchorHex = hexes[0];
-                site.SetFootprint(hexes);
+                site.LegacyAnchorHex = hexes[0];
+                site.SetLegacyHexFootprint(hexes);
                 return site;
             }
             Assert.Fail("huangcun site not found");
@@ -63,8 +63,8 @@ namespace XianXia.Tests
         {
             var site = LoadHuangcun();
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:ch01";
-            world.HexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:ch01";
+            world.LegacyHexWorld.FillRectangle(200, 140, HexTerrainType.Plain);
             world.Strategic.Sites.Register(site);
             return (world, site);
         }
@@ -187,11 +187,11 @@ namespace XianXia.Tests
             Assert.IsTrue(party.TryInitialize(new EntityId(1001ul), out _), "party init");
 
             var m = world.PlayerPartyTravel;
-            m.SetAtWorldSite(site.SiteId, new HexCoord(80, 51), HexSize);
+            m.SetAtLegacyWorldSite(site.SiteId, new HexCoord(80, 51), HexSize);
             m.CaptureTravelingMembers(party.Members);
             var canonical = new WorldVec2(138.2f, 76.5f);
-            Assert.IsTrue(m.TryUpdateWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
-            m.BeginSiteDepartureTravel(
+            Assert.IsTrue(m.TryUpdateLegacyWorldPositionWithinSite(site.SiteId, canonical), "canonical set");
+            m.BeginLegacySiteDepartureTravel(
                 new List<HexCoord> { new HexCoord(80, 51), new HexCoord(81, 50), new HexCoord(82, 50) },
                 new HexCoord(82, 50),
                 string.Empty,
@@ -210,7 +210,7 @@ namespace XianXia.Tests
             if (!ok)
                 return; // 该方向在真实 bounds 下可能无 connection——跳过，防御断言已由 01 覆盖
 
-            world.HexWorld.SetTile(new XianXia.Core.World.Hex.HexCell
+            world.LegacyHexWorld.SetTile(new XianXia.Core.World.Hex.HexCell
             {
                 Coord = new HexCoord(81, 50),
                 Terrain = HexTerrainType.Water,

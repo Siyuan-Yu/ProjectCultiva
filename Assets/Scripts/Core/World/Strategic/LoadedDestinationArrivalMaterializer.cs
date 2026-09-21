@@ -416,7 +416,7 @@ namespace XianXia.Core.World.Strategic
                 !presence.HasContinuousWorldPosition)
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var ingressFrom = HexMath.WorldToHex(
                 presence.WorldPosX,
                 presence.WorldPosY,
@@ -572,7 +572,7 @@ namespace XianXia.Core.World.Strategic
             entryLocalX = bounds.CenterX;
             entryLocalY = bounds.CenterY;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
             var spanFraction = SurfaceExitZoneCalculator.DefaultSlotSpanFraction;
 
@@ -656,7 +656,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.LocalMap.ContainsOccupant(characterId))
                 return;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
             var spanFraction = SurfaceExitZoneCalculator.DefaultSlotSpanFraction;
 
@@ -800,7 +800,7 @@ namespace XianXia.Core.World.Strategic
                 presence.HasContinuousWorldPosition)
                 return presence.ContinuousWorldPosition;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             if (world.WorldPresence.TryGet(characterId, out presence) &&
                 presence != null &&
                 presence.UsesHexPresence)
@@ -821,7 +821,7 @@ namespace XianXia.Core.World.Strategic
             if (world.LocalMap.ContainsOccupant(characterId))
                 return false;
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             if (!WildernessLocalWorldProjection.TryProjectWorldToLocal(
                     worldPos,
                     bounds,
@@ -913,7 +913,7 @@ namespace XianXia.Core.World.Strategic
                     bounds,
                     connection.SourceHex,
                     connection.DestinationHex,
-                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f,
+                    world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f,
                     depth,
                     out entryLocalX,
                     out entryLocalY);

@@ -11,13 +11,13 @@ namespace XianXia.Core.World.Strategic
             if (world == null || site == null)
                 return;
 
-            if (site.OccupiedHexes.Count == 0 && !site.AnchorHex.Equals(default))
-                site.SetFootprint(new[] { site.AnchorHex });
+            if (site.LegacyOccupiedHexes.Count == 0 && !site.LegacyAnchorHex.Equals(default))
+                site.SetLegacyHexFootprint(new[] { site.LegacyAnchorHex });
 
             world.Strategic.Sites.Register(site);
-            foreach (var hex in site.EnumerateFootprintHexes())
+            foreach (var hex in site.EnumerateLegacyFootprintHexes())
             {
-                var tile = world.HexWorld.GetOrCreate(hex);
+                var tile = world.LegacyHexWorld.GetOrCreate(hex);
                 tile.WorldSiteId = site.SiteId;
             }
         }

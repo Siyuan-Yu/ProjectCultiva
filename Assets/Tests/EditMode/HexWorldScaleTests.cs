@@ -13,11 +13,11 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.BuildMinimalTwoSitePrototype(world);
 
-            Assert.AreEqual(HexWorldScale.PlayableV1Width, world.HexWorld.Width);
-            Assert.AreEqual(HexWorldScale.PlayableV1Height, world.HexWorld.Height);
-            Assert.AreEqual(5000, world.HexWorld.CellCount);
-            Assert.IsTrue(world.HexWorld.UsesCompactStorage);
-            Assert.AreEqual(HexWorldScale.DefaultHexOuterRadius, world.HexWorld.HexSize, 0.001f);
+            Assert.AreEqual(HexWorldScale.PlayableV1Width, world.LegacyHexWorld.Width);
+            Assert.AreEqual(HexWorldScale.PlayableV1Height, world.LegacyHexWorld.Height);
+            Assert.AreEqual(5000, world.LegacyHexWorld.CellCount);
+            Assert.IsTrue(world.LegacyHexWorld.UsesCompactStorage);
+            Assert.AreEqual(HexWorldScale.DefaultHexOuterRadius, world.LegacyHexWorld.HexSize, 0.001f);
         }
 
         [Test]
@@ -26,9 +26,9 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             HexWorldStressMapBuilder.Build(world);
 
-            Assert.AreEqual(HexWorldScale.StressTestWidth, world.HexWorld.Width);
-            Assert.AreEqual(HexWorldScale.StressTestHeight, world.HexWorld.Height);
-            Assert.AreEqual(20_000, world.HexWorld.CellCount);
+            Assert.AreEqual(HexWorldScale.StressTestWidth, world.LegacyHexWorld.Width);
+            Assert.AreEqual(HexWorldScale.StressTestHeight, world.LegacyHexWorld.Height);
+            Assert.AreEqual(20_000, world.LegacyHexWorld.CellCount);
         }
 
         [Test]

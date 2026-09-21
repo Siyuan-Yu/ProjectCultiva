@@ -1,10 +1,12 @@
 # 技术架构
 
-> **2026-09-13 定向契约补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 为统一行动小队／PlayerParty 控制投影、固定范围独立遭遇和实际名单追加的现行目标；不建立第二套可写 membership 或 Character 副本。旧 FormalArmy 分层和原地手动战保持过渡兼容，尚未迁移；其他 Freeze 契约保持。
+> **2026-09-21 Final Seal：** [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结统一 Squad／PlayerParty、CharacterEncounter、Continuous Surface 与 Actual Administrative Control 的 runtime authority。旧 FormalArmy／ArmyStack／TerritoryRegion／StrategicEncounter runtime 已退休，只允许明确旧输入迁移；不得重建第二份 membership、位置或战斗 authority。
+
+> **2026-09-22 命名闭包：** 当前内部 compatibility API 必须使用真实代码现名：`LegacyFormalArmyDefinition`、`LegacyArmyContentToSquadMigration`、`InitialLegacyFormalArmyIds`、`SimulationWorld.LegacyHexWorld`、`LegacyHexMetadataProjection` 与 `PlayerPartyWorldMotion.Legacy*`。外部 JSON／Snapshot wire key（`formalArmy`、`initialFormalArmyIds`、`sourceFormalArmyId`、`currentHexQ/R`）保持稳定，不随 C# 改名。`HexCoord`／`HexMath`／Odd-R Q/R 和 `HexWorld` 是合法几何／工具类型；正常 authority 仍是 Surface exact position、SquadWorldMotion 与 CharacterEncounter。
 
 > 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)
 > 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)
-> **Architecture Freeze v0.2。本阶段不写实现代码。**
+> **Architecture Freeze v0.2＋ADR-0038。** 新功能仍需授权；当前 Final Seal 只允许 compatibility／dead-code／文档收尾。
 > **2026-09-12 补丁：** Freeze 的定向修订由 ADR-0032～0034 管理。Continuous Surface 保存世界空间身份与连续位置；临时 Encounter 使用独立战术坐标，并在一次结算中恢复各自战前世界锚点、保留当前领域结果。SiteCore 行政覆盖、Encounter 实例和 WorldMap UI 都不得成为第二份位置真源。
 
 ## 0. 文档分工
@@ -54,7 +56,7 @@ XianXia.Tests/       针对 Core 的单元测试
 
 ### 1.6 实体分层（细节见 `33` §3）
 
-四层：可控修士全模拟／关键 NPC 全模拟／普通修士群体抽象／凡人统计。
+四层：可控修士全模拟／关键 NPC 全模拟／其他修士为持久真实 Character + LOD／凡人可统计聚合。
 
 ## 2. 待定项（工程选项，非玩法形状）
 
@@ -83,3 +85,11 @@ XianXia.Tests/       针对 Core 的单元测试
 ## 5. 实现期入口顺序（确认规则后再做）
 
 见 `32` 第 5 节：asmdef → Tick → Modifier → Action → 实体分层 → 第一次突破。
+
+## 6. Legacy adapter 工程边界
+
+- 旧 Content 启动链为外部 `initialFormalArmyIds` → 内部 `InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`；不得创建 FormalArmy／ArmyStack。
+- `LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId` 必须保留稳定 `squad:army:` identity；`LegacyFormalArmyWorldMotion = 2`、Encounter spatial `LegacyFormalArmy = 2` 属于稳定数值协议。
+- `EncounterCharacter.LegacySourceFormalArmyId` 只映射 wire `sourceFormalArmyId`；现代 producer 写 Squad identity。
+- `ContinuousWorldMovementScale.Resolve` 对 `LegacyHexWorld.HexSize` 是只读尺度适配，不代表依赖已消除；不得据此把 Legacy Hex grid 提升为路由或位置 authority。
+- `LegacyPartyFocusCompatibility.SyncPartyFocus` 只服务旧 EditMode fixture；`ModuleId.Army` 与 `armyOpen` 已删除，不得恢复 Host Army 产品入口。

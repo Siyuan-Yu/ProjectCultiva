@@ -866,7 +866,7 @@ namespace XianXia.Unity.Host
         /// <summary>
         /// Host pre-damage coordinator（右键攻击 / 主动技能共用，单一路由，禁止复制两套判断）。
         /// 返回 true = 本次输入已被人物遭遇确认或拒绝消费；
-        /// 返回 false = caller 应直接执行本地伤害动作（仅 active WORLD_COMBAT participant 直接攻击路径）。
+        /// 返回 false = caller 应直接执行本地伤害动作（仅当前 CharacterEncounter participant 或 Separate Space 原地战）。
         /// </summary>
         public bool TryHandlePlayerHostileAction(
             EntityId actor,
@@ -918,13 +918,13 @@ namespace XianXia.Unity.Host
                             return true;
                         }
 
-                        if (IsActiveStrategicCombatTarget(session.World, target))
+                        if (IsActiveEncounterCombatTarget(session.World, target))
                             return false;
                         return false;
                     }
 
-                    // 已处于 active WORLD_COMBAT 的 hostile participant → 直接 tactical combat。
-                    if (IsActiveStrategicCombatTarget(session.World, target))
+                    // 已处于 active CharacterEncounter 的 hostile participant → 直接 tactical combat。
+                    if (IsActiveEncounterCombatTarget(session.World, target))
                         return false;
                     // Continuous Outdoor 普通 Character → CharacterEncounter。
                     ReleaseInteractionNpcNow(target);
@@ -1010,12 +1010,12 @@ namespace XianXia.Unity.Host
             }
         }
 
-        static bool IsActiveStrategicCombatTarget(SimulationWorld world, EntityId targetId)
+        static bool IsActiveEncounterCombatTarget(SimulationWorld world, EntityId targetId)
         {
             if (world == null || targetId.IsNone ||
                 !world.Entities.TryGet(targetId, out var entity) || entity == null)
                 return false;
-            return StrategicEncounterHostilityService.IsHostileStrategicNpc(world, entity);
+            return CharacterEncounterHostilityService.IsHostileEncounterParticipant(world, entity);
         }
 
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)

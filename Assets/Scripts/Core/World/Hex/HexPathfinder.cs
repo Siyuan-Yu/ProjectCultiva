@@ -4,6 +4,10 @@ using System.Linq;
 
 namespace XianXia.Core.World.Hex
 {
+    /// <summary>
+    /// Legacy grid／tool／prototype A*。仅服务仍保留的 Hex compatibility consumers，
+    /// 不代表正常 Continuous Surface 的导航 authority。
+    /// </summary>
     public static class HexPathfinder
     {
         sealed class Node : IComparable<Node>

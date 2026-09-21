@@ -12,7 +12,7 @@ namespace XianXia.Data.Content
     /// <para>
     /// 迁移契约（§2/§5/§6）：opening NPC 的落点必须由「旧 Site source LocalMap 中的 authored
     /// placement」经<b>与 SitePlacements／SitePlaces 完全相同</b>的 bake transform
-    /// （<see cref="WorldSiteOutdoorBakeTransform"/>）得到，而不是 Location center／arrival
+    /// （<see cref="WorldSiteHexFootprintBakeTransform"/>）得到，而不是 Location center／arrival
     /// point／随便一个 walkable point。
     /// </para>
     ///
@@ -93,7 +93,7 @@ namespace XianXia.Data.Content
         /// </para>
         /// </summary>
         public static bool TryBuildPlaceSlotLocalPoints(
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 placeLocalPosition,
             bool hasAuthoredExtent,
             float extentMinX,
@@ -162,7 +162,7 @@ namespace XianXia.Data.Content
         public static bool TryBakeSlotAnchor(
             IReadOnlyList<HexCoord> footprint,
             float hexSize,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds sourceBounds,
             WorldVec2 placeLocalPosition,
             bool hasAuthoredExtent,
             float extentMinX,
@@ -186,7 +186,7 @@ namespace XianXia.Data.Content
                 return false;
 
             sourceLocalPosition = slots[slotIndex];
-            return WorldSiteOutdoorBakeTransform.TryBake(
+            return WorldSiteHexFootprintBakeTransform.TryBake(
                 footprint, hexSize, sourceBounds, sourceLocalPosition, out anchor);
         }
 

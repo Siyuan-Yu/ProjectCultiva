@@ -52,19 +52,19 @@ namespace XianXia.Core.World.Strategic
         public static List<HexCoord> BuildStrategicSummary(SimulationWorld world, WorldSite site)
         {
             var result = new List<HexCoord>();
-            if (world?.HexWorld == null || site == null || !site.IsCoreActive)
+            if (world?.LegacyHexWorld == null || site == null || !site.IsCoreActive)
                 return result;
             if (!site.HasContinuousCore)
-                return new List<HexCoord>(LegacyHexRingUtility.ExpandOneRing(site.EnumerateFootprintHexes()));
-            for (var r = 0; r < world.HexWorld.Height; r++)
-            for (var q = 0; q < world.HexWorld.Width; q++)
+                return new List<HexCoord>(LegacyHexRingUtility.ExpandOneRing(site.EnumerateLegacyFootprintHexes()));
+            for (var r = 0; r < world.LegacyHexWorld.Height; r++)
+            for (var q = 0; q < world.LegacyHexWorld.Width; q++)
             {
                 var hex = new HexCoord(q, r);
-                HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out var x, out var y);
+                HexMath.ToWorldPosition(hex, world.LegacyHexWorld.HexSize, out var x, out var y);
                 if (Contains(site, site.CoreSurfaceId, x, y)) result.Add(hex);
             }
-            if (!result.Contains(site.AnchorHex) && world.HexWorld.Contains(site.AnchorHex))
-                result.Add(site.AnchorHex);
+            if (!result.Contains(site.LegacyAnchorHex) && world.LegacyHexWorld.Contains(site.LegacyAnchorHex))
+                result.Add(site.LegacyAnchorHex);
             return result;
         }
     }
@@ -114,7 +114,7 @@ namespace XianXia.Core.World.Strategic
                             "此位置已存在另一个核心实体。");
                 }
                 else if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                         !site.HasContinuousCore && site.OccupiesHex(request.StrategicAnchor))
+                         !site.HasContinuousCore && site.OccupiesLegacyHex(request.StrategicAnchor))
                     return Result.Failure(ErrorCode.InvalidOperation, "此处属于现有预设据点，不能建立第二核心。");
             }
 
@@ -130,7 +130,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             var probe = new WorldSite
             {
-                AnchorHex = request.StrategicAnchor,
+                LegacyAnchorHex = request.StrategicAnchor,
                 CoreSurfaceId = request.SurfaceId,
                 HasCoreWorldPosition = true,
                 CoreWorldX = request.WorldPosition.X,
@@ -206,7 +206,7 @@ namespace XianXia.Core.World.Strategic
             // a caller-provided StrategicAnchor in normal Continuous Outdoor placement.
             var compatibilityAnchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
                 ? HexMath.WorldToHex(request.WorldPosition.X, request.WorldPosition.Y,
-                    world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                    world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
                 : request.StrategicAnchor;
             var site = new WorldSite
             {
@@ -227,11 +227,11 @@ namespace XianXia.Core.World.Strategic
                 CoreRangeHeight = controlRange.HeightWorld,
                 IsCoreActive = true,
                 CoreIsRemovable = true,
-                AnchorHex = compatibilityAnchor,
-                PresenceHex = compatibilityAnchor,
+                LegacyAnchorHex = compatibilityAnchor,
+                LegacyPresenceHex = compatibilityAnchor,
                 LocalMapId = string.Empty
             };
-            site.SetFootprint(new[] { compatibilityAnchor });
+            site.SetLegacyHexFootprint(new[] { compatibilityAnchor });
             try { world.Strategic.Sites.Register(site); }
             catch (Exception ex)
             {
@@ -358,7 +358,7 @@ namespace XianXia.Core.World.Strategic
         // WorldSiteAdministrativeControlResolver before reaching this compatibility path.
         static string GetLegacyHexController(SimulationWorld world, HexCoord hex)
         {
-            if (world?.HexWorld == null || !world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
+            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.TryGetCell(hex, out var cell) || cell == null)
                 return string.Empty;
             return cell.ControlFactionId ?? string.Empty;
         }

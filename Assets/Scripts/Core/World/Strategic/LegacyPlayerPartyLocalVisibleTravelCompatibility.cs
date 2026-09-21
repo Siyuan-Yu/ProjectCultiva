@@ -18,7 +18,7 @@ namespace XianXia.Core.World.Strategic
             motion.IsMoving &&
             motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible;
 
-        /// <summary>Formal HexPath current leg: path[SegmentIndex] -> path[SegmentIndex+1].</summary>
+        /// <summary>Formal LegacyHexPath current leg: path[LegacyHexSegmentIndex] -> path[LegacyHexSegmentIndex+1].</summary>
         public static bool TryResolveActiveLeg(
             PlayerPartyWorldMotion motion,
             out HexCoord currentHex,
@@ -28,13 +28,13 @@ namespace XianXia.Core.World.Strategic
             currentHex = default;
             nextHex = default;
             directionIndex = 0;
-            if (motion == null || !motion.IsMoving || motion.HexPathCount < 2)
+            if (motion == null || !motion.IsMoving || motion.LegacyHexPathCount < 2)
                 return false;
-            if (motion.SegmentIndex < 0 || motion.SegmentIndex >= motion.HexPathCount - 1)
+            if (motion.LegacyHexSegmentIndex < 0 || motion.LegacyHexSegmentIndex >= motion.LegacyHexPathCount - 1)
                 return false;
 
-            currentHex = motion.HexPath[motion.SegmentIndex];
-            nextHex = motion.HexPath[motion.SegmentIndex + 1];
+            currentHex = motion.LegacyHexPath[motion.LegacyHexSegmentIndex];
+            nextHex = motion.LegacyHexPath[motion.LegacyHexSegmentIndex + 1];
             return TryResolveDirectionBetween(currentHex, nextHex, out directionIndex);
         }
 
@@ -71,7 +71,7 @@ namespace XianXia.Core.World.Strategic
             out SurfaceExitConnection connection)
         {
             connection = default;
-            if (world?.HexWorld == null)
+            if (world?.LegacyHexWorld == null)
                 return false;
             var motion = world.PlayerPartyTravel;
             if (motion == null ||
@@ -94,39 +94,13 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        public static void GetExitApproachLocalPoint(
-            SurfaceExitConnection connection,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            out float localX,
-            out float localY)
-        {
-            localX = connection.ExitCenterLocalX;
-            localY = connection.ExitCenterLocalY;
-
-            var inset = Math.Max(0.35f, SurfaceExitZoneCalculator.DefaultExitTriggerDepth * 0.35f);
-            localX -= connection.LocalDirectionX * inset;
-            localY -= connection.LocalDirectionY * inset;
-
-            localX = Math.Max(bounds.MinX + 0.05f, Math.Min(bounds.MaxX - 0.05f, localX));
-            localY = Math.Max(bounds.MinY + 0.05f, Math.Min(bounds.MaxY - 0.05f, localY));
-        }
-
         /// <summary>
         /// Phase 5R-B6.3：WorldSite departure 的正式 approach 点（可靠版）。
-        /// 背景（B6.2→B6.3）：旧实现从 ExitCenter 沿 inward 退 inset 后 clamp 进 SlotRect，
-        /// 对正常边 connection 有效；但对<b>角 / 双邻接 connection</b>（LocalDirection 斜对角，
-        /// perimeter 射线落在另一条边，导致 SlotRect 沿边 span 可能越出 playable bounds）会出两类
-        /// 确定性失败：① approach 被 clamp 到 SlotRect 内边缘，停点（arriveEpsilon≈0.2）偏内即
-        /// 滑出触发带；② approach 沿边坐标落在 bounds 外（OOB cell），A* 不可达。人工观测 ~20%
-        /// = 荒村 2/10 条角 connection 确定性失败。
-        /// 修复：approach = <b>SlotRect 深度方向中点</b>（窄维度，距两缘 depth/2 = 0.625 &gt;
-        /// 停点余量 0.3）+ <b>沿边方向取 SlotRect ∩ playable bounds 的中点</b>（恒在 walkable 边界内）。
-        /// 数学保证：approach 及其停点区间（±0.2）都 ∈ SlotRect ∩ bounds —— 到达即 crossing。
-        /// 不 teleport、不追 exact perimeter pixel；A* 终点 = 带内 walkable 点。
+        /// approach = SlotRect 深度方向中点 + SlotRect 与 playable bounds 沿边交集的中点。
         /// </summary>
         public static void ResolveWorldSiteExitApproachLocalPoint(
             SurfaceExitConnection connection,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds bounds,
             float exitTriggerDepth,
             out float localX,
             out float localY)
@@ -134,7 +108,6 @@ namespace XianXia.Core.World.Strategic
             var slot = connection.SlotRect;
             if (slot.Width <= slot.Height)
             {
-                // X 主导（East/West 贴边带）：深度方向 = x（取中点），沿边方向 = y（slot∩bounds 中点）。
                 localX = (slot.MinX + slot.MaxX) * 0.5f;
                 var lo = Math.Max(slot.MinY, bounds.MinY);
                 var hi = Math.Min(slot.MaxY, bounds.MaxY);
@@ -142,27 +115,24 @@ namespace XianXia.Core.World.Strategic
             }
             else
             {
-                // Y 主导（North/South 贴边带）：深度方向 = y（取中点），沿边方向 = x（slot∩bounds 中点）。
                 localY = (slot.MinY + slot.MaxY) * 0.5f;
                 var lo = Math.Max(slot.MinX, bounds.MinX);
                 var hi = Math.Min(slot.MaxX, bounds.MaxX);
                 localX = (lo + hi) * 0.5f;
             }
 
-            // 防御：无效沿边区间（slot 完全在 bounds 外）时退回 slot 深度中点 + bounds 中心。
             if (float.IsNaN(localX) || float.IsNaN(localY))
             {
                 localX = bounds.CenterX;
                 localY = bounds.CenterY;
             }
 
-            // 防御 clamp 到 playable bounds（SlotRect 由同一 bounds 派生，理论上已在其内）。
             localX = Math.Max(bounds.MinX, Math.Min(bounds.MaxX, localX));
             localY = Math.Max(bounds.MinY, Math.Min(bounds.MaxY, localY));
         }
 
         /// <summary>
-        /// Project continuous WorldPosition onto formal segment geometry; write SegmentProgress (keep SegmentIndex).
+        /// Project continuous WorldPosition onto formal segment geometry; write LegacyHexSegmentProgress (keep LegacyHexSegmentIndex).
         /// </summary>
         public static void SyncSegmentProgressFromWorldPosition(
             PlayerPartyWorldMotion motion,
@@ -170,7 +140,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (motion == null || !motion.IsMoving || !motion.HasPosition)
                 return;
-            if (!motion.TryGetActiveStepHexes(out var fromHex, out var toHex))
+            if (!motion.TryGetActiveLegacyHexStep(out var fromHex, out var toHex))
                 return;
 
             var size = hexSize > 0f ? hexSize : 1f;
@@ -181,7 +151,7 @@ namespace XianXia.Core.World.Strategic
             var lenSq = dx * dx + dy * dy;
             if (lenSq < 1e-8f)
             {
-                motion.SetSegment(motion.SegmentIndex, 1f);
+                motion.SetLegacyHexSegment(motion.LegacyHexSegmentIndex, 1f);
                 return;
             }
 
@@ -192,12 +162,12 @@ namespace XianXia.Core.World.Strategic
                 t = 0f;
             else if (t > 1f)
                 t = 1f;
-            motion.SetSegment(motion.SegmentIndex, t);
+            motion.SetLegacyHexSegment(motion.LegacyHexSegmentIndex, t);
         }
 
         /// <summary>
         /// Wilderness hex cross under LocalVisible AutoTravel:
-        /// keeps HexPath / Destination / AutoTravel / ExecutionMode; advances Segment so the
+        /// keeps LegacyHexPath / Destination / AutoTravel / ExecutionMode; advances Segment so the
         /// Host driver pauses after one hex (no Phase 5D auto second leg).
         /// A WorldSite destination is rejected — 5C-W1 does not handle Site Egress.
         /// </summary>
@@ -220,12 +190,12 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "No active travel leg.");
             if (!nextHex.Equals(destinationHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Exit destination is not the active NextHex.");
-            if (!IsNeighborHex(motion.CurrentHex, destinationHex))
+            if (!IsNeighborHex(motion.LegacyCurrentHex, destinationHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Destination hex is not a neighbor.");
-            if (!IsGroundPassable(world.HexWorld, destinationHex))
+            if (!IsGroundPassable(world.LegacyHexWorld, destinationHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Neighbor hex is impassable.");
             if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(destinationHex, out var destSite) &&
+                world.Strategic.Sites.TryGetAtLegacyHex(destinationHex, out var destSite) &&
                 destSite != null)
             {
                 var admission = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(
@@ -236,22 +206,22 @@ namespace XianXia.Core.World.Strategic
                 // Phase 5R-B3B.1/B7A: WorldSite → 正式 BoundaryContact Ingress。
                 // destinationHex 是 approach 按距 start 最近方向选取的 footprint 格（多 Hex
                 // footprint 不强制 Anchor）。目标 Site 仍完成 Travel；非目标 Site 则保持同一
-                // HexPath / Destination，并从路径中解析正式 egress，进入 Site LocalMap 后继续。
+                // LegacyHexPath / Destination，并从路径中解析正式 egress，进入 Site LocalMap 后继续。
                 // 无正式 connection → 明确失败，不静默回退中心点。
                 // 注：变量命名避开外层方法体块的 hexSize/derived（CS0136：子块不得与外层块同名）。
-                var siteHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize
+                var siteHexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                    ? world.LegacyHexWorld.HexSize
                     : 1f;
                 if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
                         world,
                         destSite,
                         destinationHex,
-                        motion.CurrentHex,
+                        motion.LegacyCurrentHex,
                         siteHexSize,
                         out var ingressConnection))
                     return Result.Failure(
                         ErrorCode.InvalidOperation,
-                        "No formal site ingress connection from hex " + motion.CurrentHex +
+                        "No formal site ingress connection from hex " + motion.LegacyCurrentHex +
                         " into site footprint hex " + destinationHex + " (5R-B3B.1).");
 
                 var boundary = new WorldVec2(
@@ -271,16 +241,16 @@ namespace XianXia.Core.World.Strategic
                 // inward 方向。保留 path / AutoTravel / ExecutionMode；只移动位置（不 Clear）。
                 // committed hex = 正式 topology destinationHex（BoundaryContact 位于 perimeter 中点，
                 // WorldToHex 有 tie 歧义；不再用 ingressDerived 猜）。
-                motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
+                motion.LegacySurfaceEdgeGate?.SetIngressContext(ingressConnection);
                 var isDestinationSite =
-                    !string.IsNullOrEmpty(motion.DestinationSiteId) &&
+                    !string.IsNullOrEmpty(motion.LegacyDestinationSiteId) &&
                     string.Equals(
-                        motion.DestinationSiteId,
+                        motion.LegacyDestinationSiteId,
                         destSite.SiteId,
                         System.StringComparison.Ordinal);
                 if (isDestinationSite)
                 {
-                    motion.SetWorldPositionInternal(boundary, destinationHex);
+                    motion.SetLegacyWorldPositionAndHex(boundary, destinationHex);
                     ApplyTravelingMembersAtHex(world, destinationHex);
                     return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                         world, party, destSite, destinationHex);
@@ -289,7 +259,7 @@ namespace XianXia.Core.World.Strategic
                 PlayerPartySiteIngressTrace.BeginIngress(
                     destSite.SiteId,
                     boundary,
-                    motion.CurrentHex,
+                    motion.LegacyCurrentHex,
                     destinationHex);
                 if (!LegacyPlayerPartyHexTravelCompatibility.TryCommitThroughSitePassage(
                         world,
@@ -305,23 +275,23 @@ namespace XianXia.Core.World.Strategic
                         "reason=NoThroughSiteEgress site=" + destSite.SiteId);
                     return Result.Failure(
                         ErrorCode.InvalidOperation,
-                        "No formal through-Site egress in active HexPath.");
+                        "No formal through-Site egress in active LegacyHexPath.");
                 }
 
-                motion.SetSegment(ingressPathIndex, 0f);
+                motion.SetLegacyHexSegment(ingressPathIndex, 0f);
                 ApplyTravelingMembersAtSite(world, destSite.SiteId);
                 PlayerPartySiteIngressTrace.Log(
                     "AtSiteTransitCommit",
                     "site=" + destSite.SiteId +
                     " ingress=" + destinationHex +
-                    " egress=" + motion.SiteDepartureExitHex);
+                    " egress=" + motion.LegacySiteDepartureExitHex);
                 return WorldTravelService.ActivatePreparedWorldSiteScene(
                     world, destSite, destinationMapId);
             }
 
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var newWorldPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
-                motion.CurrentHex,
+                motion.LegacyCurrentHex,
                 destinationHex,
                 motion.WorldPosition,
                 hexSize);
@@ -335,8 +305,8 @@ namespace XianXia.Core.World.Strategic
                 destinationHex,
                 world.PartyWorld?.LocalMapId);
 
-            // Preserve path / AutoTravel / ExecutionMode; only move position (never SetAtWorldPosition).
-            motion.SetWorldPositionInternal(newWorldPos, derived);
+            // Preserve path / AutoTravel / ExecutionMode; only move position (never SetAtLegacyWorldPosition).
+            motion.SetLegacyWorldPositionAndHex(newWorldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);
 
             if (!LegacyWildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
@@ -344,8 +314,8 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
 
             // Advance Segment so the Host pauses after crossing (5C-W1 stops after one hex).
-            if (motion.SegmentIndex + 1 < motion.HexPathCount)
-                motion.SetSegment(motion.SegmentIndex + 1, 0f);
+            if (motion.LegacyHexSegmentIndex + 1 < motion.LegacyHexPathCount)
+                motion.SetLegacyHexSegment(motion.LegacyHexSegmentIndex + 1, 0f);
 
             return WorldTravelService.EnterLegacyWildernessLocalMap(world, destinationHex, mapId);
         }
@@ -413,7 +383,7 @@ namespace XianXia.Core.World.Strategic
         /// <see cref="TryCrossWildernessEdgePreservingLocalVisibleAutoTravel"/>。
         /// 角色在 Site LocalMap 内已走到正式 <see cref="SurfaceExitConnection"/> 出口：
         ///  - Canonical 置为 <c>BoundaryContactWorld</c>（严格位于 footprint perimeter，B3C3.1）；
-        ///  - Context：AtWorldSite → AtWorldPosition（<see cref="PlayerPartyWorldMotion.SetWorldPositionInternal"/>）；
+        ///  - Context：AtWorldSite → AtWorldPosition（<see cref="PlayerPartyWorldMotion.SetLegacyWorldPositionAndHex"/>）；
         ///  - 保留 path / AutoTravel / ExecutionMode（不 Cancel / 不 Snap / 不 CompleteMove）；
         ///  - 推进 Segment（进入 exitHex → 下一段），随后展开外部 Wilderness LocalMap，
         ///    原 route 由既有 AtWorldPosition LocalVisible 驱动继续。
@@ -433,15 +403,15 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
                 string.IsNullOrEmpty(motion.SiteId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Not at a WorldSite.");
-            if (!motion.IsSiteDeparturePending)
+            if (!motion.IsLegacySiteDeparturePending)
                 return Result.Failure(ErrorCode.InvalidOperation, "No site departure pending.");
             if (!IsActiveLocalVisibleAutoTravel(motion))
                 return Result.Failure(ErrorCode.InvalidOperation, "LocalVisible AutoTravel required.");
 
             var external = connection.DestinationHex;
-            if (!motion.SiteDepartureExitHex.Equals(external))
+            if (!motion.LegacySiteDepartureExitHex.Equals(external))
                 return Result.Failure(ErrorCode.InvalidOperation, "Exit connection destination is not the departure exit hex.");
-            if (!IsGroundPassable(world.HexWorld, external))
+            if (!IsGroundPassable(world.LegacyHexWorld, external))
                 return Result.Failure(ErrorCode.InvalidOperation, "External hex is impassable.");
 
             var prepare = SurfaceExitTraversalService.TryPrepareTraversal(
@@ -466,7 +436,7 @@ namespace XianXia.Core.World.Strategic
                     prepared.DestinationIngress.BoundaryContactWorldX,
                     prepared.DestinationIngress.BoundaryContactWorldY)
                 : new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
-            motion.SetWorldPositionInternal(boundary, prepared.DestinationHex);
+            motion.SetLegacyWorldPositionAndHex(boundary, prepared.DestinationHex);
             // Route progress 对齐到已提交 connection 的 DestinationHex（不重复推进、不跳过下一段）。
             LegacyPlayerPartyHexTravelCompatibility.AlignRouteProgressAfterSiteEgress(motion, prepared.DestinationHex);
 
@@ -475,7 +445,7 @@ namespace XianXia.Core.World.Strategic
             // 明确失败（不 silent 进入、不依赖上一 Site 的 LastExitDirection 猜）。
             if (prepared.EntersWorldSite)
             {
-                motion.SurfaceEdgeGate?.SetIngressContext(prepared.DestinationIngress);
+                motion.LegacySurfaceEdgeGate?.SetIngressContext(prepared.DestinationIngress);
                 return LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(
                     world, party, prepared.DestinationSite, prepared.DestinationHex);
             }

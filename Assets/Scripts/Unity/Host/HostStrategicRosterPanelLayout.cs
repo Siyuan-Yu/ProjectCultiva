@@ -3,7 +3,7 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Global Strategic UI 军队/角色列表共用尺寸：普通侧栏，不占半屏；高度约 50%～70% 视口。
+    /// Global Strategic UI 当前角色名册列表共用尺寸：普通侧栏，不占半屏；高度约 50%～70% 视口。
     /// </summary>
     public static class HostStrategicRosterPanelLayout
     {

@@ -708,14 +708,6 @@ namespace XianXia.Core.Cultivation
             return SkillMasteryLookup.EnsureOrDefaultManual(manual);
         }
 
-        static void EnsureManualMastery(SimulationWorld world, CultivationComponent cult)
-        {
-            var profile = ResolveManualProfile(world, cult);
-            if (cult.ManualMastery == null)
-                cult.ManualMastery = SkillMasteryState.CreateEntry(profile);
-            SkillMasteryLookup.SyncProgressCap(cult.ManualMastery, profile);
-        }
-
         static void AddProgress(SkillMasteryState m, int amount)
         {
             if (m == null || amount <= 0)
@@ -893,8 +885,6 @@ namespace XianXia.Core.Cultivation
 
         static string DisplayName(string name, DefinitionId id) =>
             string.IsNullOrEmpty(name) ? id.ToString() : name;
-
-        static string Pct(double chance) => ((int)Math.Round(chance * 100)).ToString();
 
         static string FormatPct(double mult) => ((int)Math.Round(mult * 100)).ToString() + "%";
 

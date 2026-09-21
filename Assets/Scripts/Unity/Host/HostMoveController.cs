@@ -827,51 +827,6 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void NotifyMeleeDisengageForPartyMove()
-        {
-            var melee = bootstrap != null
-                ? bootstrap.GetComponent<HostNpcMeleeAssault>()
-                : GetComponent<HostNpcMeleeAssault>();
-            if (melee == null || selectionController == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
-                    melee.DisengageIfAttacker(id);
-            }
-        }
-
-        void NotifyDestructibleDisengageForPartyMove()
-        {
-            var chop = bootstrap != null
-                ? bootstrap.GetComponent<HostDestructibleAssault>()
-                : GetComponent<HostDestructibleAssault>();
-            if (chop == null || selectionController == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
-                    chop.DisengageIfAttacker(id);
-            }
-        }
-
-        void NotifyFarmLaborStopForPartyMove()
-        {
-            var farm = bootstrap != null
-                ? bootstrap.GetComponent<HostFarmFieldLabor>()
-                : GetComponent<HostFarmFieldLabor>();
-            if (farm == null || selectionController == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
-                    farm.Stop(id);
-            }
-        }
-
         /// <summary>
         /// Formation slots that land in blocked cells used to snap up to 8 cells away
         /// (looks like random detours / ignoring the click). Keep goals near the click.
@@ -1550,19 +1505,6 @@ namespace XianXia.Unity.Host
             _paths.Remove(id.Value);
             _pathIndex.Remove(id.Value);
             _pathLocalMapIds.Remove(id.Value);
-        }
-
-        void StopSelectedViaPort()
-        {
-            var session = bootstrap.Session;
-            if (session?.Port == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
-                    session.Port.Submit(new PlayerCommandRequest(id, PlayerCommandKind.Stop, 0));
-            }
         }
 
         Vector3 FormationOffset(int index, int count)

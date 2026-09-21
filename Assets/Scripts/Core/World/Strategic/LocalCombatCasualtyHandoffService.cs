@@ -54,7 +54,7 @@ namespace XianXia.Core.World.Strategic
             if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
                 context.Kind != LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex)
                 return false;
-            if (!world.HexWorld.Contains(context.WildernessHex))
+            if (!world.LegacyHexWorld.Contains(context.WildernessHex))
                 return false;
 
             ResidualCharacterPresenceService.PlaceLegacyCharacterAtResidualHex(
@@ -71,7 +71,7 @@ namespace XianXia.Core.World.Strategic
         /// 经当前 Surface mapping 转成 precise WorldPosition，随 ResidualHex 一起保存 ——
         /// 重新进入 LocalMap 时从该 precise 位置反向映射回来，而不是 Hex 中心 + formation offset。
         /// Wilderness：ResidualHex = Context WildernessHex（不重新 WorldToHex）；
-        /// WorldSite：用角色自己的 localX/localZ 映射，derived hex 必须 OccupiesHex。
+        /// WorldSite：用角色自己的 localX/localZ 映射，derived hex 必须 OccupiesLegacyHex。
         /// </summary>
         public static bool TryHandleResidualDefeat(
             SimulationWorld world,
@@ -79,7 +79,7 @@ namespace XianXia.Core.World.Strategic
             float localX,
             float localZ,
             WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
         {
             if (world?.Strategic == null || characterId.IsNone ||
                 !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
@@ -104,7 +104,7 @@ namespace XianXia.Core.World.Strategic
             float localX,
             float localZ,
             WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
         {
             if (world?.Strategic == null || characterId.IsNone ||
                 !ResidualCharacterPresenceService.IsResidualLifeCandidate(world, characterId))
@@ -120,15 +120,15 @@ namespace XianXia.Core.World.Strategic
             world.WorldPresence.TryGet(characterId, out var priorPresence);
             var surfaceId = priorPresence?.PersonalSurfaceId ?? string.Empty;
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
 
             switch (context.Kind)
             {
                 case LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex:
                 {
-                    if (!world.HexWorld.Contains(context.WildernessHex))
+                    if (!world.LegacyHexWorld.Contains(context.WildernessHex))
                         return false;
                     var hex = context.WildernessHex;
                     WorldVec2 precise;
@@ -168,7 +168,7 @@ namespace XianXia.Core.World.Strategic
                         !siteBounds.HasValue ||
                         !siteBounds.Value.IsValid)
                         return false;
-                    if (!WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                    if (!WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
                             context.Site,
                             siteBounds.Value,
                             new WorldVec2(localX, localZ),
@@ -177,7 +177,7 @@ namespace XianXia.Core.World.Strategic
                         return false;
 
                     var derived = HexMath.WorldToHex(precise.X, precise.Y, hexSize);
-                    if (!context.Site.OccupiesHex(derived))
+                    if (!context.Site.OccupiesLegacyHex(derived))
                     {
                         // footprint 边界数值歧义：近邻格；仍不属于 Site → 明确失败（不猜 Anchor）。
                         if (!TryResolveNeighborFootprintHex(context.Site, precise, hexSize, out derived))
@@ -218,7 +218,7 @@ namespace XianXia.Core.World.Strategic
             for (var d = 0; d < 6; d++)
             {
                 var neighbor = HexMath.Neighbor(center, d);
-                if (!site.OccupiesHex(neighbor))
+                if (!site.OccupiesLegacyHex(neighbor))
                     continue;
                 HexMath.ToWorldPosition(neighbor, hexSize, out var nx, out var ny);
                 var dist = Math.Abs(nx - worldPos.X) + Math.Abs(ny - worldPos.Y);
@@ -290,7 +290,7 @@ namespace XianXia.Core.World.Strategic
                 " SurfaceWildernessHex=" + context.WildernessHex +
                 " OldWorldPresenceMode=" + presenceMode +
                 " OldWorldPresenceSiteId=" + presenceSiteId +
-                " OldWorldPresenceHex=" + presenceHex +
+                " OldWorldLegacyPresenceHex=" + presenceHex +
                 " IsTravelingMember=" + traveling +
                 " ResidualHex=" + residualHex +
                 " HasPrecise=" + (precise.HasValue) +

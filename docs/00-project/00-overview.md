@@ -1,19 +1,20 @@
 # 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋定向 ADR｜MAP-01～04、SPACE-01、CW-10／CW-10.5 已封板；当前主线 LEGACY-FINAL-A | 最后更新：2026-09-20
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Legacy 清理／Hex·Army 命名与兼容边界专项均已封板 | 最后更新：2026-09-22
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04～CW-10.5、MAP-01～MAP-04 与 SPACE-01 均已 Producer Accepted / Sealed。当前主线为 LEGACY-FINAL-A：把正常 NPC group runtime 从 FormalArmy／ArmyStack 收口到 Squad + Continuous Squad World Motion。**
+**Design: Confirmed｜Implementation: Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control 与 Separate Space 正式主线已落地。CW-04～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C，以及废弃运行入口清理、Hex／Army 命名与兼容边界、WorldSite／Hex footprint 命名尾项均已完成并封板。制作人已确认此前运行行为人工验收通过；后续限定同体改名与说明收尾经静态复核通过，无需追加游戏验收。下一步尚未授权，等待制作人讨论后确定。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
-当前文档落地与后续依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。该记录不是代码开工授权。
-当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)；CW-05 行政资产闭环见 [232](../40-process/232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md)～[234](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)；玩家 SiteCore 战争、接管与交互封板见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)／[236](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)；当前 Site 公库与 NPC 自动行政迁移见 [237](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。
+当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md)；最终 authority／compatibility 矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。[216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) 与 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md) 保留为迁移前历史对齐记录。
 
-**Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01 的 WorldComposer / FineEditor、MAP-02 Surface WorldMap 与 MAP-03 正常 Gameplay authority 已实施并由制作人验收。MAP-04 物理清理实施中：Chunk 已退出 MapLayout，Hex / Outdoor LocalMap 等其它旧消费者尚未全部删除；当前审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。
+本专项封板不表示整个游戏已完成或不存在潜在缺陷，也不表示仓库中的 `Hex`／`Army` 字符串应清零。后续只有具体错误调用、authority 越界、失真说明或回归证据，才构成提出问题的依据；不得仅凭关键词命中重开循环清理。
 
-**Editor 工具链：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 manifest、平铺 `Apps/` 与 staging 发布已落地。MAP-04 已删除 WorldGraphEditor 与 RegionEditor；Build All 当前发布 10 个 Editor。旧 Outdoor Content 已删除，保留 Cave 与独立遭遇战术图，见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。
+**Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01～MAP-04 均已实施、人工验收并封板；正常 Gameplay authority 已切换到 Surface。Hex／Outdoor LocalMap 仅保留经 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 明确的旧输入、adapter、工具或测试边界。当前实现把兼容入口显式命名为 `SimulationWorld.LegacyHexWorld`、`LegacyHexMetadataProjection` 与 `PlayerPartyWorldMotion.Legacy*`；`HexCoord`／`HexMath`／Odd-R Q/R 和 `HexWorld` 作为真实几何／工具类型继续保留，但不授予正常 Gameplay authority。
+
+**Editor 工具链：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 manifest、平铺 `Apps/` 与 staging 发布已落地。WorldComposer／FineEditor 是现行 Surface authoring 工具；WorldGraphEditor／RegionEditor 已退休。独立 Cave／Interior／Encounter 地图继续合法保留。
 
 **建议先读：** [通读指南](04-reading-guide.md) → [33 定向补丁](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [ADR-0032～0034](../40-process/43-decisions/README.md) → [24 世界](../20-systems/24-world-and-settlements.md)／[23 战斗](../20-systems/23-combat.md)／[2K 控制](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
@@ -26,7 +27,7 @@ Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控
 - VS0.7～0.9 验收：[68](../40-process/68-vertical-slice-0.7-acceptance-report.md)／[70](../40-process/70-vertical-slice-0.8-acceptance-report.md)／[72](../40-process/72-vertical-slice-0.9-acceptance-report.md)
 - 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
 
-v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
+v0.2 修补要点仍包括 RelationshipLedger 权威、WorldTick／ActionClock、Dead≠Removed、FocusCharacterUnavailable 与开局宗门劳役 Membership；旧 World／Region／LocalMap 户外结构已由 ADR-0031／0036／0038 定向替代。
 
 
 ## 一、一句话定位
@@ -66,13 +67,15 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 五、世界结构
 
-> **2026-09-12 当前目标：** 普通 Outdoor 每大陆一个 Continuous Outdoor World Surface；WorldSite 是 SiteCore 行政范围，Hex 是战略叠加，Chunk 是加载单位。不同大陆、Interior 和临时独立遭遇仍可切换。实现状态按系统页分别标注，不能从文档确认推导为已实现。
+> **当前权威：** 普通 Outdoor 每大陆一个 Continuous Outdoor World Surface；WorldSite 是 SiteCore／行政上下文，Hex 仅为派生或兼容摘要，Chunk 是加载单位。不同大陆、Interior 和临时独立遭遇仍可切换。
 
-**World → Region → LocalMap**（Freeze v0.2／ADR-0021）。
+**普通 Outdoor：一大陆一张 Continuous Surface。**
 
-- Region：连续城市区域体验（荒村／矿／林／田／城心等）；尺寸可变。
-- LocalMap：洞／秘境／洞府等独立加载。
-- 跨 Region：Route，非整大陆无缝。
+- `SurfaceId + exact WorldPosition` 是人物与小队的正常户外空间真源。
+- 正常 NPC group 使用 `Squad + SquadWorldMotion`，现代战斗使用 `CharacterEncounter`。
+- WorldSite／Actual Administrative Control 是连续 world-space 上的地点与行政上下文。
+- Runtime Chunk 只负责 streaming；不会改变位置 authority。
+- Cave／Interior／Dungeon、不同大陆与临时独立 Encounter 仍可作为 Separate Space／独立场景切换。
 
 详见 `33` §8、`24`。
 
@@ -83,8 +86,8 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 20 | [开局体验](../20-systems/20-opening-experience.md) | P0 | |
 | 21 | [核心循环与时间](../20-systems/21-core-loop-and-time.md) | P0 | WorldTick+ActionClock |
 | 22 | [境界与机制能力](../20-systems/22-realms-and-abilities.md) | P0 | |
-| 23 | [战斗](../20-systems/23-combat.md) | P0 | 同源独立遭遇设计已确认；新实现／验收待完成 |
-| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore；部分实现待迁移 |
+| 23 | [战斗](../20-systems/23-combat.md) | P0 | CharacterEncounter 正式主线已实现并封板；Future 战斗扩展仍未实现 |
+| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore 已落地；旧地图层仅兼容 |
 | 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | |
 | 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | |
 | 27 | [角色与人口](../20-systems/27-characters-and-population.md) | P0 | |
@@ -99,8 +102,8 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 2H | [功法规则](../20-systems/2H-manual-system-rules.md) | P0 | |
 | 2I | [荒村杂役阶段叙事（v0.1）](../20-systems/2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | Draft；状态／触发／反馈 |
 | 2M | [角色社会关系 V1](../20-systems/2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板**（[记录 202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)） |
-| 2N | [连续世界制作、合成与去 Hex 产品方向](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) | P0 | **已锁定未来方向／未实现；MAP-01 未开始** |
-| — | [ADR-0037 Editor 工具链与旧地图 Content 迁移方向](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | P0 | **已采纳设计方向／未实现**；工具链与迁移分期，非当前实现 |
+| 2N | [连续世界制作、合成与去 Hex 产品方向](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) | P0 | **MAP-01～04 已实现、验收并封板**；自动水文等仍为 Future |
+| — | [ADR-0037 Editor 工具链与旧地图 Content 迁移方向](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | P0 | 工具链与旧 Outdoor Content 迁移已按 MAP 阶段落地；Future 扩展不视为已实现 |
 
 **项目与过程：**
 
@@ -110,7 +113,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [愿景](01-vision.md)／[范围](02-scope-and-constraints.md)／[术语表](03-glossary.md) | 总纲三件套 |
 | [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
 | [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
-| [216 当前设计对齐与迁移状态](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) | **现行状态／规则映射／后续依赖** |
+| [247 当前交接](../40-process/247-project-handoff-current-state-2026-09-18.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) | **现行状态／最终 authority 与兼容边界** |
 | [62 项目现状 2026-08-01](../40-process/62-project-status-2026-08-01.md) | 历史阶段记录 |
 | [75 VS0.7→1.0 交付总结](../40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md) | **本轮交付总览** |
 | [74 VS1.0 Demo 验收](../40-process/74-vertical-slice-1.0-acceptance-report.md) | **已通过** |
@@ -148,14 +151,14 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 八、范围控制
 
-> **历史范围说明：** 早期 M1／VS0.7～1.0 曾以“不含真战斗、Demo Runtime 不扩张、Freeze 正文不改”为阶段约束；对应验收继续有效，但不能限制 2026-09-12 已确认目标。当前状态和后续依赖以 216、ADR-0032～0034 与系统正文为准；实现仍需另行分阶段授权和人工验收。
+> **历史范围说明：** 早期 M1／VS0.7～1.0 与 216／230 迁移记录的阶段约束和验收事实继续有效，但不代表当前 WIP。现行 runtime authority 与 compatibility 以 ADR-0038、247 和系统正文为准；任何 Future 功能仍需另行授权。
 
 ## 九、跨系统未决（摘录）
 
 飞行境界、炼气术法清单、突破事件细则、TemporaryProtection 事件模板库等仍见各系统文档。队内顺序接替和全队死亡继承原则已经确定；仅全员弥留安全出口接线与空势力终局（明确延期）仍需区分处理。
 
-## 十、下一步
+## 十、当前交付与未来范围
 
-1. 按 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) 的依赖顺序，先核查稳定身份、动态资产存档、战前锚点、暂停和控制生命周期。
-2. 后续分别授权 SiteCore／建设、同源 Encounter、战内建筑战争与接管、有限介入／继承、飞舟与 WorldMap 移动切片。
-3. 各切片在正常游戏中人工验收；历史 Demo／阶段报告只证明其适用版本，不能代替新行为验收。
+1. 当前仅验收 Final Seal 的兼容隔离、dead API 与文档对齐；不重跑 A／B／C、MAP 或 SPACE 的完整历史验收。
+2. 飞舟、自动攻城、NPC 对 NPC 战斗、完整修炼／继承等仍是 Future / Not Implemented，不因迁移封板而自动成为现行功能。
+3. 新开发必须从 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 的 authority／compatibility 矩阵出发，禁止重新依赖退役 runtime。

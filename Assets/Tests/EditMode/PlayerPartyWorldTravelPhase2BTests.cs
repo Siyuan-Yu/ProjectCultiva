@@ -26,12 +26,12 @@ namespace XianXia.Tests
             out HexCoord midHex)
         {
             var world = new SimulationWorld();
-            world.HexWorld.MapId = "test:tiny_travel_world";
-            world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
+            world.LegacyHexWorld.MapId = "test:tiny_travel_world";
+            world.LegacyHexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)
             {
-                if (!world.HexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                if (!world.LegacyHexWorld.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
                     continue;
                 cell.IsPassable = true;
                 if (q >= 8 && q <= 11 && r >= 2 && r <= 5)
@@ -46,11 +46,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_huangcun",
                 DisplayName = "青石荒村",
-                AnchorHex = aAnchor,
-                PresenceHex = aPresence,
+                LegacyAnchorHex = aAnchor,
+                LegacyPresenceHex = aPresence,
                 LocalMapId = "base:map_ch01_reference",
             };
-            siteA.SetFootprint(new[]
+            siteA.SetLegacyHexFootprint(new[]
             {
                 aAnchor, aPresence, new HexCoord(2, 5), new HexCoord(3, 5),
             });
@@ -61,18 +61,18 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_chengzhen",
                 DisplayName = "青石镇",
-                AnchorHex = bAnchor,
-                PresenceHex = bAnchor,
+                LegacyAnchorHex = bAnchor,
+                LegacyPresenceHex = bAnchor,
                 LocalMapId = "base:map_site_chengzhen",
             };
-            siteB.SetFootprint(new[]
+            siteB.SetLegacyHexFootprint(new[]
             {
                 bAnchor, new HexCoord(11, 4), new HexCoord(10, 5), new HexCoord(11, 5),
             });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, siteB);
 
             midHex = new HexCoord(6, 4);
-            Assert.IsTrue(world.HexWorld.TryGetTile(midHex, out var mid) && mid.IsPassable);
+            Assert.IsTrue(world.LegacyHexWorld.TryGetTile(midHex, out var mid) && mid.IsPassable);
             return world;
         }
 
@@ -115,24 +115,24 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out _, out _);
             var a = Spawn(world, "LinQing");
             var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.TryResolvePartyWorldHex(world, party, out var hex));
-            Assert.AreEqual(siteA.PresenceHex, hex);
+            Assert.AreEqual(siteA.LegacyPresenceHex, hex);
         }
 
         [Test]
-        public void TRAVEL_02_AtWorldSite_WorldHex_Equals_PresenceHex()
+        public void TRAVEL_02_AtWorldSite_WorldHex_Equals_LegacyPresenceHex()
         {
             var world = BuildTinyTravelWorld(out var siteA, out _, out _);
             var a = Spawn(world, "LinQing");
             BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
 
             Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, a, out var hex));
-            Assert.AreEqual(siteA.PresenceHex, hex);
-            Assert.AreNotEqual(siteA.AnchorHex, hex);
+            Assert.AreEqual(siteA.LegacyPresenceHex, hex);
+            Assert.AreNotEqual(siteA.LegacyAnchorHex, hex);
         }
 
         [Test]
@@ -142,7 +142,7 @@ namespace XianXia.Tests
             var a = Spawn(world, "LinQing");
             var b = Spawn(world, "WangChen");
             var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
 
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
@@ -156,25 +156,25 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
             var a = Spawn(world, "LinQing");
             var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
 
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, mid).IsSuccess);
             Assert.IsTrue(world.PlayerPartyTravel.IsMoving);
-            Assert.GreaterOrEqual(world.PlayerPartyTravel.HexPathCount, 2);
+            Assert.GreaterOrEqual(world.PlayerPartyTravel.LegacyHexPathCount, 2);
 
-            var path = world.PlayerPartyTravel.HexPath;
+            var path = world.PlayerPartyTravel.LegacyHexPath;
             for (var i = 1; i < path.Count; i++)
                 Assert.AreEqual(1, HexMath.Distance(path[i - 1], path[i]));
 
-            var start = world.PlayerPartyTravel.CurrentHex;
+            var start = world.PlayerPartyTravel.LegacyCurrentHex;
             var sawStep = false;
             for (var i = 0; i < 5000 && world.PlayerPartyTravel.IsMoving; i++)
             {
                 LegacyPlayerPartyHexTravelCompatibility.AdvanceAll(world, 1);
-                if (world.PlayerPartyTravel.CurrentHex != start)
+                if (world.PlayerPartyTravel.LegacyCurrentHex != start)
                 {
                     sawStep = true;
-                    Assert.AreEqual(1, HexMath.Distance(start, world.PlayerPartyTravel.CurrentHex));
+                    Assert.AreEqual(1, HexMath.Distance(start, world.PlayerPartyTravel.LegacyCurrentHex));
                     break;
                 }
             }
@@ -188,17 +188,17 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out var siteB, out _);
             var a = Spawn(world, "LinQing");
             var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
 
-            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.PresenceHex).IsSuccess);
-            var start = world.PlayerPartyTravel.CurrentHex;
+            Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, siteB.LegacyPresenceHex).IsSuccess);
+            var start = world.PlayerPartyTravel.LegacyCurrentHex;
             HexCoord? stepped = null;
             for (var i = 0; i < 5000 && world.PlayerPartyTravel.IsMoving; i++)
             {
                 LegacyPlayerPartyHexTravelCompatibility.AdvanceAll(world, 1);
-                if (world.PlayerPartyTravel.CurrentHex != start)
+                if (world.PlayerPartyTravel.LegacyCurrentHex != start)
                 {
-                    stepped = world.PlayerPartyTravel.CurrentHex;
+                    stepped = world.PlayerPartyTravel.LegacyCurrentHex;
                     break;
                 }
             }
@@ -206,31 +206,31 @@ namespace XianXia.Tests
             Assert.IsTrue(stepped.HasValue);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.CancelTravel(world, party).IsSuccess);
             Assert.IsFalse(world.PlayerPartyTravel.IsMoving);
-            Assert.AreEqual(stepped.Value, world.PlayerPartyTravel.CurrentHex);
-            Assert.AreNotEqual(start, world.PlayerPartyTravel.CurrentHex);
-            Assert.AreNotEqual(siteB.PresenceHex, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(stepped.Value, world.PlayerPartyTravel.LegacyCurrentHex);
+            Assert.AreNotEqual(start, world.PlayerPartyTravel.LegacyCurrentHex);
+            Assert.AreNotEqual(siteB.LegacyPresenceHex, world.PlayerPartyTravel.LegacyCurrentHex);
         }
 
         [Test]
-        public void TRAVEL_07_Arrive_Site_Footprint_Resolves_Same_Site_And_PresenceHex()
+        public void TRAVEL_07_Arrive_Site_Footprint_Resolves_Same_Site_And_LegacyPresenceHex()
         {
             var world = BuildTinyTravelWorld(out var siteA, out var siteB, out _);
             var a = Spawn(world, "LinQing");
             var b = Spawn(world, "WangChen");
             var party = BuildParty(world, siteA, a, b);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
 
             var edge = new HexCoord(11, 5);
-            Assert.IsTrue(siteB.OccupiesHex(edge));
+            Assert.IsTrue(siteB.OccupiesLegacyHex(edge));
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, edge).IsSuccess);
             ForceAdvanceToDestination(world);
-            Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(world.PlayerPartyTravel.CurrentHex, out var at));
+            Assert.IsTrue(world.Strategic.Sites.TryGetAtLegacyHex(world.PlayerPartyTravel.LegacyCurrentHex, out var at));
             Assert.AreEqual(siteB.SiteId, at.SiteId);
 
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.EnterWorldSiteAsParty(world, party, siteB).IsSuccess);
-            Assert.AreEqual(siteB.PresenceHex, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(siteB.LegacyPresenceHex, world.PlayerPartyTravel.LegacyCurrentHex);
             Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, a, out var hexA));
-            Assert.AreEqual(siteB.PresenceHex, hexA);
+            Assert.AreEqual(siteB.LegacyPresenceHex, hexA);
             Assert.AreEqual(a, party.ActiveCharacterId);
             Assert.AreEqual(2, party.Count);
         }
@@ -255,12 +255,12 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
             var a = Spawn(world, "LinQing");
             var party = BuildParty(world, siteA, a);
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(world, party).IsSuccess);
             Assert.IsFalse(string.IsNullOrEmpty(world.PartyWorld.LocalMapId));
-            Assert.AreEqual(mid, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(mid, world.PlayerPartyTravel.LegacyCurrentHex);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var wp));
             Assert.IsTrue(wp.UsesHexPresence);
             Assert.AreEqual(mid, wp.ResidualHex);
@@ -274,7 +274,7 @@ namespace XianXia.Tests
             var party = BuildParty(world, siteA, a);
 
             // Wilderness expand
-            world.PlayerPartyTravel.SetIdleAt(siteA.PresenceHex);
+            world.PlayerPartyTravel.SetIdleAtLegacyHexCenter(siteA.LegacyPresenceHex);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
             Assert.IsTrue(LegacyPlayerPartyHexTravelCompatibility.EnterLocalViewAtCurrentHex(world, party).IsSuccess);
@@ -289,7 +289,7 @@ namespace XianXia.Tests
             PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                 world, party.Members);
             Assert.AreEqual(a, party.ActiveCharacterId);
-            Assert.AreEqual(siteB.PresenceHex, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(siteB.LegacyPresenceHex, world.PlayerPartyTravel.LegacyCurrentHex);
             Assert.IsTrue(world.LocalMap.ContainsOccupant(a));
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var atSite));
             Assert.AreEqual(PartyWorldPresenceMode.AtSite, atSite.Mode);
@@ -314,8 +314,8 @@ namespace XianXia.Tests
 
             var world = new SimulationWorld();
             Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
-            Assert.AreEqual(30, world.HexWorld.Width);
-            Assert.AreEqual(15, world.HexWorld.Height);
+            Assert.AreEqual(30, world.LegacyHexWorld.Width);
+            Assert.AreEqual(15, world.LegacyHexWorld.Height);
             Assert.GreaterOrEqual(world.Strategic.Sites.Sites.Count, 4);
             Assert.LessOrEqual(world.Strategic.Sites.Sites.Count, 6);
 
@@ -325,8 +325,8 @@ namespace XianXia.Tests
                 var site = kv.Value;
                 if (site == null)
                     continue;
-                Assert.IsTrue(WorldSiteFootprintValidator.IsPresenceInFootprint(site), site.SiteId);
-                foreach (var hex in site.EnumerateFootprintHexes())
+                Assert.IsTrue(WorldSiteHexFootprintValidator.IsPresenceInFootprint(site), site.SiteId);
+                foreach (var hex in site.EnumerateLegacyFootprintHexes())
                 {
                     Assert.IsFalse(seen.ContainsKey(hex), "Footprint overlap at " + hex);
                     seen[hex] = site.SiteId;

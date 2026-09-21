@@ -17,13 +17,13 @@ namespace XianXia.Core.World.Strategic
             SquadWorldMotionService.AdvanceAll(world, ticks);
             BackgroundSimulationScheduler.AfterSimulationTick(world, ticks);
 
-            if (!world.HexWorld.HasGrid)
+            if (!world.LegacyHexWorld.HasGrid)
                 return;
 
             var motion = world.PlayerPartyTravel;
             if (motion != null && motion.IsMoving &&
                 motion.ExecutionMode == PlayerPartyTravelExecutionMode.World &&
-                motion.HexPathCount > 0 && string.IsNullOrEmpty(motion.SurfaceId))
+                motion.LegacyHexPathCount > 0 && string.IsNullOrEmpty(motion.SurfaceId))
                 LegacyPlayerPartyHexTravelCompatibility.AdvanceAll(world, ticks);
         }
     }

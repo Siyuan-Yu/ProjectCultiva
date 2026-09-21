@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace XianXia.Core.World.Hex
 {
     /// <summary>
-    /// Hex 战略世界真源：矩形网格使用紧凑数组 O(1) 索引；稀疏格仍可用字典扩展。
+    /// Legacy grid／geometry／tool model：矩形网格使用紧凑数组 O(1) 索引，稀疏格可用字典扩展。
+    /// 仍服务明确的旧内容、兼容路径和测试；不是正常 Continuous Surface 的位置或旅行 authority。
     /// </summary>
     public sealed class HexWorld
     {

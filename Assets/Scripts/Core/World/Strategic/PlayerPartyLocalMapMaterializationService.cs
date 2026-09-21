@@ -39,14 +39,14 @@ namespace XianXia.Core.World.Strategic
 
         /// <param name="siteBounds">
         /// Phase 5R-B2：Site 展开时由 Data/Unity 调用层从真实 MapLayoutDefinition 构造的
-        /// <see cref="WorldSiteSpatialMapping.WorldSiteLocalMapBounds"/>（Core 不引用 Data 层）。
+        /// <see cref="WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds"/>（Core 不引用 Data 层）。
         /// </param>
         /// <param name="siteMode">Phase 5R-B2：Site 初始化 ownership（transient，见 <see cref="PlayerPartySiteMaterializeMode"/>）。</param>
         public static Result MaterializePartyOnResolvedLocalMap(
             SimulationWorld world,
             IReadOnlyList<EntityId> partyMembers,
             WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessPlayableBounds,
-            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds,
+            WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? siteBounds,
             PlayerPartySiteMaterializeMode siteMode)
         {
             if (world?.LocalMap == null || partyMembers == null || partyMembers.Count == 0)
@@ -69,8 +69,8 @@ namespace XianXia.Core.World.Strategic
             var pz = hasStart ? startLoc.PresentationZ : 0f;
 
             var motion = world.PlayerPartyTravel;
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
+            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                ? world.LegacyHexWorld.HexSize
                 : 1f;
             // Phase 5B Mid-Segment LocalVisible: project continuous presentation (incl. site-departure).
             // Idle materialize keeps AtWorldPosition-only rule.
@@ -84,11 +84,11 @@ namespace XianXia.Core.World.Strategic
                                           (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
                                            midTravelLocalVisible);
             var projectWorld = motion != null && motion.IsMoving
-                ? motion.ResolveTravelPresentationWorld(hexSize)
+                ? motion.ResolveLegacyTravelPresentationWorld(hexSize)
                 : (motion != null ? motion.WorldPosition : default);
             if (useWildernessProjection &&
                 WildernessLocalWorldProjection.TryProjectWorldToLocal(
-                    motion.CurrentHex,
+                    motion.LegacyCurrentHex,
                     projectWorld,
                     wildernessPlayableBounds.Value,
                     hexSize,
@@ -100,14 +100,14 @@ namespace XianXia.Core.World.Strategic
                 hasStart = false;
 
                 // Edge Transition 后：若投影仍落在近缘带，推到 Entry Interior Inset。
-                var gate = motion.SurfaceEdgeGate;
+                var gate = motion.LegacySurfaceEdgeGate;
                 if (gate != null &&
                     (gate.TransitionInProgress || !gate.EdgeArmed) &&
                     gate.LastExitDirection >= 0 &&
                     !WildernessLocalWorldProjection.IsInSafeInterior(
                         px, pz, wildernessPlayableBounds.Value))
                 {
-                    var currentHex = motion.CurrentHex;
+                    var currentHex = motion.LegacyCurrentHex;
                     var cameFromHex = HexMath.Neighbor(
                         currentHex,
                         WildernessLocalWorldProjection.OppositeDirection(gate.LastExitDirection));
@@ -146,10 +146,10 @@ namespace XianXia.Core.World.Strategic
                 switch (siteMode)
                 {
                     case PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal:
-                        if (WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                        if (WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
                                 siteCtx, siteBounds.Value, new WorldVec2(px, pz), hexSize, out var bootstrapped))
                         {
-                            if (!motion.TryUpdateWorldPositionWithinSite(motion.SiteId, bootstrapped))
+                            if (!motion.TryUpdateLegacyWorldPositionWithinSite(motion.SiteId, bootstrapped))
                             {
                                 PlayerPartySiteIngressTrace.Log(
                                     "BootstrapFailed",
@@ -180,7 +180,7 @@ namespace XianXia.Core.World.Strategic
                             ? startLoc.PresentationX.ToString("0.###") + "," +
                               startLoc.PresentationZ.ToString("0.###")
                             : "n/a";
-                        WorldSiteSpatialMapping.TryComputeFootprintWorldDomain(
+                        WorldSiteHexFootprintSpatialMapping.TryComputeFootprintWorldDomain(
                             siteCtx, hexSize,
                             out var w2lDomMinX, out var w2lDomMaxX,
                             out var w2lDomMinY, out var w2lDomMaxY);
@@ -189,14 +189,14 @@ namespace XianXia.Core.World.Strategic
                         var w2lU = w2lDomW > 0.0001f ? (w2lBoundary.X - w2lDomMinX) / w2lDomW : 0f;
                         var w2lV = w2lDomH > 0.0001f ? (w2lBoundary.Y - w2lDomMinY) / w2lDomH : 0f;
                         if (motion.HasPosition &&
-                            WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                            WorldSiteHexFootprintSpatialMapping.TryWorldSurfaceToLocal(
                                 siteCtx, siteBounds.Value, motion.WorldPosition, hexSize, out var projected))
                         {
                             PlayerPartySiteIngressTrace.Log(
                                 "WorldToLocal",
                                 "success=true" +
                                 " boundary=" + w2lBoundary +
-                                " footprintHexes=" + (siteCtx != null ? siteCtx.OccupiedHexes.Count.ToString() : "n/a") +
+                                " footprintHexes=" + (siteCtx != null ? siteCtx.LegacyOccupiedHexes.Count.ToString() : "n/a") +
                                 " domain=[" + w2lDomMinX.ToString("0.###") + "," + w2lDomMaxX.ToString("0.###") +
                                 "," + w2lDomMinY.ToString("0.###") + "," + w2lDomMaxY.ToString("0.###") + "]" +
                                 " u=" + w2lU.ToString("0.###") + " v=" + w2lV.ToString("0.###") +
@@ -216,9 +216,9 @@ namespace XianXia.Core.World.Strategic
                             // （!IsInExitTriggerBand && IsInSafeInterior）最小点。
                             // 不修改 Mapping 数学（boundary↔local 关系不变）；Landing 是 Transition
                             // policy，两层分离。inward 来自正式 SurfaceExitConnection（跨 ingress 保存于
-                            // SurfaceEdgeGate，见 PlayerPartySurfaceEdgeGate.SetIngressContext）：
+                            // LegacySurfaceEdgeGate，见 PlayerPartySurfaceEdgeGate.SetIngressContext）：
                             // SourceHex=footprint、DestinationHex=来向荒野 → LocalDirection 指向出口
-                            // （outward），inward = -LocalDirection。绝不按 CurrentHex / WorldToHex /
+                            // （outward），inward = -LocalDirection。绝不按 LegacyCurrentHex / WorldToHex /
                             // Anchor / Presence 重猜入口方向。目标矩形内缩
                             // inset = max(NearEdgeMargin, NormalizeDepth(depth))，均由现有正式几何
                             // 决定，无 magic 数值。
@@ -236,7 +236,7 @@ namespace XianXia.Core.World.Strategic
                                 WildernessLocalWorldProjection.NearEdgeMarginX(landingBounds), landingDepth);
                             var landingInsetY = Math.Max(
                                 WildernessLocalWorldProjection.NearEdgeMarginY(landingBounds), landingDepth);
-                            var ingressGate = motion.SurfaceEdgeGate;
+                            var ingressGate = motion.LegacySurfaceEdgeGate;
                             if (ingressGate != null && ingressGate.HasIngressContext)
                             {
                                 landingOk = WildernessLocalWorldProjection.TryResolveSafeIngressLanding(
@@ -272,11 +272,11 @@ namespace XianXia.Core.World.Strategic
                             // Canonical 与 Local 保持一一对应：landingLocal → LocalToWorld →
                             // motion.WorldPosition（不产生双真源）。BoundaryContact → AtSite commit →
                             // 沿 inward 向目的地内部推进最小 landing 距离。
-                            if (WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                            if (WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
                                     siteCtx, siteBounds.Value, new WorldVec2(px, pz), hexSize,
                                     out var landingWorld))
                             {
-                                if (motion.TryUpdateWorldPositionWithinSite(motion.SiteId, landingWorld))
+                                if (motion.TryUpdateLegacyWorldPositionWithinSite(motion.SiteId, landingWorld))
                                 {
                                     PlayerPartySiteIngressTrace.Log(
                                         "SafeLanding",
@@ -291,7 +291,7 @@ namespace XianXia.Core.World.Strategic
                                 "WorldToLocal",
                                 "success=false" +
                                 " boundary=" + w2lBoundary +
-                                " footprintHexes=" + (siteCtx != null ? siteCtx.OccupiedHexes.Count.ToString() : "n/a") +
+                                " footprintHexes=" + (siteCtx != null ? siteCtx.LegacyOccupiedHexes.Count.ToString() : "n/a") +
                                 " domain=[" + w2lDomMinX.ToString("0.###") + "," + w2lDomMaxX.ToString("0.###") +
                                 "," + w2lDomMinY.ToString("0.###") + "," + w2lDomMaxY.ToString("0.###") + "]" +
                                 " u=" + w2lU.ToString("0.###") + " v=" + w2lV.ToString("0.###") +
@@ -401,11 +401,11 @@ namespace XianXia.Core.World.Strategic
                     siteMode == PlayerPartySiteMaterializeMode.LegacyRestoreLocal &&
                     placementSource ==
                     LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.SnapshotLocalPlacement &&
-                    WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                    WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
                         siteCtx, siteBounds.Value, new WorldVec2(memberX, memberZ), hexSize,
                         out var legacyRestored))
                 {
-                    motion.TryUpdateWorldPositionWithinSite(motion.SiteId, legacyRestored);
+                    motion.TryUpdateLegacyWorldPositionWithinSite(motion.SiteId, legacyRestored);
                 }
 
                 if (hasStart &&
@@ -432,14 +432,14 @@ namespace XianXia.Core.World.Strategic
             // Edge Gate：Materialize 完成后 Disarm（不改 WorldPosition）。
             if (useWildernessProjection &&
                 wildernessPlayableBounds.HasValue &&
-                world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
-                world.PlayerPartyTravel.SurfaceEdgeGate.TransitionInProgress)
+                world.PlayerPartyTravel?.LegacySurfaceEdgeGate != null &&
+                world.PlayerPartyTravel.LegacySurfaceEdgeGate.TransitionInProgress)
             {
                 LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(
                     world, wildernessPlayableBounds.Value, px, pz);
             }
-            else if (world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
-                     world.PlayerPartyTravel.SurfaceEdgeGate.TransitionInProgress &&
+            else if (world.PlayerPartyTravel?.LegacySurfaceEdgeGate != null &&
+                     world.PlayerPartyTravel.LegacySurfaceEdgeGate.TransitionInProgress &&
                      siteBounds.HasValue)
             {
                 // Phase 5R-B3C1.2：删除 fake 40×40 —— 用真实 Site bounds（同 min/max）完成 Gate。
@@ -456,7 +456,7 @@ namespace XianXia.Core.World.Strategic
 
             // IngressContext 是 one-shot：本次 destination materialize + final landing 完成即消费，
             // 防止 WorldSite→WorldSite / 无新 SetIngressContext 的 materialize 读到旧 ingress direction。
-            world.PlayerPartyTravel?.SurfaceEdgeGate?.ConsumeIngressContext();
+            world.PlayerPartyTravel?.LegacySurfaceEdgeGate?.ConsumeIngressContext();
 
             return Result.Success();
         }
@@ -609,7 +609,7 @@ namespace XianXia.Core.World.Strategic
             var motion = world.PlayerPartyTravel;
             if (motion == null || !motion.HasPosition)
                 return false;
-            if (presence.ResidualHex != motion.CurrentHex)
+            if (presence.ResidualHex != motion.LegacyCurrentHex)
                 return false;
 
             var members = motion.TravelingMembers;

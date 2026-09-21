@@ -73,7 +73,7 @@ namespace XianXia.Tests
         public void G_InteriorDifferentLocalMapIsRejectedWithSpaceNeutralMessage()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(4, 4);
+            world.LegacyHexWorld.FillRectangle(4, 4);
             world.LocalMap.EnsureOverworld(OverworldMap);
             world.LocalMap.ActiveMapLayoutId = InteriorMap;
             Assert.IsTrue(world.LocalMap.IsInInterior, "本测试前提：必须处于 Interior");
@@ -102,7 +102,7 @@ namespace XianXia.Tests
         public void G2_LegacySameLocalMapJoinStillWorks()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(4, 4);
+            world.LegacyHexWorld.FillRectangle(4, 4);
             world.LocalMap.EnsureOverworld(OverworldMap);
             world.LocalMap.ActiveMapLayoutId = OverworldMap;
             Assert.IsFalse(world.LocalMap.IsInInterior);
@@ -143,7 +143,7 @@ namespace XianXia.Tests
                 "§11：Domain membership 位置必须同步为当前 Party continuous travel authority");
             Assert.AreEqual(world.PlayerPartyTravel.WorldPosition.X, presence.WorldPosX, 1e-6);
             Assert.AreEqual(world.PlayerPartyTravel.WorldPosition.Y, presence.WorldPosY, 1e-6);
-            Assert.AreEqual(world.PlayerPartyTravel.CurrentHex, presence.ResidualHex);
+            Assert.AreEqual(world.PlayerPartyTravel.LegacyCurrentHex, presence.ResidualHex);
 
             Assert.IsFalse(world.LocalMap.ContainsOccupant(FollowerId),
                 "§10：Continuous Outdoor 不写 LocalMap occupant");
@@ -162,7 +162,7 @@ namespace XianXia.Tests
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
 
             // follower 实际走过一段，停在荒村内一个 precise 位置。
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : HexWorldScale.DefaultHexOuterRadius;
+            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : HexWorldScale.DefaultHexOuterRadius;
             HexMath.ToWorldPosition(new HexCoord(3, 3), hexSize, out var px, out var py);
             var precise = new WorldVec2(px, py);
             Assert.AreEqual(VillageSiteId, WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, precise),
@@ -201,18 +201,18 @@ namespace XianXia.Tests
         static SimulationWorld BuildContinuousWorld()
         {
             var world = new SimulationWorld();
-            world.HexWorld.FillRectangle(6, 6);
+            world.LegacyHexWorld.FillRectangle(6, 6);
 
             // 荒村 PhysicalRegion（Continuous Outdoor）在 footprint hex 上注册。
             var site = new WorldSite
             {
                 SiteId = VillageSiteId,
                 DisplayName = "青石荒村",
-                AnchorHex = new HexCoord(2, 2),
+                LegacyAnchorHex = new HexCoord(2, 2),
                 LocalMapId = OverworldMap,
                 UsesContinuousOutdoorSurface = true
             };
-            site.SetFootprint(new[] { new HexCoord(2, 2), new HexCoord(3, 2), new HexCoord(2, 3), new HexCoord(3, 3) });
+            site.SetLegacyHexFootprint(new[] { new HexCoord(2, 2), new HexCoord(3, 2), new HexCoord(2, 3), new HexCoord(3, 3) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
             RegisterPlace(world, "base:loc_ref_labor_yard", OverworldMap);
@@ -222,7 +222,7 @@ namespace XianXia.Tests
             // Continuous Outdoor：没有 active LocalMap，party 位于 canonical WorldPosition。
             world.LocalMap.ActiveMapLayoutId = string.Empty;
             world.LocalMap.OverworldMapLayoutId = string.Empty;
-            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(5.2f, 10.16f), new HexCoord(2, 2));
+            world.PlayerPartyTravel.SetAtLegacyWorldPosition(new WorldVec2(5.2f, 10.16f), new HexCoord(2, 2));
             world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(VillageSiteId);
 
             // runtime 已建立的连续呈现 scope：loaded site + 两人都 materialized。

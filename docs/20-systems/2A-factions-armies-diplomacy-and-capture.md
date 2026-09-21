@@ -2,15 +2,17 @@
 
 > **2026-09-21 LEGACY-FINAL-C Seal：** 正常 runtime 的 TerritoryRegion board／service 已退休。现代政治与行政 authority 仅为 `WorldSite.OwnerFactionId + TerritoryClaim history + WorldSiteAdministrativeControlResolver / Actual Administrative Control`；Hex 控制与旧 TerritoryRegion 仅为旧 Content／Snapshot migration 输入或派生展示。旧 StrategicEncounter、RetreatingArmy、LingeringBattlefield runtime 同步退休。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 
-> **CW-U0 现行组织／参战规则：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 与 [23](23-combat.md) §2～3 替代本页旧 FormalArmy 专属产品入口及守备／同势力自动进入初始名单。唯一通用小队、初始仅冲突两队，第三方仅从开战范围内有限候选介入；政治、建筑宣战及真实战果不变。旧军队服务只作当前兼容，CW-U2B 迁移。
+> **现行组织／参战规则：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 与 [23](23-combat.md) §2～3 替代本页旧 FormalArmy 专属产品入口。唯一通用小队、初始仅冲突两队，第三方只从固定范围内有限候选介入；旧 FormalArmy 服务已退出 normal runtime，仅保留严格旧输入迁移。
 
-> 状态：最终冲突／接管规则已确认；旧 Control Asset + FactionFlag V1 基线已验收，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12
+> **当前实现命名：** 外部旧 Content 仍使用 `formalArmy` 与 `initialFormalArmyIds`；内部依次进入 `InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`，定义类型为 `LegacyFormalArmyDefinition`，不会创建 FormalArmy／ArmyStack。旧存档 identity 由 `LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId` 生成，稳定前缀 `squad:army:` 不变。`SquadCommandKind.LegacyFormalArmyWorldMotion = 2`、Encounter spatial `LegacyFormalArmy = 2` 和 JSON `sourceFormalArmyId` 都是稳定兼容协议，不是现代 producer。
+
+> 状态：现行外交、战争、CharacterEncounter 与 WorldSite 接管链已封板；旧 Army／Territory runtime 段落仅作历史与兼容说明｜优先级：P0｜最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`
 > 被引用：`03-glossary.md`、`34`、`41-roadmap`
-> **本页是战略势力层（Faction／外交／War／Capture／Army 军事规则）的产品真源。**
+> **本页的 Faction／外交／War／WorldSite Capture 规则仍是产品真源；FormalArmy／Hex Territory runtime 小节是历史规则，不是当前 authority。**
 > **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**
-> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。
+> 新功能仍需另行授权；不得从历史 `ArmyStack`／RTS 多选段落恢复产品入口。
 > **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24 历史基线）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。其中 `ControlFactionId + TerritoryRegion` runtime authority 已由上方 LEGACY-FINAL-C 补丁替代；旧 schema 仅留兼容输入。
 > **FactionFlag V1（2026-09-06）：** 阵营旗是非 Character 战略目标，攻击必须通过正式 War 门槛。Anchor+完整一环内的真实防守 FormalArmy 会建立 BattleOffer；旗本身不是参战 Character，战后不自动续拆。几何与领地求解以 2J 为准。
 > **SEALED historical baseline（2026-09-06）：** Control Asset Territory、FactionFlag 战略建筑交互、Authoring、SaveLoad 与 WorldMap 图层在当时版本已人工验收，见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。该记录继续证明旧能力，不再冻结 `EstablishedOrder` 对 SiteCore 新增范围的全局追溯优先、footprint 精确行政范围或 Army 类型特权；这些冲突点由 ADR-0032／0034 替代。
@@ -22,10 +24,10 @@
 
 1. **修士不是匿名兵力数字。** 所有修士都是持久 `Character`。
 2. **真实 Character ≠ 全员实时 Actor。** 离屏角色采用分级／数据模拟（Cold / Strategic / Hot）。
-3. **Character 与 Army 是两层。** Army 是正式**军事远征组织**（2026-08-25：[2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)），不再是「世界移动资格」。
+3. **Character 与 Squad 是当前组织层。** FormalArmy 曾是军事远征组织，现只保留旧 Content／Snapshot 单向迁移输入。
 4. ~~**不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。~~ → **SUPERSEDED（2026-08-25）**。普通 Character／PlayerParty 可在 HexWorld 旅行；FormalArmy 仅军事远征。见 2K OLD-01／02、ADR-0026。
-5. **Node／Site 防御来自真实世界状态。** Resident Character + Garrison Army + Formation；禁止临时凭空刷修士。
-6. **战略战斗结果必须改变真实世界。** 死亡、伤势、Army 损失、Ownership、资源变化最终都回写真实世界状态。
+5. **WorldSite 防御来自真实世界状态。** Resident Character + Squad／个人精确位置；禁止临时凭空刷修士。
+6. **战斗结果必须改变真实世界。** 死亡、伤势、Squad roster、Ownership、资源变化最终都回写真实世界状态。
 
 > **Development Acceptance UI（2026-08-27）：** LevelTester 使用统一 **`HostLevelTesterCheatPanel`**（`` ` `` 或顶栏「Cheat Tools」）中的 Diplomacy 区手操验证 War/Alliance/Vassalage；**非产品 UX**。旧 `HostStrategicAcceptancePanel`（F8）已移除。
 
@@ -38,9 +40,9 @@
 | 个人关系 | `RelationshipLedger`（`28`） | 角色间好恶、历史事件；**不是**势力外交 |
 | 角色隶属 | `FactionMembership`（`34`） | 角色当前正式所属势力 |
 | 势力外交 | 本文 §16～§28 | Opinion / Trust / Threat、Alliance、Vassalage、War |
-| 宏观地图 | `WorldGraph`（`113`） | WorldNode / WorldRoute |
-| 占点 | 本文 §29～§37 + `26` | CaptureObjective、Owner 直接易主 |
-| 接战 Prototype | `138`～`150`、`ArmyStack` | 历史已落地行为；正式 Army 模型以本文 + ADR-0024 为准 |
+| 宏观地图 | Continuous Surface／WorldMap | exact WorldPosition 的战略视图 |
+| 占点 | 本文 §29～§37 + `26` | WorldSite／SiteCore／Actual Administrative Control |
+| 接战 | `CharacterEncounter` + Squad／真实 Character | 旧 `ArmyStack`／StrategicEncounter 仅为历史或迁移输入 |
 
 **个人 `RelationshipLedger` 与 `Faction Diplomacy` 是不同层级，禁止混成一张表。**
 

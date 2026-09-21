@@ -50,15 +50,14 @@ namespace XianXia.Data.Bootstrap
                 if (!world.SurfaceGround.TryResolveContaining(point, out var navigation) || navigation == null)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Opening player Surface authority is unavailable.", spawn.DefinitionId);
-                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize
+                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
+                    ? world.LegacyHexWorld.HexSize
                     : 1f;
                 world.PlayerPartyTravel.SetAtSurfacePosition(
                     navigation.SurfaceId, point, HexMath.WorldToHex(point.X, point.Y, hexSize));
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(startSite.SiteId);
                 world.PlayerPartyTravel.CaptureTravelingMembers(new[] { id });
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
-                WorldTravelService.SyncPartyFocus(world);
                 return Result.Success();
             }
             return Result.Failure(ErrorCode.ContentLoadFailed, "Opening player character missing.");

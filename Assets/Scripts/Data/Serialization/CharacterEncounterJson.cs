@@ -146,7 +146,7 @@ namespace XianXia.Data.Serialization
                 ["sourceMode"] = JsonValue.FromNumber(p.SourceMode),
                 ["sourceSpatialOwnerKind"] = JsonValue.FromNumber((int)p.SourceSpatialOwnerKind),
                 ["sourceSquadId"] = JsonValue.FromString(p.SourceSquadId ?? string.Empty),
-                ["sourceFormalArmyId"] = JsonValue.FromString(p.SourceFormalArmyId ?? string.Empty),
+                ["sourceFormalArmyId"] = JsonValue.FromString(p.LegacySourceFormalArmyId ?? string.Empty),
                 ["originX"] = JsonValue.FromNumber(p.OriginX),
                 ["originY"] = JsonValue.FromNumber(p.OriginY),
                 ["returnX"] = JsonValue.FromNumber(p.ReturnX),
@@ -181,7 +181,9 @@ namespace XianXia.Data.Serialization
                     ? (EncounterSpatialOwnerKind)row.GetNumber("sourceSpatialOwnerKind", 0)
                     : EncounterSpatialOwnerKind.Personal,
                 SourceSquadId = format >= 3 ? row.GetString("sourceSquadId", "") : "",
-                SourceFormalArmyId = format >= 3 ? row.GetString("sourceFormalArmyId", "") : "",
+                LegacySourceFormalArmyId = format >= 3
+                    ? row.GetString("sourceFormalArmyId", "")
+                    : "",
                 OriginX = originX,
                 OriginY = originY,
                 ReturnX = format >= 4 ? (float)row.GetNumber("returnX", 0) : originX,

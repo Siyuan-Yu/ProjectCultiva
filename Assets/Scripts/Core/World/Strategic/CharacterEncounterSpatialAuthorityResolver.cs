@@ -7,7 +7,13 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    public enum EncounterSpatialOwnerKind { Personal = 0, PlayerParty = 1, FormalArmy = 2, Squad = 3 }
+    public enum EncounterSpatialOwnerKind
+    {
+        Personal = 0,
+        PlayerParty = 1,
+        LegacyFormalArmy = 2,
+        Squad = 3
+    }
 
     /// <summary>Read-only encounter origin resolution; organization authority is never rewritten.</summary>
     public static class CharacterEncounterSpatialAuthorityResolver

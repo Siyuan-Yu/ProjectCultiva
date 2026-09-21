@@ -48,7 +48,7 @@ namespace XianXia.Core.World.Strategic
             WorldSite destinationSite = null;
             if (string.IsNullOrEmpty(destinationSiteId) &&
                 world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(destinationHex, out var footprintSite))
+                world.Strategic.Sites.TryGetAtLegacyHex(destinationHex, out var footprintSite))
             {
                 destinationSiteId = footprintSite.SiteId;
                 destinationSite = footprintSite;
@@ -88,7 +88,7 @@ namespace XianXia.Core.World.Strategic
             if (path.Count >= 2)
             {
                 var previous = path[path.Count - 2];
-                if (destinationSite == null || !destinationSite.OccupiesHex(previous))
+                if (destinationSite == null || !destinationSite.OccupiesLegacyHex(previous))
                 {
                     ingressOutsideHex = previous;
                     return true;
@@ -103,9 +103,9 @@ namespace XianXia.Core.World.Strategic
                 for (var dir = 0; dir < 6; dir++)
                 {
                     var neighbor = HexMath.Neighbor(enteringHex, dir);
-                    if (destinationSite.OccupiesHex(neighbor))
+                    if (destinationSite.OccupiesLegacyHex(neighbor))
                         continue;
-                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) ||
+                    if (!world.LegacyHexWorld.TryGetTile(neighbor, out var tile) ||
                         tile == null ||
                         !tile.IsPassable)
                         continue;

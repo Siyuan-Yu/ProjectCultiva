@@ -1,9 +1,9 @@
 # 领地经营
 
-> 状态：SiteCore 行政管理最终设计已确认；CW-04／CW-04.5 Producer Accepted / Sealed；CW-05A/B/Closing Producer Accepted / Sealed | 优先级：P0 | 最后更新：2026-09-14
+> 状态：SiteCore／TerritoryClaim／Actual Administrative Control 与现行经济接线已 Producer Accepted / Sealed | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
-> **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
+> **Legacy TerritoryRegion：** 本文历史 §20 与 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md) 的 TerritoryRegion／Hex controller 仅记录旧实现与旧 Content／Snapshot 输入。现行政治与行政 authority 为 `WorldSite.OwnerFactionId + TerritoryClaim + WorldSiteAdministrativeControlResolver`，见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
 ## 1. 这个系统解决什么问题
 
