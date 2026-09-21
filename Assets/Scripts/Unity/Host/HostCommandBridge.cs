@@ -873,16 +873,17 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Phase 5C: 玩家 Stop 打断 LocalVisible AutoTravel（保留位置，不清 WorldPosition，
-        /// 不重新 Materialize）。非 LocalVisible 时为 no-op。与 HostMoveController 右键路径一致。
+        /// Stop 打断现代 Surface 或旧 LocalVisible AutoTravel，保留当前位置。
         /// </summary>
         void CancelLocalVisibleAutoTravelIfActive()
         {
             var world = _session?.World;
             var motion = world?.PlayerPartyTravel;
             if (motion == null ||
-                !XianXia.Core.World.Strategic.PlayerPartyLocalVisibleAutoTravelService
-                    .IsActiveLocalVisibleAutoTravel(motion))
+                (!XianXia.Core.World.Strategic.PlayerPartySurfaceTravelService
+                     .IsActiveSurfaceTravel(motion) &&
+                 !XianXia.Core.World.Strategic.PlayerPartyLocalVisibleAutoTravelService
+                     .IsActiveLocalVisibleAutoTravel(motion)))
                 return;
             XianXia.Core.World.Strategic.PlayerPartyTravelRuntimeService.CancelTravel(world);
         }

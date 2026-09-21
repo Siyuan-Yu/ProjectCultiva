@@ -10,6 +10,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// Phase 2C：Wilderness LocalMap 内移动同步、边缘跨 Hex、WorldSite 出站。
     /// </summary>
+    /// <summary>Legacy Hex / Outdoor LocalMap transition compatibility only.</summary>
     public static class PlayerPartyWildernessTransitionService
     {
         /// <summary>
@@ -212,33 +213,6 @@ namespace XianXia.Core.World.Strategic
                 motion.CurrentHex, worldPos, hexSize);
             motion.SetWorldPositionInternal(worldPos, authoritative);
             ApplyTravelingMembersAtHex(world, authoritative);
-            return Result.Success();
-        }
-
-        /// <summary>Continuous Outdoor position sync. Surface navigation is the only movement
-        /// authority; Hex is updated afterward as compatibility metadata.</summary>
-        public static Result TrySyncContinuousSurfaceWorldPosition(
-            SimulationWorld world, float worldX, float worldY)
-        {
-            if (world?.PlayerPartyTravel == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "No party travel state.");
-            var motion = world.PlayerPartyTravel;
-            if (!motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-                return Result.Success();
-            var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var position = new WorldVec2(worldX, worldY);
-            var committed = ContinuousSurfaceHexCommitResolver.Resolve(
-                motion.CurrentHex, position, size);
-            var surface = world.SurfaceGround?.Active;
-            var oldCovered = surface != null && surface.Contains(motion.WorldPosition.X, motion.WorldPosition.Y);
-            var newCovered = surface != null && surface.Contains(position.X, position.Y);
-            var legal = oldCovered && newCovered &&
-                        surface.IsSegmentWalkable(
-                            motion.WorldPosition.X, motion.WorldPosition.Y, position.X, position.Y);
-            if (!legal)
-                return Result.Failure(ErrorCode.InvalidOperation, ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic);
-            motion.SetWorldPositionInternal(position, committed);
-            ApplyTravelingMembersAtHex(world, committed);
             return Result.Success();
         }
 

@@ -191,51 +191,5 @@ namespace XianXia.Tests.EditMode
             Assert.IsFalse(ContinuousSurfacePrototypeGroundLegality.CanCross(grid, a, new HexCoord(3, 0)));
             Assert.IsTrue(ContinuousSurfacePrototypeGroundLegality.CanCross(grid, a, a));
         }
-
-        [Test]
-        public void SyncRejectsBeforeMutation_ManualAndAutoTravelKeepSafePositionAndPresence()
-        {
-            foreach (var autoTravel in new[] { false, true })
-            {
-                var world = new SimulationWorld();
-                world.HexWorld.HexSize = 1f;
-                var a = new HexCoord(0, 0); var b = new HexCoord(1, 0);
-                world.HexWorld.GetOrCreate(a);
-                var tile = world.HexWorld.GetOrCreate(b);
-                tile.Terrain = HexTerrainType.Water; tile.IsPassable = true;
-                var member = world.Entities.CreateCharacter(new DefinitionId("test", "member"), "member").Value.Id;
-                var motion = world.PlayerPartyTravel;
-                var safe = new WorldVec2(0.85f, 0f);
-                motion.SetAtWorldPosition(safe, a);
-                if (autoTravel)
-                {
-                    motion.BeginAutoTravel(new[] { a, b }, b, string.Empty, HexTravelMode.Ground, 1f);
-                    motion.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-                }
-                motion.CaptureTravelingMembers(new[] { member });
-                world.WorldPresence.SetAtHex(member, a);
-                // Includes the derived-but-not-committed band; canonical must not leak into water.
-                foreach (var x in new[] { 0.88f, 1.0f })
-                {
-                    Assert.IsTrue(PlayerPartyWildernessTransitionService.TrySyncContinuousSurfaceWorldPosition(world, x, 0f).IsFailure);
-                    Assert.AreEqual(safe, motion.WorldPosition);
-                    Assert.AreEqual(a, motion.CurrentHex);
-                    Assert.IsTrue(world.WorldPresence.TryGet(member, out var presence));
-                    Assert.AreEqual(a, presence.ResidualHex);
-                }
-                if (autoTravel)
-                {
-                    Assert.IsTrue(motion.IsMoving);
-                    Assert.AreEqual(2, motion.HexPathCount);
-                    Assert.AreEqual(0, motion.SegmentIndex);
-                    Assert.AreEqual(b, motion.DestinationHex);
-                }
-                tile.Terrain = HexTerrainType.Plain; tile.IsRoad = false;
-                Assert.IsTrue(PlayerPartyWildernessTransitionService.TrySyncContinuousSurfaceWorldPosition(world, 1.0f, 0f).IsSuccess);
-                Assert.AreEqual(b, motion.CurrentHex);
-                Assert.IsTrue(world.WorldPresence.TryGet(member, out var accepted));
-                Assert.AreEqual(b, accepted.ResidualHex);
-            }
-        }
     }
 }

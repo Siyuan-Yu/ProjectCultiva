@@ -89,7 +89,7 @@ namespace XianXia.Unity.Host
             _viewReady = false;
             _missingSiteCoreReported.Clear();
             HostInputGate.Acquire(InputOwner);
-            bootstrap?.PlayerPartyController?.FreezeLocalVisibleTravelForPlanning();
+            bootstrap?.PlayerPartyController?.FreezeSurfaceTravelForPlanning();
         }
 
         public void Close() => CloseInternal(false);
@@ -108,8 +108,8 @@ namespace XianXia.Unity.Host
                 bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
             {
                 if (world?.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving &&
-                    world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
-                    bootstrap.PlayerPartyController?.ResumeLocalVisibleTravelAfterPlanning();
+                    world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.SurfaceVisible)
+                    bootstrap.PlayerPartyController?.ResumeSurfaceTravelAfterPlanning();
                 return;
             }
             if (bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
@@ -595,16 +595,33 @@ namespace XianXia.Unity.Host
                     world, party, new(worldPoint.x, worldPoint.y), siteId,
                     nav.CellSize * .75f);
                 if (result.IsFailure)
+                {
                     _status = result.Error.Message;
+                    ReportSurfaceTravelPlanRejected(world, worldPoint, result.Error.ToString());
+                }
                 else
                 {
-                    world.PlayerPartyTravel.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
                     _status = string.IsNullOrEmpty(siteId)
                         ? "已规划前往地面位置，关闭地图后出发"
                         : "已规划前往 " + siteId + "，关闭地图后出发";
                 }
                 e.Use();
             }
+        }
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR"),
+         System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        static void ReportSurfaceTravelPlanRejected(
+            SimulationWorld world, Vector2 destination, string reason)
+        {
+            var motion = world?.PlayerPartyTravel;
+            Debug.LogWarning(
+                "[SurfaceTravelPlanRejected] reason=" + (reason ?? string.Empty) +
+                " LocationKind=" + (motion != null ? motion.LocationKind.ToString() : "missing") +
+                " SurfaceId=" + (motion?.SurfaceId ?? string.Empty) +
+                " WorldPosition=" + (motion != null ? motion.WorldPosition.ToString() : "missing") +
+                " Destination=(" + destination.x.ToString("0.###") + "," +
+                destination.y.ToString("0.###") + ")");
         }
 
         void DrawInspect(SimulationWorld world)

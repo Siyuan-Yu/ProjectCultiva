@@ -5,7 +5,7 @@ namespace XianXia.Core.World.Strategic
     {
         /// <summary>位于 WorldSite LocalMap；世界投影 = PresenceHex。</summary>
         AtWorldSite = 0,
-        /// <summary>位于普通 Hex 连续开世界；真源 = Continuous WorldPosition。</summary>
+        /// <summary>位于 Continuous Surface；真源 = SurfaceId + exact WorldPosition。</summary>
         AtWorldPosition = 1,
     }
 
@@ -24,9 +24,11 @@ namespace XianXia.Core.World.Strategic
     {
         /// <summary>无进行中的 AutoTravel 执行权（Idle）。</summary>
         None = 0,
-        /// <summary>World Tick：StrategicTravelDriver / AdvanceDistanceBudget 可推进。</summary>
+        /// <summary>Legacy Hex World Tick executor。</summary>
         World = 1,
-        /// <summary>近景可见：World Advance 必须跳过该 PlayerParty。</summary>
+        /// <summary>Legacy Outdoor LocalMap 可见 executor。</summary>
         LocalVisible = 2,
+        /// <summary>正常 Continuous Surface 可见执行器；精确 Surface route 由 Host 推进。</summary>
+        SurfaceVisible = 3,
     }
 }

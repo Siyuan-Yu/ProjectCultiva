@@ -7,7 +7,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// PlayerParty 权威世界位置查询：WorldMap Marker 与 CloseWorldMapTakeover 必须共用。
+    /// PlayerParty 权威世界位置查询：WorldMap marker 与 runtime presentation 共用。
     /// PartyWorld.SiteId / LocalMapId 不得反写 Domain WorldLocation。
     /// </summary>
     public static class PlayerPartyWorldLocationQuery
@@ -16,6 +16,7 @@ namespace XianXia.Core.World.Strategic
         {
             public PlayerPartyLocationKind LocationKind;
             public string SiteId;
+            public string SurfaceId;
             public WorldVec2 WorldPosition;
             public HexCoord DerivedHex;
             public string ResolvedLocalMapId;
@@ -51,6 +52,30 @@ namespace XianXia.Core.World.Strategic
             if (!motion.HasPosition)
             {
                 return false;
+            }
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                !string.IsNullOrEmpty(motion.SurfaceId) &&
+                world.SurfaceGround.TryGet(motion.SurfaceId, out var modernSurface) &&
+                modernSurface != null && modernSurface.Contains(
+                    motion.WorldPosition.X, motion.WorldPosition.Y))
+            {
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                resolved = new Resolved
+                {
+                    HasValue = true,
+                    LocationKind = PlayerPartyLocationKind.AtWorldPosition,
+                    SiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty,
+                    SurfaceId = motion.SurfaceId,
+                    WorldPosition = motion.WorldPosition,
+                    DerivedHex = HexMath.WorldToHex(
+                        motion.WorldPosition.X, motion.WorldPosition.Y, hexSize),
+                    ResolvedLocalMapId = string.Empty,
+                };
+                return true;
             }
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
@@ -104,6 +129,7 @@ namespace XianXia.Core.World.Strategic
                     HasValue = true,
                     LocationKind = PlayerPartyLocationKind.AtWorldSite,
                     SiteId = site.SiteId,
+                    SurfaceId = string.Empty,
                     WorldPosition = markerPos,
                     DerivedHex = derivedHex,
                     ResolvedLocalMapId = site.LocalMapId ?? string.Empty,
@@ -134,6 +160,7 @@ namespace XianXia.Core.World.Strategic
                 HasValue = true,
                 LocationKind = PlayerPartyLocationKind.AtWorldPosition,
                 SiteId = string.Empty,
+                SurfaceId = string.Empty,
                 WorldPosition = worldPos,
                 DerivedHex = contextHex,
                 ResolvedLocalMapId = mapId ?? string.Empty,
@@ -158,25 +185,55 @@ namespace XianXia.Core.World.Strategic
                 motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
                 return false;
 
-            if (motion.HasPosition &&
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(motion.SiteId))
-                return false;
-
             var activeId = party != null && party.HasActive ? party.ActiveCharacterId : EntityId.None;
             if (activeId.IsNone ||
                 !world.WorldPresence.TryGet(activeId, out var wp) ||
-                wp == null ||
-                wp.Mode != PartyWorldPresenceMode.AtSite ||
-                string.IsNullOrEmpty(wp.SiteId))
-                return false;
-
-            if (!world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
+                wp == null)
                 return false;
 
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                WorldVec2 position;
+                string surfaceId;
+                var siteId = wp.SiteId ?? string.Empty;
+                if (wp.HasContinuousWorldPosition &&
+                    !string.IsNullOrEmpty(wp.PersonalSurfaceId) &&
+                    world.SurfaceGround.TryGet(wp.PersonalSurfaceId, out var anchoredSurface) &&
+                    anchoredSurface.Contains(wp.WorldPosX, wp.WorldPosY))
+                {
+                    position = wp.ContinuousWorldPosition;
+                    surfaceId = anchoredSurface.SurfaceId;
+                }
+                else if (wp.Mode == PartyWorldPresenceMode.AtSite &&
+                         !string.IsNullOrEmpty(siteId) &&
+                         world.SurfaceGround.TryResolveSiteArrival(
+                             siteId, out surfaceId, out position))
+                {
+                    // Genuine old Site-only presence migrates once through authored SiteArrival.
+                }
+                else
+                {
+                    return false;
+                }
+
+                motion.SetAtSurfacePosition(surfaceId, position,
+                    HexMath.WorldToHex(position.X, position.Y, hexSize));
+                if (string.IsNullOrEmpty(siteId) &&
+                    WorldSitePhysicalRegionQuery.TryResolve(world, position, out var currentSite))
+                    siteId = currentSite.SiteId;
+                motion.SetCurrentOutdoorWorldSiteContext(siteId);
+                if (party != null)
+                    PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+                PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "HealStartupOnlySurface");
+                return true;
+            }
+            if (wp.Mode != PartyWorldPresenceMode.AtSite ||
+                string.IsNullOrEmpty(wp.SiteId) ||
+                !world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
+                return false;
             motion.SetAtWorldSite(site.SiteId, site.PresenceHex, hexSize);
             if (party != null)
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);

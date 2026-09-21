@@ -367,7 +367,7 @@ namespace XianXia.Tests
             for (var i = 0; i < 4 && world.PlayerPartyTravel.IsMoving; i++)
                 PlayerPartyHexTravelService.AdvanceAll(world, 1);
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.IsFalse(world.PlayerPartyTravel.IsMoving);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
             Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
@@ -390,7 +390,7 @@ namespace XianXia.Tests
                           siteA, world.PlayerPartyTravel.CurrentHex),
                 500));
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.IsFalse(world.PlayerPartyTravel.IsMoving);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
             Assert.IsFalse(WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
@@ -773,7 +773,7 @@ namespace XianXia.Tests
             world.PlayerPartyTravel.SetAtWorldPosition(nearEdge, derived);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.AreEqual(WildernessLocalMapFallback.PlainsWildernessLocalMapId, world.PartyWorld.LocalMapId);
             Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, world.PartyWorld.LocalMapId);
         }
@@ -796,7 +796,7 @@ namespace XianXia.Tests
             world.PlayerPartyTravel.SetAtWorldPosition(across, derived);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.AreEqual(WildernessLocalMapFallback.ForestWildernessLocalMapId, world.PartyWorld.LocalMapId);
             Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, world.PartyWorld.LocalMapId);
         }
@@ -1085,7 +1085,7 @@ namespace XianXia.Tests
 
             Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
 
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
             Assert.AreEqual(mid, world.PlayerPartyTravel.CurrentHex);
@@ -1155,7 +1155,7 @@ namespace XianXia.Tests
 
             Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
 
             var bounds = new WildernessLocalWorldProjection.WildernessLocalMapBounds(0f, 20f, 0f, 20f);
             PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
@@ -1207,7 +1207,7 @@ namespace XianXia.Tests
 
             Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
             ForceAdvanceToDestination(world);
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
 
             Assert.IsTrue(WildernessLocalMapFallback.TryResolve(world, mid, out var expectedMap));
             Assert.AreEqual(expectedMap, world.PartyWorld.LocalMapId);
@@ -2074,7 +2074,7 @@ namespace XianXia.Tests
             Assert.IsTrue(WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
                 siteA, world.PlayerPartyTravel.CurrentHex));
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.AreEqual(siteA.LocalMapId, world.PartyWorld.LocalMapId);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
             Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
@@ -2096,7 +2096,7 @@ namespace XianXia.Tests
                       !WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
                           siteA, world.PlayerPartyTravel.CurrentHex),
                 500));
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.IsTrue(WildernessLocalMapFallback.TryResolve(
                 world, world.PlayerPartyTravel.CurrentHex, out var mapId));
             Assert.AreEqual(mapId, world.PartyWorld.LocalMapId);
@@ -2149,7 +2149,7 @@ namespace XianXia.Tests
                       world.PlayerPartyTravel.IsMoving,
                 500));
 
-            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(LegacyPlayerPartyTravelTestCompatibility.CloseWorldMapTakeover(world, party).IsSuccess);
             Assert.AreEqual(siteB.LocalMapId, world.PartyWorld.LocalMapId);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
         }

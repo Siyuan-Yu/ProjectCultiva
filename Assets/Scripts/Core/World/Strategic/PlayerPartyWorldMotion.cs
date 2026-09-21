@@ -49,6 +49,8 @@ namespace XianXia.Core.World.Strategic
         public PlayerPartyTravelExecutionMode ExecutionMode { get; private set; } =
             PlayerPartyTravelExecutionMode.None;
         public string SiteId { get; private set; } = string.Empty;
+        /// <summary>正常 Continuous Outdoor 位置 provenance；Hex 兼容路径保持为空。</summary>
+        public string SurfaceId { get; private set; } = string.Empty;
         public WorldVec2 WorldPosition { get; private set; }
         public HexTravelMode TravelMode { get; private set; } = HexTravelMode.Ground;
         public HexCoord DestinationHex { get; private set; }
@@ -283,6 +285,7 @@ namespace XianXia.Core.World.Strategic
         {
             LocationKind = PlayerPartyLocationKind.AtWorldSite;
             SiteId = siteId ?? string.Empty;
+            SurfaceId = string.Empty;
             CurrentHex = presenceHex;
             HexMath.ToWorldPosition(presenceHex, hexSize, out var x, out var y);
             WorldPosition = new WorldVec2(x, y);
@@ -308,6 +311,7 @@ namespace XianXia.Core.World.Strategic
 
             LocationKind = PlayerPartyLocationKind.AtWorldSite;
             SiteId = siteId;
+            SurfaceId = string.Empty;
             WorldPosition = worldPosition;
             CurrentHex = currentHex;
             HasPosition = true;
@@ -321,6 +325,7 @@ namespace XianXia.Core.World.Strategic
         {
             LocationKind = PlayerPartyLocationKind.AtWorldPosition;
             SiteId = string.Empty;
+            SurfaceId = string.Empty;
             WorldPosition = worldPos;
             CurrentHex = derivedHex;
             CurrentOutdoorWorldSiteId = string.Empty;
@@ -378,16 +383,28 @@ namespace XianXia.Core.World.Strategic
             StartAutoTravel(PlayerPartyTravelExecutionMode.World);
         }
 
-        /// <summary>NewGame continuous Surface placement without a HexWorld lookup.</summary>
-        public void SetAtSurfacePosition(WorldVec2 worldPos) => SetAtWorldPosition(worldPos, default);
+        /// <summary>正常 Continuous Surface 的 canonical placement。</summary>
+        public void SetAtSurfacePosition(string surfaceId, WorldVec2 worldPos, HexCoord derivedCompatibilityHex)
+        {
+            if (string.IsNullOrWhiteSpace(surfaceId))
+                throw new ArgumentException("surfaceId required.", nameof(surfaceId));
+            SetAtWorldPosition(worldPos, derivedCompatibilityHex);
+            SurfaceId = surfaceId;
+        }
 
         public void BeginSurfaceAutoTravel(
-            WorldVec2 destinationWorldPosition, string destinationSiteId, float arrivalRadius,
-            IReadOnlyList<WorldVec2> continuousRoute)
+            string surfaceId, WorldVec2 destinationWorldPosition, string destinationSiteId,
+            float arrivalRadius, IReadOnlyList<WorldVec2> continuousRoute,
+            HexCoord derivedCompatibilityDestinationHex)
         {
+            if (string.IsNullOrWhiteSpace(surfaceId))
+                throw new ArgumentException("surfaceId required.", nameof(surfaceId));
             TravelPlanVersion++;
+            SurfaceId = surfaceId;
             DestinationSiteId = destinationSiteId ?? string.Empty;
             FinalDestinationSiteId = DestinationSiteId;
+            DestinationHex = derivedCompatibilityDestinationHex;
+            FinalDestinationHex = derivedCompatibilityDestinationHex;
             HasContinuousPhysicalDestination = true;
             ContinuousPhysicalDestination = destinationWorldPosition;
             ContinuousPhysicalArrivalRadius = Math.Max(0.001f, arrivalRadius);
@@ -399,43 +416,7 @@ namespace XianXia.Core.World.Strategic
                 for (var i = 0; i < continuousRoute.Count; i++)
                     _continuousSurfaceRoute.Add(continuousRoute[i]);
             ContinuousSurfaceRouteIndex = _continuousSurfaceRoute.Count > 1 ? 1 : 0;
-            StartAutoTravel(PlayerPartyTravelExecutionMode.LocalVisible);
-        }
-
-        /// <summary>
-        /// Continuous-only start: a one-Hex path still represents a real physical journey.
-        /// Never snaps or completes merely because the coarse Hex route has zero segments.
-        /// </summary>
-        public void BeginContinuousAutoTravel(
-            IReadOnlyList<HexCoord> path,
-            HexCoord destinationHex,
-            string destinationSiteId,
-            HexTravelMode mode,
-            WorldVec2 physicalDestination,
-            float physicalArrivalRadius)
-        {
-            BeginContinuousAutoTravel(path, destinationHex, destinationSiteId, mode,
-                physicalDestination, physicalArrivalRadius, null);
-        }
-
-        public void BeginContinuousAutoTravel(
-            IReadOnlyList<HexCoord> path,
-            HexCoord destinationHex,
-            string destinationSiteId,
-            HexTravelMode mode,
-            WorldVec2 physicalDestination,
-            float physicalArrivalRadius,
-            IReadOnlyList<WorldVec2> surfaceRoute)
-        {
-            LoadAutoTravelPlan(path, destinationHex, destinationSiteId, mode);
-            HasContinuousPhysicalDestination = true;
-            ContinuousPhysicalDestination = physicalDestination;
-            ContinuousPhysicalArrivalRadius = Math.Max(0.001f, physicalArrivalRadius);
-            _continuousSurfaceRoute.Clear();
-            if (surfaceRoute != null)
-                for (var i = 0; i < surfaceRoute.Count; i++) _continuousSurfaceRoute.Add(surfaceRoute[i]);
-            ContinuousSurfaceRouteIndex = _continuousSurfaceRoute.Count > 1 ? 1 : 0;
-            StartAutoTravel(PlayerPartyTravelExecutionMode.LocalVisible);
+            StartAutoTravel(PlayerPartyTravelExecutionMode.SurfaceVisible);
         }
 
         public bool TryGetContinuousSurfaceWaypoint(out WorldVec2 waypoint)
@@ -451,6 +432,14 @@ namespace XianXia.Core.World.Strategic
         {
             if (ContinuousSurfaceRouteIndex < _continuousSurfaceRoute.Count)
                 ContinuousSurfaceRouteIndex++;
+        }
+
+        /// <summary>Monotonic guidance advance after the Host physically reaches a later route point.</summary>
+        public void AdvanceContinuousSurfaceRouteTo(int nextIndex)
+        {
+            if (nextIndex <= ContinuousSurfaceRouteIndex)
+                return;
+            ContinuousSurfaceRouteIndex = Math.Min(nextIndex, _continuousSurfaceRoute.Count);
         }
 
         void LoadAutoTravelPlan(
@@ -564,6 +553,22 @@ namespace XianXia.Core.World.Strategic
             CurrentHex = derivedHex;
             LocationKind = PlayerPartyLocationKind.AtWorldPosition;
             SiteId = string.Empty;
+            SurfaceId = string.Empty;
+            HasPosition = true;
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
+        }
+
+        /// <summary>Surface presentation accepted a legal physical step; travel intent is preserved.</summary>
+        public void UpdateSurfaceWorldPosition(string surfaceId, WorldVec2 pos, HexCoord derivedCompatibilityHex)
+        {
+            if (string.IsNullOrWhiteSpace(surfaceId) ||
+                !string.Equals(SurfaceId, surfaceId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Surface position provenance changed during travel.");
+            WorldPosition = pos;
+            CurrentHex = derivedCompatibilityHex;
+            LocationKind = PlayerPartyLocationKind.AtWorldPosition;
+            SiteId = string.Empty;
             HasPosition = true;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
@@ -612,6 +617,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             LocationKind = PlayerPartyLocationKind.AtWorldSite;
             SiteId = siteId;
+            SurfaceId = string.Empty;
             WorldPosition = worldPosition;
             HasPosition = true;
             ClearMovementKeepMembers();

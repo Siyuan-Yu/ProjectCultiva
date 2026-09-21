@@ -82,9 +82,8 @@ namespace XianXia.Core.World.Strategic
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
-                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation);
                 world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
-                    motion.CurrentHex, navigation?.SurfaceId ?? string.Empty);
+                    motion.CurrentHex, motion.SurfaceId ?? string.Empty);
                 return;
             }
 
@@ -254,12 +253,9 @@ namespace XianXia.Core.World.Strategic
                 {
                     var id = party.Members[i];
                     if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id)) continue;
-                    if (atSite)
-                        world.WorldPresence.SetAtSiteWithAnchor(id, motion.SiteId,
-                            motion.WorldPosition, navigation.SurfaceId);
-                    else
-                        world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
-                            motion.CurrentHex, navigation.SurfaceId);
+                    world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
+                        motion.CurrentHex,
+                        string.IsNullOrEmpty(motion.SurfaceId) ? navigation.SurfaceId : motion.SurfaceId);
                 }
                 return;
             }

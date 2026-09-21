@@ -7,6 +7,7 @@ using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
+using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -39,6 +40,7 @@ namespace XianXia.Unity.Host
         SimulationWorld _legacyOutdoorRestoreMigrationWorld;
         SimulationWorld _snapshotRestoredWorld;
         bool _isSnapshotPresentationRebuild;
+        bool _partySurfaceAuthorityInvalidReported;
         readonly HashSet<EntityId> _newlyMaterializedEntities = new HashSet<EntityId>();
         PlayableHostBootstrap _bootstrap;
         HostDemoTileMap _tileMap;
@@ -81,9 +83,6 @@ namespace XianXia.Unity.Host
         SurfaceChunkCoord _pendingCenter;
         int _pendingAddIndex;
         int _pendingRemoveIndex;
-        bool _autoTravelPathBlocked;
-        HexCoord _blockedNextHex, _blockedDestination;
-        WorldVec2 _blockedFrom, _blockedCandidate;
         public string LastMovementDiagnostic { get; private set; } = string.Empty;
         public string SurfaceEgressStatus { get; private set; } = "None";
         public bool IsActive { get; private set; }
@@ -645,27 +644,22 @@ namespace XianXia.Unity.Host
             var views = _bootstrap.ViewSpawner.Registry;
             if (!views.TryGet(party.ActiveCharacterId, out var active) || active == null) return;
             var safe = motion.WorldPosition;
-            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             _mapper.PresentationToWorld(active.transform.position.x, active.transform.position.y, out var wx, out var wy);
-            var result = PlayerPartyWildernessTransitionService.TrySyncContinuousSurfaceWorldPosition(world, wx, wy);
-            if (result.IsSuccess)
-                motion.SetCurrentOutdoorWorldSiteContext(
-                    ResolveCurrentOutdoorSiteId(world, motion.WorldPosition));
+            var result = PlayerPartySurfaceTravelService.TrySyncWorldPosition(
+                world, party, new WorldVec2(wx, wy));
             if (result.IsFailure)
             {
-                ReportLegalityBlocked();
-                if (PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
-                {
-                    _autoTravelPathBlocked = true;
-                    _blockedFrom = safe;
-                    _blockedCandidate = new WorldVec2(wx, wy);
-                    _blockedDestination = motion.DestinationHex;
-                    _blockedNextHex = PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
-                        motion, out _, out var next, out _) ? next : motion.DestinationHex;
-                }
+                if (HasValidPartySurfaceAuthority(world, motion))
+                    ReportLegalityBlocked();
+                else
+                    ReportPartySurfaceAuthorityInvalidOnce(motion);
                 _bootstrap.MoveController.InvalidatePartyLocalMovement(party.Members);
                 _mapper.WorldToPresentation(safe.X, safe.Y, out var px, out var py);
                 RestoreMember(party.ActiveCharacterId, new Vector3(px, py, HostPresentationSpace.EntityZ));
+            }
+            else
+            {
+                _partySurfaceAuthorityInvalidReported = false;
             }
             foreach (var id in motion.TravelingMembers)
             {
@@ -674,9 +668,8 @@ namespace XianXia.Unity.Host
                 _mapper.PresentationToWorld(p.x, p.y, out wx, out wy);
                 var previous = _lastLegalMembers.TryGetValue(id, out var last) ? last : active.transform.position;
                 _mapper.PresentationToWorld(previous.x, previous.y, out var oldX, out var oldY);
-                var oldHex = HexMath.WorldToHex(oldX, oldY, world.HexWorld.HexSize);
                 if (!id.Equals(party.ActiveCharacterId) &&
-                    !IsContinuousMoveLegal(world, new WorldVec2(oldX, oldY), oldHex, new WorldVec2(wx, wy)))
+                    !IsContinuousMoveLegal(world, new WorldVec2(oldX, oldY), new WorldVec2(wx, wy)))
                 {
                     _bootstrap.MoveController.CancelPresentationMovementPublic(id);
                     RestoreMember(id, previous);
@@ -693,22 +686,33 @@ namespace XianXia.Unity.Host
             LastMovementDiagnostic = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
         }
 
-        public bool IsAutoTravelPathBlocked(HexCoord nextHex)
+        bool HasValidPartySurfaceAuthority(SimulationWorld world, PlayerPartyWorldMotion motion)
         {
-            if (!_autoTravelPathBlocked) return false;
-            var world = _bootstrap.Session.World;
-            var motion = world.PlayerPartyTravel;
-            // Retry only after manual reposition, route change or ground legality change.
-            // Do not continually reissue the same failed realtime path, or cancel its TravelPlan.
-            if (!motion.WorldPosition.Equals(_blockedFrom) || !nextHex.Equals(_blockedNextHex) ||
-                !motion.DestinationHex.Equals(_blockedDestination) ||
-                IsContinuousMoveLegal(world, motion.WorldPosition, motion.CurrentHex, _blockedCandidate))
-                _autoTravelPathBlocked = false;
-            return _autoTravelPathBlocked;
+            return world != null && motion != null &&
+                   motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                   !string.IsNullOrEmpty(motion.SurfaceId) &&
+                   world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) &&
+                   navigation != null &&
+                   navigation.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) &&
+                   string.Equals(motion.SurfaceId, _surfaceId, StringComparison.Ordinal);
+        }
+
+        void ReportPartySurfaceAuthorityInvalidOnce(PlayerPartyWorldMotion motion)
+        {
+            if (_partySurfaceAuthorityInvalidReported)
+                return;
+            _partySurfaceAuthorityInvalidReported = true;
+            Debug.LogError(
+                "[PlayerPartySurfaceAuthorityInvalid]" +
+                " SurfaceId=" + (motion?.SurfaceId ?? string.Empty) +
+                " LocationKind=" + (motion != null ? motion.LocationKind.ToString() : "missing") +
+                " WorldPosition=" + (motion != null ? motion.WorldPosition.ToString() : "missing") +
+                " ActiveSurface=" + (_surfaceId ?? string.Empty),
+                this);
         }
 
         static bool IsContinuousMoveLegal(
-            SimulationWorld world, WorldVec2 from, HexCoord committedHex, WorldVec2 to)
+            SimulationWorld world, WorldVec2 from, WorldVec2 to)
         {
             var nav = world?.SurfaceGround?.Active;
             var oldCovered = nav != null && nav.Contains(from.X, from.Y);
@@ -816,7 +820,9 @@ namespace XianXia.Unity.Host
                 position = new WorldVec2(x, y);
             }
             var hex = HexMath.WorldToHex(position.X, position.Y, size);
-            motion.SetAtWorldPosition(position, hex);
+            if (!world.SurfaceGround.TryResolveContaining(position, out var navigation) || navigation == null)
+                return;
+            motion.SetAtSurfacePosition(navigation.SurfaceId, position, hex);
             motion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
             var party = _bootstrap.Session.PlayerParty;
             if (party != null)
@@ -867,7 +873,6 @@ namespace XianXia.Unity.Host
                     _bootstrap.Session.World, activeMotion.WorldPosition));
             _lastLegalMembers.Clear();
             LastMovementDiagnostic = string.Empty;
-            _autoTravelPathBlocked = false;
             SurfaceEgressStatus = "None";
             _bootstrap.MoveController.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             // A continuous surface is not a LocalMap. Dispose the previous WorldSite-only
@@ -1397,6 +1402,7 @@ namespace XianXia.Unity.Host
             _bootstrap?.MoveController?.BindLocalMapContext(string.Empty);
             _surfaceId = string.Empty;
             _independentFieldId = string.Empty;
+            _partySurfaceAuthorityInvalidReported = false;
         }
 
         /// <summary>
@@ -1415,6 +1421,17 @@ namespace XianXia.Unity.Host
             // SPACE-01：Active Separate Space 不得重建 Continuous Outdoor presentation。
             if (world?.LocalMap != null && world.LocalMap.IsActive)
                 return false;
+            var authority =
+                StrategicSnapshotHelper.ValidatePlayerPartyContinuousAuthorityAfterContentShell(world);
+            if (authority.IsFailure)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogError(
+                    "[SnapshotRestore.PlayerPartySurfaceAuthorityInvalid] " + authority.Error,
+                    this);
+#endif
+                return false;
+            }
             // Snapshot-restored EntityLocation placement is persistence truth even while its
             // Separate Space is inactive. Outdoor materializers overwrite only entities for which
             // they hold positive Outdoor authority; presentation rebuild must never reset every

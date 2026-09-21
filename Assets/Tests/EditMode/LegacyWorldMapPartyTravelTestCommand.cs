@@ -5,7 +5,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// WorldMap 输入解析：永远只有 Hex / WorldSite 级目标。
+    /// 仅用于旧 Hex 测试夹具；生产 WorldMap 已使用 exact Surface target。
     /// 禁止 PreciseWorldDestination / 点击像素目的地。
     /// </summary>
     public static class WorldMapPartyTravelCommand
@@ -106,6 +106,48 @@ namespace XianXia.Core.World.Strategic
             }
 
             return best;
+        }
+    }
+}
+
+
+namespace XianXia.Core.World.Strategic
+{
+    /// <summary>Test-assembly fixture for retired WorldMap/LocalVisible takeover behavior.</summary>
+    public static class LegacyPlayerPartyTravelTestCompatibility
+    {
+        public static XianXia.Core.Results.Result CloseWorldMapTakeover(
+            XianXia.Core.Simulation.SimulationWorld world,
+            XianXia.Core.World.PlayerPartyRuntime party)
+        {
+            if (world == null || party == null)
+                return XianXia.Core.Results.Result.Failure(
+                    XianXia.Core.Results.ErrorCode.InvalidArgument, "Invalid takeover args.");
+            var motion = world.PlayerPartyTravel;
+            if (motion != null && motion.IsMoving)
+            {
+                if (motion.SegmentProgress < 1f &&
+                    motion.TryGetActiveStepHexes(out var fromHex, out _) &&
+                    !motion.CurrentHex.Equals(fromHex))
+                    motion.AlignCurrentHex(fromHex);
+                var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(
+                    world, party, allowWhileTraveling: true);
+                if (enter.IsFailure) return enter;
+                motion.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+                return XianXia.Core.Results.Result.Success();
+            }
+            return PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
+        }
+
+        public static void ResumeWorldTravelExecutionIfNeeded(
+            XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
+                return;
+            motion.SetExecutionMode(motion.IsMoving
+                ? PlayerPartyTravelExecutionMode.World
+                : PlayerPartyTravelExecutionMode.None);
         }
     }
 }

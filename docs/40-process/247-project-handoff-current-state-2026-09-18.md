@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 ## Resume Snapshot — 2026-09-18
+> **2026-09-21 LEGACY-FINAL-B Seal：** PlayerParty Continuous Surface travel authority cutover 已由制作人完成人工验收并正式 **Producer Accepted / Sealed**。正常玩家户外位置与旅行使用 `SurfaceId + exact WorldPosition + SurfaceVisible`；Hex／Outdoor LocalMap executor 仅留兼容边界。当前主线切换为 **LEGACY-FINAL-C — Final Strategic Hex / Territory / Residual / Legacy Battle Runtime Retirement**。C 完成并验收前不得宣称 Legacy Finalization Complete。
+
+> **2026-09-21 LEGACY-FINAL-B implementation：** 已完成 PlayerParty Continuous Surface travel authority cutover，状态为 **Implementation Complete / Producer Acceptance Pending**。正常 New Game／WorldMap／WASD 链使用 `SurfaceId + exact WorldPosition + SurfaceVisible`；正常 WorldSite 保持 AtWorldPosition，Hex／LocalVisible／Wilderness transition 仅留旧档、旧内容与旧 Outdoor LocalMap 兼容。正式记录见 [249](249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。LEGACY-FINAL-C 为 Next；B 未经制作人验收且 C 未完成前不得宣称 Legacy Finalization Complete。
+
 > **2026-09-21 current handoff：** LEGACY-FINAL-A 已由制作人完整人工验收并正式 **Accepted / Sealed**；已验收实现 checkpoint 为 `e97f53f`。当前主线为 **LEGACY-FINAL-B — PlayerParty Continuous Surface Travel Authority Cutover**，目标是把正常玩家旅行收口为 `SurfaceId + exact WorldPosition + SurfaceVisible`，并把 Hex／Outdoor LocalMap executor 限定为兼容路径。LEGACY-FINAL-C 为下一阶段；B/C 完成前不得宣称 Legacy Finalization Complete。
 
 > **2026-09-20 Seal / Legacy Finalization superseding state：** MAP-04、CW-10、CW-10.5 与 Cave Loot persistence 已由制作人人工验收并正式 **Accepted / Sealed**。当前主线切换为 **LEGACY-FINAL-A — Unified NPC Squad World Motion / FormalArmy Runtime Retirement**；随后依次为 LEGACY-FINAL-B、LEGACY-FINAL-C。A/B/C 全部完成前不得宣称 Legacy migration complete。本文后续关于 MAP-04／CW-10／CW-10.5 pending 的段落均为历史恢复快照。

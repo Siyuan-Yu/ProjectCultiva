@@ -9,6 +9,7 @@ using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.Exploration
 {
@@ -183,7 +184,12 @@ namespace XianXia.Core.Exploration
             if (continuousReturn && world.PlayerPartyTravel != null)
             {
                 var position = new WorldVec2(session.ReturnWorldX, session.ReturnWorldY);
-                world.PlayerPartyTravel.SetAtSurfacePosition(position);
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                var derivedHex = HexMath.WorldToHex(position.X, position.Y, hexSize);
+                world.PlayerPartyTravel.SetAtSurfacePosition(
+                    session.ReturnSurfaceId, position, derivedHex);
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
                     WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
                         world, position.X, position.Y, out _, out var returnSite, out _)
@@ -194,12 +200,12 @@ namespace XianXia.Core.Exploration
                 {
                     foreach (var id in party.Members)
                         if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
-                            world.WorldPresence.SetAtWorldPosition(id, position, default, session.ReturnSurfaceId);
+                            world.WorldPresence.SetAtWorldPosition(id, position, derivedHex, session.ReturnSurfaceId);
                 }
                 else
                 {
                     foreach (var traveler in world.PlayerPartyTravel.TravelingMembers)
-                        world.WorldPresence.SetAtWorldPosition(traveler, position, default, session.ReturnSurfaceId);
+                        world.WorldPresence.SetAtWorldPosition(traveler, position, derivedHex, session.ReturnSurfaceId);
                 }
 
                 world.PartyWorld.LocalMapId = string.Empty;

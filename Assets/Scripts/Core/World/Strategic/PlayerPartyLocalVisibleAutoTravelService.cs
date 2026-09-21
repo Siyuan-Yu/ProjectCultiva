@@ -12,6 +12,7 @@ namespace XianXia.Core.World.Strategic
     /// When LocalMap is a WorldSite, this service refuses to act (keeps Phase 5B: stand still).
     /// All Exit geometry reuses the existing formal Wilderness Surface Exit (Phase 2C).
     /// </summary>
+    /// <summary>Legacy Outdoor LocalMap compatibility only. Normal Continuous Surface travel never calls this service.</summary>
     public static class PlayerPartyLocalVisibleAutoTravelService
     {
         public static bool IsActiveLocalVisibleAutoTravel(PlayerPartyWorldMotion motion) =>

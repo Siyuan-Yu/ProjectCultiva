@@ -86,7 +86,27 @@ namespace XianXia.Unity.Host
                 " WalkGridReady=" + (move != null && move.WalkGrid != null) +
                 " SelectedCharacterId=" + selectedId +
                 " CameraTargetCharacterId=" + cameraTargetId +
+                " ManualPaused=" + session.ManualPaused +
+                " ModalPauseDiagnostics=" + session.ModalPauseDiagnostics +
                 " SessionPaused=" + session.IsPaused +
+                " InputGateBlock=" + HostInputGate.BlockWorldInteraction);
+
+            var motion = world.PlayerPartyTravel;
+            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            Debug.Log(
+                "[SnapshotRestore.Surface]" +
+                " LocationKind=" + (motion != null ? motion.LocationKind.ToString() : "missing") +
+                " SurfaceId=" + (motion?.SurfaceId ?? string.Empty) +
+                " WorldPosition=" + (motion != null ? motion.WorldPosition.ToString() : "missing") +
+                " CurrentOutdoorWorldSiteId=" + (motion?.CurrentOutdoorWorldSiteId ?? string.Empty) +
+                " IsMoving=" + (motion != null && motion.IsMoving) +
+                " ExecutionMode=" + (motion != null ? motion.ExecutionMode.ToString() : "missing") +
+                " Route=" + (motion != null ? motion.ContinuousSurfaceRouteIndex.ToString() : "-") + "/" +
+                (motion != null ? motion.ContinuousSurfaceRoute.Count.ToString() : "-") +
+                " ActiveSurfaceId=" + (continuous?.ActiveSurfaceId ?? string.Empty) +
+                " WalkGridReady=" + (move != null && move.WalkGrid != null) +
+                " ManualPaused=" + session.ManualPaused +
+                " ModalPauseDiagnostics=" + session.ModalPauseDiagnostics +
                 " InputGateBlock=" + HostInputGate.BlockWorldInteraction);
         }
     }

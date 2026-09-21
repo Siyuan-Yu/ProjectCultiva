@@ -10,13 +10,12 @@ using XianXia.Core.World.Surface;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// PlayerParty Hex／连续世界旅行（非 FormalArmy）。
-    /// Phase 2C：AutoTravel 沿路径几何连续推进 WorldPosition；CurrentHex 派生。
+    /// Legacy Hex world travel and Outdoor LocalMap compatibility only.
+    /// Normal Continuous Outdoor uses PlayerPartySurfaceTravelService.
     /// </summary>
     public static class PlayerPartyHexTravelService
     {
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
-        static readonly List<WorldVec2> SurfaceRouteScratch = new List<WorldVec2>(512);
 
         /// <summary>相邻格心距折算为恒定速度的参考 tick 数（距离预算，非“每段固定 N tick”）。</summary>
         public const float GroundBaseStepTicks = 8f;
@@ -59,30 +58,14 @@ namespace XianXia.Core.World.Strategic
             string destinationSiteId,
             HexTravelMode mode = HexTravelMode.Ground) =>
             BeginTravelInternal(
-                world, party, destination, destinationSiteId, mode,
-                continuousPhysical: false, default, 0f);
-
-        public static Result BeginContinuousSurfaceTravel(
-            SimulationWorld world,
-            PlayerPartyRuntime party,
-            HexCoord destination,
-            string destinationSiteId,
-            WorldVec2 physicalDestination,
-            float physicalArrivalRadius,
-            HexTravelMode mode = HexTravelMode.Ground) =>
-            BeginTravelInternal(
-                world, party, destination, destinationSiteId, mode,
-                continuousPhysical: true, physicalDestination, physicalArrivalRadius);
+                world, party, destination, destinationSiteId, mode);
 
         static Result BeginTravelInternal(
             SimulationWorld world,
             PlayerPartyRuntime party,
             HexCoord destination,
             string destinationSiteId,
-            HexTravelMode mode,
-            bool continuousPhysical,
-            WorldVec2 physicalDestination,
-            float physicalArrivalRadius)
+            HexTravelMode mode)
         {
             if (world == null || party == null)
             {
@@ -129,63 +112,23 @@ namespace XianXia.Core.World.Strategic
                     world, startHex, targetSite, blockedSiteHexes);
             }
 
-            if (continuousPhysical)
-                goalHex = HexMath.WorldToHex(
-                    physicalDestination.X, physicalDestination.Y,
-                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
-
-            var surfaceRouteFound = false;
-            SurfaceRouteScratch.Clear();
-            if (continuousPhysical && world.SurfaceGround?.Active != null &&
-                world.PlayerPartyTravel.HasPosition)
-            {
-                var surfaceStatus = world.SurfaceGround.Active.TryFindRoute(
-                    world.PlayerPartyTravel.WorldPosition, physicalDestination, SurfaceRouteScratch);
-                if (surfaceStatus == SurfaceGroundRouteStatus.Found)
-                {
-                    surfaceRouteFound = true;
-                }
-                else if (surfaceStatus == SurfaceGroundRouteStatus.BlockedGoal)
-                {
-                    return Result.Failure(ErrorCode.InvalidArgument, "不可步行到达的地面目标。");
-                }
-                else if (surfaceStatus == SurfaceGroundRouteStatus.NoRouteWithinCoverage)
-                {
-                    return Result.Failure(ErrorCode.InvalidOperation, "W2A coverage 内没有可通行路线。");
-                }
-                else if (surfaceStatus == SurfaceGroundRouteStatus.NotReady)
-                {
-                    return Result.Failure(ErrorCode.InvalidOperation, "Surface route data is not ready.");
-                }
-            }
-
-            if (!surfaceRouteFound &&
-                (!world.HexWorld.TryGetTile(goalHex, out var destTile) ||
-                 destTile == null || !destTile.IsPassable))
+            if (!world.HexWorld.TryGetTile(goalHex, out var destTile) ||
+                destTile == null || !destTile.IsPassable)
                 return Result.Failure(ErrorCode.InvalidArgument, "Destination hex is not passable.");
 
             if (startHex == goalHex &&
                 !world.PlayerPartyTravel.IsMoving &&
-                string.IsNullOrEmpty(destinationSiteId) &&
-                !continuousPhysical)
+                string.IsNullOrEmpty(destinationSiteId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Already at destination hex.");
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
 
-            if (continuousPhysical &&
-                (!motion.HasPosition ||
-                 motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition))
-                return Result.Failure(
-                    ErrorCode.InvalidOperation,
-                    "Continuous travel requires an existing outdoor physical position.");
-
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
                 motion.SetCurrentOutdoorWorldSiteContext(string.Empty);
 
-            if (!continuousPhysical &&
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
                 world.Strategic.Sites.TryGet(motion.SiteId, out var fromSite) &&
                 fromSite != null)
@@ -240,21 +183,10 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
-            bool normalRouteOk;
-            if (surfaceRouteFound)
-            {
-                PathScratch.Clear();
-                PathScratch.Add(startHex);
-                if (!goalHex.Equals(startHex)) PathScratch.Add(goalHex);
-                normalRouteOk = true;
-            }
-            else
-            {
-                normalRouteOk =
-                    HexPathfinder.TryFindPath(
-                        world.HexWorld, startHex, goalHex, PathScratch, mode, blockedSiteHexes) &&
-                    PathScratch.Count >= 1;
-            }
+            var normalRouteOk =
+                HexPathfinder.TryFindPath(
+                    world.HexWorld, startHex, goalHex, PathScratch, mode, blockedSiteHexes) &&
+                PathScratch.Count >= 1;
             PlayerPartyWorldLocationDebug.Sink?.Invoke(
                 "[GatewayB1Trace] 8b NormalRouteSuccess=" + normalRouteOk);
             if (!normalRouteOk)
@@ -270,26 +202,14 @@ namespace XianXia.Core.World.Strategic
             // 正式离开 Site / 开始开世界旅行：清空 PartyWorld presentation cache，
             // 禁止残留 SiteId/LocalMapId 在 TravelComplete 后反写 Domain。
             ClearPartyWorldPresentationCacheForOpenWorld(world);
-            if (continuousPhysical)
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "BeginTravel.LeaveSiteOrOpenWorld");
 
-            if (continuousPhysical)
-                world.PlayerPartyTravel.BeginContinuousAutoTravel(
-                    PathScratch,
-                    goalHex,
-                    destinationSiteId,
-                    mode,
-                    physicalDestination,
-                    physicalArrivalRadius,
-                    surfaceRouteFound ? SurfaceRouteScratch : null);
-            else
-                world.PlayerPartyTravel.BeginAutoTravel(
-                    PathScratch,
-                    goalHex,
-                    destinationSiteId,
-                    mode,
-                    hexSize);
+            world.PlayerPartyTravel.BeginAutoTravel(
+                PathScratch,
+                goalHex,
+                destinationSiteId,
+                mode,
+                hexSize);
             ApplyTravelingMembersPresence(world);
             PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "BeginTravel.AfterBeginAutoTravel");
             return Result.Success();
@@ -1297,99 +1217,6 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterWorldSiteAsParty");
             return WorldTravelService.ActivatePreparedWorldSiteScene(
                 world, site, preparedLocalMapId);
-        }
-
-        /// <summary>
-        /// Close WorldMap → local view takeover.
-        /// Idle: same as Phase 2C (Enter Local).
-        /// AutoTravel (Phase 5B): Preserve Travel + ExecutionMode=LocalVisible; do not Cancel.
-        /// Phase 5C-W2: 接管前先把派生 CurrentHex canonicalize 到 TravelPlan 当前段起点，避免
-        /// segment boundary 附近 WorldToHex 提前切 NextHex 导致 LocalMap / presence / Exit 解析分叉。
-        /// </summary>
-        public static Result CloseWorldMapTakeover(
-            SimulationWorld world,
-            PlayerPartyRuntime party)
-        {
-            if (world == null || party == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "Invalid takeover args.");
-
-            if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
-            {
-                CanonicalizeTakeoverHexToActiveSegment(world);
-                // 先完成 LocalMap 进入准备；失败时保持 World executor，绝不遗留 LocalVisible 半状态。
-                var enter = EnterLocalViewAtCurrentHex(world, party, allowWhileTraveling: true);
-                if (enter.IsFailure)
-                    return enter;
-                world.PlayerPartyTravel.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
-                PlayerPartyWorldLocationDebug.LogTransition(
-                    world, party, "CloseWorldMapTakeover.PreserveAutoTravel");
-                return Result.Success();
-            }
-
-            PlayerPartyWorldLocationDebug.LogTransition(world, party, "CloseWorldMapTakeover");
-            return EnterLocalViewAtCurrentHex(world, party);
-        }
-
-        /// <summary>
-        /// Phase 5C-W2 Takeover Canonical State：World → LocalVisible 前，把派生 CurrentHex 对齐到
-        /// 正式 TravelPlan 当前段起点（path[SegmentIndex]）。World 推进时 CommitCanonicalWorldPosition
-        /// 用 WorldToHex(实时位置) 派生 CurrentHex，在段尾（progress &lt; 1）可能提前切到 nextHex；
-        /// 段未完成时权威所在 Hex 必须是 leg 起点，否则 LocalMap 加载 / presence / Exit 解析三者各认
-        /// 各的 Hex，LocalVisible 会 NoExit 卡住。
-        /// 不动 WorldPosition / Path / Segment；不 Snap、不 Teleport、不重置路线。
-        /// </summary>
-        static void CanonicalizeTakeoverHexToActiveSegment(SimulationWorld world)
-        {
-            var motion = world?.PlayerPartyTravel;
-            if (motion == null || !motion.IsMoving)
-                return;
-            if (motion.SegmentProgress >= 1f)
-                return; // 段已正式完成：World 推进已 Commit + IncrementPathIndex，状态一致。
-            if (!motion.TryGetActiveStepHexes(out var fromHex, out _))
-                return;
-            if (motion.CurrentHex.Equals(fromHex))
-                return; // 已一致。
-
-            motion.AlignCurrentHex(fromHex);
-            ApplyTravelingMembersPresence(world);
-        }
-
-        /// <summary>
-        /// Re-open WorldMap: LocalVisible → World; Path / Progress / WorldPosition unchanged.
-        /// </summary>
-        public static void ResumeWorldTravelExecutionIfNeeded(SimulationWorld world)
-        {
-            var motion = world?.PlayerPartyTravel;
-            if (motion == null)
-                return;
-            if (motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
-                return;
-
-            // Phase 5R-B6.5-B：不再保留 departure 特例 —— WorldMap open（World executor）时
-            // AtWorldSite departure 由 AdvanceWorldSiteDepartureCanonical 推进（WorldMap open 强制
-            // ManualPaused；用户 Space Resume 后下一 tick 即推进 Canonical 朝正式 BoundaryContact）。
-            // close 后 LocalVisible 接管继续同一 departure。
-            motion.SetExecutionMode(
-                motion.IsMoving
-                    ? PlayerPartyTravelExecutionMode.World
-                    : PlayerPartyTravelExecutionMode.None);
-        }
-
-        /// <summary>
-        /// WorldMap creates or replaces the durable route plan, while physical PlayerParty
-        /// execution remains owned by the visible local presentation after the overlay closes.
-        /// Path, segment progress, destination and canonical WorldPosition are unchanged.
-        /// </summary>
-        public static void HoldForLocalVisibleExecution(SimulationWorld world)
-        {
-            var motion = world?.PlayerPartyTravel;
-            if (motion == null)
-                return;
-
-            motion.SetExecutionMode(
-                motion.IsMoving
-                    ? PlayerPartyTravelExecutionMode.LocalVisible
-                    : PlayerPartyTravelExecutionMode.None);
         }
 
         /// <summary>

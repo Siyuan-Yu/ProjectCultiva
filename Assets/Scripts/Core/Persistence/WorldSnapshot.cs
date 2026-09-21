@@ -290,6 +290,8 @@ namespace XianXia.Core.Persistence
         public bool HasPosition { get; set; }
         public int LocationKind { get; set; }
         public string SiteId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public string CurrentOutdoorWorldSiteId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
         public int CurrentHexQ { get; set; }

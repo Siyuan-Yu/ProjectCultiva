@@ -568,7 +568,7 @@ namespace XianXia.Unity.Host
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var canonical = new WorldVec2(plan.CanonicalWorldX, plan.CanonicalWorldY);
             var derived = HexMath.WorldToHex(canonical.X, canonical.Y, hexSize);
-            motion.SetAtWorldPosition(canonical, derived);
+            motion.SetAtSurfacePosition(plan.SurfaceId, canonical, derived);
             motion.SetCurrentOutdoorWorldSiteContext(plan.SiteId);
             for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
                 world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived,

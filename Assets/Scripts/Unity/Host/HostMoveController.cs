@@ -694,15 +694,16 @@ namespace XianXia.Unity.Host
                 bootstrap?.Session?.PlayerParty);
 
         /// <summary>
-        /// Phase 5C-W1: RTS point order cancels LocalVisible AutoTravel (preserves position,
-        /// no domain-side re-materialize). No-op when AutoTravel is not in LocalVisible mode.
+        /// Direct movement cancels modern Surface travel or legacy LocalVisible travel while
+        /// preserving the current exact position.
         /// </summary>
         void CancelLocalVisibleAutoTravelIfActive()
         {
             var world = bootstrap?.Session?.World;
             var motion = world?.PlayerPartyTravel;
             if (motion == null ||
-                !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
+                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion)))
                 return;
             PlayerPartyTravelRuntimeService.CancelTravel(world);
         }

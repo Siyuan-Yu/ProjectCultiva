@@ -9,6 +9,7 @@ using XianXia.Core.Opportunity;
 using XianXia.Core.Schedule;
 using XianXia.Core.Exploration;
 using XianXia.Core.Social;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -92,6 +93,29 @@ namespace XianXia.Unity.Host
             var motion = world.PlayerPartyTravel;
             if (motion == null)
                 return "(no travel)";
+
+            if (motion.ExecutionMode == PlayerPartyTravelExecutionMode.SurfaceVisible)
+            {
+                var destination = motion.HasContinuousPhysicalDestination
+                    ? motion.ContinuousPhysicalDestination.ToString()
+                    : "missing";
+                return "mode=SurfaceVisible" +
+                       " surface=" + (motion.SurfaceId ?? string.Empty) +
+                       " world=" + motion.WorldPosition +
+                       " destination=" + destination +
+                       " route=" + motion.ContinuousSurfaceRouteIndex + "/" +
+                       motion.ContinuousSurfaceRoute.Count +
+                       " localTarget=" + HostPlayerPartyController.SurfaceLocalExecutionTargetIndex +
+                       " subgoal=" + HostPlayerPartyController.SurfaceLocalSubgoal +
+                       " subgoalKind=" + HostPlayerPartyController.SurfaceLocalSubgoalKind +
+                       " hostPath=" + HostPlayerPartyController.SurfaceHostPathIndex + "/" +
+                       HostPlayerPartyController.SurfaceHostPathCount +
+                       " waiting=" + HostPlayerPartyController.SurfaceWaitingReason +
+                       " chunk=" + HostPlayerPartyController.SurfaceCurrentChunk +
+                       " navGen=" + HostPlayerPartyController.SurfaceNavigationGeneration +
+                       " gridRev=" + HostPlayerPartyController.SurfaceCompositeGridRevision +
+                       " derivedHex=" + motion.CurrentHex;
+            }
 
             var path = motion.HexPath;
             var nextHex = "-";

@@ -32,6 +32,34 @@ namespace XianXia.Core.Persistence
                 // Rehydration removes that personal presence instead of teleporting the Character.
                 if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id))
                     continue;
+                // In normal Continuous Outdoor, PlayerPartyWorldMotion is the group authority.
+                // Eligible members are intentionally reconciled from that authority after the
+                // content-dependent travel phase, so their stale per-member DTO must not override
+                // the finalized Party position. Separate Space and CharacterEncounter were
+                // excluded above/by the gate below and keep their own spatial ownership.
+                var party = world.Strategic?.PlayerPartyContext;
+                var normalPartyMember =
+                    world.LocalMap?.IsActive != true &&
+                    world.Strategic?.CharacterEncounter == null &&
+                    party != null && party.IsMember(id) &&
+                    PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id);
+                if (normalPartyMember)
+                {
+                    var motion = world.PlayerPartyTravel;
+                    if (!world.WorldPresence.TryGet(id, out var memberPresence) ||
+                        memberPresence == null ||
+                        memberPresence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                        !memberPresence.HasContinuousWorldPosition ||
+                        motion == null || !motion.HasPosition ||
+                        !string.Equals(memberPresence.PersonalSurfaceId, motion.SurfaceId,
+                            StringComparison.Ordinal) ||
+                        Math.Abs(memberPresence.WorldPosX - motion.WorldPosition.X) > 0.0001f ||
+                        Math.Abs(memberPresence.WorldPosY - motion.WorldPosition.Y) > 0.0001f)
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "PlayerParty member presence differs from finalized Surface authority.",
+                            "CharacterId=" + saved.CharacterId);
+                    continue;
+                }
                 if (!world.Entities.TryGet(id, out _) ||
                     !world.WorldPresence.TryGet(id, out var actual) || actual == null ||
                     (int)actual.Mode != saved.Mode ||
@@ -441,6 +469,8 @@ namespace XianXia.Core.Persistence
                     HasPosition = true,
                     LocationKind = (int)motion.LocationKind,
                     SiteId = motion.SiteId ?? string.Empty,
+                    SurfaceId = motion.SurfaceId ?? string.Empty,
+                    CurrentOutdoorWorldSiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty,
                     WorldX = motion.WorldPosition.X,
                     WorldY = motion.WorldPosition.Y,
                     CurrentHexQ = motion.CurrentHex.Q,
@@ -1348,19 +1378,218 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        public static void RestoreBackgroundSurfaceTravels(
+        public static Result RestoreBackgroundSurfaceTravels(
             SimulationWorld world, List<BackgroundCharacterTravelSnapshotDto> travels)
         {
             if (world == null || travels == null ||
-                !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)) return;
+                !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Success();
+            var seen = new HashSet<ulong>();
+            for (var i = 0; i < travels.Count; i++)
+            {
+                var item = travels[i];
+                if (item == null || !item.IsTraveling || !item.IsSurfaceRoute || item.CharacterId == 0)
+                    continue;
+                if (!seen.Add(item.CharacterId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Duplicate Background Surface travel snapshot.",
+                        "CharacterId=" + item.CharacterId);
+            }
             for (var i = 0; i < travels.Count; i++)
             {
                 var item = travels[i];
                 if (item == null || !item.IsTraveling || !item.IsSurfaceRoute ||
                     item.CharacterId == 0 || string.IsNullOrEmpty(item.DestinationSiteId)) continue;
-                BackgroundCharacterTravelService.BeginTravelToWorldSite(
-                    world, new EntityId(item.CharacterId), item.DestinationSiteId);
+                var id = new EntityId(item.CharacterId);
+                world.BackgroundCharacterTravel.Remove(id);
+                var restored = BackgroundCharacterTravelService.BeginTravelToWorldSite(
+                    world, id, item.DestinationSiteId);
+                if (restored.IsFailure)
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Surface travel could not be rebuilt.",
+                        "CharacterId=" + item.CharacterId +
+                        " DestinationSiteId=" + item.DestinationSiteId +
+                        " SurfaceId=" + (item.SurfaceId ?? string.Empty) +
+                        " Reason=" + restored.Error);
+                if (!world.BackgroundCharacterTravel.TryGet(id, out var motion) || motion == null ||
+                    !motion.IsMoving || !motion.IsSurfaceRoute ||
+                    (!string.IsNullOrEmpty(item.SurfaceId) &&
+                     !string.Equals(item.SurfaceId, motion.SurfaceId, StringComparison.Ordinal)))
+                {
+                    world.BackgroundCharacterTravel.Remove(id);
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Surface travel restored with inconsistent authority.",
+                        "CharacterId=" + item.CharacterId +
+                        " DestinationSiteId=" + item.DestinationSiteId +
+                        " SurfaceId=" + (item.SurfaceId ?? string.Empty));
+                }
+                motion.LastProcessedWorldTick = item.LastProcessedWorldTick > 0
+                    ? item.LastProcessedWorldTick
+                    : world.Tick.Value;
             }
+            return Result.Success();
+        }
+
+        /// <summary>
+        /// Second phase of PlayerParty travel restore. Call only after SurfaceGround and authored
+        /// Site shells are registered. This method restores Domain authority only; the Host owns
+        /// the decision whether ordinary Outdoor member presence may be reconciled.
+        /// </summary>
+        public static Result FinalizePlayerPartyTravelAfterContentShell(
+            SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
+        {
+            if (world?.PlayerPartyTravel == null || travel == null || !travel.HasPosition)
+                return Result.Success();
+            if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Success();
+            if (!Finite(travel.WorldX) || !Finite(travel.WorldY))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty Continuous position is invalid.");
+
+            var position = new WorldVec2(travel.WorldX, travel.WorldY);
+            XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
+            var savedSurfaceId = travel.SurfaceId ?? string.Empty;
+            if (!string.IsNullOrEmpty(savedSurfaceId))
+            {
+                if (!world.SurfaceGround.TryGet(savedSurfaceId, out surface) || surface == null ||
+                    !surface.Contains(position.X, position.Y))
+                {
+                    TryResolveUniqueContainingSurface(world, position, out var containing, out var matchCount);
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "PlayerParty snapshot SurfaceId does not contain its exact position.",
+                        "SavedSurfaceId=" + savedSurfaceId +
+                        " Position=" + position +
+                        " ResolvedContainingSurface=" + (containing?.SurfaceId ?? string.Empty) +
+                        " MatchCount=" + matchCount);
+                }
+            }
+            else
+            {
+                TryResolveUniqueContainingSurface(world, position, out surface, out var matchCount);
+                if (matchCount != 1)
+                    surface = null;
+            }
+
+            var oldContinuousSite =
+                travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(travel.SiteId) &&
+                world.Strategic.Sites.TryGet(travel.SiteId, out var site) && site != null &&
+                WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site);
+            if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite && !oldContinuousSite)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty AtWorldSite snapshot is not a Continuous Outdoor Site.",
+                    travel.SiteId ?? string.Empty);
+
+            if (surface == null && oldContinuousSite && string.IsNullOrEmpty(savedSurfaceId) &&
+                world.SurfaceGround.TryResolveSiteArrival(
+                    travel.SiteId, out var arrivalSurfaceId, out var arrival) &&
+                world.SurfaceGround.TryGet(arrivalSurfaceId, out var arrivalSurface) &&
+                arrivalSurface != null && arrivalSurface.Contains(arrival.X, arrival.Y))
+            {
+                surface = arrivalSurface;
+                position = arrival;
+            }
+            if (surface == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty exact position does not identify one registered Surface.",
+                    "Position=" + position + " SavedSurfaceId=" + savedSurfaceId);
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var motion = world.PlayerPartyTravel;
+            motion.SetAtSurfacePosition(surface.SurfaceId, position,
+                HexMath.WorldToHex(position.X, position.Y, hexSize));
+            if (!string.IsNullOrEmpty(travel.CurrentOutdoorWorldSiteId))
+                motion.SetCurrentOutdoorWorldSiteContext(travel.CurrentOutdoorWorldSiteId);
+            else if (oldContinuousSite)
+                motion.SetCurrentOutdoorWorldSiteContext(travel.SiteId);
+            else if (WorldSitePhysicalRegionQuery.TryResolve(world, position, out var currentSite))
+                motion.SetCurrentOutdoorWorldSiteContext(currentSite.SiteId);
+
+            if (travel.IsMoving)
+            {
+                if (!travel.HasContinuousPhysicalDestination ||
+                    !Finite(travel.DestinationWorldX) || !Finite(travel.DestinationWorldY) ||
+                    !PlayerPartySurfaceTravelService.TryResumeAfterRestore(
+                        world,
+                        new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
+                        travel.DestinationSiteId,
+                        travel.ArrivalRadius))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "PlayerParty Surface travel route could not be rebuilt.",
+                        "SurfaceId=" + surface.SurfaceId +
+                        " Position=" + position +
+                        " Destination=(" + travel.DestinationWorldX + "," + travel.DestinationWorldY + ")");
+            }
+
+            return ValidatePlayerPartyContinuousAuthorityAfterContentShell(world);
+        }
+
+        public static Result ValidatePlayerPartyContinuousAuthorityAfterContentShell(
+            SimulationWorld world)
+        {
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition ||
+                !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Success();
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
+                string.IsNullOrEmpty(motion.SurfaceId) ||
+                !world.SurfaceGround.TryGet(motion.SurfaceId, out var surface) || surface == null ||
+                !surface.Contains(motion.WorldPosition.X, motion.WorldPosition.Y))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty Continuous Surface authority is invalid after content rehydrate.",
+                    "LocationKind=" + motion.LocationKind +
+                    " SurfaceId=" + (motion.SurfaceId ?? string.Empty) +
+                    " WorldPosition=" + motion.WorldPosition);
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
+            if (!motion.CurrentHex.Equals(derived))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty compatibility CurrentHex is not derived from WorldPosition.",
+                    "Saved=" + motion.CurrentHex + " Derived=" + derived);
+            if (motion.IsMoving &&
+                (motion.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible ||
+                 !motion.HasContinuousPhysicalDestination ||
+                 motion.ContinuousSurfaceRoute.Count == 0 ||
+                 motion.ContinuousSurfaceRouteIndex < 0 ||
+                 motion.ContinuousSurfaceRouteIndex > motion.ContinuousSurfaceRoute.Count))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty moving Surface authority is incomplete.",
+                    "ExecutionMode=" + motion.ExecutionMode +
+                    " Route=" + motion.ContinuousSurfaceRouteIndex + "/" +
+                    motion.ContinuousSurfaceRoute.Count);
+            if (!motion.IsMoving && motion.ExecutionMode != PlayerPartyTravelExecutionMode.None)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Idle PlayerParty snapshot retained a travel executor.",
+                    motion.ExecutionMode.ToString());
+            return Result.Success();
+        }
+
+        static bool TryResolveUniqueContainingSurface(
+            SimulationWorld world,
+            WorldVec2 position,
+            out XianXia.Core.World.Surface.SurfaceGroundNavigation surface,
+            out int matchCount)
+        {
+            surface = null;
+            matchCount = 0;
+            if (world?.SurfaceGround?.Registered == null)
+                return false;
+            foreach (var pair in world.SurfaceGround.Registered)
+            {
+                var candidate = pair.Value;
+                if (candidate == null || !candidate.Contains(position.X, position.Y))
+                    continue;
+                matchCount++;
+                if (matchCount == 1)
+                    surface = candidate;
+                else
+                    surface = null;
+            }
+            return matchCount == 1;
         }
 
         public static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
@@ -1372,6 +1601,66 @@ namespace XianXia.Core.Persistence
             // CW-U4.1: old PlayerParty AttackArmy/attack-chase orders are retired on load.
             // Preserve the canonical position, restore Idle, and never auto-declare war/create an encounter.
             motion.ClearAttackOrder();
+            var pos = new WorldVec2(travel.WorldX, travel.WorldY);
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
+                if (!string.IsNullOrEmpty(travel.SurfaceId))
+                    world.SurfaceGround.TryGet(travel.SurfaceId, out surface);
+                if (surface == null || !surface.Contains(pos.X, pos.Y))
+                    world.SurfaceGround.TryResolveContaining(pos, out surface);
+
+                var continuousSite = travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
+                                     !string.IsNullOrEmpty(travel.SiteId) &&
+                                     world.Strategic.Sites.TryGet(travel.SiteId, out var savedSite) &&
+                                     savedSite != null &&
+                                     WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(savedSite);
+                if (continuousSite && (surface == null || !surface.Contains(pos.X, pos.Y)) &&
+                    world.SurfaceGround.TryResolveSiteArrival(
+                        travel.SiteId, out var arrivalSurfaceId, out var arrival) &&
+                    world.SurfaceGround.TryGet(arrivalSurfaceId, out var arrivalSurface))
+                {
+                    pos = arrival;
+                    surface = arrivalSurface;
+                }
+
+                if (surface == null &&
+                    ((travel.WorldX == 0f && travel.WorldY == 0f &&
+                      (travel.CurrentHexQ != 0 || travel.CurrentHexR != 0)) ||
+                     !world.SurfaceGround.TryResolveContaining(pos, out _)))
+                {
+                    HexMath.ToWorldPosition(new HexCoord(travel.CurrentHexQ, travel.CurrentHexR),
+                        hexSize, out var migratedX, out var migratedY);
+                    var migrated = new WorldVec2(migratedX, migratedY);
+                    if (world.SurfaceGround.TryResolveContaining(migrated, out var migratedSurface))
+                    {
+                        pos = migrated;
+                        surface = migratedSurface;
+                    }
+                }
+
+                if (surface != null && surface.Contains(pos.X, pos.Y))
+                {
+                    motion.SetAtSurfacePosition(surface.SurfaceId, pos,
+                        HexMath.WorldToHex(pos.X, pos.Y, hexSize));
+                    if (!string.IsNullOrEmpty(travel.CurrentOutdoorWorldSiteId))
+                        motion.SetCurrentOutdoorWorldSiteContext(travel.CurrentOutdoorWorldSiteId);
+                    else if (continuousSite)
+                        motion.SetCurrentOutdoorWorldSiteContext(travel.SiteId);
+                    else if (WorldSitePhysicalRegionQuery.TryResolve(world, pos, out var currentSite))
+                        motion.SetCurrentOutdoorWorldSiteContext(currentSite.SiteId);
+                    if (travel.IsMoving && travel.HasContinuousPhysicalDestination)
+                        PlayerPartySurfaceTravelService.TryResumeAfterRestore(
+                            world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
+                            travel.DestinationSiteId, travel.ArrivalRadius);
+                    return;
+                }
+            }
+
             if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(travel.SiteId))
             {
@@ -1398,10 +1687,6 @@ namespace XianXia.Core.Persistence
                 return;
             }
 
-            var pos = new WorldVec2(travel.WorldX, travel.WorldY);
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
-                : 1f;
             if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
                 ((travel.WorldX == 0f && travel.WorldY == 0f &&
                   (travel.CurrentHexQ != 0 || travel.CurrentHexR != 0)) ||

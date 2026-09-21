@@ -4,7 +4,8 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// SimulationLoop 之后的战略层 Travel 真推进入口。
-    /// PlayerParty：AfterTravelTick → PlayerPartyHexTravelService.AdvanceAll（及距离预算）。
+    /// PlayerParty modern SurfaceVisible travel is Host/presentation driven. This driver only
+    /// advances genuine legacy World-mode Hex travel.
     /// PlayerParty pursuit（Phase 5S-B2-3.5）：因 Core 无 PlayerPartyRuntime 引用，pursuit tick
     /// 由 Host PlayableHostBootstrap.StepTick 在 TickOnce 之后驱动
     /// （PlayerPartyHexPursuitService.AfterTravelTick(world, party)）—— 其顺序等价于本文件内
@@ -26,7 +27,11 @@ namespace XianXia.Core.World.Strategic
             if (!world.HexWorld.HasGrid)
                 return;
 
-            PlayerPartyHexTravelService.AdvanceAll(world, ticks);
+            var motion = world.PlayerPartyTravel;
+            if (motion != null && motion.IsMoving &&
+                motion.ExecutionMode == PlayerPartyTravelExecutionMode.World &&
+                motion.HexPathCount > 0 && string.IsNullOrEmpty(motion.SurfaceId))
+                PlayerPartyHexTravelService.AdvanceAll(world, ticks);
         }
     }
 }

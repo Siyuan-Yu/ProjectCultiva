@@ -49,9 +49,15 @@ namespace XianXia.Unity.Host
         // takeover; every takeover re-arms the CURRENT leg (independent of WorldMap open/close).
         bool _localVisibleTakeoverActive;
         bool _resumeLocalVisibleTravelRequested;
+        bool _surfaceTravelExecutionArmed;
+        bool _resumeSurfaceTravelRequested;
+        float _surfaceTravelRetryCooldownUntil;
+        const int SurfaceRouteLookaheadCount = 64;
+        readonly List<float> _surfaceRouteCandidateXy = new List<float>(SurfaceRouteLookaheadCount * 2);
+        int _currentSurfaceExecutionTargetIndex = -1;
         bool _continuousAutoTravelStallReported;
-        const int MaxContinuousCrossedSegmentsPerTick = 8;
         int _continuousSubgoalRouteVersion = -1;
+        int _continuousSubgoalRouteIndex = -1;
         int _continuousSubgoalNavigationGeneration = -1;
         int _continuousSubgoalGridRevision = -1;
         Vector3 _continuousSubgoalDesired;
@@ -66,12 +72,12 @@ namespace XianXia.Unity.Host
         int _continuousSubgoalIssueCount;
         string _continuousLastIssueReason = string.Empty;
         Vector3 _continuousProgressAnchor;
+        WorldVec2 _continuousProgressWorldAnchor;
         float _continuousProgressWindowStartedAt = -1f;
         int _continuousProgressRouteVersion = -1;
         Vector3 _continuousProgressSubgoal;
         // Phase 5C-W2: driving toward the final Wilderness LocalMap safe interior before
         // FinishArrival (no instant arrival at the hex edge).
-        bool _finalArrivalApproachInProgress;
 
         // Phase 5C-W2 diagnostics: last LocalVisible AutoTravel transition outcome.
         // Read by HostHudSnapshot (Runtime Diagnostics) so LevelTester can see the real failure.
@@ -81,6 +87,15 @@ namespace XianXia.Unity.Host
         public static string LastExitDestinationHex = "-";
         public static string LastExitSlotRect = "-";
         public static bool LastActiveInsideExitSlot;
+        public static int SurfaceLocalExecutionTargetIndex = -1;
+        public static string SurfaceLocalSubgoal = "-";
+        public static string SurfaceLocalSubgoalKind = "-";
+        public static string SurfaceWaitingReason = string.Empty;
+        public static int SurfaceHostPathIndex = -1;
+        public static int SurfaceHostPathCount;
+        public static int SurfaceCompositeGridRevision = -1;
+        public static int SurfaceNavigationGeneration = -1;
+        public static string SurfaceCurrentChunk = "-";
 
         // Phase 5C-W1 (2nd pass): middle-mouse pan detaches camera until a NEW AutoTravel session.
         bool _cameraDetachedByPlayer;
@@ -681,28 +696,24 @@ namespace XianXia.Unity.Host
         /// WorldMap 打开时冻结当前 Presentation A*，但不改 Domain TravelPlan、Segment、
         /// Destination 或 canonical WorldPosition。
         /// </summary>
-        public void FreezeLocalVisibleTravelForPlanning()
+        public void FreezeSurfaceTravelForPlanning()
         {
-            _resumeLocalVisibleTravelRequested = false;
-            _localVisibleTakeoverActive = false;
-            ResetLocalVisibleAutoTravelTracking();
+            _resumeSurfaceTravelRequested = false;
+            _surfaceTravelExecutionArmed = false;
+            ResetSurfaceAutoTravelTracking();
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
             if (!active.IsNone)
                 _move?.CancelPresentationMovementPublic(active);
         }
 
         /// <summary>
-        /// WorldMap 关闭后显式请求重发当前 LocalVisible leg。只清 Host target/retry 状态，
+        /// WorldMap 关闭后显式请求重发当前 Surface route subgoal。只清 modern Host transient，
         /// 不再次 Cancel Presentation movement，也不改 Domain TravelPlan。
         /// </summary>
-        public void ResumeLocalVisibleTravelAfterPlanning()
+        public void ResumeSurfaceTravelAfterPlanning()
         {
-            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
-            _resumeLocalVisibleTravelRequested = true;
-            _autoTravelLegSegmentIndex = motion != null ? motion.SegmentIndex : -1;
-            _lastAutoTravelTarget = default;
-            _autoTravelRetryCooldownUntil = 0f;
-            _continuousAutoTravelStallReported = false;
+            _resumeSurfaceTravelRequested = true;
+            ResetSurfaceAutoTravelTracking(preserveResumeRequest: true);
         }
 
         /// <summary>Legacy LocalMap materialization still requires dropping the old map path.</summary>
@@ -723,7 +734,8 @@ namespace XianXia.Unity.Host
         {
             _localVisibleTakeoverActive = false;
             ResetLocalVisibleAutoTravelTracking();
-            _finalArrivalApproachInProgress = false;
+            _surfaceTravelExecutionArmed = false;
+            ResetSurfaceAutoTravelTracking();
             _siteSyncHeld = false;
             _siteSyncCacheSiteId = string.Empty;
             _siteSyncCacheMapId = string.Empty;
@@ -836,7 +848,8 @@ namespace XianXia.Unity.Host
             TickFollowers();
             TickCombatFollow();
             TickWildernessWorldSyncAndEdge();
-            TickLocalVisibleAutoTravelMovement();
+            TickContinuousSurfaceAutoTravelMovement();
+            TickLegacyLocalVisibleAutoTravelMovement();
         }
 
         public void RefreshActiveControlAfterLifeStateChange()
@@ -1375,7 +1388,62 @@ namespace XianXia.Unity.Host
         /// waits for the new LocalMap presentation to finish, then re-arms the NEW current leg and
         /// keeps going automatically (no one-map pause, no repeated WorldMap dance).
         /// </summary>
-        void TickLocalVisibleAutoTravelMovement()
+        void TickContinuousSurfaceAutoTravelMovement()
+        {
+            if (HostInputGate.BlockWorldInteraction)
+                return;
+            var world = bootstrap?.Session?.World;
+            var party = Party;
+            var motion = world?.PlayerPartyTravel;
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (world == null || party == null || !party.HasActive ||
+                !PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion))
+            {
+                if (_surfaceTravelExecutionArmed)
+                {
+                    _surfaceTravelExecutionArmed = false;
+                    ResetSurfaceAutoTravelTracking();
+                }
+                return;
+            }
+            if (surface == null || !surface.IsActive)
+            {
+                _continuousWaitingReason = "SurfacePresentationUnavailable";
+                SurfaceWaitingReason = _continuousWaitingReason;
+                LastTransitionStatus = _continuousWaitingReason;
+                return;
+            }
+
+            if (_resumeSurfaceTravelRequested)
+                ArmSurfaceTravelExecution(cancelPresentationMovement: false);
+            else if (!_surfaceTravelExecutionArmed)
+                ArmSurfaceTravelExecution(cancelPresentationMovement: true);
+
+            if (Time.time < _surfaceTravelRetryCooldownUntil)
+            {
+                _continuousWaitingReason = "RetryCooldown";
+                PublishSurfaceTravelDiagnostics(motion, default, surface);
+                return;
+            }
+
+            var active = party.ActiveCharacterId;
+            if (active.IsNone || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
+            {
+                _continuousWaitingReason = "ActivePresentationUnavailable";
+                LastTransitionStatus = _continuousWaitingReason;
+                PublishSurfaceTravelDiagnostics(motion, active, surface);
+                return;
+            }
+
+            if (motion.TryGetContinuousSurfaceWaypoint(out _))
+                TickContinuousSurfaceAutoTravel(world, motion, active, activeView, surface);
+            if (!motion.TryGetContinuousSurfaceWaypoint(out _))
+                TryDriveFinalSurfaceArrival(world, motion, active, activeView, surface);
+        }
+
+        /// <summary>Legacy Outdoor LocalMap / Hex edge executor only.</summary>
+        void TickLegacyLocalVisibleAutoTravelMovement()
         {
             if (HostInputGate.BlockWorldInteraction)
                 return;
@@ -1387,12 +1455,10 @@ namespace XianXia.Unity.Host
                 return;
 
             var motion = world.PlayerPartyTravel;
-            var continuousPhysicalScope =
-                bootstrap?.ContinuousOutdoorSurfaceRuntime != null &&
-                bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive;
+            var continuousPhysicalScope = bootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true;
             // Phase 5R-B6：WorldSite departure approach —— 角色在 Site LocalMap 内自动走向正式出口。
             // 条件：AtWorldSite + AutoTravel + ExecutionMode=LocalVisible + departure pending
-            // （BeginTravel 已生成 DeparturePlan；CloseWorldMapTakeover 已把 ExecutionMode 切 LocalVisible）。
+            // （旧 BeginTravel 已生成 DeparturePlan；legacy compatibility 将模式切为 LocalVisible）。
             if (!continuousPhysicalScope &&
                 motion != null &&
                 motion.IsMoving &&
@@ -1422,7 +1488,10 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var resumeRequested = ConsumeLocalVisibleResumeRequest(motion);
+            if (continuousPhysicalScope)
+                return;
+
+            ConsumeLocalVisibleResumeRequest(motion);
 
             // Rising edge: ExecutionMode entered LocalVisible (1st / 2nd / 3rd Close behave
             // identically). Every takeover re-arms the CURRENT leg unconditionally, regardless of
@@ -1456,66 +1525,6 @@ namespace XianXia.Unity.Host
                 return;
             if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
                 return;
-
-            var continuousSurface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            if (continuousSurface != null && continuousSurface.IsActive)
-            {
-                if (motion.TryGetContinuousSurfaceWaypoint(out _))
-                {
-                    var positionBeforeRouteDrive = activeView.transform.position;
-                    TickContinuousSurfaceLocalVisibleAutoTravel(
-                        world, motion, active, activeView, motion.DestinationHex, continuousSurface);
-                    if (!motion.TryGetContinuousSurfaceWaypoint(out _))
-                        TryDriveFinalWildernessArrival(world, motion);
-                    ReportContinuousAutoTravelStalled(
-                        motion, active, motion.DestinationHex, resumeRequested, continuousSurface,
-                        (activeView.transform.position - positionBeforeRouteDrive).sqrMagnitude > 0.000001f);
-                    return;
-                }
-                HexCoord continuousNextHex = default;
-                var consumed = 0;
-                while (PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
-                           motion, out _, out continuousNextHex, out _) &&
-                       motion.CurrentHex.Equals(continuousNextHex) &&
-                       consumed < MaxContinuousCrossedSegmentsPerTick)
-                {
-                    motion.SetSegment(motion.SegmentIndex + 1, 0f);
-                    _autoTravelLegSegmentIndex = motion.SegmentIndex;
-                    _lastAutoTravelTarget = default;
-                    consumed++;
-                }
-
-                if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
-                        motion, out _, out continuousNextHex, out _))
-                {
-                    LastTransitionStatus = "FinalLeg";
-                    var positionBefore = activeView.transform.position;
-                    TryDriveFinalWildernessArrival(world, motion);
-                    ReportContinuousAutoTravelStalled(
-                        motion, party.ActiveCharacterId, motion.DestinationHex, resumeRequested,
-                        continuousSurface,
-                        (activeView.transform.position - positionBefore).sqrMagnitude > 0.000001f);
-                    return;
-                }
-
-                if (consumed >= MaxContinuousCrossedSegmentsPerTick &&
-                    motion.CurrentHex.Equals(continuousNextHex))
-                {
-                    LastTransitionStatus = "ContinuousSegmentCatchUpBounded";
-                    ReportContinuousAutoTravelStalled(
-                        motion, party.ActiveCharacterId, continuousNextHex, resumeRequested, continuousSurface,
-                        physicalMovedThisTick: false);
-                    return;
-                }
-
-                var positionBeforeDrive = activeView.transform.position;
-                TickContinuousSurfaceLocalVisibleAutoTravel(
-                    world, motion, active, activeView, continuousNextHex, continuousSurface);
-                ReportContinuousAutoTravelStalled(
-                    motion, active, continuousNextHex, resumeRequested, continuousSurface,
-                    (activeView.transform.position - positionBeforeDrive).sqrMagnitude > 0.000001f);
-                return;
-            }
 
             if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
                     motion, out var currentHex, out var nextHex, out var directionIndex))
@@ -1660,87 +1669,135 @@ namespace XianXia.Unity.Host
             SyncLocalVisibleProgress(world, motion);
         }
 
-        void TickContinuousSurfaceLocalVisibleAutoTravel(
+        void TickContinuousSurfaceAutoTravel(
             SimulationWorld world,
             PlayerPartyWorldMotion motion,
             EntityId active,
             EntityView activeView,
-            HexCoord nextHex,
             ContinuousOutdoorSurfaceRuntime surface)
         {
-            WorldVec2 routeWaypoint;
-            var hasSurfaceWaypoint = motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint);
-            if (hasSurfaceWaypoint)
+            if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null)
             {
-                var arrive = Mathf.Max(0.001f, world.SurfaceGround?.Active?.CellSize ?? 0.028f) * 0.8f;
-                while (motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint) &&
-                       DistanceWorld(motion.WorldPosition, routeWaypoint) <= arrive)
-                    motion.AdvanceContinuousSurfaceWaypoint();
-                hasSurfaceWaypoint = motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint);
-                if (!hasSurfaceWaypoint) return;
+                _continuousWaitingReason = "SurfaceNavigationUnavailable";
+                PublishSurfaceTravelDiagnostics(motion, active, surface);
+                ReportSurfaceAutoTravelStalled(motion, active, surface, movementIssued: false);
+                return;
             }
 
-            var bakedAuthority = false;
-            var bakedLegal = false;
-            if (hasSurfaceWaypoint && world.SurfaceGround != null)
-                bakedAuthority = world.SurfaceGround.TryOverrideHexCompatibility(
-                    motion.WorldPosition, routeWaypoint, out bakedLegal);
-            // A MAP-03 Surface route is complete on its own.  Hex leg legality remains only
-            // for legacy plans that did not supply an exact Surface waypoint.
-            if ((!hasSurfaceWaypoint && surface.IsAutoTravelPathBlocked(nextHex)) ||
-                (bakedAuthority ? !bakedLegal :
-                    (!hasSurfaceWaypoint &&
-                     !ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, nextHex))))
+            var worldArrival = Mathf.Max(0.001f, navigation.CellSize * 0.8f);
+            var routeAdvanced = false;
+            while (motion.TryGetContinuousSurfaceWaypoint(out var canonicalWaypoint) &&
+                   DistanceWorld(motion.WorldPosition, canonicalWaypoint) <= worldArrival)
             {
-                surface.ReportLegalityBlocked();
-                LastTransitionStatus = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
-                _continuousWaitingReason = "BlockedByStrategicGroundCompatibility";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return; // Keep route/destination and existing Host path; compatibility may recover.
+                motion.AdvanceContinuousSurfaceWaypoint();
+                routeAdvanced = true;
             }
-            float wx;
-            float wy;
-            if (hasSurfaceWaypoint)
+            if (routeAdvanced)
+                InvalidateSurfaceSubgoalResolution();
+
+            if (_currentSurfaceExecutionTargetIndex >= motion.ContinuousSurfaceRouteIndex &&
+                _currentSurfaceExecutionTargetIndex < motion.ContinuousSurfaceRoute.Count)
             {
-                wx = routeWaypoint.X;
-                wy = routeWaypoint.Y;
-            }
-            else
-            {
-                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                HexMath.ToWorldPosition(nextHex, size, out wx, out wy);
-            }
-            surface.Mapper.WorldToPresentation(wx, wy, out var px, out var py);
-            var desired = new Vector3(px, py, HostPresentationSpace.EntityZ);
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (surface.TryGetOuterBoundaryApproach(desired, out var boundaryTarget))
-            {
-                // The authored Surface edge is a hard movement boundary.
-                var handoffDistance = (grid != null ? grid.CellSize : 1f) * 1.5f;
-                if (Vector3.Distance(activeView.transform.position, boundaryTarget) <= handoffDistance)
+                var reachedTarget = motion.ContinuousSurfaceRoute[_currentSurfaceExecutionTargetIndex];
+                surface.Mapper.WorldToPresentation(reachedTarget.X, reachedTarget.Y,
+                    out var reachedX, out var reachedY);
+                var physicalArrival = Mathf.Max((_move?.WalkGrid?.CellSize ?? 1f) * 0.35f,
+                    worldArrival * surface.Mapper.PresentationUnitsPerWorldUnit);
+                if (Vector3.Distance(activeView.transform.position,
+                        new Vector3(reachedX, reachedY, HostPresentationSpace.EntityZ)) <= physicalArrival)
                 {
-                    PlayerPartySurfaceTravelService.Cancel(world);
-                    LastTransitionStatus = "SurfaceBoundary";
-                    _continuousWaitingReason = LastTransitionStatus;
-                    return;
+                    motion.AdvanceContinuousSurfaceRouteTo(_currentSurfaceExecutionTargetIndex + 1);
+                    InvalidateSurfaceSubgoalResolution();
                 }
-                desired = boundaryTarget;
             }
 
-            if (!TryResolveContinuousSubgoal(
-                    motion, activeView.transform.position, desired, surface,
+            if (!motion.TryGetContinuousSurfaceWaypoint(out _))
+                return;
+
+            if (!TryResolveSurfaceRouteSubgoal(
+                    motion, activeView.transform.position, surface,
                     out var subgoal, out var subgoalKind, out var failureReason))
             {
                 _continuousWaitingReason = failureReason;
-                _autoTravelRetryCooldownUntil = Time.time + 0.25f;
+                _surfaceTravelRetryCooldownUntil = Time.time + 0.25f;
                 LastTransitionStatus = failureReason;
+                PublishSurfaceTravelDiagnostics(motion, active, surface);
+                ReportSurfaceAutoTravelStalled(motion, active, surface, movementIssued: false);
                 return;
             }
 
             _continuousWaitingReason = string.Empty;
-            DriveContinuousSubgoal(
+            var movementIssued = DriveContinuousSubgoal(
                 motion, active, activeView, subgoal, subgoalKind, surface.NavigationGeneration);
-            LastTransitionStatus = "Continuous" + subgoalKind + "->" + nextHex;
+            LastTransitionStatus = "SurfaceRoute" + subgoalKind +
+                                   " " + motion.ContinuousSurfaceRouteIndex + "/" +
+                                   motion.ContinuousSurfaceRoute.Count;
+            PublishSurfaceTravelDiagnostics(motion, active, surface);
+            ReportSurfaceAutoTravelStalled(motion, active, surface, movementIssued);
+        }
+
+        void TryDriveFinalSurfaceArrival(
+            SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            EntityId active,
+            EntityView activeView,
+            ContinuousOutdoorSurfaceRuntime continuous)
+        {
+            if (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) ||
+                !motion.HasContinuousPhysicalDestination)
+            {
+                LastTransitionStatus = "SurfaceTravelInvariantViolation";
+                return;
+            }
+
+            continuous.Mapper.WorldToPresentation(
+                motion.ContinuousPhysicalDestination.X,
+                motion.ContinuousPhysicalDestination.Y,
+                out var px, out var py);
+            var desired = new Vector3(px, py, HostPresentationSpace.EntityZ);
+            if (!TryResolveContinuousSubgoal(
+                    motion, activeView.transform.position, desired, continuous,
+                    out var resolvedGoal, out var goalKind, out var failureReason))
+            {
+                _continuousWaitingReason = failureReason;
+                LastTransitionStatus = failureReason;
+                PublishSurfaceTravelDiagnostics(motion, active, continuous);
+                ReportSurfaceAutoTravelStalled(motion, active, continuous, movementIssued: false);
+                return;
+            }
+
+            var gridCell = _move?.WalkGrid?.CellSize ?? 1f;
+            if (goalKind == ContinuousWalkGridSubgoalKind.ReachableApproach &&
+                Vector3.Distance(desired, resolvedGoal) > gridCell * 8f)
+            {
+                _continuousWaitingReason = "FinalApproachOutsideBound";
+                LastTransitionStatus = _continuousWaitingReason;
+                PublishSurfaceTravelDiagnostics(motion, active, continuous);
+                ReportSurfaceAutoTravelStalled(motion, active, continuous, movementIssued: false);
+                return;
+            }
+
+            var arrivalRadius = Mathf.Max(
+                gridCell * 0.35f,
+                motion.ContinuousPhysicalArrivalRadius * continuous.Mapper.PresentationUnitsPerWorldUnit);
+            if (goalKind != ContinuousWalkGridSubgoalKind.ReachableFrontier &&
+                Vector3.Distance(activeView.transform.position, resolvedGoal) <= arrivalRadius)
+            {
+                continuous.SyncPartyPresentation();
+                var finish = PlayerPartyTravelRuntimeService.CompleteSurfaceArrival(world);
+                if (finish.IsSuccess)
+                    _move.CancelPresentationMovementPublic(active);
+                LastTransitionStatus = finish.IsSuccess ? "SurfaceArrived" : "SurfaceFinalArrivalRejected";
+                LastTransitionFailureReason = finish.IsFailure ? finish.Error.ToString() : string.Empty;
+                return;
+            }
+
+            var movementIssued = DriveContinuousSubgoal(
+                motion, active, activeView, resolvedGoal, goalKind,
+                continuous.NavigationGeneration);
+            LastTransitionStatus = "SurfaceFinal" + goalKind;
+            PublishSurfaceTravelDiagnostics(motion, active, continuous);
+            ReportSurfaceAutoTravelStalled(motion, active, continuous, movementIssued);
         }
 
         static float DistanceWorld(WorldVec2 a, WorldVec2 b)
@@ -1748,6 +1805,105 @@ namespace XianXia.Unity.Host
             var dx = a.X - b.X;
             var dy = a.Y - b.Y;
             return Mathf.Sqrt(dx * dx + dy * dy);
+        }
+
+        bool TryResolveSurfaceRouteSubgoal(
+            PlayerPartyWorldMotion motion,
+            Vector3 current,
+            ContinuousOutdoorSurfaceRuntime surface,
+            out Vector3 subgoal,
+            out ContinuousWalkGridSubgoalKind kind,
+            out string failureReason)
+        {
+            subgoal = default;
+            kind = ContinuousWalkGridSubgoalKind.ReachableFrontier;
+            failureReason = string.Empty;
+            var grid = _move != null ? _move.WalkGrid : null;
+            var routeIndex = motion.ContinuousSurfaceRouteIndex;
+            var sameIdentity =
+                _hasContinuousSubgoalResolution &&
+                _continuousSubgoalRouteVersion == motion.TravelPlanVersion &&
+                _continuousSubgoalRouteIndex == routeIndex &&
+                _continuousSubgoalNavigationGeneration == surface.NavigationGeneration &&
+                _continuousSubgoalGridRevision == (grid != null ? grid.Revision : -1);
+            if (!sameIdentity)
+            {
+                _surfaceRouteCandidateXy.Clear();
+                var end = Mathf.Min(motion.ContinuousSurfaceRoute.Count,
+                    routeIndex + SurfaceRouteLookaheadCount);
+                for (var i = routeIndex; i < end; i++)
+                {
+                    var point = motion.ContinuousSurfaceRoute[i];
+                    surface.Mapper.WorldToPresentation(point.X, point.Y, out var mapX, out var mapY);
+                    _surfaceRouteCandidateXy.Add(mapX);
+                    _surfaceRouteCandidateXy.Add(mapY);
+                }
+
+                _hasContinuousSubgoalResolution = true;
+                _continuousSubgoalRouteVersion = motion.TravelPlanVersion;
+                _continuousSubgoalRouteIndex = routeIndex;
+                _continuousSubgoalNavigationGeneration = surface.NavigationGeneration;
+                _continuousSubgoalGridRevision = grid != null ? grid.Revision : -1;
+                _continuousSubgoalResolutionSucceeded =
+                    ContinuousSurfaceLocalRouteResolver.TryResolve(
+                        grid, current.x, current.y, _surfaceRouteCandidateXy, routeIndex,
+                        out _currentSurfaceExecutionTargetIndex,
+                        out var x, out var y, out _continuousSubgoalKind,
+                        out _continuousWaitingReason);
+                _continuousResolvedSubgoal = new Vector3(x, y, HostPresentationSpace.EntityZ);
+            }
+
+            if (!_continuousSubgoalResolutionSucceeded)
+            {
+                failureReason = string.IsNullOrEmpty(_continuousWaitingReason)
+                    ? "NoPhysicalRoute"
+                    : _continuousWaitingReason;
+                return false;
+            }
+
+            subgoal = _continuousResolvedSubgoal;
+            kind = _continuousSubgoalKind;
+            return true;
+        }
+
+        void InvalidateSurfaceSubgoalResolution()
+        {
+            _currentSurfaceExecutionTargetIndex = -1;
+            _hasContinuousSubgoalResolution = false;
+            _continuousSubgoalResolutionSucceeded = false;
+            _continuousSubgoalRouteIndex = -1;
+            _hasContinuousIssuedSubgoal = false;
+            _continuousWaitingReason = string.Empty;
+        }
+
+        void PublishSurfaceTravelDiagnostics(
+            PlayerPartyWorldMotion motion,
+            EntityId active,
+            ContinuousOutdoorSurfaceRuntime surface)
+        {
+            var pathIndex = -1;
+            var pathCount = 0;
+            if (_move != null && !active.IsNone)
+                _move.TryGetPathProgress(active, out pathIndex, out pathCount);
+            if (motion != null && motion.IsMoving &&
+                motion.ExecutionMode == PlayerPartyTravelExecutionMode.SurfaceVisible &&
+                pathCount <= 0 && string.IsNullOrEmpty(_continuousWaitingReason))
+                _continuousWaitingReason = _move != null && !active.IsNone && _move.IsMoving(active)
+                    ? "MovementIssuedAwaitingPath"
+                    : "SurfaceLocalRouteNoProgress";
+            SurfaceLocalExecutionTargetIndex = _currentSurfaceExecutionTargetIndex;
+            SurfaceLocalSubgoal = _hasContinuousSubgoalResolution
+                ? _continuousResolvedSubgoal.ToString()
+                : "-";
+            SurfaceLocalSubgoalKind = _hasContinuousSubgoalResolution
+                ? _continuousSubgoalKind.ToString()
+                : "-";
+            SurfaceWaitingReason = _continuousWaitingReason ?? string.Empty;
+            SurfaceHostPathIndex = pathIndex;
+            SurfaceHostPathCount = pathCount;
+            SurfaceCompositeGridRevision = _move?.WalkGrid?.Revision ?? -1;
+            SurfaceNavigationGeneration = surface != null ? surface.NavigationGeneration : -1;
+            SurfaceCurrentChunk = surface != null ? surface.CurrentChunk.ToString() : "-";
         }
 
         bool TryResolveContinuousSubgoal(
@@ -1797,7 +1953,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        void DriveContinuousSubgoal(
+        bool DriveContinuousSubgoal(
             PlayerPartyWorldMotion motion,
             EntityId active,
             EntityView activeView,
@@ -1806,14 +1962,17 @@ namespace XianXia.Unity.Host
             int navigationGeneration)
         {
             if (_move == null)
-                return;
+            {
+                _continuousWaitingReason = "NavigationNotReady";
+                return false;
+            }
             var arrivalDistance = (_move.WalkGrid?.CellSize ?? 1f) * 0.35f;
             if (Vector3.Distance(activeView.transform.position, subgoal) <= arrivalDistance)
             {
                 _continuousWaitingReason = kind == ContinuousWalkGridSubgoalKind.ReachableFrontier
                     ? "NeedsRouteData"
                     : "SubgoalReachedAwaitingCanonicalCommit";
-                return;
+                return false;
             }
 
             var sameIssuedGoal =
@@ -1824,9 +1983,8 @@ namespace XianXia.Unity.Host
                 _move.HasMovementPath(active) &&
                 _move.IsRemainingPathValid(active))
             {
-                _lastAutoTravelTarget = subgoal;
                 _continuousLastIssueReason = "KeepValidPath/NavGen=" + navigationGeneration;
-                return;
+                return true;
             }
 
             var reason = !sameIssuedGoal
@@ -1840,9 +1998,9 @@ namespace XianXia.Unity.Host
                     exactGoal: true))
             {
                 _continuousWaitingReason = "SubgoalUnreachable";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
+                _surfaceTravelRetryCooldownUntil = Time.time + 0.5f;
                 _continuousLastIssueReason = reason + ":Rejected";
-                return;
+                return false;
             }
 
             _hasContinuousIssuedSubgoal = true;
@@ -1850,7 +2008,7 @@ namespace XianXia.Unity.Host
             _continuousIssuedSubgoal = subgoal;
             _continuousSubgoalIssueCount++;
             _continuousLastIssueReason = reason;
-            _lastAutoTravelTarget = subgoal;
+            return true;
         }
 
         /// <summary>
@@ -2113,57 +2271,6 @@ namespace XianXia.Unity.Host
                 !_spawner.Registry.TryGet(active, out var activeView) ||
                 activeView == null)
                 return;
-            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            if (continuous != null && continuous.IsActive)
-            {
-                float wx;
-                float wy;
-                if (motion.HasContinuousPhysicalDestination)
-                {
-                    wx = motion.ContinuousPhysicalDestination.X;
-                    wy = motion.ContinuousPhysicalDestination.Y;
-                }
-                else
-                {
-                    HexMath.ToWorldPosition(
-                        motion.DestinationHex, world.HexWorld.HexSize, out wx, out wy);
-                }
-                continuous.Mapper.WorldToPresentation(wx, wy, out var px, out var py);
-                var desired = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                if (!TryResolveContinuousSubgoal(
-                        motion, activeView.transform.position, desired, continuous,
-                        out var resolvedGoal, out var goalKind, out var failureReason))
-                {
-                    _continuousWaitingReason = failureReason;
-                    LastTransitionStatus = failureReason;
-                    return;
-                }
-
-                var authoredRadius = motion.HasContinuousPhysicalDestination
-                    ? motion.ContinuousPhysicalArrivalRadius * continuous.Mapper.PresentationUnitsPerWorldUnit
-                    : 0f;
-                var arrivalRadius = Mathf.Max(
-                    (_move.WalkGrid?.CellSize ?? 1f) * 0.35f,
-                    authoredRadius);
-                var physicallyArrived =
-                    goalKind != ContinuousWalkGridSubgoalKind.ReachableFrontier &&
-                    Vector3.Distance(activeView.transform.position, resolvedGoal) <= arrivalRadius;
-                if (physicallyArrived)
-                {
-                    continuous.SyncPartyPresentation();
-                    var finish = PlayerPartyTravelRuntimeService.CompleteSurfaceArrival(world);
-                    if (finish.IsSuccess) _move.CancelPresentationMovementPublic(active);
-                    LastTransitionStatus = finish.IsSuccess ? "Arrived" : "FinalArrivalRejected";
-                }
-                else
-                {
-                    DriveContinuousSubgoal(
-                        motion, active, activeView, resolvedGoal, goalKind,
-                        continuous.NavigationGeneration);
-                    LastTransitionStatus = "ContinuousFinal" + goalKind;
-                }
-                return;
-            }
             if (!TryResolveWildernessBounds(out var bounds))
                 return;
 
@@ -2192,14 +2299,12 @@ namespace XianXia.Unity.Host
                     LastTransitionFailureReason = string.Empty;
                 }
 
-                _finalArrivalApproachInProgress = false;
                 // Arrival 完成后角色已在 Wilderness 中心区域：让 Gate 通过现有 re-arm 逻辑
                 // 恢复为可再次 Transition 的状态（不强制、不绕过）。
                 TryRearmEdgeGateIfInSafeInterior(motion);
                 return;
             }
 
-            _finalArrivalApproachInProgress = true;
             var center = new Vector3(bounds.CenterX, bounds.CenterY, HostPresentationSpace.EntityZ);
             var alreadyMoving = _move != null && _move.IsMoving(active);
             var sameTarget = Vector3.Distance(center, _lastAutoTravelTarget) < 0.05f;
@@ -2225,12 +2330,15 @@ namespace XianXia.Unity.Host
                 return;
             var motion = world.PlayerPartyTravel;
             if (motion == null ||
-                !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
+                 !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion)))
                 return;
 
             PlayerPartyTravelRuntimeService.CancelTravel(world);
             _localVisibleTakeoverActive = false;
             ResetLocalVisibleAutoTravelTracking();
+            _surfaceTravelExecutionArmed = false;
+            ResetSurfaceAutoTravelTracking();
         }
 
         void ResetLocalVisibleAutoTravelTracking()
@@ -2239,9 +2347,17 @@ namespace XianXia.Unity.Host
             _autoTravelLegSegmentIndex = -1;
             _lastAutoTravelTarget = default;
             _autoTravelRetryCooldownUntil = 0f;
-            _finalArrivalApproachInProgress = false;
+        }
+
+        void ResetSurfaceAutoTravelTracking(bool preserveResumeRequest = false)
+        {
+            if (!preserveResumeRequest)
+                _resumeSurfaceTravelRequested = false;
+            _surfaceTravelRetryCooldownUntil = 0f;
+            _currentSurfaceExecutionTargetIndex = -1;
             _continuousAutoTravelStallReported = false;
             _continuousSubgoalRouteVersion = -1;
+            _continuousSubgoalRouteIndex = -1;
             _continuousSubgoalNavigationGeneration = -1;
             _continuousSubgoalGridRevision = -1;
             _hasContinuousSubgoalResolution = false;
@@ -2253,6 +2369,25 @@ namespace XianXia.Unity.Host
             _continuousLastIssueReason = string.Empty;
             _continuousProgressWindowStartedAt = -1f;
             _continuousProgressRouteVersion = -1;
+            SurfaceLocalExecutionTargetIndex = -1;
+            SurfaceLocalSubgoal = "-";
+            SurfaceLocalSubgoalKind = "-";
+            SurfaceWaitingReason = string.Empty;
+            SurfaceHostPathIndex = -1;
+            SurfaceHostPathCount = 0;
+            SurfaceCompositeGridRevision = -1;
+            SurfaceNavigationGeneration = -1;
+            SurfaceCurrentChunk = "-";
+        }
+
+        void ArmSurfaceTravelExecution(bool cancelPresentationMovement)
+        {
+            _surfaceTravelExecutionArmed = true;
+            ResetSurfaceAutoTravelTracking(preserveResumeRequest: true);
+            _resumeSurfaceTravelRequested = false;
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (cancelPresentationMovement && !active.IsNone)
+                _move?.CancelPresentationMovementPublic(active);
         }
 
         bool ConsumeLocalVisibleResumeRequest(PlayerPartyWorldMotion motion)
@@ -2292,17 +2427,15 @@ namespace XianXia.Unity.Host
 
         [System.Diagnostics.Conditional("UNITY_EDITOR"),
          System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
-        void ReportContinuousAutoTravelStalled(
+        void ReportSurfaceAutoTravelStalled(
             PlayerPartyWorldMotion motion,
             EntityId active,
-            HexCoord nextHex,
-            bool resumeRequested,
             ContinuousOutdoorSurfaceRuntime surface,
-            bool physicalMovedThisTick)
+            bool movementIssued)
         {
             if (motion == null ||
                 !motion.IsMoving ||
-                motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible ||
+                motion.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible ||
                 surface == null ||
                 !surface.IsActive)
                 return;
@@ -2322,6 +2455,7 @@ namespace XianXia.Unity.Host
                 _continuousProgressRouteVersion = motion.TravelPlanVersion;
                 _continuousProgressSubgoal = _continuousResolvedSubgoal;
                 _continuousProgressAnchor = position;
+                _continuousProgressWorldAnchor = motion.WorldPosition;
                 _continuousProgressWindowStartedAt = Time.unscaledTime;
                 _continuousAutoTravelStallReported = false;
                 return;
@@ -2329,9 +2463,11 @@ namespace XianXia.Unity.Host
 
             var progressThreshold = (_move?.WalkGrid?.CellSize ?? 1f) * 0.25f;
             var actualDelta = Vector3.Distance(position, _continuousProgressAnchor);
-            if (physicalMovedThisTick || actualDelta >= progressThreshold)
+            var canonicalDelta = DistanceWorld(motion.WorldPosition, _continuousProgressWorldAnchor);
+            if (actualDelta >= progressThreshold || canonicalDelta >= 0.001f)
             {
                 _continuousProgressAnchor = position;
+                _continuousProgressWorldAnchor = motion.WorldPosition;
                 _continuousProgressWindowStartedAt = Time.unscaledTime;
                 _continuousAutoTravelStallReported = false;
                 return;
@@ -2346,34 +2482,37 @@ namespace XianXia.Unity.Host
             var pathCount = 0;
             if (_move != null)
                 _move.TryGetPathProgress(active, out pathIndex, out pathCount);
+            if (pathCount > 0)
+                return;
             var finalGoal = motion.HasContinuousPhysicalDestination
                 ? motion.ContinuousPhysicalDestination.ToString()
-                : motion.DestinationHex.ToString();
+                : "missing";
             Debug.LogWarning(
-                "[ContinuousAutoTravelStalled]" +
+                "[SurfaceAutoTravelStalled]" +
                 " ExecutionMode=" + motion.ExecutionMode +
-                " MovementKind=" + motion.MovementKind +
-                " LocationKind=" + motion.LocationKind +
-                " OutdoorSite=" + (motion.CurrentOutdoorWorldSiteId ?? string.Empty) +
-                " CurrentHex=" + motion.CurrentHex +
-                " SegmentIndex=" + motion.SegmentIndex +
-                " HexPathCount=" + motion.HexPath.Count +
-                " NextHex=" + nextHex +
-                " DestinationHex=" + motion.DestinationHex +
+                " PlanVersion=" + motion.TravelPlanVersion +
+                " SurfaceId=" + (motion.SurfaceId ?? string.Empty) +
                 " WorldPosition=" + motion.WorldPosition +
-                " FinalResolvedGoal=" + finalGoal +
+                " ActivePresentation=" + position +
+                " DestinationWorldPosition=" + finalGoal +
+                " SurfaceRoute=" + motion.ContinuousSurfaceRouteIndex + "/" +
+                motion.ContinuousSurfaceRoute.Count +
+                " LocalExecutionTargetIndex=" + _currentSurfaceExecutionTargetIndex +
                 " Subgoal=" + _continuousResolvedSubgoal +
+                " SubgoalKind=" + _continuousSubgoalKind +
                 " CurrentChunk=" + surface.CurrentChunk +
                 " NavigationGeneration=" + surface.NavigationGeneration +
+                " CompositeGridRevision=" + (_move?.WalkGrid?.Revision ?? -1) +
                 " PathIndex=" + pathIndex +
                 " PathCount=" + pathCount +
+                " MovementIssued=" + movementIssued +
                 " SubgoalIssueCount=" + _continuousSubgoalIssueCount +
                 " LastIssueReason=" + (_continuousLastIssueReason ?? string.Empty) +
                 " ActualPositionDelta=" + actualDelta.ToString("0.###") +
+                " CanonicalDelta=" + canonicalDelta.ToString("0.###") +
                 " WaitingReason=" + (_continuousWaitingReason ?? string.Empty) +
                 " HostMove.IsMoving=" + hostMoving +
-                " ContinuousSurface.IsActive=" + surface.IsActive +
-                " resumeRequested=" + resumeRequested,
+                " derivedHex=" + motion.CurrentHex,
                 this);
         }
 
@@ -2819,7 +2958,7 @@ namespace XianXia.Unity.Host
                 view == null)
                 return;
 
-            // Phase 5C-W1: LocalVisible AutoTravel follows Active; middle-mouse pan DETACHES the
+            // AutoTravel follows Active; middle-mouse pan DETACHES the
             // camera until a NEW AutoTravel session starts (restored only on fresh session; not on
             // Open/Close WorldMap within the same travel).
             var world = bootstrap?.Session?.World;
@@ -2832,7 +2971,8 @@ namespace XianXia.Unity.Host
             }
 
             if (world?.PlayerPartyTravel != null &&
-                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel) &&
+                (PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(world.PlayerPartyTravel) ||
+                 PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel)) &&
                 (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
                  // Phase 5R-B6.2：WorldSite DepartureApproach（AtWorldSite + departure pending + LocalVisible
                  // AutoTravel）也是 LocalVisible execution —— Camera 跟随 Active Character。

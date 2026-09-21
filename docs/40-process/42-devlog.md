@@ -1,5 +1,18 @@
 # 开发日志
 
+## 2026-09-21 — LEGACY-FINAL-B Producer Accepted / Sealed
+
+- 制作人已完成人工验收；PlayerParty 正常 Outdoor authority 正式固定为 `SurfaceId + exact WorldPosition + SurfaceVisible`，WorldSite 只保留空间／行政 context，Hex／Outdoor LocalMap travel 仅作旧档与旧内容兼容。
+- Surface route 到 Composite physical execution、post-content Snapshot restore 两项验收修复一并封板。正式记录见 [249](249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。
+- 当前主线进入 LEGACY-FINAL-C；C 完成并验收前不宣称 Legacy Finalization Complete。
+
+## 2026-09-21 — LEGACY-FINAL-B PlayerParty Continuous Surface Travel Authority Cutover
+
+- `PlayerPartyWorldMotion` 增加 SurfaceId 与 `SurfaceVisible=3`；现代路线只保存 exact destination／Surface route，HexPath 恒空，CurrentHex 仅单向派生。
+- New Game、WorldMap、Host executor、Continuous presentation sync、WorldSite context、member presence 与 snapshot 恢复统一到现代 Surface API；旧 AtWorldSite／LocalVisible moving 存档单向迁移。
+- Hex／LocalVisible／Wilderness services 限定为 legacy compatibility；删除 runtime `WorldMapPartyTravelCommand` 与无调用的 continuous Hex bridge。WASD／点走／Stop／camera follow 已识别 Surface travel。
+- Core／Data／Unity Host／Tests assembly 离线编译与小型 content/newgame/route/snapshot/migration sanity 通过；未打开 Unity、未运行 Unity Test／PlayMode／batchmode。状态：**Implementation Complete / Producer Acceptance Pending**；B 保持未提交。
+
 ## 2026-09-21 — LEGACY-FINAL-A Producer Accepted / Sealed
 
 - 制作人已完整人工验收 New Game NPC Squad、FormalArmy／ArmyStack runtime 退役、NPC Squad Continuous movement／WorldMap marker、PlayerParty authority isolation、SiteArrival、CharacterEncounter 全流程与 active encounter Save／Load，以及 Separate Space 回归；LEGACY-FINAL-A 正式 **Accepted / Sealed**。
@@ -4924,3 +4937,17 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 
 - 修复 `PlayerPartyTransitionMembership` 将玩家自己的 controlled Squad 误判为 NPC Squad 的问题。此前 ActiveCharacter 被首次 Continuous materialization 排除，触发 `ActiveCharacter EntityView missing / NotContinuousMaterialized`；现在只排除其它 Squad，PlayerParty controlled/player Squad 成员正常随队物化。
 - Core／Data／Host／Tests sources 离线编译 0 error；Current BaseGame sanity 增加 controlled Squad ActiveCharacter transition 断言并通过。未打开 Unity、未运行 Unity Test/PlayMode/batchmode，状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-21 — LEGACY-FINAL-B Surface travel Composite blocker 验收修复（待制作人验收）
+
+- 修复 WorldMap 已建立 `SurfaceVisible` plan、但 global Surface waypoint 被 loaded Composite building blocker 占据后角色永久原地等待的问题。Surface route 继续作为大尺度地理 guidance；当前 Composite WalkGrid 是局部物理执行 authority。
+- 新增有限 route lookahead：一次 Composite flood 选择真实连通的当前或最远后续 waypoint；离开 loaded grid 时走 reachable frontier。抵达 Host transient target 后才单调推进 Domain route index，真实移动仍使用现有 Composite A*，不 teleport、不穿 blocker、不恢复 Hex/LocalVisible 现代路径。
+- modern Surface arm/resume、subgoal、retry 与 diagnostics 已和 LocalVisible takeover／SurfaceEdgeGate 分离；SurfaceVisible stall warning 与 HUD 改为 Surface-first。BeginTravel 可单向规范化 empty SurfaceId 和旧 continuous AtWorldSite exact/SiteArrival 状态。
+- 完成最小离线 compile、Surface→Composite lookahead/no-path/frontier、snapshot round-trip、旧 continuous authority canonicalization sanity 与静态调用链检查；未打开 Unity，未运行 Unity Test、PlayMode 或 batchmode。状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-21 — LEGACY-FINAL-B Snapshot post-content restore 验收修复（待制作人验收）
+
+- 修复 Snapshot 第一阶段早于 SurfaceGround 注册、因此 `SetAtWorldPosition` 清空 SurfaceId，而 moving-only 二次恢复遗漏 idle save 的顺序回归。PlayerParty travel 现于 Surface + Site shell 后统一 finalize idle/moving authority，并严格拒绝 SurfaceId/position mismatch 或无法重建的 moving route。
+- 旧 empty-SurfaceId 与 Continuous AtWorldSite 只按唯一 Surface exact point或正式 SiteArrival 单向迁移。普通 Outdoor 才从 Party motion 同步成员；active Separate Space occupants 与 CharacterEncounter tactical participants 保持其空间 owner。
+- Background Surface travel 移至 Site shell 后按 CharacterId replace/rebuild，并把失败作为带 CharacterId、destination、SurfaceId、reason 的 SnapshotInvalid 返回。Presentation rebuild 不承担 Domain repair；restore invariant、一次性 authority error 和 Surface/pause/input trace 已补齐。
+- Core／Data／Host／Tests 最小离线编译通过；纯 C# sanity 覆盖 idle、moving、旧 empty SurfaceId、旧 AtWorldSite、显式 mismatch、Separate Space、CharacterEncounter、Background travel 与合法 movement sync。未打开 Unity，未运行 Unity Test／PlayMode／batchmode；状态保持 **Implementation Complete / Producer Acceptance Pending**。

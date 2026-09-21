@@ -366,7 +366,7 @@ namespace XianXia.Tests
             m.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
             var canonicalBefore = m.WorldPosition;
 
-            PlayerPartyHexTravelService.ResumeWorldTravelExecutionIfNeeded(world);
+            LegacyPlayerPartyTravelTestCompatibility.ResumeWorldTravelExecutionIfNeeded(world);
 
             // Phase 5R-B6.5-B：WorldMap reopen → World executor（departure 由 World executor 推进
             // Canonical 朝正式 BoundaryContact；WorldMap open 强制 ManualPaused，Resume 后 tick 即推进）。

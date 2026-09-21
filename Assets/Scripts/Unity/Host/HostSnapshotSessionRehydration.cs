@@ -54,20 +54,31 @@ namespace XianXia.Unity.Host
             var politicalSnapshot = session.PendingRestoredStrategicSnapshot;
             if (politicalSnapshot == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Pending strategic snapshot is missing.");
-            // Snapshot DTO restoration precedes content-shell registration of Surface navigation.
-            // Rebuild the saved exact travel intent now that the authored route is available.
-            if (politicalSnapshot.PlayerPartyTravel?.IsMoving == true &&
-                politicalSnapshot.PlayerPartyTravel.HasContinuousPhysicalDestination)
-            {
-                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(
-                    world, session.PlayerParty);
-                StrategicSnapshotHelper.RestorePlayerPartyTravel(
-                    world, politicalSnapshot.PlayerPartyTravel);
-                PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                    world, session.PlayerParty, "SnapshotSurfaceTravelResume");
-            }
-            StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
+
+            // Content-dependent spatial restore is deliberately phase two: Surface navigation
+            // first, authored Site identity second, then PlayerParty/background route authority.
+            var surfaceSites = StrategicContentBootstrap.ApplySurfaceSites(world, registry, scenario);
+            if (surfaceSites.IsFailure)
+                return Result.Failure(ErrorCode.ContentLoadFailed,
+                    "Surface Site snapshot shell rehydrate failed.", surfaceSites.Error.ToString());
+
+            var partyTravel = StrategicSnapshotHelper.FinalizePlayerPartyTravelAfterContentShell(
+                world, politicalSnapshot.PlayerPartyTravel);
+            if (partyTravel.IsFailure)
+                return partyTravel;
+
+            var backgroundTravel = StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
                 world, politicalSnapshot.BackgroundCharacterTravels);
+            if (backgroundTravel.IsFailure)
+                return backgroundTravel;
+
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(
+                world, session.PlayerParty);
+            var separateSpaceOwnsPresence = world.LocalMap != null && world.LocalMap.IsActive;
+            var encounterOwnsPresence = world.Strategic.CharacterEncounter != null;
+            if (!separateSpaceOwnsPresence && !encounterOwnsPresence)
+                PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
+                    world, session.PlayerParty, "SnapshotSurfaceTravelFinalized");
 
             // Old snapshots could contain an exact personal point without Surface provenance.
             // Repair once at restore, only when exactly one registered authored Surface owns it.
@@ -91,7 +102,12 @@ namespace XianXia.Unity.Host
                             resolvedSurface = candidate.Key;
                         }
                     if (!ambiguous && resolvedSurface != null)
+                    {
                         personal.PersonalSurfaceId = resolvedSurface;
+                        // Normalize the pending legacy DTO as part of the one-way migration so the
+                        // final exact-presence invariant compares against the migrated authority.
+                        saved.PersonalSurfaceId = resolvedSurface;
+                    }
                 }
 
             var encounter = world.Strategic.CharacterEncounter;
@@ -127,11 +143,6 @@ namespace XianXia.Unity.Host
             }
 
             {
-                var surfaceSites = StrategicContentBootstrap.ApplySurfaceSites(world, registry, scenario);
-                if (surfaceSites.IsFailure)
-                    return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "Surface Site snapshot shell rehydrate failed.", surfaceSites.Error.ToString());
-
                 var openingMigration = RestoreMissingLegacyOpeningPresences(
                     world, registry, scenario, politicalSnapshot);
                 if (openingMigration.IsFailure)
@@ -242,6 +253,10 @@ namespace XianXia.Unity.Host
                 world, politicalSnapshot);
             if (presenceInvariant.IsFailure)
                 return presenceInvariant;
+            var partySurfaceInvariant =
+                StrategicSnapshotHelper.ValidatePlayerPartyContinuousAuthorityAfterContentShell(world);
+            if (partySurfaceInvariant.IsFailure)
+                return partySurfaceInvariant;
             session.ConsumePendingRestoredStrategicSnapshot();
             session.RefreshViewableEntityIds();
             return Result.Success();

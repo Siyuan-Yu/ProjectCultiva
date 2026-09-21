@@ -5,6 +5,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Hex;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -46,8 +47,15 @@ namespace XianXia.Data.Bootstrap
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Opening player has no checked-in Surface anchor.", spawn.DefinitionId);
                 var point = opening.ContinuousWorldPosition;
-                world.PlayerPartyTravel.SetAtSurfacePosition(point);
-                world.PlayerPartyTravel.TrySetAtWorldSitePreservingWorldPosition(startSite.SiteId, point);
+                if (!world.SurfaceGround.TryResolveContaining(point, out var navigation) || navigation == null)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Opening player Surface authority is unavailable.", spawn.DefinitionId);
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                world.PlayerPartyTravel.SetAtSurfacePosition(
+                    navigation.SurfaceId, point, HexMath.WorldToHex(point.X, point.Y, hexSize));
+                world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(startSite.SiteId);
                 world.PlayerPartyTravel.CaptureTravelingMembers(new[] { id });
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
                 WorldTravelService.SyncPartyFocus(world);
