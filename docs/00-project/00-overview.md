@@ -12,6 +12,12 @@ Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控
 
 本专项不表示整个游戏已完成或不存在潜在缺陷，也不要求历史文档、稳定 wire key 或离线转换器中的 `Hex`／`Army` 字符串清零。正常产品中的旧运行依赖已经退役；不得把新增 `Legacy*` runtime adapter 当作完成标准。
 
+**状态阅读纪律：** `Design Confirmed` 只表示制作人已确认规则；`Implemented` 表示当前代码已接通；`Producer Accepted` 必须有明确人工验收；`Committed / Sealed` 必须对应真实 Git 提交与封板授权；`Proposed / Not Implemented` 只是待讨论范围。当前封板提交是 `9b32fe0`。各系统的实际能力、持久化边界、验收／提交依据和待讨论项集中在 [247 当前系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22)，不要从旧路线图推断。
+
+**下一步仅为 Proposal：** 优先讨论 Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 的正式磁盘持久化，以及待选择事件弹窗打开时的保存策略；尚未授权实施。进度可靠保存后，再考虑用现有能力串接一段完整探索成长流程，而不是继续增加底层框架。
+
+**当前静态差异（不等于已授权任务）：** Separate Space session 尚未进入 JSON serializer wire；Snapshot restore 未重注册 Quest／Event／Chapter definitions；WorldMap Player／NPC Squad marker 仍为固定像素而确认规则要求战略图标随 zoom 投影缩放。详见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22)。
+
 **Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01～MAP-04 均已实施、人工验收并封板；正常 Gameplay authority 已切换到 Surface。当前正式产品程序集已物理移除 Core Hex 目录与 `SimulationWorld` 的 Hex 容器；旧 `formalArmy`／`hexWorld` 只在 Loader 边界被拒绝并指向离线转换流程，不存在正常 runtime 自动 migration。
 
 **Editor 工具链：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 manifest、平铺 `Apps/` 与 staging 发布已落地。WorldComposer／FineEditor 是现行 Surface authoring 工具；WorldGraphEditor／RegionEditor 已退休。独立 Cave／Interior／Encounter 地图继续合法保留。

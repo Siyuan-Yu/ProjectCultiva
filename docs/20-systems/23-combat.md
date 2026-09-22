@@ -132,7 +132,7 @@
 
 **已落地竖切（2026-08-16／17）：** 见 [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md)。筑基 **F2**／底栏「纱衣」召唤（固定灵力开销）；空灵力／交战结束自动卸下；远程普攻用**统一青色弹道**（飞行光核→命中爆闪）。
 
-**已落地竖切（2026-08-20）：** 见 [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md)。HP 归零→**弥留**（`Incapacitated`）；再受击→死亡+**尸体**（普通人约 2 游戏日 decay）；大地图自动战有伤亡结算与「战胜时直接击杀」勾选；底栏／详情 UI 左上角显示弥留／尸体角标。
+**已落地竖切（2026-08-20）：** 见 [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md)。HP 归零→**弥留**（`Incapacitated`）；再受击或超时→死亡+**尸体**。当前 `CombatLifeStateService` 的弥留与尸体寿命均为 200 runtime ticks（注释口径为现实秒，1x 下约 200 秒）；`DefaultCorpseGameDays=2` 只保留旧内容接口，不是当前 decay authority。底栏／详情 UI 显示弥留／尸体与倒计时。
 
 普通攻击的具体动画、更高境界射程与开销随推进细化。
 

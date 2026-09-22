@@ -1,10 +1,46 @@
 # Project Handoff — Continuous World Current State
 
-> **Current handoff — 2026-09-22：** MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 的既有验收事实保持；Hex／Army 正式运行依赖退役与 `Scripts(20260922-040154).zip`／021915 统一收尾已达到 **Implementation Complete**，并由制作人人工验收后 **Producer Accepted / Sealed**。正常 authority 为 Continuous Surface + exact WorldPosition、Squad／SquadWorldMotion、CharacterEncounter、WorldSite Owner + TerritoryClaim + Actual Administrative Control。`SimulationWorld` 无 HexWorld，Core Hex 目录已物理删除，正常产品不编译旧 Hex 几何。最终规则与落实说明见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) §6.1。后续功能方向尚未批准，不自动启动下一项任务。
+## 新会话恢复摘要（唯一当前入口，2026-09-22）
 
-> **当前没有待恢复的 A／B／C、MAP 或 SPACE 实施顺序，也没有“继续清理 Hex／Army”的现行任务。** 下方 `Resume Snapshot` 与 §1～26 均为历史恢复／实施记录，不得据此恢复 `Legacy*` runtime adapter，也不得按关键词再开一轮扫描删除。
+### 项目与阶段
 
-> **审查基线：** 上一轮命名／兼容边界封板为 `291f90a`，排除两份无关 Ritual UI 改动的跟进提交为 `cf77d80`（封板提交前的 HEAD）。本专项代码与封板记录在制作人验收后一并提交；不得把封板前提交号冒充为本轮 seal commit。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。当前处于 Architecture Freeze v0.2 + ADR-0038 之后的**已封板基线**：Continuous Surface、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control 与 Separate Space 是正式主线。下一功能方向尚未批准，新会话应先讨论范围，不自动编码。
+
+### 基线、验收与 Git
+
+- 当前对话审查基线：`Scripts(20260922-042034).zip`。制作人明确说明：042034 与 040154 解包后的文件内容一致，**不是**又实施一轮代码修改。
+- 021915 完成主要 Hex／Army 正式运行依赖删除；040154 完成旅行契约、Host 物化刷新、序列化字段映射、当前数据分阶段恢复和孤立链删除等统一收尾；042034 复核未发现需要重开专项清理的实质问题。
+- 状态分层：设计边界 **Design Confirmed**；上述代码 **Implemented**；制作人人工验收明确通过，故为 **Producer Accepted**；封板提交为 `9b32fe0f06d9e838e1e0be6ea40f5be50b239e01`（`chore: seal Hex/Army runtime retirement and cleanup`），故专项 **Committed / Sealed**。
+- 当前 branch：`dev_openworld`。本轮文档收口开始前，封板提交后工作区只保留两份无关未提交改动：`Assets/Scripts/Unity/Host/HostBreakthroughRitual.cs`、`Assets/Scripts/Unity/Host/HostSkillStudyRitual.cs`。当前工作区还包含本轮文档／协作规范更新；两份 C# 不属于本轮，不得回滚、覆盖或顺带提交。
+- 此前 82/82、离线编译与 converter 5/5 是实施阶段的历史执行记录，不是本次文档收口重跑，也不能代替制作人人工验收。
+
+### 已封板的运行边界
+
+- 普通 Outdoor 位置与旅行 authority：`SurfaceId + exact WorldPosition + Continuous Surface`；当前 movement budget scale 来自 opening `outdoorSurface.movementScale`，不读取 `LegacyHexWorld`，也不等同于 `cellSize`。
+- 正常活动人物组织：`Squad`；玩家投影：`PlayerParty + ActiveControlledCharacter`；NPC group 运动：`SquadWorldMotion`。singleton Squad 身份不自动等于物理移动 ownership。
+- 现代战斗：`CharacterEncounter` + 真实 Character participants + 独立战术坐标 + source／return world anchors。世界时间与战斗时间按已冻结规则分离。
+- 据点与行政：`WorldSite + SiteCore + TerritoryClaim + Actual Administrative Control`；Surface 范围查询不以 Hex footprint 兜底。
+- 真正独立空间：`LocalMapSession`／Separate Space（当前样板为洞府）；普通城市／户外 Site 不因此切换 LocalMap。
+- 旧 Hex 世界、旧执行器和旧 Army runtime migration 不再承载正式 Gameplay。残留的旧格式识别／拒绝、稳定 JSON key／ID／数值、`FormerlySerializedAs`、独立转换工具和历史文档不等于旧运行系统仍在。
+
+### 不应重新开启
+
+没有“继续找 Legacy／Hex／Army”的默认任务。不得因历史文档、协议键、保留枚举值、旧序列化字段名或离线转换器仍含历史词语而重开扫描删除；不得恢复旧 Hex／Army runtime adapter。下方 Historical Resume Snapshot 与旧里程碑只记录当时事实。
+
+### 当前限制与未核实事项
+
+- 本封板不表示全项目完成、所有历史存档均可直接加载、所有历史字符串消失或项目无缺陷。
+- 系统现状以本文下方“当前系统现状总表”为准；表内 `Proposed / Not Implemented` 不构成开发授权。
+- 当前优先 Proposal 是通用任务／剧情状态的正式磁盘持久化；待处理事件弹窗保存策略尚需制作人选择。该 Proposal 本轮不实施。
+- 本轮文档静态核对发现三项代码／已确认规则差异：Separate Space Session DTO 有 capture／restore 但 `JsonSnapshotSerializer` 未读写 `strategic.separateSpace`；Snapshot restore 的 content shell 未重注册 Quest／ContentEvent／Chapter definitions；WorldMap 的 Site／Flag marker 随 world projection 缩放，但 Player／NPC Squad marker 仍固定像素。它们不撤销既有历史验收记录，也不能伪装成已完成；须在新会话先定范围后另行处理。
+
+### 新会话短阅读顺序
+
+`AGENTS.md` → [00 overview](../00-project/00-overview.md) → 本节与[当前系统现状总表](#当前系统现状总表2026-09-22) → [31 architecture](../30-tech/31-architecture.md) → 下一议题对应的少数 `20-systems` 正文与源码入口。无需顺序重读全部历史 devlog。
+
+### 执行与验收规则
+
+遵守 `AGENTS.md` 与 [52 协作规范](52-ai-collaboration-protocol.md)：一轮一份明确指令；不自行运行测试或启动 Unity；代码只做基础编译与最少静态检查；编译、静态核对、人工验收和提交状态分开；未经制作人确认不自动编码；普通实施不自动提交，“封板”才授权选择性 commit，默认不 push／tag／amend／reset／clean。
 
 > **当前边界：** Runtime Loader 只接受当前 `outdoorSurface`／`npcSquad`；旧 `formalArmy`／`hexWorld` 明确拒绝。`LegacyRuntimeConverter` 只读输入并写不同且尚不存在的独立副本，但只无损转换 FormalArmy 与 current authority 完整的 hybrid Snapshot；`hexWorld`／`openingHexWorldId` 只检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。旧 Content 的 `squad:migrated:`／`squad:legacy:` 与旧 Snapshot 的 `squad:army:` 三规则保持分离；稳定 wire key、数值空洞与 ID 只用于检测／离线转换。
 
@@ -27,6 +63,113 @@
 - **已删除链：** Core Hex 目录、旧执行器、Outdoor LocalMap／footprint／SurfaceExit／Host 接线，以及 Site／Flag／Encounter／SeparateSpace current 链的 Hex 参数／缓存均已退出。
 - **此前实施阶段实际执行记录（不是本次封板重跑）：** Core／Data／Unity／Unity.Editor／Tests／PlayModeTests／Assembly-CSharp／Assembly-CSharp-Editor 离线编译 `ALL_OK`；021915 当前行为矩阵 82/82；ContentAuthoring solution 0 warning／0 error，converter 5/5。本机 `vs04_slot0.json`（36 entities、28 Squads、6 motions、20 exact presences、11 flags、11 runtime sites、17 claims）完成 serializer、Core restore、Content shell、Surface Site、PlayerParty／Background route、政治状态与 Squad motion 二阶段恢复。
 - **封板：** 制作人已确认本版人工验收通过。本次封板只做规范与状态文档更新及选择性 Git 提交；不重跑编译或任何测试，不启动 Unity。本专项 **Producer Accepted / Sealed**。不宣称全项目无缺陷，也不宣称历史 Hex／Army 字符串已清零。
+
+<a id="当前系统现状总表2026-09-22"></a>
+## 当前系统现状总表（2026-09-22）
+
+本表只写当前可用能力与明确边界。状态列中的 `Accepted / Sealed` 仅引用已有人工验收和 Git 记录；未列明者不得自动提升为已验收。源码路径用于恢复上下文，不表示需要重新审计全仓。
+
+### A. 世界、位置与地图
+
+| 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
+|---|---|---|---|
+| Continuous Surface 与 Runtime Chunk | `OutdoorSurfaceSpatialAuthority`、`SurfaceGroundNavigation` 与 exact `WorldPosition` 承载户外地形、通行、道路／桥／森林输入和 chunk materialization；`SimulationWorld.ContinuousWorldMovementScale` 由 opening `outdoorSurface.movementScale` 注入 | `Assets/Scripts/Core/World/Surface/`；`Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json`；动态状态进 `WorldSnapshot`，静态地理留在 Content | Implemented / Accepted / Sealed。自动水文、道路 A*、detail scatter、完整大陆内容覆盖与 Runtime Chunk profiling 仍是 Future |
+| WorldMap | `HostWorldMapPanel` 查看同源 Surface、exact 选点、缩放／平移、Site／Flag／Party／NPC Squad／控制范围；Site／Flag 图标和标签随 world projection 缩放，Header／Flyout 固定屏幕空间；打开时只规划，关闭后恢复 Surface travel | `Assets/Scripts/Unity/Host/HostWorldMapPanel.cs`；不保存第二套地图位置，只提交 `PlayerPartyWorldMotion` 旅行计划 | MAP-02/03 Accepted / Sealed；但当前 Player 为固定 20×20 px、NPC Squad 为固定 14×14 px，与“图标／标签随地图缩放”的确认规则不一致，须另行定范围修正 |
+| PlayerParty 移动与同行 | 单 `ActiveControlledCharacter`；PlayerParty 上限 6；Followers 为 AI；`PlayerPartySurfaceTravelService`／`PlayerPartyWorldMotion` 以 Surface route 移动；取消保留位置，重放置清旧 Site，到达保留目的 Site | `Assets/Scripts/Core/World/Strategic/PlayerPartyWorldMotion.cs`、`PlayerPartySurfaceTravelService.cs`；Snapshot 保存位置、目的地、计划语义并在 Surface shell 后恢复 route | Implemented / Accepted / Sealed。飞舟、跨大陆新能力与完整继承终局未实现 |
+| NPC Squad 与独立人物后台移动 | 正常 group = `Squad + SquadWorldMotion`；独立人物可由 background travel authority 移动；loaded/unloaded 只改变表现与 LOD，不改身份／位置 authority | `SquadState.cs`、`SquadWorldMotion.cs`、`BackgroundCharacterTravelService.cs`；Snapshot + Content-dependent phase-two restore | Hex／Army retirement seal 已覆盖。完整战略 AI／NPC 主动战争仍 Future |
+| 表现物化与刷新 | Host 只根据 presentation scope materialize；`OutdoorEntityReconcileGate` 合并为 `None`／`RefreshViewsOnly`／`ReconcileAndRefresh`，避免静止 tick 重扫并保留真实 scope 变化 | `Assets/Scripts/Unity/Host/OutdoorEntityReconcileGate.cs`、`PlayableHostBootstrap.cs`；运行 generation 不作为磁盘 authority | Implemented；021915 统一收尾 Accepted / Sealed。性能 profiling 未核实，不作为当前 bug |
+| 世界／Interior／Encounter 位置恢复顺序 | `EntityLocationSnapshotAuthorityComponent`、character presence、PlayerParty／Squad motion、Separate Space／CharacterEncounter 分层恢复；Host presentation 优先级为 Separate Space → Encounter → Outdoor | `WorldSnapshot`、`SnapshotService`、`StrategicSnapshotHelper`、`HostSnapshotSessionRehydration` | Outdoor／Encounter spatial 主线已封板；Separate Space session JSON wire 缺口见 D 表。不保证任意旧档直接兼容 |
+
+### B. 小队、战斗与人物状态
+
+| 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
+|---|---|---|---|
+| Squad／PlayerParty／主控 | 每个正常活动人物属于唯一 Squad，单人也是 singleton Squad；PlayerParty 是玩家 Squad + Active 的控制投影；切换 Active 不改 Faction／HomeSite／关系 | `SquadBoard`、`PlayerPartyState`、`PlayerPartyTransitionMembership`；Snapshot 保存 membership 与 active identity | Unified Squad 主线 Accepted / Sealed。singleton Squad 不自动拥有某个共用物理位置 |
+| CharacterEncounter | 第一击前统一确认；真实初始双方、有限候选、临时独立战术坐标、世界停表／战术时间、ReadyToStart／Active／ReadyToEnd／结算／返回；只恢复各自战前 world anchor，保留战果 | `CharacterEncounter.cs`、`HostCharacterEncounter.cs`；`WorldSnapshot.CharacterEncounter` + participant origin／return／tactical fields | Current 主线 Accepted / Sealed。NPC 对 NPC 大型战争、无限远援与大军实时战不在当前范围 |
+| 独立战场与战报 | 使用接战地点同源地形／关键建筑 materialize；正式参与者决定控制、胜负与战报；最终结算唯一 | `ContinuousOutdoorEncounterField`、CharacterEncounter settlement/report services；Snapshot 在可保存 phase 保存，Preparing 明确禁止存档 | 已实现当前范围。完整俘虏／赎金、全面战争为 Future |
+| 弥留、死亡与遗体 | `Incapacitated`、`Dead`、`Removed` 分离；Dead ≠ Removed；失能主控优先按 Party 顺序接替；residual／corpse 保留人物真实 Surface／空间责任 | `CombatLifeStateService`、entity lifecycle、world presence／residual services；Snapshot 保存 lifecycle、位置与相关 Encounter 状态 | 当前链已实现并纳入封板；玩家势力无人终局、完整继承／丧葬等未实现 |
+| 私人冲突、关系介入与 War | 攻击人物不自动宣战；关系只决定有限介入资格；攻击势力有效拥有的建筑才走对应战争授权；永久关系 authority 是 `RelationshipLedger` | `CharacterEncounterHostilityService`、relationship services、Faction／Claim boards；关系事件已进 Snapshot | 设计与当前主线已确认。更完整外交、战争升级和 NPC 自动战争仍 Future |
+
+### C. 据点、建设与生活
+
+| 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
+|---|---|---|---|
+| WorldSite／SiteCore／控制 | Permanent Site 使用固定 Council Hall core；FactionFlag 可创建可拆／可毁 runtime Site；Owner、TerritoryClaim 与 Actual Administrative Control 分离；范围改变不移动人物 | `WorldSite`、`WorldSiteBoard`、`FactionFlagService`、`WorldSitePhysicalRegionQuery`；Snapshot 保存 runtime sites、flags、claims | Implemented / Accepted / Sealed。SiteCore、Owner、Actual Control、建设权限与资产状态不得混写 |
+| 建设与范围显示 | `ConstructionCatalog` + `ConstructionService` 事务性消费 PartyInventory，当前支持势力旗、FarmField、RecoverySpot、StorageRoom 等真实 outdoor constructed assets；footprint 必须落在发起势力 Actual Control；可主动拆除返料 | `Assets/Scripts/Core/Construction/`、`HostConstructionPanel` 与各 placement presenter；constructed assets／farm plots／Inventory 进入 Snapshot | 2L Implemented / Producer Accepted / Sealed。当前不含完整建筑产权、Core upgrade 产品 UI、通用建筑战争或通用 house／workshop 建造 |
+| 农田、劳动与 Site 经济 | WorkArea／Job／Schedule、农作逐 tick 消费当前行政授权，收获进入 Site inventory／treasury 相关 current board | `Assets/Scripts/Core/Labor/`、Strategic economy services；Content 位于 `WorkAreas/`、`Jobs/`、`Schedules/`、`SiteEconomies/` | 当前样例链已接通；更完整仓储物流、税赋、跨 Site 运输、离屏生产未实现 |
+| 接管与资产保持 | 接管改变政治／行政 authority，不传送人物、不自动删除建筑／库存／日程；拆可移除旗不等于清空 Site 资产 | Site warfare／capture services、FactionFlag／Claim restore | Current 主线 Accepted / Sealed。产权、继承、战争升级和普通建筑战争扩展仍需另议 |
+
+### D. 探索与独立空间
+
+| 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
+|---|---|---|---|
+| 洞府发现与显形 | 当前 cave 样板支持靠近提示、神识 Survey、`KnownSites` reveal；Survey 只更新知识和表现，不提前加载 Interior 或移动 Party | `ExplorationService`、`OpportunityEntranceRules`、`KnownSitesComponent`；KnownSites 作为实体组件随当前 entity Snapshot 保存 | SPACE-01 cave 流程 Accepted / Sealed。其他秘境／遗迹不因设计存在而视为已有正式内容 |
+| 进入、同行与内部状态 | `SeparateSpaceTransitionService.Enter` 验证入口并捕获 exact outdoor return；当前真正随队成员全部 transition；Interior 只 materialize occupants／当地居民；内部战斗原地进行 | `LocalMapSession`／SeparateSpace session、`PlayerPartyTransitionMembership`、`SeparateSpaceCombatPolicy` | Implemented / Accepted / Sealed。普通 Outdoor Site 不使用这条链 |
+| 离开、回程与存读档 | authored exit edge 由 Active 触发；Leave 恢复 exact `ReturnSurfaceId + WorldPosition`；内存 DTO／helper 可 capture／restore SeparateSpace session，load 不重新调用 Enter | `SeparateSpaceExitEdgeTrigger`、`SeparateSpaceSessionSnapshotRestore`、`HostSeparateSpaceExitTrigger` | SPACE-01 历史状态 Accepted / Sealed；但当前 `JsonSnapshotSerializer` 未读写 `strategic.separateSpace`，故磁盘 JSON 对 session／return／occupants 的完整 round-trip **未接线**，不得再写成已完整持久化 |
+| 拾取物保持 | `WorldLootPickupService` 记录稳定 loot spot id；`HasTakenWorldLootSnapshotAuthority` + `TakenWorldLootSpotIds` 保存已取状态 | `WorldSnapshot`／`SnapshotService` | 当前专用链已接线；它不是通用 Story Flag／Quest 持久化 |
+
+### E. 人物、成长与内容
+
+| 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
+|---|---|---|---|
+| 属性、境界与修炼 | AttributeModifier 管道、Realm／Cultivation、学习／熟练度／突破 ritual 与 WorldTick／ActionClock 基础链已存在；当前两份 Ritual Host UI 改动仍是无关未提交工作区内容 | `Core/Attributes`、`Core/Cultivation`、`HostBreakthroughRitual`、`HostSkillStudyRitual`；Snapshot 已保存 Cultivation、已学功法、功法／斗技 mastery 和 manual specs | 当前 slice 已实现；更完整境界内容、突破事件与 AI 日程不是因底层类型存在就视为完成。两份 Ritual 改动尚未确认／提交 |
+| 行动、Order 与日程 | `ActiveActions`、Order queues、Schedule definitions／entity binding 与 `DailyTaskComponent` 已用于当前劳动、修炼、恢复和日程链 | Snapshot 已保存 active actions、orders、schedules、entity schedule id 与 daily task fields；Host ritual channel 自身不是 Snapshot authority | 当前基础链已实现；不得从可序列化目标推断所有 Action／Host UI 中间态均可无损继续 |
+| 关系、Bond、态度与档案 | `SocialBondBoard` 保存客观 Bond；五维单向态度由 `RelationshipLedger` 事件聚合；人物档案供 UI／内容查询 | `RelationshipService`、`SocialBondBoard`、profile components；Snapshot 已保存 Social Bonds、RelationshipLedger 与 PersonalityProfile tags | 2M 主线 Accepted / Sealed。关系 ≠ 私人冲突 ≠ Faction War |
+| 背包、装备、资源与掉落 | PartyInventory、物品增减、内容奖励／成本事务、装备／资源基础模型和 world loot 拾取存在 | `Core/Inventory`、`ContentOutcomeApplier`、`WorldLootPickupService`；PartyInventory 与 taken loot 已进 Snapshot | 当前结算行为保留。完整个人背包／装备栏持久化覆盖需按 DTO 逐字段核实 |
+| Quest | `QuestBoard`、期限／状态／Journal、条件与 Outcome 可在当前 runtime 工作 | `Core/Content/Quest*`、`HostQuestJournal`、`Content/BaseGame/Data/Quests/`；`QuestBoard.CaptureRuntime` 仅供 `ContentOutcomeApplier` 事务回滚 | **磁盘 Snapshot 未接线；Proposed / Not Implemented** |
+| Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持 New Game 当前会话条件、触发与推进 | `Core/Content/` + `Data/Bootstrap` + `Content/BaseGame/Data/Events|Chapters/`；未见 `WorldSnapshot` capture／restore；restore shell 也未重注册 Quest／Event／Chapter definitions | **通用磁盘持久化与读档 definitions shell 均未接线；Proposed / Not Implemented** |
+| ContentCounters／ContentDaily | runtime board 支持计数、每日限制／重置语义；角色 `DailyTaskComponent` 是另一条实体日程链 | `ContentCounterBoard`、`ContentDailyBoard`；通用 board 未进 `WorldSnapshot`，而 `DailyTaskComponent` 已按实体字段保存 | 不得混为一套。通用 Counter／Daily 磁盘 round-trip 为 Proposal |
+
+### F. 工具链与工程
+
+| 范围 | 当前能做什么／authority | 入口与输出 | 状态／边界 |
+|---|---|---|---|
+| ContentAuthoring | `EditorManifest.json` 当前 8 个 Active + 2 个 Legacy Compatibility editor；`WorldComposer` 做大陆宏观 composition／道路河流／Blueprint／Patch／预览／Bake；`FineEditor` 做 1×1 Surface Cell 精修与对象放置；MapEditor／LocalPlaceEditor 只维护合法独立空间 | `ContentAuthoring.sln`、`编译-所有编辑器.cmd`、`启动-*.cmd`；发布到 generated `Apps/*.exe` | MAP-01 Production V1 Accepted / Sealed。自动水文等 Future 不得写成已完成 |
+| Authoring → Runtime | Authoring Source 只由 baker 消费；Preview／Bake 共用 `CompositionEngine`；候选导出不改 Runtime，`CompatibilityPublisher` 可 staging／backup／rollback 原子替换 Surface、Geography、WorldMap cache 三文件 | `Content/BaseGame/Authoring/ContinuousSurface/` → candidate 或 `Content/BaseGame/Data/Worlds/` | Authoring Source ≠ Runtime Content；不得让编辑源成为 runtime DefinitionRegistry authority。发布后 Content Validation 入口本轮未重新核实 |
+| Runtime / converter / prototype 边界 | Core／Data／Unity 正式程序集不反向依赖工具；`LegacyRuntimeConverter` 只做有证据的无损 FormalArmy／hybrid Snapshot 转换，hexWorld fail-closed；Demo Runtime 只读参考 | `ExternalTools/ContentAuthoring/LegacyRuntimeConverter/`；输入只读，输出必须是不同且不存在的文件 | Converter 自测记录仅为历史；本轮不重跑。不得把工具接回正常 Loader |
+| Content／Snapshot 版本策略 | JSON ContentPackage + namespaced DefinitionId；Loader 严格校验；Snapshot 由版本化 DTO／serializer 恢复；未知／旧 authority 明确报错，不静默猜 | `Content/BaseGame/manifest.json`、`ContentPackageLoader`、`WorldSnapshot`、`JsonSnapshotSerializer` | 当前正式 BaseGame 可用；完整外部 Mods 产品能力、复杂 migration 平台未实现 |
+| 启动、构建与诊断 | Unity 版本 2022.3.6f1 Built-in；LevelTester 是主要逻辑试玩入口但不在 Build Settings；Build Settings 当前启用 DemoParityHost／Demo_v0_1；工具 Build All 日志为 `build-all.log`，WorldComposer／FineEditor crash log 在 `Apps/` | 根 `README.md`、`docs/40-process/114-level-tester.md`、`ExternalTools/ContentAuthoring/README.md`、`tools/offline-compile.ps1` | 本轮未编译、未启动 Unity。generated `Apps/` 静态观察仍有已移出 manifest 的旧 exe，须以后 Build All 刷新后再确认；不影响 manifest 作为工具清单真源 |
+
+## 已确认且不随换会话重议的设计边界
+
+1. 游戏首先是具体角色的修仙 RPG；同行小队、连续探索、关系、战斗与领地经营服务角色体验，不把玩家本体替换为 RTS／4X 组织。
+2. `SurfaceCell` 是 1×1 逻辑地理单位；`RuntimeChunk` 是流式技术分区；`WorldEditorCell` 是宏观 authoring 单位；`WorldSiteBlueprint` 与 `DetailPatch` 是 bake 输入。它们不能互相替代；1×1 逻辑格也不等于可任意改写 movement scale 的 Unity world unit。
+3. 普通城市／村镇／户外 Site 均属于同一 Continuous Surface；Cave／Interior／Dungeon 与临时 Encounter 才是真正 Separate Space。
+4. 玩家与 NPC 使用统一 Squad 语义；每名 Character 保有真实位置，singleton Squad 不自动产生共享物理移动 ownership。
+5. 战斗必须在第一击前经过统一确认；只以真实参与者结算；主世界停表而本场战术时间按自身 owner 推进；战后回各自 pre-encounter anchor，战果不回滚。
+6. SiteCore、政治 Owner／Claim、Actual Administrative Control、建设许可与资产状态分离。控制改变不自动移动人物、删除资产或重置日程。
+7. WorldMap 是同一 Surface 的 planning view；选择目标后关闭地图再恢复旅行。图标／标签按 world-space 投影随 zoom 缩放，不恢复固定屏幕像素方案。
+8. RelationshipLedger 是态度真源；Social Bond 是客观关系事实；人物冲突、关系介入与 Faction War 是不同状态，不得互相隐式升级。
+9. Separate Space transition 带当前 PlayerParty occupants、保存内部状态与 exact outdoor return；普通 Outdoor 不借此恢复一 Site 一 LocalMap。
+10. 编辑器生产 authoring source，baker 生产 runtime output，游戏 Loader 只消费 current runtime Content。工具输出、历史原型和正常 gameplay authority 不得混层。
+
+依据：[00 overview](../00-project/00-overview.md)、[03 glossary](../00-project/03-glossary.md)、[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)、[23](../20-systems/23-combat.md)、[24](../20-systems/24-world-and-settlements.md)、[26](../20-systems/26-territory-management.md)、[28](../20-systems/28-jianghu-relations.md)、[ADR-0032～0038](43-decisions/README.md)。
+
+<a id="proposal通用内容状态磁盘持久化尚未授权"></a>
+## Proposal：通用内容状态磁盘持久化（尚未授权）
+
+### 已核实的现状
+
+- Quest／Flags／ContentEvents／Chapters／ContentCounters／ContentDaily 的 runtime boards 已承载当前会话内条件、推进、奖励和 UI。
+- `QuestBoard.CaptureRuntime`／`RestoreRuntime` 由 `ContentOutcomeApplier` 用于一次 Outcome 的事务回滚；这不是磁盘存档。
+- `WorldSnapshot`／`SnapshotService` 当前保存 PartyInventory、taken world loot spots、RelationshipLedger、entity／spatial／Encounter 等明确字段；Separate Space 虽有 DTO／capture helper，但 JSON wire 缺失；上述通用内容 boards 同样未保存。
+- `HasTakenWorldLootSnapshotAuthority`／`TakenWorldLootSpotIds` 是 loot 专用持久化，不能替代 Story／World Flags。
+- `DailyTaskComponent` 的实体字段已保存，但它与 `ContentDailyBoard` 的通用每日内容限制不是同一个 authority。
+- New Game 由 `ContentRuntimeBootstrap.Apply`／`ChapterRuntimeBootstrap` 注册 Quest／Event／Chapter definitions；Snapshot restore 当前只走 `RuntimeContentShellBootstrap`，未重注册这些 definitions。故 Proposal 不能只加 runtime DTO，还必须决定 restore 时只注册 definitions、绝不重跑 opening state 的接线。
+
+### 待制作人讨论的最小范围
+
+1. Quest 状态、期限、目标进度与失败／完成事实。
+2. 永久 Story／World Flags 与一次性选择。
+3. 已触发／已消费的 ContentEvents 与 Chapter 当前阶段。
+4. ContentCounters 与 ContentDaily 的计数、日期边界及重置依据。
+5. 待选择事件弹窗打开时：**禁止保存**，还是保存 pending event identity、context、候选项和防重复结算 token。必须先选规则，不能自行实现。
+
+### 明确排除
+
+- 本轮不实现任何字段、serializer、restore 或 UI。
+- 不重写 Quest Editor／叙事引擎，不改变当前奖励结算与事务行为，不同时扩展多个新系统。
+- 该 Proposal 未经制作人批准不得进入开发。批准并保证进度可靠保存后，下一建议是用已有地图、洞府、战斗、关系和成长能力串起一段完整探索成长流程，而不是继续增加底层框架。
 
 ## Historical Resume Snapshot — 2026-09-18～21（已归档）
 > **2026-09-21 FINAL LEGACY CLOSEOUT：** Continuous World / Legacy Runtime Migration 已完成最终 Scripts-only 实现清理，状态为 **Implementation Complete / Producer Acceptance Pending**。PlayerParty authority 为 `SurfaceId + WorldPosition + SurfaceVisible / ContinuousSurfaceRoute`；NPC group 为 `Squad + SquadWorldMotion`；角色空间为 `AtWorldPosition / AtSite(background-resident) / InSeparateSpace / InEncounter`；领土为 `WorldSite + TerritoryClaim + Actual Administrative Control`；战斗为 `CharacterEncounter`；独立空间为 Interior LocalMap / `EntityLocation`。旧 Hex／FormalArmy／TerritoryRegion／Outdoor LocalMap 只保留 old input、migration、derived metadata、显式 compatibility 与 Demo/test contract。以后不得因搜索到 Legacy 名字自动开启 cleanup；仅在它重新成为现代 authority，或产品明确终止旧兼容时再处理。
@@ -324,7 +467,7 @@ Preview 与 Bake 必须消费**同一个** `CompositionEngine`；确定性只依
 - **New Game opening exact anchor**：`openingSurfaceId` + 已发布 Surface Site/FactionFlag + `openingEntityAnchors`；不调用 Hex strategic bootstrap，不加载 HexWorld JSON，不激活 Outdoor WorldRegion。
 - **WorldSite continuous membership**：正常 WorldSite 上下文由 continuous 行政/物理查询判定，不回落 Hex footprint。
 - **FactionFlag world-space authority**：先以 `SurfaceId + WorldPosition` 验证地表与 Actual Control；`StrategicAnchor` 只做派生兼容；读档不要求保存的 AnchorQ/R 落在 Hex grid 内。
-- **NPC / FormalArmy continuous movement**：后台 NPC 到连续 Site 走地表寻路 + authored Site arrival；FormalArmy/Squad Site 命令同样以精确起点与 authored arrival 求路。
+- **NPC Squad / Background Character continuous movement**：后台 NPC 到连续 Site 走地表寻路 + authored Site arrival；`SquadWorldMotion` 与个人后台旅行以精确起点、Surface route 和 authored arrival 求路。
 - **Battle world-space anchor**：`BattleParticipantSnapshot` 增加 `HasBattleAnchorWorldPosition` / `BattleAnchorWorldX/Y` / `BattleAnchorSurfaceId`，offer 冻结时从实际接触点记录。
 - **Residual world-space authority**：弥留/尸体的个人 `SurfaceId + WorldPosition` 可独立成为稳定空间 authority。
 - **Outdoor Site 不切旧 Outdoor LocalMap**：正常 WorldSite 上下文不再装载 Outdoor LocalMap。
@@ -342,14 +485,14 @@ Preview 与 Bake 必须消费**同一个** `CompositionEngine`；确定性只依
 - participant roster（参战名单）
 - manual / auto battle
 - **independent battlefield**（同源独立遭遇空间）
-- **main world freeze**（StrategicClockFreeze；见 ADR-0023）
+- **main world freeze**（具名 CharacterEncounter pause owner；见 ADR-0023／0033）
 - battle participant only
 - **post-battle exact return**（返回战前精确世界位置）
 - report（战报）
 - active-character takeover（战斗中控制权接管）
 - lingering / downed / residual persistence（弥留、倒地、残留）
 
-**FormalArmy / PlayerParty spatial owner 已支持 group authority**（战后按组写回，不散落成个人坐标）。
+**Squad / PlayerParty spatial authority 已支持组内归属与每名真实角色位置**；战后分别按各自战前 world anchor 回写，不建立共同 Army 坐标。
 
 ---
 
@@ -606,24 +749,17 @@ MAP-04 继续 **Paused / Producer Acceptance Pending**。
 
 # 17. Recommended Resume Order（已归档）
 
-本节原顺序已全部失效：SPACE-01、MAP-04 与 LEGACY-FINAL-A／B／C 后续均已验收封板。不得复制旧 hardening／consumer audit／seal 指令重新开工。当前只按页首摘要完成 Final Seal housekeeping smoke，之后等待制作人明确提交授权。
+本节原顺序已全部失效：SPACE-01、MAP-04、LEGACY-FINAL-A／B／C 与 Final Seal 后续均已验收并提交。不得复制旧 hardening／consumer audit／seal 指令重新开工；当前入口只有页首摘要与系统现状总表。
 
 ---
 
-# 18. Producer / Codex Workflow Rules
+# 18. Historical Producer / Codex Workflow Rules（已被现行规范替代）
 
-1. **每次需要实现：** 给制作人一份**唯一可复制**的 Codex 指令（一份完整指令，不要让制作人拼装）。
-2. **每个实现轮：** 必须附**简短人工验收 checklist**。
-3. **制作人没说验收通过前：** 不 commit / 不 push —— 除非制作人明确授权 checkpoint 提交。
-4. **Codex：** 不打开 Unity；不跑大量 Unity Test；不大量自动化测试；只做 compile / static / Content validation。
-5. **Unity 验收：** 由制作人人工执行。
-6. **Codex 不因**「Unity Editor 不可用」**而停止实现**。
-7. **没有真实 hard blocker：** 不停在 Foundation / partial wiring。
-8. **如果只是讨论 / 设计：** 明确写「不需要给指令，也不需要验收」。
+本节旧规则不再单独生效。现行执行与验收规则只看 `AGENTS.md`、[52 协作规范](52-ai-collaboration-protocol.md) 与页首“执行与验收规则”；特别是不编写／运行自动测试、不启动 Unity、普通实施不自动提交、“封板”才授权选择性 commit。
 
 ---
 
-# 19. Git / Working Tree 当前状态
+# 19. Git / Working Tree 历史快照（2026-09-19；非当前状态）
 
 > 生成时间：2026-09-19 00:33～00:45（本地）
 

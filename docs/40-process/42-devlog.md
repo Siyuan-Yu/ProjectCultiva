@@ -1,10 +1,19 @@
 # 开发日志
 
+## 2026-09-22 — 现阶段文档总收口与新会话交接
+
+- 将 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 整理为新会话唯一恢复入口：分开 `Design Confirmed`、`Implemented`、`Producer Accepted`、`Committed / Sealed` 与 `Proposed / Not Implemented`，并加入 A～F 系统现状总表、权威／持久化边界、未核实项和短阅读顺序。
+- 记录当前审查基线 `Scripts(20260922-042034).zip`；制作人明确说明其与 040154 解包内容一致。021915 删除主体、040154 统一行为／接线收尾、042034 复核和真实 seal commit `9b32fe0` 不再混为一轮新代码。
+- 修正文档中的过期正文：WorldComposer／FineEditor 已实现而非 Future；正常 Outdoor 不再使用 HexWorld／HexCoord／FormalArmy runtime；WorldMap 图标／标签按 world-space 投影缩放，关闭地图后恢复 Surface travel；Snapshot 设计目标与当前实际接线分开。
+- 静态对照当前代码后如实登记三项差异：`StrategicSnapshotDto.SeparateSpace` 未进入 JSON serializer wire；Snapshot restore 的 content shell 未注册 Quest／Event／Chapter definitions；Site／Flag marker 已随 zoom 缩放，但 Player／NPC Squad marker 仍固定像素。既有历史验收记录保留，但不把这些差异写成已完成或自动授权修复。
+- 下一步只登记通用 Quest／Flags／ContentEvents／Chapters／Counters／Daily 磁盘持久化 Proposal；待处理事件保存策略仍由制作人选择。本轮未修改运行代码、测试、Content、场景／Prefab、`.meta` 或构建配置，未编译、未测试、未启动 Unity。
+- 本轮普通文档更新未获得封板授权，保持未提交；封板后遗留的两份 Ritual 工作区改动继续视为无关内容，不混入文档范围。
+
 ## 2026-09-22 — Hex／Army 正式运行依赖退役与 021915 统一收尾封板
 
 - Hex／Army 正式运行依赖退役完成；021915 统一收尾中的当前行为修复及残留删除完成。状态为 **Implementation Complete**，制作人人工验收通过后 **Producer Accepted / Sealed**。
 - 现行工作规范改为：普通实现只要求没有基础编译错误，配合最少量静态引用／文件完整性检查；不自行运行测试或启动 Unity；编译、静态核对与人工验收分开记录；普通实施不自动提交，制作人要求封板即授权选择性 commit。
-- 审查基线为 `Scripts(20260922-040154).zip`。此前实施阶段的离线编译 `ALL_OK`、当前行为矩阵 82/82、converter 5/5 等结果保留为当时实际执行记录，不是本次封板重跑。本次只更新封板文档与工作规范并提交已验收专项。
+- 审查基线为 `Scripts(20260922-040154).zip`；随后制作人提供的 `Scripts(20260922-042034).zip` 与其解包内容一致，不是新一轮代码。此前实施阶段的离线编译 `ALL_OK`、当前行为矩阵 82/82、converter 5/5 等结果保留为当时实际执行记录，不是封板或文档收口重跑。专项封板提交为 `9b32fe0`。
 - 后续功能方向尚未批准，不自动启动下一项任务；不得按 Hex／Army／Legacy 关键词再开清理轮次。本封板不表示整个游戏已完成或不存在潜在缺陷。
 
 ## 2026-09-22 — 021915 Hex／Army 退役统一收尾

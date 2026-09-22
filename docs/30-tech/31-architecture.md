@@ -6,7 +6,7 @@
 
 > 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)
 > 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)
-> **Architecture Freeze v0.2＋ADR-0038。** 新功能仍需授权；当前 Final Seal 只允许 compatibility／dead-code／文档收尾。
+> **Architecture Freeze v0.2＋ADR-0038。** Hex／Army 正式运行依赖退役与 021915 统一收尾已在 `9b32fe0` 封板。新功能仍需制作人授权；不得按 Legacy 关键词重开清理。
 > **2026-09-12 补丁：** Freeze 的定向修订由 ADR-0032～0034 管理。Continuous Surface 保存世界空间身份与连续位置；临时 Encounter 使用独立战术坐标，并在一次结算中恢复各自战前世界锚点、保留当前领域结果。SiteCore 行政覆盖、Encounter 实例和 WorldMap UI 都不得成为第二份位置真源。
 
 ## 0. 文档分工
@@ -65,7 +65,7 @@ XianXia.Tests/       针对 Core 的单元测试
 | Unity 版本 | 2022.3.6f1 | 已定，见 ADR-0001 |
 | 渲染管线 | Built-in | 已定，见 ADR-0001 |
 | UI 方案 | UGUI／UI Toolkit | 待定（ADR-0002） |
-| 存档 | JSON（建议先用）／二进制 | 待定 |
+| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | 当前已实现；通用内容状态持久化仍有缺口，见 247 Proposal |
 | 事件脚本化 | 纯配置表／轻量表达式 | 待定；依赖 `2E` |
 
 ## 3. 工程约定
@@ -93,3 +93,9 @@ XianXia.Tests/       针对 Core 的单元测试
 - ID 三规则严格分离：旧 Content 有 `runtimeArmyId` 时输出 `squad:migrated:<normalizedRuntimeArmyId>`；缺失时输出 `squad:legacy:<normalizedDefinitionId>`；旧 Snapshot 输出 `squad:army:<armyId>`。
 - `ContinuousWorldMovementScale.Resolve` 只读 `SimulationWorld.ContinuousWorldMovementScale`；该值由当前 opening `outdoorSurface.movementScale` 唯一注入。当前 BaseGame 显式为 `1.0`，它不是 `cellSize`。
 - 旧 wire key、数值空洞与历史 DTO 可用于明确拒绝和离线识别；不得为它们重新增加 runtime enum 成员、Hex 几何依赖或 compatibility adapter。
+
+## 7. 当前 Snapshot 与内容状态边界
+
+- 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
+- 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、背包、关系、随机与窄范围 cave taken-loot 等字段。Separate Space 只有 DTO／capture helper，`JsonSnapshotSerializer` 尚未写入其 session；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
+- Quest、通用 Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 的完整磁盘持久化仍为 **Proposed / Not Implemented**。不得把 runtime 事务回滚或 loot 专用字段描述成通用剧情状态存档。

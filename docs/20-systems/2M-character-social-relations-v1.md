@@ -2,12 +2,13 @@
 
 > **CW-U0 战斗接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；关系第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。既有 RelationshipLedger、Bond／Attitude 与已验收社交不改；介入运行待 CW-U3。
 
-> 状态：**已实现／已人工验收／已封板**｜优先级：P0｜最后更新：2026-09-07
+> 状态：**已实现／已人工验收／已封板**｜优先级：P0｜最后更新：2026-09-22
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`28-jianghu-relations.md`、`2E-events-and-world-state.md`、`ADR-0017`、`ADR-0030`
 > 封板记录：[202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)
 
 > **2026-09-12 扩展边界：** 本文 V1 已验收的 Bond／Attitude／Ledger 规则保持。私人敌对预警、附近敌情、关系介入与人物冲突不自动升级 War 的新目标见 [28 §3.1](28-jianghu-relations.md) 与 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md)；这些扩展尚未实现或验收。
+> **当前 Snapshot：** Social Bonds、RelationshipLedger events、PersonalityProfile tags 与死亡归因均已由 `WorldSnapshot`／`SnapshotService` 明确 capture／restore。该事实不把知识传播、预警／敌情或延迟报复等 Future 功能提升为已实现。
 
 ## 1. 系统边界
 

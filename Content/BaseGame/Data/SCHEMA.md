@@ -33,15 +33,14 @@ Content/BaseGame/
       resources.json
     SiteEconomies/             # type = worldSiteEconomy
       site_economies.json
-    Regions/                   # type = worldRegion
-      world_regions.json
-      ch01_reference_region.json
-    WorldGraphs/               # type = worldGraph（宏观节点图 · [113]）
-      ch01_world_graph.json
-    LocalPlaces/               # type = localPlaceSet（村内地点表，绑 mapLayout）
-      ch01_reference_places.json
-    Maps/                      # type = mapLayout（关卡格点）
-      ch01_reference_map.json
+    Worlds/                    # type = outdoorSurface｜outdoorSurfaceGeography
+      main_wilderness_surface_v1.json
+    LocalPlaces/               # type = localPlaceSet（仅 Separate Space／独立 Encounter）
+      ch01_cave_places.json
+      strategic_encounter_arena_places.json
+    Maps/                      # type = mapLayout（仅 Separate Space／独立 Encounter）
+      ch01_cave_map.json
+      strategic_encounter_arena.json
     Jobs/                      # type = job
       jobs.json
     WorkAreas/                 # type = workArea
@@ -96,6 +95,8 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 当前 Runtime 支持：`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`outdoorSurface`｜`outdoorSurfaceGeography`｜`localPlaceSet`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`npcSquad`｜`strategicFaction`
 
 `formalArmy` 与 `hexWorld` 是已退役的历史输入标记：Runtime Loader 命中即拒绝，不属于支持列表。`LegacyRuntimeConverter` 只无损转换 FormalArmy；`hexWorld`／`openingHexWorldId` 会被检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无迁移样例时不得猜测。
+
+> **Definition ≠ runtime progress：** `quest`／`contentEvent`／`chapter` 等 JSON 是静态定义。当前 Quest／Flags／Events／Chapters／ContentCounters／ContentDaily 的 runtime 状态尚未完整进入 `WorldSnapshot`；不能因本 Schema 支持定义加载，就声称任务／剧情进度已完整磁盘持久化。现状与 Proposal 见 [247 handoff](../../../docs/40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
 
 ## retired input = hexWorld（仅离线转换参考）
 

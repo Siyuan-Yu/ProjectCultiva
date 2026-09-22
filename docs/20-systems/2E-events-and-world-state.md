@@ -1,8 +1,17 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 状态：**设计已冻结；runtime 部分实现；通用内容状态磁盘持久化 Proposed / Not Implemented** | 优先级：P0 | 最后更新：2026-09-22
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
-> **本阶段不写实现代码。**
+> 当前实现与磁盘边界见 [247 系统现状总表／Proposal](../40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
+
+## 0. 当前实现边界（2026-09-22）
+
+- `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于当前会话内的条件、结算与 UI；`ContentOutcomeApplier` 的 runtime 事务回滚用于一次结算的全有或全无，**不是磁盘存档**。
+- `CaptureRuntime`／`RestoreRuntime`（存在于部分 board／事务辅助）只服务运行中回滚或局部事务；不能据此声称 `WorldSnapshot` 已保存相应系统。
+- 当前 `WorldSnapshot` 已实际覆盖实体与关键组件、PlayerParty／Squad／世界空间、CharacterEncounter、背包、关系 ledger、随机状态，以及窄范围洞府 taken-loot 等字段。Separate Space 只有 DTO／capture helper，`JsonSnapshotSerializer` 尚未读写 `strategic.separateSpace`，不能声称磁盘 round-trip 已接线。
+- 通用 Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 尚未形成完整磁盘 round-trip authority。洞府 `loot:*` 的专用 taken-loot 保存不能推导为通用 Story／Content Flags 已保存。
+- Snapshot restore 当前只运行 `RuntimeContentShellBootstrap`，未重注册 New Game 使用的 Quest／ContentEvent／Chapter definitions；后续不能只保存 runtime state，还须在不重跑 opening 结果的前提下恢复 definitions shell。
+- 下一步只形成 Proposal：任务状态／期限、永久选择、已触发事件与章节、计数／每日限制，以及“待选择事件弹窗打开时禁止保存还是保存待处理身份”的规则。制作人尚未选择，也未授权实现。
 
 ## 1. 这个系统解决什么问题
 
@@ -150,9 +159,9 @@ Ledger 至少保存每条 `RelationshipEvent`：
 三者可通过 DomainEvent 互相影响，**不能**合并成一个数值。  
 怀疑值落在 NPC／Relationship；势力敌意落在 FactionLedger；个人风险落在角色状态值。
 
-## 8. 存档内容（快照模型）
+## 8. 存档目标（快照模型；不得与当前已接线范围混淆）
 
-存档包含：
+以下是冻结设计目标；当前实际接线范围以上文 §0 与 [247](../40-process/247-project-handoff-current-state-2026-09-18.md) 为准：
 
 - 当前世界快照（实体、组件、资源、地图关键状态、LifecycleState）  
 - 未执行 `ScheduledEvent`  

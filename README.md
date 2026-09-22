@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-**Architecture Freeze v0.2＋ADR-0038 最终冻结。** Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已完成制作人验收并封板。正常 Outdoor authority 与合法 compatibility 边界见 [ADR-0038](docs/40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)，当前工作区状态见 [247 交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)。
+**Architecture Freeze v0.2＋ADR-0038 最终冻结。** Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C，以及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已完成制作人验收并封板。封板提交为 `9b32fe0`。正常 Outdoor authority、合法 compatibility 边界和新会话唯一恢复摘要见 [247 交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)。
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
 远端：https://github.com/Siyuan-Yu/ProjectCultiva
@@ -25,10 +25,10 @@ Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 2. `docs/40-process/52-ai-collaboration-protocol.md` — 多会话职责与真源规则  
 3. `docs/00-project/00-overview.md` — 最高层大纲与系统索引（**入口**）  
 4. `docs/00-project/03-glossary.md` — 术语表  
-5. `docs/30-tech/33-architecture-core-rules-freeze-v0.2.md` — 架构主契约  
-6. `docs/00-project/04-reading-guide.md` — 通读顺序  
-7. `docs/40-process/42-devlog.md` — 最近决策与理由  
-8. `docs/40-process/247-project-handoff-current-state-2026-09-18.md` — 当前实现／兼容边界与恢复入口
+5. `docs/40-process/247-project-handoff-current-state-2026-09-18.md` — 新会话恢复摘要、系统现状总表与当前 Proposal
+6. `docs/30-tech/33-architecture-core-rules-freeze-v0.2.md` — 架构主契约
+7. `docs/00-project/04-reading-guide.md` — 按下一议题选择少数正文
+8. `docs/40-process/42-devlog.md` — 最近决策与历史理由（无需从头通读）
 9. （Demo 参考）`45`～`49` — 原型范围与美术；正式语义以 Freeze／`32` 为准  
 10. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴与不做
 
@@ -78,8 +78,11 @@ git clone <远端地址> && cd XianXia
 # 每次开工前
 git pull
 
-# 每次收工
-git add -A && git commit -m "docs: 更新xxx" && git push
+# 每次收工（只选择本轮相关路径；不要混入其他工作区改动）
+git add -- <明确路径>
+git diff --cached --check
+git commit -m "docs: 更新xxx"
+# 仅在制作人明确要求时 push
 ```
 
 远端仓库：`https://github.com/Siyuan-Yu/ProjectCultiva`

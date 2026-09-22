@@ -113,7 +113,9 @@ Pending → Starting → Running ⇄ Paused → Completed
 
 ### 7.2 可序列化
 
-Action **必须可序列化**。存档后必须能继续：
+Action **设计目标必须可序列化**。当前磁盘 Snapshot 只恢复已经在 `SnapshotService` 中显式 capture／restore 的 Action 类型和字段；不得因 Action 类存在或可构造就推断全部 Action 已完整存档。各类型当前覆盖以源码与 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 为准。
+
+目标范围包括：
 
 - 移动
 - 工作

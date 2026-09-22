@@ -1,9 +1,10 @@
 # 修炼与突破
 
-> 状态：大境界突破=事件已冻结于 `33`；**Host 竖切已落地见 [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md)** | 优先级：P0 | 最后更新：2026-08-15
+> 状态：大境界突破=事件已冻结于 `33`；**Host 竖切已落地见 [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md)** | 优先级：P0 | 最后更新：2026-09-22
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2G`、`2H`、`22`、`2B`、`2D`、`24`、`26`、`29`、`../30-tech/33-architecture-core-rules-freeze-v0.2.md`
 > **设计正文仍有效。** 2026-08-15 Host 实现：可配置阶梯、打坐、手动突破蓄势／弹窗；天气／灵地修正、炼气功法获取闭环仍未做。
+> **当前持久化边界：** `WorldSnapshot` 已保存 Cultivation、已学功法、功法／斗技 mastery 与 manual specs；这不表示天气／灵地、完整突破事件或功法获取闭环已经实现。当前工作区的 `HostBreakthroughRitual.cs`／`HostSkillStudyRitual.cs` 两份修改尚未提交、未在本次文档收口中改动，不能写成已验收。
 
 ## 0. 实现进度（Host 2026-08-15）
 

@@ -6,6 +6,7 @@
 > 提交 checkpoint：`c05a3d2`（主体实现）；Final Hardening seal checkpoint = `Seal SPACE-01 separate-space ownership and persistence`
 > 新会话入口：[247 Project Handoff — Current State](247-project-handoff-current-state-2026-09-18.md)
 > 制作人约束：本次 Seal checkpoint 已明确授权；不打开 Unity；不运行 PlayMode／Unity Test／batchmode。
+> **2026-09-22 文档静态复核：** `SeparateSpaceSessionSnapshotRestore` 仍会 capture／restore `StrategicSnapshotDto.SeparateSpace`，但当前 `JsonSnapshotSerializer.SerializeStrategic`／`ReadStrategic` 未写入／读取 `strategic.separateSpace`。因此既有 Accepted / Sealed 是历史验收事实，但磁盘 JSON 对 session、return 与 occupants 的完整 round-trip 不能继续描述为已接线；修复范围需由制作人另行批准。
 
 ## 目的
 

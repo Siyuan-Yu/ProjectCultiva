@@ -2,7 +2,7 @@
 > **2026-09-22 正式运行依赖退役：** Continuous Surface 是正常 Outdoor authority；`SimulationWorld` 无 HexWorld，Core Hex 目录已物理删除，正常产品不编译旧 Hex 几何。Runtime Data 只接受当前 `outdoorSurface`／`npcSquad`。离线转换器只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot；旧 `hexWorld`／`openingHexWorldId` 会被检测并拒绝，须使用现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 > **2026-09-21 LEGACY-FINAL-C Seal：** normal Continuous runtime 已不再拥有 TerritoryRegion、StrategicEncounter、RetreatingArmy 或 LingeringBattlefield board；现代 residual 只使用 exact Surface position，AtHex／Outdoor LocalMap 只留 legacy input／compatibility。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 > **2026-09-21 LEGACY-FINAL-B Seal：** PlayerParty 正常 New Game、WorldMap travel、direct movement 与 snapshot authority 已统一为 `SurfaceId + exact WorldPosition + SurfaceVisible`。WorldSite／Runtime Chunk／旧 Hex seam 不再建立 Outdoor LocalMap 或改变 modern location kind；Hex、LocalVisible 与 Wilderness transition 只作 compatibility。状态：**Producer Accepted / Sealed**，见 [249](../40-process/249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。
-> 状态：**MAP-01 / MAP-02 / MAP-03 / MAP-04 / SPACE-01 Producer Accepted / Sealed**｜优先级：P0｜最后更新：2026-09-20
+> 状态：**MAP-01 / MAP-02 / MAP-03 / MAP-04 / SPACE-01 Producer Accepted / Sealed**｜优先级：P0｜最后更新：2026-09-22
 > 上级：[总览](../00-project/00-overview.md)｜决策：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)（地图方向）、[ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)（Editor 工具链与旧 Content 迁移方向）
 > 关联：[24 世界与据点](24-world-and-settlements.md)、[2J Hex Territory](2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md)、[41 路线图](../40-process/41-roadmap.md)
 > **本页是 World Composer、Fine Editor、Final Continuous Surface 与 de-Hex 产品方向的系统真源。** MAP-01 实现范围见 [242](../40-process/242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)，MAP-02 验收与残余兼容边界见 [243](../40-process/243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)。Editor 工具链／生命周期与旧 Content 迁移分期见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)。
@@ -72,6 +72,8 @@ Blueprint 支持 quarter-turn rotation，并可携带通用对象 placement：�
 普通世界运行时只消费 Final Continuous Surface 与 Runtime Chunk streaming。Chunk 卸载只影响表现、缓存和近场 runtime，不是行政、建筑身份或世界编辑边界。
 
 WorldMap 应从同一 Surface 派生战略缩放：显示实际 terrain、水、山、道路、森林、Site、party、NPC squads 与 actual control。地图点击、路线目标和 Site 选择以 exact WorldPosition 为共同坐标，不以 Hex center / Q-R authoring 伪造实际位置。
+
+当前已确认 UI 规则：战略图标、名称间距和字号按世界空间投影随地图 zoom 缩放；Header、Footer 与按需 Flyout 才保持屏幕空间。不得恢复固定屏幕像素图标／标签方案。Site／Flag 已按该规则实现；静态核对发现 Player marker 仍固定 20×20 px、NPC Squad marker 固定 14×14 px，属于当前实现与规则的差异，尚未授权修复。WorldMap 打开是 planning overlay，不移动玩家；有效目标进入同一 Surface travel 计划，关闭地图后恢复旅行。
 
 未来 travel / navigation 继续使用同一 Final Surface 通行语义；本页不重写现有 travel、河桥、navigation 或 streaming。
 

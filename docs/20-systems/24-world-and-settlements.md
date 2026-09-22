@@ -19,7 +19,7 @@
 
 - 普通探索、旅行和建设发生在每大陆的 Continuous Outdoor World Surface；村、镇、城、宗门的室外区域不因 Site、Hex 或 Chunk 边界切探索场景。
 - 真实户外位置由世界空间身份与连续坐标表示。Streaming Chunk、制作 Patch、Strategic Hex 各司其职，不要求一对一或边界对齐。
-- Hex 保留战略叠加和摘要；不得用 Hex terrain、footprint 或格心反推河桥通行、人物位置、Site 精确边界或战场裁切。
+- 正常产品已无 Hex runtime 地理或战略叠加 authority；历史 Hex 只允许存在于旧格式识别／拒绝、稳定 wire、离线转换或历史资料中。不得用 Hex terrain、footprint 或格心反推河桥通行、人物位置、Site 精确边界或战场裁切。
 - 基础大陆采用“程序初稿 → 人工调整 → Bake → 按 Chunk 加载”；存档保存动态游戏状态，不为每个存档重新随机生成基础大陆。
 - 不同大陆、真正 Interior／洞府／地下／独立空间仍可切换；临时独立战场不恢复“每 Hex 一小图”或户外城市房间化。
 - 扩大 3×3 显示窗口不等于全局导航覆盖；完整路线与地图生产仍需单独验证。

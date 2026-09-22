@@ -27,6 +27,8 @@
 
 新建内容时，各编辑器默认保存到对应子目录。字段权威见同级的 `SCHEMA.md`。
 
+这些 JSON 是静态 Definition／runtime geography 输入，不是玩家进度存档。Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 的运行状态是否进入磁盘，由 `WorldSnapshot`／`SnapshotService` 决定；当前通用内容状态尚未完整接线，见 [247 handoff Proposal](../../../docs/40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
+
 `Armies/` 当前文件本身就是正常 `npcSquad` 内容；新 NPC group 使用 `npcSquad`／`initialNpcSquadIds`。Runtime Loader **不再支持** `formalArmy`、`initialFormalArmyIds` 或 `hexWorld`，命中时会明确拒绝。
 
 旧 FormalArmy 可使用 `ExternalTools/ContentAuthoring/LegacyRuntimeConverter`，且输入只读、输出为不同且尚不存在的独立副本。`hexWorld`／`openingHexWorldId` 会被该工具检测并拒绝，必须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。转换后的 Army Content 使用 `npcSquad`；ID 规则为：

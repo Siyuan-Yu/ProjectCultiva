@@ -44,16 +44,16 @@
 | [0023](ADR-0023-manual-encounter-freezes-worldtick.md) | Manual Encounter 冻结 WorldTick | 已采纳 | 全战式 Modal；补充 0018 |
 | [0024](ADR-0024-real-cultivators-and-army-strategic-model.md) | 修士真实 Character + Army | 已采纳／**部分 superseded** | 「跨点必须 Army」→ [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)；真实成员／LOD 仍有效 |
 | [0025](ADR-0025-strategic-spatial-model-hexgrid.md) | 战略空间 = HexGrid | 已采纳 | **SUPERSEDED** Route 正式移动；见 [155](../155-hex-strategic-worldmap-migration-2026-08-23.md) · [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md) |
-| [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) | RPG-First：单 Active／PlayerParty／连续 Hex／Army 军事层 | 已采纳 | 真源 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)；迁移 [163](../163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
+| [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) | RPG-First：单 Active／PlayerParty／连续 Hex／Army 军事层 | 已采纳／**空间与 Army 部分 superseded** | 单 Active／PlayerParty 仍有效；当前 Surface／Squad authority 见 0035／0038 与 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) |
 | [0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) | Canonical World Surface Position 与 WorldSite Spatial Mapping | 已采纳 | 当前 WorldPosition / LocalMap mapping 真源；也是 Future Surface bridge |
-| [0028](ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) | FormalArmy Formation 与 Roster 的 Effective Territory | 已采纳 | 组军／roster 的地点限制修订 |
+| [0028](ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) | FormalArmy Formation 与 Roster 的 Effective Territory | **SUPERSEDED** | FormalArmy runtime 已退休；当前 Squad／控制边界见 0035／0038 |
 | [0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md) | Construction Content／Runtime／Snapshot 边界 | 已采纳 | BuildingDefinition 独立于 Item；Catalog 是静态壳；结果复用 Flag + Inventory Snapshot |
 | [0030](ADR-0030-social-bond-attitude-and-snapshot-boundary.md) | Social Bond、五维态度与 Snapshot 边界 | 已采纳 | Bond 与主观态度分离；Ledger 仍是态度真源；v6 软兼容 |
-| [0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) | Continuous Outdoor World Surface Architecture | 已采纳／迁移中 | 普通 Outdoor 物理连续；部分能力存在，完整目标仍待验收 |
-| [0032](ADR-0032-sitecore-administrative-and-construction-range.md) | SiteCore、实际行政控制与建设范围 | 已采纳／待迁移 | 一个 Site 一个核心；允许重叠；既有控制保留；拆旗不删资产 |
-| [0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) | 同源独立遭遇、停表与战前锚点回归 | 已采纳／待迁移 | 当前地形建筑；各回战前位置；真实战果保留；部分替代 0023 |
-| [0034](ADR-0034-conflict-control-succession-and-airship-role.md) | 冲突、控制继承与飞舟职责 | 已采纳／待迁移 | 人物攻击≠宣战；建筑战争确认；顺序接替／最强继承；飞舟只运输 |
-| [0035](ADR-0035-unified-squads-and-encounter-scope.md) | 统一小队与固定范围独立遭遇 | 已采纳／迁移中 | 小队唯一组织；独立遭遇范围与入场规则 |
+| [0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) | Continuous Outdoor World Surface Architecture | 已采纳；正常 Surface 主线已封板 | 普通 Outdoor 物理连续；Future 制作能力另列 |
+| [0032](ADR-0032-sitecore-administrative-and-construction-range.md) | SiteCore、实际行政控制与建设范围 | 已采纳；当前主线已实现／验收 | 一个 Site 一个核心；允许重叠；既有控制保留；拆旗不删资产 |
+| [0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) | 同源独立遭遇、停表与战前锚点回归 | 已采纳；CharacterEncounter 主线已封板 | 当前地形建筑；各回战前位置；真实战果保留；部分替代 0023 |
+| [0034](ADR-0034-conflict-control-succession-and-airship-role.md) | 冲突、控制继承与飞舟职责 | 已采纳；当前冲突／接替边界已实现，飞舟仍 Future | 人物攻击≠宣战；建筑战争确认；顺序接替／最强继承；飞舟只运输 |
+| [0035](ADR-0035-unified-squads-and-encounter-scope.md) | 统一小队与固定范围独立遭遇 | 已采纳；当前主线已封板 | 小队唯一组织；独立遭遇范围与入场规则 |
 | [0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) | 连续世界制作与去 Hex 产品方向 | **MAP-01～04 Producer Accepted / Sealed** | Final Surface、Composer/Fine Editor、WorldMap LOD、正常 Gameplay Surface authority；Future 自动化能力仍未实现 |
 | [0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | External Content Authoring 工具链与旧地图 Content 迁移方向 | **MAP-01～04 Producer Accepted / Sealed** | Authoring Source ≠ Runtime Content；旧 Outdoor Content／Editor 已按 MAP 分期退休 |
 | [0038](ADR-0038-continuous-world-legacy-migration-final-seal.md) | Continuous World Legacy Migration Final Seal | **已采纳；Implementation Complete / Producer Accepted / Sealed** | 冻结 Surface／Squad／CharacterEncounter／Actual Control authority；旧 schema／DTO／adapter 仅限明确兼容边界；废弃入口及 Hex／Army／WorldSite 命名边界专项已封板 |

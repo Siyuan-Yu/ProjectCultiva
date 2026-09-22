@@ -25,7 +25,7 @@
 1. **修士不是匿名兵力数字。** 所有修士都是持久 `Character`。
 2. **真实 Character ≠ 全员实时 Actor。** 离屏角色采用分级／数据模拟（Cold / Strategic / Hot）。
 3. **Character 与 Squad 是当前组织层。** FormalArmy 曾是军事远征组织，现只保留旧 wire 识别与离线转换输入；runtime 不加载也不自动迁移。
-4. ~~**不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。~~ → **SUPERSEDED（2026-08-25）**。普通 Character／PlayerParty 可在 HexWorld 旅行；FormalArmy 仅军事远征。见 2K OLD-01／02、ADR-0026。
+4. ~~**不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。~~ → **SUPERSEDED**。普通 Character／PlayerParty／NPC Squad 使用 Continuous Surface world travel；FormalArmy runtime 已退役。见 2K、ADR-0035／0038。
 5. **WorldSite 防御来自真实世界状态。** Resident Character + Squad／个人精确位置；禁止临时凭空刷修士。
 6. **战斗结果必须改变真实世界。** 死亡、伤势、Squad roster、Ownership、资源变化最终都回写真实世界状态。
 

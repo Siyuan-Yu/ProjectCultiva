@@ -2,6 +2,7 @@
 
 > **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续功能方向尚未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
+> **下一步 Proposal（尚未授权）：** 优先讨论 Quest／Flags／ContentEvents／Chapters／ContentCounters／ContentDaily 的正式磁盘持久化与待选择事件保存策略；进度可靠保存后，再用已有能力串起一段完整探索成长流程。不是当前实施任务。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
@@ -19,10 +20,10 @@
 > MAP-04 legacy content / editor retirement
 > ```
 >
-> 现状（2026-09-15 实测，未变）：External Editor 仍是 10 个独立工程、`publish.ps1` 硬编码发布列表、输出 `Apps/<Editor>/<Editor>.exe`；Content 侧仍是 37 mapLayout／35 localPlaceSet／2 hexWorld／1 worldRegion，主 Surface 646 个 chunk 的 source 全部是 wilderness fallback 图。**不得把 ADR-0037 读作「工具链或 Content 已迁移」。**
+> **Historical / Superseded（2026-09-15 当时实测）：** 当时 External Editor、旧 Content 数量与 fallback 状态如下文原记录。后续 MAP-01～04 与 2026-09-22 runtime retirement 已改变正式边界：WorldComposer／FineEditor V1 已落地，Runtime Loader 拒绝 `hexWorld`／`formalArmy`。不得把这段历史数字当作当前运行输入清单。
 
 
-> **当前唯一主线（2026-09-21）：** 已封板 CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A、LEGACY-FINAL-B 与 LEGACY-FINAL-C；当前实施 LEGACY-FINAL-SEAL。
+> **当前唯一状态（2026-09-22）：** CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C 与 LEGACY-FINAL-SEAL 已封板。当前没有获批实施主线。
 
 > 状态：CW-10 与 CW-10.5 均为 **Producer Accepted / Sealed（2026-09-20）**。保持既有编号，不重排 CW-06 / CW-07。
 >
@@ -31,7 +32,8 @@
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **当前下一步：** 等待制作人讨论后确定；尚未授权新功能、迁移阶段或新的关键词清理。后续发现 `Hex`／`Army` 字符串本身不构成重开专项的理由。
+- **当前下一步：** 等待制作人讨论通用内容状态磁盘持久化 Proposal；尚未授权新功能、迁移阶段或新的关键词清理。后续发现 `Hex`／`Army` 字符串本身不构成重开专项的理由。
+- **当前待定缺口（未授权修复）：** Separate Space session JSON wire、restore 后 Quest／Event／Chapter definitions shell、WorldMap Player／NPC marker world-space scaling。先在新会话定范围，不能顺手编码。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。

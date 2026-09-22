@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> **当前入口：** [ADR-0038 最终冻结](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) → [247 当前交接](../40-process/247-project-handoff-current-state-2026-09-18.md) → [2N Continuous Surface](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)／[2K 控制与 PlayerParty](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[23 CharacterEncounter](../20-systems/23-combat.md)。
+> **当前入口：** `AGENTS.md` → [总览](00-overview.md) → [247 新会话恢复摘要与系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md) → [31 architecture](../30-tech/31-architecture.md) → 下一议题对应的少数系统正文。无需顺序重读全部历史日志。
 >
 > **阅读纪律：** 正式运行依赖已经退役；正常产品不编译旧 Hex 几何，也不运行 `formalArmy`／`hexWorld` 自动 migration。155／166／221／245 等过程页和旧 ADR 只记录当时事实；看到 `LegacyHexWorld`、运行时 adapter 或“保留到后续迁出”时，不得覆盖本页、ADR-0038 与 247 的当前结论。
 
@@ -33,7 +33,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **当前状态与交付** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结现代 authority／wire／offline conversion 边界；[247](../40-process/247-project-handoff-current-state-2026-09-18.md) 是唯一当前交接。Hex／Army 正式运行依赖退役与 021915 统一收尾已 **Producer Accepted / Sealed**；未授权新功能实施 |
+| **当前状态与交付** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结现代 authority／wire／offline conversion 边界；[247](../40-process/247-project-handoff-current-state-2026-09-18.md) 是唯一当前交接，包含新会话摘要、系统现状总表、持久化 Proposal、真实提交与工作区状态。Hex／Army 正式运行依赖退役与 021915 统一收尾已 **Producer Accepted / Sealed**；未授权新功能实施 |
+| **下一步待讨论** | [247 Proposal](../40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)；Quest／Flags／ContentEvents／Chapters／Counters／Daily 的磁盘持久化与待选择事件保存策略，当前不是已批准任务 |
 | **旧 Editor 生命周期（Legacy Compatibility）** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §5～§6；用法页顶部 banner：[128 WorldGraph](../40-process/128-world-graph-editor-usage.md)／[112 MapEditor](../40-process/112-map-editor-usage.md)／[109 RegionEditor](../40-process/109-content-studio-region-editor-usage.md)／[130 LocalPlaceEditor](../40-process/130-local-place-editor-usage.md)。Active 工具（PackageBrowser／CharacterNpcEditor／ManualArtEditor／QuestEditor／EventEditor／WorkAreaEditor）不在此列 |
 | **连续世界地图当前进度** | [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) → [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) → [245 MAP-04 历史审计](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。MAP-01～04 均已验收封板 |
 | **Editor 工具链／旧地图 Content** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 MAP 范围已落地；WorldComposer／FineEditor 为现行 Surface authoring，旧 WorldGraph／Region 工具已退休。自动水文等后续能力仍是 Future |

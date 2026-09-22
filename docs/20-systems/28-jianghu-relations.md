@@ -5,7 +5,7 @@
 > 状态：Social Relations V1 与 CharacterEncounter 关系候选接线已封板；私人预警／敌情扩展为 Future / Not Implemented | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`27`、`2E`、`../30-tech/34-entity-and-component-model.md`
-> **本阶段不写实现代码。**
+> **现行边界：** V1 已实现部分见 [2M](2M-character-social-relations-v1.md)；本文其余关系经营、知识传播、预警／敌情与延迟报复是 Design Confirmed 或 Future，不构成当前编码授权。
 
 ## 0. 与架构冻结的对齐
 

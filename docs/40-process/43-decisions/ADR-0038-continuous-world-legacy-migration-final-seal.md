@@ -87,9 +87,9 @@ Hex travel 依赖；禁止恢复 compatibility adapter 作为新功能捷径。
 
 废弃入口、误导性命名与兼容身份整理已经 **Producer Accepted / Sealed**，构成本轮物理退役的已验收基线。§6.1 的真实运行依赖退役与 021915 统一收尾现已 **Implementation Complete**，并由制作人人工验收后 **Producer Accepted / Sealed**。不得按 Hex／Army／Legacy 关键词再开一轮扫描删除。
 
-制作人已确认本版运行行为人工验收通过。静态审查基线为 `Scripts(20260922-040154).zip`。封板前提交号（含 `cf77d80`）**不包含也不代表**本轮 seal commit。
+制作人已确认本版运行行为人工验收通过。静态审查基线为 `Scripts(20260922-040154).zip`；制作人随后提供的 `Scripts(20260922-042034).zip` 与其解包内容一致，不是新一轮代码。专项封板提交为 `9b32fe0f06d9e838e1e0be6ea40f5be50b239e01`（`chore: seal Hex/Army runtime retirement and cleanup`）；此前 `cf77d80` 只排除无关 Ritual UI 改动。
 
-正常玩法继续使用 Continuous Surface／exact WorldPosition、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control。真实 Hex 几何、Hex footprint 工具及受支持工具／原型契约保留，但不是连续世界通用地形或位置 authority。`LegacyHexWorld`、`LegacyCurrentHex`、WorldSite `Legacy*` 成员和旧位置／焦点入口只服务已限定兼容用途，不得绕过现代 authority 回写正式状态。
+正常玩法继续使用 Continuous Surface／exact WorldPosition、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control。Core 旧 Hex 几何、`LegacyHexWorld`、`LegacyCurrentHex` 与 WorldSite Hex footprint runtime 成员已经物理退役；只保留外部 wire 检测、独立离线转换、受支持工具／原型契约和历史记录，不得绕过现代 authority 回写正式状态。
 
 在此前 Seal 阶段，runtime 曾保留旧输入单向迁移类；当前这些类已由 §6.1 的离线转换器取代。外部协议、稳定数值空洞、JSON key 与稳定 ID 边界保持；旧 Content identity 使用 `squad:migrated:`／`squad:legacy:`，旧 Snapshot identity 使用 `squad:army:`，不得混写。
 

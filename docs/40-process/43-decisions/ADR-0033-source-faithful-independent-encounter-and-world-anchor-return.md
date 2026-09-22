@@ -2,7 +2,7 @@
 
 > **2026-09-13 部分替代：** [ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) §6 明确替代旧组织分层、自由战场裁切、第三队初始和范围外援军建议；本文保留历史决定及未冲突的单 Active、停表、政治／控制、真实战果与原锚点回归契约。
 
-> 状态：已采纳（设计已确认；实现待迁移／核查；制作人验收待完成）
+> 状态：已采纳；未被 ADR-0035 替代的 CharacterEncounter 主线已实现、制作人验收并封板（2026-09-22）
 > 日期：2026-09-12
 > 关联：[21](../../20-systems/21-core-loop-and-time.md)、[23](../../20-systems/23-combat.md)、[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)、[ADR-0018](ADR-0018-worldtick-actionclock-duties.md)、[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)
 
@@ -28,5 +28,5 @@
 
 ## 状态边界
 
-动态资产持久化、参与者战前锚点、唯一战利品／尸体、局部状态换时钟接续、一次收尾和重复接战抑制均须实现前核查。本 ADR 不证明现有运行时已经具备这些行为，制作人验收待完成。
+本段在 2026-09-12 决策时曾列为实现前核查；当前未被 ADR-0035 替代的 participant origin／return／tactical authority、独立场地、具名暂停、唯一结算与战后回程已由 CharacterEncounter 主线实现并随 ADR-0038 封板。大型战争、NPC 对 NPC 战斗与列明 Future 扩展仍不因此视为已实现。
 

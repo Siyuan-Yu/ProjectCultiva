@@ -2,7 +2,7 @@
 
 > **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影。历史 FormalArmy／Hex 输入不是 runtime definition，必须先离线转换为独立的当前格式副本。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
-> 状态：持续维护 | 最后更新：2026-09-21
+> 状态：持续维护 | 最后更新：2026-09-22
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -29,12 +29,12 @@
 |---|---|---|---|
 | 连续世界格 | SurfaceCell | 最小真实连续世界地形格：terrain、walkability、footprint、水、道路与精修单位 | 1×1；早期 local tile 的正式后继 |
 | 运行块 | RuntimeChunk | 当前 50×50 Surface Cells 的 Streaming／materialization 技术分区 | 当前 50×50 Surface Cells；**不是制作／authoring 单位**，也不是 Site／行政单位 |
-| 大地图编辑格 | WorldEditorCell | 10×10 Surface Cells 的宏观地理制作格；只属于 Authoring | runtime 不读取；Future（WorldComposer） |
-| 据点蓝图 | WorldSiteBlueprint | 任意尺寸 Surface Cell 布局的 WorldSite 精细 authoring 源 | 可跨任意多个 World Editor Cell／Runtime Chunk；Future |
-| 精修块 | DetailPatch | 任意尺寸（最小 1×1 Surface Cell）的局部地形／环境精修覆盖 | 覆盖 Terrain Expansion 输出；不是 runtime map piece；Future |
-| 世界合成器 | WorldComposer | 未来整张大陆粗地形／Blueprint／Patch／Composition 编辑器 | 未实现 |
-| 精细编辑器 | FineEditor | 未来 1×1 Surface Cell 精度精细编辑器 | 未实现 |
-| 最终连续世界面 | FinalContinuousSurface | Bake 后唯一 Outdoor Runtime 空间真源 | 一大陆一张；不保留 authoring pieces；Future |
+| 大地图编辑格 | WorldEditorCell | 10×10 Surface Cells 的宏观地理制作格；只属于 Authoring | WorldComposer 已使用；runtime 不读取 |
+| 据点蓝图 | WorldSiteBlueprint | 任意尺寸 Surface Cell 布局的 WorldSite 精细 authoring 源 | MAP-01 V1 已支持；可跨多个 World Editor Cell／Runtime Chunk |
+| 精修块 | DetailPatch | 任意尺寸（最小 1×1 Surface Cell）的局部地形／环境精修覆盖 | MAP-01 V1 已支持；不是 runtime map piece |
+| 世界合成器 | WorldComposer | 整张大陆宏观地形、道路／河流、Blueprint／Patch 与 Composition 编辑器 | MAP-01 Production V1 已实现、验收并封板；自动水文等仍属 Future |
+| 精细编辑器 | FineEditor | 1×1 Surface Cell 精度的 Blueprint／Detail Patch 编辑器 | MAP-01 Production V1 已实现、验收并封板 |
+| 最终连续世界面 | FinalContinuousSurface | Bake 后唯一 Outdoor Runtime 空间真源 | 一大陆一张；当前主 Surface 已接入，source 与 runtime output 分离 |
 | 地形／细节确定性展开 | TerrainDetailDeterministicExpansion | 将制作人宏观意图稳定展开成局部地形与环境细节 | 不是 runtime Procedural World Generation |
 
 ## 建造系统 V1
@@ -136,7 +136,7 @@
 | 区域 | Region | 较大连续区域（城市区域） | 可行走／战斗／飞行 |
 | 局部地图 | LocalMap | **Current（SPACE-01）**：独立可玩空间 MapLayout（Cave／Interior／Dungeon）；由 SeparateSpaceSession 掌管；不再表示 Continuous Outdoor 近景 | 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md) |
 | 独立空间 | Separate Space | 与 Continuous Outdoor Surface 并列的 playable space；进入离开 Outdoor presentation，离开后 exact Surface return | Cave 为第一份样板 |
-| 独立空间会话 | SeparateSpaceSession | `LocalMapSession` 收窄后的正式语义：ActiveMapLayout／SpaceKind／Outdoor return／occupants | Snapshot：`StrategicSnapshotDto.SeparateSpace` |
+| 独立空间会话 | SeparateSpaceSession | `LocalMapSession` 收窄后的正式语义：ActiveMapLayout／SpaceKind／Outdoor return／occupants | DTO：`StrategicSnapshotDto.SeparateSpace`；当前 JSON serializer wire 尚未接线，见 247 |
 | 世界地图（旧称） | WorldMap | 同 World | 兼容旧文档 |
 | 区域地图（旧称） | RegionMap | 同 Region | 兼容旧文档 |
 | 实例地图（旧称） | InstanceMap | 同 Separate Space／LocalMap | 兼容旧文档 |
