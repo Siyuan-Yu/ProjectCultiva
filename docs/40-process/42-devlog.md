@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-09-22 — SPACE-01-P1 Separate Space Snapshot JSON round-trip fix
+
+- `JsonSnapshotSerializer` 现已读写 `strategic.separateSpace`，与 `SeparateSpaceSessionSnapshotDto` 及 `SeparateSpaceSessionSnapshotRestore` 对称；旧 schema v6 存档缺字段时 `SeparateSpace == null`，保持兼容。
+- 状态：**SPACE-01-P1 implementation complete / producer acceptance pending**。未升 `WorldSnapshot.CurrentSchemaVersion`（仍为 6）；未修改 Enter/Leave/return 规则或 Separate Space 架构。
+- 验证：离线编译、`git diff --check`、定向 JSON round-trip 静态测试；未启动 Unity。
+
 ## 2026-09-22 — 现阶段文档总收口与新会话交接
 
 - 将 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 整理为新会话唯一恢复入口：分开 `Design Confirmed`、`Implemented`、`Producer Accepted`、`Committed / Sealed` 与 `Proposed / Not Implemented`，并加入 A～F 系统现状总表、权威／持久化边界、未核实项和短阅读顺序。

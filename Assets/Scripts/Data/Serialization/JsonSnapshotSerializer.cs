@@ -963,6 +963,63 @@ namespace XianXia.Data.Serialization
             return list;
         }
 
+        static JsonValue SerializeSeparateSpace(SeparateSpaceSessionSnapshotDto snap)
+        {
+            var occupantIds = new List<JsonValue>();
+            if (snap.OccupantIds != null)
+            {
+                for (var i = 0; i < snap.OccupantIds.Count; i++)
+                    occupantIds.Add(U(snap.OccupantIds[i]));
+            }
+
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["isInSeparateSpace"] = JsonValue.FromBool(snap.IsInSeparateSpace),
+                ["spaceKind"] = JsonValue.FromNumber(snap.SpaceKind),
+                ["activeMapLayoutId"] = JsonValue.FromString(snap.ActiveMapLayoutId ?? string.Empty),
+                ["activeLocalPlaceSetId"] = JsonValue.FromString(snap.ActiveLocalPlaceSetId ?? string.Empty),
+                ["entryLocationId"] = JsonValue.FromString(snap.EntryLocationId ?? string.Empty),
+                ["returnLocationId"] = JsonValue.FromString(snap.ReturnLocationId ?? string.Empty),
+                ["hasOutdoorReturn"] = JsonValue.FromBool(snap.HasOutdoorReturn),
+                ["returnSurfaceId"] = JsonValue.FromString(snap.ReturnSurfaceId ?? string.Empty),
+                ["returnWorldX"] = JsonValue.FromNumber(snap.ReturnWorldX),
+                ["returnWorldY"] = JsonValue.FromNumber(snap.ReturnWorldY),
+                ["activeCharacterId"] = U(snap.ActiveCharacterId),
+                ["entryReason"] = JsonValue.FromString(snap.EntryReason ?? string.Empty),
+                ["occupantIds"] = JsonValue.FromArray(occupantIds)
+            });
+        }
+
+        static SeparateSpaceSessionSnapshotDto ReadSeparateSpace(JsonValue node)
+        {
+            var dto = new SeparateSpaceSessionSnapshotDto
+            {
+                IsInSeparateSpace = node.TryGetProperty("isInSeparateSpace", out var inSpace) &&
+                                    inSpace.Kind == JsonValueKind.Boolean && inSpace.Bool,
+                SpaceKind = node.TryGetProperty("spaceKind", out var spaceKind) ? (int)spaceKind.Number : 0,
+                ActiveMapLayoutId = node.GetString("activeMapLayoutId", string.Empty),
+                ActiveLocalPlaceSetId = node.GetString("activeLocalPlaceSetId", string.Empty),
+                EntryLocationId = node.GetString("entryLocationId", string.Empty),
+                ReturnLocationId = node.GetString("returnLocationId", string.Empty),
+                HasOutdoorReturn = node.TryGetProperty("hasOutdoorReturn", out var hasOutdoorReturn) &&
+                                   hasOutdoorReturn.Kind == JsonValueKind.Boolean && hasOutdoorReturn.Bool,
+                ReturnSurfaceId = node.GetString("returnSurfaceId", string.Empty),
+                ReturnWorldX = node.TryGetProperty("returnWorldX", out var returnWorldX) ? (float)returnWorldX.Number : 0f,
+                ReturnWorldY = node.TryGetProperty("returnWorldY", out var returnWorldY) ? (float)returnWorldY.Number : 0f,
+                ActiveCharacterId = ReadU(node, "activeCharacterId"),
+                EntryReason = node.GetString("entryReason", string.Empty)
+            };
+            if (node.TryGetProperty("occupantIds", out var occupants))
+            {
+                if (occupants.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("separateSpace.occupantIds must be an array.");
+                foreach (var occupant in occupants.Array)
+                    dto.OccupantIds.Add(ReadUValue(occupant));
+            }
+
+            return dto;
+        }
+
         static JsonValue SerializeStrategic(StrategicSnapshotDto strategic)
         {
             strategic ??= new StrategicSnapshotDto();
@@ -1406,6 +1463,9 @@ namespace XianXia.Data.Serialization
                 if (placements.Count > 0)
                     root["loadedLocalMapCharacterPlacements"] = JsonValue.FromArray(placements);
             }
+
+            if (strategic.SeparateSpace != null && strategic.SeparateSpace.IsInSeparateSpace)
+                root["separateSpace"] = SerializeSeparateSpace(strategic.SeparateSpace);
 
             if (strategic.PendingEngagement != null &&
                 !string.IsNullOrEmpty(strategic.PendingEngagement.EngagementId))
@@ -1957,6 +2017,13 @@ namespace XianXia.Data.Serialization
                         LocalZ = node.TryGetProperty("localZ", out var lz) ? (float)lz.Number : 0f
                     });
                 }
+            }
+
+            if (strategic.TryGetProperty("separateSpace", out var separateSpaceNode))
+            {
+                if (separateSpaceNode.Kind != JsonValueKind.Object)
+                    throw new System.FormatException("strategic.separateSpace must be an object.");
+                dto.SeparateSpace = ReadSeparateSpace(separateSpaceNode);
             }
 
             if (strategic.TryGetProperty("pendingEngagement", out var pendingNode) &&

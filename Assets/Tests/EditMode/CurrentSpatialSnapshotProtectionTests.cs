@@ -7,6 +7,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Serialization;
 
 namespace XianXia.Tests
 {
@@ -88,6 +89,63 @@ namespace XianXia.Tests
                 restored, restoredParty, out var resolvedMap));
             Assert.AreEqual(InteriorMapId, resolvedMap.LocalMapId);
             Assert.AreEqual("SeparateSpaceSession", resolvedMap.Source);
+        }
+
+        [Test]
+        public void SeparateSpaceSessionSnapshotDto_RoundTripsThroughJsonSerializer()
+        {
+            var source = new SimulationWorld();
+            var active = CreateCharacter(source, "active");
+            var follower = CreateCharacter(source, "follower");
+            var party = CreateParty(source, active);
+            var transfer = SquadMembershipService.Transfer(
+                source, follower, SquadMembershipService.PlayerSquadId);
+            Assert.IsTrue(transfer.IsSuccess, transfer.IsFailure ? transfer.Error.ToString() : string.Empty);
+
+            source.LocalMap.EstablishSeparateSpace(
+                InteriorMapId, "test:places", SeparateSpaceKind.Cave,
+                "test:entry", "test:return", "json-roundtrip");
+            source.LocalMap.HasOutdoorReturn = true;
+            source.LocalMap.ReturnSurfaceId = SurfaceId;
+            source.LocalMap.ReturnWorldX = 7.25f;
+            source.LocalMap.ReturnWorldY = 8.5f;
+            source.LocalMap.AddOccupant(active);
+            source.LocalMap.AddOccupant(follower);
+
+            var dto = new StrategicSnapshotDto();
+            SeparateSpaceSessionSnapshotRestore.Capture(source, dto, party);
+            Assert.IsNotNull(dto.SeparateSpace);
+            Assert.IsTrue(dto.SeparateSpace.IsInSeparateSpace);
+
+            var serializer = new JsonSnapshotSerializer();
+            var snapshot = new WorldSnapshot
+            {
+                SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
+                Strategic = dto
+            };
+            var serialized = serializer.Serialize(snapshot);
+            Assert.IsTrue(serialized.IsSuccess, serialized.IsFailure ? serialized.Error.ToString() : string.Empty);
+            StringAssert.Contains("\"separateSpace\"", serialized.Value);
+
+            var deserialized = serializer.Deserialize(serialized.Value);
+            Assert.IsTrue(deserialized.IsSuccess, deserialized.IsFailure ? deserialized.Error.ToString() : string.Empty);
+            var roundTripped = deserialized.Value.Strategic.SeparateSpace;
+            Assert.IsNotNull(roundTripped);
+            Assert.IsTrue(roundTripped.IsInSeparateSpace);
+            Assert.AreEqual((int)SeparateSpaceKind.Cave, roundTripped.SpaceKind);
+            Assert.AreEqual(InteriorMapId, roundTripped.ActiveMapLayoutId);
+            Assert.AreEqual("test:places", roundTripped.ActiveLocalPlaceSetId);
+            Assert.AreEqual("test:entry", roundTripped.EntryLocationId);
+            Assert.AreEqual("test:return", roundTripped.ReturnLocationId);
+            Assert.IsTrue(roundTripped.HasOutdoorReturn);
+            Assert.AreEqual(SurfaceId, roundTripped.ReturnSurfaceId);
+            Assert.AreEqual(7.25f, roundTripped.ReturnWorldX, 0.0001f);
+            Assert.AreEqual(8.5f, roundTripped.ReturnWorldY, 0.0001f);
+            Assert.AreEqual(active.Value, roundTripped.ActiveCharacterId);
+            Assert.AreEqual("json-roundtrip", roundTripped.EntryReason);
+            CollectionAssert.AreEquivalent(
+                new[] { active.Value, follower.Value },
+                roundTripped.OccupantIds);
         }
 
         [Test]

@@ -32,7 +32,7 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 - 本封板不表示全项目完成、所有历史存档均可直接加载、所有历史字符串消失或项目无缺陷。
 - 系统现状以本文下方“当前系统现状总表”为准；表内 `Proposed / Not Implemented` 不构成开发授权。
 - 当前优先 Proposal 是通用任务／剧情状态的正式磁盘持久化；待处理事件弹窗保存策略尚需制作人选择。该 Proposal 本轮不实施。
-- 本轮文档静态核对发现三项代码／已确认规则差异：Separate Space Session DTO 有 capture／restore 但 `JsonSnapshotSerializer` 未读写 `strategic.separateSpace`；Snapshot restore 的 content shell 未重注册 Quest／ContentEvent／Chapter definitions；WorldMap 的 Site／Flag marker 随 world projection 缩放，但 Player／NPC Squad marker 仍固定像素。它们不撤销既有历史验收记录，也不能伪装成已完成；须在新会话先定范围后另行处理。
+- 本轮文档静态核对发现两项仍待处理的代码／已确认规则差异：Snapshot restore 的 content shell 未重注册 Quest／ContentEvent／Chapter definitions；WorldMap 的 Site／Flag marker 随 world projection 缩放，但 Player／NPC Squad marker 仍固定像素。Separate Space Session 的 JSON wire 漏线已由 **SPACE-01-P1** 补齐（`strategic.separateSpace` 读写；implementation complete / producer acceptance pending）。上述差异不撤销既有历史验收记录，也不能伪装成已完成；须在新会话先定范围后另行处理。
 
 ### 新会话短阅读顺序
 
