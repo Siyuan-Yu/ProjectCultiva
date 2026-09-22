@@ -7,7 +7,6 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Npc;
 using XianXia.Core.Orders;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
@@ -22,7 +21,6 @@ namespace XianXia.Tests.EditMode
     public sealed class MainWildernessSurfaceW1DTests
     {
         const string MainSurfaceId = "base:surface_main_wilderness_v1";
-        const string TravelWorldId = "base:hex_world_travel_mvp_30x15";
 
         /// <summary>headless harness 注入的内容根（Unity Test Runner 下保持 null，行为完全不变）。</summary>
         public static string HeadlessContentRoot;
@@ -38,52 +36,14 @@ namespace XianXia.Tests.EditMode
             Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
 
         [Test]
-        public void MainSurface_CoversEveryPassableOrdinaryWildernessHexCenter()
+        public void AllCurrentOutdoorSites_HaveCheckedInRegionsPlacementsAndValidChunks()
         {
             var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
             Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
             var registry = loaded.Value.Registry;
             Assert.IsTrue(registry.TryGetOutdoorSurface(DefinitionId.Parse(MainSurfaceId).Value, out var surface));
-            Assert.IsTrue(registry.TryGetHexWorldContent(DefinitionId.Parse(TravelWorldId).Value, out var world));
-
-            var siteHexes = new HashSet<HexCoord>();
-            foreach (var site in world.Sites)
-                foreach (var hex in site.Footprint)
-                    siteHexes.Add(new HexCoord(hex.Q, hex.R));
-            var covered = 0;
-            foreach (var cell in world.Cells)
-            {
-                var hex = new HexCoord(cell.Q, cell.R);
-                if (cell.Passable != true || string.Equals(cell.Terrain, "Water", System.StringComparison.OrdinalIgnoreCase) || siteHexes.Contains(hex))
-                    continue;
-                HexMath.ToWorldPosition(hex, world.HexSize, out var x, out var y);
-                Assert.IsTrue(OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface, x, y), hex.ToString());
-                covered++;
-            }
-            Assert.Greater(covered, 0);
-        }
-
-        [Test]
-        public void NormalResolver_ChoosesMainSurfaceAndExcludesAcceptanceOnlyOverlap()
-        {
-            var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
-            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
-            HexMath.ToWorldPosition(new HexCoord(1, 1), 1f, out var x, out var y);
-            Assert.IsTrue(OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
-                loaded.Value.Registry, x, y, out var resolved));
-            Assert.AreEqual(MainSurfaceId, resolved.SurfaceId);
-            Assert.IsFalse(resolved.AcceptanceOnly);
-        }
-
-        [Test]
-        public void AllSevenOutdoorSites_HaveCheckedInRegionsPlacementsAndValidChunks()
-        {
-            var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
-            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
-            var registry = loaded.Value.Registry;
-            Assert.IsTrue(registry.TryGetOutdoorSurface(DefinitionId.Parse(MainSurfaceId).Value, out var surface));
-            Assert.AreEqual(7, surface.SiteRegions.Count);
-            Assert.GreaterOrEqual(surface.SitePlacements.Count, 7);
+            Assert.AreEqual(6, surface.SiteRegions.Count);
+            Assert.GreaterOrEqual(surface.SitePlacements.Count, 6);
             var ids = new HashSet<string>();
             foreach (var placement in surface.SitePlacements)
             {
@@ -96,7 +56,7 @@ namespace XianXia.Tests.EditMode
                 Assert.IsTrue(surface.SitePlacements.Exists(p => p.SiteId == region.SiteId), region.SiteId);
                 Assert.IsTrue(surface.SitePlaces.Exists(p => p.SiteId == region.SiteId), region.SiteId);
             }
-            Assert.AreEqual(405, CountRenderedObjects(surface.SitePlacements));
+            Assert.AreEqual(406, CountRenderedObjects(surface.SitePlacements));
         }
 
         [TestCase("road", 1, 1, 1)]
@@ -290,8 +250,13 @@ namespace XianXia.Tests.EditMode
             var world = new SimulationWorld();
             var id = world.Entities.CreateNpc(
                 new DefinitionId("base", "npc_anchor_roundtrip"), "行者").Value.Id;
+            world.Strategic.Sites.Register(new WorldSite
+            {
+                SiteId = "base:site_test",
+                UsesContinuousOutdoorSurface = true
+            });
             world.WorldPresence.SetAtSiteWithAnchor(
-                id, "base:site_test", new WorldVec2(8.5f, 3.25f));
+                id, "base:site_test", new WorldVec2(8.5f, 3.25f), MainSurfaceId);
             Assert.IsTrue(world.WorldPresence.TryGet(id, out var presence));
             Assert.AreEqual(PartyWorldPresenceMode.AtSite, presence.Mode);
             Assert.AreEqual("base:site_test", presence.SiteId);

@@ -3,7 +3,6 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.World.Strategic;
-using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -53,16 +52,10 @@ namespace XianXia.Unity.Host
                 _bootstrap?.RefreshFactionFlagWalkGrid();
                 return;
             }
-            MapLayoutDefinition layout = null;
-            if (_bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
-                !_bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
-                MapLayoutPick.TryGet(session, out layout);
             CollectPoints();
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
-            var near = continuous != null && continuous.IsActive
-                ? HostFactionFlagQuery.IsAnyPointNear(flag, continuous, _points)
-                : HostFactionFlagQuery.IsAnyPointNear(flag, layout, _points);
-            if (!near)
+            if (continuous == null || !continuous.IsActive ||
+                !HostFactionFlagQuery.IsAnyPointNear(flag, continuous, _points))
                 return;
             var combatActor = encounter?.Find(session.PlayerParty.ActiveCharacterId.Value);
             if (combatActor != null) _cooldown = combatActor.Cooldown;
@@ -82,11 +75,8 @@ namespace XianXia.Unity.Host
             }
             if (_bootstrap.ViewSpawner.Registry.TryGet(attacker, out var view) && view != null)
             {
-                Vector3 center;
-                var hasCenter = continuous != null && continuous.IsActive
-                    ? HostFactionFlagQuery.TryGetCenter(flag, continuous, out center)
-                    : HostFactionFlagQuery.TryGetCenter(flag, layout, out center);
-                if (hasCenter) _vfx?.Play(view.transform.position, center);
+                if (HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
+                    _vfx?.Play(view.transform.position, center);
             }
             Toast(attacker, "-" + damage, new Color(1f, .45f, .3f));
             if (!world.Strategic.FactionFlags.Flags.ContainsKey(_flagId))

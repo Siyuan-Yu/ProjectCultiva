@@ -11,14 +11,24 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：Continuous World Legacy Final Seal
+## 当前阶段：Hex／Army 正式运行依赖退役已封板
 
 - 最终冻结入口：[ADR-0038](docs/40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) + [当前交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)
-- LEGACY-FINAL-A／B／C、MAP-01～04 与 SPACE-01 均已 Producer Accepted / Sealed；不得重新开启迁移分期。
+- MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C，以及 Hex／Army 正式运行依赖退役与 021915 统一收尾，均已 **Producer Accepted / Sealed**。不得重新开启迁移分期，也不得按 Hex／Army／Legacy 关键词再开一轮扫描删除。
 - 正常 Outdoor authority：`SurfaceId + exact WorldPosition + Continuous Surface`；NPC group 为 `Squad + SquadWorldMotion`；现代战斗为 `CharacterEncounter`。
-- `FormalArmy`、`ArmyStack`、`TerritoryRegion`、`AtHex`、Outdoor LocalMap／Hex travel 只能存在于明确的旧 Content／Snapshot 单向迁移或有证据的 compatibility／工具／测试边界。现行代码入口必须使用已落地的 `Legacy*` 名称；`HexCoord`／`HexMath`／Odd-R Q/R 与 `HexWorld` 几何类型合法保留，不得据此恢复正常 Gameplay Hex authority。
+- 正式运行依赖已退役：正常产品不编译旧 Hex 几何，也不在 Runtime Loader 内接受或自动迁移 `formalArmy`／`hexWorld`。`LegacyRuntimeConverter` 只无损转换旧 FormalArmy 与“current authority 已完整、仅 FormalArmy 待转”的 Snapshot；`hexWorld`／`openingHexWorldId` 只检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。独立旧数据转换工具不重新接入正式运行。
+- `FormalArmy`、`ArmyStack`、`TerritoryRegion`、`AtHex`、Outdoor LocalMap／Hex travel 只可存在于稳定 wire 检测、离线转换器、历史文档或有证据的工具／测试边界；协议键、保留枚举值、历史 ID 与必要的旧序列化字段映射不是“尚未清完”的理由。
 - 硬停：改 Freeze 正文、稳定 Snapshot 数值／ID、Core·Data 边界，或把合法兼容输入重新提升为 normal runtime authority。
 - Host：只适配输入／表现；Demo Runtime **只读参考**；禁迁玩法；禁改 ProjectSettings／Packages／Freeze
+- 后续功能方向尚未批准，不自动启动下一项任务。
+
+## 普通实施与验收（强制）
+
+1. 普通实现只要求没有基础编译错误，并配合最少量必要的静态引用与文件完整性检查。
+2. 不自行运行测试，包括单元测试、定向纯 C# 测试、headless 回归、行为矩阵、存档回放、工具测试、Unity Test Runner、PlayMode 或 batchmode。
+3. 不自行启动 Unity；不新增测试脚本、测试框架、行为矩阵或大规模验证任务。运行行为由制作人人工验收。
+4. 不将“测试通过”作为代理实施完成的必需条件。编译结果、静态核对和制作人人工验收必须分开记录。
+5. 普通实施完成后不自动提交。制作人明确要求“封板”时，即授权选择性 `git add` + `git commit`，无需再申请一次提交许可。默认不 push、不打 tag。
 
 ## 开工前必读
 
@@ -41,7 +51,7 @@
 6. **RelationshipLedger 唯一真源**；Component 只缓存。  
 7. Dead ≠ Removed；Focus 失能用 FocusCharacterUnavailable，不立即改玩家身份。  
 8. DirectControl ≠ FocusCharacter ≠ FactionLeader ≠ PlayerIdentity；**ActiveControlledCharacter** 见 2K。  
-9. 地图：普通 Outdoor 以 **Continuous Surface + exact WorldPosition** 为真源；Hex／Outdoor LocalMap 只限明确兼容边界。WorldMap 是同一 Surface 的战略视图。
+9. 地图：普通 Outdoor 以 **Continuous Surface + exact WorldPosition** 为真源；正常产品不编译旧 Hex 几何，历史输入只可离线转换。WorldMap 是同一 Surface 的战略视图。
 10. 修士 = 持久真实 Character + LOD（ADR-0024）；**禁止**匿名 `CultivatorPopulation` 代表修士战争。  
 11. 改实质内容更新 devlog；贵决定写 ADR。  
 12. Development 不得自行改规则；Narrative 不得自行定数据结构；发现问题用 ACR／SDR。

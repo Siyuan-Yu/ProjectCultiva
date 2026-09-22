@@ -7,7 +7,6 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -22,8 +21,6 @@ namespace XianXia.Core.World.Strategic
         public int SourceMode;
         public EncounterSpatialOwnerKind SourceSpatialOwnerKind;
         public string SourceSquadId = "";
-        /// <summary>Legacy snapshot input only.</summary>
-        public string LegacySourceFormalArmyId = "";
         public float OriginX, OriginY;
         /// <summary>Immutable pre-battle physical world position used only for return.</summary>
         public float ReturnX, ReturnY;
@@ -255,7 +252,6 @@ namespace XianXia.Core.World.Strategic
                 SourceSiteId = sourceSiteId ?? string.Empty,
                 SourceSpatialOwnerKind = owner,
                 SourceSquadId = owner == EncounterSpatialOwnerKind.Squad ? ownerId ?? string.Empty : string.Empty,
-                LegacySourceFormalArmyId = string.Empty,
                 OriginX = point.X, OriginY = point.Y,
                 ReturnX = point.X, ReturnY = point.Y,
                 TacticalX = point.X, TacticalY = point.Y
@@ -300,7 +296,6 @@ namespace XianXia.Core.World.Strategic
         public static Result ValidateRestored(SimulationWorld world, CharacterEncounterState state)
         {
             if (state == null) return Result.Success();
-            MigrateLegacySpatialOwners(world, state);
             if (state.Version != CharacterEncounterState.Format || string.IsNullOrWhiteSpace(state.EncounterId) ||
                 string.IsNullOrWhiteSpace(state.SourceSurfaceId) || !Finite(state.CenterX) || !Finite(state.CenterY) ||
                 !Finite(state.Width) || !Finite(state.Height) || state.Width <= 0f || state.Height <= 0f ||
@@ -637,50 +632,13 @@ namespace XianXia.Core.World.Strategic
                     presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
                     presence.HasContinuousWorldPosition = true;
                     presence.PersonalSurfaceId = state.SourceSurfaceId;
-                    presence.ClearHexPresence();
                     continue;
                 }
-                var normalContinuous = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world);
-                presence.Mode = normalContinuous
-                    ? PartyWorldPresenceMode.AtWorldPosition
-                    : (PartyWorldPresenceMode)p.SourceMode;
-                presence.SiteId = normalContinuous ? string.Empty : p.SourceSiteId;
+                presence.Mode = PartyWorldPresenceMode.AtWorldPosition;
+                presence.SiteId = string.Empty;
                 presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
                 presence.HasContinuousWorldPosition = true; presence.PersonalSurfaceId = state.SourceSurfaceId;
-                if (normalContinuous)
-                    presence.ClearHexPresence();
-                else if (world.LegacyHexWorld != null)
-                {
-                    var hex = HexMath.WorldToHex(p.ReturnX, p.ReturnY, world.LegacyHexWorld.HexSize);
-                    presence.HexQ = hex.Q; presence.HexR = hex.R;
-                }
             }
-        }
-
-        static void MigrateLegacySpatialOwners(SimulationWorld world, CharacterEncounterState state)
-        {
-            Action<EncounterCharacter> migrate = participant =>
-            {
-                if (participant == null ||
-                    participant.SourceSpatialOwnerKind != EncounterSpatialOwnerKind.LegacyFormalArmy)
-                    return;
-                var id = new EntityId(participant.CharacterId);
-                if (world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null)
-                {
-                    participant.SourceSpatialOwnerKind = EncounterSpatialOwnerKind.Squad;
-                    participant.SourceSquadId = squad.SquadId;
-                    participant.SquadId = squad.SquadId;
-                }
-                else
-                {
-                    participant.SourceSpatialOwnerKind = EncounterSpatialOwnerKind.Personal;
-                    participant.SourceSquadId = string.Empty;
-                }
-                participant.LegacySourceFormalArmyId = string.Empty;
-            };
-            foreach (var participant in state.Participants) migrate(participant);
-            foreach (var candidate in state.Candidates)
-                if (candidate != null) foreach (var member in candidate.Members) migrate(member);
         }
 
         static void RestorePlayerPartyMembersFromGroup(SimulationWorld world,
@@ -694,7 +652,7 @@ namespace XianXia.Core.World.Strategic
                     party.IsMember(new EntityId(participant.CharacterId)))
                 {
                     PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                        world, party, "CharacterEncounterReturn");
+                        world, party);
                     return;
                 }
         }

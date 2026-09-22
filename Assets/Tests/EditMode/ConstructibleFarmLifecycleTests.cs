@@ -25,7 +25,8 @@ namespace XianXia.Tests
         static SimulationWorld World()
         {
             var w = new SimulationWorld();
-            w.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(Surface, 0, 0, 1, 50, 50, new[] { new SurfaceChunkCoord(0, 0) }));
+            w.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(
+                Surface, 0, 0, 1, 1, 50, 50, new[] { new SurfaceChunkCoord(0, 0) }));
             w.Strategic.PlayerFactionId = Faction;
             w.InventoryCatalog.Register(Wood, "粗木", 99, null);
             w.Inventory.TryAddAll(Wood, 20);
@@ -247,7 +248,9 @@ namespace XianXia.Tests
         {
             var w = World();
             w.SurfaceSpatial.Clear();
-            w.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(Surface, 6.1f, 2.3f, .028f, 1.4f, 1.4f, new[] { new SurfaceChunkCoord(0, 0) }));
+            w.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(
+                Surface, 6.1f, 2.3f, 1f, .028f, 1.4f, 1.4f,
+                new[] { new SurfaceChunkCoord(0, 0) }));
             var farm = Candidate();
             farm.WorldX = 6.1f + 5 * .028f; farm.WorldY = 2.3f + 6 * .028f;
             farm.WorldWidth = 5 * .028f; farm.WorldHeight = 4 * .028f;

@@ -93,13 +93,13 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`｜`hexWorld`｜`strategicFaction`
+当前 Runtime 支持：`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`outdoorSurface`｜`outdoorSurfaceGeography`｜`localPlaceSet`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`npcSquad`｜`strategicFaction`
 
-## type = hexWorld
+`formalArmy` 与 `hexWorld` 是已退役的历史输入标记：Runtime Loader 命中即拒绝，不属于支持列表。`LegacyRuntimeConverter` 只无损转换 FormalArmy；`hexWorld`／`openingHexWorldId` 会被检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无迁移样例时不得猜测。
 
-Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorldContentLoader.Apply` 加载。加载顺序：cells → sites → territoryRegions（territory 最后写 cell.ControlFactionId）。
+## retired input = hexWorld（仅离线转换参考）
 
-> **Legacy compatibility schema：** 本节外部 key 保持稳定，不随内部 C# 重命名。`anchorQ/R`、`presenceQ/R`、`footprint[]` 分别读入 `WorldSite.LegacyAnchorHex`、`LegacyPresenceHex`、`LegacyOccupiedHexes`；加载后 `EnsureLegacyPresenceHexValid` 强制 `LegacyPresenceHex == LegacyAnchorHex`。`presenceQ/R` 是旧兼容代表格，不是即时 Surface `DerivedPresenceHex`。
+Runtime 不加载或自动迁移 Hex 战略世界 JSON。以下字段只帮助识别历史文件并交给现有 WorldComposer／SurfaceAuthoring Legacy migration 路径；通用离线转换器会拒绝该输入，不能放入 `Content/BaseGame/Data` 作为当前定义。
 
 | Field | Notes |
 |---|---|
@@ -132,7 +132,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `controlFactionId` | 政治 Controller（可空=无主；与 site.ownerFactionId 永远一致） |
 | `hexes[]` | 固化辖区（**必须**覆盖该 Site 全部 footprint；运行时不可按 radius 重算/竞争） |
 
-> 初始辖区生成用一次性脚本（footprint 距离 + SiteId 确定性 tie-break），生成结果固化进 JSON；Runtime 无任何 radius 逻辑。
+> 上述辖区规则仅描述历史 wire。当前 runtime 不生成或读取该 authority。
 
 ### hexWorld.factionFlags[]
 
@@ -148,6 +148,12 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `hasLocalPosition`／`localX`／`localZ` | Legacy 局部表现字段；正式 Site-Core authoring 禁止同时声明该位置权威 |
 
 Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定性生成；Content 不保存 Runtime SiteId 或 ClaimId。正常产品旗必须完整声明 Site-Core metadata；缺少精确字段的兼容旗必须显式声明 `legacyDebugOnly=true`，否则 Content validation 失败。
+
+## type = outdoorSurface
+
+当前 Continuous Outdoor 的运行时空间定义。`movementScale` 是 Squad／后台人物 movement budget 的世界尺度，必须为正数；它由当前 opening Surface 唯一注入 `SimulationWorld.ContinuousWorldMovementScale`。当前 BaseGame 显式配置 `1.0`。
+
+`movementScale` **不是** `cellSize`：后者描述 Surface Cell 的世界尺寸，不能代替移动公式尺度。Loader 未写该字段时的解析默认值虽为 `1`，正式 BaseGame 仍要求显式 author，避免把默认行为误当单位约定。
 
 ## type = character
 
@@ -246,7 +252,7 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 | `spawns[]` | 见下 |
 | `openingRelations[]` | from／to／delta／reasonTag／mutual |
 | `initialNpcSquadIds[]` | 正常 BaseGame NPC group authoring；启动时由 `NpcSquadContentBootstrap` 建立 `Squad + SquadWorldMotion` |
-| `initialFormalArmyIds[]` | **支持的 Legacy Content compatibility input**。外部 key 保持不变；Loader 写入内部 `InitialLegacyFormalArmyIds`，随后单向迁移成 NPC Squad。正常 BaseGame authoring 应使用 `initialNpcSquadIds`，不得把该字段当作 runtime Army 入口 |
+| `initialFormalArmyIds[]` | **已退役历史 key**。Runtime Loader 明确拒绝；须先离线转换为 `initialNpcSquadIds` |
 
 `strategicOpening` 只定义新游戏 Tick 0 的战略状态：`playerFactionId`、`vassalages[]`（附庸／宗主）、`alliances[]`（两势力联盟）与 `initialWars[]`（宣战者／目标）。它与 `openingRelations[]` 的人物 RelationshipLedger 完全不同；读档以保存的 Runtime Strategic Snapshot 为准，绝不重新应用此初始状态。
 
@@ -261,13 +267,13 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 
 未声明的势力对为 Neutral／Other。本轮不支持 author `Friendly`／`Hostile` stance；`openingRelations` 是人物关系，不是势力外交。
 
-## type = formalArmy（Legacy Content compatibility input）
+## retired input = formalArmy（仅离线转换参考）
 
-`Content/BaseGame/Data/Armies/` 目录与其中 JSON **实际仍存在**，Loader／validator 继续支持 `type=formalArmy`；这不表示 normal BaseGame authoring 或 runtime 仍有 Army 产品层。当前 C# 定义类型为 `LegacyFormalArmyDefinition`。
+Runtime Loader／validator 不再支持 `type=formalArmy`。`Armies/` 目录中当前文件均为 `type=npcSquad`；目录名不是 runtime Army authority。以下字段仅用于 `LegacyRuntimeConverter` 识别旧文件。
 
 | Field | Notes |
 |---|---|
-| `runtimeArmyId` | 旧 Content 协议稳定 id；仅作为转换来源。Content adapter 保持既有规则：非空时生成 `squad:migrated:{runtimeArmyId}`，缺失时生成 `squad:legacy:{definitionId}`。旧 Snapshot 的 `squad:army:` 是另一条独立迁移规则，不得混用 |
+| `runtimeArmyId` | 旧 Content 协议稳定 id；离线转换时非空生成 `squad:migrated:<normalizedRuntimeArmyId>`，缺失时生成 `squad:legacy:<normalizedDefinitionId>`。旧 Snapshot 生成 `squad:army:<armyId>`，三者不得混用 |
 | `runtimeStackId` | 旧 ArmyStack 协议字段；兼容读取，不创建 runtime ArmyStack |
 | `factionId` | 迁移后 NPC Squad 的势力（如 `base:faction_bandits`） |
 | `assemblySiteId` | 旧 authored assembly context；由迁移 adapter 转为现代 Site／Surface 部署 |
@@ -281,9 +287,7 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 | `displayName` | 同名 CharacterDefinition 可被多个成员复用，靠本字段区分（如 BanditA／BanditB） |
 | `leader` | bool；整支军团恰好 1 名 leader，且必须是 macro-order living |
 
-兼容启动链：外部 `openingScenario.initialFormalArmyIds` → 内部 `OpeningScenarioDefinition.InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`。结果为真实 Character + `Squad` + `SquadWorldMotion`；**不会**创建 FormalArmy、ArmyStack 或 Army 产品 UI。正常新内容使用 `npcSquad`／`initialNpcSquadIds`。
-
-稳定兼容协议：`SquadCommandKind.LegacyFormalArmyWorldMotion = 2`、Encounter spatial owner `LegacyFormalArmy = 2`；`EncounterCharacter.LegacySourceFormalArmyId` 对应 JSON `sourceFormalArmyId`。这些数值／wire 名不得随 C# 内部改名。
+离线转换结果为 `npcSquad`／`initialNpcSquadIds` 或当前 Snapshot；runtime 内不存在对应 Army bootstrap。旧值 `2` 已从运行枚举移除，但其数值空洞与旧 wire key 仍由边界检测保留，禁止复用。
 
 ### spawn entry
 

@@ -7,7 +7,7 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// Promotes explicitly authored precise FactionFlags into the same runtime Site-Core model used
-    /// by player-built flags. This service never derives a precise position from AnchorHex.
+    /// by player-built flags.
     /// </summary>
     public static class FactionFlagSiteCoreBootstrap
     {
@@ -94,11 +94,8 @@ namespace XianXia.Core.World.Strategic
                     CoreRangeHeight = range.HeightWorld,
                     IsCoreActive = true,
                     CoreIsRemovable = true,
-                    LegacyAnchorHex = flag.AnchorHex,
-                    LegacyPresenceHex = flag.AnchorHex,
                     LocalMapId = string.Empty
                 };
-                site.SetLegacyHexFootprint(new[] { flag.AnchorHex });
                 try
                 {
                     world.Strategic.Sites.Register(site);

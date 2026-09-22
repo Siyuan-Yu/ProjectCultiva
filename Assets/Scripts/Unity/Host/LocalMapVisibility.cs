@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -6,7 +5,6 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Social;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -14,178 +12,6 @@ namespace XianXia.Unity.Host
     /// <summary>按当Active LocalMap／宏观所在节点过滤实体／地点是否应显示/summary>
     public static class LocalMapVisibility
     {
-        /// <summary>
-        /// 我方角色是否仍占用指LocalMap（上路／路锚不算）
-        /// 遭遇图实例只InEncounter；普通节点图Node→LocalMapId 对齐
-        /// </summary>
-        public static bool IsFriendlyCharacterOnMapLayout(
-            SimulationWorld world,
-            EntityId id,
-            string mapLayoutId)
-        {
-            if (world?.WorldPresence == null || id.IsNone || string.IsNullOrWhiteSpace(mapLayoutId))
-                return false;
-
-            var mapId = mapLayoutId.Trim();
-            if (IsEncounterMapInstance(world, mapId))
-            {
-                if (!world.WorldPresence.TryGet(id, out var encWp) || encWp == null)
-                    return false;
-                return encWp.Mode == PartyWorldPresenceMode.InEncounter;
-            }
-
-            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
-                string.Equals(
-                    WorldTravelService.ResolveWorldSiteLocalMapId(focusSite),
-                    mapId,
-                    System.StringComparison.Ordinal) &&
-                StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, focusSite))
-                return true;
-
-            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                return false;
-
-            if (wp.Mode == PartyWorldPresenceMode.InEncounter)
-                return false;
-
-            if (wp.Mode == PartyWorldPresenceMode.AtSite &&
-                !string.IsNullOrEmpty(wp.SiteId) &&
-                world.Strategic.Sites.TryGet(wp.SiteId, out var site) &&
-                site != null)
-            {
-                return string.Equals(
-                    WorldTravelService.ResolveWorldSiteLocalMapId(site),
-                    mapId,
-                    System.StringComparison.Ordinal);
-            }
-
-            if (wp.Mode == PartyWorldPresenceMode.AtHex &&
-                wp.UsesHexPresence &&
-                string.Equals(
-                    world.PartyWorld?.LocalMapId?.Trim(),
-                    mapId,
-                    System.StringComparison.Ordinal))
-                return true;
-
-            return false;
-        }
-
-        public static bool HasFriendlyCharacterOnMapLayout(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> characterIds,
-            string mapLayoutId)
-        {
-            if (world == null || characterIds == null || string.IsNullOrWhiteSpace(mapLayoutId))
-                return false;
-            for (var i = 0; i < characterIds.Count; i++)
-            {
-                if (IsFriendlyCharacterOnMapLayout(world, characterIds[i], mapLayoutId))
-                    return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 装图用：只要有人 AtSite 落在LocalMapId，或遭遇中人在遭遇图，就允许加载
-        /// （不因遭遇残留把同保底图 id 的村庄节点误判成空图
-        /// </summary>
-        public static bool CanLoadMapLayoutForParty(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> characterIds,
-            string mapLayoutId)
-        {
-            if (world == null || characterIds == null || string.IsNullOrWhiteSpace(mapLayoutId))
-                return false;
-            var mapId = mapLayoutId.Trim();
-            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
-                string.Equals(
-                    WorldTravelService.ResolveWorldSiteLocalMapId(focusSite),
-                    mapId,
-                    System.StringComparison.Ordinal) &&
-                StrategicWorldSitePopulationService.HasFriendlyCharacterPresentAtWorldSite(
-                    world, characterIds, focusSite))
-                return true;
-
-            for (var i = 0; i < characterIds.Count; i++)
-            {
-                var id = characterIds[i];
-                if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
-                {
-                    if (string.Equals(
-                            mapId,
-                            LegacyStrategicMapCatalog.DefaultEncounterLocalMapId,
-                            System.StringComparison.Ordinal))
-                        return true;
-                    continue;
-                }
-
-                if (wp.Mode == PartyWorldPresenceMode.AtSite &&
-                    !string.IsNullOrEmpty(wp.SiteId) &&
-                    world.Strategic.Sites.TryGet(wp.SiteId, out var site) &&
-                    site != null &&
-                    string.Equals(
-                        WorldTravelService.ResolveWorldSiteLocalMapId(site),
-                        mapId,
-                        System.StringComparison.Ordinal))
-                    return true;
-
-                // Compatibility-only legacy Outdoor LocalMap: AtHex member and PartyWorld map
-                // focus must agree. Normal Continuous Outdoor materializes by Surface position.
-                if (wp.Mode == PartyWorldPresenceMode.AtHex &&
-                    wp.UsesHexPresence &&
-                    string.Equals(
-                        world.PartyWorld?.LocalMapId?.Trim(),
-                        mapId,
-                        System.StringComparison.Ordinal))
-                    return true;
-
-                if (wp.Mode == PartyWorldPresenceMode.AtWorldPosition &&
-                    world.PlayerPartyTravel != null &&
-                    world.PlayerPartyTravel.HasPosition &&
-                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                    string.Equals(
-                        world.PartyWorld?.LocalMapId?.Trim(),
-                        mapId,
-                        System.StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// 保底id 与遭遇图共用时：只要遭遇运行时仍挂着参战／刷怪／待刷，就按遭遇实例计
-        /// </summary>
-        static bool IsEncounterMapInstance(SimulationWorld world, string mapLayoutId)
-        {
-            if (world == null || string.IsNullOrEmpty(mapLayoutId))
-                return false;
-            if (!string.Equals(
-                    mapLayoutId,
-                    LegacyStrategicMapCatalog.DefaultEncounterLocalMapId,
-                    System.StringComparison.Ordinal))
-                return false;
-
-            if (world.PartyWorld != null &&
-                !string.IsNullOrEmpty(world.PartyWorld.EncounterId))
-                return true;
-
-            if (world.WorldPresence != null)
-            {
-                foreach (var kv in world.WorldPresence.All)
-                {
-                    if (kv.Value != null &&
-                        kv.Value.Mode == PartyWorldPresenceMode.InEncounter)
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
         public static bool IsLocationOnActiveMap(SimulationWorld world, WorldLocationState loc)
         {
             if (world?.LocalMap == null || loc == null)
@@ -204,29 +30,9 @@ namespace XianXia.Unity.Host
             return string.Equals(loc.LocalMapId, lm.ActiveMapLayoutId, System.StringComparison.Ordinal);
         }
 
-        /// <summary>
-        /// 解析 legacy Outdoor LocalMap compatibility 的当前 WorldSite 焦点。
-        /// 优先已激活的 PartyWorld Site；旧档缺少该焦点时，才从 PlayerParty 的精确位置派生 Hex，
-        /// 再匹配 Site footprint。普通荒野没有焦点，resident 不得泄漏到当前地图。
-        /// </summary>
         static bool TryResolveVisibilityFocusSite(SimulationWorld world, out WorldSite site)
         {
-            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out site) && site != null)
-                return true;
-
-            var travel = world?.PlayerPartyTravel;
-            if (travel == null || !travel.HasPosition)
-                return false;
-
-            var hex = travel.LocationKind == PlayerPartyLocationKind.AtWorldPosition
-                ? HexMath.WorldToHex(
-                    travel.WorldPosition.X,
-                    travel.WorldPosition.Y,
-                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
-                : travel.LegacyCurrentHex;
-
-            return world.Strategic?.Sites != null &&
-                   world.Strategic.Sites.TryGetAtLegacyHex(hex, out site) &&
+            return StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out site) &&
                    site != null;
         }
 
@@ -259,11 +65,8 @@ namespace XianXia.Unity.Host
                 (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 &&
                 !string.IsNullOrEmpty(continuousCombat.SurfaceId) &&
                 PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world) &&
-                (world.LocalMap == null || !world.LocalMap.IsInInterior) &&
-                !IsActiveStrategicEncounterMap(world))
+                (world.LocalMap == null || !world.LocalMap.IsInInterior))
                 return EvaluateContinuousMaterializedVisibility(world, id, out _);
-
-            var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
             // Continuous materialization is the current loaded physical scope. It must be
             // evaluated before WorldPresence/LocationId legacy gates: Squad-derived presence is
@@ -281,8 +84,7 @@ namespace XianXia.Unity.Host
             // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
             // 禁止世界其它地点的 NPC／Squad 成员落到同一张图（含开局荒村）
             // WorldPresence、仅LocationId 的场NPC（守卫／商人等）仍走下方地点过滤
-            if (!onEncounterMap &&
-                StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
+            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
                 world.WorldPresence != null &&
                 world.WorldPresence.TryGet(id, out _))
             {
@@ -295,49 +97,22 @@ namespace XianXia.Unity.Host
                 world.WorldPresence.TryGet(id, out var wp) &&
                 wp != null)
             {
-                if (wp.Mode == PartyWorldPresenceMode.AtHex)
-                {
-                    // 遭遇图上：非本场 scoped spawn Hex residual 不得LocationId 漏进
-                    if (onEncounterMap)
-                        return false;
-                    if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
-                        return true;
-                    // Compatibility-only legacy Outdoor LocalMap visibility for an AtHex party.
-                    return PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
-                        world, id, wp);
-                }
-
                 if (wp.Mode == PartyWorldPresenceMode.AtWorldPosition && wp.HasContinuousWorldPosition)
                 {
-                    if (onEncounterMap)
-                        return false;
                     if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
-                        return true;
-                    return LoadedDestinationArrivalMaterializer.IsBackgroundCharacterVisibleOnLoadedWildernessLocalMap(
-                        world, id);
-                }
-
-                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
-                {
-                    if (!onEncounterMap)
-                        return false;
-                    var enc = world.Strategic?.CharacterEncounter;
-                    var allowed = enc?.Find(id.Value) != null;
-                    if (!allowed)
-                        return false;
-                    if (entity.TryGet<EntityLocationComponent>(out var encounterLoc) &&
-                        encounterLoc.HasPresentationOverride)
                         return true;
                     return false;
                 }
+
+                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
+                    return false;
 
                 // Continuous Outdoor：runtime 的 materialize 集合就是「物理在当前 loaded scope」的权威，
                 // 与 legacy map population materialization 同义；其中包含由当前
                 // SquadWorldMotion / Site context 掌权的驻守成员。
                 // 必须在下方「残留 AtSite presence」守卫之前放行，否则会出现
                 // 「Expected=N Materialized=N Views=N-1」——materialized 却永远没有 EntityView。
-                if (!onEncounterMap &&
-                    wp.Mode == PartyWorldPresenceMode.AtSite &&
+                if (wp.Mode == PartyWorldPresenceMode.AtSite &&
                     world.Strategic?.Sites != null &&
                     world.Strategic.Sites.TryGet(wp.SiteId, out var materializedSite) &&
                     materializedSite != null &&
@@ -346,7 +121,7 @@ namespace XianXia.Unity.Host
                     return true;
 
                 // Legacy AtSite residue 不得凭 SiteId 误进任意 LocalMap。
-                if (!onEncounterMap && IsTravelingSquadMember(world, id))
+                if (IsTravelingSquadMember(world, id))
                     return false;
 
                 var focusSite = TryResolveVisibilityFocusSite(world, out var focusSiteState)
@@ -360,8 +135,7 @@ namespace XianXia.Unity.Host
                         return true;
                     if (!string.IsNullOrEmpty(focusSite) &&
                         string.Equals(wp.SiteId, focusSite, System.StringComparison.Ordinal))
-                        return !onEncounterMap ||
-                               CharacterEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
+                        return true;
                     return false;
                 }
             }
@@ -372,18 +146,9 @@ namespace XianXia.Unity.Host
                     return false;
                 // 有宏Presence 但无地点、又未过 WorldSite 硬门不显
                 if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
-                {
-                    if (onEncounterMap)
-                        return CharacterEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return false;
-                }
                 return false;
             }
-
-            // 遭遇图：禁止用「LocationId 落在遭遇图地点表」把其他战场 NPC 带进
-            if (onEncounterMap &&
-                (entity.Tags & EntityTag.Npc) != 0)
-                return false;
 
             // 地点不在当前地点表（例如已从荒村切到保底节点）：必须隐藏，禁止残留旧场景 NPC
             if (!world.LocalPlaces.TryGet(loc.LocationId, out var place))
@@ -391,13 +156,6 @@ namespace XianXia.Unity.Host
 
             return IsLocationOnActiveMap(world, place);
         }
-
-        /// <summary>
-        /// SPACE-01 正式入口：当前 playable space 可见性。
-        /// Separate Space active 时只认 occupant／Active MapLayout／LocalPlaceSet／遭遇特例。
-        /// </summary>
-        public static bool IsEntityVisibleInCurrentPlayableSpace(SimulationWorld world, EntityId id) =>
-            IsEntityVisible(world, id);
 
         static bool IsEntityVisibleInSeparateSpace(SimulationWorld world, EntityId id, Entity entity)
         {
@@ -407,14 +165,6 @@ namespace XianXia.Unity.Host
             // Occupant authority first.
             if (session.ContainsOccupant(id))
                 return true;
-
-            if (IsActiveStrategicEncounterMap(world))
-            {
-                if (world.Strategic?.CharacterEncounter?.Find(id.Value) != null &&
-                    entity.TryGet<EntityLocationComponent>(out var engagedLoc) &&
-                    engagedLoc.HasPresentationOverride)
-                    return true;
-            }
 
             // Cave / Separate Space residents：地点属于 Active MapLayout。
             if (entity.TryGet<EntityLocationComponent>(out var loc) && loc.HasLocation &&
@@ -487,11 +237,6 @@ namespace XianXia.Unity.Host
             var boundContinuousCombatParticipant = continuousCombat != null &&
                                                    continuousCombat.IsActive &&
                                                    continuousCombat.Contains(id);
-            if (IsActiveStrategicEncounterMap(world))
-            {
-                reason = "EncounterMapOwnsPresentation";
-                return false;
-            }
             if (!PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world))
             {
                 reason = world.LocalMap != null && world.LocalMap.IsInInterior
@@ -587,20 +332,6 @@ namespace XianXia.Unity.Host
             }
             reason = "CurrentIndependentEncounterParticipant";
             return true;
-        }
-
-        static bool IsActiveStrategicEncounterMap(SimulationWorld world)
-        {
-            if (world?.LocalMap == null || world.PartyWorld == null)
-                return false;
-            var mapId = world.PartyWorld.LocalMapId;
-            if (string.IsNullOrEmpty(mapId))
-                return false;
-            if (!string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal))
-                return false;
-            // 仅独立遭遇战术图实例（且有活跃 Encounter 状态）
-            // 禁止把青石荒村等普LocalMap 误判为遭遇图（否AtSite 村民会被 Participant 过滤隐藏）
-            return IsEncounterMapInstance(world, mapId);
         }
 
         static bool IsTravelingSquadMember(SimulationWorld world, EntityId id)

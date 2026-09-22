@@ -101,7 +101,8 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(
-                Surface, 0, 0, 1, 50, 50, new[] { new SurfaceChunkCoord(0, 0) }));
+                Surface, 0, 0, 1, 1, 50, 50,
+                new[] { new SurfaceChunkCoord(0, 0) }));
             world.Strategic.PlayerFactionId = Faction;
             world.InventoryCatalog.Register(Wood, "粗木", 99, null);
             world.Inventory.TryAddAll(Wood, 20);

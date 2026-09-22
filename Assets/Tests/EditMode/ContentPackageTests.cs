@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
@@ -8,8 +9,21 @@ namespace XianXia.Tests
 {
     public sealed class ContentPackageTests
     {
-        static string BaseGamePath =>
-            Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
+        static string BaseGamePath
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return Path.GetFullPath(Path.Combine(
+                    UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
+#else
+                var fromEnvironment = Environment.GetEnvironmentVariable("XIANXIA_BASEGAME");
+                return string.IsNullOrEmpty(fromEnvironment)
+                    ? Path.GetFullPath(Path.Combine("Content", "BaseGame"))
+                    : fromEnvironment;
+#endif
+            }
+        }
 
         [Test]
         public void Load_BaseGame_Succeeds()
@@ -52,7 +66,7 @@ namespace XianXia.Tests
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
             Assert.IsTrue(result.Value.Registry.TryGetItem(
                 new DefinitionId("base", "item_rough_wood"), out var def));
-            Assert.AreEqual("粗木", def.Name);
+            Assert.AreEqual("粗木（样例）", def.Name);
             Assert.AreEqual(99, def.MaxStack);
         }
 

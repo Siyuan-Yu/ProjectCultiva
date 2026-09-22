@@ -57,13 +57,27 @@ namespace XianXia.Tests
             Assert.IsTrue(StrategicMilitaryAggressionService.TryCommit(b.World, b.World.Strategic.PlayerFactionId, target.OwnerFactionId, out var reason), reason);
         }
 
+        static void SetCurrentWorldAuthority(
+            PlayableDayBootstrapResult b, EntityId characterId, WorldSiteCoreTarget target)
+        {
+            var world = b.World;
+            if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
+                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion))
+            {
+                motion.SetAt(
+                    target.SurfaceId, new WorldVec2(target.WorldX, target.WorldY), target.SiteId);
+                return;
+            }
+            world.WorldPresence.SetAtWorldPosition(
+                characterId, new WorldVec2(target.WorldX, target.WorldY), target.SurfaceId);
+        }
+
         static CharacterEncounterState Prepare(PlayableDayBootstrapResult b, WorldSiteCoreTarget target)
         {
             var w = b.World; War(b, target);
             var actor = w.Strategic.PlayerPartyContext.ActiveCharacterId;
-            var p = w.WorldPresence.GetOrCreate(actor);
-            p.PersonalSurfaceId = target.SurfaceId; p.HasContinuousWorldPosition = true;
-            p.WorldPosX = target.WorldX; p.WorldPosY = target.WorldY; p.Mode = PartyWorldPresenceMode.AtSite;
+            w.PlayerPartyTravel.SetAtSurfacePosition(
+                target.SurfaceId, new WorldVec2(target.WorldX, target.WorldY));
             var defender = WorldSiteDefenseCharacterQuery.FindNearest(w, target, w.Strategic.PlayerFactionId);
             Assert.IsFalse(defender.IsNone, "Content has no real eligible defender");
             var result = CharacterEncounterService.PrepareForWorldSiteAssault(w, actor, defender, target.SiteId, out var state);
@@ -130,8 +144,7 @@ namespace XianXia.Tests
             world.Strategic.PlayerFactionId = "test:player";
             world.Strategic.Sites.Register(new WorldSite
             {
-                SiteId = "test:fixed", OwnerFactionId = "test:enemy", CoreIsRemovable = false,
-                TerritoryRegionId = "test:missing_projection"
+                SiteId = "test:fixed", OwnerFactionId = "test:enemy", CoreIsRemovable = false
             });
             world.RegisterWorkArea(new WorkAreaDefinition
             {
@@ -145,66 +158,6 @@ namespace XianXia.Tests
             var captured = ControlCoreService.TryCapture(world, "test:core", "test:player");
             Assert.IsTrue(captured.IsSuccess, captured.IsFailure ? captured.Error.ToString() : "");
             Assert.AreEqual("test:player", world.Strategic.Sites.Sites["test:fixed"].OwnerFactionId);
-        }
-
-        [Test]
-        public void LegacyCaptureObjectiveSnapshotMigratesOnlyPhysicalCoreState()
-        {
-            var world = new XianXia.Core.Simulation.SimulationWorld();
-            var dto = new StrategicSnapshotDto();
-            dto.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
-            {
-                ObjectiveId = "capture:test:core", SiteId = "ignored:site", WorkAreaId = "test:core",
-                CurrentHp = 0, MaxHp = 999, OccupyProgressSeconds = 4f, OccupyHoldSeconds = 99f,
-                Completed = false
-            });
-            Assert.IsTrue(StrategicSnapshotHelper.Restore(world, dto).IsSuccess);
-            world.RegisterWorkArea(new WorkAreaDefinition
-            {
-                Id = "test:core", Name = "Core", LocationId = "test:loc", IsControlCore = true,
-                MaxDurability = 10, OccupyHoldSeconds = 5f
-            });
-            Assert.IsTrue(world.ControlCores.TryGet("test:core", out var core));
-            Assert.AreEqual(0, core.CurrentDurability);
-            Assert.AreEqual(4f, core.OccupyProgressSeconds);
-            Assert.IsTrue(core.CaptureAvailable);
-            Assert.AreEqual(10, core.MaxDurability, "Content shell remains physical configuration authority.");
-            Assert.IsFalse(world.ControlCores.TryGetBoundSiteId("test:core", out _),
-                "Legacy SiteId must not become canonical binding authority.");
-
-            var completedWorld = new XianXia.Core.Simulation.SimulationWorld();
-            var completed = new StrategicSnapshotDto();
-            completed.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
-            {
-                ObjectiveId = "capture:test:completed", SiteId = "ignored:site",
-                WorkAreaId = "test:completed", CurrentHp = 0, OccupyProgressSeconds = 5f, Completed = true
-            });
-            Assert.IsTrue(StrategicSnapshotHelper.Restore(completedWorld, completed).IsSuccess);
-            completedWorld.RegisterWorkArea(new WorkAreaDefinition
-            {
-                Id = "test:completed", Name = "Core", LocationId = "test:loc2",
-                IsControlCore = true, MaxDurability = 12, OccupyHoldSeconds = 5f
-            });
-            Assert.IsTrue(completedWorld.ControlCores.TryGet("test:completed", out var completedCore));
-            Assert.AreEqual(12, completedCore.CurrentDurability);
-            Assert.AreEqual(0f, completedCore.OccupyProgressSeconds);
-            Assert.IsFalse(completedCore.CaptureAvailable);
-
-            var corruptNew = new StrategicSnapshotDto { HasControlCoreSnapshotAuthority = true };
-            corruptNew.ControlCores.Add(new ControlCoreRuntimeSnapshotDto
-            {
-                WorkAreaId = string.Empty,
-                CurrentDurability = 1,
-                OccupyProgressSeconds = 0f
-            });
-            corruptNew.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
-            {
-                WorkAreaId = "test:legacy_fallback",
-                CurrentHp = 1
-            });
-            Assert.IsTrue(StrategicSnapshotHelper.Restore(
-                    new XianXia.Core.Simulation.SimulationWorld(), corruptNew).IsFailure,
-                "Corrupt new controlCores authority must fail instead of falling back to legacy data.");
         }
 
         [Test]
@@ -277,12 +230,15 @@ namespace XianXia.Tests
             Assert.IsTrue(restored.IsSuccess, restored.IsFailure ? restored.Error.ToString() : "");
             var shell = RuntimeContentShellBootstrap.Rehydrate(restored.Value.world, b.Registry);
             Assert.IsTrue(shell.IsSuccess, shell.IsFailure ? shell.Error.ToString() : "");
-            b.Registry.TryGetOpeningScenario(DefinitionId.Parse("base:scenario_ch01_reference").Value, out var scenario);
-            Assert.IsTrue(LegacyHexStrategicMapContentAdapter.TryApplyToSession(restored.Value.world, b.Registry, scenario).IsSuccess);
+            b.Registry.TryGetOpeningScenario(
+                DefinitionId.Parse("base:scenario_ch01_reference").Value, out var scenario);
+            var sites = StrategicContentBootstrap.ApplySurfaceSites(
+                restored.Value.world, b.Registry, scenario);
+            Assert.IsTrue(sites.IsSuccess, sites.IsFailure ? sites.Error.ToString() : "");
             var fixedCores = ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(restored.Value.world, b.Registry);
             Assert.IsTrue(fixedCores.IsSuccess, fixedCores.IsFailure ? fixedCores.Error.ToString() : "");
             var snapshot = new JsonSnapshotSerializer().Deserialize(saved.Value).Value;
-            var politics = StrategicSnapshotHelper.RestoreHexPoliticalState(restored.Value.world, snapshot.Strategic);
+            var politics = StrategicSnapshotHelper.RestorePoliticalState(restored.Value.world, snapshot.Strategic);
             Assert.IsTrue(politics.IsSuccess, politics.IsFailure ? politics.Error.ToString() : "");
             CollectionAssert.AreEqual(b.World.Strategic.TerritoryClaims.Claims.Select(c => c.ClaimId + ":" + c.AcquiredOrder),
                 restored.Value.world.Strategic.TerritoryClaims.Claims.Select(c => c.ClaimId + ":" + c.AcquiredOrder));
@@ -304,7 +260,7 @@ namespace XianXia.Tests
             Assert.IsFalse(restored.Strategic.FactionFlags.Flags.ContainsKey(flag.FlagId));
             Assert.IsFalse(restored.Strategic.Sites.Sites[site.SiteId].IsCoreActive);
             var request = new FactionFlagSitePlacementRequest { SurfaceId = target.SurfaceId,
-                WorldPosition = new XianXia.Core.World.WorldVec2(target.WorldX, target.WorldY), StrategicAnchor = flag.AnchorHex };
+                WorldPosition = new XianXia.Core.World.WorldVec2(target.WorldX, target.WorldY) };
             var build = XianXia.Core.Construction.ConstructionService.TryConstructFactionFlagSite(w,
                 "base:building_faction_control_post", w.Strategic.PlayerFactionId, request, out var ownFlag, out var ownSite);
             Assert.IsTrue(build.IsSuccess, build.IsFailure ? build.Error.ToString() : "");
@@ -376,16 +332,18 @@ namespace XianXia.Tests
             var b = Start(); var w = b.World; var target = Target(b); War(b, target);
             var eligible = w.Entities.All.Where(e => e.TryGet<FactionMembershipComponent>(out var f) && f.FactionId == target.OwnerFactionId).OrderBy(e => e.Id.Value).Take(2).ToArray();
             foreach (var e in eligible)
-            {
-                var p = w.WorldPresence.GetOrCreate(e.Id); p.PersonalSurfaceId = target.SurfaceId;
-                p.HasContinuousWorldPosition = true; p.WorldPosX = target.WorldX; p.WorldPosY = target.WorldY;
-            }
+                SetCurrentWorldAuthority(b, e.Id, target);
             Assert.AreEqual(eligible[0].Id, WorldSiteDefenseCharacterQuery.FindNearest(w, target, w.Strategic.PlayerFactionId));
             eligible[0].Get<LifecycleComponent>().State = LifecycleState.Incapacitated;
             var war = w.Strategic.Wars.EnumerateActive().First(r => r.IsAttacker(w.Strategic.PlayerFactionId) && r.IsDefender(target.OwnerFactionId));
             war.AddDefender("test:ally"); eligible[1].Get<FactionMembershipComponent>().Assign("test:ally", FactionRoleKind.Member);
             Assert.AreEqual(eligible[1].Id, WorldSiteDefenseCharacterQuery.FindNearest(w, target, w.Strategic.PlayerFactionId));
-            w.WorldPresence.GetOrCreate(eligible[1].Id).PersonalSurfaceId = "test:other_surface";
+            if (w.Strategic.Squads.TryGetForCharacter(eligible[1].Id, out var squad) &&
+                w.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var motion))
+                motion.SetAt("test:other_surface", motion.WorldPosition);
+            else
+                w.WorldPresence.SetAtWorldPosition(
+                    eligible[1].Id, new WorldVec2(target.WorldX, target.WorldY), "test:other_surface");
             Assert.AreNotEqual(eligible[1].Id, WorldSiteDefenseCharacterQuery.FindNearest(w, target, w.Strategic.PlayerFactionId));
         }
 
@@ -394,8 +352,7 @@ namespace XianXia.Tests
         {
             var b = Start(); var w = b.World; var flag = w.Strategic.FactionFlags.Flags[OutpostFlag]; var target = Target(b, flag.SiteId);
             var guard = w.Entities.All.First(e => e.TryGet<FactionMembershipComponent>(out var f) && f.FactionId == target.OwnerFactionId);
-            var p = w.WorldPresence.GetOrCreate(guard.Id); p.PersonalSurfaceId = target.SurfaceId;
-            p.HasContinuousWorldPosition = true; p.WorldPosX = target.WorldX; p.WorldPosY = target.WorldY;
+            SetCurrentWorldAuthority(b, guard.Id, target);
             var state = Prepare(b, target);
             Assert.IsTrue(FactionFlagService.TryApplyAssault(w, w.Strategic.PlayerPartyContext, w.Strategic.PlayerFactionId, flag.FlagId, flag.MaxHp).IsSuccess);
             Assert.IsTrue(state.Objective.Resolved); Assert.AreEqual(CharacterEncounterPhase.ReadyToEnd, state.Phase);

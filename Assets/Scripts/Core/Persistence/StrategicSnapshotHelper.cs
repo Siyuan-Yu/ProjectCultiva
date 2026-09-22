@@ -7,17 +7,18 @@ using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Persistence
 {
-    /// <summary>??? Snapshot v6 ??????Pure Hex?? node/route DTO??</summary>
+    /// <summary>Captures and restores current strategic runtime state.</summary>
     public static class StrategicSnapshotHelper
     {
         /// <summary>Current-version saved personal spatial state must survive restore unchanged.</summary>
         public static Result ValidateRestoredCharacterWorldPresences(
-            SimulationWorld world, StrategicSnapshotDto dto)
+            SimulationWorld world,
+            StrategicSnapshotDto dto,
+            bool requireContentSpatialCompleteness = false)
         {
             if (world == null || dto?.CharacterWorldPresences == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Character world presence snapshot missing.");
@@ -75,39 +76,180 @@ namespace XianXia.Core.Persistence
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Restored CharacterWorldPresence differs from snapshot.",
                         "CharacterId=" + saved.CharacterId);
+                if (requireContentSpatialCompleteness &&
+                    actual.Mode == PartyWorldPresenceMode.AtSite)
+                {
+                    if (string.IsNullOrEmpty(actual.SiteId) ||
+                        !world.Strategic.Sites.TryGet(actual.SiteId, out var site) ||
+                        site == null)
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Site presence references an unavailable Site.",
+                            "CharacterId=" + saved.CharacterId +
+                            " SiteId=" + (actual.SiteId ?? string.Empty));
+                    if (WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) &&
+                        (!actual.HasContinuousWorldPosition ||
+                         string.IsNullOrEmpty(actual.PersonalSurfaceId)))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Continuous Outdoor Site presence lacks exact Surface authority.",
+                            "CharacterId=" + saved.CharacterId +
+                            " SiteId=" + actual.SiteId);
+                }
             }
             return Result.Success();
         }
 
         /// <summary>
-        /// 静态 Hex／Site／Territory shell 建立后覆盖当前政治状态。
+        /// Prevents current capture from reporting success for a payload that current restore
+        /// cannot read. Content-aware Outdoor completeness is checked here, before serialization.
+        /// </summary>
+        public static Result ValidateCaptureForSerialization(
+            SimulationWorld world,
+            StrategicSnapshotDto dto)
+        {
+            if (world?.Strategic == null || dto == null ||
+                !dto.HasCharacterWorldPresenceSnapshotAuthority ||
+                dto.CharacterWorldPresences == null)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Current CharacterWorldPresence capture authority is missing.");
+
+            var capturedPresenceIds = new HashSet<ulong>();
+            for (var i = 0; i < dto.CharacterWorldPresences.Count; i++)
+            {
+                var saved = dto.CharacterWorldPresences[i];
+                if (saved == null || saved.CharacterId == 0 ||
+                    !capturedPresenceIds.Add(saved.CharacterId))
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Invalid or duplicate captured CharacterWorldPresence.",
+                        "Index=" + i);
+                if (saved.Mode == (int)PartyWorldPresenceMode.AtWorldPosition)
+                {
+                    if (!saved.HasWorldPosition ||
+                        string.IsNullOrEmpty(saved.PersonalSurfaceId) ||
+                        !Finite(saved.WorldX) || !Finite(saved.WorldY))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Captured world position lacks exact Surface authority.",
+                            "CharacterId=" + saved.CharacterId);
+                    continue;
+                }
+                if (saved.Mode != (int)PartyWorldPresenceMode.AtSite ||
+                    string.IsNullOrEmpty(saved.SiteId) ||
+                    !world.Strategic.Sites.TryGet(saved.SiteId, out var site) ||
+                    site == null)
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Captured Site presence is unavailable or ambiguous.",
+                        "CharacterId=" + saved.CharacterId +
+                        " SiteId=" + (saved.SiteId ?? string.Empty));
+                if (WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) &&
+                    (!saved.HasWorldPosition ||
+                     string.IsNullOrEmpty(saved.PersonalSurfaceId) ||
+                     !Finite(saved.WorldX) || !Finite(saved.WorldY)))
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Captured Continuous Outdoor Site presence lacks exact Surface authority.",
+                        "CharacterId=" + saved.CharacterId +
+                        " SiteId=" + saved.SiteId);
+                if (saved.HasWorldPosition != !string.IsNullOrEmpty(saved.PersonalSurfaceId))
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Captured Site presence has incomplete optional Surface authority.",
+                        "CharacterId=" + saved.CharacterId);
+            }
+
+            foreach (var pair in world.WorldPresence.All)
+            {
+                var presence = pair.Value;
+                if (presence == null || presence.EntityId.IsNone ||
+                    presence.Mode == PartyWorldPresenceMode.InEncounter)
+                    continue;
+                if ((presence.Mode == PartyWorldPresenceMode.AtSite &&
+                     !string.IsNullOrEmpty(presence.SiteId)) ||
+                    (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
+                     presence.HasContinuousWorldPosition))
+                {
+                    if (!capturedPresenceIds.Contains(presence.EntityId.Value))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Current personal spatial authority was not captured.",
+                            "CharacterId=" + presence.EntityId.Value);
+                    continue;
+                }
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Unsupported or incomplete personal spatial authority cannot be saved.",
+                    "CharacterId=" + presence.EntityId.Value +
+                    " Mode=" + presence.Mode);
+            }
+
+            var capturedBackgroundIds = new HashSet<ulong>();
+            if (dto.BackgroundCharacterTravels != null)
+                for (var i = 0; i < dto.BackgroundCharacterTravels.Count; i++)
+                {
+                    var travel = dto.BackgroundCharacterTravels[i];
+                    if (travel == null || travel.CharacterId == 0 ||
+                        !capturedBackgroundIds.Add(travel.CharacterId))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Invalid or duplicate captured Background Character travel.",
+                            "Index=" + i);
+                }
+            foreach (var pair in world.BackgroundCharacterTravel.All)
+            {
+                var id = new EntityId(pair.Key);
+                var motion = pair.Value;
+                if (id.IsNone || motion == null ||
+                    !capturedBackgroundIds.Contains(pair.Key) ||
+                    !BackgroundCharacterTravelService.TryResolveCharacterWorldLocation(
+                        world, id, out _, out _, out _, out var surfaceId) ||
+                    (motion.IsMoving &&
+                     (!motion.IsSurfaceRoute ||
+                      string.IsNullOrEmpty(motion.DestinationSiteId) ||
+                      !string.Equals(motion.SurfaceId, surfaceId, StringComparison.Ordinal))))
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Background Character travel could not be captured without spatial loss.",
+                        "CharacterId=" + pair.Key);
+            }
+
+            return Result.Success();
+        }
+
+        /// <summary>
+        /// 静态 Site／Territory shell 建立后覆盖当前政治状态。
         /// Restore 本身不是新 Capture：不得发事件、重置 Core 或重套开局。
         /// </summary>
-        public static Result RestoreHexPoliticalState(SimulationWorld world, StrategicSnapshotDto dto)
+        public static Result RestorePoliticalState(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic == null || dto == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Political snapshot restore requires world and dto.");
+            if (!dto.HasFactionFlagSnapshotAuthority)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot lacks current FactionFlag authority and requires offline conversion.");
+            if (!dto.HasRuntimeWorldSiteSnapshotAuthority)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot lacks current RuntimeWorldSite authority and requires offline conversion.");
+            if (!dto.HasTerritoryClaimSnapshotAuthority)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot lacks current TerritoryClaim authority and requires offline conversion.");
 
             // Flag active set 先完整验证并原子提交；失败时不允许继续覆盖其它政治状态。
             var flags = FactionFlagSnapshotRestore.TryApplyAuthoritativeSet(world, dto);
             if (flags.IsFailure)
                 return flags;
 
-            // Snapshots predating both flag and runtime-Site authority inherit the current
-            // authored flag set. Mark those flags so their baseline claims may be added to
-            // an otherwise authoritative legacy claim history below.
-            if (!dto.HasFactionFlagSnapshotAuthority && !dto.HasRuntimeWorldSiteSnapshotAuthority)
-                MarkAuthoredFlagsForLegacyBaselineMigration(world);
-
             var runtimeSites = RestoreRuntimeWorldSites(world, dto);
             if (runtimeSites.IsFailure)
                 return runtimeSites;
-            if (!dto.HasRuntimeWorldSiteSnapshotAuthority)
-                world.Strategic.Sites.RemoveAllRuntimeSites();
-            var allowLegacySiteCreation = HasAuthoredFlagLegacyMigration(world) ||
-                (!dto.HasRuntimeWorldSiteSnapshotAuthority && !dto.HasFactionFlagSnapshotAuthority);
             var authoredFlagSites = FactionFlagSiteCoreBootstrap.EnsureAuthoredSiteCores(
-                world, allowLegacySiteCreation, ErrorCode.SnapshotInvalid);
+                world, false, ErrorCode.SnapshotInvalid);
             if (authoredFlagSites.IsFailure)
                 return authoredFlagSites;
 
@@ -145,6 +287,11 @@ namespace XianXia.Core.Persistence
             if (publicStocks.IsFailure)
                 return publicStocks;
 
+            var presences = ValidateRestoredCharacterWorldPresences(
+                world, dto, requireContentSpatialCompleteness: true);
+            if (presences.IsFailure)
+                return presences;
+
             return CharacterEncounterService.ValidateObjectiveWorldState(world);
         }
 
@@ -153,7 +300,8 @@ namespace XianXia.Core.Persistence
             var dto = new StrategicSnapshotDto
             {
                 PlayerFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty,
-                Ch01FormationScenarioCompat = false
+                Ch01FormationScenarioCompat = false,
+                HasCharacterWorldPresenceSnapshotAuthority = true
             };
             if (world?.Strategic == null)
                 return dto;
@@ -179,8 +327,7 @@ namespace XianXia.Core.Persistence
                     LegacyArmyId = string.Empty,
                     CommandKind = (int)(isControlledSquad
                         ? SquadCommandKind.FollowLeader
-                        : squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion
-                            ? SquadCommandKind.SquadWorldMotion : squad.CommandKind),
+                        : squad.CommandKind),
                     CommandRevision = squad.CommandRevision,
                     CommandTargetCharacterId = isControlledSquad && controllingParty?.HasActive == true
                         ? controllingParty.ActiveCharacterId.Value : squad.CommandTargetCharacterId.Value
@@ -211,9 +358,6 @@ namespace XianXia.Core.Persistence
                 dto.SquadWorldMotions.Add(motionDto);
             }
 
-            // FormalArmy and ArmyMembership DTO collections are legacy input only.
-            // Modern capture deliberately leaves both collections empty.
-
             // ResidualCharacterPresences is legacy input only. Modern saves leave it empty.
 
             foreach (var kv in world.WorldPresence.All)
@@ -242,10 +386,6 @@ namespace XianXia.Core.Persistence
                     continue;
                 }
 
-                // AtHex is accepted only as old input. It is never re-emitted by modern capture.
-                if (presence.UsesHexPresence)
-                    continue;
-
                 if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
                     presence.HasContinuousWorldPosition)
                 {
@@ -254,8 +394,6 @@ namespace XianXia.Core.Persistence
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtWorldPosition,
                         PersonalSurfaceId = presence.PersonalSurfaceId,
-                        HexQ = presence.HexQ,
-                        HexR = presence.HexR,
                         HasWorldPosition = true,
                         WorldX = presence.WorldPosX,
                         WorldY = presence.WorldPosY
@@ -292,8 +430,8 @@ namespace XianXia.Core.Persistence
                     SiteType = site.SiteType,
                     OwnerFactionId = site.OwnerFactionId,
                     ControlEstablishedOrder = site.ControlEstablishedOrder,
-                    AnchorQ = site.LegacyAnchorHex.Q,
-                    AnchorR = site.LegacyAnchorHex.R,
+                    AnchorQ = 0,
+                    AnchorR = 0,
                     CoreAssetId = site.CoreAssetId,
                     SurfaceId = site.CoreSurfaceId,
                     HasWorldPosition = site.HasCoreWorldPosition,
@@ -328,7 +466,7 @@ namespace XianXia.Core.Persistence
                 var flag = pair.Value; if (flag == null) continue;
                 dto.FactionFlags.Add(new FactionFlagSnapshotDto { SiteCoreFormat=1,
                     FlagId=flag.FlagId, FactionId=flag.FactionId,
-                    AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
+                    AnchorQ=0, AnchorR=0, EstablishedOrder=flag.EstablishedOrder,
                     CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ,
                     HasWorldPosition=flag.HasWorldPosition, WorldX=flag.WorldX, WorldY=flag.WorldY,
                     SiteId=flag.SiteId, SurfaceId=flag.SurfaceId, IsSiteCore=flag.IsSiteCore });
@@ -412,14 +550,12 @@ namespace XianXia.Core.Persistence
                     CurrentOutdoorWorldSiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty,
                     WorldX = motion.WorldPosition.X,
                     WorldY = motion.WorldPosition.Y,
-                    CurrentHexQ = motion.LegacyCurrentHex.Q,
-                    CurrentHexR = motion.LegacyCurrentHex.R,
                     IsMoving = motion.IsMoving,
                     HasContinuousPhysicalDestination = motion.HasContinuousPhysicalDestination,
                     DestinationWorldX = motion.ContinuousPhysicalDestination.X,
                     DestinationWorldY = motion.ContinuousPhysicalDestination.Y,
                     ArrivalRadius = motion.ContinuousPhysicalArrivalRadius,
-                    DestinationSiteId = motion.LegacyDestinationSiteId ?? string.Empty,
+                    DestinationSiteId = motion.DestinationSiteId ?? string.Empty,
                     ExecutionMode = (int)motion.ExecutionMode
                 };
             }
@@ -433,43 +569,26 @@ namespace XianXia.Core.Persistence
                     if (id.IsNone || kv.Value == null)
                         continue;
                     if (!BackgroundCharacterTravelService.TryResolveCharacterWorldLocation(
-                            world, id, out var kind, out var siteId, out var pos, out var derived))
+                            world, id, out var kind, out var siteId, out var pos, out var surfaceId))
                         continue;
 
                     var snap = new BackgroundCharacterTravelSnapshotDto
                     {
                         CharacterId = id.Value,
                         IsSurfaceRoute = kv.Value.IsSurfaceRoute,
-                        SurfaceId = kv.Value.SurfaceId ?? string.Empty,
+                        SurfaceId = surfaceId,
                         SurfaceDestinationX = kv.Value.SurfaceDestination.X,
                         SurfaceDestinationY = kv.Value.SurfaceDestination.Y,
                         LocationKind = (int)kind,
                         SiteId = siteId ?? string.Empty,
                         WorldX = pos.X,
                         WorldY = pos.Y,
-                        CurrentHexQ = derived.Q,
-                        CurrentHexR = derived.R,
                         IsTraveling = kv.Value.IsMoving,
-                        DestinationHexQ = kv.Value.DestinationHex.Q,
-                        DestinationHexR = kv.Value.DestinationHex.R,
                         DestinationSiteId = kv.Value.DestinationSiteId ?? string.Empty,
                         SegmentIndex = kv.Value.SegmentIndex,
                         SegmentProgress = kv.Value.SegmentProgress,
                         LastProcessedWorldTick = kv.Value.LastProcessedWorldTick
                     };
-                    if (kv.Value.IsMoving)
-                    {
-                        var path = kv.Value.HexPath;
-                        for (var pi = 0; pi < path.Count; pi++)
-                        {
-                            snap.HexPath.Add(new HexCoordSnapshotDto
-                            {
-                                Q = path[pi].Q,
-                                R = path[pi].R
-                            });
-                        }
-                    }
-
                     dto.BackgroundCharacterTravels.Add(snap);
                 }
             }
@@ -477,10 +596,8 @@ namespace XianXia.Core.Persistence
             PlayerPartySnapshotRestore.Capture(party, dto);
             LoadedLocalMapPlacementSnapshotRestore.Capture(world, dto);
             SeparateSpaceSessionSnapshotRestore.Capture(world, dto, party);
-            // FormalArmy/ArmyMembership arrays remain in the schema as legacy inputs only.
             dto.FormalArmies.Clear();
             dto.ArmyMemberships.Clear();
-            LegacyRuntimeInvariant.AssertModernSnapshot(dto);
             return dto;
         }
 
@@ -489,21 +606,14 @@ namespace XianXia.Core.Persistence
             if (world?.Strategic == null || dto == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Strategic snapshot restore requires world and dto.");
 
+            var currentFormat = ValidateCurrentSpatialFormat(dto);
+            if (currentFormat.IsFailure)
+                return currentFormat;
+
             var squadValidation = ValidateSquadAuthority(world, dto);
             if (squadValidation.IsFailure) return squadValidation;
             var motionValidation = ValidateSquadWorldMotionAuthority(dto);
             if (motionValidation.IsFailure) return motionValidation;
-
-            var armyIds = new HashSet<string>(StringComparer.Ordinal);
-            if (dto.FormalArmies != null)
-                for (var i = 0; i < dto.FormalArmies.Count; i++)
-                {
-                    var item = dto.FormalArmies[i];
-                    if (item == null || string.IsNullOrWhiteSpace(item.ArmyId))
-                        return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy snapshot has empty identity.", "Index=" + i);
-                    if (!armyIds.Add(item.ArmyId))
-                        return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy snapshot has duplicate ArmyId.", item.ArmyId);
-                }
 
             world.Strategic.PlayerFactionId = dto.PlayerFactionId ?? string.Empty;
             world.Strategic.Squads.Clear();
@@ -527,11 +637,9 @@ namespace XianXia.Core.Persistence
                         item.SquadId, dto.ControlledSquadId, StringComparison.Ordinal);
                     var restoredCommand = isControlledSquad
                         ? SquadCommandKind.FollowLeader
-                        : item.CommandKind == (int)SquadCommandKind.LegacyFormalArmyWorldMotion
-                            ? SquadCommandKind.SquadWorldMotion : (SquadCommandKind)item.CommandKind;
+                        : (SquadCommandKind)item.CommandKind;
                     var created = SquadMembershipService.Create(world, item.SquadId, members,
                         new EntityId(item.LeaderCharacterId),
-                        dto.HasSquadWorldMotionSnapshotAuthority ? string.Empty : item.LegacyArmyId,
                         restoredCommand,
                         importingSnapshot: true, displayName: item.DisplayName, factionId: item.FactionId);
                     if (created.IsFailure) return Result.Failure(created.Error);
@@ -542,18 +650,7 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            if (!dto.HasSquadWorldMotionSnapshotAuthority)
-            {
-                var migrated = LegacyFormalArmySnapshotMigration.RestoreSquads(world, dto);
-                if (migrated.IsFailure) return migrated;
-            }
-
-            // ArmyMembership is accepted only as legacy migration input; no runtime component is rebuilt.
-
-            // CharacterWorldPresences 是新版 authority（可携带 precise WorldPosition）；
-            // 恢复时记录已恢复 id —— 旧 ResidualCharacterPresences 只作 legacy fallback，
-            // 不覆盖新版（否则 SetLegacyAtHex 会把 HasContinuousWorldPosition 清掉）。
-            var restoredCharacterWorldPresenceIds = new HashSet<ulong>();
+            // CharacterWorldPresences 是当前精确位置 authority。
             if (dto.CharacterWorldPresences != null)
             {
                 for (var i = 0; i < dto.CharacterWorldPresences.Count; i++)
@@ -568,10 +665,8 @@ namespace XianXia.Core.Persistence
                         continue;
                     }
 
-                    restoredCharacterWorldPresenceIds.Add(p.CharacterId);
                     if (!string.IsNullOrEmpty(p.PersonalSurfaceId) &&
                         ((p.Mode != (int)PartyWorldPresenceMode.AtSite &&
-                          p.Mode != (int)PartyWorldPresenceMode.AtHex &&
                           p.Mode != (int)PartyWorldPresenceMode.AtWorldPosition) ||
                          !p.HasWorldPosition || float.IsNaN(p.WorldX) || float.IsInfinity(p.WorldX) ||
                          float.IsNaN(p.WorldY) || float.IsInfinity(p.WorldY)))
@@ -580,89 +675,33 @@ namespace XianXia.Core.Persistence
                     if (p.Mode == (int)PartyWorldPresenceMode.AtSite &&
                         !string.IsNullOrEmpty(p.SiteId))
                     {
+                        if (p.HasWorldPosition != !string.IsNullOrEmpty(p.PersonalSurfaceId) ||
+                            (p.HasWorldPosition &&
+                             (!Finite(p.WorldX) || !Finite(p.WorldY))))
+                            return Result.Failure(
+                                ErrorCode.SnapshotInvalid,
+                                "Site presence has incomplete optional Surface authority.",
+                                "CharacterId=" + p.CharacterId);
                         if (p.HasWorldPosition)
                             world.WorldPresence.SetAtSiteWithAnchor(
-                                id, p.SiteId, new WorldVec2(p.WorldX, p.WorldY));
+                                id, p.SiteId, new WorldVec2(p.WorldX, p.WorldY),
+                                p.PersonalSurfaceId);
                         else
                             world.WorldPresence.SetAtSite(id, p.SiteId);
-                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
-                        continue;
-                    }
-
-                    if (p.Mode == (int)PartyWorldPresenceMode.AtHex &&
-                        p.HexQ != int.MinValue &&
-                        p.HexR != int.MinValue)
-                    {
-                        var hex = new HexCoord(p.HexQ, p.HexR);
-                        if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                        {
-                            WorldVec2 migrated;
-                            if (p.HasWorldPosition)
-                                migrated = new WorldVec2(p.WorldX, p.WorldY);
-                            else
-                            {
-                                HexMath.ToWorldPosition(hex, 1f, out var x, out var y);
-                                migrated = new WorldVec2(x, y);
-                            }
-                            if (world.SurfaceGround.TryResolveContaining(migrated, out var surface))
-                            {
-                                world.WorldPresence.SetAtWorldPosition(id, migrated, hex, surface.SurfaceId);
-                                continue;
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(p.PersonalSurfaceId))
-                            return Result.Failure(ErrorCode.SnapshotInvalid,
-                                "AtHex legacy presence could not migrate to its Continuous Surface: CharacterId=" + p.CharacterId);
-                        if (p.HasWorldPosition)
-                            world.WorldPresence.SetLegacyResidualWorldPosition(
-                                id, hex, new WorldVec2(p.WorldX, p.WorldY));
-                        else
-                            world.WorldPresence.SetLegacyAtHex(id, hex);
-                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
                         continue;
                     }
 
                     if (p.Mode == (int)PartyWorldPresenceMode.AtWorldPosition)
                     {
-                        var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                            ? world.LegacyHexWorld.HexSize
-                            : 1f;
+                        if (!p.HasWorldPosition || string.IsNullOrEmpty(p.PersonalSurfaceId))
+                            return Result.Failure(
+                                ErrorCode.SnapshotInvalid,
+                                "World presence lacks exact Surface authority.",
+                                "CharacterId=" + p.CharacterId);
                         var pos = new WorldVec2(p.WorldX, p.WorldY);
-                        var derived = p.HexQ != int.MinValue && p.HexR != int.MinValue
-                            ? new HexCoord(p.HexQ, p.HexR)
-                            : HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-                        world.WorldPresence.SetAtWorldPosition(id, pos, derived);
-                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
+                        world.WorldPresence.SetAtWorldPosition(
+                            id, pos, p.PersonalSurfaceId);
                     }
-                }
-            }
-
-            if (dto.ResidualCharacterPresences != null)
-            {
-                for (var i = 0; i < dto.ResidualCharacterPresences.Count; i++)
-                {
-                    var r = dto.ResidualCharacterPresences[i];
-                    if (r == null || r.CharacterId == 0)
-                        continue;
-                    if (restoredCharacterWorldPresenceIds.Contains(r.CharacterId))
-                        continue;
-                    var id = new EntityId(r.CharacterId);
-                    if (!world.Entities.TryGet(id, out _))
-                        continue;
-                    var hex = new HexCoord(r.HexQ, r.HexR);
-                    if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                    {
-                        var size = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                            ? world.LegacyHexWorld.HexSize : 1f;
-                        HexMath.ToWorldPosition(hex, size, out var x, out var y);
-                        var point = new WorldVec2(x, y);
-                        if (!world.SurfaceGround.TryResolveContaining(point, out var surface))
-                            return Result.Failure(ErrorCode.SnapshotInvalid,
-                                "Legacy residual Hex cannot migrate to a Continuous Surface: CharacterId=" + r.CharacterId);
-                        world.WorldPresence.SetAtWorldPosition(id, point, hex, surface.SurfaceId);
-                    }
-                    else
-                        world.WorldPresence.SetLegacyAtHex(id, hex);
                 }
             }
 
@@ -674,25 +713,6 @@ namespace XianXia.Core.Persistence
                     if (s == null || string.IsNullOrEmpty(s.SiteId))
                         continue;
                     WorldSiteOwnershipService.SetOwner(world, s.SiteId, s.OwnerFactionId ?? string.Empty);
-                }
-            }
-
-            if (dto.TerritoryRegionControllers != null)
-            {
-                for (var i = 0; i < dto.TerritoryRegionControllers.Count; i++)
-                {
-                    var r = dto.TerritoryRegionControllers[i];
-                    if (r == null || string.IsNullOrEmpty(r.RegionId))
-                        continue;
-                    foreach (var sitePair in world.Strategic.Sites.Sites)
-                    {
-                        var site = sitePair.Value;
-                        if (site == null || !string.IsNullOrEmpty(site.OwnerFactionId) ||
-                            !string.Equals(site.TerritoryRegionId, r.RegionId, StringComparison.Ordinal))
-                            continue;
-                        WorldSiteOwnershipService.SetOwner(
-                            world, site.SiteId, r.ControlFactionId ?? string.Empty);
-                    }
                 }
             }
 
@@ -802,8 +822,6 @@ namespace XianXia.Core.Persistence
                     string.IsNullOrWhiteSpace(item.SurfaceId) || !item.HasWorldPosition ||
                     !IsFinite(item.WorldX) || !IsFinite(item.WorldY) || item.CoreLevel < 1 ||
                     item.ControlEstablishedOrder <= 0 ||
-                    (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                     (world.LegacyHexWorld == null || !world.LegacyHexWorld.IsInBounds(item.AnchorQ, item.AnchorR))) ||
                     !ids.Add(item.SiteId) || !coreIds.Add(item.CoreAssetId))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid runtime WorldSite snapshot entry.", "Index=" + i);
@@ -826,10 +844,6 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < source.Count; i++)
             {
                 var item = source[i];
-                var anchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
-                    ? HexMath.WorldToHex(item.WorldX, item.WorldY,
-                        world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
-                    : new HexCoord(item.AnchorQ, item.AnchorR);
                 ResolvedWorldSpatialRange controlRange;
                 try { controlRange = world.Strategic.SpatialRules.ResolveLevel(world, item.CoreLevel, item.SurfaceId); }
                 catch (Exception ex) { return Result.Failure(ErrorCode.SnapshotInvalid, "Site core level missing from Content.", ex.Message); }
@@ -852,11 +866,8 @@ namespace XianXia.Core.Persistence
                     CoreRangeHeight = controlRange.HeightWorld,
                     IsCoreActive = item.IsCoreActive,
                     CoreIsRemovable = item.CoreIsRemovable,
-                    LegacyAnchorHex = anchor,
-                    LegacyPresenceHex = anchor,
                     LocalMapId = string.Empty
                 };
-                site.SetLegacyHexFootprint(new[] { anchor });
                 try { world.Strategic.Sites.Register(site); }
                 catch (Exception ex)
                 {
@@ -911,26 +922,20 @@ namespace XianXia.Core.Persistence
         static Result RestoreTerritoryClaims(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (!dto.HasTerritoryClaimSnapshotAuthority)
-                return TerritoryClaimService.EstablishBaselineFromLegacy(world);
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot lacks current TerritoryClaim authority and requires offline conversion.");
             if (dto.TerritoryClaims == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid,
                     "Territory claim authority is present but its history is missing.");
             var claims = new List<TerritoryClaimState>(dto.TerritoryClaims.Count);
-            var claimedSites = new HashSet<string>(StringComparer.Ordinal);
-            var usedOrders = new HashSet<long>();
             for (var i = 0; i < dto.TerritoryClaims.Count; i++)
             {
                 var item = dto.TerritoryClaims[i];
-                if (item == null || item.FormatVersion < 1 || item.FormatVersion > 3)
+                if (item == null || item.FormatVersion != 3)
                     return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Unknown territory claim snapshot format.", "Index=" + i);
-                var width = item.Width;
-                var height = item.Height;
-                if (item.FormatVersion < 3)
-                {
-                    var migrated = TryMigrateLegacyTerritoryClaim(world, item, out width, out height);
-                    if (migrated.IsFailure) return migrated;
-                }
+                        "Territory claim snapshot format requires offline conversion.",
+                        "Index=" + i + " FormatVersion=" + (item?.FormatVersion ?? 0));
                 var restored = new TerritoryClaimState
                 {
                     ClaimId = item.ClaimId,
@@ -939,106 +944,17 @@ namespace XianXia.Core.Persistence
                     AcquiredOrder = item.AcquiredOrder,
                     CenterX = item.CenterX,
                     CenterY = item.CenterY,
-                    Width = width,
-                    Height = height
+                    Width = item.Width,
+                    Height = item.Height
                 };
                 claims.Add(restored);
-                claimedSites.Add(restored.SiteId ?? string.Empty);
-                usedOrders.Add(restored.AcquiredOrder);
-            }
-            foreach (var pair in world.Strategic.FactionFlags.Flags)
-            {
-                var flag = pair.Value;
-                if (flag == null || !flag.NeedsAuthoredBaselineClaimMigration ||
-                    string.IsNullOrWhiteSpace(flag.SiteId) || claimedSites.Contains(flag.SiteId) ||
-                    !world.Strategic.Sites.TryGet(flag.SiteId, out var site) || site == null)
-                    continue;
-                if (flag.EstablishedOrder <= 0 || usedOrders.Contains(flag.EstablishedOrder))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Authored FactionFlag baseline order collides with snapshot claim history.", flag.FlagId);
-                claims.Add(new TerritoryClaimState
-                {
-                    ClaimId = "claim:baseline:" + site.SiteId,
-                    SiteId = site.SiteId,
-                    SurfaceId = site.CoreSurfaceId,
-                    AcquiredOrder = flag.EstablishedOrder,
-                    CenterX = site.CoreWorldX,
-                    CenterY = site.CoreWorldY,
-                    Width = site.CoreRangeWidth,
-                    Height = site.CoreRangeHeight
-                });
-                claimedSites.Add(site.SiteId);
-                usedOrders.Add(flag.EstablishedOrder);
             }
             return TerritoryClaimService.RestoreAuthoritative(world, claims);
         }
 
-        static void MarkAuthoredFlagsForLegacyBaselineMigration(SimulationWorld world)
-        {
-            foreach (var pair in world.Strategic.FactionFlags.Flags)
-            {
-                var flag = pair.Value;
-                if (flag != null && flag.IsAuthoredSiteCore)
-                    flag.NeedsAuthoredBaselineClaimMigration = true;
-            }
-        }
-
-        static bool HasAuthoredFlagLegacyMigration(SimulationWorld world)
-        {
-            foreach (var pair in world.Strategic.FactionFlags.Flags)
-            {
-                var flag = pair.Value;
-                if (flag != null && flag.IsAuthoredSiteCore &&
-                    flag.NeedsAuthoredBaselineClaimMigration)
-                    return true;
-            }
-            return false;
-        }
-
         static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-        static Result TryMigrateLegacyTerritoryClaim(
-            SimulationWorld world, TerritoryClaimSnapshotDto item, out float width, out float height)
-        {
-            width = height = 0f;
-            if (world?.Strategic?.SpatialRules == null || item == null ||
-                !world.Strategic.Sites.TryGet(item.SiteId ?? string.Empty, out var site) || site == null ||
-                !string.Equals(site.CoreSurfaceId, item.SurfaceId, StringComparison.Ordinal))
-                return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "Legacy territory claim source Site/Surface cannot be inferred reliably.", item?.SiteId);
-            var initialOrBaseline = item.ClaimId != null &&
-                (item.ClaimId.StartsWith("claim:baseline:", StringComparison.Ordinal) ||
-                 item.ClaimId.StartsWith("claim:initial:", StringComparison.Ordinal));
-            if (!initialOrBaseline || site.CoreLevel != 1 ||
-                !IsKnownObsoleteLevelOneSize(item.FormatVersion, item.Width, item.Height))
-                return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "Legacy territory claim level/kind cannot be migrated reliably.", item.SiteId);
-            ResolvedWorldSpatialRange resolved;
-            try { resolved = world.Strategic.SpatialRules.ResolveLevel(world, 1, item.SurfaceId); }
-            catch (Exception ex)
-            {
-                return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "Legacy territory claim Surface metric unavailable.", ex.Message);
-            }
-            width = resolved.WidthWorld;
-            height = resolved.HeightWorld;
-            return Result.Success();
-        }
-
-        static bool IsKnownObsoleteLevelOneSize(int formatVersion, float width, float height)
-        {
-            // V1 wrote the mislabeled Content cell counts; V2 wrote their resolved Main-Surface
-            // world sizes. These are the only controlled development migrations.
-            if (formatVersion == 1)
-                return IsSquare(width, height, 500f) || IsSquare(width, height, 250f);
-            return formatVersion == 2 &&
-                   (IsSquare(width, height, 14f) || IsSquare(width, height, 7f));
-        }
-
-        static bool IsSquare(float width, float height, float expected) =>
-            Math.Abs(width - expected) <= .001f && Math.Abs(height - expected) <= .001f;
-
-        /// <summary>Stage 2: restore modern motion or migrate genuine legacy FormalArmy motion one-way.</summary>
+        /// <summary>Stage 2: restore current Squad motion authority.</summary>
         public static Result RestoreSquadWorldMotions(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic == null || dto == null)
@@ -1064,31 +980,18 @@ namespace XianXia.Core.Persistence
 #endif
                         continue;
                     }
-                    if (item != null && !item.IsMoving && !string.IsNullOrEmpty(item.SiteId))
-                    {
-                        var canonicalized = SquadWorldMotionService.InitializeAtSite(
-                            world, item.SquadId, item.SiteId);
-                        if (canonicalized.IsFailure)
-                            return Result.Failure(ErrorCode.SnapshotInvalid,
-                                "NPC Squad AtSite SiteArrival is unavailable.",
-                                item.SquadId + ":" + item.SiteId + ":" + canonicalized.Error);
-#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
-                        if (!string.Equals(item.SurfaceId, canonicalized.Value.SurfaceId,
-                                StringComparison.Ordinal) ||
-                            Math.Abs(item.WorldX - canonicalized.Value.WorldPosition.X) > .0001f ||
-                            Math.Abs(item.WorldY - canonicalized.Value.WorldPosition.Y) > .0001f ||
-                            Math.Abs(item.DestinationX - canonicalized.Value.Destination.X) > .0001f ||
-                            Math.Abs(item.DestinationY - canonicalized.Value.Destination.Y) > .0001f)
-                            System.Diagnostics.Debug.WriteLine(
-                                "[SnapshotMigration] Canonicalized NPC Squad AtSite motion to SiteArrival: " +
-                                item.SquadId + " SiteId=" + item.SiteId);
-#endif
-                        continue;
-                    }
                     if (item == null || !world.Strategic.Squads.TryGet(item.SquadId, out var squad) ||
                         squad.CommandKind != SquadCommandKind.SquadWorldMotion ||
                         !world.SurfaceGround.TryGet(item.SurfaceId, out var navigation))
                         return Result.Failure(ErrorCode.SnapshotInvalid, "Squad world-motion target or Surface missing.", item?.SquadId ?? "<null>");
+                    if (!string.IsNullOrEmpty(item.SiteId) &&
+                        (!world.Strategic.Sites.TryGet(item.SiteId, out var motionSite) ||
+                         motionSite == null ||
+                         !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(motionSite)))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "NPC Squad Site identity is unavailable or non-Outdoor.",
+                            item.SquadId + ":" + item.SiteId);
                     var position = new WorldVec2(item.WorldX, item.WorldY);
                     var destination = new WorldVec2(item.DestinationX, item.DestinationY);
                     if (!navigation.Contains(position.X, position.Y) || !navigation.IsWalkable(position.X, position.Y))
@@ -1111,14 +1014,69 @@ namespace XianXia.Core.Persistence
                         item.WaypointIndex, item.SegmentProgress, item.SourceRevision, item.SourceHash);
                     if (!world.Strategic.SquadWorldMotions.Register(motion))
                         return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate Squad world-motion.", item.SquadId);
-                    squad.LegacyArmyId = string.Empty;
-                    if (squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion)
-                        squad.SetCommand(SquadCommandKind.SquadWorldMotion);
                 }
                 return Result.Success();
             }
 
-            return LegacyFormalArmySnapshotMigration.RestoreMotions(world, dto);
+            return Result.Failure(
+                ErrorCode.SnapshotInvalid,
+                "Snapshot lacks current SquadWorldMotion authority and requires offline conversion.");
+        }
+
+        static Result ValidateCurrentSpatialFormat(StrategicSnapshotDto dto)
+        {
+            if (!dto.HasCharacterWorldPresenceSnapshotAuthority)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot lacks current CharacterWorldPresence authority and requires offline conversion.");
+            if (!dto.HasSquadSnapshotAuthority || !dto.HasSquadWorldMotionSnapshotAuthority)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Legacy Army snapshot requires offline conversion before restore.");
+            if ((dto.FormalArmies?.Count ?? 0) > 0 ||
+                (dto.ArmyMemberships?.Count ?? 0) > 0 ||
+                (dto.ResidualCharacterPresences?.Count ?? 0) > 0 ||
+                (dto.TerritoryRegionControllers?.Count ?? 0) > 0 ||
+                (dto.RetreatingArmies?.Count ?? 0) > 0 ||
+                dto.PendingEngagement != null)
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Legacy Army/Hex snapshot payload requires offline conversion before restore.");
+            if (dto.Squads != null)
+                for (var i = 0; i < dto.Squads.Count; i++)
+                {
+                    var squad = dto.Squads[i];
+                    if (squad == null) continue;
+                    if (squad.CommandKind == 2)
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Squad command value 2 requires offline conversion before restore.",
+                            "Index=" + i);
+                    if (!string.IsNullOrEmpty(squad.LegacyArmyId))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Legacy Squad Army identity requires offline conversion before restore.",
+                            "Index=" + i);
+                }
+            if (dto.CharacterWorldPresences != null)
+                for (var i = 0; i < dto.CharacterWorldPresences.Count; i++)
+                {
+                    var presence = dto.CharacterWorldPresences[i];
+                    if (presence != null && (presence.Mode == 1 || presence.Mode == 2))
+                        return Result.Failure(
+                            ErrorCode.SnapshotInvalid,
+                            "Legacy character presence mode requires offline conversion before restore.",
+                            "Index=" + i);
+                }
+            var travel = dto.PlayerPartyTravel;
+            if (travel != null && travel.HasPosition &&
+                (travel.LocationKind != (int)PlayerPartyLocationKind.AtWorldPosition ||
+                 string.IsNullOrEmpty(travel.SurfaceId) ||
+                 !Finite(travel.WorldX) || !Finite(travel.WorldY)))
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "Legacy PlayerParty location requires offline conversion before restore.");
+            return Result.Success();
         }
 
         /// <summary>
@@ -1130,8 +1088,6 @@ namespace XianXia.Core.Persistence
                 return;
 
             SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
-
-            // Modern runtime does not recreate FormalArmy, ArmyStack or ArmyMembership views.
         }
 
         static Result ValidateSquadAuthority(SimulationWorld world, StrategicSnapshotDto dto)
@@ -1142,6 +1098,10 @@ namespace XianXia.Core.Persistence
             if (dto.Squads == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Squad authority is missing.");
             foreach (var squad in dto.Squads)
             {
+                if (squad?.CommandKind == 2)
+                    return Result.Failure(
+                        ErrorCode.SnapshotInvalid,
+                        "Squad command value 2 requires offline conversion before restore.");
                 if (squad == null || string.IsNullOrWhiteSpace(squad.SquadId) || byId.ContainsKey(squad.SquadId) ||
                     squad.MemberCharacterIds == null || squad.MemberCharacterIds.Count == 0 ||
                     !squad.MemberCharacterIds.Contains(squad.LeaderCharacterId) ||
@@ -1161,7 +1121,6 @@ namespace XianXia.Core.Persistence
             // Once a controlled squad is declared it must resolve to authoritative Squad data.
             if (!string.IsNullOrEmpty(dto.ControlledSquadId) && !byId.ContainsKey(dto.ControlledSquadId))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Controlled squad is missing.", dto.ControlledSquadId);
-            // FormalArmy fields, when present beside modern Squad authority, are ignored compatibility input.
             return Result.Success();
         }
 
@@ -1179,7 +1138,11 @@ namespace XianXia.Core.Persistence
                     !Finite(motion.WorldX) || !Finite(motion.WorldY) || !Finite(motion.DestinationX) ||
                     !Finite(motion.DestinationY) || !Finite(motion.SegmentProgress) || motion.SegmentProgress < 0f ||
                     motion.Route == null || motion.WaypointIndex < 0 || motion.WaypointIndex > motion.Route.Count ||
-                    (motion.IsMoving && motion.Route.Count == 0))
+                    (motion.IsMoving && motion.Route.Count == 0) ||
+                    (!motion.IsMoving &&
+                     (motion.Route.Count != 0 || motion.WaypointIndex != 0 ||
+                      Math.Abs(motion.WorldX - motion.DestinationX) > .0001f ||
+                      Math.Abs(motion.WorldY - motion.DestinationY) > .0001f)))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid SquadWorldMotion snapshot.", motion?.SquadId ?? "<null>");
                 for (var i = 0; i < motion.Route.Count; i++)
                     if (motion.Route[i] == null || !Finite(motion.Route[i].X) || !Finite(motion.Route[i].Y))
@@ -1208,10 +1171,6 @@ namespace XianXia.Core.Persistence
             if (world?.BackgroundCharacterTravel == null || travels == null)
                 return Result.Success();
 
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-
             var seen = new HashSet<ulong>();
             for (var i = 0; i < travels.Count; i++)
             {
@@ -1223,10 +1182,6 @@ namespace XianXia.Core.Persistence
                         "Duplicate Background Character travel snapshot.",
                         "CharacterId=" + t.CharacterId);
                 var id = new EntityId(t.CharacterId);
-                if (!Finite(t.WorldX) || !Finite(t.WorldY))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Background Character position is invalid.",
-                        "CharacterId=" + t.CharacterId);
 
                 if (world.Entities.TryGet(id, out var entity) && entity != null &&
                     entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var locationAuthority) &&
@@ -1234,19 +1189,53 @@ namespace XianXia.Core.Persistence
                     entity.TryGet<EntityLocationComponent>(out var entityLocation) &&
                     entityLocation.HasLocation)
                 {
-                    if (t.IsTraveling || t.IsSurfaceRoute || !string.IsNullOrEmpty(t.SurfaceId))
+                    if (t.IsTraveling || !string.IsNullOrEmpty(t.SurfaceId))
                         return Result.Failure(ErrorCode.SnapshotInvalid,
                             "Background travel conflicts with Interior EntityLocation authority.",
                             "CharacterId=" + t.CharacterId);
                     continue;
                 }
 
+                if (CharacterEncounterService.OwnsParticipantSpatialState(world, id))
+                {
+                    if (t.IsTraveling || !string.IsNullOrEmpty(t.SurfaceId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Background travel conflicts with CharacterEncounter authority.",
+                            "CharacterId=" + t.CharacterId);
+                    continue;
+                }
+
+                var hasSavedSurface = !string.IsNullOrEmpty(t.SurfaceId);
+                if (t.IsTraveling &&
+                    (!hasSavedSurface || !t.IsSurfaceRoute ||
+                     string.IsNullOrEmpty(t.DestinationSiteId)))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Moving Background Character travel lacks current Surface authority.",
+                        "CharacterId=" + t.CharacterId);
+
+                if (!t.IsTraveling && !hasSavedSurface)
+                {
+                    if (!TryGetCurrentExactPersonalPresence(
+                            world, id, out _, out _))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Idle Background Character travel has no current personal Surface authority.",
+                            "CharacterId=" + t.CharacterId);
+                    // CharacterWorldPresence is primary. Keep it unchanged and discard the
+                    // redundant idle travel DTO instead of manufacturing an Outdoor position.
+                    continue;
+                }
+
+                if (!Finite(t.WorldX) || !Finite(t.WorldY))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Character travel position is invalid.",
+                        "CharacterId=" + t.CharacterId);
+
                 var pos = new WorldVec2(t.WorldX, t.WorldY);
                 if (world.WorldPresence.TryGet(id, out var existing) && existing != null)
                 {
                     if (existing.Mode == PartyWorldPresenceMode.InEncounter)
                     {
-                        if (t.IsTraveling || t.IsSurfaceRoute || !string.IsNullOrEmpty(t.SurfaceId))
+                        if (t.IsTraveling || !string.IsNullOrEmpty(t.SurfaceId))
                             return Result.Failure(ErrorCode.SnapshotInvalid,
                                 "Background travel conflicts with CharacterEncounter authority.",
                                 "CharacterId=" + t.CharacterId);
@@ -1264,58 +1253,21 @@ namespace XianXia.Core.Persistence
                         return Result.Failure(ErrorCode.SnapshotInvalid,
                             "Background travel conflicts with CharacterWorldPresence authority.",
                             "CharacterId=" + t.CharacterId);
-                    // Modern CharacterWorldPresence is primary. Never downgrade its exact anchor.
+                    // Modern CharacterWorldPresence is primary.
                     if (existing.HasContinuousWorldPosition)
-                        goto RestoreLegacyRoute;
+                        continue;
                 }
 
                 if (t.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
                     !string.IsNullOrEmpty(t.SiteId))
                 {
-                    if (!string.IsNullOrEmpty(t.SurfaceId))
-                        world.WorldPresence.SetAtSiteWithAnchor(id, t.SiteId, pos, t.SurfaceId);
-                    else
-                        world.WorldPresence.SetAtSite(id, t.SiteId);
+                    world.WorldPresence.SetAtSiteWithAnchor(
+                        id, t.SiteId, pos, t.SurfaceId);
                 }
                 else
                 {
-                    var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-                    // SurfaceGround is intentionally unavailable in phase one.  Preserve the DTO
-                    // provenance verbatim; post-content finalization validates or migrates it.
-                    world.WorldPresence.SetAtWorldPosition(id, pos, derived,
-                        t.SurfaceId ?? string.Empty);
+                    world.WorldPresence.SetAtWorldPosition(id, pos, t.SurfaceId);
                 }
-
-            RestoreLegacyRoute:
-                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                {
-                    continue;
-                }
-
-                if (t.IsSurfaceRoute || !t.IsTraveling || t.HexPath == null || t.HexPath.Count < 2)
-                    continue;
-
-                var path = new List<HexCoord>(t.HexPath.Count);
-                for (var p = 0; p < t.HexPath.Count; p++)
-                {
-                    var c = t.HexPath[p];
-                    if (c != null)
-                        path.Add(new HexCoord(c.Q, c.R));
-                }
-
-                if (path.Count < 2)
-                    continue;
-
-                var motion = world.BackgroundCharacterTravel.GetOrCreate(id);
-                motion.BeginTravel(
-                    path,
-                    new HexCoord(t.DestinationHexQ, t.DestinationHexR),
-                    t.DestinationSiteId ?? string.Empty,
-                    HexTravelMode.Ground);
-                motion.SetSegment(t.SegmentIndex, t.SegmentProgress);
-                motion.LastProcessedWorldTick = t.LastProcessedWorldTick > 0
-                    ? t.LastProcessedWorldTick
-                    : world.Tick.Value;
             }
             return Result.Success();
         }
@@ -1345,34 +1297,47 @@ namespace XianXia.Core.Persistence
                 if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id) ||
                     CharacterEncounterService.OwnsParticipantSpatialState(world, id))
                 {
-                    if (item.IsTraveling || item.IsSurfaceRoute || !string.IsNullOrEmpty(item.SurfaceId))
+                    if (item.IsTraveling || !string.IsNullOrEmpty(item.SurfaceId))
                         return Result.Failure(ErrorCode.SnapshotInvalid,
                             "Background travel conflicts with another spatial owner.",
                             "CharacterId=" + item.CharacterId);
                     continue;
                 }
                 if (!Finite(item.WorldX) || !Finite(item.WorldY))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Background Character position is invalid after content shell.",
-                        "CharacterId=" + item.CharacterId);
-
-                var position = new WorldVec2(item.WorldX, item.WorldY);
-                XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
-                if (!string.IsNullOrEmpty(item.SurfaceId))
                 {
-                    if (!world.SurfaceGround.TryGet(item.SurfaceId, out surface) || surface == null ||
-                        !surface.Contains(position.X, position.Y))
+                    if (item.IsTraveling || !string.IsNullOrEmpty(item.SurfaceId))
                         return Result.Failure(ErrorCode.SnapshotInvalid,
-                            "Background Character explicit SurfaceId conflicts with its position.",
-                            "CharacterId=" + item.CharacterId + " SurfaceId=" + item.SurfaceId);
+                            "Background Character position is invalid after content shell.",
+                            "CharacterId=" + item.CharacterId);
                 }
-                else
+
+                var normalizedFromPresence = false;
+                var effectiveSurfaceId = item.SurfaceId ?? string.Empty;
+                var position = new WorldVec2(item.WorldX, item.WorldY);
+                if (string.IsNullOrEmpty(effectiveSurfaceId))
                 {
-                    TryResolveUniqueContainingSurface(world, position, out surface, out var matchCount);
-                    if (matchCount != 1)
+                    if (item.IsTraveling)
                         return Result.Failure(ErrorCode.SnapshotInvalid,
-                            "Legacy Background Character position does not identify one Surface.",
-                            "CharacterId=" + item.CharacterId + " MatchCount=" + matchCount);
+                            "Moving Background Character lacks explicit Surface authority.",
+                            "CharacterId=" + item.CharacterId);
+                    if (!TryGetCurrentExactPersonalPresence(
+                            world, id, out effectiveSurfaceId, out position))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Idle Background Character has no current personal Surface authority.",
+                            "CharacterId=" + item.CharacterId);
+                    normalizedFromPresence = true;
+                }
+
+                if (!world.SurfaceGround.TryGet(effectiveSurfaceId, out var surface) || surface == null ||
+                    !surface.Contains(position.X, position.Y))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Background Character lacks valid current Surface authority; offline conversion is required.",
+                        "CharacterId=" + item.CharacterId + " SurfaceId=" + effectiveSurfaceId);
+
+                if (normalizedFromPresence)
+                {
+                    world.BackgroundCharacterTravel.Remove(id);
+                    continue;
                 }
 
                 if (!string.IsNullOrEmpty(item.DestinationSiteId))
@@ -1392,16 +1357,13 @@ namespace XianXia.Core.Persistence
                             "CharacterId=" + item.CharacterId);
                 }
 
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                    ? world.LegacyHexWorld.HexSize : 1f;
                 if (item.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
                     !string.IsNullOrEmpty(item.SiteId))
                     world.WorldPresence.SetAtSiteWithAnchor(
                         id, item.SiteId, position, surface.SurfaceId);
                 else
                     world.WorldPresence.SetAtWorldPosition(
-                        id, position, HexMath.WorldToHex(position.X, position.Y, hexSize),
-                        surface.SurfaceId);
+                        id, position, surface.SurfaceId);
 
                 if (!item.IsTraveling)
                 {
@@ -1444,6 +1406,27 @@ namespace XianXia.Core.Persistence
         static bool SamePosition(WorldVec2 a, WorldVec2 b) =>
             Math.Abs(a.X - b.X) <= 0.0001f && Math.Abs(a.Y - b.Y) <= 0.0001f;
 
+        static bool TryGetCurrentExactPersonalPresence(
+            SimulationWorld world,
+            EntityId id,
+            out string surfaceId,
+            out WorldVec2 position)
+        {
+            surfaceId = string.Empty;
+            position = default;
+            if (world == null || id.IsNone ||
+                !world.WorldPresence.TryGet(id, out var presence) || presence == null ||
+                (presence.Mode != PartyWorldPresenceMode.AtSite &&
+                 presence.Mode != PartyWorldPresenceMode.AtWorldPosition) ||
+                !presence.HasContinuousWorldPosition ||
+                string.IsNullOrEmpty(presence.PersonalSurfaceId) ||
+                !Finite(presence.WorldPosX) || !Finite(presence.WorldPosY))
+                return false;
+            surfaceId = presence.PersonalSurfaceId;
+            position = presence.ContinuousWorldPosition;
+            return true;
+        }
+
         /// <summary>
         /// Second phase of PlayerParty travel restore. Call only after SurfaceGround and authored
         /// Site shells are registered. This method restores Domain authority only; the Host owns
@@ -1461,27 +1444,17 @@ namespace XianXia.Core.Persistence
                     "PlayerParty Continuous position is invalid.");
 
             var position = new WorldVec2(travel.WorldX, travel.WorldY);
-            XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
             var savedSurfaceId = travel.SurfaceId ?? string.Empty;
-            if (!string.IsNullOrEmpty(savedSurfaceId))
+            if (string.IsNullOrEmpty(savedSurfaceId))
+                return Result.Failure(
+                    ErrorCode.SnapshotInvalid,
+                    "PlayerParty snapshot lacks current Surface authority and requires offline conversion.");
+            if (!world.SurfaceGround.TryGet(savedSurfaceId, out var surface) || surface == null ||
+                !surface.Contains(position.X, position.Y))
             {
-                if (!world.SurfaceGround.TryGet(savedSurfaceId, out surface) || surface == null ||
-                    !surface.Contains(position.X, position.Y))
-                {
-                    TryResolveUniqueContainingSurface(world, position, out var containing, out var matchCount);
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "PlayerParty snapshot SurfaceId does not contain its exact position.",
-                        "SavedSurfaceId=" + savedSurfaceId +
-                        " Position=" + position +
-                        " ResolvedContainingSurface=" + (containing?.SurfaceId ?? string.Empty) +
-                        " MatchCount=" + matchCount);
-                }
-            }
-            else
-            {
-                TryResolveUniqueContainingSurface(world, position, out surface, out var matchCount);
-                if (matchCount != 1)
-                    surface = null;
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "PlayerParty snapshot SurfaceId does not contain its exact position.",
+                    "SavedSurfaceId=" + savedSurfaceId + " Position=" + position);
             }
 
             var oldContinuousSite =
@@ -1494,26 +1467,8 @@ namespace XianXia.Core.Persistence
                     "PlayerParty AtWorldSite snapshot is not a Continuous Outdoor Site.",
                     travel.SiteId ?? string.Empty);
 
-            if (surface == null && oldContinuousSite && string.IsNullOrEmpty(savedSurfaceId) &&
-                world.SurfaceGround.TryResolveSiteArrival(
-                    travel.SiteId, out var arrivalSurfaceId, out var arrival) &&
-                world.SurfaceGround.TryGet(arrivalSurfaceId, out var arrivalSurface) &&
-                arrivalSurface != null && arrivalSurface.Contains(arrival.X, arrival.Y))
-            {
-                surface = arrivalSurface;
-                position = arrival;
-            }
-            if (surface == null)
-                return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "PlayerParty exact position does not identify one registered Surface.",
-                    "Position=" + position + " SavedSurfaceId=" + savedSurfaceId);
-
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
             var motion = world.PlayerPartyTravel;
-            motion.SetAtSurfacePosition(surface.SurfaceId, position,
-                HexMath.WorldToHex(position.X, position.Y, hexSize));
+            motion.SetAtSurfacePosition(surface.SurfaceId, position);
             if (!string.IsNullOrEmpty(travel.CurrentOutdoorWorldSiteId))
                 motion.SetCurrentOutdoorWorldSiteContext(travel.CurrentOutdoorWorldSiteId);
             else if (oldContinuousSite)
@@ -1556,14 +1511,6 @@ namespace XianXia.Core.Persistence
                     "LocationKind=" + motion.LocationKind +
                     " SurfaceId=" + (motion.SurfaceId ?? string.Empty) +
                     " WorldPosition=" + motion.WorldPosition);
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-            var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
-            if (!motion.LegacyCurrentHex.Equals(derived))
-                return Result.Failure(ErrorCode.SnapshotInvalid,
-                    "PlayerParty compatibility LegacyCurrentHex is not derived from WorldPosition.",
-                    "Saved=" + motion.LegacyCurrentHex + " Derived=" + derived);
             if (motion.IsMoving &&
                 (motion.ExecutionMode != PlayerPartyTravelExecutionMode.SurfaceVisible ||
                  !motion.HasContinuousPhysicalDestination ||
@@ -1582,144 +1529,15 @@ namespace XianXia.Core.Persistence
             return Result.Success();
         }
 
-        static bool TryResolveUniqueContainingSurface(
-            SimulationWorld world,
-            WorldVec2 position,
-            out XianXia.Core.World.Surface.SurfaceGroundNavigation surface,
-            out int matchCount)
-        {
-            surface = null;
-            matchCount = 0;
-            if (world?.SurfaceGround?.Registered == null)
-                return false;
-            foreach (var pair in world.SurfaceGround.Registered)
-            {
-                var candidate = pair.Value;
-                if (candidate == null || !candidate.Contains(position.X, position.Y))
-                    continue;
-                matchCount++;
-                if (matchCount == 1)
-                    surface = candidate;
-                else
-                    surface = null;
-            }
-            return matchCount == 1;
-        }
-
         public static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
         {
             if (world?.PlayerPartyTravel == null || travel == null || !travel.HasPosition)
                 return;
-
-            var motion = world.PlayerPartyTravel;
-            // CW-U4.1: old PlayerParty AttackArmy/attack-chase orders are retired on load.
-            // Preserve the canonical position, restore Idle, and never auto-declare war/create an encounter.
-            var pos = new WorldVec2(travel.WorldX, travel.WorldY);
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-            {
-                XianXia.Core.World.Surface.SurfaceGroundNavigation surface = null;
-                if (!string.IsNullOrEmpty(travel.SurfaceId))
-                    world.SurfaceGround.TryGet(travel.SurfaceId, out surface);
-                if (surface == null || !surface.Contains(pos.X, pos.Y))
-                    world.SurfaceGround.TryResolveContaining(pos, out surface);
-
-                var continuousSite = travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
-                                     !string.IsNullOrEmpty(travel.SiteId) &&
-                                     world.Strategic.Sites.TryGet(travel.SiteId, out var savedSite) &&
-                                     savedSite != null &&
-                                     WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(savedSite);
-                if (continuousSite && (surface == null || !surface.Contains(pos.X, pos.Y)) &&
-                    world.SurfaceGround.TryResolveSiteArrival(
-                        travel.SiteId, out var arrivalSurfaceId, out var arrival) &&
-                    world.SurfaceGround.TryGet(arrivalSurfaceId, out var arrivalSurface))
-                {
-                    pos = arrival;
-                    surface = arrivalSurface;
-                }
-
-                if (surface == null &&
-                    ((travel.WorldX == 0f && travel.WorldY == 0f &&
-                      (travel.CurrentHexQ != 0 || travel.CurrentHexR != 0)) ||
-                     !world.SurfaceGround.TryResolveContaining(pos, out _)))
-                {
-                    HexMath.ToWorldPosition(new HexCoord(travel.CurrentHexQ, travel.CurrentHexR),
-                        hexSize, out var migratedX, out var migratedY);
-                    var migrated = new WorldVec2(migratedX, migratedY);
-                    if (world.SurfaceGround.TryResolveContaining(migrated, out var migratedSurface))
-                    {
-                        pos = migrated;
-                        surface = migratedSurface;
-                    }
-                }
-
-                if (surface != null && surface.Contains(pos.X, pos.Y))
-                {
-                    motion.SetAtSurfacePosition(surface.SurfaceId, pos,
-                        HexMath.WorldToHex(pos.X, pos.Y, hexSize));
-                    if (!string.IsNullOrEmpty(travel.CurrentOutdoorWorldSiteId))
-                        motion.SetCurrentOutdoorWorldSiteContext(travel.CurrentOutdoorWorldSiteId);
-                    else if (continuousSite)
-                        motion.SetCurrentOutdoorWorldSiteContext(travel.SiteId);
-                    else if (WorldSitePhysicalRegionQuery.TryResolve(world, pos, out var currentSite))
-                        motion.SetCurrentOutdoorWorldSiteContext(currentSite.SiteId);
-                    if (travel.IsMoving && travel.HasContinuousPhysicalDestination)
-                        PlayerPartySurfaceTravelService.TryResumeAfterRestore(
-                            world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
-                            travel.DestinationSiteId, travel.ArrivalRadius);
-                    return;
-                }
-            }
-
-            if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(travel.SiteId))
-            {
-                var sitePosition = new WorldVec2(travel.WorldX, travel.WorldY);
-                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                    !world.SurfaceGround.TryResolveContaining(sitePosition, out _) &&
-                    world.Strategic.Sites.TryGet(travel.SiteId, out var authoredSite) &&
-                    authoredSite != null)
-                    sitePosition = new WorldVec2(authoredSite.CoreWorldX, authoredSite.CoreWorldY);
-                // Snapshot 的 AtWorldSite WorldX/Y 是 Site 内连续 Canonical 位置；不能用
-                // LegacyPresenceHex center 覆盖，否则 Load 后 LocalVisible 出口路径会以错误起点重建。
-                motion.RestoreIdleAtLegacyWorldSite(
-                    travel.SiteId,
-                    sitePosition,
-                    new HexCoord(travel.CurrentHexQ, travel.CurrentHexR));
-                if (travel.IsMoving && travel.HasContinuousPhysicalDestination &&
-                    ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                {
-                    motion.SetAtLegacyWorldPosition(motion.WorldPosition, motion.LegacyCurrentHex);
-                    PlayerPartySurfaceTravelService.TryResumeAfterRestore(
-                        world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
-                        travel.DestinationSiteId, travel.ArrivalRadius);
-                }
-                return;
-            }
-
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                ((travel.WorldX == 0f && travel.WorldY == 0f &&
-                  (travel.CurrentHexQ != 0 || travel.CurrentHexR != 0)) ||
-                 !world.SurfaceGround.TryResolveContaining(pos, out _)))
-            {
-                HexMath.ToWorldPosition(new HexCoord(travel.CurrentHexQ, travel.CurrentHexR),
-                    hexSize, out var migratedX, out var migratedY);
-                var migrated = new WorldVec2(migratedX, migratedY);
-                if (world.SurfaceGround.TryResolveContaining(migrated, out _))
-                    pos = migrated;
-            }
-            var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
-            motion.SetAtLegacyWorldPosition(pos, derived);
-            if (travel.IsMoving && travel.HasContinuousPhysicalDestination)
-            {
-                // Route is deliberately recomputed from canonical position + exact intent.
-                PlayerPartySurfaceTravelService.TryResumeAfterRestore(
-                    world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
-                    travel.DestinationSiteId, travel.ArrivalRadius);
-            }
+            world.PlayerPartyTravel.SetAtSurfacePosition(
+                travel.SurfaceId,
+                new WorldVec2(travel.WorldX, travel.WorldY));
+            world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
+                travel.CurrentOutdoorWorldSiteId ?? string.Empty);
         }
     }
 }

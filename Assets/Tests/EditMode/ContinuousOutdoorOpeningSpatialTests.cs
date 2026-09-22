@@ -8,7 +8,6 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;

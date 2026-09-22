@@ -17,8 +17,8 @@ namespace XianXia.Core.World
         /// <summary>Continuous Outdoor：同一个 active Continuous Surface presentation scope。</summary>
         ContinuousOutdoorPresentation = 1,
 
-        /// <summary>独立空间 Interior／Cave 的正式规则，以及已退役 Outdoor LocalMap 的兼容规则：要求同一 LocalMap occupant。</summary>
-        LegacyLocalMap = 2
+        /// <summary>独立空间 Interior／Cave：要求同一 LocalMap occupant。</summary>
+        LocalMapOccupants = 2
     }
 
     public readonly struct PlayerPartyCoPresenceResult
@@ -115,7 +115,7 @@ namespace XianXia.Core.World
             if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
                 return false;
             return presence.Mode == PartyWorldPresenceMode.InEncounter ||
-                   presence.Mode == PartyWorldPresenceMode.DepartingLocalMap;
+                   presence.Mode == PartyWorldPresenceMode.InSeparateSpace;
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace XianXia.Core.World
                 var sameMap = PlayerPartyRuntime.IsOnSameLocalMap(world, candidate, party.ActiveCharacterId);
                 return new PlayerPartyCoPresenceResult(
                     sameMap,
-                    PlayerPartyCoPresenceScope.LegacyLocalMap,
+                    PlayerPartyCoPresenceScope.LocalMapOccupants,
                     sameMap ? "same LocalMap" : "different LocalMap (interior/cave rule)",
                     sameMap ? string.Empty : DeniedPlayerMessage);
             }

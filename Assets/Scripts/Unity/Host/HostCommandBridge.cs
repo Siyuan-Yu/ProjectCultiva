@@ -836,11 +836,11 @@ namespace XianXia.Unity.Host
                 if (kind == PlayerCommandKind.Stop)
                 {
                     // Phase 5R-B6.7（P0）：Stop 只在 subject 是 PlayerParty Active Character 时才
-                    // 取消整队 LocalVisible AutoTravel（玩家主动夺回主控）。Follower / 其他可控角色
+                    // 取消整队 Surface AutoTravel（玩家主动夺回主控）。Follower / 其他可控角色
                     // 的内部 Stop（RebindAllFollowers / ClearDirectControlFor / OrderFollowerTowardActive）
                     // 只停该角色自己 —— 绝不能 CancelTravel / CompleteMove / 清掉整队 travel plan。
                     if (!active.IsNone && id == active)
-                        CancelLocalVisibleAutoTravelIfActive();
+                        CancelSurfaceAutoTravelIfActive();
                     var moveController = hostBootstrap != null
                         ? hostBootstrap.GetComponent<HostMoveController>()
                         : GetComponent<HostMoveController>();
@@ -873,19 +873,14 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Stop 打断现代 Surface 或旧 LocalVisible AutoTravel，保留当前位置。
+        /// Stop 打断 Surface AutoTravel，保留当前位置。
         /// </summary>
-        void CancelLocalVisibleAutoTravelIfActive()
+        void CancelSurfaceAutoTravelIfActive()
         {
             var world = _session?.World;
             var motion = world?.PlayerPartyTravel;
-            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY for the LocalVisible predicate; the
-            // SurfaceVisible predicate above it is the modern path.
-            if (motion == null ||
-                (!XianXia.Core.World.Strategic.PlayerPartySurfaceTravelService
-                     .IsActiveSurfaceTravel(motion) &&
-                 !XianXia.Core.World.Strategic.LegacyPlayerPartyLocalVisibleTravelCompatibility
-                     .IsActiveLocalVisibleAutoTravel(motion)))
+            if (!XianXia.Core.World.Strategic.PlayerPartySurfaceTravelService
+                    .IsActiveSurfaceTravel(motion))
                 return;
             XianXia.Core.World.Strategic.PlayerPartyTravelRuntimeService.CancelTravel(world);
         }

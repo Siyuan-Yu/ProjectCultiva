@@ -5,7 +5,6 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
-using XianXia.Core.World.Hex;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -50,11 +49,7 @@ namespace XianXia.Data.Bootstrap
                 if (!world.SurfaceGround.TryResolveContaining(point, out var navigation) || navigation == null)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Opening player Surface authority is unavailable.", spawn.DefinitionId);
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                    ? world.LegacyHexWorld.HexSize
-                    : 1f;
-                world.PlayerPartyTravel.SetAtSurfacePosition(
-                    navigation.SurfaceId, point, HexMath.WorldToHex(point.X, point.Y, hexSize));
+                world.PlayerPartyTravel.SetAtSurfacePosition(navigation.SurfaceId, point);
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(startSite.SiteId);
                 world.PlayerPartyTravel.CaptureTravelingMembers(new[] { id });
                 world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;

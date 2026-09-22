@@ -71,7 +71,7 @@ namespace XianXia.Data.Bootstrap
                 if (source.Leader) leader = entity.Id;
             }
             var created = SquadMembershipService.Create(world, definition.SquadId, members, leader,
-                string.Empty, SquadCommandKind.SquadWorldMotion, false, definition.Name, definition.FactionId);
+                SquadCommandKind.SquadWorldMotion, false, definition.Name, definition.FactionId);
             if (created.IsFailure) return Result.Failure(created.Error);
             var initialized = atSite
                 ? SquadWorldMotionService.InitializeAtSite(world, definition.SquadId, definition.AssemblySiteId)

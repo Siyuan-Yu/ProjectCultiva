@@ -1,6 +1,6 @@
 # 路线图
 
-> **当前状态（2026-09-22）：LEGACY-FINAL-SEAL 及其废弃入口、Hex／Army、WorldSite／Hex footprint 命名与兼容边界收尾已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。制作人已确认此前运行行为人工验收通过，后续限定同体改名／说明收尾的静态复核也已通过，无需追加游戏验收。
+> **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续功能方向尚未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。

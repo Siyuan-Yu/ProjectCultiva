@@ -68,52 +68,6 @@ namespace XianXia.Core.Exploration
         /// </summary>
         public float ExitTriggerDepth { get; set; }
 
-        public float PlayableOriginX { get; set; }
-        public float PlayableOriginY { get; set; }
-        public float PlayableCellSize { get; set; } = 1f;
-        public int PlayableWidth { get; set; }
-        public int PlayableHeight { get; set; }
-
-        public bool HasPlayableBounds => PlayableWidth > 0 && PlayableHeight > 0;
-
-        public void SetPlayableBounds(
-            float originX,
-            float originY,
-            float cellSize,
-            int width,
-            int height)
-        {
-            PlayableOriginX = originX;
-            PlayableOriginY = originY;
-            PlayableCellSize = cellSize > 0.0001f ? cellSize : 1f;
-            PlayableWidth = width;
-            PlayableHeight = height;
-        }
-
-        public bool TryGetPlayableBounds(
-            out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
-        {
-            bounds = default;
-            if (!HasPlayableBounds)
-                return false;
-            bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                PlayableOriginX,
-                PlayableOriginY,
-                PlayableCellSize,
-                PlayableWidth,
-                PlayableHeight);
-            return true;
-        }
-
-        public void ClearPlayableBounds()
-        {
-            PlayableOriginX = 0f;
-            PlayableOriginY = 0f;
-            PlayableCellSize = 1f;
-            PlayableWidth = 0;
-            PlayableHeight = 0;
-        }
-
         /// <summary>当前仍在 Separate Space 的己方（进洞登记；离开关闭时清空）。</summary>
         public IReadOnlyList<EntityId> OccupantIds => _occupantIds;
 
@@ -238,7 +192,6 @@ namespace XianXia.Core.Exploration
             ContinuousOutdoorReturnSurfaceId = string.Empty;
             ContinuousOutdoorReturnX = ContinuousOutdoorReturnY = 0f;
             ExitTriggerDepth = 0f;
-            ClearPlayableBounds();
             _occupantIds.Clear();
         }
     }

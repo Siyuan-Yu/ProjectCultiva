@@ -19,7 +19,6 @@ using XianXia.Core.Npc;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 
@@ -63,7 +62,6 @@ namespace XianXia.Core.Simulation
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             SurfaceGround = new SurfaceGroundAuthority();
             SurfaceSpatial = new OutdoorSurfaceSpatialAuthority();
-            LegacyHexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
             PartyWorld = new PartyWorldPresence();
@@ -127,7 +125,7 @@ namespace XianXia.Core.Simulation
         /// <summary>Loaded continuous outdoor sites, places and entity presentation membership.</summary>
         public ContinuousOutdoorMaterializationBoard ContinuousOutdoorMaterialization { get; }
 
-        /// <summary>Region-limited checked-in Surface ground/nav authority; outside its cells legacy Hex compatibility may remain active.</summary>
+        /// <summary>Registered Continuous Surface ground/navigation authority.</summary>
         public SurfaceGroundAuthority SurfaceGround { get; }
 
         /// <summary>Complete Outdoor Surface identity/metric/chunk coverage; never a walkability authority.</summary>
@@ -136,8 +134,11 @@ namespace XianXia.Core.Simulation
         /// <summary>Explicit administrative asset identity to canonical management position.</summary>
         public OutdoorAdministrativeAssetAnchorBoard OutdoorAdministrativeAssetAnchors { get; }
 
-        /// <summary>旧网格内容、兼容路径及几何／工具查询所用的 Hex 模型；不是正常 Continuous Surface authority。</summary>
-        public HexWorld LegacyHexWorld { get; }
+        /// <summary>
+        /// Continuous world movement budget scale loaded from current Surface content.
+        /// This is intentionally independent from navigation cell size.
+        /// </summary>
+        public float ContinuousWorldMovementScale { get; set; } = 1f;
 
         /// <summary>各角色宏观位置。</summary>
         public WorldPresenceBoard WorldPresence { get; }

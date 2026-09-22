@@ -5,7 +5,7 @@ namespace XianXia.Data.Content
     /// <summary>
     /// 战略势力 Content 定义（Data/Factions/factions.json，type = strategicFaction）。
     /// 只描述「这个势力是谁」：id / 展示名 / 地图色 / 作者元数据。
-    /// 不保存成员、领土、WorldSite —— 那些属于 CharacterSpawn / HexWorld / Territory 各自 authority。
+    /// 不保存成员、领土、WorldSite —— 那些属于 CharacterSpawn / Surface / Territory 各自 authority。
     /// </summary>
     public sealed class StrategicFactionDefinition
     {

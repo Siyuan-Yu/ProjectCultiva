@@ -113,30 +113,15 @@ namespace XianXia.Unity.Host
                        " waiting=" + HostPlayerPartyController.SurfaceWaitingReason +
                        " chunk=" + HostPlayerPartyController.SurfaceCurrentChunk +
                        " navGen=" + HostPlayerPartyController.SurfaceNavigationGeneration +
-                       " gridRev=" + HostPlayerPartyController.SurfaceCompositeGridRevision +
-                       " derivedHex=" + motion.LegacyCurrentHex;
+                       " gridRev=" + HostPlayerPartyController.SurfaceCompositeGridRevision;
             }
 
-            var path = motion.LegacyHexPath;
-            var nextHex = "-";
-            if (motion.IsMoving && path != null &&
-                motion.LegacyHexSegmentIndex >= 0 && motion.LegacyHexSegmentIndex + 1 < path.Count)
-                nextHex = path[motion.LegacyHexSegmentIndex + 1].ToString();
-
-            var gate = motion.LegacySurfaceEdgeGate;
             var activeId = session.PlayerParty != null ? session.PlayerParty.ActiveCharacterId : default;
             var activeExists = !activeId.IsNone && world.Entities.TryGet(activeId, out _);
-            return "hex=" + motion.LegacyCurrentHex +
-                   " next=" + nextHex +
-                   " seg=" + motion.LegacyHexSegmentIndex + "/" + (path != null ? path.Count : 0) +
-                   " gateArmed=" + (gate != null ? gate.EdgeArmed.ToString() : "n/a") +
-                   " canAttempt=" + (gate != null ? gate.CanAttemptEdgeTransition.ToString() : "n/a") +
-                   " tInProg=" + (gate != null ? gate.TransitionInProgress.ToString() : "n/a") +
-                   " | exitSrc=" + HostPlayerPartyController.LastExitSourceHex +
-                   " exitDst=" + HostPlayerPartyController.LastExitDestinationHex +
-                   " slot=" + HostPlayerPartyController.LastExitSlotRect +
-                   " insideSlot=" + HostPlayerPartyController.LastActiveInsideExitSlot +
-                   " | map=" + (world.LocalMap != null ? world.LocalMap.ActiveMapLayoutId : "-") +
+            return "mode=" + motion.ExecutionMode +
+                   " surface=" + (motion.SurfaceId ?? string.Empty) +
+                   " world=" + motion.WorldPosition +
+                   " map=" + (world.LocalMap != null ? world.LocalMap.ActiveMapLayoutId : "-") +
                    " ent=" + activeExists +
                    " | " + HostPlayerPartyController.LastTransitionStatus +
                    (string.IsNullOrEmpty(HostPlayerPartyController.LastTransitionFailureReason)

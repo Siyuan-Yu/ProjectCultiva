@@ -9,7 +9,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// Serialized compatibility name. Modern runtime responsibility is CharacterEncounter
-    /// presentation only; legacy BattleOffer/FormalArmy/ArmyStack workflows remain retired.
+    /// presentation only.
     /// </summary>
     public sealed class HostStrategicInterruptPresenter : MonoBehaviour
     {

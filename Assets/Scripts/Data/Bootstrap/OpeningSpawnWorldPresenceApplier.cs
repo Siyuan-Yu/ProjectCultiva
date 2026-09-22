@@ -7,7 +7,6 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -32,9 +31,8 @@ namespace XianXia.Data.Bootstrap
     /// 判定依据是 Content 语义（place 的 <see cref="WorldLocationState.LocalMapId"/> 属于另一张
     /// LocalMap；以及既有 <c>PersonalityProfile</c> tag "cave"），不是启发式。
     ///
-    /// §5/§6/§7：<c>spawn.LocalPosition</c> 是 legacy Site LocalMap presentation 坐标，
-    /// 必须经 source LocalMap bounds ／ <see cref="WorldSiteHexFootprintSpatialMapping"/> 转换为 canonical
-    /// Outdoor WorldPosition 后才作为锚点保存（绝不直接当 Continuous 坐标）。
+    /// Current Surface openings require checked-in <c>openingEntityAnchors</c>. Legacy LocalMap
+    /// coordinates are not converted by runtime Data.
     /// </summary>
     public static class OpeningSpawnWorldPresenceApplier
     {
@@ -111,7 +109,7 @@ namespace XianXia.Data.Bootstrap
                             spawn.WorldSiteId);
                     }
 
-                    ApplyPresence(world, registry, authoredSite, spawn, entityId);
+                    ApplyPresence(world, registry, authoredSite, entityId);
                     continue;
                 }
 
@@ -119,7 +117,7 @@ namespace XianXia.Data.Bootstrap
                 if (string.Equals(entityKind, "character", StringComparison.OrdinalIgnoreCase))
                 {
                     if (world.Strategic.Sites.TryGet(defaultSiteId, out var defaultSite) && defaultSite != null)
-                        ApplyPresence(world, registry, defaultSite, spawn, entityId);
+                        ApplyPresence(world, registry, defaultSite, entityId);
                     continue;
                 }
 
@@ -137,7 +135,7 @@ namespace XianXia.Data.Bootstrap
                 if (IsIndependentSpaceNpc(world, entityId, placeSite, placeId))
                     continue;
 
-                ApplyPresence(world, registry, placeSite, spawn, entityId);
+                ApplyPresence(world, registry, placeSite, entityId);
             }
 
             return Result.Success();
@@ -147,14 +145,12 @@ namespace XianXia.Data.Bootstrap
             SimulationWorld world,
             DefinitionRegistry registry,
             WorldSite site,
-            OpeningSpawnEntry spawn,
             EntityId entityId)
         {
             // §4/§5/§8/§10：Normal Continuous NewGame 的 presence 只表达 Site membership。
             // Opening precise position 由 checked-in baked opening entity anchor 在第一次 materialize
             // 时解析（ContinuousOutdoorOpeningAnchorResolver）。
-            // legacy LocalMap LocalPosition → WorldSiteHexFootprintSpatialMapping 不再作为 Normal NewGame 的
-            // 位置权威（它保留给 old save / legacy LocalMap / migration tooling）。
+            // LocalMap presentation coordinates are not a Normal NewGame position authority.
             if (site != null && WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
             {
                 // MAP-03 normal opening authority is the checked-in continuous anchor.  A
@@ -174,10 +170,7 @@ namespace XianXia.Data.Bootstrap
                 return;
             }
 
-            if (TryResolveAuthoredAnchor(world, registry, site, spawn, out var anchor))
-                world.WorldPresence.SetAtSiteWithAnchor(entityId, site.SiteId, anchor);
-            else
-                world.WorldPresence.SetAtSite(entityId, site.SiteId);
+            world.WorldPresence.SetAtSite(entityId, site.SiteId);
         }
 
         /// <summary>§6：LocalLocationId 优先作为 place identity；否则用 bootstrap 实际落地的 place。</summary>
@@ -312,46 +305,5 @@ namespace XianXia.Data.Bootstrap
             return profile.HasTag("cave");
         }
 
-        /// <summary>
-        /// §5：legacy LocalMap LocalPosition → canonical WorldPosition。
-        /// <b>仅供非 Continuous Outdoor Site</b>（legacy LocalMap／old save compatibility／
-        /// migration tooling）。Continuous Outdoor Site 不得再走这条路 —— 见 <see cref="ApplyPresence"/>。
-        /// </summary>
-        static bool TryResolveAuthoredAnchor(
-            SimulationWorld world,
-            DefinitionRegistry registry,
-            WorldSite site,
-            OpeningSpawnEntry spawn,
-            out WorldVec2 anchor)
-        {
-            anchor = default;
-            if (spawn?.LocalPosition == null || site == null || world?.LegacyHexWorld == null)
-                return false;
-            if (string.IsNullOrEmpty(site.LocalMapId) || registry == null)
-                return false;
-            var parsed = DefinitionId.Parse(site.LocalMapId);
-            if (parsed.IsFailure || !registry.TryGetMapLayout(parsed.Value, out var layout) || layout == null)
-                return false;
-
-            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                layout.OriginX,
-                layout.OriginY,
-                layout.CellSize,
-                layout.Width,
-                layout.Height);
-            if (!bounds.IsValid)
-                return false;
-
-            var hexSize = world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : HexWorldScale.DefaultHexOuterRadius;
-
-            return WorldSiteHexFootprintBakeTransform.TryBake(
-                site,
-                hexSize,
-                bounds,
-                new WorldVec2(spawn.LocalPosition.X, spawn.LocalPosition.Z),
-                out anchor);
-        }
     }
 }

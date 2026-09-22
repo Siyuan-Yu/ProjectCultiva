@@ -9,7 +9,6 @@ using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.Exploration
 {
@@ -184,12 +183,7 @@ namespace XianXia.Core.Exploration
             if (continuousReturn && world.PlayerPartyTravel != null)
             {
                 var position = new WorldVec2(session.ReturnWorldX, session.ReturnWorldY);
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                    ? world.LegacyHexWorld.HexSize
-                    : 1f;
-                var derivedHex = HexMath.WorldToHex(position.X, position.Y, hexSize);
-                world.PlayerPartyTravel.SetAtSurfacePosition(
-                    session.ReturnSurfaceId, position, derivedHex);
+                world.PlayerPartyTravel.SetAtSurfacePosition(session.ReturnSurfaceId, position);
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
                     WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
                         world, position.X, position.Y, out _, out var returnSite, out _)
@@ -200,12 +194,12 @@ namespace XianXia.Core.Exploration
                 {
                     foreach (var id in party.Members)
                         if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, party, id))
-                            world.WorldPresence.SetAtWorldPosition(id, position, derivedHex, session.ReturnSurfaceId);
+                            world.WorldPresence.SetAtWorldPosition(id, position, session.ReturnSurfaceId);
                 }
                 else
                 {
                     foreach (var traveler in world.PlayerPartyTravel.TravelingMembers)
-                        world.WorldPresence.SetAtWorldPosition(traveler, position, derivedHex, session.ReturnSurfaceId);
+                        world.WorldPresence.SetAtWorldPosition(traveler, position, session.ReturnSurfaceId);
                 }
 
                 world.PartyWorld.LocalMapId = string.Empty;
@@ -269,8 +263,7 @@ namespace XianXia.Core.Exploration
             var party = world?.Strategic?.PlayerPartyContext;
             var returnSurface = world?.SurfaceGround?.Active;
             if (!PlayerPartyWorldLocationQuery.TryResolve(world, party, out var resolved) ||
-                !resolved.HasValue ||
-                resolved.IsLegacyFallback)
+                !resolved.HasValue)
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "Continuous entrance has no exact Surface return position.");
             if (returnSurface == null ||

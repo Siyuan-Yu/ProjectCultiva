@@ -7,7 +7,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
@@ -36,7 +35,7 @@ namespace XianXia.Tests
             var character = CreateCharacter(world, "singleton");
             SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
             world.WorldPresence.SetAtWorldPosition(
-                character, new WorldVec2(2f, 2f), new HexCoord(0, 0), "surface:a");
+                character, new WorldVec2(2f, 2f), "surface:a");
 
             Assert.IsTrue(CharacterStrategicQuery.TryGetSquad(world, character, out _));
             Assert.IsFalse(SquadWorldMotionService.OwnsCharacter(world, character));
@@ -135,15 +134,16 @@ namespace XianXia.Tests
             presence.WorldPosX = 0f;
             presence.WorldPosY = 0f;
             presence.PersonalSurfaceId = "surface:a";
-            presence.ClearHexPresence();
-
-            Assert.IsTrue(CharacterWorldPresenceQuery.TryDescribe(
-                world, character, out var state, out var siteId, out var hex, out _));
-            Assert.AreEqual(CharacterWorldPresenceQuery.PresenceState.AtWorldPosition, state);
-            Assert.AreEqual(string.Empty, siteId);
-            Assert.AreEqual(HexMath.WorldToHex(0f, 0f, world.LegacyHexWorld.HexSize), hex);
-            Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, character, out var queried));
-            Assert.AreEqual(hex, queried);
+            Assert.IsTrue(CharacterWorldPresenceQuery.TryResolve(
+                world, character, out var resolved));
+            Assert.AreEqual(
+                CharacterWorldPresenceQuery.PresenceState.AtWorldPosition,
+                resolved.State);
+            Assert.AreEqual(string.Empty, resolved.SiteId);
+            Assert.AreEqual("surface:a", resolved.SurfaceId);
+            Assert.IsTrue(resolved.HasWorldPosition);
+            Assert.AreEqual(0f, resolved.WorldPosition.X);
+            Assert.AreEqual(0f, resolved.WorldPosition.Y);
         }
 
         [Test]
@@ -158,7 +158,7 @@ namespace XianXia.Tests
             party.BindWorld(world);
             Assert.IsTrue(party.TryBindControlledSquad(squad.Value.SquadId, character, out var error), error);
             world.PlayerPartyTravel.SetAtSurfacePosition(
-                "surface:a", new WorldVec2(2f, 2f), new HexCoord(0, 0));
+                "surface:a", new WorldVec2(2f, 2f));
 
             Assert.IsFalse(CharacterWorldMovementAuthorityQuery.CanStartBackgroundTravel(
                 world, character, null, out _));
@@ -190,9 +190,9 @@ namespace XianXia.Tests
             world.SurfaceGround.RegisterSiteArrival(
                 "surface:a", site.SiteId, new WorldVec2(8f, 8f));
             world.WorldPresence.SetAtWorldPosition(
-                moving, new WorldVec2(2f, 2f), new HexCoord(0, 0), "surface:a");
+                moving, new WorldVec2(2f, 2f), "surface:a");
             world.WorldPresence.SetAtWorldPosition(
-                idle, new WorldVec2(3f, 3f), new HexCoord(0, 0), "surface:a");
+                idle, new WorldVec2(3f, 3f), "surface:a");
 
             var records = new List<BackgroundCharacterTravelSnapshotDto>
             {
@@ -209,7 +209,9 @@ namespace XianXia.Tests
                 {
                     CharacterId = idle.Value,
                     LocationKind = (int)BackgroundCharacterLocationKind.AtWorldPosition,
-                    WorldX = 3f, WorldY = 3f, SurfaceId = "surface:a",
+                    // Idle compatibility record intentionally omits Surface and carries stale
+                    // coordinates. Current CharacterWorldPresence remains the primary authority.
+                    WorldX = 99f, WorldY = 99f, SurfaceId = string.Empty,
                     IsTraveling = false, IsSurfaceRoute = true
                 }
             };
@@ -223,6 +225,10 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldPresence.TryGet(idle, out var idlePresence));
             Assert.AreEqual("surface:a", idlePresence.PersonalSurfaceId);
             Assert.AreEqual(3f, idlePresence.WorldPosX, .0001f);
+            Assert.AreEqual(3f, idlePresence.WorldPosY, .0001f);
+            Assert.IsEmpty(records[1].SurfaceId, "normalization must not rewrite the DTO");
+            Assert.AreEqual(99f, records[1].WorldX, .0001f);
+            Assert.AreEqual(99f, records[1].WorldY, .0001f);
 
             records[0].DestinationSiteId = string.Empty;
             var missingDestination = StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
@@ -234,6 +240,21 @@ namespace XianXia.Tests
             var ambiguousLegacy = StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
                 world, records);
             Assert.IsTrue(ambiguousLegacy.IsFailure);
+
+            var noAuthority = CreateCharacter(world, "idle_without_authority");
+            var missingPrimary = StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
+                world,
+                new List<BackgroundCharacterTravelSnapshotDto>
+                {
+                    new BackgroundCharacterTravelSnapshotDto
+                    {
+                        CharacterId = noAuthority.Value,
+                        LocationKind = (int)BackgroundCharacterLocationKind.AtWorldPosition,
+                        SurfaceId = string.Empty,
+                        IsTraveling = false
+                    }
+                });
+            Assert.IsTrue(missingPrimary.IsFailure);
         }
 
         static SimulationWorld CreateTwoSurfaceWorld()

@@ -2,7 +2,6 @@ using XianXia.Core.World;
 using System;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {

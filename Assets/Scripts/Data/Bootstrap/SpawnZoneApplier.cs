@@ -129,7 +129,10 @@ namespace XianXia.Data.Bootstrap
 
                 loc.LocationId = locationId;
                 PlaceInZone(layout, zone, loc, random);
-                BindContinuousOutdoorPresence(world, registry, layout, continuousSite, entity, loc);
+                var presence = BindContinuousOutdoorPresence(
+                    world, registry, layout, continuousSite, entity, loc);
+                if (presence.IsFailure)
+                    return presence;
             }
 
             return Result.Success();
@@ -196,12 +199,8 @@ namespace XianXia.Data.Bootstrap
             return table.Entries[table.Entries.Count - 1].DefinitionId?.Trim();
         }
 
-        /// <summary>
-        /// §3：spawnZone NPC 的 legacy LocalMap presentation 坐标 → canonical Outdoor WorldPosition，
-        /// 并写成 AtSite（+ 精确锚点）。非 Continuous ／独立空间（Interior／Cave／Dungeon／
-        /// Encounter／legacy-only map）完全不进入这里。
-        /// </summary>
-        static void BindContinuousOutdoorPresence(
+        /// <summary>Bind the spawned entity to its current Surface Site.</summary>
+        static Result BindContinuousOutdoorPresence(
             SimulationWorld world,
             DefinitionRegistry registry,
             MapLayoutDefinition layout,
@@ -210,17 +209,31 @@ namespace XianXia.Data.Bootstrap
             EntityLocationComponent loc)
         {
             if (site == null || entity == null || world == null)
-                return;
-            if (loc != null && loc.HasPresentationOverride &&
-                ContinuousOutdoorSpawnPresenceResolver.TryResolveCanonicalAnchor(
-                    world, site, layout, loc.PresentationOverrideX, loc.PresentationOverrideZ,
-                    out var anchor))
+                return Result.Success();
+
+            OutdoorWorldSurfaceDefinition surface = null;
+            WorldSitePhysicalRegionDefinition region = null;
+            var hasSurface = registry != null && layout != null && loc != null &&
+                ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                    registry, site.SiteId, out surface, out region);
+            var anchor = default(XianXia.Core.World.WorldVec2);
+            var hasAnchor = hasSurface && surface != null &&
+                ContinuousOutdoorOpeningAnchorResolver.TryGetBakedSitePlace(
+                    surface, site.SiteId, loc.LocationId, out anchor);
+            if (!hasAnchor)
             {
-                world.WorldPresence.SetAtSiteWithAnchor(entity.Id, site.SiteId, anchor);
-                return;
+                return Result.Failure(
+                    ErrorCode.ContentLoadFailed,
+                    "Continuous Outdoor spawnZone lacks an exact baked SitePlace anchor.",
+                    "Map=" + (layout?.Id.ToString() ?? string.Empty) +
+                    " Site=" + site.SiteId +
+                    " Location=" + (loc?.LocationId ?? string.Empty) +
+                    " Region=" + (region?.SiteId ?? string.Empty));
             }
 
-            world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
+            world.WorldPresence.SetAtSiteWithAnchor(
+                entity.Id, site.SiteId, anchor, surface.SurfaceId);
+            return Result.Success();
         }
 
         static void PlaceInZone(

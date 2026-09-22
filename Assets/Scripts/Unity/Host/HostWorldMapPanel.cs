@@ -113,7 +113,7 @@ namespace XianXia.Unity.Host
             }
             if (bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
                 bootstrap.ContinuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
-                bootstrap.SurfaceExitZonePresenter?.Clear();
+                bootstrap.RefreshContinuousOutdoorOverlaysOnce();
         }
 
         public void ClearSessionState()

@@ -7,7 +7,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
 using XianXia.Core.World.Surface;
-using XianXia.Data.Content.Compatibility;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Data.Content
@@ -270,13 +269,17 @@ namespace XianXia.Data.Content
                         LoadSpawnTable(item, parsed.Value, registry, report);
                         break;
                     case "hexWorld":
-                        LoadHexWorldContent(item, parsed.Value, registry, report);
+                        report.Add(ErrorCode.ContentLoadFailed,
+                            "hexWorld is retired from runtime Content. The offline converter only detects and rejects this map input; use the existing WorldComposer/SurfaceAuthoring Legacy migration path and do not guess when no migration sample exists.",
+                            parsed.Value.ToString());
                         break;
                     case "realmLadder":
                         LoadRealmLadder(item, parsed.Value, registry, report);
                         break;
                     case "formalArmy":
-                        LoadLegacyFormalArmy(item, parsed.Value, registry, report);
+                        report.Add(ErrorCode.ContentLoadFailed,
+                            "formalArmy is retired from runtime Content. Convert it offline to npcSquad.",
+                            parsed.Value.ToString());
                         break;
                     case "npcSquad":
                         LoadNpcSquad(item, parsed.Value, registry, report);
@@ -801,6 +804,16 @@ namespace XianXia.Data.Content
             ValidationReport report)
         {
             var errorsBefore = report.Errors.Count;
+            if (item.TryGetProperty("openingHexWorldId", out _))
+                report.Add(ErrorCode.ContentLoadFailed,
+                    "openingHexWorldId is retired. The offline converter cannot losslessly invent openingSurfaceId; use the existing WorldComposer/SurfaceAuthoring Legacy migration path and do not guess when no migration sample exists.",
+                    id.ToString());
+            if (item.TryGetProperty("initialFormalArmyIds", out _))
+                report.Add(ErrorCode.ContentLoadFailed,
+                    "initialFormalArmyIds is retired. Convert the scenario offline to initialNpcSquadIds.",
+                    id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
             DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.OpeningScenarioFields, report, id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
@@ -813,7 +826,6 @@ namespace XianXia.Data.Content
                 OpeningFactionId = item.GetString("openingFactionId", string.Empty),
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
                 OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
-                OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
                 OpeningSurfaceId = item.GetString("openingSurfaceId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
@@ -988,26 +1000,6 @@ namespace XianXia.Data.Content
                 return;
             }
 
-            if (item.TryGetProperty("initialFormalArmyIds", out var armyIdsNode))
-            {
-                if (armyIdsNode.Kind != JsonValueKind.Array)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed, "initialFormalArmyIds must be array.", id.ToString());
-                    return;
-                }
-
-                foreach (var armyIdNode in armyIdsNode.Array)
-                {
-                    if (armyIdNode.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(armyIdNode.String))
-                    {
-                        report.Add(ErrorCode.ContentLoadFailed, "initialFormalArmyIds entries must be strings.", id.ToString());
-                        continue;
-                    }
-
-                    scenario.InitialLegacyFormalArmyIds.Add(armyIdNode.String);
-                }
-            }
-
             if (item.TryGetProperty("initialNpcSquadIds", out var squadIdsNode))
             {
                 if (squadIdsNode.Kind != JsonValueKind.Array)
@@ -1153,188 +1145,6 @@ namespace XianXia.Data.Content
             if (def.Members.Count == 0 || leaders != 1) { report.Add(ErrorCode.InvalidArgument, "npcSquad.members requires a non-empty roster and exactly one leader.", id.ToString()); return; }
             var registered = registry.RegisterNpcSquad(def);
             if (registered.IsFailure) report.Add(registered.Error);
-        }
-
-        static void LoadLegacyFormalArmy(
-            JsonValue item,
-            DefinitionId id,
-            DefinitionRegistry registry,
-            ValidationReport report)
-        {
-            var errorsBefore = report.Errors.Count;
-            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.LegacyFormalArmyFields, report, id.ToString());
-            if (report.Errors.Count > errorsBefore)
-                return;
-
-            var def = new LegacyFormalArmyDefinition
-            {
-                Id = id,
-                Name = item.GetString("name", string.Empty),
-                RuntimeArmyId = item.GetString("runtimeArmyId", string.Empty),
-                RuntimeStackId = item.GetString("runtimeStackId", string.Empty),
-                FactionId = item.GetString("factionId", string.Empty),
-                AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
-            };
-
-            if (item.TryGetProperty("initialSurfacePosition", out var surfaceNode))
-            {
-                if (surfaceNode.Kind != JsonValueKind.Object)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.initialSurfacePosition must be object.", id.ToString());
-                    return;
-                }
-                DefinitionSchema.RejectUnknownFields(surfaceNode,
-                    DefinitionSchema.LegacyFormalArmyInitialSurfacePositionFields, report, id + ".initialSurfacePosition");
-                def.InitialSurfacePosition = new LegacyFormalArmyInitialSurfacePositionDefinition
-                {
-                    SurfaceId = surfaceNode.GetString("surfaceId", string.Empty),
-                    WorldX = ReadFloat(surfaceNode, "worldX", 0f),
-                    WorldY = ReadFloat(surfaceNode, "worldY", 0f)
-                };
-            }
-
-            if (item.TryGetProperty("initialSurfaceDeployment", out var deploymentNode))
-            {
-                if (deploymentNode.Kind != JsonValueKind.Object || def.InitialSurfacePosition != null)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed,
-                        "formalArmy must choose one initial Surface deployment form.", id.ToString());
-                    return;
-                }
-                DefinitionSchema.RejectUnknownFields(deploymentNode,
-                    DefinitionSchema.LegacyFormalArmyInitialSurfaceDeploymentFields,
-                    report, id + ".initialSurfaceDeployment");
-                if (!deploymentNode.TryGetProperty("offsetCellsX", out var offsetX) ||
-                    !deploymentNode.TryGetProperty("offsetCellsY", out var offsetY) ||
-                    offsetX.Kind != JsonValueKind.Number ||
-                    offsetY.Kind != JsonValueKind.Number ||
-                    offsetX.Number != Math.Truncate(offsetX.Number) ||
-                    offsetY.Number != Math.Truncate(offsetY.Number) ||
-                    offsetX.Number < int.MinValue || offsetX.Number > int.MaxValue ||
-                    offsetY.Number < int.MinValue || offsetY.Number > int.MaxValue)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed,
-                        "formalArmy.initialSurfaceDeployment requires integer cell offsets.",
-                        id.ToString());
-                    return;
-                }
-                def.InitialSurfaceDeployment = new LegacyFormalArmyInitialSurfaceDeploymentDefinition
-                {
-                    SurfaceId = deploymentNode.GetString("surfaceId", string.Empty),
-                    AnchorSiteId = deploymentNode.GetString("anchorSiteId", string.Empty),
-                    OffsetCellsX = ReadInt(deploymentNode, "offsetCellsX", 0),
-                    OffsetCellsY = ReadInt(deploymentNode, "offsetCellsY", 0)
-                };
-            }
-
-            if (item.TryGetProperty("initialHex", out var hexNode))
-            {
-                if (hexNode.Kind != JsonValueKind.Object)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.initialHex must be object.", id.ToString());
-                    return;
-                }
-
-                var hexErrorsBefore = report.Errors.Count;
-                DefinitionSchema.RejectUnknownFields(
-                    hexNode, DefinitionSchema.LegacyFormalArmyInitialHexFields, report, id + ".initialHex");
-                if (report.Errors.Count > hexErrorsBefore)
-                    return;
-
-                // (0,0) 是合法 Hex：以 InitialHex != null 为 presence authority，
-                // 不能靠 Q/R 是否为 0 判断有没有 initialHex。
-                def.InitialHex = new LegacyFormalArmyInitialHexDefinition
-                {
-                    Q = hexNode.TryGetProperty("q", out var qNode) && qNode.Kind == JsonValueKind.Number
-                        ? (int)qNode.Number
-                        : 0,
-                    R = hexNode.TryGetProperty("r", out var rNode) && rNode.Kind == JsonValueKind.Number
-                        ? (int)rNode.Number
-                        : 0
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(def.RuntimeArmyId))
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.runtimeArmyId required.", id.ToString());
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(def.RuntimeStackId))
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.runtimeStackId required.", id.ToString());
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(def.FactionId))
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.factionId required.", id.ToString());
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(def.AssemblySiteId))
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.assemblySiteId required.", id.ToString());
-                return;
-            }
-
-            if (!item.TryGetProperty("members", out var membersNode) || membersNode.Kind != JsonValueKind.Array)
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.members required array.", id.ToString());
-                return;
-            }
-
-            var leaderCount = 0;
-            foreach (var memberNode in membersNode.Array)
-            {
-                if (memberNode.Kind != JsonValueKind.Object)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.members entries must be objects.", id.ToString());
-                    continue;
-                }
-
-                var memberErrorsBefore = report.Errors.Count;
-                DefinitionSchema.RejectUnknownFields(
-                    memberNode, DefinitionSchema.LegacyFormalArmyMemberFields, report, id + ".member");
-                if (report.Errors.Count > memberErrorsBefore)
-                    continue;
-
-                var member = new LegacyFormalArmyMemberDefinition
-                {
-                    CharacterDefinitionId = memberNode.GetString("characterDefinitionId", string.Empty),
-                    DisplayName = memberNode.GetString("displayName", string.Empty),
-                    Leader = memberNode.GetBool("leader", false),
-                    ReuseOpeningSpawn = memberNode.GetBool("reuseOpeningSpawn", false)
-                };
-                if (string.IsNullOrWhiteSpace(member.CharacterDefinitionId))
-                {
-                    report.Add(ErrorCode.MissingRequiredField, "formalArmy.member.characterDefinitionId required.", id.ToString());
-                    continue;
-                }
-
-                if (member.Leader)
-                    leaderCount++;
-                def.Members.Add(member);
-            }
-
-            if (def.Members.Count == 0)
-            {
-                report.Add(ErrorCode.MissingRequiredField, "formalArmy.members must be non-empty.", id.ToString());
-                return;
-            }
-
-            if (leaderCount != 1)
-            {
-                report.Add(
-                    ErrorCode.InvalidArgument,
-                    "formalArmy.members requires exactly one leader.",
-                    id.ToString());
-                return;
-            }
-
-            var reg = registry.RegisterLegacyFormalArmyDefinition(def);
-            if (reg.IsFailure)
-                report.Add(reg.Error);
         }
 
         static void LoadCharacterRoster(
@@ -2354,12 +2164,14 @@ namespace XianXia.Data.Content
                 SurfaceId = id.ToString(),
                 OriginWorldX = ReadFloat(item, "originWorldX", 0f),
                 OriginWorldY = ReadFloat(item, "originWorldY", 0f),
+                MovementScale = ReadFloat(item, "movementScale", 1f),
                 CellSize = ReadFloat(item, "cellSize", 1f),
                 ChunkWidth = ReadFloat(item, "chunkWidth", 50f),
                 ChunkHeight = ReadFloat(item, "chunkHeight", 50f),
                 AcceptanceOnly = item.GetBool("acceptanceOnly", false)
             };
-            if (surface.CellSize <= 0f || surface.ChunkWidth <= 0f || surface.ChunkHeight <= 0f)
+            if (surface.MovementScale <= 0f || surface.CellSize <= 0f ||
+                surface.ChunkWidth <= 0f || surface.ChunkHeight <= 0f)
             { report.Add(ErrorCode.InvalidArgument, "outdoorSurface metric must be positive.", id.ToString()); return; }
             if (!item.TryGetProperty("chunks", out var chunks) || chunks.Kind != JsonValueKind.Array)
             { report.Add(ErrorCode.MissingRequiredField, "outdoorSurface.chunks required.", id.ToString()); return; }
@@ -2399,7 +2211,6 @@ namespace XianXia.Data.Content
                         DisplayName = node.GetString("displayName", string.Empty),
                         SiteType = node.GetString("siteType", string.Empty),
                         OwnerFactionId = node.GetString("ownerFactionId", string.Empty),
-                        TerritoryRegionId = node.GetString("territoryRegionId", string.Empty),
                         ArrivalWorldX = ReadFloat(node, "arrivalWorldX", 0f), ArrivalWorldY = ReadFloat(node, "arrivalWorldY", 0f)
                     });
                 }
@@ -2517,217 +2328,6 @@ namespace XianXia.Data.Content
             }
             var result = registry.RegisterOutdoorSurface(surface);
             if (result.IsFailure) report.Add(result.Error);
-        }
-
-        static void LoadHexWorldContent(
-            JsonValue item,
-            DefinitionId id,
-            DefinitionRegistry registry,
-            ValidationReport report)
-        {
-            var errorsBefore = report.Errors.Count;
-            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.HexWorldFields, report, id.ToString());
-            if (report.Errors.Count > errorsBefore)
-                return;
-
-            var width = ReadInt(item, "width", 0);
-            var height = ReadInt(item, "height", 0);
-            if (width < 1 || height < 1)
-            {
-                report.Add(ErrorCode.MissingRequiredField, "hexWorld.width/height required.", id.ToString());
-                return;
-            }
-
-            var world = new HexWorldContentDefinition
-            {
-                Id = id,
-                Name = item.GetString("name", string.Empty),
-                Width = width,
-                Height = height,
-                HexSize = ReadFloat(item, "hexSize", 1f),
-                DefaultTerrain = item.GetString("defaultTerrain", "Mountain"),
-                DefaultPassable = item.GetBool("defaultPassable", false),
-            };
-
-            if (item.TryGetProperty("cells", out var cellsNode) && cellsNode.Kind == JsonValueKind.Array)
-            {
-                foreach (var cNode in cellsNode.Array)
-                {
-                    if (cNode.Kind != JsonValueKind.Object)
-                        continue;
-                    world.Cells.Add(new HexWorldCellDefinition
-                    {
-                        Q = ReadInt(cNode, "q", 0),
-                        R = ReadInt(cNode, "r", 0),
-                        Terrain = cNode.GetString("terrain", world.DefaultTerrain),
-                        IsRoad = cNode.GetBool("isRoad", false),
-                        Passable = cNode.TryGetProperty("passable", out var passNode) && passNode.Kind == JsonValueKind.Boolean
-                            ? passNode.Bool
-                            : (bool?)null,
-                    });
-                }
-            }
-
-            if (item.TryGetProperty("sites", out var sitesNode) && sitesNode.Kind == JsonValueKind.Array)
-            {
-                foreach (var sNode in sitesNode.Array)
-                {
-                    if (sNode.Kind != JsonValueKind.Object)
-                        continue;
-                    var site = new HexWorldSiteDefinition
-                    {
-                        SiteId = sNode.GetString("siteId", string.Empty),
-                        DisplayName = sNode.GetString("displayName", string.Empty),
-                        SiteType = sNode.GetString("siteType", string.Empty),
-                        AnchorQ = ReadInt(sNode, "anchorQ", 0),
-                        AnchorR = ReadInt(sNode, "anchorR", 0),
-                        LocalMapId = sNode.GetString("localMapId", string.Empty),
-                        UsesContinuousOutdoorSurface = sNode.GetBool("continuousOutdoor", false),
-                        OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
-                        ControlEstablishedOrder = (long)sNode.GetNumber("controlEstablishedOrder", 0),
-                        TerritoryRegionId = sNode.GetString("territoryRegionId", string.Empty),
-                    };
-                    if (sNode.TryGetProperty("presenceQ", out var pqNode) &&
-                        sNode.TryGetProperty("presenceR", out var prNode) &&
-                        pqNode.Kind == JsonValueKind.Number &&
-                        prNode.Kind == JsonValueKind.Number)
-                    {
-                        site.PresenceQ = (int)pqNode.Number;
-                        site.PresenceR = (int)prNode.Number;
-                    }
-                    else
-                    {
-                        site.PresenceQ = site.AnchorQ;
-                        site.PresenceR = site.AnchorR;
-                    }
-                    if (sNode.TryGetProperty("footprint", out var fpNode) && fpNode.Kind == JsonValueKind.Array)
-                    {
-                        foreach (var hNode in fpNode.Array)
-                        {
-                            if (hNode.Kind != JsonValueKind.Object)
-                                continue;
-                            site.Footprint.Add(new HexWorldCoordDefinition
-                            {
-                                Q = ReadInt(hNode, "q", 0),
-                                R = ReadInt(hNode, "r", 0),
-                            });
-                        }
-                    }
-
-                    world.Sites.Add(site);
-                }
-            }
-
-            if (item.TryGetProperty("factionFlags", out var flagsNode) && flagsNode.Kind == JsonValueKind.Array)
-            {
-                foreach (var fNode in flagsNode.Array)
-                {
-                    if (fNode.Kind != JsonValueKind.Object) continue;
-                    var flagErrorsBefore = report.Errors.Count;
-                    DefinitionSchema.RejectUnknownFields(
-                        fNode,
-                        DefinitionSchema.HexWorldFactionFlagFields,
-                        report,
-                        id.ToString() + ".factionFlag");
-                    if (report.Errors.Count > flagErrorsBefore)
-                        continue;
-                    var hasSurface = fNode.TryGetProperty("surfaceId", out var surfaceNode) &&
-                                     surfaceNode.Kind == JsonValueKind.String;
-                    var hasWorldX = fNode.TryGetProperty("worldX", out var worldXNode) &&
-                                    worldXNode.Kind == JsonValueKind.Number;
-                    var hasWorldY = fNode.TryGetProperty("worldY", out var worldYNode) &&
-                                    worldYNode.Kind == JsonValueKind.Number;
-                    var hasAnyPreciseField = fNode.TryGetProperty("surfaceId", out _) ||
-                                             fNode.TryGetProperty("worldX", out _) ||
-                                             fNode.TryGetProperty("worldY", out _);
-                    if (hasAnyPreciseField && !(hasSurface && hasWorldX && hasWorldY))
-                        report.Add(ErrorCode.MissingRequiredField,
-                            "FactionFlag precise position requires surfaceId + worldX + worldY.",
-                            id + ".factionFlag");
-                    world.FactionFlags.Add(new FactionFlagContentDefinition
-                    {
-                        FlagId=fNode.GetString("flagId",string.Empty), FactionId=fNode.GetString("factionId",string.Empty),
-                        AnchorQ=ReadInt(fNode,"anchorQ",0), AnchorR=ReadInt(fNode,"anchorR",0),
-                        EstablishedOrder=(long)fNode.GetNumber("establishedOrder",0),
-                        HasLocalPosition=fNode.GetBool("hasLocalPosition",false), LocalX=(float)fNode.GetNumber("localX",0), LocalZ=(float)fNode.GetNumber("localZ",0),
-                        HasWorldPosition=hasSurface && hasWorldX && hasWorldY,
-                        SurfaceId=hasSurface ? surfaceNode.String : string.Empty,
-                        WorldX=hasWorldX ? (float)worldXNode.Number : 0f,
-                        WorldY=hasWorldY ? (float)worldYNode.Number : 0f,
-                        CreatesWorldSite=fNode.GetBool("createsWorldSite",false),
-                        SiteDisplayName=fNode.GetString("siteDisplayName",string.Empty),
-                        SiteType=fNode.GetString("siteType",string.Empty),
-                        CoreLevel=ReadInt(fNode,"coreLevel",1),
-                        LegacyDebugOnly=fNode.GetBool("legacyDebugOnly",false)
-                    });
-                }
-            }
-
-            if (item.TryGetProperty("territoryRegions", out var regionsNode) && regionsNode.Kind == JsonValueKind.Array)
-            {
-                foreach (var rNode in regionsNode.Array)
-                {
-                    if (rNode.Kind != JsonValueKind.Object)
-                        continue;
-                    var regionErrorsBefore = report.Errors.Count;
-                    DefinitionSchema.RejectUnknownFields(
-                        rNode,
-                        DefinitionSchema.HexWorldTerritoryRegionFields,
-                        report,
-                        id.ToString() + ".region");
-                    if (report.Errors.Count > regionErrorsBefore)
-                        continue;
-                    var region = new TerritoryRegionContentDefinition
-                    {
-                        RegionId = rNode.GetString("regionId", string.Empty),
-                        PrimaryWorldSiteId = rNode.GetString("primaryWorldSiteId", string.Empty),
-                        ControlFactionId = rNode.GetString("controlFactionId", string.Empty),
-                    };
-                    if (rNode.TryGetProperty("hexes", out var hexesNode) && hexesNode.Kind == JsonValueKind.Array)
-                    {
-                        foreach (var hNode in hexesNode.Array)
-                        {
-                            if (hNode.Kind != JsonValueKind.Object)
-                                continue;
-                            region.Hexes.Add(new HexWorldCoordDefinition
-                            {
-                                Q = ReadInt(hNode, "q", 0),
-                                R = ReadInt(hNode, "r", 0),
-                            });
-                        }
-                    }
-
-                    world.TerritoryRegions.Add(region);
-                }
-            }
-
-            if (item.TryGetProperty("standaloneTerritoryHexes", out var standaloneNode) &&
-                standaloneNode.Kind == JsonValueKind.Array)
-            {
-                foreach (var hNode in standaloneNode.Array)
-                {
-                    if (hNode.Kind != JsonValueKind.Object)
-                        continue;
-                    var hexErrorsBefore = report.Errors.Count;
-                    DefinitionSchema.RejectUnknownFields(
-                        hNode,
-                        DefinitionSchema.HexWorldStandaloneHexFields,
-                        report,
-                        id.ToString() + ".standalone");
-                    if (report.Errors.Count > hexErrorsBefore)
-                        continue;
-                    world.StandaloneTerritoryHexes.Add(new HexWorldStandaloneHexControlDefinition
-                    {
-                        Q = ReadInt(hNode, "q", 0),
-                        R = ReadInt(hNode, "r", 0),
-                        ControlFactionId = hNode.GetString("controlFactionId", string.Empty),
-                    });
-                }
-            }
-
-            var reg = registry.RegisterHexWorldContent(world);
-            if (reg.IsFailure)
-                report.Add(reg.Error);
         }
 
         static void LoadChapter(

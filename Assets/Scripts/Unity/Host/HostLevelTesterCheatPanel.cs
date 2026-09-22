@@ -402,9 +402,8 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x, y, width, 40f),
                 "NPC Squad Runtime: Squads=" + (strategic?.Squads?.Squads?.Count ?? 0) +
                 "  ActiveNpcSquadWorldMotions=" + CountActiveNpcSquadWorldMotions() + "\n" +
-                "Legacy Runtime: RETIRED  AtHex Scope=Compatibility Input (boundary invariant)  Outdoor LocalMap Active=" +
-                (world?.LocalMap != null && !world.LocalMap.IsInInterior &&
-                 !string.IsNullOrEmpty(world.LocalMap.ActiveMapLayoutId)), _body);
+                "Playable Space: " +
+                (world?.LocalMap?.IsActive == true ? "SeparateSpace" : "ContinuousSurface"), _body);
             y += 44f;
 
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;

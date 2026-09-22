@@ -1,18 +1,18 @@
 # 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Legacy 清理／Hex·Army 命名与兼容边界专项均已封板 | 最后更新：2026-09-22
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已封板 | 最后更新：2026-09-22
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Implementation: Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control 与 Separate Space 正式主线已落地。CW-04～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C，以及废弃运行入口清理、Hex／Army 命名与兼容边界、WorldSite／Hex footprint 命名尾项均已完成并封板。制作人已确认此前运行行为人工验收通过；后续限定同体改名与说明收尾经静态复核通过，无需追加游戏验收。下一步尚未授权，等待制作人讨论后确定。**
+**Design: Confirmed｜Implementation: Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control 与 Separate Space 正式主线已落地。CW-04～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C，以及正式运行对旧 Hex／Army 依赖的最终退役与 021915 统一收尾均已完成，并由制作人人工验收后 **Producer Accepted / Sealed**。正常产品不再编译旧 Hex 几何，Runtime Loader 拒绝旧 `formalArmy`／`hexWorld`；离线转换器只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot，`hexWorld` 须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。后续功能方向尚未批准。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
 当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md)；最终 authority／compatibility 矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。[216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) 与 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md) 保留为迁移前历史对齐记录。
 
-本专项封板不表示整个游戏已完成或不存在潜在缺陷，也不表示仓库中的 `Hex`／`Army` 字符串应清零。后续只有具体错误调用、authority 越界、失真说明或回归证据，才构成提出问题的依据；不得仅凭关键词命中重开循环清理。
+本专项不表示整个游戏已完成或不存在潜在缺陷，也不要求历史文档、稳定 wire key 或离线转换器中的 `Hex`／`Army` 字符串清零。正常产品中的旧运行依赖已经退役；不得把新增 `Legacy*` runtime adapter 当作完成标准。
 
-**Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01～MAP-04 均已实施、人工验收并封板；正常 Gameplay authority 已切换到 Surface。Hex／Outdoor LocalMap 仅保留经 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 明确的旧输入、adapter、工具或测试边界。当前实现把兼容入口显式命名为 `SimulationWorld.LegacyHexWorld`、`LegacyHexMetadataProjection` 与 `PlayerPartyWorldMotion.Legacy*`；`HexCoord`／`HexMath`／Odd-R Q/R 和 `HexWorld` 作为真实几何／工具类型继续保留，但不授予正常 Gameplay authority。
+**Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01～MAP-04 均已实施、人工验收并封板；正常 Gameplay authority 已切换到 Surface。当前正式产品程序集已物理移除 Core Hex 目录与 `SimulationWorld` 的 Hex 容器；旧 `formalArmy`／`hexWorld` 只在 Loader 边界被拒绝并指向离线转换流程，不存在正常 runtime 自动 migration。
 
 **Editor 工具链：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 manifest、平铺 `Apps/` 与 staging 发布已落地。WorldComposer／FineEditor 是现行 Surface authoring 工具；WorldGraphEditor／RegionEditor 已退休。独立 Cave／Interior／Encounter 地图继续合法保留。
 
@@ -161,4 +161,4 @@ v0.2 修补要点仍包括 RelationshipLedger 权威、WorldTick／ActionClock�
 
 1. 当前仅验收 Final Seal 的兼容隔离、dead API 与文档对齐；不重跑 A／B／C、MAP 或 SPACE 的完整历史验收。
 2. 飞舟、自动攻城、NPC 对 NPC 战斗、完整修炼／继承等仍是 Future / Not Implemented，不因迁移封板而自动成为现行功能。
-3. 新开发必须从 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 的 authority／compatibility 矩阵出发，禁止重新依赖退役 runtime。
+3. 新开发必须从 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 的 authority／wire／offline-conversion 边界出发，禁止恢复旧 runtime、旧 Hex 几何编译依赖或运行时自动迁移。

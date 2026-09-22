@@ -191,9 +191,8 @@ namespace XianXia.Core.Simulation
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
-            // Strategic travel: modern Squad/background state advances on WorldTick. PlayerParty
-            // SurfaceVisible movement is Host/presentation driven; only genuine legacy World-mode
-            // Hex saves still advance through LegacyPlayerPartyHexTravelCompatibility.
+            // Strategic Squad/background state advances on WorldTick; PlayerParty
+            // SurfaceVisible movement remains Host/presentation driven.
             StrategicTravelDriver.AfterTravelTick(_world, 1);
             CombatLifeStateService.TickCorpseDecay(_world);
             return Result.Success();

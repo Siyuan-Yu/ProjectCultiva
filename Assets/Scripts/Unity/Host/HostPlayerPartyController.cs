@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -9,7 +10,6 @@ using XianXia.Core.Navigation;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
@@ -37,18 +37,9 @@ namespace XianXia.Unity.Host
         [SerializeField] float followerSpreadRadius = 1.1f;
         [SerializeField] float wasdMoveSpeed = 5.5f;
         [SerializeField] bool enableCameraFollow = true;
-        [SerializeField] float localVisibleAutoTravelFollowLerp = 5f;
+        [FormerlySerializedAs("localVisibleAutoTravelFollowLerp")]
+        [SerializeField] float surfaceAutoTravelFollowLerp = 5f;
 
-        int _autoTravelLegSegmentIndex = -1;
-        Vector3 _lastAutoTravelTarget;
-        // Back-off after a failed drive attempt (no Exit / A* blocked): avoid per-frame re-path.
-        float _autoTravelRetryCooldownUntil;
-        string _lastSameExitReplanDiagnostic = string.Empty;
-        float _lastSameExitReplanDiagnosticTime = -10f;
-        // Phase 5C-W1 (3rd pass): rising-edge of ExecutionMode -> LocalVisible marks a fresh
-        // takeover; every takeover re-arms the CURRENT leg (independent of WorldMap open/close).
-        bool _localVisibleTakeoverActive;
-        bool _resumeLocalVisibleTravelRequested;
         bool _surfaceTravelExecutionArmed;
         bool _resumeSurfaceTravelRequested;
         float _surfaceTravelRetryCooldownUntil;
@@ -76,17 +67,9 @@ namespace XianXia.Unity.Host
         float _continuousProgressWindowStartedAt = -1f;
         int _continuousProgressRouteVersion = -1;
         Vector3 _continuousProgressSubgoal;
-        // Phase 5C-W2: driving toward the final Wilderness LocalMap safe interior before
-        // FinishArrival (no instant arrival at the hex edge).
-
-        // Phase 5C-W2 diagnostics: last LocalVisible AutoTravel transition outcome.
-        // Read by HostHudSnapshot (Runtime Diagnostics) so LevelTester can see the real failure.
+        // Surface travel diagnostics read by HostHudSnapshot.
         public static string LastTransitionStatus = "Idle";
         public static string LastTransitionFailureReason = string.Empty;
-        public static string LastExitSourceHex = "-";
-        public static string LastExitDestinationHex = "-";
-        public static string LastExitSlotRect = "-";
-        public static bool LastActiveInsideExitSlot;
         public static int SurfaceLocalExecutionTargetIndex = -1;
         public static string SurfaceLocalSubgoal = "-";
         public static string SurfaceLocalSubgoalKind = "-";
@@ -104,34 +87,11 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, float> _nextFollowRepath = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, HostPartySharedActivity> _followerSharedActivity =
             new Dictionary<ulong, HostPartySharedActivity>();
-        // Host safety repair：SurfaceExit slot 命中判定复用（非每帧热路径）。
-        static readonly List<XianXia.Core.World.Strategic.SurfaceExitConnection> ExitSlotScratch =
-            new List<XianXia.Core.World.Strategic.SurfaceExitConnection>(8);
-        static readonly HashSet<HexCoord> ReachableExitHexScratch = new HashSet<HexCoord>();
         HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
         bool _wasdHeldLastFrame;
         bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
         EntityId _observedActiveCharacterId = EntityId.None;
-
-        // Phase 5R-B4: transient Site LocalVisible→Canonical sync state（不落盘、不是 Position truth）。
-        // _siteSyncHeld：Materialize 完成帧标记 —— OnLocalMapMaterialized 置 true，下一次 sync tick
-        // 只清标记不反写（ownership transition：materialize 完成帧禁止同帧 Local→Canonical）。
-        bool _siteSyncHeld;
-        string _siteSyncCacheSiteId = string.Empty;
-        string _siteSyncCacheMapId = string.Empty;
-        WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds _siteSyncCacheBounds;
-        HexFootprintSpatialGeometry _siteSyncCacheGeometry;
-        string _siteSyncLastFailureKind = string.Empty;
-        float _siteSyncLastFailureTime = -10f;
-
-        // Phase 5R-B6.1：WorldSite→Wilderness 正式 egress 后的一次性 recenter 请求。
-        // egress 成功分支置 true；下一次 OnLocalMapMaterialized（materialize + 实体重建完成后）
-        // 消费 → SnapCameraToActiveOnce。普通 WorldMap open/close 不设此标志，自由镜头语义不受影响。
-        bool _pendingEgressRecenter;
-        // Phase 5R-B6.2：egress 时所在 LocalMapId —— 消费时要求 LocalMap 已切换（egress 必然换图），
-        // 防止标志泄漏到后续无关的同图 materialize（普通 WorldMap 开关）而误 recenter。
-        string _pendingEgressRecenterMapId = string.Empty;
 
         [SerializeField] float followerChopSearchRadius = 10f;
 
@@ -197,12 +157,14 @@ namespace XianXia.Unity.Host
             }
             else
             {
-                // Legacy／Interior／Cave：保留原 LocalMap occupant 语义。
+                // Interior／Cave：保留 Separate Space occupant 语义。
                 world.LocalMap.AddOccupant(candidate);
             }
 
             _nextFollowRepath.Remove(candidate.Value);
             OrderFollowerTowardActive(candidate);
+            bootstrap.NotifyOutdoorEntityScopeChanged();
+            bootstrap.FlushLoadedDestinationArrivals();
             return true;
         }
 
@@ -258,6 +220,8 @@ namespace XianXia.Unity.Host
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, Party);
             }
 
+            bootstrap?.NotifyOutdoorEntityScopeChanged();
+            bootstrap?.FlushLoadedDestinationArrivals();
             return true;
         }
 
@@ -314,382 +278,17 @@ namespace XianXia.Unity.Host
             SnapCameraTo(id);
         }
 
-        /// <summary>
-        /// Host-side Safe + Walkable fallback（保底）：materialize + Rebuild 完成后、
-        /// OnLocalMapMaterialized→RebindAllFollowers 之前调用。
-        /// Core SafeIngressLanding 只懂 geometry；只有 Host 知道 WalkGrid block。
-        /// 对 Active：4 条件（WalkGrid in-bounds walkable / SafeInterior / 不在 SurfaceExit slot）；
-        /// 非法 → nearest safe cell → 同步 PresentationOverride + transform +（AtWorldSite 时）
-        /// 立即 Local→Canonical。Followers：preferred = Active safe + stable slot offset，各自独立
-        /// 解析最近 safe cell，避免多人同 cell。只改 presentation / local placement，不重写 motion。
-        /// 无 qingshi / map-id special-case。
-        /// </summary>
-        public void ValidateAndRepairPlayerPartyMaterializedPlacement()
-        {
-            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            if (session == null || world == null || Party == null || !Party.HasActive)
-                return;
-            if (_move == null || _spawner == null || _move.WalkGrid == null)
-                return;
-            if (world.LocalMap != null && world.LocalMap.IsInInterior)
-                return; // Interior 无 Surface exit band 语义；walkable fallback 由 SnapOntoWalkableIfNeeded 覆盖。
-
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
-
-            var active = Party.ActiveCharacterId;
-            var activeRepaired = false;
-            Vector3 activeSafe = default;
-            if (!active.IsNone && _spawner.Registry.TryGet(active, out var activeView) && activeView != null)
-            {
-                var pos = activeView.transform.position;
-                var ok = IsSafePlacementPoint(world, pos.x, pos.y, bounds, depth);
-                if (!ok && TryResolveMaterializedSafePlacement(
-                        world, active, pos.x, pos.y, bounds, depth, out activeSafe))
-                {
-                    ApplyRepairedPlacement(world, active, activeView, activeSafe);
-                    activeRepaired = true;
-                    if (session.World.PlayerPartyTravel != null &&
-                        session.World.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                        !string.IsNullOrEmpty(session.World.PlayerPartyTravel.SiteId) &&
-                        world.Strategic.CharacterEncounter == null)
-                        SyncCanonicalImmediatelyAfterRepair(session.World, activeSafe.x, activeSafe.y);
-                }
-            }
-            else if (!active.IsNone)
-            {
-                // Active view 缺失（materialize assert 已挡）：尝试按 Domain override 修复。
-                if (world.Entities.TryGet(active, out var ent) &&
-                    ent != null &&
-                    ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
-                    loc != null &&
-                    loc.HasPresentationOverride &&
-                    TryResolveMaterializedSafePlacement(
-                        world, active, loc.PresentationOverrideX, loc.PresentationOverrideZ,
-                        bounds, depth, out activeSafe))
-                {
-                    loc.SetPresentationOverride(activeSafe.x, activeSafe.y);
-                    activeRepaired = true;
-                }
-            }
-
-            // Followers：preferred = Active safe/anchor + stable slot offset，独立解析、避免同 cell。
-            var occupiedCells = new HashSet<long>();
-            var activeAnchor = activeRepaired ? activeSafe : default;
-            if (!activeRepaired && !active.IsNone &&
-                _spawner.Registry.TryGet(active, out var activeViewAnchor) &&
-                activeViewAnchor != null)
-                activeAnchor = activeViewAnchor.transform.position;
-            if (activeRepaired)
-                MarkCellOccupied(activeSafe.x, activeSafe.y, occupiedCells);
-            else if (!active.IsNone &&
-                     _spawner.Registry.TryGet(active, out var activeViewB) &&
-                     activeViewB != null)
-                MarkCellOccupied(activeViewB.transform.position.x, activeViewB.transform.position.y, occupiedCells);
-
-            var followerIndex = 0;
-            for (var i = 0; i < Party.Members.Count; i++)
-            {
-                var id = Party.Members[i];
-                if (Party.IsActive(id))
-                    continue;
-                if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
-                        world, Party, id))
-                    continue;
-                var offset = FollowerOffset(followerIndex);
-                followerIndex++;
-
-                if (!_spawner.Registry.TryGet(id, out var view) || view == null)
-                    continue;
-                var from = view.transform.position;
-                var preferred = activeAnchor + offset;
-                if (IsSafePlacementPoint(world, from.x, from.y, bounds, depth) &&
-                    !IsCellOccupied(from.x, from.y, occupiedCells))
-                {
-                    MarkCellOccupied(from.x, from.y, occupiedCells);
-                    continue;
-                }
-
-                if (!TryResolveMaterializedSafePlacementAvoiding(
-                        world, id, preferred.x, preferred.y, bounds, depth, occupiedCells, out var safe))
-                    continue;
-                ApplyRepairedPlacement(world, id, view, safe);
-                MarkCellOccupied(safe.x, safe.y, occupiedCells);
-            }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // 修完仍非法 → Development 明确报错（不 crash release）。
-            if (!active.IsNone && _spawner.Registry.TryGet(active, out var chk) && chk != null)
-            {
-                if (!IsSafePlacementPoint(world, chk.transform.position.x, chk.transform.position.y, bounds, depth))
-                {
-                    Debug.LogError(
-                        "[PlayableHost] PlayerParty materialized placement still unsafe after repair: " +
-                        chk.transform.position, this);
-                }
-            }
-#endif
-        }
-
-        void ApplyRepairedPlacement(
-            SimulationWorld world,
-            EntityId id,
-            EntityView view,
-            Vector3 safe)
-        {
-            if (world.Entities.TryGet(id, out var ent) && ent != null &&
-                ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) && loc != null)
-                loc.SetPresentationOverride(safe.x, safe.y);
-            safe.z = HostPresentationSpace.EntityZ;
-            view.transform.position = safe;
-        }
-
-        /// <summary>
-        /// The materializer has already written the target LocalMap position to EntityLocation.
-        /// A retained Continuous view can still carry its old canonical presentation coordinate
-        /// until the LocalMap rebuild completes, so prefer the domain placement before repairing
-        /// around that stale transform. The full-grid radius is a one-shot last resort for a
-        /// blocked authored point; it cannot become a per-frame scan.
-        /// </summary>
-        bool TryResolveMaterializedSafePlacement(
-            SimulationWorld world,
-            EntityId id,
-            float fallbackX,
-            float fallbackY,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            out Vector3 safe)
-        {
-            var occupied = new HashSet<long>();
-            return TryResolveMaterializedSafePlacementAvoiding(
-                world, id, fallbackX, fallbackY, bounds, depth, occupied, out safe);
-        }
-
-        bool TryResolveMaterializedSafePlacementAvoiding(
-            SimulationWorld world,
-            EntityId id,
-            float fallbackX,
-            float fallbackY,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            HashSet<long> occupiedCells,
-            out Vector3 safe)
-        {
-            safe = default;
-            var preferredX = fallbackX;
-            var preferredY = fallbackY;
-            if (world.Entities.TryGet(id, out var entity) && entity != null &&
-                entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
-                loc != null && loc.HasPresentationOverride)
-            {
-                preferredX = loc.PresentationOverrideX;
-                preferredY = loc.PresentationOverrideZ;
-                if (IsSafePlacementPoint(world, preferredX, preferredY, bounds, depth) &&
-                    !IsCellOccupied(preferredX, preferredY, occupiedCells))
-                {
-                    safe = new Vector3(preferredX, preferredY, HostPresentationSpace.EntityZ);
-                    return true;
-                }
-            }
-
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (grid == null)
-                return false;
-            var fullGridRadius = Mathf.Max(grid.Width, grid.Height);
-            return TryFindSafeRepairPointAvoiding(
-                world,
-                preferredX,
-                preferredY,
-                bounds,
-                depth,
-                fullGridRadius,
-                occupiedCells,
-                out safe);
-        }
-
-        /// <summary>Active repair 后立即 Local→Canonical（不等 LateUpdate 碰运气），保持双真源一致。</summary>
-        void SyncCanonicalImmediatelyAfterRepair(SimulationWorld world, float localX, float localY)
-        {
-            var motion = world.PlayerPartyTravel;
-            if (motion == null || !motion.HasPosition)
-                return;
-            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
-                return;
-            var local = new WorldVec2(localX, localY);
-            PlayerPartyWorldSiteLocalVisibleSync.TrySync(motion, geometry, bounds, local, out _);
-        }
-
-        bool IsSafePlacementPoint(
-            SimulationWorld world,
-            float x,
-            float y,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth)
-        {
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
-                return false;
-            if (!grid.IsWalkable(cx, cy))
-                return false;
-            if (!WildernessLocalWorldProjection.IsInSafeInterior(x, y, bounds))
-                return false;
-            return !IsPointInAnySurfaceExitSlot(world, x, y, bounds, depth);
-        }
-
-        bool TryFindSafeRepairPointAvoiding(
-            SimulationWorld world,
-            float x,
-            float y,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            int maxRadius,
-            HashSet<long> occupiedCells,
-            out Vector3 safe)
-        {
-            safe = default;
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (grid == null)
-                return false;
-
-            var rawX = (int)Mathf.Floor((x - grid.OriginX) / grid.CellSize);
-            var rawY = (int)Mathf.Floor((y - grid.OriginY) / grid.CellSize);
-            var cx = Mathf.Clamp(rawX, 0, grid.Width - 1);
-            var cy = Mathf.Clamp(rawY, 0, grid.Height - 1);
-            if (grid.IsWalkable(cx, cy) &&
-                !IsCellOccupiedCell(cx, cy, occupiedCells) &&
-                IsSafeCellCenter(world, cx, cy, grid, bounds, depth, out safe))
-                return true;
-
-            for (var r = 1; r <= maxRadius; r++)
-            {
-                for (var dy = -r; dy <= r; dy++)
-                {
-                    for (var dx = -r; dx <= r; dx++)
-                    {
-                        if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r)
-                            continue;
-                        var gx = cx + dx;
-                        var gy = cy + dy;
-                        if (!grid.InBounds(gx, gy) || !grid.IsWalkable(gx, gy))
-                            continue;
-                        if (IsCellOccupiedCell(gx, gy, occupiedCells))
-                            continue;
-                        if (!IsSafeCellCenter(world, gx, gy, grid, bounds, depth, out safe))
-                            continue;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        bool IsSafeCellCenter(
-            SimulationWorld world,
-            int cx,
-            int cy,
-            WalkGrid grid,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            out Vector3 center)
-        {
-            center = default;
-            grid.CellToWorldCenter(cx, cy, out var wx, out var wy);
-            if (!WildernessLocalWorldProjection.IsInSafeInterior(wx, wy, bounds))
-                return false;
-            if (IsPointInAnySurfaceExitSlot(world, wx, wy, bounds, depth))
-                return false;
-            center = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
-            return true;
-        }
-
-        bool IsPointInAnySurfaceExitSlot(
-            SimulationWorld world,
-            float x,
-            float y,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth)
-        {
-            if (world?.LegacyHexWorld == null || world.Strategic == null)
-                return false;
-            ExitSlotScratch.Clear();
-            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, ExitSlotScratch);
-            for (var i = 0; i < ExitSlotScratch.Count; i++)
-            {
-                if (SurfaceExitZoneCalculator.PointBelongsToConnection(x, y, ExitSlotScratch[i], depth))
-                    return true;
-            }
-
-            return false;
-        }
-
-        void MarkCellOccupied(float x, float y, HashSet<long> into)
-        {
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
-                return;
-            into.Add(((long)cy << 32) | (uint)(cx & 0xFFFFFFFF));
-        }
-
-        bool IsCellOccupied(float x, float y, HashSet<long> occupiedCells)
-        {
-            var grid = _move != null ? _move.WalkGrid : null;
-            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
-                return false;
-            return IsCellOccupiedCell(cx, cy, occupiedCells);
-        }
-
-        static bool IsCellOccupiedCell(int cx, int cy, HashSet<long> occupiedCells)
-        {
-            if (occupiedCells == null || occupiedCells.Count == 0)
-                return false;
-            return occupiedCells.Contains(((long)cy << 32) | (uint)(cx & 0xFFFFFFFF));
-        }
-
-        /// <summary>
-        /// PlayerParty LocalMap materialize / transition: invalidate old-map locomotion and restore follow.
-        /// </summary>
+        /// <summary>Separate Space materialize 后重绑本地图移动与队伍跟随。</summary>
         public void OnLocalMapMaterialized(string localMapId)
         {
             if (Party == null)
                 return;
-
-            // Phase 5R-B4: Materialize 完成 → 本帧禁止 Local→Canonical 反写（ownership transition）；
-            // 同时失效 V2 geometry cache（Site/LocalMap 可能已变，下一次 sync tick 重建）。
-            _siteSyncHeld = true;
-            _siteSyncCacheGeometry = null;
-            _siteSyncCacheSiteId = string.Empty;
-            _siteSyncCacheMapId = string.Empty;
 
             var mapId = localMapId?.Trim() ?? string.Empty;
             _move?.BindLocalMapContext(mapId);
             _move?.InvalidatePartyLocalMovement(Party.Members);
             InvalidatePartyDerivedLocalActions();
             ResetFollowAfterMaterialize();
-
-            // Phase 5R-B6.1：WorldSite→Wilderness egress 的 materialize 完成点（entity 重建后、
-            // Active Character final transform 已确定）→ one-shot 对准主控。
-            // 不进入永久 Follow（SnapCameraToActiveOnce 置 Free + 一次性对准）。
-            // Phase 5R-B6.2：消费要求"已换图 + 已 AtWorldPosition"（egress 必然换图）；同图
-            // materialize（普通 WorldMap 开关 / materialize 失败后的残留）仅清理标志，不 recenter，
-            // 防泄漏到无关的后续 materialize。
-            if (_pendingEgressRecenter)
-            {
-                var pendingMapId = _pendingEgressRecenterMapId ?? string.Empty;
-                _pendingEgressRecenter = false;
-                _pendingEgressRecenterMapId = string.Empty;
-                var egressMotion = bootstrap?.Session?.World?.PlayerPartyTravel;
-                var isEgressCompletion =
-                    !string.IsNullOrEmpty(localMapId) &&
-                    !string.Equals(localMapId, pendingMapId, System.StringComparison.OrdinalIgnoreCase) &&
-                    egressMotion != null &&
-                    egressMotion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
-                if (isEgressCompletion)
-                    SnapCameraToActiveOnce();
-            }
         }
 
         /// <summary>
@@ -722,18 +321,8 @@ namespace XianXia.Unity.Host
         /// </summary>
         public void ResetTransientStateAfterSnapshotRestore()
         {
-            _localVisibleTakeoverActive = false;
-            ResetLocalVisibleAutoTravelTracking();
             _surfaceTravelExecutionArmed = false;
             ResetSurfaceAutoTravelTracking();
-            _siteSyncHeld = false;
-            _siteSyncCacheSiteId = string.Empty;
-            _siteSyncCacheMapId = string.Empty;
-            _siteSyncCacheGeometry = null;
-            _siteSyncLastFailureKind = string.Empty;
-            _siteSyncLastFailureTime = -10f;
-            _pendingEgressRecenter = false;
-            _pendingEgressRecenterMapId = string.Empty;
             _wasdHeldLastFrame = false;
             _pendingSnapshotFollowRebind = false;
             _cameraDetachedByPlayer = false;
@@ -742,8 +331,6 @@ namespace XianXia.Unity.Host
             _nextFollowRepath.Clear();
             _followerSharedActivity.Clear();
             _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
-            _lastSameExitReplanDiagnostic = string.Empty;
-            _lastSameExitReplanDiagnosticTime = -10f;
             _observedActiveCharacterId = Party != null ? Party.ActiveCharacterId : EntityId.None;
         }
 
@@ -837,9 +424,7 @@ namespace XianXia.Unity.Host
             TickPartyDerivedGroupActivity();
             TickFollowers();
             TickCombatFollow();
-            TickWildernessWorldSyncAndEdge();
             TickContinuousSurfaceAutoTravelMovement();
-            TickLegacyLocalVisibleAutoTravelMovement();
         }
 
         public void RefreshActiveControlAfterLifeStateChange()
@@ -889,8 +474,7 @@ namespace XianXia.Unity.Host
             {
                 if (!_wasdHeldLastFrame)
                 {
-                    // Phase 5C-W1: WASD interrupt cancels LocalVisible AutoTravel (keep position).
-                    CancelLocalVisibleAutoTravelForPlayerInterrupt();
+                    CancelSurfaceAutoTravelForPlayerInterrupt();
                     // Cancel RTS/Click path; Camera snaps + Hard Follow (CAMERA-E).
                     _move.CancelPresentationMovementPublic(active);
                     EnterWasdHardFollow(active);
@@ -932,269 +516,9 @@ namespace XianXia.Unity.Host
                     return bootstrap.ContinuousOutdoorSurfaceRuntime.TryStepAcrossCoverageBoundary(
                         continuousView.transform.position + new Vector3(dir.x, dir.y, 0f) * speed * continuousDeltaTime);
                 }
-                return false; // Internal chunk/Hex seams are ordinary movement, never SurfaceExit.
-            }
-            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY.
-            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
                 return false;
-
-            var gate = world.PlayerPartyTravel?.LegacySurfaceEdgeGate;
-            if (gate != null && !gate.CanAttemptEdgeTransition)
-                return false;
-
-            if (_spawner == null ||
-                !_spawner.Registry.TryGet(active, out var view) ||
-                view == null)
-                return false;
-            if (!TryResolveWildernessBounds(out var bounds))
-                return false;
-
-            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
-            SyncExitTriggerDepthToSession(world, depth);
-
-            var pos = view.transform.position;
-            var dt = Time.deltaTime;
-            if (dt <= 0f)
-                dt = Time.unscaledDeltaTime;
-            var proposedX = pos.x + dir.x * speed * dt;
-            var proposedY = pos.y + dir.y * speed * dt;
-
-            // Canonical Exit Trigger：Zone 内 + 向外；进入 Zone 本身不触发。
-            if (!WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                    world, pos.x, pos.y, proposedX, proposedY, bounds, depth, out var edgeConnection))
-            {
-                // WalkGrid 出界但尚无正式 intent：用上一帧 Local（若有）再判一次。
-                var grid = _move != null ? _move.WalkGrid : null;
-                var leavesWalkGrid = grid != null &&
-                                     !grid.TryWorldToCell(proposedX, proposedY, out _, out _);
-                if (!leavesWalkGrid)
-                    return false;
-                if (!WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                        world, pos.x, pos.y, proposedX, proposedY, bounds, depth, out edgeConnection))
-                    return false;
             }
-
-            if (!IsUsableSurfaceExit(edgeConnection))
-                return false;
-
-            var cross = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
-                world, party, edgeConnection);
-            if (!cross.IsSuccess)
-                return false;
-
-            bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-            EnsureEdgeGateCompletedAfterExpand(world);
-            return true;
-        }
-
-        void TickWildernessWorldSyncAndEdge()
-        {
-            if (HostInputGate.BlockWorldInteraction)
-                return;
-            if (bootstrap?.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)
-                return;
-
-            var session = bootstrap.Session;
-            var world = session.World;
-            var party = Party;
-            if (world?.PlayerPartyTravel == null || party == null)
-                return;
-
-            var motion = world.PlayerPartyTravel;
-            if (!motion.HasPosition)
-                return;
-
-            var continuousSurface = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            if (continuousSurface != null && continuousSurface.IsActive)
-            {
-                continuousSurface.SyncPartyPresentation();
-                return;
-            }
-
-            // Phase 5C-W1: LocalVisible AutoTravel in Wilderness keeps Host sync + edge enabled;
-            // normal moving (World execution) still early-returns (World Advance drives position).
-            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY: explicit LocalVisible executor gate.
-            var localVisibleAutoTravel =
-                LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion);
-            if (motion.IsMoving && !localVisibleAutoTravel)
-                return;
-            if (localVisibleAutoTravel && motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-                return; // WorldSite LocalVisible: keep Phase 5B (stand still, no Site Egress logic).
-            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
-                return;
-
-            if (_spawner == null ||
-                !_spawner.Registry.TryGet(party.ActiveCharacterId, out var activeView) ||
-                activeView == null)
-                return;
-
-            var pos = activeView.transform.position;
-            var localX = pos.x;
-            var localY = pos.y;
-
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
-            SyncExitTriggerDepthToSession(world, depth);
-
-            var gate = motion.LegacySurfaceEdgeGate;
-            var prevX = localX;
-            var prevY = localY;
-            var hasPrev = gate != null && gate.HasLastLocal;
-            if (hasPrev)
-            {
-                prevX = gate.LastLocalX;
-                prevY = gate.LastLocalY;
-            }
-
-            gate?.TickRearm(localX, localY, bounds);
-
-            // TransitionInProgress 或 Disarmed：禁止任何跨边（仍更新 LastLocal 供下帧）。
-            if (gate != null && !gate.CanAttemptEdgeTransition)
-            {
-                gate.NoteLocalPosition(localX, localY);
-                return;
-            }
-
-            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
-            {
-                if (hasPrev &&
-                    WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                        world, prevX, prevY, localX, localY, bounds, depth, out var siteConnection) &&
-                    IsUsableSurfaceExit(siteConnection))
-                {
-                    var exit = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
-                        world, party, siteConnection);
-                    if (exit.IsSuccess)
-                    {
-                        bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-                        EnsureEdgeGateCompletedAfterExpand(world);
-                        return;
-                    }
-                }
-
-                gate?.NoteLocalPosition(localX, localY);
-                return;
-            }
-
-            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-            {
-                gate?.NoteLocalPosition(localX, localY);
-                return;
-            }
-
-            LegacyPlayerPartyOutdoorLocalMapCompatibility.TrySyncLocalMovementToWorldPosition(
-                world, localX, localY, bounds);
-
-            // Phase 5C-W2 修复 2：LocalVisible AutoTravel 时唯一 Executor 是
-            // TickLocalVisibleAutoTravelMovement（TravelPlan official NextHex → resolved
-            // connection → TryAttemptSurfaceEdgeTransition）。这里保留 Local→World sync /
-            // LegacySurfaceEdgeGate.TickRearm / NoteLocalPosition，但禁止 Generic Edge Detector
-            // 自行选出口触发 Transition，以免物理 Trigger 选了另一个 Exit →
-            // "Exit destination is not the active NextHex"。
-            if (localVisibleAutoTravel)
-            {
-                gate?.NoteLocalPosition(localX, localY);
-                return;
-            }
-
-            if (hasPrev &&
-                WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                    world, prevX, prevY, localX, localY, bounds, depth, out var connection))
-            {
-                if (IsUsableSurfaceExit(connection))
-                {
-                    var cross = LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
-                        world, party, connection);
-                    if (cross.IsSuccess)
-                    {
-                        bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-                        EnsureEdgeGateCompletedAfterExpand(world);
-                        return;
-                    }
-                }
-            }
-
-            gate?.NoteLocalPosition(localX, localY);
-        }
-
-        static void SyncExitTriggerDepthToSession(
-            XianXia.Core.Simulation.SimulationWorld world,
-            float depth)
-        {
-            if (world?.LocalMap == null)
-                return;
-            if (world.LocalMap.ExitTriggerDepth > 0.0001f)
-                return;
-            world.LocalMap.ExitTriggerDepth = depth;
-        }
-
-        bool IsUsableSurfaceExit(SurfaceExitConnection connection) =>
-            bootstrap?.SurfaceExitZonePresenter != null &&
-            bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(connection, out _);
-
-        void EnsureEdgeGateCompletedAfterExpand(XianXia.Core.Simulation.SimulationWorld world)
-        {
-            var gate = world?.PlayerPartyTravel?.LegacySurfaceEdgeGate;
-            if (gate == null || !gate.TransitionInProgress)
-                return;
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            float sx = bounds.CenterX;
-            float sy = bounds.CenterY;
-            var party = Party;
-            if (party != null &&
-                party.HasActive &&
-                _spawner != null &&
-                _spawner.Registry.TryGet(party.ActiveCharacterId, out var view) &&
-                view != null)
-            {
-                sx = view.transform.position.x;
-                sy = view.transform.position.y;
-            }
-
-            LegacyPlayerPartyOutdoorLocalMapCompatibility.CompleteEdgeTransitionPresentation(
-                world, bounds, sx, sy);
-        }
-
-        bool TryResolveWildernessBounds(
-            out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
-        {
-            bounds = default;
-            // 真源优先：与 HostSurfaceExitZonePresenter 同一 MapLayout 解析，保证 Debug 方块 /
-            // AutoTravel 到达判定 / materialize 使用同一 bounds（WalkGrid 由同一 layout 构建，
-            // 但 layout 显式解析更稳，避免依赖 WalkGrid 时序）。
-            var session = bootstrap?.Session;
-            var mapId = session?.World?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(mapId) && session?.Registry != null)
-            {
-                var parsed = DefinitionId.Parse(mapId.Trim());
-                if (parsed.IsSuccess &&
-                    session.Registry.TryGetMapLayout(parsed.Value, out var layout) &&
-                    layout != null &&
-                    layout.Width > 0 &&
-                    layout.Height > 0)
-                {
-                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
-                    bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                        layout.OriginX, layout.OriginY, cs, layout.Width, layout.Height);
-                    return true;
-                }
-            }
-
-            var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
-            if (grid == null)
-            {
-                bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                    -20f, -20f, 1f, 40, 40);
-                return true;
-            }
-
-            bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
-            return true;
+            return false;
         }
 
         void LateUpdate()
@@ -1205,191 +529,12 @@ namespace XianXia.Unity.Host
             if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
                 return;
 
-            // Phase 5R-B4: 本帧所有 Local 移动 writer（WASD / RTS / AutoTravel / SnapWalkable）都已在
-            // Update 阶段结束，Active Transform 已最终确定 → 在此做 LocalVisible→Canonical sync。
-            TickWorldSiteCanonicalSync();
+            // 所有本帧移动完成后，把当前 Surface 表现同步回精确世界位置。
             if (bootstrap.WorldMapPanel == null || !bootstrap.WorldMapPanel.IsOpen)
                 bootstrap.ContinuousOutdoorSurfaceRuntime?.SyncPartyPresentation();
             TickCameraFollow();
         }
 
-        /// <summary>
-        /// Phase 5R-B4：WorldSite LocalVisible → Canonical 单向同步（唯一 Local→Canonical writer）。
-        /// 时机：LateUpdate（最终 Local Transform 已确定之后）。
-        /// 单向 ownership：仅 WorldMap closed + AtWorldSite + LocalMap Materialized（held=false）+
-        /// Active View 有效 + 非 departure/transition 时 Local→Canonical；
-        /// WorldMap OPEN / Materialize 完成帧 / departure → 禁止（保留旧 Canonical）。
-        /// </summary>
-        void TickWorldSiteCanonicalSync()
-        {
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var motion = world?.PlayerPartyTravel;
-            if (world == null || motion == null || !motion.HasPosition)
-                return;
-
-            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. Normal Continuous Surface frames must
-            // never resolve Site geometry, write AtWorldSite canonical state, or emit B4 diagnostics.
-            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
-                string.IsNullOrEmpty(motion.SiteId) ||
-                ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
-                world.LocalMap == null || world.LocalMap.IsInInterior ||
-                string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
-                return;
-
-            // Materialize 完成帧（OnLocalMapMaterialized 已置 held）：本帧不反写，下一帧 ownership 接管。
-            if (_siteSyncHeld)
-            {
-                _siteSyncHeld = false;
-                return;
-            }
-
-            if (HostInputGate.BlockWorldInteraction)
-                return;
-
-            var active = Party.ActiveCharacterId;
-            if (active.IsNone || _spawner == null ||
-                !_spawner.Registry.TryGet(active, out var view) ||
-                view == null)
-                return;
-
-            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
-            {
-                LogSiteSyncFailureThrottled("GeometryUnavailable", motion.SiteId);
-                return;
-            }
-
-            var isWorldMapOpen = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
-            var ctx = new WorldSiteLocalVisibleSyncContext(
-                inputBlocked: HostInputGate.BlockWorldInteraction,
-                isWorldMapOpen: isWorldMapOpen,
-                hasActiveView: true,
-                isAtWorldSite: motion.LocationKind == PlayerPartyLocationKind.AtWorldSite,
-                hasSiteId: !string.IsNullOrEmpty(motion.SiteId),
-                isDepartureTransitionCommit: motion.LegacyDeparturePhase == LegacyPlayerPartyDeparturePhase.TransitionCommit,
-                usesTravelPresentation: motion.LegacyUsesTravelPresentation,
-                isMaterializeHeld: false,
-                hasGeometry: true);
-            if (!WorldSiteLocalVisibleSyncPolicy.CanSync(ctx))
-                return;
-
-            var local = new WorldVec2(view.transform.position.x, view.transform.position.y);
-            var outcome = PlayerPartyWorldSiteLocalVisibleSync.TrySync(
-                motion, geometry, bounds, local, out _);
-            if (outcome == WorldSiteSyncOutcome.MappingFailed)
-                LogSiteSyncFailureThrottled("MappingFailed", motion.SiteId);
-            else if (outcome == WorldSiteSyncOutcome.SiteIdRejected)
-                LogSiteSyncFailureThrottled("SiteIdRejected", motion.SiteId);
-        }
-
-        /// <summary>
-        /// Phase 5R-B4：解析 / 复用 V2 geometry cache。绑定 SiteId + ActiveMapLayoutId；任一变化即重建
-        /// （Site/LocalMap 切换时失效）。构建一次后 B4 每帧复用（V2_07 已验证零堆分配热路径）。
-        /// </summary>
-        bool TryResolveSiteSyncGeometry(
-            XianXia.Core.Simulation.SimulationWorld world,
-            PlayerPartyWorldMotion motion,
-            out WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds bounds,
-            out HexFootprintSpatialGeometry geometry)
-        {
-            bounds = default;
-            geometry = null;
-
-            var mapId = world.LocalMap != null
-                ? (world.LocalMap.ActiveMapLayoutId ?? string.Empty).Trim()
-                : string.Empty;
-            var siteId = motion.SiteId ?? string.Empty;
-            if (_siteSyncCacheGeometry != null &&
-                string.Equals(_siteSyncCacheSiteId, siteId, System.StringComparison.Ordinal) &&
-                string.Equals(_siteSyncCacheMapId, mapId, System.StringComparison.Ordinal))
-            {
-                bounds = _siteSyncCacheBounds;
-                geometry = _siteSyncCacheGeometry;
-                return true;
-            }
-
-            if (string.IsNullOrEmpty(siteId))
-                return false;
-
-            WorldSite site = null;
-            if (world.Strategic?.Sites == null ||
-                !world.Strategic.Sites.TryGet(siteId, out site) ||
-                site == null)
-                return false;
-
-            if (!TryResolveSiteSyncBounds(out var newBounds))
-                return false;
-
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-            if (!WorldSiteHexFootprintSpatialMapping.TryBuildGeometry(site, hexSize, out var newGeometry) ||
-                !newGeometry.HasKernel)
-                return false;
-
-            _siteSyncCacheSiteId = siteId;
-            _siteSyncCacheMapId = mapId;
-            _siteSyncCacheBounds = newBounds;
-            _siteSyncCacheGeometry = newGeometry;
-            bounds = newBounds;
-            geometry = newGeometry;
-            return true;
-        }
-
-        /// <summary>与 <see cref="TryResolveWildernessBounds"/> 同源解析：MapLayout → WorldSiteLocalMapBounds。</summary>
-        bool TryResolveSiteSyncBounds(out WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds bounds)
-        {
-            bounds = default;
-            var session = bootstrap?.Session;
-            var mapId = session?.World?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(mapId) && session?.Registry != null)
-            {
-                var parsed = DefinitionId.Parse(mapId.Trim());
-                if (parsed.IsSuccess &&
-                    session.Registry.TryGetMapLayout(parsed.Value, out var layout) &&
-                    layout != null &&
-                    layout.Width > 0 &&
-                    layout.Height > 0)
-                {
-                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
-                    bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                        layout.OriginX, layout.OriginY, cs, layout.Width, layout.Height);
-                    return true;
-                }
-            }
-
-            var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
-            if (grid == null)
-                return false;
-            bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
-            return true;
-        }
-
-        /// <summary>mapping failure 诊断：once / state-change / throttled（&gt;2s 才再打），避免每帧刷 Console。</summary>
-        void LogSiteSyncFailureThrottled(string kind, string siteId)
-        {
-            if (string.Equals(_siteSyncLastFailureKind, kind, System.StringComparison.Ordinal) &&
-                Time.unscaledTime - _siteSyncLastFailureTime < 2f)
-                return;
-            _siteSyncLastFailureKind = kind;
-            _siteSyncLastFailureTime = Time.unscaledTime;
-            Debug.LogWarning(
-                "[B4 SiteSync] " + kind +
-                " site=" + (siteId ?? "") +
-                " map=" + (_siteSyncCacheMapId ?? "") +
-                " geometry=" + (_siteSyncCacheGeometry != null ? "cached" : "null") +
-                " held=" + _siteSyncHeld);
-        }
-
-        /// <summary>
-        /// Phase 5C-W1: drive Active via existing Local A* toward the formal Wilderness Exit
-        /// approach point while ExecutionMode=LocalVisible and LocationKind=AtWorldPosition.
-        /// WorldSite LocalVisible is deliberately ignored (Phase 5B stands still).
-        /// Wilderness Continuous Visible AutoTravel: after crossing into the next hex the driver
-        /// waits for the new LocalMap presentation to finish, then re-arms the NEW current leg and
-        /// keeps going automatically (no one-map pause, no repeated WorldMap dance).
-        /// </summary>
         void TickContinuousSurfaceAutoTravelMovement()
         {
             if (HostInputGate.BlockWorldInteraction)
@@ -1442,233 +587,6 @@ namespace XianXia.Unity.Host
                 TickContinuousSurfaceAutoTravel(world, motion, active, activeView, surface);
             if (!motion.TryGetContinuousSurfaceWaypoint(out _))
                 TryDriveFinalSurfaceArrival(world, motion, active, activeView, surface);
-        }
-
-        /// <summary>Legacy Outdoor LocalMap / Hex edge executor only.</summary>
-        void TickLegacyLocalVisibleAutoTravelMovement()
-        {
-            if (HostInputGate.BlockWorldInteraction)
-                return;
-
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var party = Party;
-            if (world == null || party == null || !party.HasActive)
-                return;
-
-            var motion = world.PlayerPartyTravel;
-            var continuousPhysicalScope = bootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true;
-            // Phase 5R-B6：WorldSite departure approach —— 角色在 Site LocalMap 内自动走向正式出口。
-            // 条件：AtWorldSite + AutoTravel + ExecutionMode=LocalVisible + departure pending
-            // （旧 BeginTravel 已生成 DeparturePlan；legacy compatibility 将模式切为 LocalVisible）。
-            if (!continuousPhysicalScope &&
-                motion != null &&
-                motion.IsMoving &&
-                motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                motion.IsLegacySiteDeparturePending)
-            {
-                TickWorldSiteDepartureApproach(world, motion, party);
-                return;
-            }
-
-            // LocalVisible active = travel preserved + ExecutionMode LocalVisible + continuous
-            // Wilderness position (WorldSite LocalVisible stays Phase 5B: stand still).
-            var isLocalVisible =
-                motion != null &&
-                motion.IsMoving &&
-                motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
-
-            if (!isLocalVisible)
-            {
-                // Left LocalVisible (e.g. WorldMap reopened, travel cancelled): only clear Host
-                // execution state. Never touch TravelPlan / Segment / Destination / WorldPosition /
-                // CameraDetachedByPlayer here.
-                _localVisibleTakeoverActive = false;
-                ResetLocalVisibleAutoTravelTracking();
-                return;
-            }
-
-            if (continuousPhysicalScope)
-                return;
-
-            ConsumeLocalVisibleResumeRequest(motion);
-
-            // Rising edge: ExecutionMode entered LocalVisible (1st / 2nd / 3rd Close behave
-            // identically). Every takeover re-arms the CURRENT leg unconditionally, regardless of
-            // a previously issued Order, a different LegacyHexSegmentIndex, a stale paused flag or an
-            // identical last target.
-            if (!_localVisibleTakeoverActive)
-            {
-                _localVisibleTakeoverActive = true;
-                ReArmCurrentLocalLeg(motion, cancelPresentationMovement: true);
-            }
-
-            // Crossed into the next hex DURING this LocalVisible session: the new Wilderness
-            // LocalMap is loading. Wait for the edge presentation to finish, then re-arm the
-            // CURRENT (new) leg and continue driving automatically (no one-map pause).
-            var gate = motion.LegacySurfaceEdgeGate;
-            if (_autoTravelLegSegmentIndex >= 0 &&
-                motion.LegacyHexSegmentIndex != _autoTravelLegSegmentIndex)
-            {
-                if (gate != null && gate.TransitionInProgress)
-                    return; // new LocalMap still finalizing; retry next frame
-                _autoTravelLegSegmentIndex = motion.LegacyHexSegmentIndex;
-                _lastAutoTravelTarget = default; // force re-issue for the new leg
-            }
-
-            // Failed drive attempts back off briefly instead of re-path spamming every frame.
-            if (Time.time < _autoTravelRetryCooldownUntil)
-                return;
-
-            var active = party.ActiveCharacterId;
-            if (active.IsNone || _spawner == null)
-                return;
-            if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
-                return;
-
-            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.TryResolveActiveLeg(
-                    motion, out var currentHex, out var nextHex, out var directionIndex))
-            {
-                // No remaining leg: either the path ended at the final Wilderness destination hex
-                // (walk to its LocalMap center, then FinishArrival) or the plan is exhausted.
-                LastTransitionStatus = "FinalLeg";
-                TryDriveFinalWildernessArrival(world, motion);
-                return;
-            }
-
-            // Phase 5R-B7A：WorldSite footprint 与普通 Surface 共用 passability。
-            // 目标 Site 仍在 ingress 时完成 Travel；非目标 Site 由 transition service 保留
-            // 同一 HexPath/Destination，进入 Site LocalMap 后自动形成正式 departure 并继续。
-
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.TryResolveWildernessExitConnection(
-                    world, bounds, currentHex, nextHex, directionIndex, out var connection))
-            {
-                LastTransitionStatus = "NoExit";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // No Exit => back off.
-                return;
-            }
-
-            LastExitSourceHex = connection.SourceHex.ToString();
-            LastExitDestinationHex = connection.DestinationHex.ToString();
-            LastExitSlotRect =
-                "(" + connection.SlotRect.MinX.ToString("0.##") + "," + connection.SlotRect.MinY.ToString("0.##") +
-                ")-(" + connection.SlotRect.MaxX.ToString("0.##") + "," + connection.SlotRect.MaxY.ToString("0.##") + ")";
-
-            var activePos = activeView.transform.position;
-            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
-            if (bootstrap?.SurfaceExitZonePresenter == null ||
-                !bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(
-                    connection, out var reachablePoint))
-            {
-                LastTransitionStatus = "ExitLocallyUnreachable";
-                LastTransitionFailureReason = "当前场景没有通往该目的地的可达出口。";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return;
-            }
-            var reachableX = reachablePoint.x;
-            var reachableY = reachablePoint.y;
-
-            // 到达正式 Exit = 角色位置进入该 connection 的 SlotRect（唯一权威判定，
-            // 与真实 Trigger / 半透明 Debug 方块同一真源）。不再使用 ExitCenter 半径 fallback。
-            var exitTestX = activePos.x;
-            var exitTestY = activePos.y;
-            var arrivedAtExit = SurfaceExitZoneCalculator.PointBelongsToConnection(
-                exitTestX, exitTestY, connection, depth);
-            LastActiveInsideExitSlot = arrivedAtExit;
-
-            if (arrivedAtExit)
-            {
-                // LegacySurfaceEdgeGate 未 armed：不向外推（LocalMap bounds 不允许真正离图）。
-                // 先让 Active 走向地图中心（Safe Interior），TickRearm 途中重新 armed，
-                // 下一轮到达 Exit 即可触发 —— 绝不永久顶在边缘（不重写 Gate）。
-                if (gate != null && !gate.CanAttemptEdgeTransition)
-                {
-                    LastTransitionStatus = "GateDisarmed";
-                    LastTransitionFailureReason = string.Empty;
-                    var centerTarget =
-                        new Vector3(bounds.CenterX, bounds.CenterY, HostPresentationSpace.EntityZ);
-                    var centerMoving = _move != null && _move.IsMoving(active);
-                    var sameCenter = Vector3.Distance(centerTarget, _lastAutoTravelTarget) < 0.05f;
-                    if (!(centerMoving && sameCenter) &&
-                        (_move == null ||
-                         !_move.OrderEntityToWorldPoint(active, centerTarget, null, issueStop: false,
-                             completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand)))
-                    {
-                        _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                        return;
-                    }
-
-                    _lastAutoTravelTarget = centerTarget;
-                    SyncLocalVisibleProgress(world, motion);
-                    return;
-                }
-
-                var cross = LegacyPlayerPartyLocalVisibleTravelCompatibility
-                    .TryCrossWildernessEdgePreservingLocalVisibleAutoTravel(
-                        world, party, connection.DestinationHex);
-                if (cross.IsSuccess)
-                {
-                    LastTransitionStatus = "Crossed->" + nextHex;
-                    LastTransitionFailureReason = string.Empty;
-                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-                    EnsureEdgeGateCompletedAfterExpand(world);
-                    return;
-                }
-
-                LastTransitionStatus = "Rejected";
-                LastTransitionFailureReason = cross.Error.ToString();
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // 触发被拒（gate 竞争等）→ 退避。
-                return;
-            }
-
-            // 未到达 Exit：Local A* 正常走向该 connection 的 approach 点（Exit Zone 内侧，
-            // 不要求目标位于 bounds 外）。
-            var localX = reachableX;
-            var localY = reachableY;
-            // 权威校验：请求目标必须 ∈ 正式 SlotRect ∩ playable bounds。几何修正后 approach
-            // 恒在其中；此处仅作 clamp 防御（非 magic offset），禁止 Pathfinder 把非法 Exit
-            // target 静默解析到不属于 SlotRect 的墙角。
-            if (!SurfaceExitZoneCalculator.PointBelongsToConnection(
-                    localX, localY, connection, depth))
-            {
-                var slot = connection.SlotRect;
-                localX = Mathf.Clamp(
-                    localX,
-                    Mathf.Max(slot.MinX, bounds.MinX),
-                    Mathf.Min(slot.MaxX, bounds.MaxX));
-                localY = Mathf.Clamp(
-                    localY,
-                    Mathf.Max(slot.MinY, bounds.MinY),
-                    Mathf.Min(slot.MaxY, bounds.MaxY));
-            }
-
-            var target = new Vector3(localX, localY, HostPresentationSpace.EntityZ);
-
-            var alreadyMoving = _move != null && _move.IsMoving(active);
-            var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
-            if (alreadyMoving && sameTarget)
-            {
-                SyncLocalVisibleProgress(world, motion);
-                return;
-            }
-
-            if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
-                    exactGoal: true))
-            {
-                LastTransitionStatus = "PathBlocked";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // A* failed => back off.
-                return;
-            }
-
-            _lastAutoTravelTarget = target;
-            SyncLocalVisibleProgress(world, motion);
         }
 
         void TickContinuousSurfaceAutoTravel(
@@ -2013,342 +931,15 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>
-        /// Phase 5R-B6：WorldSite LocalVisible → 正式出口 approach 驱动。
-        /// 角色在 Site LocalMap 内自动走向 DeparturePlan 的正式 <see cref="SurfaceExitConnection"/>
-        /// （由 TryBuildPathLeavingSite 的 first outside hex 决定，不按 Anchor/Presence/最近边猜测）：
-        ///  1. departure phase Planned → Approaching（LocalVisible owns，B4 继续 Local→Canonical）；
-        ///  2. 解析正式 connection（真实 MapLayout bounds → SlotRect 与 presenter 视觉方块同源）
-        ///     → BoundaryContactWorld → V2 WorldToLocal；
-        ///  3. Local A* 驱动 → 到达正式 SlotRect 触发带（approach 目标权威 clamp 进触发带内，
-        ///     不再停在带外）→ TransitionCommit（B4 停）→
-        ///     TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel 正式 egress
-        ///     （AtWorldSite → AtWorldPosition + EnterLegacyWildernessLocalMap），原 route 继续。
-        /// 任何失败：不 teleport、不 fallback，保留 AtWorldSite + 当前 Canonical，throttled 诊断。
-        /// cross 失败回退 Approaching（恢复 B4），不残留 TransitionCommit 卡死。
-        /// </summary>
-        void TickWorldSiteDepartureApproach(
-            XianXia.Core.Simulation.SimulationWorld world,
-            PlayerPartyWorldMotion motion,
-            PlayerPartyRuntime party)
-        {
-            // WorldSite departure 不经过 Wilderness 的 rising-edge 分支；takeover 后同样必须
-            // 清理 stale target / movement，确保关闭 WorldMap 即重新发出正式出口路径。
-            ConsumeLocalVisibleResumeRequest(motion);
-            if (!_localVisibleTakeoverActive)
-            {
-                _localVisibleTakeoverActive = true;
-                ReArmCurrentLocalLeg(motion, cancelPresentationMovement: true);
-            }
-
-            if (motion.LegacyDeparturePhase == LegacyPlayerPartyDeparturePhase.Planned)
-                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
-
-            var active = party != null ? party.ActiveCharacterId : EntityId.None;
-            if (active.IsNone || _spawner == null ||
-                !_spawner.Registry.TryGet(active, out var activeView) ||
-                activeView == null)
-                return;
-
-            var siteId = motion.SiteId ?? string.Empty;
-            WorldSite site = null;
-            if (string.IsNullOrEmpty(siteId) ||
-                world.Strategic?.Sites == null ||
-                !world.Strategic.Sites.TryGet(siteId, out site) ||
-                site == null)
-            {
-                LastTransitionStatus = "DepartureNoSite";
-                return;
-            }
-
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-
-            // 真实 Site LocalMap playable bounds（与 HostSurfaceExitZonePresenter 同源）→
-            // connection.SlotRect 与视觉方块一致。
-            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
-            {
-                LastTransitionStatus = "DepartureNoGeometry";
-                return;
-            }
-
-            var wildBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                bounds.OriginX, bounds.OriginY, bounds.CellSize, bounds.Width, bounds.Height);
-
-            // 正式出口连接：DeparturePlan 的 first outside hex（TryBuildPathLeavingSite 已选）。
-            if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
-                    world,
-                    site,
-                    motion.LegacySiteDepartureFootprintHex,
-                    motion.LegacySiteDepartureExitHex,
-                    hexSize,
-                    wildBounds,
-                    out var connection))
-            {
-                LastTransitionStatus = "DepartureNoConnection";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return;
-            }
-
-            var activePos = activeView.transform.position;
-            var authoredDepth = world?.LocalMap != null ? world.LocalMap.ExitTriggerDepth : 0f;
-            var depth = authoredDepth > 0.0001f
-                ? authoredDepth
-                : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
-            if (bootstrap?.SurfaceExitZonePresenter == null ||
-                !bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(
-                    connection, out var reachablePoint))
-            {
-                if (TryReplanWorldSiteDeparture(world, party, site, hexSize, wildBounds, depth, activePos, connection.DestinationHex))
-                {
-                    LogWorldSiteDepartureReplan(
-                        connection.DestinationHex,
-                        motion.LegacySiteDepartureExitHex,
-                        activePos);
-                    LastTransitionStatus = "DepartureReplanned " + connection.DestinationHex + "→" + motion.LegacySiteDepartureExitHex;
-                    _lastAutoTravelTarget = default;
-                    _move.CancelPresentationMovementPublic(active);
-                    return;
-                }
-                LastTransitionStatus = "DepartureNoReachableExit";
-                LastTransitionFailureReason = "当前场景没有通往该目的地的可达出口。";
-                PlayerPartyTravelRuntimeService.CancelTravel(world);
-                return;
-            }
-            var reachableX = reachablePoint.x;
-            var reachableY = reachablePoint.y;
-
-            // 到达判定：角色进入该 connection 的 SlotRect（与 presenter 视觉方块同一真源：
-            // 同一 connection → 同一真实 bounds 派生 SlotRect）。
-            var arrivedAtExit = SurfaceExitZoneCalculator.PointBelongsToConnection(
-                activePos.x, activePos.y, connection, depth);
-
-            if (arrivedAtExit)
-            {
-                // 正式 egress：先置 TransitionCommit（B4 停止），随后 egress 保留原 route。
-                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.TransitionCommit);
-                var exitsToContinuous = bootstrap?.Session?.Registry != null &&
-                                        OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
-                                            bootstrap.Session.Registry,
-                                            connection.BoundaryContactWorldX,
-                                            connection.BoundaryContactWorldY,
-                                            out _);
-                var cross = exitsToContinuous
-                    ? LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitWorldSiteEgressToContinuousWilderness(
-                        world, party, connection)
-                    : LegacyPlayerPartyLocalVisibleTravelCompatibility
-                        .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, connection);
-                if (cross.IsSuccess)
-                {
-                    LastTransitionStatus = "SiteExit->" + connection.DestinationHex;
-                    LastTransitionFailureReason = string.Empty;
-                    // Phase 5R-B6.1：请求 egress 后 materialize 完成的 one-shot recenter
-                    // （OnLocalMapMaterialized 消费，final transform 确定后对准主控）。
-                    // B6.2：记录 egress 时 LocalMapId，消费要求换图，防泄漏误 recenter。
-                    _pendingEgressRecenter = true;
-                    _pendingEgressRecenterMapId =
-                        world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
-                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-                    return;
-                }
-
-                // Phase 5R-B6.2：cross 失败 → 回退 Approaching（恢复 B4 sync），不残留
-                // TransitionCommit 卡死；保留当前位置可重试，不 teleport。
-                motion.SetLegacyDeparturePhase(LegacyPlayerPartyDeparturePhase.Approaching);
-                LastTransitionStatus = "SiteExitRejected";
-                LastTransitionFailureReason = cross.Error.ToString();
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return;
-            }
-
-            // 未到达：正式 approach 点（起点 = connection.ExitCenterLocal（真实 bounds 周界，
-            // presenter 同源）→ 沿 inward 退正式 inset → 权威 clamp 进 SlotRect 触发带内；
-            // 保证 A* 终点进入触发区，到达即 crossing，不再停在带外）。
-            var target = new Vector3(reachableX, reachableY, HostPresentationSpace.EntityZ);
-
-            var alreadyMoving = _move != null && _move.IsMoving(active);
-            var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
-            if (alreadyMoving && sameTarget)
-            {
-                SyncLocalVisibleProgress(world, motion);
-                return;
-            }
-
-            if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
-                    exactGoal: true))
-            {
-                LastTransitionStatus = "DeparturePathBlocked";
-                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return;
-            }
-
-            _lastAutoTravelTarget = target;
-            SyncLocalVisibleProgress(world, motion);
-        }
-
-        void LogWorldSiteDepartureReplan(HexCoord oldExit, HexCoord newExit, Vector3 activePosition)
-        {
-            var key = oldExit + "→" + newExit;
-            if (string.Equals(_lastSameExitReplanDiagnostic, key, System.StringComparison.Ordinal) &&
-                Time.unscaledTime - _lastSameExitReplanDiagnosticTime < 2f)
-                return;
-            _lastSameExitReplanDiagnostic = key;
-            _lastSameExitReplanDiagnosticTime = Time.unscaledTime;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            var message = "[SiteDeparture] AvailabilityResult=false" +
-                " ExpectedExit=" + oldExit +
-                " CurrentActiveLocalPos=" + activePosition.x + "," + activePosition.y +
-                " ReachableExitCount=" + ReachableExitHexScratch.Count +
-                " ReplanOldExit=" + oldExit +
-                " ReplanNewExit=" + newExit +
-                " ReplanChanged=" + (!oldExit.Equals(newExit));
-            if (oldExit.Equals(newExit))
-                Debug.LogWarning("RepeatedWorldSiteDepartureReplanSameExit " + message, this);
-            else
-                Debug.Log(message, this);
-#endif
-        }
-
-        bool TryReplanWorldSiteDeparture(
-            XianXia.Core.Simulation.SimulationWorld world,
-            PlayerPartyRuntime party,
-            WorldSite site,
-            float hexSize,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            Vector3 activePos,
-            HexCoord oldExit)
-        {
-            ExitSlotScratch.Clear();
-            WorldSiteFootprintExitConnectionResolver.CollectConnections(
-                world, site, hexSize, bounds, depth,
-                SurfaceExitZoneCalculator.DefaultSlotSpanFraction, ExitSlotScratch);
-            ReachableExitHexScratch.Clear();
-            for (var i = 0; i < ExitSlotScratch.Count; i++)
-            {
-                var candidate = ExitSlotScratch[i];
-                if (candidate.DestinationHex.Equals(oldExit))
-                    continue;
-                if (IsUsableSurfaceExit(candidate))
-                    ReachableExitHexScratch.Add(candidate.DestinationHex);
-            }
-            return LegacyPlayerPartyHexTravelCompatibility.TryReplanCurrentWorldSiteDeparture(
-                world, party, ReachableExitHexScratch);
-        }
-
-        void SyncLocalVisibleProgress(
-            XianXia.Core.Simulation.SimulationWorld world,
-            PlayerPartyWorldMotion motion)
-        {
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-            LegacyPlayerPartyLocalVisibleTravelCompatibility.SyncSegmentProgressFromWorldPosition(motion, hexSize);
-        }
-
-        /// <summary>
-        /// Phase 5C-W2: Final Wilderness Arrival（专用完成路径）。跨入目标 Wilderness Hex 后保留
-        /// AutoTravel / LocalVisible，驱动 Active 用既有 Local A* 真实走向该 LocalMap 中心；
-        /// 到达中心附近后才走 CompleteWildernessFinalArrival —— 只结束 AutoTravel，不 Snap /
-        /// 不 ClearPartyWorldPresentationCache / 不重新 Materialize，位置保持一致。
-        /// 走向中心的过程会让 LegacySurfaceEdgeGate 自然离开边缘并 re-arm。
-        /// </summary>
-        void TryDriveFinalWildernessArrival(
-            XianXia.Core.Simulation.SimulationWorld world,
-            PlayerPartyWorldMotion motion)
-        {
-            if (!LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion))
-                return;
-            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-                return; // WorldSite：不在此范围。
-            if (!motion.HasContinuousPhysicalDestination &&
-                !motion.LegacyCurrentHex.Equals(motion.LegacyDestinationHex))
-                return; // 尚未跨入目标 Hex。
-
-            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            if (active.IsNone || _spawner == null ||
-                !_spawner.Registry.TryGet(active, out var activeView) ||
-                activeView == null)
-                return;
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            var pos = activeView.transform.position;
-
-            // 到达判定：真正接近 LocalMap 中心（由 bounds 推导，非 magic offset），而非 Safe
-            // Interior（50x50 图离边约 2 格即满足，不是中心）。角色用 Local A* 真实走向中心。
-            var centerRadius = Mathf.Max(0.5f, Mathf.Min(bounds.HalfWidth, bounds.HalfHeight) * 0.25f);
-            var dxCenter = pos.x - bounds.CenterX;
-            var dyCenter = pos.y - bounds.CenterY;
-            var arrived = dxCenter * dxCenter + dyCenter * dyCenter <= centerRadius * centerRadius;
-            if (arrived)
-            {
-                // 最后一次 LocalPosition → WorldPosition sync（保持连续位置一致，不 Snap）。
-                LegacyPlayerPartyOutdoorLocalMapCompatibility.TrySyncLocalMovementToWorldPosition(
-                    world, pos.x, pos.y, bounds);
-                var finish = LegacyPlayerPartyHexTravelCompatibility.CompleteWildernessFinalArrival(world);
-                if (finish.IsFailure)
-                {
-                    LastTransitionStatus = "FinalArrivalRejected";
-                    LastTransitionFailureReason = finish.Error.ToString();
-                }
-                else
-                {
-                    LastTransitionStatus = "Arrived";
-                    LastTransitionFailureReason = string.Empty;
-                }
-
-                // Arrival 完成后角色已在 Wilderness 中心区域：让 Gate 通过现有 re-arm 逻辑
-                // 恢复为可再次 Transition 的状态（不强制、不绕过）。
-                TryRearmEdgeGateIfInSafeInterior(motion);
-                return;
-            }
-
-            var center = new Vector3(bounds.CenterX, bounds.CenterY, HostPresentationSpace.EntityZ);
-            var alreadyMoving = _move != null && _move.IsMoving(active);
-            var sameTarget = Vector3.Distance(center, _lastAutoTravelTarget) < 0.05f;
-            if (alreadyMoving && sameTarget)
-            {
-                SyncLocalVisibleProgress(world, motion);
-                return;
-            }
-
-            if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, center, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
-                return; // A* 失败：保持现状，下帧重试。
-
-            _lastAutoTravelTarget = center;
-            SyncLocalVisibleProgress(world, motion);
-        }
-
-        void CancelLocalVisibleAutoTravelForPlayerInterrupt()
+        /// <summary>玩家直接接管移动时取消当前 Surface 自动旅行。</summary>
+        void CancelSurfaceAutoTravelForPlayerInterrupt()
         {
             var world = bootstrap?.Session?.World;
-            if (world == null)
+            if (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(world?.PlayerPartyTravel))
                 return;
-            var motion = world.PlayerPartyTravel;
-            if (motion == null ||
-                (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
-                 !LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion)))
-                return;
-
             PlayerPartyTravelRuntimeService.CancelTravel(world);
-            _localVisibleTakeoverActive = false;
-            ResetLocalVisibleAutoTravelTracking();
             _surfaceTravelExecutionArmed = false;
             ResetSurfaceAutoTravelTracking();
-        }
-
-        void ResetLocalVisibleAutoTravelTracking()
-        {
-            _resumeLocalVisibleTravelRequested = false;
-            _autoTravelLegSegmentIndex = -1;
-            _lastAutoTravelTarget = default;
-            _autoTravelRetryCooldownUntil = 0f;
         }
 
         void ResetSurfaceAutoTravelTracking(bool preserveResumeRequest = false)
@@ -2390,41 +981,6 @@ namespace XianXia.Unity.Host
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
             if (cancelPresentationMovement && !active.IsNone)
                 _move?.CancelPresentationMovementPublic(active);
-        }
-
-        bool ConsumeLocalVisibleResumeRequest(PlayerPartyWorldMotion motion)
-        {
-            if (!_resumeLocalVisibleTravelRequested)
-                return false;
-
-            _resumeLocalVisibleTravelRequested = false;
-            _localVisibleTakeoverActive = true;
-            ReArmCurrentLocalLeg(motion, cancelPresentationMovement: false);
-            return true;
-        }
-
-        /// <summary>
-        /// Fresh LocalVisible takeover: unconditionally re-arm the current leg.
-        /// - clears the paused flag
-        /// - anchors the leg to the CURRENT LegacyHexSegmentIndex
-        /// - clears last target / any issued Local Move so the A* re-issues for the current Exit
-        /// </summary>
-        void ReArmCurrentLocalLeg(
-            PlayerPartyWorldMotion motion,
-            bool cancelPresentationMovement)
-        {
-            _autoTravelLegSegmentIndex = motion != null ? motion.LegacyHexSegmentIndex : -1;
-            _lastAutoTravelTarget = default;
-            _autoTravelRetryCooldownUntil = 0f;
-
-            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            if (cancelPresentationMovement && !active.IsNone && _move != null)
-                _move.CancelPresentationMovementPublic(active);
-
-            // 新一趟 AutoTravel 开始时：若角色当前已处于正式 Safe Interior，立即通过现有
-            // Gate re-arm 逻辑恢复（TickRearm 本身要求 Safe Interior 且不强制）。
-            // 若不在 Safe Interior，保持现有规则，不绕过 Gate。
-            TryRearmEdgeGateIfInSafeInterior(motion);
         }
 
         [System.Diagnostics.Conditional("UNITY_EDITOR"),
@@ -2513,35 +1069,8 @@ namespace XianXia.Unity.Host
                 " ActualPositionDelta=" + actualDelta.ToString("0.###") +
                 " CanonicalDelta=" + canonicalDelta.ToString("0.###") +
                 " WaitingReason=" + (_continuousWaitingReason ?? string.Empty) +
-                " HostMove.IsMoving=" + hostMoving +
-                " derivedHex=" + motion.LegacyCurrentHex,
+                " HostMove.IsMoving=" + hostMoving,
                 this);
-        }
-
-        /// <summary>
-        /// 仅当角色位置属于正式 Safe Interior 时，通过现有 PlayerPartySurfaceEdgeGate.TickRearm
-        /// 恢复 Gate。不强制 armed、不绕过 Gate、不新增状态机。
-        /// </summary>
-        void TryRearmEdgeGateIfInSafeInterior(PlayerPartyWorldMotion motion)
-        {
-            if (motion?.LegacySurfaceEdgeGate == null)
-                return;
-            if (motion.LegacySurfaceEdgeGate.CanAttemptEdgeTransition)
-                return; // 已 armed：无需处理。
-
-            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            if (active.IsNone || _spawner == null ||
-                !_spawner.Registry.TryGet(active, out var view) ||
-                view == null)
-                return;
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            var pos = view.transform.position;
-            if (!WildernessLocalWorldProjection.IsInSafeInterior(pos.x, pos.y, bounds))
-                return; // 不在 Safe Interior：保持现有规则，不绕过。
-
-            motion.LegacySurfaceEdgeGate.TickRearm(pos.x, pos.y, bounds);
         }
 
         static Vector2 ReadWasdDirection()
@@ -2737,9 +1266,9 @@ namespace XianXia.Unity.Host
             var offset = FollowerOffset(followerIndex);
             var goal = activeView.transform.position + offset;
             goal.z = HostPresentationSpace.EntityZ;
-            // Phase 5R-B6.7（P0）：普通 Follow / Rebind 是内部 presentation 追随，不是玩家 Stop 命令。
+            // 普通 Follow / Rebind 是内部 presentation 追随，不是玩家 Stop 命令。
             // issueStop:true 会发 Domain Stop（StopOne → commandBridge → CancelTravel），
-            // 错误取消整队 PlayerParty LocalVisible AutoTravel。OrderEntityToWorldPoint(issueStop:false)
+            // 错误取消整队 PlayerParty Surface AutoTravel。OrderEntityToWorldPoint(issueStop:false)
             // 仍会 ClearPath/ClearPending 并重建 Local A* path（见 HostMoveController:426）。
             _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: false,
                 completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
@@ -2967,19 +1496,14 @@ namespace XianXia.Unity.Host
             if (world?.PlayerPartyTravel != null)
             {
                 var sessionMotion = world.PlayerPartyTravel;
-                // Travel ended / cancelled: next LocalVisible takeover is a NEW session.
+                // Travel ended or cancelled: the next Surface route is a new camera session.
                 if (!sessionMotion.IsMoving)
                     _hasAutoTravelSession = false;
             }
 
             if (world?.PlayerPartyTravel != null &&
-                (PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(world.PlayerPartyTravel) ||
-                 LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel)) &&
-                (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
-                 // Phase 5R-B6.2：WorldSite DepartureApproach（AtWorldSite + departure pending + LocalVisible
-                 // AutoTravel）也是 LocalVisible execution —— Camera 跟随 Active Character。
-                 (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                  world.PlayerPartyTravel.IsLegacySiteDeparturePending)))
+                PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(world.PlayerPartyTravel) &&
+                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
                 if (!_hasAutoTravelSession)
                 {
@@ -2990,7 +1514,7 @@ namespace XianXia.Unity.Host
                 if (_cameraRig.ConsumeUserMiddlePanThisFrame())
                     _cameraDetachedByPlayer = true; // player took the camera: stay detached
                 if (!_cameraDetachedByPlayer)
-                    _cameraRig.SoftFollow(view.transform.position, localVisibleAutoTravelFollowLerp);
+                    _cameraRig.SoftFollow(view.transform.position, surfaceAutoTravelFollowLerp);
                 return;
             }
 

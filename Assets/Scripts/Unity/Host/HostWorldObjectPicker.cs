@@ -62,7 +62,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (TryPickFactionFlag(world, layout, continuous, point, out var flag))
+            if (TryPickFactionFlag(world, continuous, point, out var flag))
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.FactionFlag,
                     factionFlagId: flag.FlagId,
@@ -118,7 +118,7 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        static bool TryPickFactionFlag(SimulationWorld world, MapLayoutDefinition layout,
+        static bool TryPickFactionFlag(SimulationWorld world,
             ContinuousOutdoorSurfaceRuntime continuous, Vector3 point, out FactionFlagState picked)
         {
             picked = null;
@@ -135,22 +135,15 @@ namespace XianXia.Unity.Host
                 }
                 return false;
             }
-            if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var local) ||
-                local.Kind != LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex ||
-                !world.Strategic.FactionFlags.TryGetAt(local.WildernessHex, out var legacy) || legacy == null ||
-                !HostFactionFlagQuery.TryPickAtWorld(legacy, layout, point, out _)) return false;
-            picked = legacy; return true;
+            return false;
         }
 
         static bool IsContinuousFlagLoaded(FactionFlagState flag, ContinuousOutdoorSurfaceRuntime continuous)
         {
-            var x = flag.WorldX; var y = flag.WorldY;
-            if (!flag.HasWorldPosition)
-            {
-                if (flag.IsSiteCore) return false;
-                XianXia.Core.World.Hex.HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out x, out y);
-            }
-            return continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, x, y);
+            return flag.HasWorldPosition &&
+                   string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal) &&
+                   continuous.IsWorldPositionLoaded(
+                       continuous.ActiveSurfaceId, flag.WorldX, flag.WorldY);
         }
 
         static bool TryPickWorkArea(SimulationWorld world, Vector3 point, float radius, bool housing,

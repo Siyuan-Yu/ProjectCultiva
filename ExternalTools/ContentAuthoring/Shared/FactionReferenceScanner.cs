@@ -6,7 +6,7 @@ public sealed record FactionReferenceHit(string FilePath, string Context, string
 
 /// <summary>
 /// 删除势力前的引用保护扫描（WorldGraphEditor Faction Manager 用）：
-/// 只读 Data 下的 hexWorld / formalArmy / scenario / roster JSON，找出所有引用了指定 factionId 的字段。
+/// 只读 Data 下的 current Surface / npcSquad / scenario / roster JSON，找出所有引用了指定 factionId 的字段。
 /// 通用 JsonNode 遍历（不绑定强类型 schema）：凡值为目标 factionId 的字段都被记录，
 /// Context 取所在 definition 的 id / siteId / regionId 便于设计师定位。
 /// </summary>

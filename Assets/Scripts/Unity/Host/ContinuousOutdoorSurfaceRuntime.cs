@@ -11,7 +11,6 @@ using XianXia.Core.Navigation;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
@@ -38,7 +37,6 @@ namespace XianXia.Unity.Host
         SimulationWorld _navigationStateWorld;
         ulong _observedDestructibleTopologyRevision;
         bool _dynamicNavigationDirty;
-        SimulationWorld _legacyOutdoorRestoreMigrationWorld;
         SimulationWorld _snapshotRestoredWorld;
         bool _isSnapshotPresentationRebuild;
         bool _partySurfaceAuthorityInvalidReported;
@@ -47,7 +45,6 @@ namespace XianXia.Unity.Host
         HostDemoTileMap _tileMap;
         OutdoorSurfaceCoordinateMapper _mapper;
         OutdoorSurfaceGeographyDefinition _geography;
-        ulong _lastStrategicMaterializationTick = ulong.MaxValue;
         readonly Dictionary<EntityId, Vector3> _lastLegalMembers = new Dictionary<EntityId, Vector3>();
         readonly HashSet<EntityId> _continuousSitePopulation = new HashSet<EntityId>();
         // Active NPC Squad members share the Continuous materialization board, while their
@@ -134,8 +131,6 @@ namespace XianXia.Unity.Host
             " SpatialInvalid=[" + OpeningPopulationSpatialInvalid + "]";
         public IEnumerable<SurfaceChunkCoord> LoadedChunks => _loaded;
         public OutdoorSurfaceCoordinateMapper Mapper => _mapper;
-        public float ActiveHexSize => _bootstrap?.Session?.World?.LegacyHexWorld?.HexSize > 0f
-            ? _bootstrap.Session.World.LegacyHexWorld.HexSize : 1f;
         public bool TryGetBakedPlacementFootprint(
             string kind, string boundLocationId,
             out float minX, out float maxX, out float minY, out float maxY)
@@ -285,6 +280,50 @@ namespace XianXia.Unity.Host
             return _loaded.Contains(_mapper.WorldToChunk(worldX, worldY));
         }
 
+        /// <summary>
+        /// Lightweight boundary signal for travelers crossing the already-loaded neighborhood.
+        /// Exact positions are excluded, so movement within the same side stays clean.
+        /// </summary>
+        public ulong CaptureMovingEntityLoadedScopeFingerprint()
+        {
+            var world = _bootstrap?.Session?.World;
+            if (!IsActive || world?.Strategic == null)
+                return 0;
+
+            const ulong offset = 14695981039346656037UL;
+            const ulong prime = 1099511628211UL;
+            var hash = offset;
+            foreach (var pair in world.Strategic.SquadWorldMotions.Motions)
+            {
+                if (pair.Value == null || !pair.Value.IsMoving ||
+                    !world.Strategic.Squads.TryGet(pair.Key, out var squad) || squad == null)
+                    continue;
+                for (var i = 0; i < pair.Key.Length; i++)
+                {
+                    hash ^= pair.Key[i];
+                    hash *= prime;
+                }
+                hash ^= IsFieldSquadInLoadedNeighborhood(squad, pair.Value) ? 1UL : 0UL;
+                hash *= prime;
+            }
+
+            foreach (var pair in world.BackgroundCharacterTravel.All)
+            {
+                if (pair.Value?.IsMoving != true ||
+                    !world.WorldPresence.TryGet(new EntityId(pair.Key), out var presence) ||
+                    presence == null || !presence.HasContinuousWorldPosition)
+                    continue;
+                hash ^= pair.Key;
+                hash *= prime;
+                hash ^= IsWorldPositionLoaded(
+                    presence.PersonalSurfaceId, presence.WorldPosX, presence.WorldPosY)
+                    ? 1UL
+                    : 0UL;
+                hash *= prime;
+            }
+            return hash;
+        }
+
         public bool IsBoundContinuousManualCombat(SimulationWorld world)
         {
             var state = world?.Strategic?.ContinuousManualCombat;
@@ -399,15 +438,6 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrEmpty(_stagingIndependentFieldId)) return;
             RefreshDynamicNavigationIfDirty();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
-            // Restore compatibility is an activation boundary, never a per-frame repair that can
-            // erase an already established travel plan.
-            if (!IsActive &&
-                (motion == null || !motion.IsMoving) &&
-                !ReferenceEquals(_legacyOutdoorRestoreMigrationWorld, _bootstrap?.Session?.World))
-            {
-                TryMigrateLegacyOutdoorSiteRestore();
-                motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
-            }
             var currentWorld = _bootstrap?.Session?.World;
             var continuousCombat = IsBoundContinuousManualCombat(currentWorld);
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
@@ -435,13 +465,6 @@ namespace XianXia.Unity.Host
                 return;
             }
             TickNeighborhoodTransition();
-            var worldTick = _bootstrap.Session.World.Tick.Value;
-            if (_streamTransitionPhase == StreamTransitionPhase.None &&
-                worldTick != _lastStrategicMaterializationTick)
-            {
-                _lastStrategicMaterializationTick = worldTick;
-                ReconcileOutdoorEntityMaterialization();
-            }
         }
 
         /// <summary>Coalesces authored destructible topology changes until the next runtime update.</summary>
@@ -641,9 +664,10 @@ namespace XianXia.Unity.Host
 
         public void ReportLegalityBlocked()
         {
-            if (LastMovementDiagnostic != ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic)
-                Debug.LogWarning("[ContinuousOutdoor] " + ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic, this);
-            LastMovementDiagnostic = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
+            const string blockedDiagnostic = "BlockedBySurfaceGround";
+            if (LastMovementDiagnostic != blockedDiagnostic)
+                Debug.LogWarning("[ContinuousOutdoor] " + blockedDiagnostic, this);
+            LastMovementDiagnostic = blockedDiagnostic;
         }
 
         bool HasValidPartySurfaceAuthority(SimulationWorld world, PlayerPartyWorldMotion motion)
@@ -689,7 +713,7 @@ namespace XianXia.Unity.Host
                 location.SetPresentationOverride(position.x, position.y);
         }
 
-        /// <summary>For LocalVisible AutoTravel: distinguishes authored outer egress from merely
+        /// <summary>For Surface travel: distinguishes authored outer egress from merely
         /// being outside the currently loaded radius-1 neighborhood.</summary>
         public bool TryGetOuterBoundaryApproach(Vector3 desiredPresentation, out Vector3 boundaryPresentation)
         {
@@ -735,7 +759,6 @@ namespace XianXia.Unity.Host
 
         public bool TryActivateAtCurrentWorldPosition()
         {
-            TryMigrateLegacyOutdoorSiteRestore();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             var world = _bootstrap?.Session?.World;
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
@@ -751,52 +774,6 @@ namespace XianXia.Unity.Host
             var mapper = new OutdoorSurfaceCoordinateMapper(surface.ChunkWidth, surface.ChunkHeight, surface.CellSize, presentationUnitsPerWorldUnit: 1f / surface.CellSize, originWorldX: surface.OriginWorldX, originWorldY: surface.OriginWorldY);
             ActivateSurface(surface, mapper.WorldToChunk(motion.WorldPosition.X, motion.WorldPosition.Y));
             return IsActive;
-        }
-
-        /// <summary>
-        /// Compatibility restore only: an old save may still name an Outdoor WorldSite as its
-        /// physical location.  Migrated sites restore at the saved canonical position when one
-        /// exists, otherwise at their authored footprint anchor.  No Site LocalMap is selected.
-        /// </summary>
-        void TryMigrateLegacyOutdoorSiteRestore()
-        {
-            var world = _bootstrap?.Session?.World;
-            if (world == null || ReferenceEquals(_legacyOutdoorRestoreMigrationWorld, world))
-                return;
-            _legacyOutdoorRestoreMigrationWorld = world;
-            var motion = world?.PlayerPartyTravel;
-            if (world?.LegacyHexWorld == null || motion == null ||
-                motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
-                string.IsNullOrEmpty(motion.SiteId) ||
-                !world.Strategic.Sites.TryGet(motion.SiteId, out var site) ||
-                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) ||
-                motion.IsMoving)
-                return;
-            var size = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
-            var position = motion.WorldPosition;
-            if (!motion.HasPosition)
-            {
-                HexMath.ToWorldPosition(site.LegacyPresenceHex, size, out var x, out var y);
-                position = new WorldVec2(x, y);
-            }
-            var hex = HexMath.WorldToHex(position.X, position.Y, size);
-            if (!world.SurfaceGround.TryResolveContaining(position, out var navigation) || navigation == null)
-                return;
-            motion.SetAtSurfacePosition(navigation.SurfaceId, position, hex);
-            motion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
-            var party = _bootstrap.Session.PlayerParty;
-            if (party != null)
-                for (var i = 0; i < party.Members.Count; i++)
-                    if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
-                            world, party, party.Members[i]))
-                        world.WorldPresence.SetAtWorldPosition(
-                            party.Members[i], position, hex, _surfaceId);
-            world.PartyWorld.ClearSiteFocus();
-            world.PartyWorld.SiteId = string.Empty;
-            world.PartyWorld.LocalMapId = string.Empty;
-            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
-            world.LocalMap.ActiveMapLayoutId = string.Empty;
-            world.LocalMap.OverworldMapLayoutId = string.Empty;
         }
 
         void ActivateSurface(OutdoorWorldSurfaceDefinition surface, SurfaceChunkCoord center)
@@ -841,7 +818,6 @@ namespace XianXia.Unity.Host
             _bootstrap.FinalizeContinuousWildernessPresentationHandoff();
             InitializeNeighborhood(center);
             AlignPartyPresentationToWorld();
-            _bootstrap.SurfaceExitZonePresenter?.Clear();
             _bootstrap.MoveController.BindLocalMapContext("ContinuousSurface:" + _surfaceId);
             if (!TryValidateSurfaceActivationPostconditions(out var invariantFailure))
                 Debug.LogError("[ContinuousStartupInvariantFailure] " + invariantFailure, this);
@@ -870,6 +846,8 @@ namespace XianXia.Unity.Host
             RecomposeWalkGrid();
             RefreshLoadedOutdoorPlaces();
             ReconcileOutdoorEntityMaterialization();
+            if (_bootstrap.HasOutdoorEntityReconcileBaseline)
+                _bootstrap.FlushLoadedDestinationArrivals();
             _bootstrap.RefreshContinuousOutdoorOverlaysOnce();
         }
 
@@ -962,6 +940,7 @@ namespace XianXia.Unity.Host
                     var started = Stopwatch.GetTimestamp();
                     RefreshLoadedOutdoorPlaces();
                     ReconcileOutdoorEntityMaterialization();
+                    _bootstrap.FlushLoadedDestinationArrivals();
                     LogStreamTiming("Materialization", null, started);
                     _streamTransitionPhase = StreamTransitionPhase.RefreshOverlay;
                     return;
@@ -1375,7 +1354,6 @@ namespace XianXia.Unity.Host
             if (IsActive)
                 DeactivatePresentationOnly(captureEntityPositions: false);
             _independentFieldId = string.Empty;
-            _legacyOutdoorRestoreMigrationWorld = null;
             var world = _bootstrap?.Session?.World;
             _snapshotRestoredWorld = world;
             // SPACE-01：Active Separate Space 不得重建 Continuous Outdoor presentation。
@@ -1462,7 +1440,6 @@ namespace XianXia.Unity.Host
             SnapshotSpatialSummary = "RestoredPersonalPresences=" + restored +
                 " LoadedNeighborhoodEligible=" + eligible + " Materialized=" + materialized +
                 " RejectedDifferentChunk=" + rejectedChunk + " RejectedDifferentSite=" + rejectedSite +
-                " LegacyAnchorMigrated=" + HostSnapshotSessionRehydration.LastLegacyAnchorMigrated +
                 " MissingSpatialAuthority=" + missingSpatial;
             Debug.Log("[SnapshotMaterializationCensus] " + SnapshotSpatialSummary, this);
         }
@@ -1765,8 +1742,6 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            // Modern producers use AtWorldPosition. AtHex is accepted here only as old-save /
-            // residual compatibility after restore has attached explicit Surface provenance.
             foreach (var pair in world.WorldPresence.All)
             {
                 var presence = pair.Value;
@@ -1778,32 +1753,16 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!string.Equals(presence.PersonalSurfaceId, _surfaceId, StringComparison.Ordinal))
                     continue;
-                WorldVec2 position;
-                var hasPrecisePosition = false;
-                if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition && presence.HasContinuousWorldPosition)
-                {
-                    position = presence.ContinuousWorldPosition;
-                    hasPrecisePosition = true;
-                }
-                else if (presence.Mode == PartyWorldPresenceMode.AtHex && presence.HasContinuousWorldPosition)
-                {
-                    position = presence.ContinuousWorldPosition;
-                    hasPrecisePosition = true;
-                }
-                else if (presence.Mode == PartyWorldPresenceMode.AtHex && presence.UsesHexPresence)
-                {
-                    HexMath.ToWorldPosition(presence.ResidualHex, world.LegacyHexWorld.HexSize, out var hx, out var hy);
-                    position = new WorldVec2(hx, hy);
-                }
-                else continue;
+                if (presence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                    !presence.HasContinuousWorldPosition)
+                    continue;
+                var position = presence.ContinuousWorldPosition;
                 if (!_loaded.Contains(_mapper.WorldToChunk(position.X, position.Y))) continue;
                 _desiredMaterializedEntities.Add(id);
                 _continuousSitePopulation.Add(id);
                 if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
                     continue;
                 var wx = position.X; var wy = position.Y;
-                if (!hasPrecisePosition)
-                    AddDeterministicFallbackOffset(id, ref wx, ref wy, surface.CellSize);
                 _mapper.WorldToPresentation(wx, wy, out var px, out var py);
                 if (!entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
                 {
@@ -2301,7 +2260,7 @@ namespace XianXia.Unity.Host
                     failures.Add("Opening Site PhysicalRegion not loaded: " + openingSiteId);
                 else
                 {
-                    // A multi-hex PhysicalRegion can be in the current neighborhood while all of
+                    // A large PhysicalRegion can be in the current neighborhood while all of
                     // its sparse authored placements are outside it. Only require a materialized
                     // owner when placement geometry actually intersects a loaded chunk.
                     if (HasSitePlacementInLoadedNeighborhood(surface, openingSiteId))

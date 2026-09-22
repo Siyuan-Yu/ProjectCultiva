@@ -2,7 +2,6 @@ using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Construction;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -34,7 +33,6 @@ namespace XianXia.Tests
         static SimulationWorld World()
         {
             var world = new SimulationWorld();
-            world.LegacyHexWorld.FillRectangle(12, 12, HexTerrainType.Plain);
             world.Strategic.PlayerFactionId = Player;
             world.InventoryCatalog.Register(Wood, "粗木", 99, new[] { "resource" });
             var spec = new BuildingConstructionSpec
@@ -54,10 +52,10 @@ namespace XianXia.Tests
         public void DismantleOwnFlagRefundsFiveAndRebuildsTerritory()
         {
             var world = World();
-            var anchor = new HexCoord(5, 5);
             world.Strategic.FactionFlags.Register(new FactionFlagState
             {
-                FlagId = "flag:authored", FactionId = Player, AnchorHex = anchor,
+                FlagId = "flag:authored", FactionId = Player,
+                SurfaceId = "surface:test", HasWorldPosition = true, WorldX = 5, WorldY = 5,
                 EstablishedOrder = 1, CurrentHp = 1, MaxHp = 100
             });
 
@@ -76,7 +74,8 @@ namespace XianXia.Tests
             world.Strategic.FactionFlags.Register(new FactionFlagState
             {
                 FlagId = "flag:combat", FactionId = "faction:enemy",
-                AnchorHex = new HexCoord(5, 5), EstablishedOrder = 1
+                SurfaceId = "surface:test", HasWorldPosition = true, WorldX = 5, WorldY = 5,
+                EstablishedOrder = 1
             });
             Assert.IsTrue(FactionFlagService.TryDestroy(world, "flag:combat").IsSuccess);
             Assert.AreEqual(0, world.Inventory.GetCount(Wood));
@@ -95,7 +94,8 @@ namespace XianXia.Tests
             world.Strategic.FactionFlags.Register(new FactionFlagState
             {
                 FlagId = "flag:full", FactionId = Player,
-                AnchorHex = new HexCoord(5, 5), EstablishedOrder = 1
+                SurfaceId = "surface:test", HasWorldPosition = true, WorldX = 5, WorldY = 5,
+                EstablishedOrder = 1
             });
 
             var result = ConstructionService.TryDismantleFactionFlag(
@@ -110,12 +110,11 @@ namespace XianXia.Tests
         public void RuntimeFlagIdsDoNotRepeatAfterSameTickSameAnchorRebuild()
         {
             var world = World();
-            var anchor = new HexCoord(5, 5);
-            var first = FactionFlagService.NextRuntimeFlagId(world, Player, anchor);
+            var first = FactionFlagService.NextRuntimeFlagId(world, Player);
             world.Strategic.FactionFlags.Register(new FactionFlagState
-                { FlagId = first, FactionId = Player, AnchorHex = anchor, EstablishedOrder = 1 });
+                { FlagId = first, FactionId = Player, EstablishedOrder = 1 });
             world.Strategic.FactionFlags.Remove(first);
-            var second = FactionFlagService.NextRuntimeFlagId(world, Player, anchor);
+            var second = FactionFlagService.NextRuntimeFlagId(world, Player);
             Assert.AreNotEqual(first, second);
         }
 

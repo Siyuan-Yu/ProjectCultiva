@@ -11,6 +11,8 @@ namespace XianXia.Data.Content
         public string SurfaceId { get; set; } = "base:main_continent_surface";
         public float OriginWorldX { get; set; }
         public float OriginWorldY { get; set; }
+        /// <summary>Current world-distance budget scale; independent from navigation cell size.</summary>
+        public float MovementScale { get; set; } = 1f;
         /// <summary>Authored Surface metric; every chunk on this surface shares it.</summary>
         public float CellSize { get; set; } = 1f;
         public float ChunkWidth { get; set; } = 50f;
@@ -46,7 +48,6 @@ namespace XianXia.Data.Content
         public string DisplayName { get; set; }
         public string SiteType { get; set; }
         public string OwnerFactionId { get; set; }
-        public string TerritoryRegionId { get; set; }
         public float ArrivalWorldX { get; set; }
         public float ArrivalWorldY { get; set; }
     }

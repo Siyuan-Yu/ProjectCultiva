@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Construction;
 using XianXia.Core.Results;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -59,18 +58,13 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var hasContext = LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context);
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
                              _bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive &&
                              world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
-            var wilderness = continuous || (hasContext &&
-                context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex);
-            var anchor = continuous ? world.PlayerPartyTravel.LegacyCurrentHex :
-                (hasContext ? context.WildernessHex : default);
-            SyncVisuals(world, wilderness, continuous, wilderness ? anchor : default);
+            SyncVisuals(world, continuous);
 
             if (_placing)
-                UpdatePlacementPreview(wilderness, continuous);
+                UpdatePlacementPreview();
             else
                 DestroyPreview();
         }
@@ -101,7 +95,7 @@ namespace XianXia.Unity.Host
             DestroyPreview();
         }
 
-        void UpdatePlacementPreview(bool wilderness, bool continuous)
+        void UpdatePlacementPreview()
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
             {
@@ -110,6 +104,9 @@ namespace XianXia.Unity.Host
             }
 
             var world = _bootstrap.Session.World;
+            var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                             _bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive &&
+                             world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
             _domainLegal = false;
             var domainReason = continuous
                 ? "请选择合法的 Continuous Outdoor 落点。"
@@ -121,7 +118,6 @@ namespace XianXia.Unity.Host
                 HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var wp))
             {
                 var p = HostPresentationSpace.ToPresentation(wp);
-                MapLayoutDefinition layout = null;
                 FactionFlagSitePlacementRequest request = null;
                 var requestFailure = string.Empty;
                 _previewX = p.x;
@@ -136,22 +132,15 @@ namespace XianXia.Unity.Host
                     {
                         var domain = FactionFlagService.ValidateSiteCorePlacement(
                             world, world.Strategic.PlayerFactionId, request,
-                            spec.InitialSiteLevel, out _);
+                            spec.InitialSiteLevel);
                         _domainLegal = domain.IsSuccess;
                         domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
                     }
                     else
                         domainReason = requestFailure;
                 }
-                else if (MapLayoutPick.TryGet(_bootstrap.Session, out layout) && layout != null)
-                {
-                    var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
-                    _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAt(
-                        layout, baseGrid, p.x, p.y, out _previewX, out _previewZ);
-                }
                 EnsurePreview();
-                PositionBuilding(_preview, _previewX, _previewZ, continuous ? 1f :
-                    (layout != null && layout.CellSize > 0f ? layout.CellSize : 1f));
+                PositionBuilding(_preview, _previewX, _previewZ, 1f);
                 _overallLegal = _geometryLegal && _domainLegal;
                 Tint(_preview, _overallLegal
                     ? new Color(.35f, 1f, .45f, .55f)
@@ -267,13 +256,10 @@ namespace XianXia.Unity.Host
                 failure = "落点距离主控过远。";
                 return false;
             }
-            var anchor = HexMath.WorldToHex(worldX, worldY,
-                world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
             request = new FactionFlagSitePlacementRequest
             {
                 SurfaceId = continuous.ActiveSurfaceId,
                 WorldPosition = new WorldVec2(worldX, worldY),
-                StrategicAnchor = anchor,
                 PresentationX = presentationX,
                 PresentationZ = presentationZ
             };
@@ -282,21 +268,16 @@ namespace XianXia.Unity.Host
 
         void SyncVisuals(
             XianXia.Core.Simulation.SimulationWorld world,
-            bool wilderness,
-            bool continuous,
-            HexCoord legacyAnchor)
+            bool continuous)
         {
             var keep = new HashSet<string>(StringComparer.Ordinal);
-            if (wilderness)
+            if (continuous)
             {
                 foreach (var pair in world.Strategic.FactionFlags.Flags)
                 {
                     var flag = pair.Value;
                     if (flag == null) continue;
-                    var visible = continuous
-                        ? IsContinuousFlagLoaded(flag)
-                        : flag.AnchorHex == legacyAnchor;
-                    if (!visible) continue;
+                    if (!IsContinuousFlagLoaded(flag)) continue;
                     EnsureVisual(flag);
                     keep.Add(flag.FlagId);
                 }
@@ -311,20 +292,11 @@ namespace XianXia.Unity.Host
         {
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (flag == null || continuous == null || !continuous.IsActive) return false;
-            var worldX = flag.WorldX;
-            var worldY = flag.WorldY;
-            if (flag.HasWorldPosition)
-            {
-                if (!string.IsNullOrEmpty(flag.SurfaceId) &&
-                    !string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal))
-                    return false;
-            }
-            else
-            {
-                if (flag.IsSiteCore) return false;
-                HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out worldX, out worldY);
-            }
-            return continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY);
+            if (!flag.HasWorldPosition ||
+                !string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal))
+                return false;
+            return continuous.IsWorldPositionLoaded(
+                continuous.ActiveSurfaceId, flag.WorldX, flag.WorldY);
         }
 
         void EnsureVisual(FactionFlagState flag)
@@ -353,13 +325,6 @@ namespace XianXia.Unity.Host
             {
                 var p = HostPresentationSpace.ToPresentation(center);
                 PositionBuilding(visual.Root, p.x, p.y, 1f);
-                return;
-            }
-            if (MapLayoutPick.TryGet(_bootstrap.Session, out var layout) && layout != null)
-            {
-                var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
-                if (HostFactionFlagQuery.TryResolvePosition(flag, layout, baseGrid, out var x, out var z))
-                    PositionBuilding(visual.Root, x, z, layout.CellSize > 0f ? layout.CellSize : 1f);
             }
         }
 

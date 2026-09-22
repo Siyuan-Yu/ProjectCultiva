@@ -2,14 +2,12 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Character strategic Hex compatibility query. Modern physical authority is an exact
-    /// Surface position or Interior EntityLocation. NPC Squad position derives from
-    /// SquadWorldMotion; returned Hex values are compatibility metadata only.
+    /// Resolves current character location without exposing retired grid geometry.
+    /// Outdoor results always carry exact position and Surface provenance.
     /// </summary>
     public static class CharacterWorldPresenceQuery
     {
@@ -17,159 +15,111 @@ namespace XianXia.Core.World.Strategic
         {
             Unknown = 0,
             AtWorldSite = 1,
-            AtWildernessHex = 2,
-            SquadMember = 3,
-            InEncounter = 4,
-            AtWorldPosition = 5,
+            SquadMember = 2,
+            InEncounter = 3,
+            AtWorldPosition = 4,
+            InSeparateSpace = 5,
         }
 
-        public static bool TryGetWorldHex(SimulationWorld world, EntityId characterId, out HexCoord worldHex)
+        public readonly struct ResolvedPresence
         {
-            worldHex = default;
-            if (world == null || characterId.IsNone)
-                return false;
-
-            if (world.WorldPresence.TryGet(characterId, out var ownedPresence) &&
-                ownedPresence != null && ownedPresence.Mode == PartyWorldPresenceMode.InEncounter)
+            public ResolvedPresence(
+                PresenceState state,
+                string siteId,
+                string surfaceId,
+                WorldVec2 worldPosition,
+                bool hasWorldPosition)
             {
-                if (!string.IsNullOrEmpty(ownedPresence.SiteId))
-                    return world.Strategic.Sites.TryResolveLegacySitePresenceHex(
-                        ownedPresence.SiteId, out worldHex);
-                return false;
-            }
-            if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
-                return false;
-
-            var motion = world.PlayerPartyTravel;
-            if (motion != null &&
-                motion.HasPosition &&
-                IsTravelingMember(motion, characterId))
-            {
-                if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                    !string.IsNullOrEmpty(motion.SiteId) &&
-                    world.Strategic.Sites.TryResolveLegacySitePresenceHex(motion.SiteId, out worldHex))
-                    return true;
-
-                worldHex = motion.LegacyCurrentHex;
-                return true;
+                State = state;
+                SiteId = siteId ?? string.Empty;
+                SurfaceId = surfaceId ?? string.Empty;
+                WorldPosition = worldPosition;
+                HasWorldPosition = hasWorldPosition;
             }
 
-            if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
-                SquadWorldMotionService.OwnsCharacter(world, characterId) &&
-                world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
-                SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
-            {
-                worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
-                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
-                return true;
-            }
-
-            if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
-                return false;
-
-            if (presence.UsesHexPresence)
-            {
-                worldHex = presence.ResidualHex;
-                return true;
-            }
-
-            if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
-                presence.HasContinuousWorldPosition &&
-                Finite(presence.WorldPosX) && Finite(presence.WorldPosY))
-            {
-                worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
-                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
-                return true;
-            }
-
-            if (presence.Mode == PartyWorldPresenceMode.AtSite &&
-                !string.IsNullOrEmpty(presence.SiteId))
-                return world.Strategic.Sites.TryResolveLegacySitePresenceHex(presence.SiteId, out worldHex);
-
-            return false;
+            public PresenceState State { get; }
+            public string SiteId { get; }
+            public string SurfaceId { get; }
+            public WorldVec2 WorldPosition { get; }
+            public bool HasWorldPosition { get; }
         }
 
-        public static bool TryGetPartyWorldHex(
-            SimulationWorld world, PlayerPartyRuntime party, out HexCoord worldHex)
-        {
-            worldHex = default;
-            if (world?.PlayerPartyTravel?.HasPosition == true)
-            { worldHex = world.PlayerPartyTravel.LegacyCurrentHex; return true; }
-            return party != null && party.HasActive && TryGetWorldHex(world, party.ActiveCharacterId, out worldHex);
-        }
-
-        public static bool TryDescribe(
+        public static bool TryResolve(
             SimulationWorld world,
             EntityId characterId,
-            out PresenceState state,
-            out string siteId,
-            out HexCoord worldHex,
-            out bool localMapLoaded)
+            out ResolvedPresence resolved)
         {
-            state = PresenceState.Unknown;
-            siteId = string.Empty;
-            worldHex = default;
-            localMapLoaded = false;
+            resolved = default;
             if (world == null || characterId.IsNone)
                 return false;
 
-            if (world.WorldPresence.TryGet(characterId, out var ownedPresence) &&
-                ownedPresence != null && ownedPresence.Mode == PartyWorldPresenceMode.InEncounter)
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, characterId))
             {
-                state = PresenceState.InEncounter;
-                siteId = ownedPresence.SiteId ?? string.Empty;
-                if (!string.IsNullOrEmpty(siteId))
-                    world.Strategic.Sites.TryResolveLegacySitePresenceHex(siteId, out worldHex);
-                localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
+                resolved = new ResolvedPresence(
+                    PresenceState.InEncounter, string.Empty, string.Empty, default, false);
                 return true;
             }
 
             if (SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, characterId))
-                return false;
+            {
+                resolved = new ResolvedPresence(
+                    PresenceState.InSeparateSpace, string.Empty, string.Empty, default, false);
+                return true;
+            }
+
+            var partyMotion = world.PlayerPartyTravel;
+            if (partyMotion != null && partyMotion.HasPosition &&
+                IsTravelingMember(partyMotion, characterId))
+            {
+                resolved = new ResolvedPresence(
+                    PresenceState.AtWorldPosition,
+                    partyMotion.CurrentOutdoorWorldSiteId,
+                    partyMotion.SurfaceId,
+                    partyMotion.WorldPosition,
+                    true);
+                return true;
+            }
 
             if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
                 SquadWorldMotionService.OwnsCharacter(world, characterId) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
-                state = PresenceState.SquadMember;
-                worldHex = HexMath.WorldToHex(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y,
-                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
-                siteId = squadMotion.SiteId;
-                localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
+                resolved = new ResolvedPresence(
+                    PresenceState.SquadMember,
+                    squadMotion.SiteId,
+                    squadMotion.SurfaceId,
+                    squadMotion.WorldPosition,
+                    true);
                 return true;
             }
 
             if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
 
-            if (presence.UsesHexPresence)
-            {
-                state = PresenceState.AtWildernessHex;
-                worldHex = presence.ResidualHex;
-                if (world.Strategic.Sites.TryGetAtLegacyHex(worldHex, out var atHexSite) && atHexSite != null)
-                    siteId = atHexSite.SiteId;
-                return true;
-            }
-
             if (presence.Mode == PartyWorldPresenceMode.AtSite &&
                 !string.IsNullOrEmpty(presence.SiteId))
             {
-                state = PresenceState.AtWorldSite;
-                siteId = presence.SiteId;
-                if (!world.Strategic.Sites.TryResolveLegacySitePresenceHex(siteId, out worldHex))
-                    return false;
-                localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
+                resolved = new ResolvedPresence(
+                    PresenceState.AtWorldSite,
+                    presence.SiteId,
+                    presence.PersonalSurfaceId,
+                    presence.ContinuousWorldPosition,
+                    presence.HasContinuousWorldPosition);
                 return true;
             }
 
             if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
                 presence.HasContinuousWorldPosition &&
-                Finite(presence.WorldPosX) && Finite(presence.WorldPosY))
+                Finite(presence.WorldPosX) && Finite(presence.WorldPosY) &&
+                !string.IsNullOrEmpty(presence.PersonalSurfaceId))
             {
-                state = PresenceState.AtWorldPosition;
-                worldHex = HexMath.WorldToHex(presence.WorldPosX, presence.WorldPosY,
-                    world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f);
+                resolved = new ResolvedPresence(
+                    PresenceState.AtWorldPosition,
+                    string.Empty,
+                    presence.PersonalSurfaceId,
+                    presence.ContinuousWorldPosition,
+                    true);
                 return true;
             }
 
@@ -179,24 +129,10 @@ namespace XianXia.Core.World.Strategic
         static bool IsTravelingMember(PlayerPartyWorldMotion motion, EntityId characterId)
         {
             var members = motion.TravelingMembers;
-            if (members == null || members.Count == 0)
-                return false;
             for (var i = 0; i < members.Count; i++)
-            {
                 if (members[i] == characterId)
                     return true;
-            }
-
             return false;
-        }
-
-        static bool IsLocalMapLoadedForSite(SimulationWorld world, string siteId)
-        {
-            if (world?.PartyWorld == null || string.IsNullOrEmpty(siteId))
-                return false;
-            if (!string.Equals(world.PartyWorld.SiteId, siteId, System.StringComparison.Ordinal))
-                return false;
-            return !string.IsNullOrEmpty(world.PartyWorld.LocalMapId);
         }
 
         static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

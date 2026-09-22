@@ -6,7 +6,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -14,8 +13,6 @@ namespace XianXia.Core.World.Strategic
     {
         None = 0,
         FollowLeader = 1,
-        /// <summary>Legacy serialized numeric value; immediately upgraded during migration.</summary>
-        LegacyFormalArmyWorldMotion = 2,
         SquadWorldMotion = 3
     }
 
@@ -29,8 +26,6 @@ namespace XianXia.Core.World.Strategic
         public string DisplayName { get; internal set; } = string.Empty;
         public string FactionId { get; internal set; } = string.Empty;
         public EntityId LeaderCharacterId { get; internal set; }
-        /// <summary>Old-save/content migration input only; modern runtime and saves keep this empty.</summary>
-        public string LegacyArmyId { get; internal set; } = string.Empty;
         public SquadCommandKind CommandKind { get; internal set; }
         public ulong CommandRevision { get; internal set; }
         public EntityId CommandTargetCharacterId { get; internal set; }
@@ -95,7 +90,7 @@ namespace XianXia.Core.World.Strategic
 
         public static Result<SquadState> Create(
             SimulationWorld world, string squadId, IReadOnlyList<EntityId> members,
-            EntityId leader, string legacyArmyId = "", SquadCommandKind command = SquadCommandKind.None,
+            EntityId leader, SquadCommandKind command = SquadCommandKind.None,
             bool importingSnapshot = false, string displayName = "", string factionId = "")
         {
             if (world?.Strategic?.Squads == null || string.IsNullOrWhiteSpace(squadId) || members == null || members.Count == 0)
@@ -123,7 +118,7 @@ namespace XianXia.Core.World.Strategic
             if (leader.IsNone || !values.Contains(leader.Value)) leader = new EntityId(values[0]);
             var squad = new SquadState {
                 SquadId = squadId, LeaderCharacterId = leader,
-                LegacyArmyId = legacyArmyId ?? string.Empty, CommandKind = command,
+                CommandKind = command,
                 DisplayName = displayName ?? string.Empty, FactionId = factionId ?? string.Empty
             };
             squad.Replace(values);
@@ -160,7 +155,6 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Squads.TryGetForCharacter(member, out var source);
             if (IsBattleLocked(world, target) || IsBattleLocked(world, source))
                 return Result.Failure(ErrorCode.InvalidOperation, "Battle participant cannot change squad during the active encounter.");
-            var sourceArmyId = source?.LegacyArmyId ?? string.Empty;
             source?.Remove(member);
             world.Strategic.Squads.RemoveReverse(member);
             target.Add(member);
@@ -169,7 +163,7 @@ namespace XianXia.Core.World.Strategic
             {
                 if (source.LeaderCharacterId == member && source.MemberCharacterIds.Count > 0)
                     source.LeaderCharacterId = new EntityId(source.MemberCharacterIds[0]);
-                if (source.MemberCharacterIds.Count == 0 && string.IsNullOrEmpty(source.LegacyArmyId))
+                if (source.MemberCharacterIds.Count == 0)
                     world.Strategic.Squads.Remove(source.SquadId);
             }
             if (target.CommandKind != SquadCommandKind.None)

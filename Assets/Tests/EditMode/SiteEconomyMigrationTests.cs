@@ -7,7 +7,6 @@ using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Persistence;
 using XianXia.Core.Events;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -80,8 +79,7 @@ namespace XianXia.Tests
             var request = new FactionFlagSitePlacementRequest
             {
                 SurfaceId = enemyFlag.SurfaceId,
-                WorldPosition = new WorldVec2(enemyFlag.WorldX, enemyFlag.WorldY),
-                StrategicAnchor = enemyFlag.AnchorHex
+                WorldPosition = new WorldVec2(enemyFlag.WorldX, enemyFlag.WorldY)
             };
             var created = ConstructionService.TryConstructFactionFlagSite(
                 w, "base:building_faction_control_post", w.Strategic.PlayerFactionId,
@@ -109,9 +107,6 @@ namespace XianXia.Tests
             var restored = service.RestoreJson(saved.Value);
             Assert.IsTrue(restored.IsSuccess, restored.IsFailure ? restored.Error.ToString() : "");
             Assert.IsTrue(RuntimeContentShellBootstrap.Rehydrate(restored.Value.world, registry).IsSuccess);
-            registry.TryGetOpeningScenario(DefinitionId.Parse("base:scenario_ch01_reference").Value, out var scenario);
-            Assert.IsTrue(LegacyHexStrategicMapContentAdapter.TryApplyToSession(
-                restored.Value.world, registry, scenario).IsSuccess);
             Assert.IsTrue(ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(
                 restored.Value.world, registry).IsSuccess);
             var dto = new JsonSnapshotSerializer().Deserialize(saved.Value).Value;
@@ -120,8 +115,6 @@ namespace XianXia.Tests
             CollectionAssert.AreEqual(
                 dto.Strategic.WorldSitePublicStocks.Select(s => s.SiteId).OrderBy(id => id, StringComparer.Ordinal),
                 dto.Strategic.WorldSitePublicStocks.Select(s => s.SiteId));
-            var politics = StrategicSnapshotHelper.RestoreHexPoliticalState(restored.Value.world, dto.Strategic);
-            Assert.IsTrue(politics.IsSuccess, politics.IsFailure ? politics.Error.ToString() : "");
             Assert.AreEqual(7, WorldSitePublicStockService.GetCount(restored.Value.world, Huangcun, Grain));
             Assert.AreEqual(10, WorldSitePublicStockService.GetCount(restored.Value.world, Huangcun, Wood));
         }
@@ -134,7 +127,7 @@ namespace XianXia.Tests
             dto.WorldSitePublicStocks.Add(new WorldSitePublicStockSnapshotDto { SiteId = Huangcun });
             dto.WorldSitePublicStocks[0].Entries.Add(new WorldSitePublicStockEntrySnapshotDto
                 { ResourceId = Grain, Amount = -1 });
-            var restored = StrategicSnapshotHelper.RestoreHexPoliticalState(b.World, dto);
+            var restored = StrategicSnapshotHelper.RestorePoliticalState(b.World, dto);
             Assert.IsTrue(restored.IsFailure);
             Assert.AreEqual(0, WorldSitePublicStockService.GetCount(b.World, Huangcun, Grain));
         }

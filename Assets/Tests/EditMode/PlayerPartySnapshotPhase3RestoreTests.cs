@@ -1,6 +1,6 @@
-using System.Collections.Generic;
+using System;
+using System.IO;
 using NUnit.Framework;
-using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -8,189 +8,185 @@ using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Bootstrap;
+using XianXia.Data.Content;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Tests
 {
-    /// <summary>Phase 3 Snapshot：PlayerParty Membership + Loaded LocalMap Placement。</summary>
     public sealed class PlayerPartySnapshotPhase3RestoreTests
     {
         const string FactionA = "test:faction_a";
-        const string MapId = "test:map_site_a";
-
-        static SimulationWorld CreateWorld()
-        {
-            var world = new SimulationWorld();
-            world.Strategic.PlayerFactionId = FactionA;
-            HexTestWorldBootstrap.EnsureMinimalHexMap(world);
-            world.LocalMap.ActiveMapLayoutId = MapId;
-            world.LocalMap.OverworldMapLayoutId = MapId;
-            world.PartyWorld.LocalMapId = MapId;
-            return world;
-        }
+        const string MapId = "test:map_cave";
 
         static EntityId SpawnCharacter(SimulationWorld world, string name)
         {
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
-            var entity = created.Value;
-            entity.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            return entity.Id;
+            created.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
+            return created.Value.Id;
         }
 
         [Test]
-        public void SNAP_P3_01_PlayerPartyRestoreFromSnapshot_BypassesSameLocalMapJoinValidation()
+        public void PlayerPartyRestoreFromSnapshotPreservesActiveAndMembers()
         {
-            var world = CreateWorld();
+            var world = new SimulationWorld();
             var a = SpawnCharacter(world, "A");
             var b = SpawnCharacter(world, "B");
             var c = SpawnCharacter(world, "C");
-
             var party = new PlayerPartyRuntime();
+            party.BindWorld(world);
+
             Assert.IsTrue(party.TryRestoreFromSnapshot(a, new[] { a, b, c }, out _));
-            Assert.AreEqual(3, party.Count);
-            Assert.AreEqual(a, party.ActiveCharacterId);
-            Assert.IsTrue(party.IsMember(b));
-            Assert.IsTrue(party.IsMember(c));
-        }
-
-        [Test]
-        public void SNAP_P3_02_PlayerPartyCaptureRoundtrip_PersistsActiveAndMembers()
-        {
-            var world = CreateWorld();
-            var a = SpawnCharacter(world, "A");
-            var b = SpawnCharacter(world, "B");
-            var party = new PlayerPartyRuntime();
-            Assert.IsTrue(party.TryRestoreFromSnapshot(a, new[] { a, b }, out _));
-
             var dto = StrategicSnapshotHelper.Capture(world, party);
-            Assert.IsNotNull(dto.PlayerParty);
             Assert.AreEqual(a.Value, dto.PlayerParty.ActiveCharacterId);
-            Assert.AreEqual(2, dto.PlayerParty.MemberCharacterIds.Count);
+            Assert.AreEqual(3, dto.PlayerParty.MemberCharacterIds.Count);
 
-            var serializer = new JsonSnapshotSerializer();
-            var json = serializer.Serialize(new WorldSnapshot { Strategic = dto });
-            Assert.IsTrue(json.IsSuccess);
-            StringAssert.Contains("\"playerParty\"", json.Value);
-
-            var parsed = serializer.Deserialize(json.Value);
-            Assert.IsTrue(parsed.IsSuccess);
-            Assert.AreEqual(2, parsed.Value.Strategic.PlayerParty.MemberCharacterIds.Count);
-
-            var restoredParty = new PlayerPartyRuntime();
-            PlayerPartySnapshotRestore.Apply(world, restoredParty, parsed.Value.Strategic.PlayerParty);
-            Assert.AreEqual(2, restoredParty.Count);
-            Assert.AreEqual(a, restoredParty.ActiveCharacterId);
+            var restored = new PlayerPartyRuntime();
+            restored.BindWorld(world);
+            PlayerPartySnapshotRestore.Apply(world, restored, dto.PlayerParty);
+            Assert.AreEqual(3, restored.Count);
+            Assert.AreEqual(a, restored.ActiveCharacterId);
+            Assert.IsTrue(restored.IsMember(b));
+            Assert.IsTrue(restored.IsMember(c));
         }
 
         [Test]
-        public void SNAP_P3_03_LoadedLocalMapPlacement_CaptureRestoreAndMaterializeAtSavedPosition()
+        public void SeparateSpacePlacementCaptureRestoresEverySavedExactLocalPosition()
         {
-            var world = CreateWorld();
+            var world = new SimulationWorld();
             var a = SpawnCharacter(world, "A");
             var b = SpawnCharacter(world, "B");
-            world.PlayerPartyTravel.SetAtLegacyWorldSite(
-                Ch01HexPrototypeMapBuilder.SiteHuangcun,
-                Ch01HexPrototypeMapBuilder.HuangcunHex,
-                world.LegacyHexWorld.HexSize);
-            world.PartyWorld.SiteId = Ch01HexPrototypeMapBuilder.SiteHuangcun;
-            world.PartyWorld.LocalMapId = MapId;
-            world.LocalMap.AddOccupant(a);
-            world.LocalMap.AddOccupant(b);
+            world.LocalMap.EstablishSeparateSpace(
+                MapId, "test:places", SeparateSpaceKind.Cave,
+                "test:entrance", "test:entrance", "test");
+            world.LocalMap.SetOccupants(new[] { a, b });
 
-            var locA = new EntityLocationComponent();
-            locA.SetPresentationOverride(12.5f, -7.25f);
-            world.Entities.TryGet(a, out var entA);
-            entA.AddComponent(locA);
-
-            var locB = new EntityLocationComponent();
-            locB.SetPresentationOverride(3f, 9f);
-            world.Entities.TryGet(b, out var entB);
-            entB.AddComponent(locB);
-
+            SetLocalPosition(world, a, 12.5f, -7.25f);
+            SetLocalPosition(world, b, 3f, 9f);
             var dto = StrategicSnapshotHelper.Capture(world, null);
             Assert.AreEqual(2, dto.LoadedLocalMapCharacterPlacements.Count);
 
-            foreach (var entity in world.Entities.All)
-            {
-                if (entity.TryGet<EntityLocationComponent>(out var loc))
-                    loc.ClearPresence();
-            }
-
-            world.LocalMap.ClearOccupants();
+            ClearLocalPosition(world, a);
+            ClearLocalPosition(world, b);
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
+            Assert.AreEqual(2,
+                LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, MapId));
 
-            var party = new PlayerPartyRuntime();
-            party.TryRestoreFromSnapshot(a, new[] { a, b }, out _);
-            PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                world, party.Members, null);
-
-            Assert.IsTrue(world.Entities.TryGet(a, out entA));
-            Assert.IsTrue(entA.TryGet<EntityLocationComponent>(out locA));
-            Assert.AreEqual(12.5f, locA.PresentationOverrideX, 0.001f);
-            Assert.AreEqual(-7.25f, locA.PresentationOverrideZ, 0.001f);
-
-            Assert.IsTrue(world.Entities.TryGet(b, out entB));
-            Assert.IsTrue(entB.TryGet<EntityLocationComponent>(out locB));
-            Assert.AreEqual(3f, locB.PresentationOverrideX, 0.001f);
-            Assert.AreEqual(9f, locB.PresentationOverrideZ, 0.001f);
+            AssertLocalPosition(world, a, 12.5f, -7.25f);
+            AssertLocalPosition(world, b, 3f, 9f);
         }
 
         [Test]
-        public void SNAP_P3_04_WorldSiteSpawnPriority_PrefersSnapshotOverDefaultStart()
+        public void SavedSeparateSpacePlacementCanBeReadWithoutChangingMembership()
         {
             var dto = new StrategicSnapshotDto();
-            dto.LoadedLocalMapCharacterPlacements.Add(new LoadedLocalMapCharacterPlacementSnapshotDto
-            {
-                CharacterId = 7,
-                LocalMapId = MapId,
-                LocalX = 23.4f,
-                LocalZ = 17.8f
-            });
+            dto.LoadedLocalMapCharacterPlacements.Add(
+                new LoadedLocalMapCharacterPlacementSnapshotDto
+                {
+                    CharacterId = 7,
+                    LocalMapId = MapId,
+                    LocalX = 23.4f,
+                    LocalZ = 17.8f
+                });
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
 
-            var resolved = LoadedLocalMapPlacementSnapshotRestore.TryResolveWorldSiteSpawnPosition(
-                new EntityId(7),
-                MapId,
-                0f,
-                0f,
-                out var x,
-                out var z,
-                out var source);
-
-            Assert.IsTrue(resolved);
-            Assert.AreEqual(
-                LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.SnapshotLocalPlacement,
-                source);
+            Assert.IsTrue(LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(
+                new EntityId(7), MapId, out var x, out var z));
             Assert.AreEqual(23.4f, x, 0.001f);
             Assert.AreEqual(17.8f, z, 0.001f);
         }
 
         [Test]
-        public void SNAP_P3_05_AtWorldSiteTravelRestore_PreservesSavedCanonicalPosition()
+        public void CurrentSnapshotDirectRestorePreservesSurfaceSquadAndExactPosition()
         {
-            var world = CreateWorld();
-            var savedPosition = new WorldVec2(12.375f, -8.625f);
-            var savedHex = new HexCoord(3, -2);
-            Assert.IsTrue(world.PlayerPartyTravel.RestoreIdleAtLegacyWorldSite(
-                "test:site_a", savedPosition, savedHex));
+            var root = Environment.GetEnvironmentVariable("XIANXIA_BASEGAME") ??
+                       Path.GetFullPath("Content/BaseGame");
+            var loaded = new ContentPackageLoader().Load(new[] { root });
+            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
+            var started = new PlayableDayBootstrap().Start(
+                loaded.Value,
+                new PlayableDayOptions { OpeningScenarioId = "base:scenario_ch01_reference" });
+            Assert.IsTrue(started.IsSuccess,
+                started.IsFailure ? started.Error.ToString() : string.Empty);
+
+            var world = started.Value.World;
+            var active = started.Value.CharacterIds[0];
+            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
+            Assert.IsTrue(CharacterStrategicQuery.TryGetSquad(world, active, out var squad));
+            var party = new PlayerPartyRuntime();
+            party.BindWorld(world);
+            Assert.IsTrue(party.TryBindControlledSquad(squad.SquadId, active, out var bindError), bindError);
+
+            var savedSurface = world.PlayerPartyTravel.SurfaceId;
+            var savedPosition = new WorldVec2(
+                world.PlayerPartyTravel.WorldPosition.X + 0.013f,
+                world.PlayerPartyTravel.WorldPosition.Y + 0.017f);
+            world.PlayerPartyTravel.SetAtSurfacePosition(savedSurface, savedPosition);
+            world.WorldPresence.SetAtWorldPosition(active, savedPosition, savedSurface);
 
             var service = new SnapshotService(new JsonSnapshotSerializer());
-            var json = service.CaptureJson(world, new SimulationLoop(world));
-            Assert.IsTrue(json.IsSuccess);
-
+            var json = service.CaptureJson(world, started.Value.Loop, party);
+            Assert.IsTrue(json.IsSuccess, json.IsFailure ? json.Error.ToString() : string.Empty);
             var restored = service.RestoreJson(json.Value);
-            Assert.IsTrue(restored.IsSuccess);
-            var motion = restored.Value.world.PlayerPartyTravel;
-            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, motion.LocationKind);
-            Assert.AreEqual("test:site_a", motion.SiteId);
-            Assert.AreEqual(savedPosition.X, motion.WorldPosition.X, 0.0001f);
-            Assert.AreEqual(savedPosition.Y, motion.WorldPosition.Y, 0.0001f);
-            Assert.AreEqual(savedHex, motion.LegacyCurrentHex);
-            Assert.AreEqual(PlayerPartyMovementKind.Idle, motion.MovementKind);
-            Assert.AreEqual(PlayerPartyTravelExecutionMode.None, motion.ExecutionMode);
+            Assert.IsTrue(restored.IsSuccess,
+                restored.IsFailure ? restored.Error.ToString() : string.Empty);
+
+            var restoredWorld = restored.Value.world;
+            Assert.AreEqual(savedSurface, restoredWorld.PlayerPartyTravel.SurfaceId);
+            Assert.AreEqual(savedPosition.X, restoredWorld.PlayerPartyTravel.WorldPosition.X, 0.000001f);
+            Assert.AreEqual(savedPosition.Y, restoredWorld.PlayerPartyTravel.WorldPosition.Y, 0.000001f);
+            Assert.IsTrue(restoredWorld.Strategic.Squads.TryGet(squad.SquadId, out var restoredSquad));
+            Assert.IsTrue(restoredSquad.Contains(active));
+            Assert.IsTrue(restoredWorld.WorldPresence.TryGet(active, out var restoredPresence));
+            Assert.AreEqual(savedSurface, restoredPresence.PersonalSurfaceId);
+            Assert.AreEqual(savedPosition.X, restoredPresence.WorldPosX, 0.000001f);
+            Assert.AreEqual(savedPosition.Y, restoredPresence.WorldPosY, 0.000001f);
+        }
+
+        [Test]
+        public void OldArmyWirePayloadFailsWithSnapshotInvalidAndOfflineConversionMessage()
+        {
+            var dto = new StrategicSnapshotDto
+            {
+                HasSquadSnapshotAuthority = true,
+                HasSquadWorldMotionSnapshotAuthority = true
+            };
+            dto.FormalArmies.Add(new FormalArmySnapshotDto
+            {
+                ArmyId = "old:army",
+                FactionId = "old:faction"
+            });
+
+            var result = StrategicSnapshotHelper.Restore(new SimulationWorld(), dto);
+            Assert.IsTrue(result.IsFailure);
+            Assert.AreEqual(XianXia.Core.Results.ErrorCode.SnapshotInvalid, result.Error.Code);
+            StringAssert.Contains("offline conversion", result.Error.Message);
+        }
+
+        static void SetLocalPosition(SimulationWorld world, EntityId id, float x, float z)
+        {
+            Assert.IsTrue(world.Entities.TryGet(id, out var entity));
+            var location = new EntityLocationComponent();
+            location.SetPresentationOverride(x, z);
+            entity.AddComponent(location);
+        }
+
+        static void ClearLocalPosition(SimulationWorld world, EntityId id)
+        {
+            Assert.IsTrue(world.Entities.TryGet(id, out var entity));
+            Assert.IsTrue(entity.TryGet<EntityLocationComponent>(out var location));
+            location.ClearPresence();
+        }
+
+        static void AssertLocalPosition(
+            SimulationWorld world, EntityId id, float expectedX, float expectedZ)
+        {
+            Assert.IsTrue(world.Entities.TryGet(id, out var entity));
+            Assert.IsTrue(entity.TryGet<EntityLocationComponent>(out var location));
+            Assert.AreEqual(expectedX, location.PresentationOverrideX, 0.001f);
+            Assert.AreEqual(expectedZ, location.PresentationOverrideZ, 0.001f);
         }
     }
 }

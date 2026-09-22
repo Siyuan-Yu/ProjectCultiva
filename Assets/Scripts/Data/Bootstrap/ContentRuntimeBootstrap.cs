@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Content;
 using XianXia.Core.Construction;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -23,7 +24,8 @@ namespace XianXia.Data.Bootstrap
             RehydrateInventoryCatalog(world, registry);
             var inventory = OpeningInventoryBootstrap.Apply(world, openingScenario);
             if (inventory.IsFailure) return inventory;
-            RehydrateSurfaceGround(world, registry);
+            var surfaceGround = RehydrateSurfaceGround(world, registry, openingScenario);
+            if (surfaceGround.IsFailure) return surfaceGround;
             var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
             if (assetAnchors.IsFailure)
                 return assetAnchors;
@@ -39,7 +41,7 @@ namespace XianXia.Data.Bootstrap
             if (flagSites.IsFailure)
                 return flagSites;
             var claims = XianXia.Core.World.Strategic.TerritoryClaimService
-                .EstablishBaselineFromLegacy(world);
+                .EstablishBaselineFromActiveCores(world);
             if (claims.IsFailure)
                 return claims;
 
@@ -164,7 +166,10 @@ namespace XianXia.Data.Bootstrap
             }
         }
 
-        internal static void RehydrateSurfaceGround(SimulationWorld world, DefinitionRegistry registry)
+        internal static Result RehydrateSurfaceGround(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            OpeningScenarioDefinition openingScenario = null)
         {
             world.SurfaceSpatial.Clear();
             foreach (var pair in registry.OutdoorSurfaces)
@@ -179,11 +184,37 @@ namespace XianXia.Data.Bootstrap
                     surface.SurfaceId,
                     surface.OriginWorldX,
                     surface.OriginWorldY,
+                    surface.MovementScale,
                     surface.CellSize,
                     surface.ChunkWidth,
                     surface.ChunkHeight,
                     chunks));
             }
+            var authoritySurfaceId = openingScenario?.OpeningSurfaceId;
+            if (string.IsNullOrWhiteSpace(authoritySurfaceId))
+                authoritySurfaceId = world.PlayerPartyTravel.SurfaceId;
+            if (string.IsNullOrWhiteSpace(authoritySurfaceId))
+            {
+                foreach (var pair in registry.OpeningScenarios)
+                {
+                    var candidate = pair.Value?.OpeningSurfaceId;
+                    if (string.IsNullOrWhiteSpace(candidate))
+                        continue;
+                    if (string.IsNullOrWhiteSpace(authoritySurfaceId))
+                        authoritySurfaceId = candidate;
+                    else if (!string.Equals(authoritySurfaceId, candidate, StringComparison.Ordinal))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Movement scale authority is ambiguous; opening scenario Surface is required.");
+                }
+            }
+            if (string.IsNullOrWhiteSpace(authoritySurfaceId) ||
+                !DefinitionId.TryParse(authoritySurfaceId, out var authorityId) ||
+                !registry.TryGetOutdoorSurface(authorityId, out var authoritySurface) ||
+                authoritySurface == null || authoritySurface.AcceptanceOnly)
+                return Result.Failure(ErrorCode.ContentLoadFailed,
+                    "Movement scale requires the current opening Surface.", authoritySurfaceId ?? string.Empty);
+            world.ContinuousWorldMovementScale = authoritySurface.MovementScale;
+
             world.SurfaceGround.ClearRegistered();
             foreach (var pair in registry.OutdoorSurfaceGeographies)
                 world.SurfaceGround.Register(pair.Value?.Navigation);
@@ -203,6 +234,7 @@ namespace XianXia.Data.Bootstrap
                             region.ArrivalWorldX, region.ArrivalWorldY));
                 }
             }
+            return Result.Success();
         }
 
         public static Result RebindPresetWorldSiteCoreMetadata(

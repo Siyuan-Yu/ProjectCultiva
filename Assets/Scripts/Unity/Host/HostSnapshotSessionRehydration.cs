@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Persistence;
@@ -20,11 +19,8 @@ namespace XianXia.Unity.Host
     /// </summary>
     public static class HostSnapshotSessionRehydration
     {
-        public static int LastLegacyAnchorMigrated { get; private set; }
-
         public static Result RehydrateAfterRestore(PlayableHostBootstrap bootstrap)
         {
-            LastLegacyAnchorMigrated = 0;
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return Result.Failure(ErrorCode.InvalidOperation, "Snapshot session is not initialized.");
 
@@ -85,37 +81,7 @@ namespace XianXia.Unity.Host
             var encounterOwnsPresence = world.Strategic.CharacterEncounter != null;
             if (!separateSpaceOwnsPresence && !encounterOwnsPresence)
                 PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                    world, session.PlayerParty, "SnapshotSurfaceTravelFinalized");
-
-            // Old snapshots could contain an exact personal point without Surface provenance.
-            // Repair once at restore, only when exactly one registered authored Surface owns it.
-            if (politicalSnapshot.CharacterWorldPresences != null)
-                foreach (var saved in politicalSnapshot.CharacterWorldPresences)
-                {
-                    if (saved == null || saved.CharacterId == 0 || !saved.HasWorldPosition ||
-                        !string.IsNullOrEmpty(saved.PersonalSurfaceId) ||
-                        (saved.Mode != (int)PartyWorldPresenceMode.AtWorldPosition &&
-                         saved.Mode != (int)PartyWorldPresenceMode.AtSite) ||
-                        !world.WorldPresence.TryGet(new EntityId(saved.CharacterId), out var personal) ||
-                        personal == null || !personal.HasContinuousWorldPosition ||
-                        !string.IsNullOrEmpty(personal.PersonalSurfaceId))
-                        continue;
-                    string resolvedSurface = null;
-                    var ambiguous = false;
-                    foreach (var candidate in world.SurfaceGround.Registered)
-                        if (candidate.Value.Contains(personal.WorldPosX, personal.WorldPosY))
-                        {
-                            if (resolvedSurface != null) { ambiguous = true; break; }
-                            resolvedSurface = candidate.Key;
-                        }
-                    if (!ambiguous && resolvedSurface != null)
-                    {
-                        personal.PersonalSurfaceId = resolvedSurface;
-                        // Normalize the pending legacy DTO as part of the one-way migration so the
-                        // final exact-presence invariant compares against the migrated authority.
-                        saved.PersonalSurfaceId = resolvedSurface;
-                    }
-                }
+                    world, session.PlayerParty);
 
             var encounter = world.Strategic.CharacterEncounter;
             if (encounter != null)
@@ -150,17 +116,12 @@ namespace XianXia.Unity.Host
             }
 
             {
-                var openingMigration = RestoreMissingLegacyOpeningPresences(
-                    world, registry, scenario, politicalSnapshot);
-                if (openingMigration.IsFailure)
-                    return openingMigration;
-
                 var fixedCores = ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(world, registry);
                 if (fixedCores.IsFailure)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "Preset SiteCore snapshot shell rehydrate failed.", fixedCores.Error.ToString());
 
-                var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
+                var political = StrategicSnapshotHelper.RestorePoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;
                 // StorageRoom registry is derived presentation/economy wiring, but it needs the
@@ -184,16 +145,8 @@ namespace XianXia.Unity.Host
 
             ResolvePartyWorldFromActiveControlledCharacter(world, session.PlayerParty);
 
-            // SPACE-01：Separate Space 优先于 Outdoor ActiveControlled 解析。
-            // Surface 已就绪后，再尝试旧档 migration。
-            if (!world.LocalMap.IsActive)
-            {
-                var migrated = SeparateSpaceSessionSnapshotRestore.TryMigrateLegacySeparateSpace(
-                    world, politicalSnapshot);
-                if (migrated.IsFailure)
-                    return migrated;
-            }
-            else
+            // SPACE-01：current Separate Space authority 优先于 Outdoor ActiveControlled 解析。
+            if (world.LocalMap.IsActive)
             {
                 // Active Separate Space：覆盖 Outdoor resolver 可能写入的 return authority。
                 if (world.LocalMap.HasOutdoorReturn)
@@ -214,24 +167,6 @@ namespace XianXia.Unity.Host
             var mapId = world.LocalMap.IsActive
                 ? (world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty)
                 : (world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty);
-            if (mapId == "base:map_world_node_stub")
-            {
-                mapId = LegacyStrategicMapCatalog.DefaultEncounterLocalMapId;
-                world.PartyWorld.LocalMapId = mapId;
-            }
-            if (!world.LocalMap.IsActive && IsRetiredOutdoorMapId(mapId))
-            {
-                if (!world.PlayerPartyTravel.HasPosition ||
-                    !world.SurfaceGround.TryResolveContaining(world.PlayerPartyTravel.WorldPosition, out _))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Legacy Outdoor LocalMap cannot be migrated to a valid Surface position.", mapId);
-                world.PartyWorld.ClearSiteFocus();
-                world.PartyWorld.LocalMapId = string.Empty;
-                // Retired outdoor LocalMap snapshots are migrated onto the restored exact Surface
-                // position above. Keep PartyWorld as a non-authoritative presentation summary.
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
-                mapId = string.Empty;
-            }
             if (!string.IsNullOrEmpty(mapId))
             {
                 session.PreferredMapLayoutId = mapId;
@@ -242,7 +177,6 @@ namespace XianXia.Unity.Host
                         "Interior LocalPlace snapshot shell rehydrate failed.", places.Error.ToString());
                 if (world.LocalMap.IsActive)
                     world.LocalMap.ActiveLocalPlaceSetId = world.LocalPlaces.RegionId ?? string.Empty;
-                RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
                 if (world.LocalMap.IsActive)
                     LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, mapId);
                 if (world.LocalMap.IsActive)
@@ -253,9 +187,6 @@ namespace XianXia.Unity.Host
             // 最后才允许进入 LocalMap materialization。
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
             CharacterEncounterService.BindRuntime(world);
-            // Separate Space 已有完整 session；禁止 ApplyLocalMapSessionFromFocus 清掉 occupants／return。
-            if (!string.IsNullOrEmpty(mapId) && !world.LocalMap.IsActive)
-                WorldTravelService.ApplyLocalMapSessionFromFocus(world);
             var presenceInvariant = StrategicSnapshotHelper.ValidateRestoredCharacterWorldPresences(
                 world, politicalSnapshot);
             if (presenceInvariant.IsFailure)
@@ -267,146 +198,6 @@ namespace XianXia.Unity.Host
             session.ConsumePendingRestoredStrategicSnapshot();
             session.RefreshViewableEntityIds();
             return Result.Success();
-        }
-
-        static bool IsRetiredOutdoorMapId(string mapId) =>
-            !string.IsNullOrEmpty(mapId) &&
-            (mapId == "base:map_ch01_reference" ||
-             mapId == "base:map_player_camp" ||
-             mapId == "base:map_huangcun_01" ||
-             mapId.StartsWith("base:map_site_", System.StringComparison.Ordinal) ||
-             mapId.StartsWith("base:map_wilderness_", System.StringComparison.Ordinal));
-
-        /// <summary>
-        /// Best-effort Opening anchor inference is only for a genuinely legacy Character:
-        /// modern EntityLocation snapshot authority and active Separate Space ownership both win.
-        /// </summary>
-        static Result RestoreMissingLegacyOpeningPresences(
-            SimulationWorld world, DefinitionRegistry registry, OpeningScenarioDefinition scenario,
-            StrategicSnapshotDto saved)
-        {
-            if (scenario?.Spawns == null || string.IsNullOrWhiteSpace(scenario.OpeningSurfaceId) ||
-                !DefinitionId.TryParse(scenario.OpeningSurfaceId, out var surfaceId) ||
-                !registry.TryGetOutdoorSurface(surfaceId, out var surface) || surface == null)
-                return Result.Success();
-            var savedIds = new HashSet<ulong>();
-            if (saved?.CharacterWorldPresences != null)
-                foreach (var presence in saved.CharacterWorldPresences)
-                    if (presence != null) savedIds.Add(presence.CharacterId);
-            var ordinals = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var spawn in scenario.Spawns)
-            {
-                if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId)) continue;
-                var definitionId = spawn.DefinitionId.Trim();
-                ordinals.TryGetValue(definitionId, out var ordinal);
-                ordinals[definitionId] = ordinal + 1;
-                var matching = EntityId.None;
-                Entity matchedEntity = null;
-                var matches = 0;
-                foreach (var entity in world.Entities.All)
-                    if (entity != null &&
-                        string.Equals(entity.DefinitionId.ToString(), definitionId, StringComparison.Ordinal))
-                    {
-                        matching = entity.Id;
-                        matchedEntity = entity;
-                        matches++;
-                    }
-                if (matches == 0) continue; // The old save may have removed this entity.
-                // A modern snapshot explicitly owns both EntityLocation and the intentional absence
-                // of Outdoor WorldPresence. Do not even enter legacy identity inference for it.
-                var hasSnapshotLocationAuthority =
-                    matchedEntity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&
-                    snapshotAuthority.SnapshotFieldPresent;
-                // Active Separate Space has stronger spatial authority even for legacy snapshots.
-                var ownedByActiveSeparateSpace =
-                    SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, matching);
-                if (matches != 1)
-                {
-                    if (hasSnapshotLocationAuthority || ownedByActiveSeparateSpace)
-                        continue;
-                    if (!savedIds.Contains(matching.Value))
-                        return Result.Failure(ErrorCode.SnapshotInvalid,
-                            "Old-save opening spawn identity is ambiguous.", definitionId);
-                    continue;
-                }
-                world.OpeningSpawnIdentities.Register(
-                    matching, OpeningSpawnIdentityBoard.BuildStableKey(definitionId, ordinal));
-                if (hasSnapshotLocationAuthority || ownedByActiveSeparateSpace)
-                    continue;
-                if (savedIds.Contains(matching.Value) ||
-                    world.WorldPresence.TryGet(matching, out _) ||
-                    SquadWorldMotionService.OwnsCharacter(world, matching) ||
-                    SquadCommandService.OwnsIndividualSchedule(world, matching))
-                    continue;
-                if (!ContinuousOpeningSpawnPresenceResolver.TryApply(
-                        world, surface, matching, definitionId, spawn.WorldSiteId, out var failure))
-                    return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Old-save opening anchor migration failed.", failure);
-                Debug.Log("[SnapshotOpeningAnchorMigrated] Entity=" + matching.Value +
-                          " SpawnKey=" + definitionId);
-                LastLegacyAnchorMigrated++;
-            }
-            return Result.Success();
-        }
-
-        /// <summary>
-        /// 旧 v6 没有 EntityLocation 字段，只能对唯一 Opening spawn 恢复 authored Location。
-        /// 新格式 Snapshot 一律以自身 Location authority 为准；绝不重生实体或用 DefinitionId 猜重复实例。
-        /// </summary>
-        static void RestoreLegacyAuthoredEntityLocations(
-            SimulationWorld world,
-            PlayerPartyRuntime party,
-            OpeningScenarioDefinition scenario)
-        {
-            if (world == null || scenario?.Spawns == null)
-                return;
-            foreach (var entity in world.Entities.All)
-            {
-                if (entity == null || (entity.Tags & EntityTag.Character) == 0 ||
-                    IsPartyMember(party, entity.Id) ||
-                    SquadWorldMotionService.OwnsCharacter(world, entity.Id) ||
-                    SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ||
-                    world.WorldPresence.TryGet(entity.Id, out _))
-                    continue;
-                if (entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&
-                    snapshotAuthority.SnapshotFieldPresent)
-                    continue;
-                if (entity.TryGet<EntityLocationComponent>(out var existing) && existing.HasLocation)
-                    continue;
-
-                var matches = 0;
-                OpeningSpawnEntry unique = null;
-                var definitionId = entity.DefinitionId.ToString();
-                for (var i = 0; i < scenario.Spawns.Count; i++)
-                {
-                    var candidate = scenario.Spawns[i];
-                    if (candidate == null || !string.Equals(candidate.DefinitionId, definitionId, System.StringComparison.Ordinal))
-                        continue;
-                    matches++;
-                    unique = candidate;
-                }
-                if (matches != 1 || unique == null || string.IsNullOrEmpty(unique.LocalLocationId))
-                {
-                    if (matches > 1)
-                        Debug.LogWarning("[SnapshotRestore] 跳过旧档地点回填：Opening spawn 非唯一 " + definitionId);
-                    continue;
-                }
-
-                var location = existing ?? new EntityLocationComponent();
-                location.LocationId = unique.LocalLocationId;
-                if (existing == null)
-                    entity.AddComponent(location);
-            }
-        }
-
-        static bool IsPartyMember(PlayerPartyRuntime party, XianXia.Core.Domain.Ids.EntityId entityId)
-        {
-            if (party?.Members == null)
-                return false;
-            for (var i = 0; i < party.Members.Count; i++)
-                if (party.Members[i] == entityId)
-                    return true;
-            return false;
         }
 
         /// <summary>
@@ -444,23 +235,9 @@ namespace XianXia.Unity.Host
                 return;
 
             world.PartyWorld.EncounterId = string.Empty;
-
-            if (resolved.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(resolved.SiteId))
-            {
-                world.PartyWorld.SiteId = resolved.SiteId;
-                world.PartyWorld.LocalMapId = resolved.ResolvedLocalMapId ?? string.Empty;
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
-                return;
-            }
-
             world.PartyWorld.ClearSiteFocus();
-            world.PartyWorld.LocalMapId = resolved.ResolvedLocalMapId ?? string.Empty;
-            // TryResolve returns AtWorldPosition for normal Continuous runtime. The AtHex fallback
-            // below is restricted to legacy Outdoor LocalMap / old Hex snapshot compatibility.
-            world.PartyWorld.Mode = resolved.LocationKind == PlayerPartyLocationKind.AtWorldPosition
-                ? PartyWorldPresenceMode.AtWorldPosition
-                : PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.LocalMapId = string.Empty;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
         }
 
         public static void LogDomainTrace(PlayableHostSession session, string phase)
@@ -504,7 +281,6 @@ namespace XianXia.Unity.Host
                 var participant = world.Strategic.Participants.FindByEntity(entity.Id);
                 sb.Append("\nCharacterId=").Append(entity.Id.Value)
                     .Append(" SquadId=").Append(squad?.SquadId ?? "")
-                    .Append(" LegacyArmy=").Append(squad?.LegacyArmyId ?? "")
                     .Append(" Source=").Append(string.IsNullOrEmpty(personal?.PersonalSurfaceId)
                         ? "LegacyUnqualified" : "PersonalWorldPresence")
                     .Append(" Space/SurfaceId=").Append(personal?.PersonalSurfaceId ?? "")

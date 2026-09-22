@@ -10,7 +10,6 @@ using XianXia.Core.Results;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -36,11 +35,6 @@ namespace XianXia.Unity.Host
         [SerializeField] string characterRosterId = "base:roster_level_tester";
         [HideInInspector]
         [SerializeField] string preferredMapLayoutId = "";
-        // Phase 5S-B2-3.1：Loaded 战略人口 reconcile 的 playable bounds 缓存（按 ActiveMapLayoutId
-        // 键控，仅地图切换时重建一次 WalkGrid，StepTick 每帧复用；避免刷日志 / 每帧重建）。
-        string _loadedStrategicBoundsMapId = string.Empty;
-        WildernessLocalWorldProjection.WildernessLocalMapBounds? _loadedStrategicWildernessBounds;
-        WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? _loadedStrategicSiteBounds;
         [HideInInspector]
         [SerializeField] TextAsset mapLayoutJsonOverride;
 
@@ -85,7 +79,6 @@ namespace XianXia.Unity.Host
         [SerializeField] HostTicTacToePanel ticTacToePanel;
         [SerializeField] HostCaveSurveyPresenter caveSurveyPresenter;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
-        [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
         [SerializeField] HostNpcSquadContinuousPresenter npcSquadContinuousPresenter;
         [SerializeField] HostNpcContextMenu npcContextMenu;
@@ -99,6 +92,8 @@ namespace XianXia.Unity.Host
 
         PlayableHostSession _session = new PlayableHostSession();
         ContinuousOutdoorSurfaceRuntime _continuousOutdoorSurfaceRuntime;
+        readonly OutdoorEntityReconcileGate _outdoorEntityReconcileGate =
+            new OutdoorEntityReconcileGate();
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
@@ -126,9 +121,6 @@ namespace XianXia.Unity.Host
         public HostEventFeed EventFeed => eventFeed;
 
         public HostMoveController MoveController => moveController;
-
-        public HostSurfaceExitZonePresenter SurfaceExitZonePresenter => surfaceExitZonePresenter;
-
 
         public ContinuousOutdoorSurfaceRuntime ContinuousOutdoorSurfaceRuntime => _continuousOutdoorSurfaceRuntime;
 
@@ -178,12 +170,6 @@ namespace XianXia.Unity.Host
 
         void Awake()
         {
-            PlayerPartyWorldLocationDebug.Sink = msg => Debug.Log(msg, this);
-            // Phase 5R-B3B.4：Site ingress 结构化诊断（保留 ownership / 映射数值 / failure；
-            // 已移除一次性 writer 追踪）。订阅前先清去重/id，避免上次会话残留干扰。
-            PlayerPartySiteIngressTrace.ResetDedupe();
-            PlayerPartySiteIngressTrace.Sink = msg => Debug.Log(msg, this);
-
             if (entityViewSpawner == null)
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? GetComponentInChildren<EntityViewSpawner>();
             if (cameraRig == null)
@@ -261,7 +247,7 @@ namespace XianXia.Unity.Host
         }
 
         // Continuous Outdoor startup 恢复：preflight／activation 失败时 InitialBootstrap token 不消费，
-        // 逐帧 retry；禁止留下「Legacy 已销毁 + Continuous 未建立」的不可恢复半初始化状态。
+        // 逐帧 retry；禁止留下 Continuous presentation 未建立的半初始化状态。
         const int ContinuousStartupRecoveryMaxAttempts = 5;
         bool _continuousStartupRecoveryPending;
         int _continuousStartupRecoveryAttempts;
@@ -306,7 +292,7 @@ namespace XianXia.Unity.Host
                     plan.Surface, plan.Chunk, out _))
                 CommitInitialContinuousOutdoorStartup(plan);
 
-            ActivateSurfaceLocalMapPresentation();
+            ActivateContinuousOutdoorPresentation();
             if (_continuousOutdoorSurfaceRuntime == null || !_continuousOutdoorSurfaceRuntime.IsActive)
                 return;
 
@@ -409,8 +395,7 @@ namespace XianXia.Unity.Host
         /// Preflight 确认 neighborhood 可加载；Commit 才提交 canonical position 并清掉 legacy LocalMap
         /// authority；InitialBootstrap token 只在 Continuous Surface 真正激活之后才消费。
         ///
-        /// 这样 activation 失败不会留下「Legacy 已销毁 + Continuous 未建立 + token 已消费」的不可恢复
-        /// half-state（那正是 producer 看到的绿色空地）。
+        /// 这样 activation 失败不会留下 Surface 未建立但 token 已消费的不可恢复 half-state。
         /// </summary>
         bool TryPrepareInitialContinuousOutdoorStartup(
             out ContinuousOutdoorStartupPlanner.StartupPlan plan, out string failure)
@@ -453,15 +438,8 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            // C：旧 content／compatibility —— LocalMap geometry → WorldSiteHexFootprintSpatialMapping。
-            if (!TryResolveLegacyContinuousStartupAnchor(
-                    world, site, siteId, out var worldX, out var worldY, out failure))
-                return false;
-            plan = new ContinuousOutdoorStartupPlanner.StartupPlan(
-                siteId, surface,
-                ContinuousOutdoorStartupPlanner.WorldToChunk(surface, worldX, worldY),
-                worldX, worldY, ContinuousOutdoorAnchorSource.LegacyMapping);
-            return true;
+            failure = "SiteId=" + siteId + " BakedContinuousAnchor=missing";
+            return false;
         }
 
         /// <summary>开局 canonical position 的 legacy LocationId hint；不读取或激活 WorldRegion runtime。</summary>
@@ -477,69 +455,6 @@ namespace XianXia.Unity.Host
             return world.LocalPlaces.StartLocationId ?? string.Empty;
         }
 
-        /// <summary>Legacy／compatibility anchor：读旧 layout 的 authored 坐标再映射成 canonical WorldPosition。</summary>
-        bool TryResolveLegacyContinuousStartupAnchor(
-            SimulationWorld world, WorldSite site, string siteId,
-            out float worldX, out float worldY, out string failure)
-        {
-            worldX = 0f;
-            worldY = 0f;
-            failure = string.Empty;
-            var mapId = WorldTravelService.ResolveWorldSiteLocalMapId(site);
-            var parsed = DefinitionId.Parse(mapId);
-            if (!parsed.IsSuccess || !_session.Registry.TryGetMapLayout(parsed.Value, out var layout) || layout == null)
-            {
-                failure = "SiteId=" + siteId + " SourceMapLayoutMissing=" + mapId;
-                return false;
-            }
-
-            var px = layout.OriginX + layout.Width * layout.CellSize * .5f;
-            var py = layout.OriginY + layout.Height * layout.CellSize * .5f;
-            var hasAuthoredStart = false;
-            if (world.Entities.TryGet(_session.PlayerParty.ActiveCharacterId, out var active) &&
-                active.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
-            {
-                if (loc.HasPresentationOverride)
-                {
-                    px = loc.PresentationOverrideX;
-                    py = loc.PresentationOverrideZ;
-                    hasAuthoredStart = true;
-                }
-                else if (loc.HasLocation &&
-                         TryResolveAuthoredLocationCenter(layout, loc.LocationId, out px, out py))
-                    hasAuthoredStart = true;
-                else if (loc.HasLocation && world.LocalPlaces.TryGet(loc.LocationId, out var authored))
-                {
-                    px = authored.PresentationX;
-                    py = authored.PresentationZ;
-                    hasAuthoredStart = true;
-                }
-            }
-            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.LocalPlaces.StartLocationId) &&
-                TryResolveAuthoredLocationCenter(layout, world.LocalPlaces.StartLocationId, out px, out py))
-                hasAuthoredStart = true;
-            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.LocalPlaces.StartLocationId) &&
-                world.LocalPlaces.TryGet(world.LocalPlaces.StartLocationId, out var start))
-            {
-                px = start.PresentationX;
-                py = start.PresentationZ;
-            }
-
-            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                layout.OriginX, layout.OriginY, layout.CellSize, layout.Width, layout.Height);
-            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
-            if (!WorldSiteHexFootprintSpatialMapping.TryLocalToWorldSurface(
-                    site, bounds, new WorldVec2(px, py), hexSize, out var canonical))
-            {
-                failure = "SiteId=" + siteId + " AuthoredLocalToWorld=failed local=" + px + "," + py;
-                return false;
-            }
-
-            worldX = canonical.X;
-            worldY = canonical.Y;
-            return true;
-        }
-
         /// <summary>
         /// 提交 canonical WorldPosition 并清掉 legacy Site／LocalMap authority。
         /// 这是 startup 事务里唯一 destructive 的一步，只能在 preflight 成功之后调用。
@@ -550,14 +465,12 @@ namespace XianXia.Unity.Host
             var motion = world?.PlayerPartyTravel;
             if (motion == null)
                 return;
-            var hexSize = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
             var canonical = new WorldVec2(plan.CanonicalWorldX, plan.CanonicalWorldY);
-            var derived = HexMath.WorldToHex(canonical.X, canonical.Y, hexSize);
-            motion.SetAtSurfacePosition(plan.SurfaceId, canonical, derived);
+            motion.SetAtSurfacePosition(plan.SurfaceId, canonical);
             motion.SetCurrentOutdoorWorldSiteContext(plan.SiteId);
             for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
-                world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived,
-                    plan.SurfaceId);
+                world.WorldPresence.SetAtWorldPosition(
+                    _session.PlayerParty.Members[i], canonical, plan.SurfaceId);
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
             world.PartyWorld.LocalMapId = string.Empty;
@@ -565,10 +478,6 @@ namespace XianXia.Unity.Host
             world.LocalMap.ActiveMapLayoutId = string.Empty;
             world.LocalMap.OverworldMapLayoutId = string.Empty;
             _session.PreferredMapLayoutId = string.Empty;
-            PlayerPartySiteIngressTrace.Log("ContinuousStartupBootstrapCommitted",
-                "site=" + plan.SiteId + " anchor=" + plan.AnchorSource +
-                " surface=" + plan.SurfaceId + " chunk=" + plan.Chunk +
-                " world=" + canonical);
         }
 
         /// <summary>
@@ -583,34 +492,6 @@ namespace XianXia.Unity.Host
             if (!_session.InitialBootstrapPending)
                 return;
             _session.ConsumeInitialBootstrap();
-        }
-
-        static bool TryResolveAuthoredLocationCenter(
-            MapLayoutDefinition layout, string locationId, out float x, out float y)
-        {
-            x = y = 0f;
-            if (layout?.Placements == null || string.IsNullOrEmpty(locationId))
-                return false;
-            var count = 0;
-            var sumX = 0f;
-            var sumY = 0f;
-            var cellSize = layout.CellSize > 0f ? layout.CellSize : 1f;
-            for (var i = 0; i < layout.Placements.Count; i++)
-            {
-                var placement = layout.Placements[i];
-                if (placement == null || !string.Equals(
-                        placement.BoundLocationId, locationId, System.StringComparison.Ordinal))
-                    continue;
-                var cellsW = placement.W < 1 ? 1 : placement.W;
-                var cellsH = placement.H < 1 ? 1 : placement.H;
-                sumX += layout.OriginX + (placement.X + cellsW * .5f) * cellSize;
-                sumY += layout.OriginY + (placement.Y + cellsH * .5f) * cellSize;
-                count++;
-            }
-            if (count <= 0) return false;
-            x = sumX / count;
-            y = sumY / count;
-            return true;
         }
 
         /// <summary>
@@ -684,6 +565,7 @@ namespace XianXia.Unity.Host
 
         public bool TryInitialize()
         {
+            _outdoorEntityReconcileGate.Reset();
             if (entityViewSpawner == null)
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? gameObject.AddComponent<EntityViewSpawner>();
             if (selectionController == null)
@@ -796,9 +678,6 @@ namespace XianXia.Unity.Host
             if (interactSpotPresenter == null)
                 interactSpotPresenter = GetComponent<HostInteractSpotPresenter>() ??
                                        gameObject.AddComponent<HostInteractSpotPresenter>();
-            if (surfaceExitZonePresenter == null)
-                surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
-                                          gameObject.AddComponent<HostSurfaceExitZonePresenter>();
             if (npcScheduleMover == null)
                 npcScheduleMover = GetComponent<HostNpcScheduleMover>() ??
                                   gameObject.AddComponent<HostNpcScheduleMover>();
@@ -861,8 +740,6 @@ namespace XianXia.Unity.Host
                 caveSurveyPresenter.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
-            if (surfaceExitZonePresenter != null)
-                surfaceExitZonePresenter.Clear();
 
             _openingPopulationBarrierApplied = false;
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
@@ -966,8 +843,6 @@ namespace XianXia.Unity.Host
             // 开局权威位置愈合：禁止 AtWorldPosition 漂移冒充 Site。
             PlayerPartyWorldLocationQuery.TryResolve(
                 _session.World, _session.PlayerParty, out _, healDrift: true);
-            PlayerPartyWorldLocationDebug.LogSnapshot(
-                _session.World, _session.PlayerParty, "StartupResolve");
             var playerPartyController = GetComponent<HostPlayerPartyController>() ??
                                         gameObject.AddComponent<HostPlayerPartyController>();
             playerPartyController.Bind(this);
@@ -1018,17 +893,14 @@ namespace XianXia.Unity.Host
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
             moveController.SetWalkGrid(ResolveWalkGrid());
-            // Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 必须在【初始 LocalMap 第一次真正建立】
-            // 时发生（TryInitialize 启动链内），不能等玩家离开 Site 再回来才第一次执行。
-            if (!continuousOutdoorStartup)
-                TryRunInitialSiteBootstrap();
             moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
             // Host-side Safe+Walkable fallback：materialize+Rebuild 之后、OnLocalMapMaterialized
             // （→RebindAllFollowers）之前 —— WalkGrid 已 ready、EntityView 已就位。
             if (continuousOutdoorStartup)
-                RefreshSurfaceExitZones();
+                ActivateContinuousOutdoorPresentation();
             else
-                FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
+                PlayerPartyController?.OnLocalMapMaterialized(
+                    _session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter);
             var constructionController = GetComponent<HostConstructionController>();
@@ -1070,7 +942,7 @@ namespace XianXia.Unity.Host
                 caveSurveyPresenter.Bind(this, selectionController, commandBridge);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             npcSquadContinuousPresenter.Bind(this);
-            ActivateSurfaceLocalMapPresentation();
+            ActivateContinuousOutdoorPresentation();
             if (continuousOutdoorStartup)
             {
                 if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
@@ -1101,7 +973,7 @@ namespace XianXia.Unity.Host
                 // Normal continuous startup 不依赖 legacy LocalMap 取景 fallback：明确对准主控。
                 FrameCameraOnActiveCharacter();
                 // postcondition 诊断放在 Host finalize + Camera 之后：只报告，不中途 abort
-                // （避免留下「IsInitialized 一半 / Camera 未定位 / Legacy 已清」的 poisoned session）。
+                // （避免留下 IsInitialized 一半且 Camera 未定位的 poisoned session）。
                 if (_continuousOutdoorSurfaceRuntime != null &&
                     !_continuousOutdoorSurfaceRuntime.TryValidateOpeningPostconditions(out var postFailure))
                 {
@@ -1132,6 +1004,7 @@ namespace XianXia.Unity.Host
             if (_session == null || !_session.IsInitialized)
                 return;
             _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
+            CommitOutdoorEntityReconcileGate();
             if (entityViewSpawner == null)
             {
                 _openingPopulationBarrierApplied = true;
@@ -1348,13 +1221,20 @@ namespace XianXia.Unity.Host
                 if (continuousOutdoorRestored)
                     RefreshContinuousOutdoorOverlaysOnce();
                 else
-                    ApplyPartyWorldSitePresentation(closeWorldMap: false);
+                {
+                    _session.AcquireModalPause("ContinuousRestoreFailure");
+                    Debug.LogError(
+                        "Snapshot has no restorable Continuous Surface, Separate Space, or CharacterEncounter presentation.");
+                    return;
+                }
             }
 
             _session.ReleaseModalPause("EncounterRestoreFailure");
 
             RebindHostControlAfterSnapshotRestore();
             GetComponent<HostSeparateSpaceExitTrigger>()?.NotifyPresentationRestored();
+            RefreshLoadedStrategicPopulation();
+            CommitOutdoorEntityReconcileGate();
 
             DispatchDrainedEvents();
             _autoTickAccumulator = 0f;
@@ -1601,6 +1481,7 @@ namespace XianXia.Unity.Host
             if (!interior && _continuousOutdoorSurfaceRuntime != null &&
                 _continuousOutdoorSurfaceRuntime.IsActive)
             {
+                FlushLoadedDestinationArrivals();
                 ReloadContinuousSurfaceOverlaysOnly(frameCamera);
                 return;
             }
@@ -1609,6 +1490,7 @@ namespace XianXia.Unity.Host
                 handoffMotion?.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
                 _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
             {
+                FlushLoadedDestinationArrivals();
                 ReloadContinuousSurfaceOverlaysOnly(frameCamera);
                 return;
             }
@@ -1618,7 +1500,6 @@ namespace XianXia.Unity.Host
                 _session.PreferredMapLayoutId = active.Trim();
 
             MapLayoutPresentationSync.Apply(_session);
-            SyncExitTriggerDepthFromActiveMap();
             if (entityViewSpawner != null)
                 entityViewSpawner.Rebuild(_session);
             if (mapGraybox != null)
@@ -1630,510 +1511,9 @@ namespace XianXia.Unity.Host
                 moveController.SetWalkGrid(ResolveWalkGrid());
                 moveController.BindLocalMapContext(active?.Trim() ?? string.Empty);
             }
-            ActivateSurfaceLocalMapPresentation();
             if (frameCamera)
                 FrameCameraOnSlots();
             RefreshStatus();
-        }
-
-        /// <summary>
-        /// 从当前 Active MapLayout 写入 ExitTriggerDepth（Gameplay）。
-        /// Geometry 只认 MapLayout；与角色位置 / Entry 无关。
-        /// </summary>
-        void SyncExitTriggerDepthFromActiveMap()
-        {
-            if (!_session.IsInitialized || _session.World?.LocalMap == null)
-                return;
-            var lm = _session.World.LocalMap;
-            if (lm.IsInInterior)
-            {
-                lm.ExitTriggerDepth = 0f;
-                lm.ClearPlayableBounds();
-                return;
-            }
-
-            if (MapLayoutPick.TryGet(_session, out var layout) && layout != null)
-            {
-                if (layout.ExitTriggerDepth > 0.0001f)
-                    lm.ExitTriggerDepth = layout.ExitTriggerDepth;
-                else
-                {
-                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
-                    lm.ExitTriggerDepth = cs * SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
-                }
-
-                var cellSize = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
-                lm.SetPlayableBounds(layout.OriginX, layout.OriginY, cellSize, layout.Width, layout.Height);
-                return;
-            }
-
-            var walk = ResolveWalkGrid();
-            if (walk != null)
-            {
-                lm.SetPlayableBounds(
-                    walk.OriginX,
-                    walk.OriginY,
-                    walk.CellSize > 0.0001f ? walk.CellSize : 1f,
-                    walk.Width,
-                    walk.Height);
-            }
-            else
-            {
-                lm.ClearPlayableBounds();
-            }
-
-            if (lm.ExitTriggerDepth <= 0.0001f)
-                lm.ExitTriggerDepth = SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
-        }
-
-        /// <summary>显式清空 Active LocalMap 表现（进入场景失败／无目标图时用）。全员上路时不要调用/summary>
-        public void UnloadActiveLocalMapPresentation(bool clearEmptyEncounter = false)
-        {
-            if (!_session.IsInitialized)
-                return;
-
-            var world = _session.World;
-            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
-            LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(
-                world,
-                _session.PlayerParty);
-
-            world.LocalMap.ActiveMapLayoutId = string.Empty;
-            world.LocalMap.OverworldMapLayoutId = string.Empty;
-            world.LocalMap.ClearPlayableBounds();
-            preferredMapLayoutId = string.Empty;
-            _loadedStrategicBoundsMapId = string.Empty;
-            _loadedStrategicWildernessBounds = null;
-            _loadedStrategicSiteBounds = null;
-            _session.PreferredMapLayoutId = string.Empty;
-            if (entityViewSpawner != null)
-                entityViewSpawner.Clear();
-            if (mapGraybox != null)
-                mapGraybox.Rebuild(_session);
-            if (interactSpotPresenter != null)
-                interactSpotPresenter.Rebuild();
-            if (surfaceExitZonePresenter != null)
-                surfaceExitZonePresenter.Clear();
-            if (moveController != null)
-                moveController.SetWalkGrid(null);
-            RefreshStatus();
-        }
-
-        /// <summary>
-        /// 正式展开链路：当前 PartyWorld 已 Resolve 的 LocalMap → Materialize PlayerParty → 重建表现。
-        /// WorldSite 与 Wilderness 共用；未来 Close WorldMap 也应调用此入口。
-        /// </summary>
-        public void ExpandLocalMapForCurrentPartyWorld(bool closeWorldMap = false)
-        {
-            // Continuous Surface single authority gate: every legacy caller (manual exit, WorldMap close,
-            // save/materialize recovery, AutoTravel) must give supported Wilderness coverage a
-            // chance before it can recreate a one-Hex LocalMap presentation.
-            var motion = _session?.World?.PlayerPartyTravel;
-            if (_session != null && _session.IsInitialized &&
-                motion != null && motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                _continuousOutdoorSurfaceRuntime != null &&
-                _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
-            {
-                surfaceExitZonePresenter?.Clear();
-                return;
-            }
-            ApplyPartyWorldSitePresentation(closeWorldMap);
-        }
-
-        /// <summary>
-        /// WorldSite／Wilderness 到站后：PartyWorld.LocalMapId 卸／装实体图；Materialize PlayerParty。
-        /// </summary>
-        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页</param>
-        public void ApplyPartyWorldSitePresentation(bool closeWorldMap = false)
-        {
-            if (closeWorldMap && worldMapPanel != null)
-                worldMapPanel.Close();
-
-            if (!_session.IsInitialized)
-                return;
-
-            var world = _session.World;
-            // World Combat 复用已加载的真实 LocalMap 时，不会有另一条隐藏的装图入口。
-            // 记录正式 ApplyPending 调用点的前后状态，用于区分「未消费 pending」与
-            // 「已准备实体但未落表现／未重建视图」。PendingEngagement 会在调用方返回后清理，
-            // 因而必须在本次 presentation 调用中判定。
-            var activeMapBeforePresentation = world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
-            if (SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
-                    world,
-                    _session.PlayerParty,
-                    out var requiredFocus) &&
-                requiredFocus.HasValue &&
-                !string.IsNullOrEmpty(requiredFocus.LocalMapId))
-            {
-                SnapshotActiveControlledLocalMapResolver.ApplyResolvedPartyWorldFocus(world, in requiredFocus);
-            }
-
-            var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
-            var onEncounterMap = false;
-
-            // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
-            // Wilderness：CanLoadMapLayoutForParty 已认 AtHex + PartyWorld.LocalMapId
-            if (!string.IsNullOrWhiteSpace(targetMap) &&
-                !LocalMapVisibility.CanLoadMapLayoutForParty(
-                    world, _session.CharacterIds, targetMap.Trim()) &&
-                !SnapshotActiveControlledLocalMapResolver.ActiveAuthorizesMapLoad(
-                    world, _session.PlayerParty, targetMap.Trim()))
-            {
-                RefreshStatus();
-                return;
-            }
-
-            // 目标图必须在内容包里，否则禁止带着荒村图「假装切换
-            if (!string.IsNullOrWhiteSpace(targetMap))
-            {
-                var parsedMap = XianXia.Core.Domain.Ids.DefinitionId.Parse(targetMap.Trim());
-                if (parsedMap.IsFailure ||
-                    !_session.Registry.TryGetMapLayout(parsedMap.Value, out _))
-                {
-                    Debug.LogError(
-                        "[PlayableHost] LocalMap missing in registry: " + targetMap,
-                        this);
-                    RefreshStatus();
-                    return;
-                }
-            }
-
-            var places = InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(
-                world, _session.Registry, targetMap);
-            if (places.IsFailure)
-                Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
-
-            if (string.IsNullOrWhiteSpace(targetMap))
-            {
-                // 焦点图为空但画面仍在：保留当LocalMap（全员上路时视线不带走）
-                if (!string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
-                {
-                    RefreshStatus();
-                    return;
-                }
-
-                UnloadActiveLocalMapPresentation(clearEmptyEncounter: false);
-                return;
-            }
-
-            // Phase 2C：先绑定目标 LocalMap 并装图，再用该图 WalkGrid 做 Materialize。
-            // 禁止在旧图 bounds 上投影后再切图（会导致 Active 落点非法／看起来「消失」）。
-            preferredMapLayoutId = targetMap;
-            _session.PreferredMapLayoutId = targetMap;
-            world.LocalMap.ActiveMapLayoutId = targetMap;
-            world.LocalMap.OverworldMapLayoutId = targetMap;
-            _session.RefreshViewableEntityIds();
-
-            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-            {
-                LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, targetMap);
-                HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
-                    world, _session.PlayerParty, targetMap, "PreReload");
-            }
-
-            ReloadLocalMapPresentation(frameCamera: false);
-
-            WildernessLocalWorldProjection.WildernessLocalMapBounds? materializeBounds = null;
-            var playerPartyMaterialized = false;
-            var playerPartyMaterializationAttempted = false;
-            if (!onEncounterMap &&
-                !string.IsNullOrWhiteSpace(targetMap) &&
-                _session.PlayerParty != null &&
-                _session.PlayerParty.Count > 0)
-            {
-                if (PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world) ||
-                    (world.PlayerPartyTravel != null &&
-                     world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition))
-                {
-                    var walk = ResolveWalkGrid();
-                    if (walk != null)
-                    {
-                        materializeBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                            walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
-                    }
-                }
-
-                // Phase 5R-B2：Site Spatial Initialization Handshake —— 识别 ownership 并构造真实 bounds。
-                // NewGame（首次 AtWorldSite 展开）= BootstrapFromAuthoredLocal（StartLocation→Canonical）；
-                // Snapshot restore = LegacyRestoreLocal（snapshot local placement→bootstrap，无则保持默认）；
-                // 其余（Wilderness→Site 进入 / WorldMap 重开 / 新格式 restore）= ProjectCanonicalWorldToLocal。
-                WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds? siteBounds = null;
-                var siteMode = PlayerPartySiteMaterializeMode.Default;
-                // Phase 5R-B3C1：消费决策 out 提升到本方法层（isSiteExpand 块外也要读，见 Materialize 消费段）。
-                var consumeBootstrapNow = false;
-                var isSiteExpand = !string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId) &&
-                                   world.PlayerPartyTravel != null &&
-                                   world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite;
-                if (isSiteExpand)
-                {
-                    var walkForSite = ResolveWalkGrid();
-                    if (walkForSite != null)
-                    {
-                        siteBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                            walkForSite.OriginX, walkForSite.OriginY, walkForSite.CellSize,
-                            walkForSite.Width, walkForSite.Height);
-                    }
-
-                    // Phase 5R-B3B.3：ownership 由 Core 纯函数按真正 provenance 解析——
-                    // BootstrapFromAuthoredLocal 仅限 NewGame 初始 Site 的首次展开（启动链记录
-                    // _session.InitialBootstrapSiteId）；起点在 Wilderness 等场景该值空 → 任何
-                    // Wilderness→Site 进入都只能 ProjectCanonicalWorldToLocal（不覆盖 BoundaryContact）。
-                    siteMode = SiteMaterializeModeResolver.Resolve(
-                        LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot,
-                        _session.InitialBootstrapSiteId,
-                        world.PartyWorld?.SiteId ?? string.Empty,
-                        !_session.InitialBootstrapPending,
-                        out consumeBootstrapNow);
-                    // Phase 5R-B3B.4：[3 MaterializeDecision] —— 决策输入（真正 provenance）；
-                    // 同一 ingress trace id。Materialize 内 [4 WorldToLocal] 输出映射结果对照。
-                    var decisionReason =
-                        LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot
-                            ? "snapshot restore (LegacyRestore priority)"
-                            : !string.IsNullOrEmpty(_session.InitialBootstrapSiteId) &&
-                              string.Equals(
-                                  _session.InitialBootstrapSiteId,
-                                  world.PartyWorld?.SiteId ?? string.Empty,
-                                  System.StringComparison.Ordinal) &&
-                              _session.InitialBootstrapPending
-                                ? "NewGame initial site first expand (Bootstrap)"
-                                : "canonical existing (ProjectCanonicalWorldToLocal)";
-                    PlayerPartySiteIngressTrace.Log(
-                        "MaterializeDecision",
-                        "mode=" + siteMode +
-                        " initialBootstrapSiteId=" + (_session.InitialBootstrapSiteId ?? string.Empty) +
-                        " currentSiteId=" + (world.PartyWorld?.SiteId ?? string.Empty) +
-                        " bootstrapConsumed=" + !_session.InitialBootstrapPending +
-                        " hasSnapshot=" + LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot +
-                        " reason=" + decisionReason);
-                }
-
-                // Phase 5R-B3C1：Materialize 返回 Result —— Bootstrap 成功（IsSuccess）才消费 token；
-                // 失败明确 error 且不消费（保留 pending，下次正确执行）。ProjectCanonical 失败已由
-                // Materialize 内部 return Failure（不静默 DefaultStart）。
-                var materializeResult = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                    world, _session.PlayerParty.Members, materializeBounds, siteBounds, siteMode);
-                playerPartyMaterializationAttempted = true;
-                playerPartyMaterialized = materializeResult.IsSuccess;
-                if (materializeResult.IsFailure)
-                {
-                    Debug.LogError(
-                        "[PlayableHost] PlayerParty LocalMap materialize failed; dependent presentation is skipped: " +
-                        materializeResult.Error,
-                        this);
-                }
-                if (SiteMaterializeModeResolver.ShouldConsumeBootstrap(
-                        consumeBootstrapNow, materializeResult.IsSuccess))
-                {
-                    _session.ConsumeInitialBootstrap();
-                    PlayerPartySiteIngressTrace.Log(
-                        "BootstrapTokenConsumed",
-                        "site=" + (world.PartyWorld?.SiteId ?? string.Empty));
-                }
-                else if (consumeBootstrapNow)
-                {
-                    Debug.LogError(
-                        "[PlayableHost] Initial site bootstrap FAILED; token NOT consumed: " +
-                        materializeResult.Error, this);
-                    PlayerPartySiteIngressTrace.Log(
-                        "BootstrapTokenKept",
-                        "error=" + materializeResult.Error);
-                }
-
-                if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-                {
-                    HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
-                        world, _session.PlayerParty, targetMap, "Materialize");
-                }
-
-                if (materializeBounds.HasValue &&
-                    PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world))
-                {
-                    LoadedDestinationArrivalMaterializer.MaterializeEligibleWildernessCharactersOnLocalMap(
-                        world,
-                        _session.PlayerParty,
-                        materializeBounds.Value);
-                }
-
-                WildernessLocalWorldProjection.WildernessLocalMapBounds? logBounds = materializeBounds;
-                if (!logBounds.HasValue)
-                {
-                    var walkForLog = ResolveWalkGrid();
-                    if (walkForLog != null)
-                    {
-                        logBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                            walkForLog.OriginX, walkForLog.OriginY, walkForLog.CellSize,
-                            walkForLog.Width, walkForLog.Height);
-                    }
-                }
-
-                if (logBounds.HasValue)
-                {
-                    var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(
-                        world, logBounds.Value);
-                    SurfaceExitZoneCalculator.LogSurfaceExitConnectionsOnMaterialize(
-                        world, logBounds.Value, depth);
-                }
-
-                if (materializeResult.IsSuccess)
-                {
-                    PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                        world, _session.PlayerParty, "SurfaceMaterialize");
-                }
-
-                PlayerPartyWorldLocationDebug.LogSnapshot(
-                    world, _session.PlayerParty, "MaterializeLocalView");
-
-                if (_session.PlayerParty.HasActive &&
-                    !PlayerPartyLocalMapMaterializationService.TryAssertActiveMaterializedOnce(
-                        world,
-                        _session.PlayerParty.ActiveCharacterId,
-                        materializeBounds,
-                        out var matErr))
-                {
-                    Debug.LogError(
-                        "[PlayableHost] Active materialize assert failed: " + matErr,
-                        this);
-                }
-            }
-            // 物化失败时必须保留 ingress one-shot 与当前领域状态，禁止继续执行依赖新落点的
-            // participant assembly、人口 reconcile、视图重建、相机和恢复流程。
-            if (playerPartyMaterializationAttempted && !playerPartyMaterialized)
-                return;
-
-            if (!onEncounterMap)
-            {
-                // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出。
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.Rebuild(_session);
-                FlushLoadedDestinationArrivals();
-            }
-
-            // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
-            var startId = world.LocalPlaces.StartLocationId;
-            // Wilderness AtWorldPosition：Materialize 已按 WorldPosition 投影，禁止再吸回 startLocation。
-            var skipStartSnapForWilderness =
-                world.PlayerPartyTravel != null &&
-                world.PlayerPartyTravel.HasPosition &&
-                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                string.IsNullOrEmpty(world.PartyWorld?.SiteId);
-            var activeMapForSnap = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
-            var skipStartSnapForSavedPlacements =
-                LoadedLocalMapPlacementSnapshotRestore.HasRestoredPlacementsForMap(activeMapForSnap);
-            // Phase 5R-B3C1：PlayerParty 已经过 Materialization → 其输出就是唯一 placement authority，
-            // 禁止再被 legacy StartLocation snap 覆盖；snap 仅保留给无 PlayerParty 的 legacy 分支。
-            if (SiteMaterializeModeResolver.ShouldApplyLegacyStartLocationSnap(
-                    playerPartyMaterialized,
-                    skipStartSnapForWilderness,
-                    skipStartSnapForSavedPlacements) &&
-                !string.IsNullOrEmpty(startId) &&
-                world.LocalPlaces.TryGet(startId, out var syncedStart))
-            {
-                for (var i = 0; i < _session.CharacterIds.Count; i++)
-                {
-                    var id = _session.CharacterIds[i];
-                    if (!LocalMapVisibility.IsEntityVisible(world, id))
-                        continue;
-                    var activeMapId = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
-                    if (LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(id, activeMapId, out _, out _))
-                        continue;
-                    if (!world.Entities.TryGet(id, out var ent) ||
-                        !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
-                        continue;
-                    loc.LocationId = startId;
-                    loc.SetPresentationOverride(syncedStart.PresentationX, syncedStart.PresentationZ);
-                }
-
-                entityViewSpawner?.SyncLocations(_session);
-            }
-            else if (skipStartSnapForWilderness || skipStartSnapForSavedPlacements)
-            {
-                entityViewSpawner?.SyncLocations(_session);
-            }
-
-            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-            {
-                HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
-                    world, _session.PlayerParty, activeMapForSnap, "Rebuild");
-            }
-
-            if (selectionController != null)
-            {
-                var party = _session.PlayerParty;
-                if (party != null && party.HasActive &&
-                    LocalMapVisibility.IsEntityVisible(world, party.ActiveCharacterId))
-                    selectionController.SelectEntity(party.ActiveCharacterId, false);
-                else
-                {
-                    for (var i = 0; i < _session.CharacterIds.Count; i++)
-                    {
-                        var id = _session.CharacterIds[i];
-                        if (!LocalMapVisibility.IsEntityVisible(world, id))
-                            continue;
-                        selectionController.SelectEntity(id, false);
-                        break;
-                    }
-                }
-            }
-
-            if (!LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-            {
-                // Phase 5R-B3C1.1：正式 Site transition（Wilderness→WorldSite / reopen / ingress）后
-                // one-shot 对准 Active Character —— SnapCameraToActiveOnce 置 Free 模式 + 一次性对准，
-                // 不进入持续跟随；普通状态自由镜头 / WASD / 中键 / RTS 右键规则不变。
-                // Wilderness→Wilderness 保持既有 TryFrameCameraOnParty 行为，不受影响。
-                var atSiteTransition = playerPartyMaterialized &&
-                                       world.PlayerPartyTravel != null &&
-                                       world.PlayerPartyTravel.LocationKind ==
-                                       PlayerPartyLocationKind.AtWorldSite;
-                var pc = PlayerPartyController;
-                if (atSiteTransition && pc != null &&
-                    _session.PlayerParty != null && _session.PlayerParty.HasActive)
-                    pc.SnapCameraToActiveOnce();
-                else
-                    TryFrameCameraOnParty();
-            }
-            // ReloadLocalMapPresentation 已在 WalkGrid bind 后完成本次正式 Surface Exit rebuild。
-            RestorePlayerPartyLocalMapPresentation(targetMap);
-        }
-
-        void RestorePlayerPartyLocalMapPresentation(string localMapId)
-        {
-            if (string.IsNullOrWhiteSpace(localMapId))
-                return;
-
-            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot &&
-                _session?.PlayerParty != null)
-            {
-                for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
-                {
-                    var id = _session.PlayerParty.Members[i];
-                    HostSnapshotLocalPlacementTrace.LogWorldSiteLocalRestore(
-                        _session.World,
-                        id,
-                        localMapId.Trim(),
-                        LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(
-                            id,
-                            localMapId,
-                            out _,
-                            out _)
-                            ? "SnapshotLocalPlacement"
-                            : "DefaultStart");
-                }
-            }
-
-            FinalizePlayerPartyLocalMapMaterialization(localMapId.Trim());
-            LoadedLocalMapPlacementSnapshotRestore.FinishRestorePresentation();
-        }
-
-        /// <summary>
-        /// 所有 Surface LocalMap 的最终落点屏障：视图 / Materialize / placement repair 完成后，
-        /// 才允许出口 presenter 依据 Active 的真实 cell 建立展示缓存。
-        /// </summary>
-        void FinalizePlayerPartyLocalMapMaterialization(string localMapId)
-        {
-            PlayerPartyController?.ValidateAndRepairPlayerPartyMaterializedPlacement();
-            PlayerPartyController?.OnLocalMapMaterialized(localMapId);
-            RefreshSurfaceExitZones();
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>
@@ -2148,48 +1528,20 @@ namespace XianXia.Unity.Host
                 interactSpotPresenter.Rebuild();
         }
 
-        /// <summary>
-        /// Surface LocalMap 正式激活后：同步 ExitTriggerDepth 并 Bind Exit Zone Presentation。
-        /// 所有进入 Surface 图的路径（开局／Load／Expand／Reload）必须调用；Interior 自动 Clear。
-        /// </summary>
-        public void ActivateSurfaceLocalMapPresentation()
+        /// <summary>按精确世界位置激活当前 Continuous Surface 表现。</summary>
+        public void ActivateContinuousOutdoorPresentation()
         {
-            if (!_session.IsInitialized)
+            if (!_session.IsInitialized || _session.World.LocalMap.IsInInterior)
                 return;
 
-            if (surfaceExitZonePresenter == null)
-                surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
-                                          gameObject.AddComponent<HostSurfaceExitZonePresenter>();
-
-            if (_session.World.LocalMap.IsInInterior)
-            {
-                surfaceExitZonePresenter.Clear();
-                return;
-            }
-
-            // Continuous Surface is selected directly from exact WorldPosition coverage.
             var continuousWasActive = _continuousOutdoorSurfaceRuntime != null &&
                                       _continuousOutdoorSurfaceRuntime.IsActive;
             if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
             {
-                surfaceExitZonePresenter.Clear();
                 moveController?.SetWalkGrid(ResolveWalkGrid());
-                // Startup can activate the neighborhood before the remaining overlay presenters
-                // have been bound. Rebuild once after binding has completed on the later call.
                 if (continuousWasActive)
                     RefreshContinuousOutdoorOverlaysOnce();
-                return;
             }
-
-            if (!SurfaceExitZoneCalculator.ShouldPresent(_session.World))
-            {
-                surfaceExitZonePresenter.Clear();
-                return;
-            }
-
-            SyncExitTriggerDepthFromActiveMap();
-            surfaceExitZonePresenter.Bind(this);
-            surfaceExitZonePresenter.Rebuild();
         }
 
         /// <summary>Acceptance tooling hook；Startup 也用它明确对准主控。</summary>
@@ -2223,7 +1575,6 @@ namespace XianXia.Unity.Host
                 moveController.SetWalkGrid(ResolveWalkGrid());
                 moveController.BindLocalMapContext("ContinuousSurface:" + _continuousOutdoorSurfaceRuntime.ActiveSurfaceId);
             }
-            surfaceExitZonePresenter?.Clear();
             if (frameCamera) FrameCameraOnSlots();
             RefreshStatus();
         }
@@ -2237,86 +1588,63 @@ namespace XianXia.Unity.Host
             InteriorLocalPlaceBootstrap.ActivatePlacesForMapLayout(_session.World, _session.Registry, string.Empty);
             mapGraybox?.Clear();
             interactSpotPresenter?.Clear();
-            surfaceExitZonePresenter?.Clear();
         }
 
         public void RefreshContinuousOutdoorOverlaysOnce() =>
             ReloadContinuousSurfaceOverlaysOnly(frameCamera: false);
 
-        /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
-        public void RefreshSurfaceExitZones() => ActivateSurfaceLocalMapPresentation();
-
-        /// <summary>Background Travel 到达已 Loaded LocalMap 后刷出增量 EntityView。</summary>
-        public void FlushLoadedDestinationArrivals()
-        {
-            if (!_session.IsInitialized || entityViewSpawner == null)
-                return;
-
-            var pending = LoadedDestinationArrivalMaterializer.PendingPresentationFlush;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0 &&
-                pending != null && pending.Count > 0)
-            {
-                BackgroundBgTravelFullTrace.LogFlush(
-                    pending.Count,
-                    spawnedHint: -1);
-            }
-#endif
-            if (pending == null || pending.Count == 0)
-                return;
-
-            _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
-            _session.RefreshViewableEntityIds();
-            entityViewSpawner.SpawnMissingVisibleViews(_session);
-            LoadedDestinationArrivalMaterializer.ClearPendingPresentationFlush();
-        }
-
-        /// <summary>
-        /// Phase 5S-B2-3.1：当前 Loaded surface LocalMap 的 playable bounds 缓存（按 map id 键控）。
-        /// 仅地图切换时重建一次；StepTick 每帧复用，避免重建 WalkGrid / 刷日志。
-        /// </summary>
-        void ResolveLoadedStrategicBounds(SimulationWorld world)
-        {
-            var mapId = world?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(mapId))
-                return;
-            if (string.Equals(mapId, _loadedStrategicBoundsMapId, System.StringComparison.Ordinal))
-                return;
-
-            _loadedStrategicWildernessBounds = null;
-            _loadedStrategicSiteBounds = null;
-            _loadedStrategicBoundsMapId = mapId;
-
-            var walk = ResolveWalkGrid();
-            if (walk == null)
-                return;
-
-            if (PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world))
-            {
-                _loadedStrategicWildernessBounds =
-                    WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                        walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
-            }
-            else if (!string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId))
-            {
-                _loadedStrategicSiteBounds =
-                    WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                        walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
-            }
-        }
-
         /// <summary>Refreshes the real current visibility/materialization view when explicitly requested.</summary>
-        public void RefreshLoadedStrategicPopulation(bool refreshViewsWhenUnchanged = false)
+        public void RefreshLoadedStrategicPopulation()
         {
             if (!_session.IsInitialized || entityViewSpawner == null)
-                return;
-            if (!refreshViewsWhenUnchanged)
                 return;
 
             _session.RefreshViewableEntityIds();
             entityViewSpawner.SpawnMissingVisibleViews(_session);
             entityViewSpawner.PruneHiddenViews(_session);
         }
+
+        public void NotifyOutdoorEntityScopeChanged() =>
+            _outdoorEntityReconcileGate.MarkDirty(
+                _continuousOutdoorSurfaceRuntime?.EntityReconcileGeneration ?? 0);
+
+        public bool HasOutdoorEntityReconcileBaseline =>
+            _outdoorEntityReconcileGate.HasBaseline;
+
+        public void FlushLoadedDestinationArrivals()
+        {
+            if (!_session.IsInitialized || entityViewSpawner == null)
+                return;
+            var fingerprint = CaptureOutdoorEntityScopeFingerprint();
+            var generation = _continuousOutdoorSurfaceRuntime?.EntityReconcileGeneration ?? 0;
+            var decision = _outdoorEntityReconcileGate.Decide(fingerprint, generation);
+            if (decision == OutdoorEntityReconcileDecision.None)
+                return;
+            if (decision == OutdoorEntityReconcileDecision.ReconcileAndRefresh)
+                _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner.SpawnMissingVisibleViews(_session);
+            entityViewSpawner.PruneHiddenViews(_session);
+            CommitOutdoorEntityReconcileGate();
+        }
+
+        void CommitOutdoorEntityReconcileGate()
+        {
+            if (_session == null || !_session.IsInitialized)
+            {
+                _outdoorEntityReconcileGate.Reset();
+                return;
+            }
+            _outdoorEntityReconcileGate.Commit(
+                CaptureOutdoorEntityScopeFingerprint(),
+                _continuousOutdoorSurfaceRuntime?.EntityReconcileGeneration ?? 0);
+        }
+
+        ulong CaptureOutdoorEntityScopeFingerprint() =>
+            OutdoorEntityReconcileGate.CombineFingerprint(
+                OutdoorEntityReconcileGate.CaptureFingerprint(
+                    _session.World, _session.PlayerParty),
+                _continuousOutdoorSurfaceRuntime?.CaptureMovingEntityLoadedScopeFingerprint() ?? 0);
 
         public void StepTick()
         {
@@ -2336,11 +1664,10 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹
-            entityViewSpawner?.PruneHiddenViews(_session);
-            FlushLoadedDestinationArrivals();
-
             DispatchDrainedEvents();
+            // Arrival/member/lifecycle changes are coalesced after event-owned spatial handoff.
+            // Ordinary stationary ticks do not rebuild the materialized population.
+            FlushLoadedDestinationArrivals();
             RefreshStatus();
         }
 
@@ -2399,7 +1726,6 @@ namespace XianXia.Unity.Host
                         }
                         else
                         {
-                            ResolveLoadedStrategicBounds(_session.World);
                             var gotLocal = TryGetCurrentLocalPresentation(
                                 defenderId,
                                 out var localX,
@@ -2432,25 +1758,8 @@ namespace XianXia.Unity.Host
                                 ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
                                     _session.World, defenderId, out _))
                             {
-                                if (transition == DefeatSpatialTransitionKind.InitialIncapacitation)
-                                    ResidualSpatialAuthorityService.StopResidualMovementAuthority(
-                                        _session.World, defenderId);
                                 spatialHandled = true;
                                 handoffAction = "Preserve";
-                            }
-
-                            if (!spatialHandled)
-                            {
-                                // Compatibility only. Both services now require the character's
-                                // own presence to belong to the loaded legacy LocalMap; they cannot
-                                // infer a corpse location from PlayerParty.LegacyCurrentHex/focus.
-                                spatialHandled = gotLocal
-                                    ? LocalCombatCasualtyHandoffService.TryHandleResidualDefeat(
-                                        _session.World, defenderId, localX, localZ,
-                                        _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
-                                    : LocalCombatCasualtyHandoffService.TryHandleResidualDefeat(
-                                        _session.World, defenderId);
-                                handoffAction = spatialHandled ? "LegacyRepair" : "LegacyRepairRejected";
                             }
 
                             if (spatialHandled)
@@ -2473,8 +1782,8 @@ namespace XianXia.Unity.Host
 
             if (nonEncounterStrategicPopulationChanged)
             {
-                _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
-                RefreshLoadedStrategicPopulation(refreshViewsWhenUnchanged: true);
+                NotifyOutdoorEntityScopeChanged();
+                FlushLoadedDestinationArrivals();
             }
 
             if (contentInterrupt != null)
@@ -2491,10 +1800,10 @@ namespace XianXia.Unity.Host
         {
             public LifecycleSpatialDiagnosticSnapshot(
                 string mode, string siteId, string surfaceId, bool hasPrecise,
-                string worldPosition, string residualHex, string viewPosition, string owner)
+                string worldPosition, string viewPosition, string owner)
             {
                 Mode = mode; SiteId = siteId; SurfaceId = surfaceId; HasPrecise = hasPrecise;
-                WorldPosition = worldPosition; ResidualHex = residualHex;
+                WorldPosition = worldPosition;
                 ViewPosition = viewPosition; Owner = owner;
             }
             public string Mode { get; }
@@ -2502,7 +1811,6 @@ namespace XianXia.Unity.Host
             public string SurfaceId { get; }
             public bool HasPrecise { get; }
             public string WorldPosition { get; }
-            public string ResidualHex { get; }
             public string ViewPosition { get; }
             public string Owner { get; }
         }
@@ -2515,7 +1823,6 @@ namespace XianXia.Unity.Host
             var surfaceId = string.Empty;
             var hasPrecise = false;
             var worldPosition = "None";
-            var residualHex = "None";
             if (world?.WorldPresence != null && world.WorldPresence.TryGet(id, out var presence) &&
                 presence != null)
             {
@@ -2526,8 +1833,6 @@ namespace XianXia.Unity.Host
                 if (hasPrecise)
                     worldPosition = "(" + presence.WorldPosX.ToString("0.###") + "," +
                                     presence.WorldPosY.ToString("0.###") + ")";
-                if (presence.UsesHexPresence)
-                    residualHex = presence.ResidualHex.ToString();
             }
             var viewPosition = "None";
             if (entityViewSpawner?.Registry.TryGet(id, out var view) == true && view != null)
@@ -2536,9 +1841,9 @@ namespace XianXia.Unity.Host
             var owner = ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
                 world, id, out var authority)
                 ? authority.Owner
-                : "MissingOrLegacyRepair";
+                : "Missing";
             return new LifecycleSpatialDiagnosticSnapshot(
-                mode, siteId, surfaceId, hasPrecise, worldPosition, residualHex, viewPosition, owner);
+                mode, siteId, surfaceId, hasPrecise, worldPosition, viewPosition, owner);
         }
 
         void LogLifecycleSpatialDiagnostic(
@@ -2556,7 +1861,7 @@ namespace XianXia.Unity.Host
             var encounterId = world.Strategic.CharacterEncounter?.EncounterId ?? string.Empty;
             var changed = before.Mode != after.Mode || before.SiteId != after.SiteId ||
                           before.SurfaceId != after.SurfaceId || before.HasPrecise != after.HasPrecise ||
-                          before.WorldPosition != after.WorldPosition || before.ResidualHex != after.ResidualHex;
+                          before.WorldPosition != after.WorldPosition;
             var message = "[ResidualLifecycleSpatial]" +
                           " CharacterId=" + id.Value +
                           " Name=" + (entity?.DisplayName ?? string.Empty) +
@@ -2568,7 +1873,6 @@ namespace XianXia.Unity.Host
                           " PersonalSurfaceId=" + before.SurfaceId + "->" + after.SurfaceId +
                           " HasPrecise=" + before.HasPrecise + "->" + after.HasPrecise +
                           " WorldPosition=" + before.WorldPosition + "->" + after.WorldPosition +
-                          " ResidualHex=" + before.ResidualHex + "->" + after.ResidualHex +
                           " ViewPosition=" + before.ViewPosition + "->" + after.ViewPosition +
                           " SpatialOwner=" + before.Owner + "->" + after.Owner +
                           " HandoffAction=" + (handoffAction ?? string.Empty);
@@ -2599,7 +1903,6 @@ namespace XianXia.Unity.Host
             var squadId = "(none)";
             var presenceMode = "(none)";
             var presenceSiteId = string.Empty;
-            var presenceHex = "(none)";
             if (world != null && world.Entities.TryGet(defenderId, out var entity) && entity != null)
             {
                 name = string.IsNullOrEmpty(entity.DisplayName)
@@ -2629,8 +1932,6 @@ namespace XianXia.Unity.Host
             {
                 presenceMode = wp.Mode.ToString();
                 presenceSiteId = wp.SiteId ?? string.Empty;
-                if (wp.UsesHexPresence)
-                    presenceHex = wp.ResidualHex.ToString();
             }
 
             Debug.Log(
@@ -2644,7 +1945,6 @@ namespace XianXia.Unity.Host
                 " SquadId=" + squadId +
                 " WorldPresenceMode=" + presenceMode +
                 " WorldPresenceSiteId=" + presenceSiteId +
-                " WorldLegacyPresenceHex=" + presenceHex +
                 " GotViewLocal=" + gotLocal +
                 " ViewLocal=(" + localX.ToString("0.###") + "," + localZ.ToString("0.###") + ")",
                 this);
@@ -2718,84 +2018,11 @@ namespace XianXia.Unity.Host
                       " cmd=" + cmd;
         }
 
-        /// <summary>
-        /// Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 在启动链（TryInitialize）真正执行。
-        /// Authored StartLocation → WorldSiteHexFootprintSpatialMapping.LocalToWorld → Canonical WorldPosition。
-        /// 复用 Materialize BootstrapFromAuthoredLocal（不复制 mapping）；成功才消费 token，失败不消费。
-        /// </summary>
-        void TryRunInitialSiteBootstrap()
-        {
-            if (!_session.IsInitialized || !_session.InitialBootstrapPending)
-                return;
-            var world = _session.World;
-            var motion = world?.PlayerPartyTravel;
-            if (motion == null)
-                return;
-            var atWorldSite = motion.LocationKind == PlayerPartyLocationKind.AtWorldSite;
-            if (!SiteMaterializeModeResolver.ShouldRunStartupBootstrap(
-                    _session.InitialBootstrapPending,
-                    _session.InitialBootstrapSiteId,
-                    world.PartyWorld?.SiteId ?? string.Empty,
-                    atWorldSite))
-                return;
-
-            var mapId = world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(mapId))
-            {
-                Debug.LogError(
-                    "[PlayableHost] Initial site bootstrap: no PartyWorld.LocalMapId", this);
-                return; // 不消费
-            }
-            world.LocalMap.ActiveMapLayoutId = mapId;
-            world.LocalMap.OverworldMapLayoutId = mapId;
-
-            var walk = ResolveWalkGrid();
-            if (walk == null)
-            {
-                Debug.LogError(
-                    "[PlayableHost] Initial site bootstrap: no walk grid for " + mapId, this);
-                return; // 不消费
-            }
-            var siteBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
-
-            var result = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                world,
-                _session.PlayerParty.Members,
-                null,
-                siteBounds,
-                PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal);
-            if (SiteMaterializeModeResolver.ShouldConsumeBootstrap(true, result.IsSuccess))
-            {
-                _session.ConsumeInitialBootstrap();
-                PlayerPartySiteIngressTrace.Log(
-                    "StartupBootstrapCommitted",
-                    "site=" + (world.PartyWorld?.SiteId ?? string.Empty) +
-                    " world=" + motion.WorldPosition);
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.Rebuild(_session);
-                if (selectionController != null && _session.PlayerParty.HasActive)
-                    selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
-            }
-            else
-            {
-                Debug.LogError(
-                    "[PlayableHost] Initial site bootstrap FAILED (token NOT consumed): " + result.Error,
-                    this);
-                PlayerPartySiteIngressTrace.Log(
-                    "StartupBootstrapFailed",
-                    "site=" + (world.PartyWorld?.SiteId ?? string.Empty) +
-                    " error=" + result.Error);
-            }
-        }
-
         public void RefreshFactionFlagWalkGrid()
         {
             _continuousOutdoorSurfaceRuntime?.RefreshCompositeWalkGrid();
             if (moveController != null)
                 moveController.SetWalkGrid(ResolveWalkGrid());
-            if (surfaceExitZonePresenter != null)
-                surfaceExitZonePresenter.Rebuild();
         }
 
         WalkGrid ResolveWalkGrid()
@@ -2806,12 +2033,6 @@ namespace XianXia.Unity.Host
             if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
                 var grid = MapLayoutWalkGridBuilder.Create(preferred);
-                if (_session?.World != null &&
-                    LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(_session.World, out var context) &&
-                    context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex &&
-                    _session.World.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out var flag) &&
-                    flag != null)
-                    HostFactionFlagQuery.ApplyWalkGridBlock(flag, preferred, grid);
                 Debug.Log(
                     "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
                     " " + preferred.Width + "x" + preferred.Height +
@@ -2849,23 +2070,6 @@ namespace XianXia.Unity.Host
                         Path.GetFileName(path));
                     if (File.Exists(mapsSibling))
                         path = mapsSibling;
-                }
-
-                // Old scene components can still serialize an Outdoor LocalMap override
-                // after its file has been removed. A Surface opening has its own checked-in
-                // position authority, so the absent override must not block NewGame.
-                var scenarioId = DefinitionId.Parse(string.IsNullOrWhiteSpace(openingScenarioId)
-                    ? "base:scenario_ch01_reference"
-                    : openingScenarioId.Trim());
-                if (!File.Exists(path) && scenarioId.IsSuccess &&
-                    _session.Registry.TryGetOpeningScenario(scenarioId.Value, out var opening) &&
-                    !string.IsNullOrWhiteSpace(opening.OpeningSurfaceId))
-                {
-                    Debug.LogWarning("[PlayableHost] Ignoring missing mapLayout override for Surface opening: " + path,
-                        this);
-                    mapLayoutFilePath = string.Empty;
-                    preferredMapLayoutId = string.Empty;
-                    return true;
                 }
 
                 loaded = MapLayoutJsonLoader.LoadFromFile(path, preferredMapLayoutId);

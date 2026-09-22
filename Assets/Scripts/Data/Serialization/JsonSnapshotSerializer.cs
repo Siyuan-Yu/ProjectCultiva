@@ -980,7 +980,8 @@ namespace XianXia.Data.Serialization
                         ["displayName"] = JsonValue.FromString(s.DisplayName ?? string.Empty),
                         ["factionId"] = JsonValue.FromString(s.FactionId ?? string.Empty),
                         ["leaderCharacterId"] = U(s.LeaderCharacterId),
-                        ["legacyArmyId"] = JsonValue.FromString(s.LegacyArmyId ?? string.Empty),
+                        // Stable wire key retained without sourcing retired runtime identity.
+                        ["legacyArmyId"] = JsonValue.FromString(string.Empty),
                         ["commandKind"] = JsonValue.FromNumber(s.CommandKind),
                         ["commandRevision"] = U(s.CommandRevision),
                         ["commandTargetCharacterId"] = U(s.CommandTargetCharacterId),
@@ -1582,6 +1583,7 @@ namespace XianXia.Data.Serialization
             if (strategic.TryGetProperty("characterWorldPresences", out var charPresences) &&
                 charPresences.Kind == JsonValueKind.Array)
             {
+                dto.HasCharacterWorldPresenceSnapshotAuthority = true;
                 foreach (var p in charPresences.Array)
                 {
                     if (!string.IsNullOrEmpty(p.GetString("personalSurfaceId", string.Empty)) &&

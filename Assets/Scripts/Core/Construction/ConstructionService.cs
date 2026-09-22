@@ -55,11 +55,11 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。", missing?.ItemId);
 
             var valid = FactionFlagService.ValidateSiteCorePlacement(
-                world, playerFactionId, request, spec.InitialSiteLevel, out _);
+                world, playerFactionId, request, spec.InitialSiteLevel);
             if (valid.IsFailure)
                 return valid;
 
-            flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId, request.StrategicAnchor);
+            flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId);
             if (!TrySpendMaterials(world, spec, out var removed))
             {
                 flagId = string.Empty;

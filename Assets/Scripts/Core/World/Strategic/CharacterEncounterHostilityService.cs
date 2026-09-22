@@ -32,35 +32,6 @@ namespace XianXia.Core.World.Strategic
             return snap != null && snap.FindByEntity(npcId) != null;
         }
 
-        /// <summary>
-        /// 遭遇 LocalMap 上是否应显示该实体（scoped spawn / 已进场 / 正式 Participant）。
-        /// 禁止把同 Site 的非参战 AtSite 战略 NPC 画进战场。
-        /// </summary>
-        public static bool IsVisibleOnEncounterLocalMap(SimulationWorld world, EntityId id)
-        {
-            if (world == null || id.IsNone)
-                return false;
-
-            var continuous = world.Strategic?.ContinuousManualCombat;
-            if (continuous != null && continuous.IsActive)
-                return continuous.Contains(id);
-
-            var encounter = world.Strategic?.CharacterEncounter;
-            if (encounter?.Find(id.Value) != null)
-                return true;
-
-            var rec = world.Strategic?.Participants?.FindByEntity(id);
-            if (rec == null)
-                return false;
-
-            if (rec.Kind == BattleParticipantKind.OptionalFriendly)
-                return rec.Selected;
-
-            return rec.Kind == BattleParticipantKind.MandatoryFriendly ||
-                   rec.Kind == BattleParticipantKind.EnemyPrimary ||
-                   rec.Kind == BattleParticipantKind.EnemyReinforcement;
-        }
-
         public static bool IsHostileEncounterParticipant(SimulationWorld world, Entity entity)
         {
             if (world == null || entity == null)

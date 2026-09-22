@@ -140,7 +140,6 @@ namespace XianXia.Core.World.Strategic
             var motion = new SquadWorldMotionState { SquadId = squadId };
             motion.SetAt(surfaceId, position, siteId);
             world.Strategic.SquadWorldMotions.Register(motion);
-            squad.LegacyArmyId = string.Empty;
             squad.SetCommand(SquadCommandKind.SquadWorldMotion);
             return Result.Ok(motion);
         }
@@ -238,8 +237,7 @@ namespace XianXia.Core.World.Strategic
                 !world.Strategic.Squads.TryGet(party.ControlledSquadId, out var squad)) return false;
             var changed = world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out _);
             world.Strategic.SquadWorldMotions.Remove(squad.SquadId);
-            if (squad.CommandKind == SquadCommandKind.SquadWorldMotion ||
-                squad.CommandKind == SquadCommandKind.LegacyFormalArmyWorldMotion)
+            if (squad.CommandKind == SquadCommandKind.SquadWorldMotion)
             {
                 var target = party.HasActive ? party.ActiveCharacterId : squad.LeaderCharacterId;
                 changed |= SquadCommandService.SetExecution(world, squad.SquadId,

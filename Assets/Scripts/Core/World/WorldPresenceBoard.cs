@@ -1,116 +1,34 @@
-using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
     /// <summary>
-    /// Persistent character world presence. Modern Continuous Outdoor uses exact WorldPosition
-    /// plus Surface provenance; AtHex remains a serialized compatibility form.
+    /// Persistent character world presence. Continuous Outdoor presence uses an exact
+    /// WorldPosition plus explicit Surface provenance.
     /// </summary>
     public sealed class WorldAgentPresence
     {
-        public const int InvalidHexComponent = StrategicHexConstants.InvalidHexComponent;
-
         public EntityId EntityId { get; set; }
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtSite;
-        /// <summary>WorldSite identity; exact Surface position remains modern outdoor authority.</summary>
         public string SiteId { get; set; } = string.Empty;
-        /// <summary>Legacy AtHex migration storage. Modern residuals use exact Surface position.</summary>
-        public int HexQ { get; set; } = InvalidHexComponent;
-        public int HexR { get; set; } = InvalidHexComponent;
-
-        /// <summary>Phase 2D：AtWorldPosition 连续世界坐标真源。</summary>
         public float WorldPosX { get; set; }
         public float WorldPosY { get; set; }
         public bool HasContinuousWorldPosition { get; set; }
-        /// <summary>Explicit personal spatial provenance; empty means legacy/derived, not a precise history.</summary>
         public string PersonalSurfaceId { get; set; } = string.Empty;
 
-        public bool UsesHexPresence =>
-            Mode == PartyWorldPresenceMode.AtHex &&
-            HexQ != InvalidHexComponent &&
-            HexR != InvalidHexComponent;
-
-        public HexCoord ResidualHex => new HexCoord(HexQ, HexR);
-
-        public void ClearHexPresence()
-        {
-            HexQ = InvalidHexComponent;
-            HexR = InvalidHexComponent;
-        }
-
-        /// <summary>
-        /// Compatibility-only residual placement for old serialized Outdoor world state.
-        /// Normal Continuous Outdoor callers must use SetAtWorldPosition / SetAtSiteWithAnchor.
-        /// </summary>
-        public void SetLegacyAtHex(HexCoord hex)
-        {
-            PersonalSurfaceId = string.Empty;
-            Mode = PartyWorldPresenceMode.AtHex;
-            HexQ = hex.Q;
-            HexR = hex.R;
-            SiteId = string.Empty;
-            HasContinuousWorldPosition = false;
-        }
-
-        public void SetAtWorldPosition(WorldVec2 pos, HexCoord derivedHex)
-        {
-            SetAtWorldPosition(pos, derivedHex, string.Empty);
-        }
-
-        /// <summary>Continuous personal position with explicit Surface provenance.</summary>
-        public void SetAtWorldPosition(WorldVec2 pos, HexCoord derivedHex, string surfaceId)
+        public void SetAtWorldPosition(WorldVec2 position, string surfaceId)
         {
             PersonalSurfaceId = surfaceId ?? string.Empty;
             Mode = PartyWorldPresenceMode.AtWorldPosition;
             SiteId = string.Empty;
             HasContinuousWorldPosition = true;
-            WorldPosX = pos.X;
-            WorldPosY = pos.Y;
-            HexQ = derivedHex.Q;
-            HexR = derivedHex.R;
+            WorldPosX = position.X;
+            WorldPosY = position.Y;
         }
 
-        /// <summary>Legacy input adapter. New runtime code uses SetAtWorldPosition.</summary>
-        public void SetLegacyResidualWorldPosition(HexCoord residualHex, WorldVec2 preciseWorldPosition)
-        {
-            SetLegacyResidualWorldPosition(residualHex, preciseWorldPosition, string.Empty);
-        }
-
-        /// <summary>Precise residual position with explicit Continuous Surface provenance.</summary>
-        public void SetLegacyResidualWorldPosition(
-            HexCoord residualHex,
-            WorldVec2 preciseWorldPosition,
-            string surfaceId)
-        {
-            PersonalSurfaceId = surfaceId ?? string.Empty;
-            Mode = PartyWorldPresenceMode.AtHex;
-            HexQ = residualHex.Q;
-            HexR = residualHex.R;
-            SiteId = string.Empty;
-            WorldPosX = preciseWorldPosition.X;
-            WorldPosY = preciseWorldPosition.Y;
-            HasContinuousWorldPosition = true;
-        }
-
-        /// <summary>
-        /// AtSite（战略归属）＋ 精确连续世界锚点：<see cref="SiteId"/> 仍是 background domain
-        /// membership（WorldSite population 以 Mode／SiteId 解析 personal presence），
-        /// <c>HasContinuousWorldPosition</c>/<c>WorldPosX/Y</c> 携带该 resident 在
-        /// 所属 Outdoor surface 内的 authored／baked 精确世界落点（Opening LocalPosition → canonical
-        /// ，或 Continuous Site materializer 使用的锚点）。<see cref="SetAtSite"/> 继续表示
-        /// 「只有 Site、无精确锚点」（background resident／兼容输入／旧存档）。
-        /// </summary>
-        public void SetAtSiteWithAnchor(string siteId, WorldVec2 anchorWorldPosition)
-        {
-            SetAtSiteWithAnchor(siteId, anchorWorldPosition, string.Empty);
-        }
-
-        /// <summary>AtSite precise anchor with explicit Continuous Surface provenance.</summary>
         public void SetAtSiteWithAnchor(
             string siteId,
             WorldVec2 anchorWorldPosition,
@@ -119,7 +37,6 @@ namespace XianXia.Core.World
             PersonalSurfaceId = surfaceId ?? string.Empty;
             Mode = PartyWorldPresenceMode.AtSite;
             SiteId = siteId ?? string.Empty;
-            ClearHexPresence();
             WorldPosX = anchorWorldPosition.X;
             WorldPosY = anchorWorldPosition.Y;
             HasContinuousWorldPosition = true;
@@ -127,21 +44,9 @@ namespace XianXia.Core.World
 
         public WorldVec2 ContinuousWorldPosition =>
             HasContinuousWorldPosition ? new WorldVec2(WorldPosX, WorldPosY) : default;
-
-        public bool TryGetDerivedHexFromWorldPosition(out HexCoord hex)
-        {
-            if (HexQ != InvalidHexComponent && HexR != InvalidHexComponent)
-            {
-                hex = new HexCoord(HexQ, HexR);
-                return true;
-            }
-            hex = default;
-            return false;
-        }
-
     }
 
-    /// <summary>全员宏观位置；PartyWorld 作「当前镜头／焦点 Site」摘要。</summary>
+    /// <summary>All persistent character macro-presence records.</summary>
     public sealed class WorldPresenceBoard
     {
         readonly Dictionary<ulong, WorldAgentPresence> _byEntity =
@@ -157,107 +62,65 @@ namespace XianXia.Core.World
                 throw new ArgumentException("EntityId required.");
             if (_byEntity.TryGetValue(id.Value, out var existing))
                 return existing;
-            var p = new WorldAgentPresence { EntityId = id };
-            _byEntity[id.Value] = p;
-            return p;
+            var presence = new WorldAgentPresence { EntityId = id };
+            _byEntity[id.Value] = presence;
+            return presence;
         }
 
         public bool TryGet(EntityId id, out WorldAgentPresence presence)
         {
             presence = null;
-            if (id.IsNone)
-                return false;
-            return _byEntity.TryGetValue(id.Value, out presence);
+            return !id.IsNone && _byEntity.TryGetValue(id.Value, out presence);
         }
 
-        /// <summary>尸体腐烂／实体移除后从大地图抹掉位置。</summary>
-        public bool Remove(EntityId id)
-        {
-            if (id.IsNone)
-                return false;
-            return _byEntity.Remove(id.Value);
-        }
+        public bool Remove(EntityId id) =>
+            !id.IsNone && _byEntity.Remove(id.Value);
 
         public void SetAtSite(EntityId id, string siteId)
         {
-            var p = GetOrCreate(id);
-            p.PersonalSurfaceId = string.Empty;
-            p.SiteId = siteId ?? string.Empty;
-            p.Mode = PartyWorldPresenceMode.AtSite;
-            p.ClearHexPresence();
-            p.HasContinuousWorldPosition = false;
-        }
-
-        /// <summary>AtSite ＋ 精确连续世界锚点（见 <see cref="WorldAgentPresence.SetAtSiteWithAnchor"/>）。</summary>
-        public void SetAtSiteWithAnchor(EntityId id, string siteId, WorldVec2 anchorWorldPosition)
-        {
-            SetAtSiteWithAnchor(id, siteId, anchorWorldPosition, string.Empty);
+            var presence = GetOrCreate(id);
+            presence.EntityId = id;
+            presence.PersonalSurfaceId = string.Empty;
+            presence.SiteId = siteId ?? string.Empty;
+            presence.Mode = PartyWorldPresenceMode.AtSite;
+            presence.HasContinuousWorldPosition = false;
+            presence.WorldPosX = 0f;
+            presence.WorldPosY = 0f;
         }
 
         public void SetAtSiteWithAnchor(
             EntityId id,
             string siteId,
             WorldVec2 anchorWorldPosition,
-            string surfaceId)
+            string surfaceId = "")
         {
-            var p = GetOrCreate(id);
-            p.EntityId = id;
-            p.SetAtSiteWithAnchor(siteId, anchorWorldPosition, surfaceId);
-        }
-
-        /// <summary>Compatibility-only adapter; see <see cref="WorldAgentPresence.SetLegacyAtHex"/>.</summary>
-        public void SetLegacyAtHex(EntityId id, HexCoord hex)
-        {
-            var p = GetOrCreate(id);
-            p.EntityId = id;
-            p.SetLegacyAtHex(hex);
-        }
-
-        public void SetAtWorldPosition(EntityId id, WorldVec2 pos, HexCoord derivedHex)
-        {
-            SetAtWorldPosition(id, pos, derivedHex, string.Empty);
+            var presence = GetOrCreate(id);
+            presence.EntityId = id;
+            presence.SetAtSiteWithAnchor(siteId, anchorWorldPosition, surfaceId);
         }
 
         public void SetAtWorldPosition(
             EntityId id,
-            WorldVec2 pos,
-            HexCoord derivedHex,
+            WorldVec2 position,
             string surfaceId)
         {
-            var p = GetOrCreate(id);
-            p.EntityId = id;
-            p.SetAtWorldPosition(pos, derivedHex, surfaceId);
-        }
-
-        public void SetLegacyResidualWorldPosition(EntityId id, HexCoord residualHex, WorldVec2 preciseWorldPosition)
-        {
-            SetLegacyResidualWorldPosition(id, residualHex, preciseWorldPosition, string.Empty);
-        }
-
-        public void SetLegacyResidualWorldPosition(
-            EntityId id,
-            HexCoord residualHex,
-            WorldVec2 preciseWorldPosition,
-            string surfaceId)
-        {
-            var p = GetOrCreate(id);
-            p.EntityId = id;
-            p.SetLegacyResidualWorldPosition(residualHex, preciseWorldPosition, surfaceId);
+            var presence = GetOrCreate(id);
+            presence.EntityId = id;
+            presence.SetAtWorldPosition(position, surfaceId);
         }
 
         public void CollectAtSite(string siteId, List<EntityId> into)
         {
             if (into == null || string.IsNullOrEmpty(siteId))
                 return;
-            foreach (var kv in _byEntity)
+            foreach (var pair in _byEntity)
             {
-                var p = kv.Value;
-                if (p == null || p.Mode != PartyWorldPresenceMode.AtSite)
-                    continue;
-                if (string.Equals(p.SiteId, siteId, StringComparison.Ordinal))
-                    into.Add(p.EntityId);
+                var presence = pair.Value;
+                if (presence != null &&
+                    presence.Mode == PartyWorldPresenceMode.AtSite &&
+                    string.Equals(presence.SiteId, siteId, StringComparison.Ordinal))
+                    into.Add(presence.EntityId);
             }
         }
-
     }
 }

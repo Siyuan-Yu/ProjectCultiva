@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -224,46 +223,6 @@ namespace XianXia.Data.Bootstrap
                 ambiguity = "mapLayout '" + sourceMapLayoutId + "' is the outdoor source of multiple sites (" +
                             string.Join(", ", names) + ")";
             return false;
-        }
-
-        /// <summary>
-        /// legacy Site LocalMap presentation 坐标 → canonical Outdoor WorldPosition。
-        /// 无 LocalMap bounds／映射失败 → false（调用方退回 Site-only presence，不伪造锚点）。
-        ///
-        /// <para>§2：必须与 SitePlacements／SitePlaces／OpeningEntityAnchors 走<b>同一个</b>
-        /// <see cref="WorldSiteHexFootprintBakeTransform"/>（authored bake truth），不得另开一套。</para>
-        /// </summary>
-        public static bool TryResolveCanonicalAnchor(
-            SimulationWorld world,
-            WorldSite site,
-            MapLayoutDefinition sourceLayout,
-            float presentationX,
-            float presentationZ,
-            out WorldVec2 anchor)
-        {
-            anchor = default;
-            if (world?.LegacyHexWorld == null || site == null || sourceLayout == null)
-                return false;
-
-            var bounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                sourceLayout.OriginX,
-                sourceLayout.OriginY,
-                sourceLayout.CellSize,
-                sourceLayout.Width,
-                sourceLayout.Height);
-            if (!bounds.IsValid)
-                return false;
-
-            var hexSize = world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : HexWorldScale.DefaultHexOuterRadius;
-
-            return WorldSiteHexFootprintBakeTransform.TryBake(
-                site,
-                hexSize,
-                bounds,
-                new WorldVec2(presentationX, presentationZ),
-                out anchor);
         }
 
         /// <summary>

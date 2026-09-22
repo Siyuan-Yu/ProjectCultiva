@@ -1,11 +1,9 @@
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>V1 Outdoor WorldSite physical-region query. The current baked region is the
-    /// authored strategic footprint; it provides context only and never changes location authority.</summary>
+    /// <summary>Continuous Outdoor WorldSite context query.</summary>
     public static class WorldSitePhysicalRegionQuery
     {
         public static bool TryResolve(
@@ -16,27 +14,9 @@ namespace XianXia.Core.World.Strategic
             site = null;
             if (world?.Strategic?.Sites == null)
                 return false;
-            // MAP-03 normal authority: registered continuous Site geometry/control wins. The
-            // Hex footprint lookup below is intentionally legacy-only fallback.
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                return WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
-                           world, worldPosition.X, worldPosition.Y, out _, out site, out _) &&
-                       site != null;
-            if (world.LegacyHexWorld == null)
-                return false;
-            var size = world.LegacyHexWorld.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f;
-            var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, size);
-            var siteIds = world.Strategic.Sites.GetSiteIdsAtLegacyHex(hex);
-            for (var i = 0; i < siteIds.Count; i++)
-            {
-                if (!world.Strategic.Sites.TryGet(siteIds[i], out var candidate) || candidate == null ||
-                    candidate.IsRuntimeCreated ||
-                    !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(candidate))
-                    continue;
-                site = candidate;
-                return true;
-            }
-            return false;
+            return WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
+                       world, worldPosition.X, worldPosition.Y, out _, out site, out _) &&
+                   site != null;
         }
 
         public static string ResolveSiteIdOrEmpty(

@@ -16,7 +16,6 @@ using XianXia.Core.Random;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 
@@ -239,10 +238,10 @@ namespace XianXia.Tests
             };
             world.Strategic.Sites.Register(site);
             Assert.IsTrue(TerritoryClaimService.CreateInitialClaim(world, site).IsSuccess);
-            world.PlayerPartyTravel.SetAtSurfacePosition("surface", new WorldVec2(12, 3), new HexCoord(0, 0));
+            world.PlayerPartyTravel.SetAtSurfacePosition("surface", new WorldVec2(12, 3));
             world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext("owned");
             Assert.IsFalse(PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out _));
-            world.PlayerPartyTravel.SetAtSurfacePosition("surface", new WorldVec2(3, 3), new HexCoord(0, 0));
+            world.PlayerPartyTravel.SetAtSurfacePosition("surface", new WorldVec2(3, 3));
             Assert.IsTrue(PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out var resolved));
             Assert.AreEqual("owned", resolved.SiteId);
             site.OwnerFactionId = "enemy";

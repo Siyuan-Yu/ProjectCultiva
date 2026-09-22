@@ -14,12 +14,6 @@ namespace XianXia.Core.Persistence
     /// </summary>
     public static class LoadedLocalMapPlacementSnapshotRestore
     {
-        public enum SpawnPlacementSource
-        {
-            DefaultStart = 0,
-            SnapshotLocalPlacement = 1
-        }
-
         readonly struct PlacementKey
         {
             public readonly ulong CharacterId;
@@ -35,47 +29,20 @@ namespace XianXia.Core.Persistence
         static readonly Dictionary<PlacementKey, (float X, float Z)> Pending =
             new Dictionary<PlacementKey, (float, float)>();
 
-        /// <summary>Snapshot Load 流程中：禁止 Start Snap / Follow 首帧覆盖 Saved 落点。</summary>
-        public static bool IsRestoringFromSnapshot { get; private set; }
-
         public static bool DeferFollowRebind { get; private set; }
 
         public static int PendingCount => Pending.Count;
 
-        public static void Clear()
-        {
-            Pending.Clear();
-            IsRestoringFromSnapshot = false;
-            DeferFollowRebind = false;
-        }
-
         public static void BeginRestoreFromSnapshot(StrategicSnapshotDto dto)
         {
             LoadFromDto(dto);
-            IsRestoringFromSnapshot = Pending.Count > 0;
-            DeferFollowRebind = IsRestoringFromSnapshot;
+            DeferFollowRebind = Pending.Count > 0;
         }
 
         public static void FinishRestorePresentation()
         {
             Pending.Clear();
-            IsRestoringFromSnapshot = false;
             DeferFollowRebind = false;
-        }
-
-        public static bool HasRestoredPlacementsForMap(string localMapId)
-        {
-            var mapId = localMapId?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(mapId))
-                return false;
-
-            foreach (var kv in Pending)
-            {
-                if (string.Equals(kv.Key.LocalMapId, mapId, System.StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
         }
 
         public static void LoadFromDto(StrategicSnapshotDto dto)
@@ -220,63 +187,6 @@ namespace XianXia.Core.Persistence
             x = placement.X;
             z = placement.Z;
             return true;
-        }
-
-        public static bool TryGetPendingPlacement(ulong characterId, string localMapId, out float x, out float z)
-        {
-            x = 0f;
-            z = 0f;
-            if (characterId == 0 || string.IsNullOrWhiteSpace(localMapId))
-                return false;
-
-            if (!Pending.TryGetValue(new PlacementKey(characterId, localMapId.Trim()), out var placement))
-                return false;
-
-            x = placement.X;
-            z = placement.Z;
-            return true;
-        }
-
-        /// <summary>WorldSite Materialize：Saved LocalPlacement 优先于 Default Start。</summary>
-        public static bool TryResolveWorldSiteSpawnPosition(
-            EntityId id,
-            string localMapId,
-            float defaultX,
-            float defaultZ,
-            out float x,
-            out float z,
-            out SpawnPlacementSource source)
-        {
-            if (TryGetPlacement(id, localMapId, out x, out z))
-            {
-                source = SpawnPlacementSource.SnapshotLocalPlacement;
-                return true;
-            }
-
-            x = defaultX;
-            z = defaultZ;
-            source = SpawnPlacementSource.DefaultStart;
-            return false;
-        }
-
-        public static string DescribeWorldLocation(SimulationWorld world, EntityId id)
-        {
-            if (world?.WorldPresence == null || id.IsNone)
-                return "Unknown";
-
-            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                return "NoPresence";
-
-            if (wp.Mode == PartyWorldPresenceMode.AtSite)
-                return "AtWorldSite(" + (wp.SiteId ?? string.Empty) + ")";
-
-            if (wp.Mode == PartyWorldPresenceMode.AtHex || wp.UsesHexPresence)
-                return "AtHex(" + wp.ResidualHex + ")";
-
-            if (wp.Mode == PartyWorldPresenceMode.InSeparateSpace)
-                return "InSeparateSpace";
-
-            return wp.Mode.ToString();
         }
     }
 }

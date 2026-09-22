@@ -11,7 +11,6 @@ namespace XianXia.Core.World.Strategic
     {
         Personal = 0,
         PlayerParty = 1,
-        LegacyFormalArmy = 2,
         Squad = 3
     }
 

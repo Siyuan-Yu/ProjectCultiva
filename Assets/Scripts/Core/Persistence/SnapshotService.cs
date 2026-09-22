@@ -46,6 +46,10 @@ namespace XianXia.Core.Persistence
             if (world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Preparing)
                 return Result.Fail<string>(ErrorCode.InvalidOperation, "Encounter is preparing; save after entry completes.");
             var snap = Capture(world, loop, playerParty);
+            var spatialCapture = StrategicSnapshotHelper.ValidateCaptureForSerialization(
+                world, snap.Strategic);
+            if (spatialCapture.IsFailure)
+                return Result.Fail<string>(spatialCapture.Error);
             return _serializer.Serialize(snap);
         }
 
@@ -474,12 +478,25 @@ namespace XianXia.Core.Persistence
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1/v2/v3/v4 saves are unsupported after Pure Hex ownership migration. Start a new game (schema v5 required).",
+                    "Schema v1/v2/v3/v4 saves lack current spatial authority. Convert offline or start a new game (schema v6 required).",
                     snap.SchemaVersion.ToString());
             }
 
             if (snap.SchemaVersion != WorldSnapshot.CurrentSchemaVersion)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotVersionMismatch, "Unsupported snapshot schema.", snap.SchemaVersion.ToString());
+            if (snap.Entities == null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(
+                    ErrorCode.SnapshotInvalid,
+                    "Snapshot entity authority is missing.");
+            for (var i = 0; i < snap.Entities.Count; i++)
+            {
+                var entity = snap.Entities[i];
+                if (entity == null || !entity.EntityLocationSnapshotFieldPresent)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(
+                        ErrorCode.SnapshotInvalid,
+                        "Snapshot lacks current EntityLocation authority and requires offline conversion.",
+                        "EntityIndex=" + i + " EntityId=" + (entity?.Id ?? 0UL));
+            }
 
             if (!string.IsNullOrEmpty(expectedPackageVersion) &&
                 !string.Equals(snap.EnabledPackageVersion, expectedPackageVersion, StringComparison.Ordinal))
@@ -900,9 +917,6 @@ namespace XianXia.Core.Persistence
             var relationshipRestore = RestoreRelationshipLedger(world, snap);
             if (relationshipRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(relationshipRestore.Error);
-            var legacyPending = LegacyPendingEngagementSnapshotMigration.Migrate(world, snap);
-            if (legacyPending.IsFailure)
-                return Result.Fail<(SimulationWorld, SimulationLoop)>(legacyPending.Error);
             var encounterRestore = CharacterEncounterService.ValidateRestored(world, snap.CharacterEncounter);
             if (encounterRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(encounterRestore.Error);

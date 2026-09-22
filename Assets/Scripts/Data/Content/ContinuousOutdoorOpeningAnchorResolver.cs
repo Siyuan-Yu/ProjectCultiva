@@ -1,7 +1,5 @@
 using XianXia.Core.World;
 using System;
-using System.Collections.Generic;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Data.Content
@@ -266,46 +264,6 @@ namespace XianXia.Data.Content
                 return " [envelope=unresolved]";
             return " [envelope=[" + minX.ToString("F4") + "," + minY.ToString("F4") + "]..[" +
                    maxX.ToString("F4") + "," + maxY.ToString("F4") + "]]";
-        }
-
-        /// <summary>
-        /// §6/§7：某个 location 的 authored placement 内，按稳定 slot index 生成 canonical anchor。
-        ///
-        /// <para>
-        /// 实现已收敛到 <see cref="WorldSiteOutdoorOpeningAnchorBake"/> + <see cref="WorldSiteHexFootprintBakeTransform"/>
-        /// 的<b>单一 bake truth</b>（与 SitePlacements／SitePlaces 同一公式）：slot 先在 source LocalMap
-        /// 坐标系定位，再经共享 transform 烘到 canonical。因此这里必须给出 Site physical footprint
-        /// 与 hexSize。
-        /// </para>
-        /// </summary>
-        public static bool TryComputePlaceSlotAnchor(
-            OutdoorWorldSurfaceDefinition surface,
-            IReadOnlyList<HexCoord> footprint,
-            float hexSize,
-            MapLayoutDefinition sourceLayout,
-            WorldVec2 placeLocalPosition,
-            string locationId,
-            int slotIndex,
-            out WorldVec2 anchor,
-            out bool usedPlacementExtent)
-        {
-            anchor = default;
-            usedPlacementExtent = false;
-            if (surface == null || sourceLayout == null || slotIndex < 0)
-                return false;
-
-            var sourceBounds = WorldSiteHexFootprintSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
-                sourceLayout.OriginX, sourceLayout.OriginY, sourceLayout.CellSize,
-                sourceLayout.Width, sourceLayout.Height);
-            if (!sourceBounds.IsValid)
-                return false;
-
-            var hasExtent = WorldSiteOutdoorOpeningAnchorBake.TryGetBoundPlacementLocalExtent(
-                sourceLayout, locationId, out var minX, out var minY, out var maxX, out var maxY);
-            usedPlacementExtent = hasExtent;
-            return WorldSiteOutdoorOpeningAnchorBake.TryBakeSlotAnchor(
-                footprint, hexSize, sourceBounds, placeLocalPosition,
-                hasExtent, minX, minY, maxX, maxY, slotIndex, out _, out anchor);
         }
 
         /// <summary>

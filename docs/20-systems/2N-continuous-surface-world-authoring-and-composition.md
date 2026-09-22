@@ -1,5 +1,5 @@
 # 连续世界制作、合成与去 Hex 产品方向
-> **2026-09-22 FINAL-SEAL：** Continuous Surface 已是正常 Outdoor authority；旧 Hex／Outdoor LocalMap 仅可作为旧数据输入或明确 compatibility adapter。最终矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。专项状态：**Implementation Complete / Producer Accepted / Sealed**。
+> **2026-09-22 正式运行依赖退役：** Continuous Surface 是正常 Outdoor authority；`SimulationWorld` 无 HexWorld，Core Hex 目录已物理删除，正常产品不编译旧 Hex 几何。Runtime Data 只接受当前 `outdoorSurface`／`npcSquad`。离线转换器只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot；旧 `hexWorld`／`openingHexWorldId` 会被检测并拒绝，须使用现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 > **2026-09-21 LEGACY-FINAL-C Seal：** normal Continuous runtime 已不再拥有 TerritoryRegion、StrategicEncounter、RetreatingArmy 或 LingeringBattlefield board；现代 residual 只使用 exact Surface position，AtHex／Outdoor LocalMap 只留 legacy input／compatibility。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 > **2026-09-21 LEGACY-FINAL-B Seal：** PlayerParty 正常 New Game、WorldMap travel、direct movement 与 snapshot authority 已统一为 `SurfaceId + exact WorldPosition + SurfaceVisible`。WorldSite／Runtime Chunk／旧 Hex seam 不再建立 Outdoor LocalMap 或改变 modern location kind；Hex、LocalVisible 与 Wilderness transition 只作 compatibility。状态：**Producer Accepted / Sealed**，见 [249](../40-process/249-legacy-final-b-playerparty-continuous-surface-travel-authority-cutover-2026-09-21.md)。
 > 状态：**MAP-01 / MAP-02 / MAP-03 / MAP-04 / SPACE-01 Producer Accepted / Sealed**｜优先级：P0｜最后更新：2026-09-20
@@ -9,16 +9,16 @@
 
 ## 1. 状态边界
 
-当前阶段结论：MAP-01～MAP-04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已完成制作人人工验收并封板。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；WorldRegion 只剩旧包 schema／parser，Outdoor LocalMap 与 `AtHex` 只剩明确 migration／compatibility。Separate Space 继续合法保留 LocalMap infrastructure。
+当前阶段结论：MAP-01～MAP-04、SPACE-01 与 LEGACY-FINAL-A／B／C 均已完成既有验收；正式 runtime 依赖退役已落实。Normal Outdoor 只以 exact `WorldPosition`、`SurfaceId` 与 `SurfaceGroundNavigation` 为地理 authority；旧 `hexWorld`／`formalArmy` 在 Loader 边界明确拒绝，不再有 runtime migration／compatibility 执行器。Separate Space 继续合法保留 LocalMap infrastructure。
 
-> **2026-09-21 LEGACY-FINAL-A Seal：** NPC group runtime zero-state 已由制作人完整人工验收并正式 **Accepted / Sealed**：正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId。FormalArmy/ArmyStack/ArmyMembership 仅保留 Content/Snapshot DTO 与 parser，读取时直接单向迁移，不进入 Simulation board。
+> **2026-09-21 LEGACY-FINAL-A 历史 Seal：** 当时 NPC group runtime zero-state 已通过验收，正式成员、位置与战斗 identity 只使用 Squad + SquadWorldMotion + CharacterId/SquadId；当时保留的 runtime 读取迁移随后已由本页顶部 2026-09-22 离线转换边界取代。
 
 > 本页只记系统与产品方向。当前仓库真实状态、Milestone 表、Known Issues、Do Not Regress、Resume Order 与可复制上下文见 [247 Project Handoff — Current State](../40-process/247-project-handoff-current-state-2026-09-18.md)；MAP-04 审计见 [245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)；SPACE-01 见 [246](../40-process/246-space-01-separate-space-interior-transition-v1-2026-09-18.md)。
 
 ### Current Implementation
 
 - Continuous Outdoor runtime、Surface Cell、Runtime Chunk streaming 与 Canonical WorldPosition 已经存在。
-- Actual Control 已使用连续 world-space；MAP-02 已使主 Surface 的 WorldMap 使用 Continuous Surface strategic view、exact world projection 与 Surface terrain/forest cache。HexWorld 仅为未迁出的 compatibility consumer。
+- Actual Control 已使用连续 world-space；MAP-02 已使主 Surface 的 WorldMap 使用 Continuous Surface strategic view、exact world projection 与 Surface terrain/forest cache。正式产品已无 HexWorld consumer。
 - MAP-03 已把主 Surface 的 PlayerParty、WorldSite、FactionFlag、NPC/Squad/FormalArmy、BattleAnchor 与 residual 正常位置改为 continuous world-space authority；Outdoor LocalMap 与 Hex 的正常 authority 已退出。Hex/LocalMap 字段仍服务 derived compatibility、旧存档或独立区域路径。实施及制作人验收边界见 [244](../40-process/244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md)。
 - 多数 wilderness surface chunk 仍是 fallback，不能把当前 Surface content coverage 当作完整大陆制作链。
 - External `WorldComposer` 与 `FineEditor` 已完成 MAP-01 Production V1，并经制作人验收；Legacy Migration Bridge 已把当前 Main Surface、W2A geography 与荒村空间内容导入独立 Authoring Source。MAP-02 已发布并加载同源的 Surface WorldMap cache；现有 `Data/**` 仍为 runtime authority。
@@ -75,13 +75,9 @@ WorldMap 应从同一 Surface 派生战略缩放：显示实际 terrain、水、
 
 未来 travel / navigation 继续使用同一 Final Surface 通行语义；本页不重写现有 travel、河桥、navigation 或 streaming。
 
-## 6. 去 Hex 迁移纪律
+## 6. 去 Hex 退役纪律
 
-| 禁止新增的 future Hex authority | 分阶段迁出对象 | 保留到迁出前 |
-|---|---|---|
-| travel、territory/administration、battle/support range、Site footprint、player WorldMap、new Q/R Content authoring | WorldMap → PlayerTravel → WorldSite → FactionFlag → NPC strategic | 现有 HexWorld、HexCoord、topology、Content/Save adapter |
-
-Hex 的旧历史和兼容实现不能在 MAP-01 或纯文档工作中删除。旧页面中 Pure Hex、一 Site 一 LocalMap、Hex footprint 一类正文均是历史实现或 compatibility 基线；详见本页关联的 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)。
+正式产品不得新增或重新编译 Hex travel、territory／administration、battle range、Site footprint、WorldMap 或 Q/R authoring authority。FormalArmy 与 current authority 完整的 hybrid Snapshot 只可由 `LegacyRuntimeConverter` 在 runtime 外无损转换；旧地图 Content 必须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，通用转换器只检测并拒绝 `hexWorld`／`openingHexWorldId`，无样例时不猜。输入只读、输出必须是不同且尚不存在的文件。旧页面中的 Pure Hex、一 Site 一 LocalMap与 footprint 正文均为历史记录，不是恢复 adapter 的依据。
 
 ## 7. MAP-01 Production V1（已验收／封板）
 

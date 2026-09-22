@@ -1,799 +1,91 @@
-using System;
-
 using XianXia.Core.Domain.Ids;
-
 using XianXia.Core.Simulation;
-
 using XianXia.Core.World;
 
-using XianXia.Core.World.Hex;
-
-
-
 namespace XianXia.Core.World.Strategic
-
 {
-
-    /// <summary>
-
-    /// PlayerParty 权威世界位置查询：WorldMap marker 与 runtime presentation 共用。
-
-    /// PartyWorld.SiteId / LocalMapId 不得反写 Domain WorldLocation。
-
-    /// </summary>
-
+    /// <summary>Read-only PlayerParty exact Surface location query.</summary>
     public static class PlayerPartyWorldLocationQuery
-
     {
-
-        public struct Resolved
-
+        public readonly struct Resolved
         {
+            public Resolved(
+                PlayerPartyLocationKind locationKind,
+                string siteId,
+                string surfaceId,
+                WorldVec2 worldPosition)
+            {
+                LocationKind = locationKind;
+                SiteId = siteId ?? string.Empty;
+                SurfaceId = surfaceId ?? string.Empty;
+                WorldPosition = worldPosition;
+                HasValue = true;
+            }
 
-            public PlayerPartyLocationKind LocationKind;
-
-            public string SiteId;
-
-            public string SurfaceId;
-
-            public WorldVec2 WorldPosition;
-
-            public HexCoord DerivedHex;
-
-            public string ResolvedLocalMapId;
-
-            public bool HasValue;
-
-
-
-            /// <summary>
-
-            /// Phase 5R-B5：仅当 Canonical WorldPosition 缺失/非有限时的 legacy 位置（LegacyPresenceHex）
-
-            /// 才为 true。只标记查询输出，绝不写回 motion。正常 B4 / ingress / materialize 链恒为 false。
-
-            /// </summary>
-
-            public bool IsLegacyFallback;
-
+            public PlayerPartyLocationKind LocationKind { get; }
+            public string SiteId { get; }
+            public string SurfaceId { get; }
+            public WorldVec2 WorldPosition { get; }
+            public bool HasValue { get; }
         }
-
-
-
-        /// <summary>
-
-        /// 只读权威位置。默认不 heal——PartyWorld 不得覆盖 PlayerPartyWorldMotion。
-
-        /// </summary>
 
         public static bool TryResolve(
-
             SimulationWorld world,
-
             PlayerPartyRuntime party,
-
             out Resolved resolved,
-
             bool healDrift = false)
-
         {
-
             resolved = default;
-
-            if (world?.PlayerPartyTravel == null)
-
-            {
-
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null)
                 return false;
-
-            }
-
-
-
-            var motion = world.PlayerPartyTravel;
-
-            // healDrift 仅允许 Startup 等显式调用；且不得用 PartyWorld 覆盖已成立的 AtWorldPosition。
-
             if (healDrift)
-
                 TryHealStartupOnly(world, party, motion);
-
-
-
-            if (!motion.HasPosition)
-
-            {
-
+            if (!motion.HasPosition ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
+                string.IsNullOrEmpty(motion.SurfaceId) ||
+                !Finite(motion.WorldPosition))
                 return false;
-
-            }
-
-
-
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-
-                !string.IsNullOrEmpty(motion.SurfaceId) &&
-
-                world.SurfaceGround.TryGet(motion.SurfaceId, out var modernSurface) &&
-
-                modernSurface != null && modernSurface.Contains(
-
-                    motion.WorldPosition.X, motion.WorldPosition.Y))
-
-            {
-
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                    ? world.LegacyHexWorld.HexSize
-
-                    : 1f;
-
-                resolved = new Resolved
-
-                {
-
-                    HasValue = true,
-
-                    LocationKind = PlayerPartyLocationKind.AtWorldPosition,
-
-                    SiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty,
-
-                    SurfaceId = motion.SurfaceId,
-
-                    WorldPosition = motion.WorldPosition,
-
-                    DerivedHex = HexMath.WorldToHex(
-
-                        motion.WorldPosition.X, motion.WorldPosition.Y, hexSize),
-
-                    ResolvedLocalMapId = string.Empty,
-
-                };
-
-                return true;
-
-            }
-
-
-
-            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-
-                !string.IsNullOrEmpty(motion.SiteId) &&
-
-                world.Strategic.Sites.TryGet(motion.SiteId, out var site) &&
-
-                site != null)
-
-            {
-
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                    ? world.LegacyHexWorld.HexSize
-
-                    : 1f;
-
-
-
-                // Phase 5R-B5：Context 与 Physical 分离。
-
-                // Physical truth = motion.WorldPosition（B4 LocalVisible→Canonical 已同步 /
-
-                // ingress / materialize 后均在 Site footprint 表面）。不再用 LegacyPresenceHex / LegacyAnchorHex
-
-                // center 代表 Site 内位置。
-
-                // 仅当 WorldPosition 缺失或非有限 → legacy fallback = LegacyPresenceHex（只读查询输出，
-
-                // 不写回 motion，IsLegacyFallback=true）。
-
-                // DerivedHex = HexMath.WorldToHex(Canonical)（derived/debug，不写 LegacyCurrentHex；
-
-                // polygon boundary 数值误差落到邻接 hex 也不 snap —— Canonical 优先）。
-
-                var finitePos = motion.HasPosition &&
-
-                                !float.IsNaN(motion.WorldPosition.X) &&
-
-                                !float.IsInfinity(motion.WorldPosition.X) &&
-
-                                !float.IsNaN(motion.WorldPosition.Y) &&
-
-                                !float.IsInfinity(motion.WorldPosition.Y);
-
-
-
-                WorldVec2 markerPos;
-
-                HexCoord derivedHex;
-
-                var isLegacyFallback = false;
-
-                if (!finitePos)
-
-                {
-
-                    HexMath.ToWorldPosition(site.LegacyPresenceHex, hexSize, out var sx, out var sy);
-
-                    markerPos = new WorldVec2(sx, sy);
-
-                    derivedHex = site.LegacyPresenceHex;
-
-                    isLegacyFallback = true;
-
-                }
-
-                else
-
-                {
-
-                    // Phase 5R-B6.1：AtWorldSite 阶段 Physical executor 恒为 Site LocalVisible
-
-                    // （Idle / LegacyDeparturePhase.Planned / Approaching / IsMoving 均如此）。B4 持续
-
-                    // Local→Canonical（Approach 中），或 WorldMap open 时保留最后一次 Canonical。
-
-                    // 一律 Canonical-first，不再用 IsMoving 区分 authority —— IsMoving 现在也覆盖
-
-                    // LocalDepartureApproach，不代表 World executor owns。
-
-                    // 真正 egress commit 后 LocationKind 已切 AtWorldPosition，走下方分支用
-
-                    // TravelPresentation（AtWorldPosition + World travel 保留）。
-
-                    markerPos = motion.WorldPosition;
-
-                    derivedHex = HexMath.WorldToHex(markerPos.X, markerPos.Y, hexSize);
-
-                }
-
-
-
-                resolved = new Resolved
-
-                {
-
-                    HasValue = true,
-
-                    LocationKind = PlayerPartyLocationKind.AtWorldSite,
-
-                    SiteId = site.SiteId,
-
-                    SurfaceId = string.Empty,
-
-                    WorldPosition = markerPos,
-
-                    DerivedHex = derivedHex,
-
-                    ResolvedLocalMapId = site.LocalMapId ?? string.Empty,
-
-                    IsLegacyFallback = isLegacyFallback,
-
-                };
-
-                return true;
-
-            }
-
-
-
-            var hexSize2 = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                ? world.LegacyHexWorld.HexSize
-
-                : 1f;
-
-            // AtWorldPosition + World travel（egress 后 / 开世界旅行中）：World executor owns，
-
-            // 用 TravelPresentation（正式 crossing 路径 / 插值）；Idle 用 WorldPosition。
-
-            var worldPos = motion.IsMoving
-
-                ? motion.ResolveLegacyTravelPresentationWorld(hexSize2)
-
-                : motion.WorldPosition;
-
-
-
-            // Phase 5R-B3B.2：正式 Wilderness Context = motion.LegacyCurrentHex（由 Context/Transition
-
-            // authority 提交：正式跨格 / TravelPlan leg 起点）。Hex 边界中点 WorldToHex 存在数值歧义
-
-            // （可翻到邻格），不得用它强写 LegacyCurrentHex / 决定 LocalMap / 当作上下文；否则会与已加载
-
-            // LocalMap 的 hex 分裂 → SurfaceExit authority / reopen materialization 错乱。
-
-            // 因此 map 与 DerivedHex（权威 Hex，供 reopen 加载 / presence / legal location）
-
-            // 统一取已提交 Context，不再从连续位置反推。
-
-            var contextHex = motion.LegacyCurrentHex;
-
-            LegacyWildernessLocalMapFallback.TryResolve(world, contextHex, out var mapId);
-
-            resolved = new Resolved
-
-            {
-
-                HasValue = true,
-
-                LocationKind = PlayerPartyLocationKind.AtWorldPosition,
-
-                SiteId = string.Empty,
-
-                SurfaceId = string.Empty,
-
-                WorldPosition = worldPos,
-
-                DerivedHex = contextHex,
-
-                ResolvedLocalMapId = mapId ?? string.Empty,
-
-            };
-
+            resolved = new Resolved(
+                motion.LocationKind,
+                motion.CurrentOutdoorWorldSiteId,
+                motion.SurfaceId,
+                motion.WorldPosition);
             return true;
-
         }
 
-
-
         /// <summary>
-
-        /// 仅 Startup：Travel 尚无有效 LocationKind/Site 时，用 Active WorldPresence AtSite 初始化。
-
-        /// 绝不用 PartyWorld 覆盖已有 AtWorldPosition。
-
+        /// Initializes an absent party motion from an exact active-character presence only.
+        /// Site-only or grid-only state requires offline conversion.
         /// </summary>
-
         public static bool TryHealStartupOnly(
-
             SimulationWorld world,
-
             PlayerPartyRuntime party,
-
             PlayerPartyWorldMotion motion)
-
         {
-
-            if (world == null || motion == null || motion.IsMoving)
-
+            if (world == null || motion == null || motion.IsMoving || motion.HasPosition ||
+                party == null || !party.HasActive)
                 return false;
-
-
-
-            // 已有正式开世界位置：禁止任何 Site 回写。
-
-            if (motion.HasPosition &&
-
-                motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
-
+            var activeId = party.ActiveCharacterId;
+            if (!world.WorldPresence.TryGet(activeId, out var presence) || presence == null ||
+                presence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                !presence.HasContinuousWorldPosition ||
+                string.IsNullOrEmpty(presence.PersonalSurfaceId) ||
+                !world.SurfaceGround.TryGet(presence.PersonalSurfaceId, out var surface) ||
+                surface == null ||
+                !surface.Contains(presence.WorldPosX, presence.WorldPosY))
                 return false;
-
-
-
-            var activeId = party != null && party.HasActive ? party.ActiveCharacterId : EntityId.None;
-
-            if (activeId.IsNone ||
-
-                !world.WorldPresence.TryGet(activeId, out var wp) ||
-
-                wp == null)
-
-                return false;
-
-
-
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                ? world.LegacyHexWorld.HexSize
-
-                : 1f;
-
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-
-            {
-
-                WorldVec2 position;
-
-                string surfaceId;
-
-                var siteId = wp.SiteId ?? string.Empty;
-
-                if (wp.HasContinuousWorldPosition &&
-
-                    !string.IsNullOrEmpty(wp.PersonalSurfaceId) &&
-
-                    world.SurfaceGround.TryGet(wp.PersonalSurfaceId, out var anchoredSurface) &&
-
-                    anchoredSurface.Contains(wp.WorldPosX, wp.WorldPosY))
-
-                {
-
-                    position = wp.ContinuousWorldPosition;
-
-                    surfaceId = anchoredSurface.SurfaceId;
-
-                }
-
-                else if (wp.Mode == PartyWorldPresenceMode.AtSite &&
-
-                         !string.IsNullOrEmpty(siteId) &&
-
-                         world.SurfaceGround.TryResolveSiteArrival(
-
-                             siteId, out surfaceId, out position))
-
-                {
-
-                    // Genuine old Site-only presence migrates once through authored SiteArrival.
-
-                }
-
-                else
-
-                {
-
-                    return false;
-
-                }
-
-
-
-                motion.SetAtSurfacePosition(surfaceId, position,
-
-                    HexMath.WorldToHex(position.X, position.Y, hexSize));
-
-                if (string.IsNullOrEmpty(siteId) &&
-
-                    WorldSitePhysicalRegionQuery.TryResolve(world, position, out var currentSite))
-
-                    siteId = currentSite.SiteId;
-
-                motion.SetCurrentOutdoorWorldSiteContext(siteId);
-
-                if (party != null)
-
-                    PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
-
-                PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "HealStartupOnlySurface");
-
-                return true;
-
-            }
-
-            if (wp.Mode != PartyWorldPresenceMode.AtSite ||
-
-                string.IsNullOrEmpty(wp.SiteId) ||
-
-                !world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
-
-                return false;
-
-            motion.SetAtLegacyWorldSite(site.SiteId, site.LegacyPresenceHex, hexSize);
-
-            if (party != null)
-
-                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
-
-            PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "HealStartupOnly");
-
+            motion.SetAtSurfacePosition(surface.SurfaceId, presence.ContinuousWorldPosition);
+            motion.SetCurrentOutdoorWorldSiteContext(
+                WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(
+                    world, presence.ContinuousWorldPosition));
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             return true;
-
         }
 
-
-
-        /// <summary>
-
-        /// LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY：旧 Hex route preview 起点解析。
-
-        /// Site departure 时从 Canonical WorldPosition 派生起点，其余 Context 使用 LegacyCurrentHex。
-
-        /// </summary>
-
-        public static bool TryResolveRouteStartHex(
-
-            SimulationWorld world,
-
-            PlayerPartyWorldMotion motion,
-
-            out HexCoord startHex,
-
-            out int pathIndex)
-
-        {
-
-            startHex = motion != null ? motion.LegacyCurrentHex : default;
-
-            pathIndex = motion != null ? motion.LegacyHexSegmentIndex : 0;
-
-            if (world == null || motion == null)
-
-                return false;
-
-
-
-            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-
-                !string.IsNullOrEmpty(motion.SiteId) &&
-
-                motion.IsLegacySiteDeparturePending &&
-
-                motion.HasPosition &&
-
-                !float.IsNaN(motion.WorldPosition.X) &&
-
-                !float.IsInfinity(motion.WorldPosition.X) &&
-
-                !float.IsNaN(motion.WorldPosition.Y) &&
-
-                !float.IsInfinity(motion.WorldPosition.Y))
-
-            {
-
-                var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                    ? world.LegacyHexWorld.HexSize
-
-                    : 1f;
-
-                startHex = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
-
-                var path = motion.LegacyHexPath;
-
-                pathIndex = motion.LegacyHexSegmentIndex;
-
-                if (path != null && motion.IsLegacySiteDeparturePending)
-
-                {
-
-                    for (var i = motion.LegacyHexSegmentIndex; i < path.Count; i++)
-
-                    {
-
-                        if (!path[i].Equals(motion.LegacySiteDepartureExitHex))
-
-                            continue;
-
-                        pathIndex = i;
-
-                        break;
-
-                    }
-
-                }
-
-                else if (path != null &&
-
-                         motion.LegacyHexSegmentIndex < path.Count &&
-
-                         path[motion.LegacyHexSegmentIndex].Equals(startHex))
-
-                {
-
-                    pathIndex = motion.LegacyHexSegmentIndex + 1;
-
-                }
-
-            }
-
-            else if (motion.LegacyHexPath != null &&
-
-                     motion.LegacyHexSegmentIndex < motion.LegacyHexPath.Count &&
-
-                     motion.LegacyHexPath[motion.LegacyHexSegmentIndex].Equals(motion.LegacyCurrentHex))
-
-            {
-
-                pathIndex = motion.LegacyHexSegmentIndex + 1;
-
-            }
-
-
-
-            return true;
-
-        }
-
-
-
-    }
-
-
-
-    /// <summary>关键点单次 Debug（非每帧）。</summary>
-
-    public static class PlayerPartyWorldLocationDebug
-
-    {
-
-        public static System.Action<string> Sink { get; set; }
-
-
-
-        static string _lastKey = string.Empty;
-
-
-
-        public static void LogSnapshot(
-
-            SimulationWorld world,
-
-            PlayerPartyRuntime party,
-
-            string reason)
-
-        {
-
-            if (Sink == null || world?.PlayerPartyTravel == null)
-
-                return;
-
-
-
-            var motion = world.PlayerPartyTravel;
-
-            var hexSize = world.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-
-                ? world.LegacyHexWorld.HexSize
-
-                : 1f;
-
-            var travelPresentation = motion.IsMoving
-
-                ? motion.ResolveLegacyTravelPresentationWorld(hexSize)
-
-                : default(WorldVec2?);
-
-            var insideSiteId = string.Empty;
-
-            WorldSite footprintSite = null;
-
-            var insideSite = motion.IsMoving &&
-
-                             LegacyWorldSiteHexLocationCompatibility.TryGetSiteAtHex(
-
-                                 world,
-
-                                 motion.LegacyCurrentHex,
-
-                                 out footprintSite) &&
-
-                             footprintSite != null;
-
-            if (insideSite)
-
-                insideSiteId = footprintSite.SiteId;
-
-            var active = party != null && party.HasActive
-
-                ? party.ActiveCharacterId.Value.ToString()
-
-                : "none";
-
-            var msg =
-
-                "[PlayerPartyWorldLocation] " + reason +
-
-                " active=" + active +
-
-                " kind=" + motion.LocationKind +
-
-                " site=" + (motion.SiteId ?? "") +
-
-                " pos=" + motion.WorldPosition +
-
-                " travelPresentation=" + (travelPresentation.HasValue ? travelPresentation.Value.ToString() : "n/a") +
-
-                " hex=" + motion.LegacyCurrentHex +
-
-                " insideSite=" + insideSite +
-
-                " insideSiteId=" + insideSiteId +
-
-                " moving=" + motion.IsMoving +
-
-                " siteDeparturePending=" + motion.IsLegacySiteDeparturePending +
-
-                " usesTravelPresentation=" + motion.LegacyUsesTravelPresentation +
-
-                " destSite=" + (motion.LegacyDestinationSiteId ?? "") +
-
-                " partyWorld.site=" + (world.PartyWorld?.SiteId ?? "") +
-
-                " partyWorld.map=" + (world.PartyWorld?.LocalMapId ?? "");
-
-            var key = reason + "|" + msg;
-
-            if (key == _lastKey)
-
-                return;
-
-            _lastKey = key;
-
-            Sink(msg);
-
-        }
-
-
-
-        public static void LogTransition(
-
-            SimulationWorld world,
-
-            PlayerPartyRuntime party,
-
-            string reason) =>
-
-            LogSnapshot(world, party, reason);
-
-
-
-        public static void LogBeforeAfter(
-
-            SimulationWorld world,
-
-            PlayerPartyRuntime party,
-
-            string reason,
-
-            PlayerPartyLocationKind kindBefore,
-
-            string siteBefore,
-
-            WorldVec2 posBefore,
-
-            HexCoord hexBefore)
-
-        {
-
-            if (Sink == null || world?.PlayerPartyTravel == null)
-
-                return;
-
-            var motion = world.PlayerPartyTravel;
-
-            var active = party != null && party.HasActive
-
-                ? party.ActiveCharacterId.Value.ToString()
-
-                : "none";
-
-            Sink(
-
-                "[PlayerPartyWorldLocation] " + reason +
-
-                " active=" + active +
-
-                " BEFORE kind=" + kindBefore +
-
-                " site=" + (siteBefore ?? "") +
-
-                " pos=" + posBefore +
-
-                " hex=" + hexBefore +
-
-                " AFTER kind=" + motion.LocationKind +
-
-                " site=" + (motion.SiteId ?? "") +
-
-                " pos=" + motion.WorldPosition +
-
-                " hex=" + motion.LegacyCurrentHex +
-
-                " moving=" + motion.IsMoving +
-
-                " destSite=" + (motion.LegacyDestinationSiteId ?? "") +
-
-                " partyWorld.site=" + (world.PartyWorld?.SiteId ?? "") +
-
-                " partyWorld.map=" + (world.PartyWorld?.LocalMapId ?? ""));
-
-        }
-
-
-
+        static bool Finite(WorldVec2 position) =>
+            !float.IsNaN(position.X) && !float.IsInfinity(position.X) &&
+            !float.IsNaN(position.Y) && !float.IsInfinity(position.Y);
     }
 
 }

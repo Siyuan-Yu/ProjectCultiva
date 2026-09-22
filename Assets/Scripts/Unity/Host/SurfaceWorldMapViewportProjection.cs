@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>World-space-only WorldMap camera. It deliberately has no Hex dependency.</summary>
+    /// <summary>World-space-only Continuous Surface WorldMap camera.</summary>
     public readonly struct SurfaceWorldMapViewportProjection
     {
         readonly Rect _mapRect;

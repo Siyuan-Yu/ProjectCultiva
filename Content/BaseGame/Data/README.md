@@ -27,4 +27,12 @@
 
 新建内容时，各编辑器默认保存到对应子目录。字段权威见同级的 `SCHEMA.md`。
 
-`Armies/` 当前文件本身就是正常 `npcSquad` 内容；新 NPC group 使用 `npcSquad`／`initialNpcSquadIds`。Loader 另行保留旧包中 `formalArmy`／`initialFormalArmyIds` 的兼容读取，内部经 `InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`，只产生 Character + `Squad + SquadWorldMotion`，不创建 FormalArmy／ArmyStack。旧 schema 可位于递归扫描到的任意 JSON，不能从目录名推断其 authority。
+`Armies/` 当前文件本身就是正常 `npcSquad` 内容；新 NPC group 使用 `npcSquad`／`initialNpcSquadIds`。Runtime Loader **不再支持** `formalArmy`、`initialFormalArmyIds` 或 `hexWorld`，命中时会明确拒绝。
+
+旧 FormalArmy 可使用 `ExternalTools/ContentAuthoring/LegacyRuntimeConverter`，且输入只读、输出为不同且尚不存在的独立副本。`hexWorld`／`openingHexWorldId` 会被该工具检测并拒绝，必须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。转换后的 Army Content 使用 `npcSquad`；ID 规则为：
+
+- 有旧 `runtimeArmyId`：`squad:migrated:<normalizedRuntimeArmyId>`；
+- 无旧 `runtimeArmyId`：`squad:legacy:<normalizedDefinitionId>`；
+- 旧 Snapshot：`squad:army:<armyId>`。
+
+三条规则不可混用。旧 Hex Snapshot 只有 Q/R 而无精确 Surface 位置时，离线转换必须显式提供 `surface-id` 与正数 `movement-scale`。`movementScale` 是连续世界 movement budget 尺度，不是 `cellSize`；当前 BaseGame `outdoorSurface` 显式配置为 `1.0`。

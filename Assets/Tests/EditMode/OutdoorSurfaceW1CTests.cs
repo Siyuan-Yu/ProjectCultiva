@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
 
 namespace XianXia.Tests.EditMode
@@ -32,28 +31,11 @@ namespace XianXia.Tests.EditMode
         }
 
         [Test]
-        public void ChunkGrid_IsIndependentOfStrategicHexNamingAndDimensions()
+        public void ChunkGrid_UsesOnlyContinuousWorldCoordinates()
         {
             var mapper = new OutdoorSurfaceCoordinateMapper(50f, 50f, 1f);
-            // Chunk (0,0) spans a continuous rectangle; the assertion deliberately has no HexCoord input.
             Assert.AreEqual(new SurfaceChunkCoord(0, 0), mapper.WorldToChunk(49.9f, 49.9f));
             Assert.AreEqual(new SurfaceChunkCoord(1, 0), mapper.WorldToChunk(50f, 49.9f));
-        }
-
-        [Test]
-        public void ChunkAndHexBoundaries_CrossIndependently()
-        {
-            var mapper = new OutdoorSurfaceCoordinateMapper(1f, 1f, 0.02f);
-            // The shared Hex edge is near x=0.866 for hexSize=1, while the chunk edge is x=1.
-            // Thus a Hex can change while the player remains in chunk (0,0).
-            var beforeHex = HexMath.WorldToHex(0.75f, 0f, 1f);
-            var afterHex = HexMath.WorldToHex(0.95f, 0f, 1f);
-            Assert.AreNotEqual(beforeHex, afterHex);
-            Assert.AreEqual(mapper.WorldToChunk(0.75f, 0f), mapper.WorldToChunk(0.95f, 0f));
-
-            // Crossing x=1 moves to the next chunk but stays inside that same strategic Hex.
-            Assert.AreEqual(afterHex, HexMath.WorldToHex(1.05f, 0f, 1f));
-            Assert.AreNotEqual(mapper.WorldToChunk(0.95f, 0f), mapper.WorldToChunk(1.05f, 0f));
         }
 
         [Test]

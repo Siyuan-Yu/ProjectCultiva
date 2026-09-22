@@ -24,7 +24,6 @@ public static class ContentPathRules
             ["mapLayout"] = "Maps",
             ["worldRegion"] = "Regions",
             ["localPlaceSet"] = "LocalPlaces",
-            ["hexWorld"] = "Worlds",
             ["chapter"] = "Chapters",
             ["openingScenario"] = "Scenarios",
             ["characterRoster"] = "Rosters",

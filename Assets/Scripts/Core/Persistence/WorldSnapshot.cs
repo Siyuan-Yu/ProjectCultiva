@@ -8,13 +8,13 @@ namespace XianXia.Core.Persistence
         public const int CurrentSchemaVersion = 6;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
-        /// <summary>v2 route-only saves are unsupported after hex migration.</summary>
+        /// <summary>v2 route-only saves lack current spatial authority.</summary>
         public const int LegacySchemaVersionV2 = 2;
-        /// <summary>v3 lacks Residual Hex Presence — unsupported after residual migration.</summary>
+        /// <summary>v3 lacks current residual spatial authority.</summary>
         public const int LegacySchemaVersionV3 = 3;
-        /// <summary>v4 uses NodeOwners — unsupported after Pure Hex ownership migration.</summary>
+        /// <summary>v4 uses retired ownership fields.</summary>
         public const int LegacySchemaVersionV4 = 4;
-        /// <summary>v5 retains node/route DTO fields — unsupported after Pure Hex legacy purge.</summary>
+        /// <summary>v5 lacks the current Continuous Surface snapshot contract.</summary>
         public const int LegacySchemaVersionV5 = 5;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
@@ -103,9 +103,9 @@ namespace XianXia.Core.Persistence
         public List<ResidualCharacterPresenceDto> ResidualCharacterPresences { get; set; } =
             new List<ResidualCharacterPresenceDto>();
         /// <summary>
-        /// Phase 2A：Character World Presence（AtSite 存 SiteId；AtHex 存 Hex）。
-        /// 可选字段；旧存档缺省时不做随机补全。
+        /// CharacterWorldPresences 字段出现即表示当前精确个人空间状态集合完整 authoritative。
         /// </summary>
+        public bool HasCharacterWorldPresenceSnapshotAuthority { get; set; }
         public List<CharacterWorldPresenceSnapshotDto> CharacterWorldPresences { get; set; } =
             new List<CharacterWorldPresenceSnapshotDto>();
         public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
@@ -150,9 +150,7 @@ namespace XianXia.Core.Persistence
         public List<LoadedLocalMapCharacterPlacementSnapshotDto> LoadedLocalMapCharacterPlacements { get; set; } =
             new List<LoadedLocalMapCharacterPlacementSnapshotDto>();
 
-        /// <summary>
-        /// SPACE-01：Separate Space Session（可选；旧存档缺省时尝试从 placements 迁移）。
-        /// </summary>
+        /// <summary>SPACE-01：Separate Space Session current snapshot authority。</summary>
         public SeparateSpaceSessionSnapshotDto SeparateSpace { get; set; }
 
         /// <summary>Phase 2D：Background Character 中途旅行状态（可选）。</summary>
@@ -499,7 +497,7 @@ namespace XianXia.Core.Persistence
         public bool CoreIsRemovable { get; set; }
     }
 
-    /// <summary>Legacy TerritoryRegion controller input; migrated directly to an unowned matching WorldSite.</summary>
+    /// <summary>Stable legacy wire DTO retained for read-time detection; current restore rejects non-empty input.</summary>
     public sealed class TerritoryRegionControllerSnapshotDto
     {
         public string RegionId { get; set; }
@@ -676,9 +674,9 @@ namespace XianXia.Core.Persistence
         public int ActiveOrderSource { get; set; }
         public List<string> KnownSiteIds { get; set; } = new List<string>();
         public int PersonalConcealmentRisk { get; set; }
-        /// <summary>EntityLocation 是运行时地点真源；false 兼容旧存档缺失该组件。</summary>
+        /// <summary>EntityLocation 是运行时地点真源；false 表示该实体当前无 Interior Location。</summary>
         public bool HasEntityLocation { get; set; }
-        /// <summary>JSON 是否含新 Location 字段；仅用于旧档兼容回填判定，不是长期地点数据。</summary>
+        /// <summary>JSON 是否含 current EntityLocation authority 字段。</summary>
         public bool EntityLocationSnapshotFieldPresent { get; set; }
         public string LocationId { get; set; } = string.Empty;
         public bool HasPresentationOverride { get; set; }

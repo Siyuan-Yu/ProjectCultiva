@@ -7,7 +7,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -15,7 +14,6 @@ namespace XianXia.Core.World.Strategic
     {
         public string SurfaceId { get; set; } = string.Empty;
         public WorldVec2 WorldPosition { get; set; }
-        public HexCoord StrategicAnchor { get; set; }
         public float PresentationX { get; set; }
         public float PresentationZ { get; set; }
     }
@@ -49,24 +47,6 @@ namespace XianXia.Core.World.Strategic
             return site != null;
         }
 
-        public static List<HexCoord> BuildStrategicSummary(SimulationWorld world, WorldSite site)
-        {
-            var result = new List<HexCoord>();
-            if (world?.LegacyHexWorld == null || site == null || !site.IsCoreActive)
-                return result;
-            if (!site.HasContinuousCore)
-                return new List<HexCoord>(LegacyHexRingUtility.ExpandOneRing(site.EnumerateLegacyFootprintHexes()));
-            for (var r = 0; r < world.LegacyHexWorld.Height; r++)
-            for (var q = 0; q < world.LegacyHexWorld.Width; q++)
-            {
-                var hex = new HexCoord(q, r);
-                HexMath.ToWorldPosition(hex, world.LegacyHexWorld.HexSize, out var x, out var y);
-                if (Contains(site, site.CoreSurfaceId, x, y)) result.Add(hex);
-            }
-            if (!result.Contains(site.LegacyAnchorHex) && world.LegacyHexWorld.Contains(site.LegacyAnchorHex))
-                result.Add(site.LegacyAnchorHex);
-            return result;
-        }
     }
 
     /// <summary>阵营旗的政治生命周期。所有变更后只通过 Territory Resolver 重建派生控制。</summary>
@@ -83,10 +63,8 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             string factionId,
             FactionFlagSitePlacementRequest request,
-            int initialLevel,
-            out int neutralHexGain)
+            int initialLevel)
         {
-            neutralHexGain = 0;
             if (world?.Strategic == null || request == null || string.IsNullOrWhiteSpace(factionId) ||
                 string.IsNullOrWhiteSpace(request.SurfaceId) || !IsFinite(request.WorldPosition.X) ||
                 !IsFinite(request.WorldPosition.Y) || initialLevel < 1)
@@ -113,9 +91,6 @@ namespace XianXia.Core.World.Strategic
                         return Result.Failure(ErrorCode.InvalidOperation,
                             "此位置已存在另一个核心实体。");
                 }
-                else if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
-                         !site.HasContinuousCore && site.OccupiesLegacyHex(request.StrategicAnchor))
-                    return Result.Failure(ErrorCode.InvalidOperation, "此处属于现有预设据点，不能建立第二核心。");
             }
 
             if (WorldSiteAdministrativeControlResolver.TryResolve(
@@ -124,23 +99,6 @@ namespace XianXia.Core.World.Strategic
                 !string.Equals(manager.OwnerFactionId, factionId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "敌对/其它势力实际控制范围内不能建立势力旗。");
-            // Hex coverage is only a compatibility/debug summary for a normal continuous
-            // placement; it is not a legality prerequisite or an identity source.
-            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
-                return Result.Success();
-            var probe = new WorldSite
-            {
-                LegacyAnchorHex = request.StrategicAnchor,
-                CoreSurfaceId = request.SurfaceId,
-                HasCoreWorldPosition = true,
-                CoreWorldX = request.WorldPosition.X,
-                CoreWorldY = request.WorldPosition.Y,
-                CoreRangeWidth = resolved.WidthWorld,
-                CoreRangeHeight = resolved.HeightWorld,
-                IsCoreActive = true
-            };
-            foreach (var hex in WorldSiteCoreCoverageResolver.BuildStrategicSummary(world, probe))
-                if (string.IsNullOrEmpty(GetLegacyHexController(world, hex))) neutralHexGain++;
             return Result.Success();
         }
 
@@ -162,11 +120,11 @@ namespace XianXia.Core.World.Strategic
         /// Deterministic runtime id. The suffix reserves the existing Snapshot-persisted world entity
         /// sequence, so same-tick rebuilds and Save/Load cannot reuse a prior runtime FlagId.
         /// </summary>
-        public static string NextRuntimeFlagId(SimulationWorld world, string factionId, HexCoord anchor)
+        public static string NextRuntimeFlagId(SimulationWorld world, string factionId)
         {
             var owner = string.IsNullOrEmpty(factionId) ? "unknown" : factionId.Replace(':', '_');
-            // MAP-03: new runtime identities never encode a derived Hex coordinate.  The
-            // retained argument preserves legacy callers and old snapshot identifiers.
+            // Runtime identities use the owning faction plus the persisted entity sequence;
+            // exact world position is spatial authority and is not encoded in the identity.
             var stem = "flag:runtime:" + owner + ":";
             var suffix = world?.Entities?.Ids.Next().Value ?? 1UL;
             while (world?.Strategic != null &&
@@ -195,19 +153,13 @@ namespace XianXia.Core.World.Strategic
             ResolvedWorldSpatialRange controlRange;
             try { controlRange = world.Strategic.SpatialRules.ResolveLevel(world, initialLevel, request?.SurfaceId); }
             catch (InvalidOperationException ex) { return Result.Failure(ErrorCode.InvalidArgument, ex.Message); }
-            var baseline = TerritoryClaimService.EstablishBaselineFromLegacy(world);
+            var baseline = TerritoryClaimService.EstablishBaselineFromActiveCores(world);
             if (baseline.IsFailure) return baseline;
             var valid = ValidateSiteCorePlacement(
-                world, factionId, request, initialLevel, out _);
+                world, factionId, request, initialLevel);
             if (valid.IsFailure) return valid;
             if (string.IsNullOrEmpty(siteId) || initialLevel < 1)
                 return Result.Failure(ErrorCode.InvalidArgument, "新据点身份或等级无效。");
-            // Compatibility topology is derived from the canonical Surface point. Never trust
-            // a caller-provided StrategicAnchor in normal Continuous Outdoor placement.
-            var compatibilityAnchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
-                ? HexMath.WorldToHex(request.WorldPosition.X, request.WorldPosition.Y,
-                    world.LegacyHexWorld?.HexSize > 0f ? world.LegacyHexWorld.HexSize : 1f)
-                : request.StrategicAnchor;
             var site = new WorldSite
             {
                 SiteId = siteId,
@@ -227,11 +179,8 @@ namespace XianXia.Core.World.Strategic
                 CoreRangeHeight = controlRange.HeightWorld,
                 IsCoreActive = true,
                 CoreIsRemovable = true,
-                LegacyAnchorHex = compatibilityAnchor,
-                LegacyPresenceHex = compatibilityAnchor,
                 LocalMapId = string.Empty
             };
-            site.SetLegacyHexFootprint(new[] { compatibilityAnchor });
             try { world.Strategic.Sites.Register(site); }
             catch (Exception ex)
             {
@@ -241,7 +190,6 @@ namespace XianXia.Core.World.Strategic
             {
                 FlagId = flagId,
                 FactionId = factionId,
-                AnchorHex = compatibilityAnchor,
                 EstablishedOrder = establishedOrder,
                 CurrentHp = 100,
                 MaxHp = 100,
@@ -352,15 +300,6 @@ namespace XianXia.Core.World.Strategic
                 string.Equals(site.CoreAssetId, flag.FlagId, StringComparison.Ordinal))
                 site.IsCoreActive = true;
             return true;
-        }
-
-        // Legacy non-Site flag placement only. Modern Continuous Site cores use exact
-        // WorldSiteAdministrativeControlResolver before reaching this compatibility path.
-        static string GetLegacyHexController(SimulationWorld world, HexCoord hex)
-        {
-            if (world?.LegacyHexWorld == null || !world.LegacyHexWorld.TryGetCell(hex, out var cell) || cell == null)
-                return string.Empty;
-            return cell.ControlFactionId ?? string.Empty;
         }
 
         static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

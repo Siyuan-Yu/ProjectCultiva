@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using XianXia.Core.Navigation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Surface
 {

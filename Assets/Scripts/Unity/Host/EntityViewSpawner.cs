@@ -215,23 +215,6 @@ namespace XianXia.Unity.Host
             return new Vector3(fallbackIndex * 2.5f, 0f, HostPresentationSpace.EntityZ);
         }
 
-        public void SyncLocations(PlayableHostSession session)
-        {
-            if (session == null || !session.IsInitialized)
-                return;
-            PruneHiddenViews(session);
-            var stackAtLocation = new Dictionary<string, int>(System.StringComparer.Ordinal);
-            var ids = session.ViewableEntityIds;
-            for (var i = 0; i < ids.Count; i++)
-            {
-                var id = ids[i];
-                if (!_registry.TryGet(id, out var view) || view == null)
-                    continue;
-                var target = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
-                view.transform.position = target;
-            }
-        }
-
         /// <summary>Background Arrival 等增量 Materialize：只补尚未刷出的可见实体。</summary>
         public void SpawnMissingVisibleViews(PlayableHostSession session)
         {

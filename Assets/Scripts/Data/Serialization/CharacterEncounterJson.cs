@@ -146,7 +146,8 @@ namespace XianXia.Data.Serialization
                 ["sourceMode"] = JsonValue.FromNumber(p.SourceMode),
                 ["sourceSpatialOwnerKind"] = JsonValue.FromNumber((int)p.SourceSpatialOwnerKind),
                 ["sourceSquadId"] = JsonValue.FromString(p.SourceSquadId ?? string.Empty),
-                ["sourceFormalArmyId"] = JsonValue.FromString(p.LegacySourceFormalArmyId ?? string.Empty),
+                // Stable wire key retained without reintroducing retired runtime state.
+                ["sourceFormalArmyId"] = JsonValue.FromString(string.Empty),
                 ["originX"] = JsonValue.FromNumber(p.OriginX),
                 ["originY"] = JsonValue.FromNumber(p.OriginY),
                 ["returnX"] = JsonValue.FromNumber(p.ReturnX),
@@ -170,20 +171,28 @@ namespace XianXia.Data.Serialization
             if (format >= 4) RequireFields(row, "returnX", "returnY");
             var originX = (float)row.GetNumber("originX", 0);
             var originY = (float)row.GetNumber("originY", 0);
+            var ownerKind = format >= 3
+                ? (int)row.GetNumber("sourceSpatialOwnerKind", 0)
+                : (int)EncounterSpatialOwnerKind.Personal;
+            var sourceFormalArmyId = format >= 3
+                ? row.GetString("sourceFormalArmyId", "")
+                : "";
+            if (ownerKind == 2 || !string.IsNullOrEmpty(sourceFormalArmyId))
+                throw new FormatException(
+                    "Legacy FormalArmy encounter spatial metadata requires offline conversion before restore.");
+            var sourceMode = (int)row.GetNumber("sourceMode", 0);
+            if (sourceMode == 1 || sourceMode == 2)
+                throw new FormatException(
+                    "Legacy encounter character presence mode requires offline conversion before restore.");
             return new EncounterCharacter
                 {
                 CharacterId = ulong.Parse(row.GetString("characterId", "0"), System.Globalization.CultureInfo.InvariantCulture),
                 SquadId = row.GetString("squadId", ""),
                 Enemy = row.GetBool("enemy", false),
                 SourceSiteId = row.GetString("sourceSiteId", ""),
-                SourceMode = (int)row.GetNumber("sourceMode", 0),
-                SourceSpatialOwnerKind = format >= 3
-                    ? (EncounterSpatialOwnerKind)row.GetNumber("sourceSpatialOwnerKind", 0)
-                    : EncounterSpatialOwnerKind.Personal,
+                SourceMode = sourceMode,
+                SourceSpatialOwnerKind = (EncounterSpatialOwnerKind)ownerKind,
                 SourceSquadId = format >= 3 ? row.GetString("sourceSquadId", "") : "",
-                LegacySourceFormalArmyId = format >= 3
-                    ? row.GetString("sourceFormalArmyId", "")
-                    : "",
                 OriginX = originX,
                 OriginY = originY,
                 ReturnX = format >= 4 ? (float)row.GetNumber("returnX", 0) : originX,

@@ -37,7 +37,6 @@ namespace XianXia.Data.Content
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 
             ValidateScenarios(registry, locations, report);
-            ValidateLegacyFormalArmyDefinitions(registry, report);
             ValidateNpcSquads(registry, report);
             ValidateStrategicFactions(registry, report);
             ValidateWorldRegions(registry, locations, report);
@@ -66,6 +65,7 @@ namespace XianXia.Data.Content
                 var surface = pair.Value;
                 if (surface == null || string.IsNullOrWhiteSpace(surface.SurfaceId) ||
                     !IsFinite(surface.OriginWorldX) || !IsFinite(surface.OriginWorldY) ||
+                    !(surface.MovementScale > 0f) || !IsFinite(surface.MovementScale) ||
                     !(surface.CellSize > 0f) || !IsFinite(surface.CellSize) ||
                     !(surface.ChunkWidth > 0f) || !IsFinite(surface.ChunkWidth) ||
                     !(surface.ChunkHeight > 0f) || !IsFinite(surface.ChunkHeight) ||
@@ -208,47 +208,22 @@ namespace XianXia.Data.Content
         static void ValidateFactionFlagSiteCores(DefinitionRegistry registry, ValidationReport report)
         {
             var ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var worldPair in registry.HexWorldContents)
+            foreach (var surfacePair in registry.OutdoorSurfaces)
             {
-                var definition = worldPair.Value;
-                if (definition?.FactionFlags == null) continue;
-                for (var i = 0; i < definition.FactionFlags.Count; i++)
+                var surface = surfacePair.Value;
+                if (surface?.FactionFlags == null || surface.AcceptanceOnly) continue;
+                for (var i = 0; i < surface.FactionFlags.Count; i++)
                 {
-                    var flag = definition.FactionFlags[i];
+                    var flag = surface.FactionFlags[i];
                     if (flag == null) continue;
-                    var context = definition.Id + ".factionFlags[" + i + "]";
+                    var context = surface.SurfaceId + ".factionFlags[" + i + "]";
                     if (!ids.Add(flag.FlagId ?? string.Empty))
                         report.Add(ErrorCode.DuplicateDefinitionId,
                             "FactionFlag flagId must be globally unique.", context);
-
-                    if (!flag.CreatesWorldSite)
-                    {
-                        if (flag.HasWorldPosition || !string.IsNullOrWhiteSpace(flag.SurfaceId))
-                            report.Add(ErrorCode.InvalidArgument,
-                                "Precise FactionFlag position requires createsWorldSite=true.", context);
-                        if (!flag.LegacyDebugOnly)
-                            report.Add(ErrorCode.MissingRequiredField,
-                                "Product FactionFlag requires Site-Core metadata; legacy-only flags must explicitly declare legacyDebugOnly=true.",
-                                context);
-                        continue;
-                    }
-
-                    if (flag.LegacyDebugOnly)
-                        report.Add(ErrorCode.InvalidArgument,
-                            "Site-Core FactionFlag cannot also be legacyDebugOnly.", context);
-
-                    if (!flag.HasWorldPosition || string.IsNullOrWhiteSpace(flag.SurfaceId))
-                    {
-                        report.Add(ErrorCode.MissingRequiredField,
-                            "Site-Core FactionFlag requires an explicit precise Surface position.", context);
-                        continue;
-                    }
-                    if (flag.HasLocalPosition)
-                        report.Add(ErrorCode.InvalidArgument,
-                            "Site-Core FactionFlag cannot declare legacy local position authority.", context);
                     if (!IsFinite(flag.WorldX) || !IsFinite(flag.WorldY))
                         report.Add(ErrorCode.InvalidArgument,
                             "Site-Core FactionFlag world position must be finite.", context);
+                    RequireFaction(registry, flag.FactionId, context + ".factionId", report, false);
                     if (flag.CoreLevel < 1)
                         report.Add(ErrorCode.InvalidArgument,
                             "Site-Core FactionFlag coreLevel must be positive.", context);
@@ -260,23 +235,10 @@ namespace XianXia.Data.Content
                         catch (InvalidOperationException ex)
                         { report.Add(ErrorCode.InvalidArgument, ex.Message, context); }
 
-                    OutdoorWorldSurfaceDefinition authoredSurface = null;
-                    foreach (var surfacePair in registry.OutdoorSurfaces)
-                        if (string.Equals(surfacePair.Value?.SurfaceId, flag.SurfaceId, StringComparison.Ordinal))
-                        {
-                            authoredSurface = surfacePair.Value;
-                            break;
-                        }
-                    if (authoredSurface == null)
-                    {
-                        report.Add(ErrorCode.NotFound,
-                            "Site-Core FactionFlag references an unknown Surface.", context);
-                        continue;
-                    }
                     if (!OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
                             registry, flag.WorldX, flag.WorldY, out var resolved) ||
                         resolved == null ||
-                        !string.Equals(resolved.SurfaceId, flag.SurfaceId, StringComparison.Ordinal))
+                        !string.Equals(resolved.SurfaceId, surface.SurfaceId, StringComparison.Ordinal))
                         report.Add(ErrorCode.InvalidArgument,
                             "Site-Core FactionFlag precise point is outside its unique authored Surface.", context);
                 }
@@ -441,11 +403,16 @@ namespace XianXia.Data.Content
 
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
                 RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
-                RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
                 OutdoorWorldSurfaceDefinition openingSurface = null;
-                if (!string.IsNullOrWhiteSpace(s.OpeningSurfaceId))
+                if (string.IsNullOrWhiteSpace(s.OpeningSurfaceId))
+                {
+                    report.Add(ErrorCode.MissingRequiredField,
+                        "Current openingScenario requires openingSurfaceId. Legacy Hex/LocalMap content must be converted offline.",
+                        ctx + ".openingSurfaceId");
+                }
+                else
                 {
                     if (!DefinitionId.TryParse(s.OpeningSurfaceId, out var surfaceId) ||
                         !registry.TryGetOutdoorSurface(surfaceId, out openingSurface) ||
@@ -456,16 +423,7 @@ namespace XianXia.Data.Content
                             ctx + ".openingSurfaceId:" + s.OpeningSurfaceId);
                 }
 
-                var hexWorld = ResolveScenarioHexWorld(registry, s, ctx, report);
                 var worldSites = new HashSet<string>(StringComparer.Ordinal);
-                if (openingSurface == null && hexWorld?.Sites != null)
-                {
-                    for (var si = 0; si < hexWorld.Sites.Count; si++)
-                    {
-                        if (!string.IsNullOrEmpty(hexWorld.Sites[si].SiteId))
-                            worldSites.Add(hexWorld.Sites[si].SiteId);
-                    }
-                }
                 if (openingSurface?.SiteRegions != null)
                     foreach (var region in openingSurface.SiteRegions)
                         if (region != null && !string.IsNullOrEmpty(region.SiteId))
@@ -521,9 +479,7 @@ namespace XianXia.Data.Content
                     if (!string.IsNullOrWhiteSpace(spawn.JobId))
                         RequireDef(registry, spawn.JobId, "job", ctx + ".spawn[" + i + "].jobId", report);
 
-                    // Optional authored placement 校验：
-                    // localLocationId 必须存在于某个 LocalPlaceSet／WorldRegion 地点表。
-                    // worldSiteId 必须存在于该 scenario 的 OpeningHexWorldId 对应 HexWorld 站点。
+                    // Optional authored placement validation.
                     if (!string.IsNullOrWhiteSpace(spawn.LocalLocationId))
                     {
                         if (!locations.Contains(spawn.LocalLocationId))
@@ -537,11 +493,11 @@ namespace XianXia.Data.Content
 
                     if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId))
                     {
-                        if (hexWorld == null && openingSurface == null)
+                        if (openingSurface == null)
                         {
                             report.Add(
                                 ErrorCode.InvalidArgument,
-                                "spawn.worldSiteId requires scenario.openingSurfaceId or legacy openingHexWorldId.",
+                                "spawn.worldSiteId requires scenario.openingSurfaceId.",
                                 ctx + ".spawn[" + i + "].worldSiteId:" + spawn.WorldSiteId);
                         }
                         else if (!worldSites.Contains(spawn.WorldSiteId))
@@ -596,17 +552,6 @@ namespace XianXia.Data.Content
                     }
                 }
 
-                if (s.InitialLegacyFormalArmyIds != null)
-                {
-                    for (var i = 0; i < s.InitialLegacyFormalArmyIds.Count; i++)
-                    {
-                        var armyId = s.InitialLegacyFormalArmyIds[i];
-                        RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
-                        ValidateInitialLegacyFormalArmySurfacePosition(registry, armyId,
-                            ctx + ".initialFormalArmyIds[" + i + "]", report);
-                        ValidateInitialLegacyFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
-                    }
-                }
                 if (s.InitialNpcSquadIds != null)
                 {
                     for (var i = 0; i < s.InitialNpcSquadIds.Count; i++)
@@ -616,199 +561,8 @@ namespace XianXia.Data.Content
             }
         }
 
-        static void ValidateInitialLegacyFormalArmySurfacePosition(
-            DefinitionRegistry registry, string armyIdText, string ctx, ValidationReport report)
-        {
-            if (!DefinitionId.TryParse(armyIdText, out var armyId) ||
-                !registry.LegacyFormalArmyDefinitions.TryGetValue(armyId, out var def) ||
-                def == null)
-                return;
-            if (def.InitialSurfaceDeployment != null)
-            {
-                var deployment = def.InitialSurfaceDeployment;
-                if (string.IsNullOrWhiteSpace(deployment.SurfaceId) ||
-                    string.IsNullOrWhiteSpace(deployment.AnchorSiteId) ||
-                    !registry.TryGetOutdoorSurfaceGeography(deployment.SurfaceId,
-                        out var deploymentGeography) ||
-                    deploymentGeography?.Navigation == null)
-                {
-                    report.Add(ErrorCode.InvalidArgument,
-                        "formalArmy.initialSurfaceDeployment requires a valid Surface and anchorSiteId.",
-                        ctx + ":" + def.Id);
-                    return;
-                }
-
-                var coreCount = 0;
-                var coreX = 0f;
-                var coreY = 0f;
-                foreach (var pair in registry.OutdoorSurfaces)
-                {
-                    var surface = pair.Value;
-                    if (surface == null || surface.AcceptanceOnly ||
-                        !string.Equals(surface.SurfaceId, deployment.SurfaceId, StringComparison.Ordinal))
-                        continue;
-                    foreach (var placement in surface.SitePlacements)
-                    {
-                        if (placement == null ||
-                            !string.Equals(placement.SiteId, deployment.AnchorSiteId,
-                                StringComparison.Ordinal) ||
-                            !string.Equals(placement.Kind, "controlCore",
-                                StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        coreCount++;
-                        coreX = placement.WorldX + placement.WorldWidth * .5f;
-                        coreY = placement.WorldY + placement.WorldHeight * .5f;
-                    }
-                }
-                if (coreCount != 1)
-                {
-                    report.Add(ErrorCode.InvalidArgument,
-                        "formalArmy.initialSurfaceDeployment requires exactly one authored Site Core.",
-                        ctx + ":" + def.Id);
-                    return;
-                }
-                var nav = deploymentGeography.Navigation;
-                var x = coreX + deployment.OffsetCellsX * nav.CellSize;
-                var y = coreY + deployment.OffsetCellsY * nav.CellSize;
-                if (!nav.Contains(x, y) || !nav.IsWalkable(x, y))
-                    report.Add(ErrorCode.InvalidArgument,
-                        "formalArmy.initialSurfaceDeployment is outside bounds or blocked.",
-                        ctx + ":" + def.Id);
-                return;
-            }
-            if (def.InitialSurfacePosition == null) return;
-            var position = def.InitialSurfacePosition;
-            if (string.IsNullOrWhiteSpace(position.SurfaceId) ||
-                !registry.TryGetOutdoorSurfaceGeography(position.SurfaceId, out var geography) ||
-                geography?.Navigation == null ||
-                !geography.Navigation.IsWalkable(position.WorldX, position.WorldY))
-                report.Add(ErrorCode.InvalidArgument,
-                    "formalArmy.initialSurfacePosition must be walkable on its Surface.",
-                    ctx + ":" + def.Id);
-        }
-
         /// <summary>
-        /// FormalArmy.initialHex 是 scenario-aware：坐标是否合法取决于该 scenario
-        /// 选的 OpeningHexWorld。在 bounds 内且 passable、且不属于任何 WorldSite footprint
-        /// 才合法（footprint 内应改用 assemblySiteId 的 AtWorldSite 部署）。
-        /// </summary>
-        static void ValidateInitialLegacyFormalArmyHex(
-            DefinitionRegistry registry,
-            string armyIdText,
-            HexWorldContentDefinition hexWorld,
-            string ctx,
-            ValidationReport report)
-        {
-            if (string.IsNullOrWhiteSpace(armyIdText) ||
-                !DefinitionId.TryParse(armyIdText, out var armyId))
-                return;
-            if (!registry.LegacyFormalArmyDefinitions.TryGetValue(armyId, out var def) || def == null)
-                return;
-            if (def.InitialHex == null)
-                return;
-
-            if (hexWorld == null)
-            {
-                report.Add(
-                    ErrorCode.InvalidArgument,
-                    "formalArmy.initialHex requires scenario.openingHexWorldId.",
-                    ctx + ":" + def.Id);
-                return;
-            }
-
-            var q = def.InitialHex.Q;
-            var r = def.InitialHex.R;
-            if (q < 0 || r < 0 || q >= hexWorld.Width || r >= hexWorld.Height)
-            {
-                report.Add(
-                    ErrorCode.InvalidArgument,
-                    "formalArmy.initialHex out of hex world bounds.",
-                    ctx + ":" + def.Id + " (q=" + q + ", r=" + r + ")");
-                return;
-            }
-
-            if (!IsCellPassable(hexWorld, q, r))
-            {
-                report.Add(
-                    ErrorCode.InvalidArgument,
-                    "formalArmy.initialHex not passable in opening hex world.",
-                    ctx + ":" + def.Id + " (q=" + q + ", r=" + r + ")");
-            }
-
-            if (hexWorld.Sites != null)
-            {
-                for (var i = 0; i < hexWorld.Sites.Count; i++)
-                {
-                    var site = hexWorld.Sites[i];
-                    if (site?.Footprint == null)
-                        continue;
-                    for (var f = 0; f < site.Footprint.Count; f++)
-                    {
-                        if (site.Footprint[f] == null)
-                            continue;
-                        if (site.Footprint[f].Q == q && site.Footprint[f].R == r)
-                        {
-                            report.Add(
-                                ErrorCode.InvalidArgument,
-                                "formalArmy.initialHex inside WorldSite footprint; use assemblySiteId for AtWorldSite deployment.",
-                                ctx + ":" + def.Id + " (q=" + q + ", r=" + r + " in " + site.SiteId + ")");
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        static bool IsCellPassable(HexWorldContentDefinition hexWorld, int q, int r)
-        {
-            if (hexWorld?.Cells != null)
-            {
-                for (var i = 0; i < hexWorld.Cells.Count; i++)
-                {
-                    var cell = hexWorld.Cells[i];
-                    if (cell == null || cell.Q != q || cell.R != r)
-                        continue;
-                    return cell.Passable ?? hexWorld.DefaultPassable;
-                }
-            }
-
-            return hexWorld != null && hexWorld.DefaultPassable;
-        }
-
-        /// <summary>解析 scenario 的 OpeningHexWorld；缺省时返回 null（含错误已记录）。</summary>
-        static HexWorldContentDefinition ResolveScenarioHexWorld(
-            DefinitionRegistry registry,
-            OpeningScenarioDefinition scenario,
-            string ctx,
-            ValidationReport report)
-        {
-            var hexWorldId = scenario?.OpeningHexWorldId;
-            if (string.IsNullOrWhiteSpace(hexWorldId))
-                return null;
-            if (!DefinitionId.TryParse(hexWorldId, out var id))
-            {
-                report.Add(ErrorCode.InvalidDefinitionId, "Invalid openingHexWorldId.", ctx + ":" + hexWorldId);
-                return null;
-            }
-
-            if (!registry.HexWorldContents.TryGetValue(id, out var def))
-            {
-                report.Add(ErrorCode.NotFound, "openingHexWorldId missing.", ctx + ":" + hexWorldId);
-                return null;
-            }
-
-            return def;
-        }
-
-
-        /// <summary>
-        /// 每个 member.characterDefinitionId 必须存在；runtimeArmyId / runtimeStackId 全局唯一；
-        /// 恰好一个 leader 已在 Load 层验证，这里再补成员数 / 引用完整性。
-        /// </summary>
-        /// <summary>
-        /// Strategic Faction cross-reference：formalArmy.factionId / legacy scenario.openingFactionId /
-        /// spawns factionId / roster entries factionId / hexWorld site.ownerFactionId /
-        /// territoryRegion.controlFactionId 引用的 faction 必须存在于 StrategicFactions。
+        /// Strategic Faction cross-reference for current Surface, Squad, scenario and roster content.
         /// 未知引用 = Content Validation ERROR（不得静默随机颜色）。空引用不校验。
         /// </summary>
         static void ValidateStrategicFactions(DefinitionRegistry registry, ValidationReport report)
@@ -843,7 +597,7 @@ namespace XianXia.Data.Content
                 }
             }
 
-            foreach (var kv in registry.LegacyFormalArmyDefinitions)
+            foreach (var kv in registry.NpcSquads)
             {
                 var def = kv.Value;
                 if (def == null)
@@ -883,54 +637,37 @@ namespace XianXia.Data.Content
                 }
             }
 
-            foreach (var kv in registry.HexWorldContents)
+            foreach (var kv in registry.OutdoorSurfaces)
             {
-                var world = kv.Value;
-                if (world == null)
+                var surface = kv.Value;
+                if (surface == null || surface.AcceptanceOnly)
                     continue;
-                var worldCtx = world.Id.ToString();
-                if (world.Sites != null)
+                var surfaceCtx = surface.SurfaceId;
+                if (surface.SiteRegions != null)
                 {
-                    for (var i = 0; i < world.Sites.Count; i++)
+                    for (var i = 0; i < surface.SiteRegions.Count; i++)
                     {
-                        var site = world.Sites[i];
+                        var site = surface.SiteRegions[i];
                         if (site == null)
                             continue;
                         RequireFaction(
                             registry,
                             site.OwnerFactionId,
-                            worldCtx + ".sites[" + i + "]:" + site.SiteId + ".ownerFactionId",
+                            surfaceCtx + ".siteRegions[" + i + "]:" + site.SiteId + ".ownerFactionId",
                             report);
                     }
                 }
-
-                if (world.TerritoryRegions != null)
+                if (surface.FactionFlags != null)
                 {
-                    for (var i = 0; i < world.TerritoryRegions.Count; i++)
+                    for (var i = 0; i < surface.FactionFlags.Count; i++)
                     {
-                        var region = world.TerritoryRegions[i];
-                        if (region == null)
+                        var flag = surface.FactionFlags[i];
+                        if (flag == null)
                             continue;
                         RequireFaction(
                             registry,
-                            region.ControlFactionId,
-                            worldCtx + ".territoryRegions[" + i + "]:" + region.RegionId + ".controlFactionId",
-                            report);
-                    }
-                }
-
-                if (world.StandaloneTerritoryHexes != null)
-                {
-                    for (var i = 0; i < world.StandaloneTerritoryHexes.Count; i++)
-                    {
-                        var control = world.StandaloneTerritoryHexes[i];
-                        if (control == null)
-                            continue;
-                        RequireFaction(
-                            registry,
-                            control.ControlFactionId,
-                            worldCtx + ".standaloneTerritoryHexes[" + i + "]:(" +
-                            control.Q + "," + control.R + ").controlFactionId",
+                            flag.FactionId,
+                            surfaceCtx + ".factionFlags[" + i + "]:" + flag.FlagId + ".factionId",
                             report);
                     }
                 }
@@ -1100,53 +837,6 @@ namespace XianXia.Data.Content
                     ErrorCode.NotFound,
                     "strategicFaction reference missing: " + factionId,
                     ctx);
-            }
-        }
-
-        static void ValidateLegacyFormalArmyDefinitions(
-            DefinitionRegistry registry, ValidationReport report)
-        {
-            var seenArmyIds = new HashSet<string>(StringComparer.Ordinal);
-            var seenStackIds = new HashSet<string>(StringComparer.Ordinal);
-
-            foreach (var kv in registry.LegacyFormalArmyDefinitions)
-            {
-                var def = kv.Value;
-                var ctx = def.Id.ToString();
-                if (def.Members == null || def.Members.Count == 0)
-                {
-                    report.Add(ErrorCode.MissingRequiredField, "formalArmy.members empty.", ctx);
-                    continue;
-                }
-
-                if (!string.IsNullOrEmpty(def.RuntimeArmyId) && !seenArmyIds.Add(def.RuntimeArmyId))
-                {
-                    report.Add(
-                        ErrorCode.DuplicateDefinitionId,
-                        "Duplicate formalArmy.runtimeArmyId.",
-                        ctx + ":" + def.RuntimeArmyId);
-                }
-
-                if (!string.IsNullOrEmpty(def.RuntimeStackId) && !seenStackIds.Add(def.RuntimeStackId))
-                {
-                    report.Add(
-                        ErrorCode.DuplicateDefinitionId,
-                        "Duplicate formalArmy.runtimeStackId.",
-                        ctx + ":" + def.RuntimeStackId);
-                }
-
-                for (var i = 0; i < def.Members.Count; i++)
-                {
-                    var member = def.Members[i];
-                    if (member == null)
-                        continue;
-                    RequireDef(
-                        registry,
-                        member.CharacterDefinitionId,
-                        "character",
-                        ctx + ".members[" + i + "].characterDefinitionId",
-                        report);
-                }
             }
         }
 
@@ -1646,20 +1336,6 @@ namespace XianXia.Data.Content
         static void ValidateWorldSiteEconomies(DefinitionRegistry registry, ValidationReport report)
         {
             var siteIds = CollectAuthoredSiteIds(registry);
-            foreach (var worldPair in registry.HexWorldContents)
-            {
-                var hexWorld = worldPair.Value;
-                if (hexWorld?.Sites != null)
-                    for (var i = 0; i < hexWorld.Sites.Count; i++)
-                        if (!string.IsNullOrWhiteSpace(hexWorld.Sites[i]?.SiteId)) siteIds.Add(hexWorld.Sites[i].SiteId);
-                if (hexWorld?.FactionFlags != null)
-                    for (var i = 0; i < hexWorld.FactionFlags.Count; i++)
-                    {
-                        var flag = hexWorld.FactionFlags[i];
-                        if (flag != null && flag.CreatesWorldSite && !string.IsNullOrWhiteSpace(flag.FlagId))
-                            siteIds.Add(FactionFlagService.SiteIdForCoreFlag(flag.FlagId));
-                    }
-            }
             var boundSites = new HashSet<string>(StringComparer.Ordinal);
             foreach (var pair in registry.WorldSiteEconomies)
             {
@@ -1691,10 +1367,6 @@ namespace XianXia.Data.Content
                 if (pair.Value?.SiteRegions != null && !pair.Value.AcceptanceOnly)
                     foreach (var region in pair.Value.SiteRegions)
                         if (!string.IsNullOrWhiteSpace(region?.SiteId)) ids.Add(region.SiteId);
-            foreach (var pair in registry.HexWorldContents)
-                if (pair.Value?.Sites != null)
-                    foreach (var site in pair.Value.Sites)
-                        if (!string.IsNullOrWhiteSpace(site?.SiteId)) ids.Add(site.SiteId);
             return ids;
         }
 
@@ -1734,9 +1406,6 @@ namespace XianXia.Data.Content
                 case "worldRegion":
                     ok = registry.WorldRegions.ContainsKey(id);
                     break;
-                case "hexWorld":
-                    ok = registry.HexWorldContents.ContainsKey(id);
-                    break;
                 case "localPlaceSet":
                     ok = registry.LocalPlaceSets.ContainsKey(id);
                     break;
@@ -1766,9 +1435,6 @@ namespace XianXia.Data.Content
                     break;
                 case "spawnTable":
                     ok = registry.SpawnTables.ContainsKey(id);
-                    break;
-                case "formalArmy":
-                    ok = registry.LegacyFormalArmyDefinitions.ContainsKey(id);
                     break;
                 case "npcSquad":
                     ok = registry.NpcSquads.ContainsKey(id);

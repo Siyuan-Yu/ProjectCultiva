@@ -1,7 +1,6 @@
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
-using XianXia.Data.Bootstrap.Compatibility;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -24,15 +23,6 @@ namespace XianXia.Data.Bootstrap
                 return surface;
             var squads = NpcSquadContentBootstrap.Apply(world, registry, scenario, openingLookup);
             if (squads.IsFailure) return squads;
-            // Only old content enters the one-way formalArmy migration adapter. Current content
-            // has no legacy ids and therefore never invokes the adapter during New Game startup.
-            if (scenario.InitialLegacyFormalArmyIds != null &&
-                scenario.InitialLegacyFormalArmyIds.Count > 0)
-            {
-                var legacySquads = LegacyArmyContentToSquadMigration.Apply(
-                    world, registry, scenario, openingLookup);
-                if (legacySquads.IsFailure) return legacySquads;
-            }
             return Result.Success();
         }
 
@@ -60,7 +50,6 @@ namespace XianXia.Data.Bootstrap
                     DisplayName = string.IsNullOrWhiteSpace(region.DisplayName) ? region.SiteId : region.DisplayName,
                     SiteType = string.IsNullOrWhiteSpace(region.SiteType) ? "Site" : region.SiteType,
                     OwnerFactionId = region.OwnerFactionId ?? string.Empty,
-                    TerritoryRegionId = region.TerritoryRegionId ?? string.Empty,
                     UsesContinuousOutdoorSurface = true
                 };
                 world.Strategic.Sites.Register(site);

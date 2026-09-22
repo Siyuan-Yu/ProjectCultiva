@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {

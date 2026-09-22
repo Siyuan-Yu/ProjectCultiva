@@ -284,7 +284,7 @@ namespace XianXia.Data.Content
                     sb.Append("{\"stableId\":\"").Append(Escape(l.GetString("stableId", string.Empty))).Append("\",\"label\":\"").Append(Escape(l.GetString("label", string.Empty))).Append("\",\"worldX\":");
                     sb.Append(((float)l.GetNumber("worldX", 0)).ToString("R", ci)).Append(",\"worldY\":").Append(((float)l.GetNumber("worldY", 0)).ToString("R", ci)).Append('}');
                 }
-            // V1 summary is intentionally derived-only and cannot mutate HexWorld.
+            // V1 summary is intentionally derived-only and cannot mutate runtime authority.
             sb.Append("],\n      \"hexSummary\": []\n    }\n  ]\n}\n");
             return sb.ToString();
         }

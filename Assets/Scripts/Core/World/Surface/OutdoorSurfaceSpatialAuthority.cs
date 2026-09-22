@@ -15,6 +15,7 @@ namespace XianXia.Core.World.Surface
             string surfaceId,
             float originWorldX,
             float originWorldY,
+            float movementScale,
             float cellSize,
             float chunkWidth,
             float chunkHeight,
@@ -22,7 +23,8 @@ namespace XianXia.Core.World.Surface
         {
             if (string.IsNullOrWhiteSpace(surfaceId))
                 throw new ArgumentException("SurfaceId required.", nameof(surfaceId));
-            if (!IsFinite(cellSize) || cellSize <= 0f ||
+            if (!IsFinite(movementScale) || movementScale <= 0f ||
+                !IsFinite(cellSize) || cellSize <= 0f ||
                 !IsFinite(chunkWidth) || chunkWidth <= 0f ||
                 !IsFinite(chunkHeight) || chunkHeight <= 0f ||
                 !IsFinite(originWorldX) || !IsFinite(originWorldY))
@@ -30,6 +32,7 @@ namespace XianXia.Core.World.Surface
             SurfaceId = surfaceId;
             OriginWorldX = originWorldX;
             OriginWorldY = originWorldY;
+            MovementScale = movementScale;
             CellSize = cellSize;
             ChunkWidth = chunkWidth;
             ChunkHeight = chunkHeight;
@@ -42,6 +45,8 @@ namespace XianXia.Core.World.Surface
         public string SurfaceId { get; }
         public float OriginWorldX { get; }
         public float OriginWorldY { get; }
+        /// <summary>World-distance budget scale; not the authored navigation cell size.</summary>
+        public float MovementScale { get; }
         public float CellSize { get; }
         public float ChunkWidth { get; }
         public float ChunkHeight { get; }

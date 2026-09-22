@@ -4,7 +4,6 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -218,8 +217,7 @@ namespace XianXia.Core.World.Strategic
                 presence == null)
                 return false;
 
-            if (presence.Mode == PartyWorldPresenceMode.InEncounter ||
-                presence.Mode == PartyWorldPresenceMode.AtHex)
+            if (presence.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
             if (presence.Mode != PartyWorldPresenceMode.AtSite)

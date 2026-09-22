@@ -47,7 +47,7 @@ namespace XianXia.Data.Bootstrap
     /// NewGame opening population 的 presence 归一化（§5–§9）。
     ///
     /// 只补「完全没有 WorldPresence」的实体，绝不覆盖已有 authority（AtSite／AtWorldPosition／
-    /// AtHex／InEncounter／SquadWorldMotion-owned member 战略位置）。解析必须唯一：LocationId 跨 Site 复用而
+    /// InEncounter／SquadWorldMotion-owned member 战略位置）。解析必须唯一：LocationId 跨 Site 复用而
     /// 无法用 source LocalMap 消解时 **不猜**，记入 ambiguity（Content validation error）。
     ///
     /// 它不决定「谁在运行中被 materialize」——那只属于 Continuous Outdoor 的 loaded neighborhood；
@@ -113,17 +113,37 @@ namespace XianXia.Data.Bootstrap
                 if (entity == null || entity.Id.IsNone)
                     continue;
 
-                // §6：已有任何 presence（含 Army 战略位置）→ 一律不覆盖。
-                if (world.WorldPresence.TryGet(entity.Id, out var existing) && existing != null)
-                {
-                    report.SkippedExistingPresence++;
-                    continue;
-                }
-
                 var isCharacter = (entity.Tags & EntityTag.Character) != 0;
                 var isNpc = (entity.Tags & EntityTag.Npc) != 0;
                 if (!isCharacter && !isNpc)
                     continue;
+
+                // 已有完整 authority（含 Squad 战略位置）不覆盖。Continuous Outdoor 的裸
+                // AtSite 不是完整物理 authority；若 EntityLocation 能唯一指向 authored
+                // SitePlace，则在最终校验前补成 exact Surface anchor。
+                if (world.WorldPresence.TryGet(entity.Id, out var existing) && existing != null)
+                {
+                    if (existing.Mode == PartyWorldPresenceMode.AtSite &&
+                        !existing.HasContinuousWorldPosition &&
+                        ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                        entity.TryGet<EntityLocationComponent>(out var existingLocation) &&
+                        existingLocation != null && existingLocation.HasLocation &&
+                        ContinuousOutdoorSpawnPresenceResolver.TryResolveSiteForEntityLocation(
+                            world, index, existingLocation.LocationId,
+                            out var resolvedExistingSite, out var existingAmbiguity) &&
+                        resolvedExistingSite != null &&
+                        string.Equals(
+                            existing.SiteId, resolvedExistingSite.SiteId, StringComparison.Ordinal) &&
+                        TryApplyExactSitePlace(
+                            world, registry, entity.Id, resolvedExistingSite,
+                            existingLocation.LocationId, out var existingFailure))
+                    {
+                        report.NormalizedAtSiteWithAnchor++;
+                        continue;
+                    }
+                    report.SkippedExistingPresence++;
+                    continue;
+                }
 
                 // SquadWorldMotion-owned member 的战略位置由 squad motion authority 决定；
                 // normalize 绝不为它臆造 AtSite（否则会把小队成员钉进某个 Site population）。
@@ -136,20 +156,20 @@ namespace XianXia.Data.Bootstrap
                 if (openingSurface != null)
                 {
                     var anchorFailure = string.Empty;
-                    if (world.OpeningSpawnIdentities.TryGetSpawnKey(entity.Id, out _) &&
-                        ContinuousOpeningSpawnPresenceResolver.TryApply(
-                            world, openingSurface, entity.Id, entity.DefinitionId.ToString(),
-                            string.Empty, out anchorFailure))
+                    if (world.OpeningSpawnIdentities.TryGetSpawnKey(entity.Id, out _))
                     {
-                        report.NormalizedAtSiteWithAnchor++;
+                        if (ContinuousOpeningSpawnPresenceResolver.TryApply(
+                                world, openingSurface, entity.Id, entity.DefinitionId.ToString(),
+                                string.Empty, out anchorFailure))
+                        {
+                            report.NormalizedAtSiteWithAnchor++;
+                            continue;
+                        }
+                        report.Unresolved++;
+                        report.Ambiguities.Add(anchorFailure);
+                        diagnostics?.Add("[OpeningPopulationAnchorFailure] " + anchorFailure);
                         continue;
                     }
-                    report.Unresolved++;
-                    var reason = world.OpeningSpawnIdentities.TryGetSpawnKey(entity.Id, out _)
-                        ? anchorFailure : "Entity has no opening SpawnKey: " + entity.DefinitionId;
-                    report.Ambiguities.Add(reason);
-                    diagnostics?.Add("[OpeningPopulationAnchorFailure] " + reason);
-                    continue;
                 }
 
                 if (IsCaveBound(entity))
@@ -169,7 +189,7 @@ namespace XianXia.Data.Bootstrap
 
                 // §9 opening character contract：opening character（未写 worldSiteId → 默认开局 Site）
                 // 若因任何原因没有 presence，这里补上；同伴因此仍是 Background AtSite，不进 PlayerParty。
-                if (site == null && isCharacter && openingSite != null)
+                if (site == null && openingSurface == null && isCharacter && openingSite != null)
                     site = openingSite;
 
                 if (site == null)
@@ -184,8 +204,23 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 }
 
-                world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
-                report.NormalizedAtSite++;
+                if (WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+                {
+                    if (!TryApplyExactSitePlace(
+                            world, registry, entity.Id, site, locationId, out var exactFailure))
+                    {
+                        report.Unresolved++;
+                        report.Ambiguities.Add(exactFailure);
+                        diagnostics?.Add("[OpeningPopulationAnchorFailure] " + exactFailure);
+                        continue;
+                    }
+                    report.NormalizedAtSiteWithAnchor++;
+                }
+                else
+                {
+                    world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
+                    report.NormalizedAtSite++;
+                }
             }
 
             return report;
@@ -245,6 +280,41 @@ namespace XianXia.Data.Bootstrap
                 return false;
             return entity.TryGet<PersonalityProfileComponent>(out var profile) && profile != null &&
                    profile.HasTag("cave");
+        }
+
+        static bool TryApplyExactSitePlace(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            EntityId entityId,
+            WorldSite site,
+            string locationId,
+            out string failure)
+        {
+            failure = string.Empty;
+            OutdoorWorldSurfaceDefinition surface = null;
+            WorldSitePhysicalRegionDefinition region = null;
+            var hasSurface =
+                world != null && registry != null && site != null && !entityId.IsNone &&
+                !string.IsNullOrEmpty(locationId) &&
+                ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                    registry, site.SiteId, out surface, out region);
+            var anchor = default(WorldVec2);
+            var hasAnchor = hasSurface && surface != null &&
+                ContinuousOutdoorOpeningAnchorResolver.TryGetBakedSitePlace(
+                    surface, site.SiteId, locationId, out anchor);
+            if (!hasAnchor)
+            {
+                failure =
+                    "Continuous Outdoor entity lacks an exact baked SitePlace anchor: CharacterId=" +
+                    entityId.Value + " Site=" + (site?.SiteId ?? string.Empty) +
+                    " Location=" + (locationId ?? string.Empty) +
+                    " Region=" + (region?.SiteId ?? string.Empty);
+                return false;
+            }
+
+            world.WorldPresence.SetAtSiteWithAnchor(
+                entityId, site.SiteId, anchor, surface.SurfaceId);
+            return true;
         }
     }
 }

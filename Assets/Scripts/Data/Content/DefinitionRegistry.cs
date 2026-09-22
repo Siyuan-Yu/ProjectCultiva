@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
-using XianXia.Data.Content.Compatibility;
 
 namespace XianXia.Data.Content
 {
@@ -57,10 +56,6 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, SpawnTableDefinition>();
         readonly Dictionary<DefinitionId, LocalPlaceSetDefinition> _localPlaceSets =
             new Dictionary<DefinitionId, LocalPlaceSetDefinition>();
-        readonly Dictionary<DefinitionId, HexWorldContentDefinition> _hexWorldContents =
-            new Dictionary<DefinitionId, HexWorldContentDefinition>();
-        readonly Dictionary<DefinitionId, LegacyFormalArmyDefinition> _legacyFormalArmyDefinitions =
-            new Dictionary<DefinitionId, LegacyFormalArmyDefinition>();
         readonly Dictionary<DefinitionId, NpcSquadDefinition> _npcSquads =
             new Dictionary<DefinitionId, NpcSquadDefinition>();
         readonly Dictionary<DefinitionId, StrategicFactionDefinition> _strategicFactions =
@@ -93,9 +88,6 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, RealmLadderDefinition> RealmLadders => _realmLadders;
         public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
-        public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
-        public IReadOnlyDictionary<DefinitionId, LegacyFormalArmyDefinition> LegacyFormalArmyDefinitions =>
-            _legacyFormalArmyDefinitions;
         public IReadOnlyDictionary<DefinitionId, NpcSquadDefinition> NpcSquads => _npcSquads;
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
         public IReadOnlyDictionary<DefinitionId, OutdoorWorldSurfaceDefinition> OutdoorSurfaces => _outdoorSurfaces;
@@ -125,8 +117,6 @@ namespace XianXia.Data.Content
             _realmLadders.ContainsKey(id) ||
             _spawnTables.ContainsKey(id) ||
             _localPlaceSets.ContainsKey(id) ||
-            _hexWorldContents.ContainsKey(id) ||
-            _legacyFormalArmyDefinitions.ContainsKey(id) ||
             _npcSquads.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
             _outdoorSurfaces.ContainsKey(id) ||
@@ -280,20 +270,6 @@ namespace XianXia.Data.Content
             return Register(_localPlaceSets, definition, definition.Id);
         }
 
-        public Result RegisterHexWorldContent(HexWorldContentDefinition definition)
-        {
-            if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "HexWorldContentDefinition is null.");
-            return Register(_hexWorldContents, definition, definition.Id);
-        }
-
-        public Result RegisterLegacyFormalArmyDefinition(LegacyFormalArmyDefinition definition)
-        {
-            if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "LegacyFormalArmyDefinition is null.");
-            return Register(_legacyFormalArmyDefinitions, definition, definition.Id);
-        }
-
         public Result RegisterNpcSquad(NpcSquadDefinition definition)
         {
             if (definition == null)
@@ -397,13 +373,6 @@ namespace XianXia.Data.Content
 
         public bool TryGetLocalPlaceSet(DefinitionId id, out LocalPlaceSetDefinition definition) =>
             _localPlaceSets.TryGetValue(id, out definition);
-
-        public bool TryGetHexWorldContent(DefinitionId id, out HexWorldContentDefinition definition) =>
-            _hexWorldContents.TryGetValue(id, out definition);
-
-        public bool TryGetLegacyFormalArmyDefinition(
-            DefinitionId id, out LegacyFormalArmyDefinition definition) =>
-            _legacyFormalArmyDefinitions.TryGetValue(id, out definition);
 
         public bool TryGetNpcSquad(DefinitionId id, out NpcSquadDefinition definition) =>
             _npcSquads.TryGetValue(id, out definition);

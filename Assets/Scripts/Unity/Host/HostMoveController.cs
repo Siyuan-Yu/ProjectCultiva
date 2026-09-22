@@ -337,127 +337,7 @@ namespace XianXia.Unity.Host
         {
             if (!HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return;
-            var exits = bootstrap != null ? bootstrap.SurfaceExitZonePresenter : null;
-            if (exits != null &&
-                exits.TryGetUsableSurfaceExitAtPoint(
-                    point.x, point.y, out var connection, out var approachPoint))
-            {
-                OrderPartyToUseSurfaceExit(connection, approachPoint);
-                return;
-            }
             OrderPartyToPoint(point, null);
-        }
-
-        bool OrderPartyToUseSurfaceExit(
-            SurfaceExitConnection connection,
-            Vector3 approachPoint)
-        {
-            var encounter = bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
-            if (encounter != null &&
-                (encounter.Phase == CharacterEncounterPhase.Active ||
-                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
-                return false;
-            CancelLocalVisibleAutoTravelIfActive();
-            var active = ResolveActiveCharacter();
-            if (active.IsNone)
-                return false;
-
-            ResumeTime();
-            if (commandBridge != null)
-                commandBridge.IssueOne(active, PlayerCommandKind.Stop, 0);
-            else
-                StopActiveViaPort(active);
-            ClearHostMove(active);
-
-            if (!OrderEntityToWorldPoint(
-                    active,
-                    approachPoint,
-                    null,
-                    issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
-                    exactGoal: true))
-            {
-                HostPlayerPartyController.LastTransitionStatus = "ManualExitPathBlocked";
-                HostPlayerPartyController.LastTransitionFailureReason =
-                    "无法到达所选出口。";
-                return false;
-            }
-
-            _playerPartyPathMoveIds.Add(active.Value);
-            _playerPartyPathMoveSerial++;
-            _pendingArriveActions[active.Value] = () => UseSurfaceExit(connection);
-            NotifyMeleeDisengageForMove(active);
-            NotifyDestructibleDisengageForMove(active);
-            NotifyFarmLaborStopForMove(active);
-            HostPlayerPartyController.LastTransitionStatus = "ManualExitApproaching";
-            HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
-            return true;
-        }
-
-        void UseSurfaceExit(SurfaceExitConnection connection)
-        {
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var party = session?.PlayerParty;
-            if (world == null || party == null)
-                return;
-            // LEGACY OUTDOOR LOCALMAP COMPATIBILITY ONLY. Modern SurfaceVisible movement has no
-            // LocalMap exit and cannot enter this branch.
-            if (!LegacyPlayerPartyOutdoorLocalMapCompatibility.IsSurfaceHexEdgeTransitionEnabled(world))
-                return;
-
-            var usable = bootstrap.SurfaceExitZonePresenter;
-            if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))
-            {
-                HostPlayerPartyController.LastTransitionStatus = "ManualExitNoLongerUsable";
-                HostPlayerPartyController.LastTransitionFailureReason =
-                    "所选出口已不可用，世界状态保持不变。";
-                return;
-            }
-
-            var exitsToContinuous = world.PlayerPartyTravel != null &&
-                                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                                    bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
-                                    OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
-                                        session.Registry,
-                                        connection.BoundaryContactWorldX,
-                                        connection.BoundaryContactWorldY,
-                                        out _);
-            var result = world.PlayerPartyTravel != null &&
-                         world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite
-                ? (exitsToContinuous
-                    ? LegacyPlayerPartyOutdoorLocalMapCompatibility.TryCommitWorldSiteEgressToContinuousWilderness(
-                        world, party, connection)
-                    : LegacyPlayerPartyOutdoorLocalMapCompatibility.TryExitWorldSiteByConnection(
-                        world, party, connection))
-                : LegacyPlayerPartyOutdoorLocalMapCompatibility.TryAttemptSurfaceEdgeTransition(
-                    world, party, connection);
-            if (result.IsFailure)
-            {
-                HostPlayerPartyController.LastTransitionStatus = "ManualExitRejected";
-                HostPlayerPartyController.LastTransitionFailureReason = result.Error.ToString();
-                return;
-            }
-
-            HostPlayerPartyController.LastTransitionStatus =
-                "ManualExitCrossed->" + connection.DestinationHex;
-            HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
-
-            // Continuous Surface cutover: after Core has committed the wilderness boundary position,
-            // coverage claims presentation before the legacy LocalMap materialize/repair chain.
-            // This is intentionally after the formal transition (WorldPosition is authoritative),
-            // but before ExpandLocalMapForCurrentPartyWorld (which would rebuild a one-Hex room).
-            if (world.PlayerPartyTravel != null &&
-                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
-                bootstrap.ContinuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
-            {
-                HostPlayerPartyController.LastTransitionStatus =
-                    "ManualExitCrossed->MainContinuousSurface:" + connection.DestinationHex;
-                bootstrap.SurfaceExitZonePresenter?.Clear();
-                return;
-            }
-            bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
         }
 
         public bool OrderPartyToLocation(string locationId, PlayerCommandKind? arriveCommand)
@@ -660,8 +540,7 @@ namespace XianXia.Unity.Host
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)
         {
-            // Phase 5C-W1: any RTS point order immediately cancels LocalVisible AutoTravel (keep position).
-            CancelLocalVisibleAutoTravelIfActive();
+            CancelSurfaceAutoTravelIfActive();
 
             var active = ResolveActiveCharacter();
             if (active.IsNone)
@@ -698,16 +577,13 @@ namespace XianXia.Unity.Host
                 bootstrap?.Session?.PlayerParty);
 
         /// <summary>
-        /// Direct movement cancels modern Surface travel or legacy LocalVisible travel while
-        /// preserving the current exact position.
+        /// Direct movement cancels Surface travel while preserving the current exact position.
         /// </summary>
-        void CancelLocalVisibleAutoTravelIfActive()
+        void CancelSurfaceAutoTravelIfActive()
         {
             var world = bootstrap?.Session?.World;
             var motion = world?.PlayerPartyTravel;
-            if (motion == null ||
-                (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion) &&
-                 !LegacyPlayerPartyLocalVisibleTravelCompatibility.IsActiveLocalVisibleAutoTravel(motion)))
+            if (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion))
                 return;
             PlayerPartyTravelRuntimeService.CancelTravel(world);
         }

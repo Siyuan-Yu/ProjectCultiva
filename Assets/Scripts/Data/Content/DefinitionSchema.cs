@@ -24,8 +24,8 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId",
-            "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingSurfaceId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
-            "initialNpcSquadIds", "initialFormalArmyIds", "strategicOpening", "startingInventory"
+            "openingWorldRegionId", "openingLocalPlaceSetId", "openingSurfaceId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
+            "initialNpcSquadIds", "strategicOpening", "startingInventory"
         };
 
         public static readonly HashSet<string> NpcSquadFields = new HashSet<string>(StringComparer.Ordinal)
@@ -40,34 +40,9 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> NpcSquadMemberFields = new HashSet<string>(StringComparer.Ordinal)
         { "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn" };
 
-        public static readonly HashSet<string> LegacyFormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "initialSurfacePosition", "initialSurfaceDeployment", "members"
-        };
-
         public static readonly HashSet<string> StrategicFactionFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "mapColor", "territorySelectable", "sortOrder"
-        };
-
-        public static readonly HashSet<string> LegacyFormalArmyInitialHexFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "q", "r"
-        };
-
-        public static readonly HashSet<string> LegacyFormalArmyInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "surfaceId", "worldX", "worldY"
-        };
-
-        public static readonly HashSet<string> LegacyFormalArmyInitialSurfaceDeploymentFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "surfaceId", "anchorSiteId", "offsetCellsX", "offsetCellsY"
-        };
-
-        public static readonly HashSet<string> LegacyFormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)
@@ -138,7 +113,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
+            "id", "type", "name", "originWorldX", "originWorldY", "movementScale", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
             "siteRegions", "factionFlags", "sitePlacements", "sitePlaces", "openingEntityAnchors"
         };
         public static readonly HashSet<string> WorldSpatialRulesFields = new HashSet<string>(StringComparer.Ordinal)
@@ -195,24 +170,8 @@ namespace XianXia.Data.Content
             "definitionId", "weight", "countMin", "countMax"
         };
 
-        public static readonly HashSet<string> HexWorldFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "id", "type", "name", "width", "height", "hexSize", "defaultTerrain", "defaultPassable", "cells", "sites",
-            "territoryRegions", "standaloneTerritoryHexes", "factionFlags"
-        };
-
-        public static readonly HashSet<string> HexWorldCellFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "q", "r", "terrain", "passable", "isRoad"
-        };
-
-        public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "siteId", "displayName", "siteType", "anchorQ", "anchorR", "presenceQ", "presenceR", "footprint",
-            "localMapId", "ownerFactionId", "territoryRegionId", "controlEstablishedOrder", "continuousOutdoor"
-        };
         public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)
-        { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "territoryRegionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
+        { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
         public static readonly HashSet<string> SurfaceFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
         { "flagId", "factionId", "worldX", "worldY", "establishedOrder", "createsWorldSite", "siteDisplayName", "siteType", "coreLevel" };
         public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)
@@ -224,16 +183,6 @@ namespace XianXia.Data.Content
             "residentNpcDefinitionId", "enterConditions", "questOfferIds", "tags",
             "allowedActivities", "localMapId", "enterLocalMapId", "enterSpawnLocationId",
             "surveySenseRequired"
-        };
-
-        public static readonly HashSet<string> HexWorldTerritoryRegionFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "regionId", "primaryWorldSiteId", "controlFactionId", "hexes"
-        };
-
-        public static readonly HashSet<string> HexWorldStandaloneHexFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "q", "r", "controlFactionId"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
@@ -270,13 +219,6 @@ namespace XianXia.Data.Content
             "worldSiteId", "localLocationId", "localPosition"
         };
 
-        public static readonly HashSet<string> HexWorldFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "flagId", "factionId", "anchorQ", "anchorR", "establishedOrder",
-            "hasLocalPosition", "localX", "localZ",
-            "surfaceId", "worldX", "worldY", "createsWorldSite",
-            "siteDisplayName", "siteType", "coreLevel", "legacyDebugOnly"
-        };
         public static readonly HashSet<string> OpeningStrategicFields = new HashSet<string>(StringComparer.Ordinal) { "playerFactionId", "vassalages", "alliances", "initialWars" };
         public static readonly HashSet<string> OpeningVassalageFields = new HashSet<string>(StringComparer.Ordinal) { "vassalFactionId", "overlordFactionId" };
         public static readonly HashSet<string> OpeningAllianceFields = new HashSet<string>(StringComparer.Ordinal) { "factionAId", "factionBId" };

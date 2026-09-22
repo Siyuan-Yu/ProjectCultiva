@@ -16,7 +16,7 @@ namespace XianXia.Data.Content
         BakedSitePlace = 1,
         /// <summary>siteRegions[] 的 arrivalWorldX/arrivalWorldY。</summary>
         RegionArrival = 2,
-        /// <summary>旧 LocalMap geometry → WorldSiteHexFootprintSpatialMapping（compatibility only）。</summary>
+        /// <summary>Resolve checked-in Continuous Surface startup geometry.</summary>
         LegacyMapping = 3
     }
 

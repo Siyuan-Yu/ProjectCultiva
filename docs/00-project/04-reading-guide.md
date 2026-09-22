@@ -1,6 +1,8 @@
 # 文档通读指南
 
 > **当前入口：** [ADR-0038 最终冻结](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) → [247 当前交接](../40-process/247-project-handoff-current-state-2026-09-18.md) → [2N Continuous Surface](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)／[2K 控制与 PlayerParty](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[23 CharacterEncounter](../20-systems/23-combat.md)。
+>
+> **阅读纪律：** 正式运行依赖已经退役；正常产品不编译旧 Hex 几何，也不运行 `formalArmy`／`hexWorld` 自动 migration。155／166／221／245 等过程页和旧 ADR 只记录当时事实；看到 `LegacyHexWorld`、运行时 adapter 或“保留到后续迁出”时，不得覆盖本页、ADR-0038 与 247 的当前结论。
 
 > 状态：现行 | 最后更新：2026-09-22
 > 上级：[`00-overview.md`](00-overview.md)
@@ -31,13 +33,13 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **当前状态与交付** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结现代 authority／compatibility 矩阵；[247](../40-process/247-project-handoff-current-state-2026-09-18.md) 是唯一当前交接。A／B／C、MAP-01～04、SPACE-01 及 Legacy 清理／Hex·Army／WorldSite 命名边界专项均已 **Sealed**；下一步等待制作人讨论，尚未授权新功能实施 |
+| **当前状态与交付** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结现代 authority／wire／offline conversion 边界；[247](../40-process/247-project-handoff-current-state-2026-09-18.md) 是唯一当前交接。Hex／Army 正式运行依赖退役与 021915 统一收尾已 **Producer Accepted / Sealed**；未授权新功能实施 |
 | **旧 Editor 生命周期（Legacy Compatibility）** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §5～§6；用法页顶部 banner：[128 WorldGraph](../40-process/128-world-graph-editor-usage.md)／[112 MapEditor](../40-process/112-map-editor-usage.md)／[109 RegionEditor](../40-process/109-content-studio-region-editor-usage.md)／[130 LocalPlaceEditor](../40-process/130-local-place-editor-usage.md)。Active 工具（PackageBrowser／CharacterNpcEditor／ManualArtEditor／QuestEditor／EventEditor／WorkAreaEditor）不在此列 |
 | **连续世界地图当前进度** | [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) → [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) → [245 MAP-04 历史审计](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md)。MAP-01～04 均已验收封板 |
 | **Editor 工具链／旧地图 Content** | [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 的 MAP 范围已落地；WorldComposer／FineEditor 为现行 Surface authoring，旧 WorldGraph／Region 工具已退休。自动水文等后续能力仍是 Future |
 | **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
 | **最终规则、替代矩阵与兼容边界** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) |
-| **当前代码命名／wire 兼容对照** | [248](../40-process/248-legacy-final-a-unified-npc-squad-world-motion-2026-09-20.md) 的现行实现注记 + [247](../40-process/247-project-handoff-current-state-2026-09-18.md) §25；内部 `Legacy*` 命名不改外部 `formalArmy`／`initialFormalArmyIds`、Snapshot 与 JSON wire key |
+| **历史输入／wire／离线转换** | [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 当前落实说明 + [247](../40-process/247-project-handoff-current-state-2026-09-18.md) 页首；248 与 §25 仅是被物理退役取代的历史实现记录 |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |
 | **同源独立遭遇／回位保战果** | [23](../20-systems/23-combat.md) + [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) |
 | **冲突／继承／飞舟与地图移动** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) + [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) |

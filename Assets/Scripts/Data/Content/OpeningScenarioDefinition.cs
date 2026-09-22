@@ -43,8 +43,6 @@ namespace XianXia.Data.Content
         public string OpeningWorldRegionId { get; set; }
         /// <summary>村内地点表（绑 mapLayout）。</summary>
         public string OpeningLocalPlaceSetId { get; set; }
-        /// <summary>正式 Hex 战略大地图 content id。</summary>
-        public string OpeningHexWorldId { get; set; }
         /// <summary>Normal NewGame outdoor Surface identity.</summary>
         public string OpeningSurfaceId { get; set; }
         /// <summary>Chapter Production: optional opening chapter definition id.</summary>
@@ -58,9 +56,6 @@ namespace XianXia.Data.Content
 
         /// <summary>Modern authored NPC squads created for a new game.</summary>
         public List<string> InitialNpcSquadIds { get; set; } = new List<string>();
-
-        /// <summary>[Legacy content input only] Loaded through a one-way migration adapter.</summary>
-        public List<string> InitialLegacyFormalArmyIds { get; set; } = new List<string>();
     }
 
     public sealed class OpeningStrategicStateDefinition

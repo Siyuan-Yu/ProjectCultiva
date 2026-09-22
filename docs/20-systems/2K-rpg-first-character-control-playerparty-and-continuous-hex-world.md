@@ -1,6 +1,6 @@
 # RPG-First：Active Character、PlayerParty、Continuous Surface 与 Legacy Compatibility
 
-> **2026-09-22 FINAL-SEAL：** 正常 runtime authority 与 Legacy quarantine 已冻结并封板，见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。任何新玩法禁止依赖 FormalArmy、ArmyStack、TerritoryRegion、AtHex、Outdoor LocalMap 或 Hex travel 作为 authority。专项状态：**Implementation Complete / Producer Accepted / Sealed**。
+> **2026-09-22 正式运行依赖退役落实：** 正常 runtime authority 仍为 `SurfaceId + exact WorldPosition`，且旧依赖已从“运行时 quarantine”推进到物理退役：`SimulationWorld` 无 HexWorld，Core Hex 目录已删除，PlayerParty／WorldPresence 无 Hex 参数或缓存，正常产品不编译旧 Hex 几何。Runtime Loader 拒绝 `formalArmy`／`hexWorld`；`LegacyRuntimeConverter` 只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot，`hexWorld`／`openingHexWorldId` 会被检测并拒绝，必须使用现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。新增 `Legacy*` adapter 不再是终态。见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
 > **2026-09-21 LEGACY-FINAL-C Seal：** 现代 Character residual 统一为 `AtWorldPosition + SurfaceId + exact WorldPosition`；AtHex 只允许旧档、旧 Outdoor LocalMap／Hex travel 与非连续兼容输入。旧 StrategicEncounter、RetreatingArmy 与 LingeringBattlefield runtime 已退出，旧玩家 travel helper 使用明确 Legacy compatibility 名称。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 
@@ -14,7 +14,7 @@
 
 > **2026-09-14 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) §1、2、5 为现行规则。CW-U1～U4 已将成员与人物遭遇迁移到统一 Squad；CW-U4.1 退役玩家 FormalArmy 产品层入口。FormalArmy 仅作旧 Content／Save／NPC 任务与移动 adapter，不是玩家可选、可编组、可攻击或可下令的单位。
 
-> 状态：PlayerParty／Squad／Surface travel authority 已实现并封板；飞舟、完整势力继承等明确为 Future｜优先级：P0｜最后更新：2026-09-21
+> 状态：PlayerParty／Squad／Surface travel authority 与旧运行依赖退役已实现；飞舟、完整势力继承等明确为 Future｜优先级：P0｜最后更新：2026-09-22
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`、`ADR-0027`、`ADR-0031`
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`
@@ -22,13 +22,9 @@
 > 旧 RTS 多选、Army-required World Travel 与远距离切换控制均已退休；历史段落不得作为恢复这些入口的依据。
 > **2026-09-12 当前目标：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已是 Continuous Outdoor 正式目标；旧 `1 Hex = 1 LocalMap`、关图才出发和切换 Executor 只作历史实现记录。控制继承、冲突与飞舟职责以 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 为准。
 
-> **当前 C# 兼容入口（2026-09-22 文档闭包）：** `SimulationWorld.LegacyHexWorld`；`PlayerPartyWorldMotion.LegacyCurrentHex`、`LegacyHexPath`／`LegacyHexPathCount`、`LegacyDestinationHex`、`LegacyFinalDestinationHex`、`BeginLegacyHexAutoTravel`、`SetIdleAtLegacyHexCenter`、`AlignLegacyCurrentHex`；旧测试 focus 入口为 `LegacyPartyFocusCompatibility.SyncPartyFocus`。Snapshot DTO `CurrentHexQ/R` 与 JSON `currentHexQ/R` 保持稳定旧协议名。`LegacyHexMetadataProjection` 只承接原测试消费者，不进入正常 Gameplay。
-
-> **WorldSite／Hex footprint 当前实现名（2026-09-22）：** `WorldSite.LegacyAnchorHex`／`LegacyPresenceHex`／`LegacyOccupiedHexes`，以及 `SetLegacyHexFootprint`、`EnsureLegacyPresenceHexValid`、`HasLegacyPresenceAnchorMismatch`、`EnumerateLegacyFootprintHexes`、`OccupiesLegacyHex`；`WorldSite.HexCoord` 兼容 alias 已删除。Board 查询为 `TryGetAtLegacyHex`、`GetSiteIdsAtLegacyHex`、`TryResolveLegacySitePresenceHex`。相关类型为 `LegacyWorldSiteHexLocationCompatibility`、`WorldSiteHexFootprintValidator`、`WorldSiteHexFootprintSpatialMapping`、`WorldSiteHexFootprintBakeTransform`；`WorldSitePhysicalRegionQuery` 与 `WorldSiteOutdoorMigrationPolicy` 保持现名。
+> **当前实现闭包（2026-09-22）：** 上述旧 runtime 容器、PlayerParty／WorldSite Hex API 与 Core Hex 几何类型均已退出正式产品代码；历史段落中的名称只说明迁移过程，不是当前可调用 API。稳定旧 wire key／数值仅用于拒绝诊断和离线转换，不在 runtime 自动迁移。
 >
-> `LegacyPresenceHex` 是旧 Content／Snapshot／Outdoor LocalMap compatibility 的**固定代表格**，当前 invariant 强制 `LegacyPresenceHex == LegacyAnchorHex`；它不是从即时 Surface `WorldPosition` 派生的字段。即时 Surface 查询结果另称 `DerivedPresenceHex = WorldToHex(CanonicalWorldSurfacePosition)`，可以与 `LegacyAnchorHex` 不同，但不得写回或冒充 `LegacyPresenceHex`。
-
-> **尺度依赖现状：** `ContinuousWorldMovementScale.Resolve` 仍只读 `LegacyHexWorld.HexSize`。它没有消除真实依赖，只把 NPC Squad／后台人物的连续世界 distance budget 通过一个适配入口取值；`HexSize > 0 ? value : 1` 与下游 `worldScale > 0.0001 ? value : 1` 两层 fallback／阈值保留，速度运算顺序仍是 `scale * sqrt(3.0) / 8f`。
+> **尺度现状：** `ContinuousWorldMovementScale.Resolve` 只读 `SimulationWorld.ContinuousWorldMovementScale`；唯一注入点由当前 opening `outdoorSurface.movementScale` 提供。当前 BaseGame 显式为 `1.0`。该字段是 movement budget 尺度，**不是** `cellSize`；既有速度公式与 tick 行为保持不变。
 
 ---
 
@@ -456,7 +452,7 @@ Background Character **可以**在 HexWorld 中进行 World Travel，**不代表
 | 实体 | 玩家可下达的世界层命令 |
 |------|------------------------|
 | **PlayerParty** | 直接世界旅行（有效地面连续目标、Hex 摘要或 Site 真实抵达点） |
-| **Legacy FormalArmy input** | 无 runtime 命令；旧 Content／Snapshot 读取时单向迁移为 Squad／SquadWorldMotion |
+| **Legacy FormalArmy input** | Runtime 拒绝；先离线转换为 `npcSquad`／当前 Snapshot 独立副本 |
 | **Background Character** | **无**远程逐步移动命令 |
 
 Background Character 的移动**仅由**以下驱动：

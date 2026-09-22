@@ -1,5 +1,44 @@
 # 开发日志
 
+## 2026-09-22 — Hex／Army 正式运行依赖退役与 021915 统一收尾封板
+
+- Hex／Army 正式运行依赖退役完成；021915 统一收尾中的当前行为修复及残留删除完成。状态为 **Implementation Complete**，制作人人工验收通过后 **Producer Accepted / Sealed**。
+- 现行工作规范改为：普通实现只要求没有基础编译错误，配合最少量静态引用／文件完整性检查；不自行运行测试或启动 Unity；编译、静态核对与人工验收分开记录；普通实施不自动提交，制作人要求封板即授权选择性 commit。
+- 审查基线为 `Scripts(20260922-040154).zip`。此前实施阶段的离线编译 `ALL_OK`、当前行为矩阵 82/82、converter 5/5 等结果保留为当时实际执行记录，不是本次封板重跑。本次只更新封板文档与工作规范并提交已验收专项。
+- 后续功能方向尚未批准，不自动启动下一项任务；不得按 Hex／Army／Legacy 关键词再开清理轮次。本封板不表示整个游戏已完成或不存在潜在缺陷。
+
+## 2026-09-22 — 021915 Hex／Army 退役统一收尾
+
+- **PlayerParty 当前契约：** `TravelPlanVersion` 恢复为逻辑计划失效代数；开始、重下令、取消、到达、重放置、读档恢复各增一次，逐帧位置／路点推进不增。重放置清旧 Site context，取消保留 exact position 与当前 Site，到达先保留目的 Site 再结束计划。零正式 consumer 的全清 `Clear` 删除，不再用同名入口误清物理位置。
+- **Host scope 与序列化：** Outdoor population 刷新按 `None`／`RefreshViewsOnly`／`ReconcileAndRefresh` 三态合并。chunk／activation 已推进 Runtime generation 时只同步 Host Views；显式 dirty 根据产生前后的 generation 判断是否仍需 Runtime reconcile，避免漏刷和重复全量。Surface 镜头字段保留 `[FormerlySerializedAs("localVisibleAutoTravelFollowLerp")]`。
+- **当前数据闭合：** Continuous Outdoor Site presence 必须有 authored exact Surface anchor；合法非物理 Site 继续允许无伪坐标。spawnZone／opening normalize 使用现有 SitePlace／opening anchor，歧义失败。idle Background 的旧空 Surface 摘要只从现成 exact personal authority 归一；moving、无主 authority 或冲突明确失败；Interior／Encounter ownership 不户外化。当前 Capture 在写出前拒绝本版本无法恢复的 payload。
+- **有限孤儿：** 删除无正式 root 的 placement trace、Background trace sink、旧 Site access／constants／grid wrapper、placement helper、LocalMap playable-bounds 缓存、旧 strategic-map stub/catalog/visibility尾部、空 residual stop 与无效参数；保留洞府 placement、当前可见性、独立 CharacterEncounter、稳定 wire／DTO／ID。
+- **数据／工具／资产：** BaseGame 继续只使用 Surface／NpcSquad；opening `movementScale=1.0` 唯一注入运行世界，`cellSize=0.028` 不参与预算。离线 converter 保持 FormalArmy 有界转换与 hexWorld fail-closed。删除脚本 GUID 无悬空，旧镜头字段只留序列化映射。
+- **验证（当时实施阶段实际执行，非封板重跑）：** 八个正式／受影响程序集离线编译 `ALL_OK`；当前旅行、scope、开局、Snapshot、Surface、Site／Flag、Encounter、Content 定向回归 82/82；本机 `vs04_slot0.json` 通过 Core 与 Content-dependent phase-two 完整恢复探针；ContentAuthoring 0 warning／0 error，converter 5/5；`git diff --check` 通过。当时未启动 Unity／PlayMode／Test Runner／batchmode。后续制作人验收通过后见本页最新封板条。
+
+## 2026-09-22 — Host Outdoor scope 刷新门控与孤儿尾项清理
+
+- `StepTick → FlushLoadedDestinationArrivals` 改为三态决策：静止为 `None`；Domain scope fingerprint／显式 dirty 变化且 Runtime generation 未变时为 `ReconcileAndRefresh`；chunk 流送／激活／独立战已推进 `EntityReconcileGeneration` 时为 `RefreshViewsOnly`，只执行 Host `RefreshViewableEntityIds + SpawnMissingVisibleViews + PruneHiddenViews`，不重复 Runtime 全量。成员加入／离队和非 Encounter 生命周期变更显式标 dirty；自动 Tick、批量推进与 cheat 继续共用同一 flush 入口。
+- 新增纯 C# `OutdoorEntityReconcileGate`，定向 headless 回归 5/5 覆盖静止、dirty/scope、runtime generation 只刷 View、generation 优先合并与 loaded travel 边界。New Game barrier、Snapshot presentation rebuild、chunk crossing、独立战入场／修复／增援／战后返回及 Separate Space 返回均接入对应刷新边界，不恢复旧 materializer 或通用事件系统。
+- `HostPlayerPartyController.surfaceAutoTravelFollowLerp` 增加 `[FormerlySerializedAs("localVisibleAutoTravelFollowLerp")]`；Scene／Prefab／Asset 未保存该字段名。删除无消费者的 Host placement trace、旧地图 catalog/stub 转发、PlayerParty location debug、旧 LocalMap encounter 可见性尾部、`SyncLocations`、无用 Host helper，并移除 FactionFlag preview/query/picker 的 LocalMap layout 参数链；独立战、洞府与 Snapshot 正式链保留。
+- 验证：Core／Data／Unity／Editor／Tests／PlayModeTests／Assembly-CSharp 全量离线编译 `ALL_OK`；定向 headless 5/5，`git diff --check` 通过。未启动 Unity、未运行 Unity Test Runner／PlayMode／batchmode，未提交。
+
+## 2026-09-22 — 审查阻断：离线转换 fail-closed 与 TerritoryRegion 正式残余移除
+
+- `LegacyRuntimeConverter` 不再把 `hexWorld`／`openingHexWorldId` 暗示为可生成 `outdoorSurface`：Content 在写输出前明确失败，并指向现有 WorldComposer／SurfaceAuthoring Legacy migration 路径；无迁移样例时不猜。FormalArmy Content 转 `npcSquad` 继续可用。
+- Snapshot 转换只接受全部 current authority 已完整、仅 FormalArmy 待转的 transitional 输入；转换前后验证 EntityLocation 字段、exact CharacterWorldPresence、PlayerPartyTravel、FactionFlags、RuntimeWorldSites、TerritoryClaims format 3、Squads/Motions 与 CharacterEncounter format 4 空间字段。Residual、TerritoryRegion controller、RetreatingArmy、PendingEngagement、ArmyStack、旧 owner／command 或缺 authority 均 fail-closed，不写部分输出。
+- 正式 runtime 从 `WorldSite`、`OutdoorWorldSurfaceDefinition`、Loader/schema、bootstrap 与 BaseGame current `siteRegions` 移除 `TerritoryRegionId`／`territoryRegionId`；`StrategicSnapshotHelper` 删除 controller→Site owner 的不可达迁移算法，稳定 wire DTO／serializer 检测保留并由 current format validator 拒绝。
+- 转换器 `--self-test` 覆盖 FormalArmy Content 成功、hexWorld 失败无输出、完整 hybrid Snapshot 成功、缺 authority 失败无输出与拒绝覆盖。本轮不修改两份 Ritual，不提交。
+
+## 2026-09-22 — 正式运行旧 Hex／Army 依赖物理退役
+
+- **结论：** 从“加 `Legacy` 前缀并保留 runtime adapter”推进到正式运行依赖退役。`SimulationWorld` 已无 HexWorld，Core Hex 目录物理删除；PlayerParty／WorldPresence 与 Site／Flag／CharacterEncounter／SeparateSpace current 链不再携带 Hex 参数、缓存或执行器，正常产品不编译旧 Hex 几何。
+- **数据边界：** Runtime Data 只接受当前 `outdoorSurface`／`npcSquad`。`ContentPackageLoader` 对 `hexWorld`、`formalArmy` 及旧 opening key 明确拒绝；FormalArmy 与 current authority 完整的 hybrid Snapshot 使用 `LegacyRuntimeConverter`，旧地图使用 WorldComposer／SurfaceAuthoring Legacy migration 路径。输入只读、输出为不同且尚不存在的独立副本。
+- **稳定协议：** 不改稳定 Snapshot 数值／ID。旧值 `2` 保留数值空洞并禁止复用；旧 wire key 只用于检测与离线转换。ID 三规则分别为旧 Content `squad:migrated:`／`squad:legacy:`、旧 Snapshot `squad:army:`，不得混写。
+- **尺度：** movement budget 的唯一 runtime authority 为当前 opening `outdoorSurface.movementScale` → `SimulationWorld.ContinuousWorldMovementScale`；BaseGame 显式 `1.0`。`movementScale` 不是 `cellSize`，原移动公式与 tick 行为保持。
+- **读档边界：** Host 不再从 Opening content 猜缺失 presence／EntityLocation，也不再自动迁移旧 Separate Space、Flag／Site／Territory 格式；current authority 直接恢复，缺失时明确要求离线转换。代表性本机 `vs04_slot0.json` 保留 28 Squads、6 motions、20 exact presences 与玩家 Surface 位置，serializer + Core restore 定向验证通过。
+- **验证与状态：** 正式 Core／Data／Unity／Tests 离线编译通过，关键纯 C# 回归 24/24；后续空间／存档／据点定向复核 28 项通过。额外运行的两项既有 SiteCore defender/content 断言仍失败，未作为本轮无关修复处理。未启动 Unity，未运行 PlayMode／Unity Test Runner／batchmode。本轮为 **Implementation Complete / Unity Producer Acceptance Pending**，未提交。
+
 ## 2026-09-22 — Legacy 清理及 Hex／Army 命名与兼容边界专项正式封板
 
 - **结论：** 废弃运行入口与无意义残留清理、Hex／Army 误导性命名与兼容身份整理、WorldSite／Hex footprint 命名尾项均已完成；Implementation Complete，专项状态 **Producer Accepted / Sealed**。制作人已确认此前运行行为人工验收通过；后续限定同体改名／说明收尾经静态复核通过，无需追加游戏验收。

@@ -9,7 +9,6 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -125,22 +124,18 @@ namespace XianXia.Tests.EditMode
             var world = boot.World;
             var registry = boot.Registry;
 
-            // 真实 content 的荒村 source map 必须解析为唯一 Continuous Outdoor Site（否则 SpawnZone
-            // 永远无法建立 presence）。
-            Assert.IsTrue(ContinuousOutdoorSpawnPresenceResolver
-                    .TryResolveContinuousOutdoorSiteForSourceMap(
-                        world, HuangcunSourceMapId, out var resolvedSite, out var ambiguity),
-                "resolver failed: " + ambiguity);
-            Assert.AreEqual(OpeningSiteId, resolvedSite.SiteId);
-
-            // 合成一个挂在荒村 source map 上的 spawnZone，验证 mutation 路径本身。
-            // 荒村真实 LocalMapId 临时重定向到 probe map（仅内存、finally 恢复）：resolver 按
-            // "source map → site.localMapId" 解析，不重定向就无法用合成 spawnZone 走到真实 mutation。
+            // 合成一个明确挂在荒村 Site 上的旧 source map spawnZone，验证该 producer
+            // 必须从 current Surface SitePlace 取得精确锚点；正式 Content 已退役该 source map。
             Assert.IsTrue(world.Strategic.Sites.TryGet(OpeningSiteId, out var huangcun));
             var originalLocalMapId = huangcun.LocalMapId;
             try
             {
                 huangcun.LocalMapId = ProbeMapLayoutId;
+                Assert.IsTrue(ContinuousOutdoorSpawnPresenceResolver
+                        .TryResolveContinuousOutdoorSiteForSourceMap(
+                            world, ProbeMapLayoutId, out var resolvedSite, out var ambiguity),
+                    "resolver failed: " + ambiguity);
+                Assert.AreEqual(OpeningSiteId, resolvedSite.SiteId);
 
                 RegisterProbeSpawnTable(registry, CompanionADefinitionId);
                 var layout = RegisterProbeMapLayout(registry);
@@ -198,10 +193,13 @@ namespace XianXia.Tests.EditMode
                 world, registry, OpeningSiteId);
 
             Assert.IsTrue(world.WorldPresence.TryGet(probe.Id, out var presence),
-                "normalize pass did not fill missing presence");
+                "normalize pass did not fill missing presence: " +
+                string.Join(" | ", report.Ambiguities));
             Assert.AreEqual(PartyWorldPresenceMode.AtSite, presence.Mode);
             Assert.AreEqual(OpeningSiteId, presence.SiteId);
-            Assert.GreaterOrEqual(report.NormalizedAtSite, 1);
+            Assert.IsTrue(presence.HasContinuousWorldPosition);
+            Assert.AreEqual("base:surface_main_wilderness_v1", presence.PersonalSurfaceId);
+            Assert.GreaterOrEqual(report.NormalizedAtSiteWithAnchor, 1);
         }
 
         // ---------------------------------------------------------------- D
@@ -281,15 +279,6 @@ namespace XianXia.Tests.EditMode
                 "(that would reintroduce NPC teleporting / per-tick cost)");
         }
 
-        // ---------------------------------------------------------------- G
-        /// <summary>
-        /// 制作人复验 blocker：NewGame 荒村缺 1 人（杂役主管）。
-        /// 根因：该 NPC 是驻荒村的 Hex FormalArmy 成员（army:formal_huangcun_labor_garrison），
-        /// 经 army-at-site 路径计入人口并被 runtime materialize，但 IsEntityVisible 里
-        /// 「Hex FormalArmy 残留 AtSite presence」守卫将其隐藏 → Expected=N Materialized=N Views=N-1。
-        /// 语义：materialize 集合（loaded scope 权威）内的 Continuous Site 人口必须可见；
-        /// 未 materialize 的残留 presence 仍按原守卫隐藏。
-        /// </summary>
         // ------------------------------------------------------- synthetic content
         static void RegisterProbeSpawnTable(DefinitionRegistry registry, string definitionId)
         {

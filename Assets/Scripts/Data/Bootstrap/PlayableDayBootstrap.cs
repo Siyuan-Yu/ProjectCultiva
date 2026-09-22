@@ -85,9 +85,6 @@ namespace XianXia.Data.Bootstrap
                     "Opening scenario definition missing.",
                     scenarioId.ToString());
             }
-            LegacyRuntimeInvariant.AssertModernOpeningScenario(
-                scenario.InitialLegacyFormalArmyIds?.Count ?? 0);
-
             System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = scenario.Spawns;
             if (!string.IsNullOrWhiteSpace(options.CharacterRosterId))
             {
@@ -118,7 +115,9 @@ namespace XianXia.Data.Bootstrap
             var world = started.Value.World;
             var registry = loaded.Registry;
             // Surface navigation is normal NewGame authority from the first opening placement.
-            ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
+            var surfaceGround = ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry, scenario);
+            if (surfaceGround.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(surfaceGround.Error);
 
             var manuals = RegisterManuals(world, registry);
             if (manuals.IsFailure)
@@ -244,10 +243,6 @@ namespace XianXia.Data.Bootstrap
             loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
             loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
-
-            // All opening placement, party and runtime-content work is complete here. Keep the
-            // development-only legacy authority proof at the real New Game boundary.
-            LegacyRuntimeInvariant.AssertModernNewGame(world);
 
             return Result.Ok(new PlayableDayBootstrapResult(
                 world,

@@ -33,7 +33,7 @@ namespace XianXia.Core.World.Strategic
         readonly List<TerritoryClaimState> _ordered = new List<TerritoryClaimState>();
         IReadOnlyList<TerritoryClaimState> _view;
 
-        /// <summary>False only before new-game bootstrap or legacy snapshot migration establishes authority.</summary>
+        /// <summary>False only before new-game bootstrap or authoritative snapshot restore establishes authority.</summary>
         public bool HasAuthority { get; internal set; }
         public IReadOnlyList<TerritoryClaimState> Claims =>
             _view ?? (_view = _ordered.AsReadOnly());
@@ -117,7 +117,7 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world, WorldSite site, float width, float height)
             => CreateClaim(world, site, "expansion", NextAcquiredOrder(world), width, height);
 
-        public static Result EstablishBaselineFromLegacy(SimulationWorld world)
+        public static Result EstablishBaselineFromActiveCores(SimulationWorld world)
         {
             if (world?.Strategic?.TerritoryClaims == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Territory claim world missing.");

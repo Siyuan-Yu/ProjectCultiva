@@ -2,7 +2,7 @@
 
 > **2026-09-21 Final Seal：** [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结统一 Squad／PlayerParty、CharacterEncounter、Continuous Surface 与 Actual Administrative Control 的 runtime authority。旧 FormalArmy／ArmyStack／TerritoryRegion／StrategicEncounter runtime 已退休，只允许明确旧输入迁移；不得重建第二份 membership、位置或战斗 authority。
 
-> **2026-09-22 命名闭包：** 当前内部 compatibility API 必须使用真实代码现名：`LegacyFormalArmyDefinition`、`LegacyArmyContentToSquadMigration`、`InitialLegacyFormalArmyIds`、`SimulationWorld.LegacyHexWorld`、`LegacyHexMetadataProjection` 与 `PlayerPartyWorldMotion.Legacy*`。外部 JSON／Snapshot wire key（`formalArmy`、`initialFormalArmyIds`、`sourceFormalArmyId`、`currentHexQ/R`）保持稳定，不随 C# 改名。`HexCoord`／`HexMath`／Odd-R Q/R 和 `HexWorld` 是合法几何／工具类型；正常 authority 仍是 Surface exact position、SquadWorldMotion 与 CharacterEncounter。
+> **2026-09-22 正式运行依赖退役：** `SimulationWorld` 无 HexWorld，Core Hex 目录已删除，正常产品程序集不再编译旧 Hex 几何或运行时迁移 API。Runtime Loader 明确拒绝 `formalArmy`／`hexWorld`。`LegacyRuntimeConverter` 只无损转换 FormalArmy 与 current authority 完整的 hybrid Snapshot；`hexWorld`／`openingHexWorldId` 只检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。外部 JSON／Snapshot 旧 wire key、稳定 ID 规则与已移除枚举值留下的数值空洞只在检测和离线转换边界保留。
 
 > 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)
 > 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)
@@ -86,10 +86,10 @@ XianXia.Tests/       针对 Core 的单元测试
 
 见 `32` 第 5 节：asmdef → Tick → Modifier → Action → 实体分层 → 第一次突破。
 
-## 6. Legacy adapter 工程边界
+## 6. 历史输入与离线转换边界
 
-- 旧 Content 启动链为外部 `initialFormalArmyIds` → 内部 `InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`；不得创建 FormalArmy／ArmyStack。
-- `LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId` 必须保留稳定 `squad:army:` identity；`LegacyFormalArmyWorldMotion = 2`、Encounter spatial `LegacyFormalArmy = 2` 属于稳定数值协议。
-- `EncounterCharacter.LegacySourceFormalArmyId` 只映射 wire `sourceFormalArmyId`；现代 producer 写 Squad identity。
-- `ContinuousWorldMovementScale.Resolve` 对 `LegacyHexWorld.HexSize` 是只读尺度适配，不代表依赖已消除；不得据此把 Legacy Hex grid 提升为路由或位置 authority。
-- `LegacyPartyFocusCompatibility.SyncPartyFocus` 只服务旧 EditMode fixture；`ModuleId.Army` 与 `armyOpen` 已删除，不得恢复 Host Army 产品入口。
+- 正式 Runtime Data 只加载当前 `outdoorSurface`／`npcSquad`；旧 `formalArmy`、`initialFormalArmyIds`、`hexWorld` 与旧 Army／Hex Snapshot 不能进入自动 bootstrap。
+- 唯一转换入口是 `ExternalTools/ContentAuthoring/LegacyRuntimeConverter`。输入只读；输出必须是不同且尚不存在的独立文件。转换失败不得生成部分输出。
+- ID 三规则严格分离：旧 Content 有 `runtimeArmyId` 时输出 `squad:migrated:<normalizedRuntimeArmyId>`；缺失时输出 `squad:legacy:<normalizedDefinitionId>`；旧 Snapshot 输出 `squad:army:<armyId>`。
+- `ContinuousWorldMovementScale.Resolve` 只读 `SimulationWorld.ContinuousWorldMovementScale`；该值由当前 opening `outdoorSurface.movementScale` 唯一注入。当前 BaseGame 显式为 `1.0`，它不是 `cellSize`。
+- 旧 wire key、数值空洞与历史 DTO 可用于明确拒绝和离线识别；不得为它们重新增加 runtime enum 成员、Hex 几何依赖或 compatibility adapter。

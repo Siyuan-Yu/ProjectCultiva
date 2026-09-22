@@ -59,9 +59,10 @@ namespace XianXia.Unity.Host
             {
                 host.GetComponent<HostControlCoreAssault>()?.Clear();
                 var flag = world.Strategic.FactionFlags.Flags[target.CoreAssetId];
-                var hasPoint = surface != null && surface.IsActive
-                    ? HostFactionFlagQuery.TryGetApproachPoint(flag, surface, host.MoveController.WalkGrid, out var point)
-                    : HostFactionFlagQuery.TryGetApproachPoint(flag, layout, host.MoveController.WalkGrid, out point);
+                var point = default(Vector3);
+                var hasPoint = surface != null && surface.IsActive &&
+                    HostFactionFlagQuery.TryGetApproachPoint(
+                        flag, surface, host.MoveController.WalkGrid, out point);
                 if (!hasPoint)
                 { Feedback(host, "找不到势力旗的合法接近位置。"); return; }
                 if (host.MoveController == null || !host.MoveController.OrderPartyToPointPublic(point))

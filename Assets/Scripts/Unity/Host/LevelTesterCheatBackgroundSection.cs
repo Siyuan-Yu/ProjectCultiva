@@ -174,37 +174,17 @@ namespace XianXia.Unity.Host
                 return DrawPlayerPartyBlock(world, party, displayName, x, y, width, lineH, body);
             }
 
-            if (!BackgroundCharacterTravelService.TryDescribeTravel(
-                    world, id, party,
-                    out var authority,
-                    out var kind,
-                    out var siteId,
-                    out var pos,
-                    out var hex,
-                    out var travelKind,
-                    out var destHex,
-                    out var destSite,
-                    out var seg,
-                    out var segProgress))
+            if (!BackgroundCharacterTravelService.TryResolveCharacterWorldLocation(
+                    world, id, out var kind, out var siteId, out var pos, out var surfaceId))
             {
                 GUI.Label(new Rect(x, y, width, lineH), displayName + " —（无世界位置）", body);
                 return y + lineH;
             }
 
-            var destText = !string.IsNullOrEmpty(destSite)
-                ? ResolveSiteDisplayName(world, destSite)
-                : destHex.ToString();
-            var route = travelKind == BackgroundCharacterTravelMovementKind.Traveling
-                ? "段 " + seg + " 进度=" + segProgress.ToString("F2")
-                : "-";
-
-            y = DrawLine(x, y, width, lineH, body, "权限", authority.ToString());
             y = DrawLine(x, y, width, lineH, body, "位置", kind.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Hex", hex.ToString());
+            y = DrawLine(x, y, width, lineH, body, "Surface", surfaceId);
+            y = DrawLine(x, y, width, lineH, body, "WorldPos", pos.ToString());
             y = DrawLine(x, y, width, lineH, body, "地点", ResolveSiteDisplayName(world, siteId));
-            y = DrawLine(x, y, width, lineH, body, "旅行", travelKind.ToString());
-            y = DrawLine(x, y, width, lineH, body, "目的地", destText);
-            y = DrawLine(x, y, width, lineH, body, "路线", route);
             return y;
         }
 
@@ -219,9 +199,11 @@ namespace XianXia.Unity.Host
             GUIStyle body)
         {
             var motion = world.PlayerPartyTravel;
-            var dest = !string.IsNullOrEmpty(motion.LegacyDestinationSiteId)
-                ? motion.LegacyDestinationSiteId
-                : motion.LegacyDestinationHex.ToString();
+            var dest = !string.IsNullOrEmpty(motion.DestinationSiteId)
+                ? motion.DestinationSiteId
+                : motion.HasContinuousPhysicalDestination
+                    ? motion.ContinuousPhysicalDestination.ToString()
+                    : "-";
             var localMap = world.PartyWorld?.LocalMapId ?? "-";
             var localPos = "-";
             if (party.HasActive &&
@@ -239,10 +221,9 @@ namespace XianXia.Unity.Host
             y = DrawLine(x, y, width, lineH, body, "MovementKind", motion.MovementKind.ToString());
             y = DrawLine(x, y, width, lineH, body, "ExecutionMode", motion.ExecutionMode.ToString());
             y = DrawLine(x, y, width, lineH, body, "Destination", dest);
-            y = DrawLine(x, y, width, lineH, body, "LegacyCurrentHex", motion.LegacyCurrentHex.ToString());
-            y = DrawLine(
-                x, y, width, lineH, body, "Segment",
-                motion.LegacyHexSegmentIndex + " / " + motion.LegacyHexSegmentProgress.ToString("F2"));
+            y = DrawLine(x, y, width, lineH, body, "Surface", motion.SurfaceId);
+            y = DrawLine(x, y, width, lineH, body, "Route",
+                motion.ContinuousSurfaceRouteIndex + " / " + motion.ContinuousSurfaceRoute.Count);
             y = DrawLine(x, y, width, lineH, body, "WorldPos", motion.WorldPosition.ToString());
             y = DrawLine(x, y, width, lineH, body, "LocalMapId", localMap);
             y = DrawLine(x, y, width, lineH, body, "LocalPos", localPos);

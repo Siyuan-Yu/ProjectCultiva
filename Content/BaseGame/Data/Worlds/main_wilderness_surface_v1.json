@@ -7,6 +7,7 @@
       "name": "Main Wilderness Continuous Surface V1",
       "originWorldX": -1.4,
       "originWorldY": -1.4,
+      "movementScale": 1.0,
       "cellSize": 0.028,
       "chunkWidth": 1.4000000000000001,
       "chunkHeight": 1.4000000000000001,
@@ -3248,7 +3249,6 @@
           "surfaceId": "base:surface_main_wilderness_v1",
           "displayName": "青石镇",
           "siteType": "Town",
-          "territoryRegionId": "base:region_chengzhen",
           "arrivalWorldX": 18.61955,
           "arrivalWorldY": 11.25
         },
@@ -3258,7 +3258,6 @@
           "displayName": "青石关",
           "siteType": "Pass",
           "ownerFactionId": "base:faction_xijin",
-          "territoryRegionId": "base:region_guanai",
           "arrivalWorldX": 21.65064,
           "arrivalWorldY": 16.5
         },
@@ -3268,7 +3267,6 @@
           "displayName": "青石荒村",
           "siteType": "Village",
           "ownerFactionId": "base:sect_huangcun_labor",
-          "territoryRegionId": "base:region_huangcun",
           "arrivalWorldX": 6.49519,
           "arrivalWorldY": 11.25
         },
@@ -3278,7 +3276,6 @@
           "displayName": "灵地",
           "siteType": "SpiritLand",
           "ownerFactionId": "base:faction_shuofeng",
-          "territoryRegionId": "base:region_lingdi",
           "arrivalWorldX": 38.10512,
           "arrivalWorldY": 9.0
         },
@@ -3288,7 +3285,6 @@
           "displayName": "林间",
           "siteType": "Forest",
           "ownerFactionId": "base:sect_huangcun_labor",
-          "territoryRegionId": "base:region_linjian",
           "arrivalWorldX": 12.99038,
           "arrivalWorldY": 7.5
         },
@@ -3298,7 +3294,6 @@
           "displayName": "庄园",
           "siteType": "Village",
           "ownerFactionId": "base:faction_nan_yan",
-          "territoryRegionId": "base:region_zhuangyuan",
           "arrivalWorldX": 29.01185,
           "arrivalWorldY": 6.75
         }

@@ -111,7 +111,6 @@ namespace XianXia.Unity.Host
             if (!HostileActionClassificationService.TryClassifyTarget(
                     session.World, npcId, out _, out _))
                 return false;
-            // Character hostility is personal/local even when legacy FormalArmy metadata exists.
             return IsHostileEntity(entity);
         }
 

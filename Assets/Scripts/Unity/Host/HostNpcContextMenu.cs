@@ -6,7 +6,6 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 

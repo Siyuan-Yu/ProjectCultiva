@@ -412,7 +412,7 @@ namespace XianXia.Core.Combat
                 " GroupId=" + groupId +
                 " EncounterId=" + (world.Strategic?.CharacterEncounter?.EncounterId ?? string.Empty) +
                 " Before=" + removalSpatialBefore +
-                " After=Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None,ResidualHex:None" +
+                " After=Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None" +
                 " ViewPosition=None" +
                 " SpatialOwner=Removed" +
                 " HandoffAction=Remove");
@@ -444,7 +444,6 @@ namespace XianXia.Core.Combat
             presence.WorldPosX = point.X;
             presence.WorldPosY = point.Y;
             presence.HasContinuousWorldPosition = true;
-            presence.ClearHexPresence();
         }
 
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -452,17 +451,15 @@ namespace XianXia.Core.Combat
         {
             if (world?.WorldPresence == null ||
                 !world.WorldPresence.TryGet(id, out var presence) || presence == null)
-                return "Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None,ResidualHex:None";
+                return "Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None";
             var worldPosition = presence.HasContinuousWorldPosition
                 ? "(" + presence.WorldPosX.ToString("0.###") + "," + presence.WorldPosY.ToString("0.###") + ")"
                 : "None";
-            var residualHex = presence.UsesHexPresence ? presence.ResidualHex.ToString() : "None";
             return "Mode:" + presence.Mode +
                    ",SiteId:" + (presence.SiteId ?? string.Empty) +
                    ",PersonalSurfaceId:" + (presence.PersonalSurfaceId ?? string.Empty) +
                    ",HasPrecise:" + presence.HasContinuousWorldPosition +
-                   ",WorldPosition:" + worldPosition +
-                   ",ResidualHex:" + residualHex;
+                   ",WorldPosition:" + worldPosition;
         }
 #endif
     }

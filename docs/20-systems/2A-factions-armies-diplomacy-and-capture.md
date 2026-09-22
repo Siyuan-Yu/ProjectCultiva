@@ -4,9 +4,9 @@
 
 > **现行组织／参战规则：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 与 [23](23-combat.md) §2～3 替代本页旧 FormalArmy 专属产品入口。唯一通用小队、初始仅冲突两队，第三方只从固定范围内有限候选介入；旧 FormalArmy 服务已退出 normal runtime，仅保留严格旧输入迁移。
 
-> **当前实现命名：** 外部旧 Content 仍使用 `formalArmy` 与 `initialFormalArmyIds`；内部依次进入 `InitialLegacyFormalArmyIds` → `LegacyArmyContentToSquadMigration` → `NpcSquadContentBootstrap`，定义类型为 `LegacyFormalArmyDefinition`，不会创建 FormalArmy／ArmyStack。旧存档 identity 由 `LegacySquadMigrationIdentity.SquadIdFromLegacyArmyId` 生成，稳定前缀 `squad:army:` 不变。`SquadCommandKind.LegacyFormalArmyWorldMotion = 2`、Encounter spatial `LegacyFormalArmy = 2` 和 JSON `sourceFormalArmyId` 都是稳定兼容协议，不是现代 producer。
+> **2026-09-22 正式运行依赖退役：** 当前 Runtime Loader 对 `formalArmy`／`initialFormalArmyIds` 与 `hexWorld` 明确报错并拒绝加载，不再存在 `LegacyFormalArmyDefinition`／`LegacyArmyContentToSquadMigration` 等运行时自动迁移链。`LegacyRuntimeConverter` 只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot；`hexWorld`／`openingHexWorldId` 只检测并拒绝，必须使用现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。旧 wire key、数值空洞与 ID 规则只用于边界检测／离线转换，不是现代 producer 或可恢复的 runtime enum 成员。
 
-> 状态：现行外交、战争、CharacterEncounter 与 WorldSite 接管链已封板；旧 Army／Territory runtime 段落仅作历史与兼容说明｜优先级：P0｜最后更新：2026-09-21
+> 状态：现行外交、战争、CharacterEncounter 与 WorldSite 接管链已封板；旧 Army／Territory runtime 段落仅作历史说明｜优先级：P0｜最后更新：2026-09-22
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`
 > 被引用：`03-glossary.md`、`34`、`41-roadmap`
@@ -24,7 +24,7 @@
 
 1. **修士不是匿名兵力数字。** 所有修士都是持久 `Character`。
 2. **真实 Character ≠ 全员实时 Actor。** 离屏角色采用分级／数据模拟（Cold / Strategic / Hot）。
-3. **Character 与 Squad 是当前组织层。** FormalArmy 曾是军事远征组织，现只保留旧 Content／Snapshot 单向迁移输入。
+3. **Character 与 Squad 是当前组织层。** FormalArmy 曾是军事远征组织，现只保留旧 wire 识别与离线转换输入；runtime 不加载也不自动迁移。
 4. ~~**不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。~~ → **SUPERSEDED（2026-08-25）**。普通 Character／PlayerParty 可在 HexWorld 旅行；FormalArmy 仅军事远征。见 2K OLD-01／02、ADR-0026。
 5. **WorldSite 防御来自真实世界状态。** Resident Character + Squad／个人精确位置；禁止临时凭空刷修士。
 6. **战斗结果必须改变真实世界。** 死亡、伤势、Squad roster、Ownership、资源变化最终都回写真实世界状态。

@@ -16,7 +16,9 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "RuntimeContentShellBootstrap args null.");
 
             ContentRuntimeBootstrap.RehydrateInventoryCatalog(world, registry);
-            ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
+            var surfaceGround = ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
+            if (surfaceGround.IsFailure)
+                return surfaceGround;
             var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
             if (assetAnchors.IsFailure)
                 return assetAnchors;

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Surface;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -47,9 +46,9 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             motion.SetCurrentOutdoorWorldSiteContext(string.Empty);
             motion.BeginSurfaceAutoTravel(navigation.SurfaceId, destination, targetSiteId,
-                Math.Max(0.001f, arrivalRadius), RouteScratch, DeriveHex(world, destination));
+                Math.Max(0.001f, arrivalRadius), RouteScratch);
             PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                world, party, "PlayerPartySurfaceTravelService.BeginTravel");
+                world, party);
             return Result.Success();
         }
 
@@ -68,7 +67,7 @@ namespace XianXia.Core.World.Strategic
             if (navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch) != SurfaceGroundRouteStatus.Found)
                 return false;
             motion.BeginSurfaceAutoTravel(navigation.SurfaceId, destination, targetSiteId,
-                Math.Max(0.001f, arrivalRadius), RouteScratch, DeriveHex(world, destination));
+                Math.Max(0.001f, arrivalRadius), RouteScratch);
             return true;
         }
 
@@ -95,14 +94,13 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "Continuous Surface movement segment is blocked.");
 
-            motion.UpdateSurfaceWorldPosition(
-                navigation.SurfaceId, position, DeriveHex(world, position));
+            motion.UpdateSurfaceWorldPosition(navigation.SurfaceId, position);
             motion.SetCurrentOutdoorWorldSiteContext(
                 WorldSitePhysicalRegionQuery.TryResolve(world, position, out var site)
                     ? site.SiteId
                     : string.Empty);
             PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
-                world, party, "PlayerPartySurfaceTravelService.TrySyncWorldPosition");
+                world, party);
             return Result.Success();
         }
 
@@ -132,7 +130,7 @@ namespace XianXia.Core.World.Strategic
                     if (!TryResolveUniqueContainingSurface(world, position, out surface))
                         return Result.Failure(ErrorCode.InvalidOperation,
                             "PlayerParty exact position does not identify one registered Surface.");
-                    motion.SetAtSurfacePosition(surface.SurfaceId, position, DeriveHex(world, position));
+                    motion.SetAtSurfacePosition(surface.SurfaceId, position);
                 }
                 return Result.Success();
             }
@@ -162,8 +160,7 @@ namespace XianXia.Core.World.Strategic
                         "Continuous Site has no trustworthy exact position or SiteArrival.");
             }
 
-            motion.SetAtSurfacePosition(
-                navigation.SurfaceId, position, DeriveHex(world, position));
+            motion.SetAtSurfacePosition(navigation.SurfaceId, position);
             motion.SetCurrentOutdoorWorldSiteContext(siteId);
             return Result.Success();
         }
@@ -186,14 +183,6 @@ namespace XianXia.Core.World.Strategic
                 }
             }
             return count == 1;
-        }
-
-        static HexCoord DeriveHex(SimulationWorld world, WorldVec2 position)
-        {
-            var size = world?.LegacyHexWorld != null && world.LegacyHexWorld.HexSize > 0f
-                ? world.LegacyHexWorld.HexSize
-                : 1f;
-            return HexMath.WorldToHex(position.X, position.Y, size);
         }
 
         public static void Cancel(SimulationWorld world) =>
@@ -231,8 +220,8 @@ namespace XianXia.Core.World.Strategic
                 !motion.HasContinuousPhysicalDestination)
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "Continuous Surface final arrival state is invalid.");
-            if (!string.IsNullOrEmpty(motion.LegacyDestinationSiteId))
-                motion.SetCurrentOutdoorWorldSiteContext(motion.LegacyDestinationSiteId);
+            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
+                motion.SetCurrentOutdoorWorldSiteContext(motion.DestinationSiteId);
             else if (WorldSitePhysicalRegionQuery.TryResolve(world, motion.WorldPosition, out var site))
                 motion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
             motion.CancelAutoTravelPreservePosition();

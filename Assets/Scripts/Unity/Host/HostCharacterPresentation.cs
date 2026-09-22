@@ -117,11 +117,13 @@ namespace XianXia.Unity.Host
                     ? "独立战场"
                     : "独立战场 · " + DescribeSite(session.World, encounter.SourceSiteId);
             }
-            if (CharacterWorldPresenceQuery.TryDescribe(session.World, id, out _, out var siteId, out var hex, out var loaded))
+            if (CharacterWorldPresenceQuery.TryResolve(session.World, id, out var resolved))
             {
-                if (!string.IsNullOrEmpty(siteId))
-                    return DescribeSite(session.World, siteId) + (loaded ? " · 当前地图已加载" : string.Empty);
-                return "户外 " + hex;
+                if (!string.IsNullOrEmpty(resolved.SiteId))
+                    return DescribeSite(session.World, resolved.SiteId);
+                if (resolved.HasWorldPosition)
+                    return "户外 " + resolved.WorldPosition;
+                return resolved.State.ToString();
             }
             if (entity.TryGet<EntityLocationComponent>(out var location) && location.HasLocation &&
                 session.World.LocalPlaces.TryGet(location.LocationId, out var place))

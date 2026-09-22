@@ -10,7 +10,6 @@ using XianXia.Core.Navigation;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
 
@@ -354,6 +353,7 @@ namespace XianXia.Unity.Host
                     _bootstrap.MoveController.CancelPresentationMovementPublic(id);
                 }
                 ReconcileOutdoorEntityMaterialization();
+                _bootstrap.FlushLoadedDestinationArrivals();
                 _tileMap.ActivateInstanceOwner(plan.State.EncounterId + ":");
                 AlignIndependentEncounterViews(plan.State);
                 var ready = ValidateIndependentEncounterViews(plan.State, out var displaySummary);
@@ -617,6 +617,7 @@ namespace XianXia.Unity.Host
             }
 
             ReconcileOutdoorEntityMaterialization();
+            _bootstrap.FlushLoadedDestinationArrivals();
             AlignIndependentEncounterViews(state);
             ready = ValidateIndependentEncounterViews(state, out var summary);
             if (ready.IsSuccess)
@@ -922,6 +923,7 @@ namespace XianXia.Unity.Host
                 _bootstrap.MoveController.CancelPresentationMovementPublic(new EntityId(p.CharacterId));
             }
             ReconcileOutdoorEntityMaterialization();
+            _bootstrap.FlushLoadedDestinationArrivals();
             AlignIndependentEncounterViews(state);
             var ready = ValidateIndependentEncounterViews(state, out var summary);
             Debug.Log(summary, this);
@@ -968,6 +970,7 @@ namespace XianXia.Unity.Host
             // Ordinary activation reads the unchanged original party motion and individual presence.
             IsActive = false;
             TryActivateAtCurrentWorldPosition();
+            _bootstrap.FlushLoadedDestinationArrivals();
             LogReturnedSiteResidualDiagnostics(completed);
         }
 
