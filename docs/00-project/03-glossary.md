@@ -2,7 +2,7 @@
 
 > **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影。历史 FormalArmy／Hex 输入不是 runtime definition，必须先离线转换为独立的当前格式副本。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
-> 状态：持续维护 | 最后更新：2026-09-22
+> 状态：持续维护 | 最后更新：2026-09-23
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -17,6 +17,14 @@
 | 一次范围 | OnceScope | global／perTarget／perActorTarget；目标范围统一按稳定 TargetKey，仅 session fired state |
 | 互动上下文 | ContentInteractionContext | Actor、可选 Target EntityId、TargetKind、稳定 TargetKey、目标定义／实例 ID 与显示名；NPC 和固定世界物体共用 |
 | 固定世界调查 | onInspect | 对已有稳定身份 WorldObject 的主动互动；先接近并在抵达后复核对象与候选，再 Begin Event |
+
+## EVENT-02A 世界活动术语
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 世界活动动态 | WorldActivity | 玩家已获知、仍可回看的世界事实提示；不是 Quest，也不是 ContentEvent 弹窗 |
+| 活动动态栏 | HostWorldActivityPanel | 左侧 Active Activity 列表、详情与最近 100 条 History 的 Host 表现 |
+| 公开消息 | publicNotice | Opportunity 生成时建立持久 WorldActivity，并额外播放一次非阻塞 Toast；Toast 不是真源 |
 
 ## 使用约定
 

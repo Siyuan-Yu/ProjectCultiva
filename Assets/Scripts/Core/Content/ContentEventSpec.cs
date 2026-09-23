@@ -38,6 +38,10 @@ namespace XianXia.Core.Content
         public string QuestId { get; set; } = string.Empty;
         /// <summary>onTalk: character definition id to match.</summary>
         public string NpcDefinitionId { get; set; } = string.Empty;
+        /// <summary>onTalk: every tag must exist on the actual target entity.</summary>
+        public List<string> NpcTags { get; } = new List<string>();
+        /// <summary>onTalk: actual target must belong to an active WorldOpportunity instance of this template.</summary>
+        public string WorldOpportunityId { get; set; } = string.Empty;
         /// <summary>onInspect: fixed-world object category and optional exact stable instance id.</summary>
         public string WorldObjectKind { get; set; } = string.Empty;
         public string WorldObjectId { get; set; } = string.Empty;

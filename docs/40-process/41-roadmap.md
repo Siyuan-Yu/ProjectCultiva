@@ -1,6 +1,10 @@
 # 路线图
 
-> **EVENT-EDITOR-V2（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** EventEditor 已升级为按对象/按事件 Browser＋Visual Steps Graph＋上下文 Inspector，具备 working copy、dirty、undo/redo、自动布局与 editor-only layout；BaseGame 14 条审计基线事件已统一为 Steps，并新增 1 条主管普通对话保存/回读验收内容，当前共 15 条。见 [254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md)。EVENT-02 Opportunity 仍未实现。
+> **EVENT-02A（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** publicNotice 已从一次性 Toast 升级为 Snapshot v6 additive 的持久 WorldActivity Active/History；左侧活动栏支持 unread、详情、最近 100 条历史与同 Surface 镜头定位。worldVisible 不自动入栏。见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
+
+> **EVENT-02（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** `WorldOpportunityDirector` 已按当前 Continuous Surface 的每日低频门禁生成真实 NPC，复用 SpawnTable、精确 WorldPresence、通用 materialization、EVENT-01 onTalk 与 additive Snapshot v6 authority；OpportunityEditor 与 EventEditor 通用 binding 已接通。V1 仅支持 `worldVisible`／`publicNotice`，hidden 与动态 WorldObject 尚未实现。见 [255](255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+
+> **EVENT-EDITOR-V2（2026-09-23）：Producer Accepted / Sealed。** Graph-first Event/Dialogue authoring、Step/Choice 连线、可读 Speaker、Conditions/Outcomes、Priority/Topic/Repeat、显式保底、dirty/undo/redo、editor-only layout、对象/事件 Browser、全局人物来源、可读 Character Picker、按 Package 记忆上次来源，以及 NPC onTalk／WorldObject onInspect authoring已由制作人验收。EVENT-02 后续只扩展了 onTalk binding 表单与通用模板投影，不重开 V2 封板。
 
 > **EVENT-01 FINAL（2026-09-22）：Implementation Complete / Producer Acceptance Pending。** 固定世界 NPC onTalk＋WorldObject onInspect、统一稳定目标键、接近后复核、EventEditor 绑定与 Load definitions-only 已接通；见 [253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md)。EVENT-02 Opportunity Director 和剧情 runtime 持久化不在本轮。
 

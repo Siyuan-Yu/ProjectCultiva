@@ -86,7 +86,7 @@ namespace XianXia.Core.Content
             foreach (var spec in world.ContentEvents.Specs.Values)
             {
                 if (!string.Equals(spec.Trigger, trigger, StringComparison.OrdinalIgnoreCase) ||
-                    !TargetBindingMatches(spec, context, trigger) ||
+                    !TargetBindingMatches(world, spec, context, trigger) ||
                     !RepeatAllowed(world, spec, context.ActorId, context.TargetKey) ||
                     !InteractionConditionsPass(world, context.ActorId, spec.Conditions)) continue;
                 if (spec.Priority < priority) continue;
@@ -121,12 +121,29 @@ namespace XianXia.Core.Content
             return Result.Failure(ErrorCode.InvalidOperation, "Interaction is no longer eligible.", eventId);
         }
 
-        static bool TargetBindingMatches(ContentEventSpec spec, ContentInteractionContext context, string trigger)
+        static bool TargetBindingMatches(SimulationWorld world, ContentEventSpec spec, ContentInteractionContext context, string trigger)
         {
             if (string.Equals(trigger, "onTalk", StringComparison.OrdinalIgnoreCase))
-                return string.Equals(context.TargetKind, "npc", StringComparison.OrdinalIgnoreCase) &&
-                       (string.IsNullOrEmpty(spec.NpcDefinitionId) ||
-                        string.Equals(spec.NpcDefinitionId, context.TargetDefinitionId, StringComparison.Ordinal));
+            {
+                if (!string.Equals(context.TargetKind, "npc", StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(spec.NpcDefinitionId) &&
+                     !string.Equals(spec.NpcDefinitionId, context.TargetDefinitionId, StringComparison.Ordinal)))
+                    return false;
+                if (spec.NpcTags.Count > 0)
+                {
+                    if (context.TargetEntityId.IsNone || !world.Entities.TryGet(context.TargetEntityId, out var target) ||
+                        !target.TryGet<XianXia.Core.Social.PersonalityProfileComponent>(out var profile)) return false;
+                    for (var i = 0; i < spec.NpcTags.Count; i++)
+                        if (!profile.HasTag(spec.NpcTags[i])) return false;
+                }
+                if (!string.IsNullOrEmpty(spec.WorldOpportunityId))
+                {
+                    if (context.TargetEntityId.IsNone ||
+                        !world.WorldOpportunities.TryGetByEntity(context.TargetEntityId, out var instance) ||
+                        !string.Equals(instance.OpportunityDefinitionId, spec.WorldOpportunityId, StringComparison.Ordinal)) return false;
+                }
+                return true;
+            }
             if (string.Equals(trigger, "onInspect", StringComparison.OrdinalIgnoreCase))
                 return !string.IsNullOrEmpty(context.TargetKey) &&
                        string.Equals(spec.WorldObjectKind, context.TargetKind, StringComparison.OrdinalIgnoreCase) &&

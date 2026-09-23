@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Controls.Primitives;
 
 namespace EventEditor;
 
@@ -11,12 +12,16 @@ public sealed record GraphSelection(string StepId, string? ChoiceId = null);
 
 public sealed class EventFlowGraph : UserControl
 {
+    const double NodeWidth = 320;
+    const double PortSize = 22;
     readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     readonly Canvas _canvas = new() { Width = 4200, Height = 2600, Background = new SolidColorBrush(Color.FromRgb(29, 32, 38)) };
     readonly ScaleTransform _scale = new(1, 1);
     readonly HashSet<string> _selectedSteps = new(StringComparer.Ordinal);
     readonly HashSet<string> _errorSteps = new(StringComparer.Ordinal);
     readonly Dictionary<string, Border> _nodes = new(StringComparer.Ordinal);
+    readonly Dictionary<string, TextBox> _stepEditors = new(StringComparer.Ordinal);
+    readonly Dictionary<string, Button> _inputPorts = new(StringComparer.Ordinal);
     JsonArray _clipboard = new();
     JsonObject? _event;
     EventGraphLayout? _layout;
@@ -28,12 +33,18 @@ public sealed class EventFlowGraph : UserControl
     double _panH, _panV;
     Rectangle? _selectionBox;
     PortSource? _connecting;
-    Line? _previewLine;
+    Path? _previewPath;
+    GraphConnection? _selectedConnection;
+    string? _hoverTarget;
+    Point _contextPoint;
+
+    public Func<string?>? SpecificSpeakerRequested { get; set; }
 
     public event EventHandler? MutationStarting;
     public event EventHandler? Mutated;
     public event EventHandler? SelectionChanged;
     public event EventHandler? FocusTextRequested;
+    public event Action<string>? NoticeRequested;
 
     public EventFlowGraph()
     {
@@ -48,9 +59,19 @@ public sealed class EventFlowGraph : UserControl
         _canvas.PreviewMouseDown += CanvasMouseDown;
         _canvas.PreviewMouseUp += CanvasMouseUp;
         _canvas.PreviewMouseWheel += CanvasMouseWheel;
+        _canvas.ContextMenu = BuildCanvasMenu();
+        _canvas.ContextMenuOpening += (_, _) => _contextPoint = Mouse.GetPosition(_canvas);
     }
 
     public GraphSelection? Selection => _selection;
+
+    public void FocusSelectedText()
+    {
+        if (_selection != null && _stepEditors.TryGetValue(_selection.StepId, out var editor))
+        {
+            editor.Focus(); editor.SelectAll();
+        }
+    }
 
     public void Load(JsonObject raw, EventGraphLayout layout, Func<string, string> speakerLabel)
     {
@@ -146,24 +167,27 @@ public sealed class EventFlowGraph : UserControl
         var steps = Steps().OfType<JsonObject>().ToDictionary(s => S(s, "id"), StringComparer.Ordinal);
         var entry = S(_event, "entryStepId");
         var ranks = new Dictionary<string, int>(StringComparer.Ordinal);
+        var order = new Dictionary<string, int>(StringComparer.Ordinal);
         var queue = new Queue<string>();
-        if (steps.ContainsKey(entry)) { ranks[entry] = 0; queue.Enqueue(entry); }
+        var sequence = 0;
+        if (steps.ContainsKey(entry)) { ranks[entry] = 0; order[entry] = sequence++; queue.Enqueue(entry); }
         while (queue.Count > 0)
         {
             var id = queue.Dequeue();
             foreach (var next in Edges(steps[id]))
-                if (next.Length > 0 && steps.ContainsKey(next) && !ranks.ContainsKey(next)) { ranks[next] = ranks[id] + 1; queue.Enqueue(next); }
+                if (next.Length > 0 && steps.ContainsKey(next) && !ranks.ContainsKey(next)) { ranks[next] = ranks[id] + 1; order[next] = sequence++; queue.Enqueue(next); }
         }
         var tailRank = ranks.Count == 0 ? 0 : ranks.Values.Max() + 1;
-        foreach (var id in steps.Keys.Where(id => !ranks.ContainsKey(id))) ranks[id] = tailRank++;
+        foreach (var id in steps.Keys.Where(id => !ranks.ContainsKey(id))) { ranks[id] = tailRank++; order[id] = sequence++; }
         foreach (var group in ranks.GroupBy(x => x.Value).OrderBy(x => x.Key))
         {
-            var row = 0;
-            foreach (var item in group.OrderBy(x => x.Key, StringComparer.Ordinal))
+            var y = 90d;
+            foreach (var item in group.OrderBy(x => order[x.Key]))
             {
                 var node = _layout.GetOrCreate(item.Key);
-                node.X = 100 + group.Key * 330;
-                node.Y = 90 + row++ * 230;
+                node.X = 100 + group.Key * 410;
+                node.Y = y;
+                y += EstimateNodeHeight(steps[item.Key]) + 70;
             }
         }
         Mutated?.Invoke(this, EventArgs.Empty);
@@ -183,11 +207,9 @@ public sealed class EventFlowGraph : UserControl
 
     void RefreshGraph()
     {
-        _canvas.Children.Clear(); _nodes.Clear();
+        _canvas.Children.Clear(); _nodes.Clear(); _stepEditors.Clear(); _inputPorts.Clear();
         if (_event == null || _layout == null) return;
         var steps = Steps().OfType<JsonObject>().ToList();
-        _layout.Prune(steps.Select(s => S(s, "id")));
-        for (var i = 0; i < steps.Count; i++) _layout.GetOrCreate(S(steps[i], "id"), i);
         DrawConnections(steps);
         foreach (var step in steps) DrawNode(step);
     }
@@ -206,43 +228,77 @@ public sealed class EventFlowGraph : UserControl
                 var i = 0;
                 foreach (var choice in choices.OfType<JsonObject>())
                 {
-                    DrawEdge(from.X + 260, from.Y + 92 + i * 32, S(choice, "nextStepId"), positions);
+                    DrawEdge(new PortSource(id, S(choice, "id")),
+                        new Point(from.X + NodeWidth - 23, from.Y + 126 + i * 38),
+                        S(choice, "nextStepId"), positions);
                     i++;
                 }
             }
-            else DrawEdge(from.X + 260, from.Y + 118, S(step, "nextStepId"), positions);
+            else DrawEdge(new PortSource(id, null),
+                new Point(from.X + NodeWidth - 23, from.Y + 142),
+                S(step, "nextStepId"), positions);
         }
     }
 
-    void DrawEdge(double x, double y, string target, Dictionary<string, GraphNodeLayout> positions)
+    void DrawEdge(PortSource source, Point from, string target, Dictionary<string, GraphNodeLayout> positions)
     {
         if (target.Length == 0 || !positions.TryGetValue(target, out var to)) return;
-        var line = new Line { X1 = x, Y1 = y, X2 = to.X, Y2 = to.Y + 55, Stroke = new SolidColorBrush(Color.FromRgb(108, 177, 255)), StrokeThickness = 2 };
-        Panel.SetZIndex(line, 0); _canvas.Children.Add(line);
+        var connection = new GraphConnection(source, target);
+        var selected = Equals(_selectedConnection, connection);
+        var path = BezierPath(from, new Point(to.X + 23, to.Y + 24),
+            selected ? Brushes.Orange : new SolidColorBrush(Color.FromRgb(108, 177, 255)),
+            selected ? 5 : 3, true);
+        path.Tag = connection;
+        path.Cursor = Cursors.Hand;
+        path.ToolTip = "单击选择；Delete 或右键可断开连接";
+        path.MouseEnter += (_, _) => { if (!Equals(_selectedConnection, connection)) { path.Stroke = Brushes.Orange; path.StrokeThickness = 5; } };
+        path.MouseLeave += (_, _) => { if (!Equals(_selectedConnection, connection)) { path.Stroke = new SolidColorBrush(Color.FromRgb(108, 177, 255)); path.StrokeThickness = 3; } };
+        path.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            Focus(); _selectedConnection = connection; _selection = null; _selectedSteps.Clear();
+            RefreshGraph(); SelectionChanged?.Invoke(this, EventArgs.Empty); e.Handled = true;
+        };
+        var menu = new ContextMenu();
+        var disconnect = new MenuItem { Header = "断开连接" };
+        disconnect.Click += (_, _) => Disconnect(source);
+        menu.Items.Add(disconnect); path.ContextMenu = menu;
+        Panel.SetZIndex(path, 0); _canvas.Children.Add(path);
     }
 
     void DrawNode(JsonObject step)
     {
         if (_event == null || _layout == null) return;
         var id = S(step, "id");
-        var pos = _layout.GetOrCreate(id);
+        var pos = _layout.Find(id); if (pos == null) return;
         var selected = _selectedSteps.Contains(id);
         var border = new Border
         {
-            Width = 260, MinHeight = 135, Padding = new Thickness(10), CornerRadius = new CornerRadius(7),
+            Width = NodeWidth, MinHeight = 155, Padding = new Thickness(12), CornerRadius = new CornerRadius(8),
             Background = new SolidColorBrush(Color.FromRgb(48, 53, 62)),
             BorderBrush = new SolidColorBrush(_errorSteps.Contains(id) ? Color.FromRgb(235, 82, 82) : selected ? Color.FromRgb(255, 190, 70) : Color.FromRgb(92, 102, 118)),
             BorderThickness = new Thickness(selected || _errorSteps.Contains(id) ? 2 : 1), Tag = new NodeTag(id)
         };
         var panel = new StackPanel(); border.Child = panel;
-        var header = new DockPanel { LastChildFill = true };
+        var header = new Grid();
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(PortSize) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var input = InputPort(id); Grid.SetColumn(input, 0); header.Children.Add(input);
+        var speaker = SpeakerEditor(step, id); Grid.SetColumn(speaker, 1); header.Children.Add(speaker);
         var badges = new StackPanel { Orientation = Orientation.Horizontal };
         if (S(_event, "entryStepId") == id) badges.Children.Add(Badge("入口", Color.FromRgb(48, 130, 90)));
         if (_errorSteps.Contains(id)) badges.Children.Add(Badge("错误", Color.FromRgb(175, 55, 55)));
-        DockPanel.SetDock(badges, Dock.Right); header.Children.Add(badges);
-        header.Children.Add(new TextBlock { Text = _speakerLabel(S(step, "speakerRef")), Foreground = Brushes.White, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        Grid.SetColumn(badges, 2); header.Children.Add(badges);
         panel.Children.Add(header);
-        panel.Children.Add(new TextBlock { Text = Preview(S(step, "text"), 105), Foreground = new SolidColorBrush(Color.FromRgb(221, 225, 232)), TextWrapping = TextWrapping.Wrap, MaxHeight = 58, Margin = new Thickness(0, 8, 0, 8) });
+        var text = new TextBox
+        {
+            Text = S(step, "text"), AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+            MinHeight = 54, MaxHeight = 110, Margin = new Thickness(0, 8, 0, 8), Padding = new Thickness(7, 5, 7, 5),
+            Foreground = new SolidColorBrush(Color.FromRgb(232, 235, 240)), Background = new SolidColorBrush(Color.FromRgb(38, 42, 50)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(75, 84, 98)), VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            ToolTip = "直接编辑正文；Ctrl+Enter 提交，Enter 换行"
+        };
+        WireInlineText(text, id, null); panel.Children.Add(text); _stepEditors[id] = text;
         var conditions = Count(step, "conditions"); var outcomes = Count(step, "outcomes");
         if (conditions + outcomes > 0)
             panel.Children.Add(new TextBlock { Text = $"{(conditions > 0 ? "🔒 条件 " + conditions + "  " : "")}{(outcomes > 0 ? "✓ 结果 " + outcomes : "")}", Foreground = new SolidColorBrush(Color.FromRgb(185, 194, 207)), FontSize = 11 });
@@ -251,28 +307,47 @@ public sealed class EventFlowGraph : UserControl
         {
             foreach (var choice in choices.OfType<JsonObject>())
             {
-                var row = new Grid { Margin = new Thickness(0, 4, 0, 0), Tag = new ChoiceTag(id, S(choice, "id")) };
+                var choiceId = S(choice, "id");
+                var row = new Grid { Margin = new Thickness(0, 5, 0, 0), Tag = new ChoiceTag(id, choiceId) };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                var prefix = Count(choice, "conditions") > 0 ? "🔒 " : "○ ";
-                var text = new Button { Content = prefix + Preview(S(choice, "text"), 34), HorizontalContentAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent, Foreground = Brushes.White, BorderThickness = new Thickness(0), Padding = new Thickness(2) };
-                text.Click += (_, _) => Select(id, S(choice, "id"), false);
-                row.Children.Add(text);
-                var port = PortButton(new PortSource(id, S(choice, "id"))); Grid.SetColumn(port, 1); row.Children.Add(port);
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(PortSize + 2) });
+                var choiceBox = new TextBox
+                {
+                    Text = S(choice, "text"), MinHeight = 29, Padding = new Thickness(5, 3, 5, 3),
+                    Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(42, 47, 56)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(76, 86, 102)),
+                    ToolTip = "单击选择；直接编辑玩家选项"
+                };
+                var prefix = Count(choice, "conditions") > 0 ? "🔒" : "○";
+                if (S(choice, "unavailableMode") == "hidden") prefix += " 隐藏";
+                var choicePanel = new DockPanel();
+                var badge = new TextBlock { Text = prefix, Foreground = new SolidColorBrush(Color.FromRgb(190, 198, 212)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
+                DockPanel.SetDock(badge, Dock.Left); choicePanel.Children.Add(badge); choicePanel.Children.Add(choiceBox);
+                WireInlineText(choiceBox, id, choiceId); Grid.SetColumn(choicePanel, 0); row.Children.Add(choicePanel);
+                var port = PortButton(new PortSource(id, choiceId), S(choice, "nextStepId").Length == 0); Grid.SetColumn(port, 1); row.Children.Add(port);
+                row.PreviewMouseLeftButtonDown += (_, e) =>
+                {
+                    if (IsInteractive(e.OriginalSource as DependencyObject)) return;
+                    _selection = new GraphSelection(id, choiceId); _selectedConnection = null; _selectedSteps.Clear(); _selectedSteps.Add(id);
+                    SelectionChanged?.Invoke(this, EventArgs.Empty); e.Handled = true;
+                };
                 panel.Children.Add(row);
             }
+            var add = new Button { Content = "＋ 添加玩家选择", Margin = new Thickness(0, 9, 0, 0), Padding = new Thickness(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
+            add.Click += (_, _) => AddChoice(id); panel.Children.Add(add);
         }
         else
         {
             var row = new DockPanel { Margin = new Thickness(0, 5, 0, 0) };
-            var port = PortButton(new PortSource(id, null)); DockPanel.SetDock(port, Dock.Right); row.Children.Add(port);
-            row.Children.Add(new TextBlock { Text = S(step, "nextStepId").Length == 0 ? "事件结束" : "下一句", Foreground = new SolidColorBrush(Color.FromRgb(160, 170, 185)), VerticalAlignment = VerticalAlignment.Center });
+            var port = PortButton(new PortSource(id, null), S(step, "nextStepId").Length == 0); DockPanel.SetDock(port, Dock.Right); row.Children.Add(port);
+            row.Children.Add(new TextBlock { Text = S(step, "nextStepId").Length == 0 ? "＋ 连接下一句" : "→ 下一句", Foreground = new SolidColorBrush(Color.FromRgb(190, 200, 214)), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
             panel.Children.Add(row);
         }
         border.PreviewMouseLeftButtonDown += NodeMouseDown;
         var menu = new ContextMenu();
         var entry = new MenuItem { Header = "设为入口" }; entry.Click += (_, _) => SetEntry(id); menu.Items.Add(entry);
         var addChoice = new MenuItem { Header = "添加选项" }; addChoice.Click += (_, _) => AddChoice(id); menu.Items.Add(addChoice);
+        var end = new MenuItem { Header = "此处结束事件 / 断开下一句" }; end.Click += (_, _) => Disconnect(new PortSource(id, null)); menu.Items.Add(end);
         var delete = new MenuItem { Header = "删除节点" }; delete.Click += (_, _) => { Select(id, null, false); DeleteSelected(); }; menu.Items.Add(delete);
         border.ContextMenu = menu;
         Canvas.SetLeft(border, pos.X); Canvas.SetTop(border, pos.Y); Panel.SetZIndex(border, 2);
@@ -280,20 +355,226 @@ public sealed class EventFlowGraph : UserControl
     }
 
     static Border Badge(string text, Color color) => new() { Background = new SolidColorBrush(color), CornerRadius = new CornerRadius(3), Padding = new Thickness(5, 1, 5, 1), Margin = new Thickness(4, 0, 0, 0), Child = new TextBlock { Text = text, Foreground = Brushes.White, FontSize = 10 } };
-    Button PortButton(PortSource source)
+    Button PortButton(PortSource source, bool unconnected)
     {
-        var button = new Button { Content = "●", Foreground = new SolidColorBrush(Color.FromRgb(108, 177, 255)), Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(5, 0, 2, 0), ToolTip = "拖到节点或空白处创建连接" };
+        var button = new Button
+        {
+            Content = "●", Width = PortSize, Height = PortSize, FontSize = 17, Padding = new Thickness(0),
+            Foreground = unconnected ? Brushes.DeepSkyBlue : new SolidColorBrush(Color.FromRgb(108, 177, 255)),
+            Background = unconnected ? new SolidColorBrush(Color.FromArgb(45, 0, 180, 255)) : Brushes.Transparent,
+            BorderBrush = Brushes.Transparent, Cursor = Cursors.Cross,
+            ToolTip = "拖动到另一个对话框，或拖到空白处创建下一句"
+        };
+        button.MouseEnter += (_, _) => { button.RenderTransformOrigin = new Point(.5, .5); button.RenderTransform = new ScaleTransform(1.22, 1.22); button.Foreground = Brushes.Orange; };
+        button.MouseLeave += (_, _) => { button.RenderTransform = Transform.Identity; button.Foreground = unconnected ? Brushes.DeepSkyBlue : new SolidColorBrush(Color.FromRgb(108, 177, 255)); };
         button.PreviewMouseLeftButtonDown += (_, e) =>
         {
-            Focus(); _connecting = source; _pointerStart = e.GetPosition(_canvas);
-            _previewLine = new Line { X1 = _pointerStart.X, Y1 = _pointerStart.Y, X2 = _pointerStart.X, Y2 = _pointerStart.Y, Stroke = Brushes.Orange, StrokeThickness = 2, StrokeDashArray = new DoubleCollection { 4, 3 } };
-            _canvas.Children.Add(_previewLine); _canvas.CaptureMouse(); e.Handled = true;
+            Focus(); _connecting = source; _selectedConnection = null;
+            _pointerStart = SourcePoint(source);
+            _previewPath = BezierPath(_pointerStart, _pointerStart, Brushes.Orange, 4, true);
+            _previewPath.IsHitTestVisible = false;
+            _previewPath.StrokeDashArray = new DoubleCollection { 5, 3 };
+            Panel.SetZIndex(_previewPath, 8); _canvas.Children.Add(_previewPath); _canvas.CaptureMouse(); RefreshPortHighlights(); e.Handled = true;
         };
         var menu = new ContextMenu();
         var disconnect = new MenuItem { Header = "断开连接" };
         disconnect.Click += (_, _) => Disconnect(source);
         menu.Items.Add(disconnect); button.ContextMenu = menu;
         return button;
+    }
+
+    Button InputPort(string stepId)
+    {
+        var button = new Button
+        {
+            Content = "○", Width = PortSize, Height = PortSize, FontSize = 19, Padding = new Thickness(0),
+            Foreground = new SolidColorBrush(Color.FromRgb(112, 190, 255)), Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent, IsHitTestVisible = false, ToolTip = "连接输入口"
+        };
+        _inputPorts[stepId] = button;
+        return button;
+    }
+
+    ComboBox SpeakerEditor(JsonObject step, string stepId)
+    {
+        var value = S(step, "speakerRef");
+        var box = new ComboBox
+        {
+            MinWidth = 150, MaxWidth = 210, Margin = new Thickness(5, 0, 8, 0),
+            ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "指定人物…" },
+            SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 },
+            ToolTip = value.Length > 0 && value is not ("@actor" or "@target") ? _speakerLabel(value) : "直接切换说话人"
+        };
+        box.SelectionChanged += (_, _) =>
+        {
+            var next = box.SelectedIndex switch
+            {
+                1 => "@actor",
+                2 => "@target",
+                3 => SpecificSpeakerRequested?.Invoke(),
+                _ => ""
+            };
+            if (next == null) { box.SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 }; return; }
+            var current = S(FindStep(stepId) ?? new JsonObject(), "speakerRef");
+            if (current == next) return;
+            MutationStarting?.Invoke(this, EventArgs.Empty);
+            var target = FindStep(stepId); if (target != null) target["speakerRef"] = next;
+            Mutated?.Invoke(this, EventArgs.Empty);
+        };
+        return box;
+    }
+
+    void WireInlineText(TextBox box, string stepId, string? choiceId)
+    {
+        box.GotKeyboardFocus += (_, _) =>
+        {
+            _selection = new GraphSelection(stepId, choiceId);
+            _selectedConnection = null; _selectedSteps.Clear(); _selectedSteps.Add(stepId);
+            Dispatcher.BeginInvoke(() => SelectionChanged?.Invoke(this, EventArgs.Empty));
+        };
+        box.LostKeyboardFocus += (_, _) => CommitInlineText(box, stepId, choiceId);
+        box.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                CommitInlineText(box, stepId, choiceId); Focus(); e.Handled = true;
+            }
+        };
+    }
+
+    void CommitInlineText(TextBox box, string stepId, string? choiceId)
+    {
+        var step = FindStep(stepId); if (step == null) return;
+        JsonObject? target = step;
+        if (choiceId != null) target = (step["choices"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(c => S(c, "id") == choiceId);
+        if (target == null || S(target, "text") == box.Text) return;
+        MutationStarting?.Invoke(this, EventArgs.Empty); target["text"] = box.Text; Mutated?.Invoke(this, EventArgs.Empty);
+    }
+
+    Point SourcePoint(PortSource source)
+    {
+        if (_layout == null) return new Point();
+        var position = _layout.GetOrCreate(source.StepId);
+        if (source.ChoiceId == null) return new Point(position.X + NodeWidth - 23, position.Y + 142);
+        var step = FindStep(source.StepId);
+        var index = (step?["choices"] as JsonArray)?.OfType<JsonObject>().ToList().FindIndex(c => S(c, "id") == source.ChoiceId) ?? 0;
+        return new Point(position.X + NodeWidth - 23, position.Y + 126 + Math.Max(0, index) * 38);
+    }
+
+    static Path BezierPath(Point from, Point to, Brush stroke, double thickness, bool arrow)
+    {
+        var path = new Path { Stroke = stroke, StrokeThickness = thickness, Fill = Brushes.Transparent, SnapsToDevicePixels = true };
+        path.Data = BezierGeometry(from, to, arrow);
+        return path;
+    }
+
+    static Geometry BezierGeometry(Point from, Point to, bool arrow)
+    {
+        var bend = Math.Max(70, Math.Abs(to.X - from.X) * .45);
+        var c1 = new Point(from.X + bend, from.Y);
+        var c2 = new Point(to.X - bend, to.Y);
+        var geometry = new PathGeometry();
+        var curve = new PathFigure { StartPoint = from, IsClosed = false };
+        curve.Segments.Add(new BezierSegment(c1, c2, to, true)); geometry.Figures.Add(curve);
+        if (arrow)
+        {
+            var angle = Math.Atan2(to.Y - c2.Y, to.X - c2.X);
+            var left = new Point(to.X - 13 * Math.Cos(angle - .48), to.Y - 13 * Math.Sin(angle - .48));
+            var right = new Point(to.X - 13 * Math.Cos(angle + .48), to.Y - 13 * Math.Sin(angle + .48));
+            var head = new PathFigure { StartPoint = left, IsClosed = false };
+            head.Segments.Add(new LineSegment(to, true)); head.Segments.Add(new LineSegment(right, true)); geometry.Figures.Add(head);
+        }
+        return geometry;
+    }
+
+    void RefreshPortHighlights()
+    {
+        foreach (var pair in _inputPorts)
+        {
+            var eligible = _connecting != null && pair.Key != _connecting.StepId;
+            var hovered = eligible && pair.Key == _hoverTarget;
+            pair.Value.Foreground = hovered ? Brushes.White : eligible ? Brushes.Orange : new SolidColorBrush(Color.FromRgb(112, 190, 255));
+            pair.Value.Background = hovered ? Brushes.OrangeRed : eligible ? new SolidColorBrush(Color.FromArgb(70, 255, 165, 0)) : Brushes.Transparent;
+            pair.Value.RenderTransformOrigin = new Point(.5, .5);
+            pair.Value.RenderTransform = hovered ? new ScaleTransform(1.35, 1.35) : Transform.Identity;
+        }
+    }
+
+    static double EstimateNodeHeight(JsonObject step)
+    {
+        var choices = (step["choices"] as JsonArray)?.Count ?? 0;
+        var textLines = Math.Clamp((S(step, "text").Length / 32) + 1, 2, 5);
+        return 92 + textLines * 18 + (choices > 0 ? choices * 38 + 42 : 35);
+    }
+
+    ContextMenu BuildCanvasMenu()
+    {
+        var menu = new ContextMenu();
+        foreach (var item in SpeakerMenuItems((speaker, point) => AddStepAt(point, speaker), () => _contextPoint)) menu.Items.Add(item);
+        return menu;
+    }
+
+    IEnumerable<MenuItem> SpeakerMenuItems(Action<string, Point> action, Func<Point> point)
+    {
+        MenuItem Item(string title, string? speaker, bool recommended = false)
+        {
+            var item = new MenuItem { Header = title, FontWeight = recommended ? FontWeights.Bold : FontWeights.Normal, InputGestureText = recommended ? "推荐" : "" };
+            item.Click += (_, _) =>
+            {
+                var selected = speaker == null ? SpecificSpeakerRequested?.Invoke() : speaker;
+                if (selected != null) action(selected, point());
+            };
+            return item;
+        }
+        yield return Item("创建：当前玩家说话", "@actor");
+        yield return Item("创建：当前互动对象说话", "@target");
+        yield return Item("创建：旁白", "");
+        yield return Item("创建：指定人物…", null);
+    }
+
+    void AddStepAt(Point point, string speaker)
+    {
+        if (_event == null || _layout == null) return;
+        MutationStarting?.Invoke(this, EventArgs.Empty);
+        var steps = Steps(); var id = NextId("step", steps.OfType<JsonObject>().Select(s => S(s, "id")));
+        steps.Add(NewStep(id, speaker)); if (S(_event, "entryStepId").Length == 0) _event["entryStepId"] = id;
+        var pos = _layout.GetOrCreate(id); pos.X = Math.Max(20, point.X); pos.Y = Math.Max(20, point.Y);
+        _selection = new GraphSelection(id); _selectedSteps.Clear(); _selectedSteps.Add(id);
+        Mutated?.Invoke(this, EventArgs.Empty); RefreshGraph(); SelectionChanged?.Invoke(this, EventArgs.Empty);
+        Dispatcher.BeginInvoke(() => { if (_stepEditors.TryGetValue(id, out var editor)) { editor.Focus(); editor.SelectAll(); } });
+    }
+
+    void ShowCreateMenu(PortSource source, Point point)
+    {
+        var sourceStep = FindStep(source.StepId);
+        var recommended = source.ChoiceId != null ? "@actor" : S(sourceStep ?? new JsonObject(), "speakerRef") switch { "@target" => "@actor", "@actor" => "@target", _ => "" };
+        var menu = new ContextMenu { Placement = PlacementMode.RelativePoint, PlacementTarget = _canvas, HorizontalOffset = point.X, VerticalOffset = point.Y };
+        foreach (var tuple in new[] { ("当前玩家说话", "@actor"), ("当前互动对象说话", "@target"), ("旁白", "") })
+        {
+            var speaker = tuple.Item2;
+            var item = new MenuItem { Header = "创建下一句：" + tuple.Item1, FontWeight = speaker == recommended ? FontWeights.Bold : FontWeights.Normal, InputGestureText = speaker == recommended ? "推荐" : "" };
+            item.Click += (_, _) => CreateConnectedStep(source, point, speaker); menu.Items.Add(item);
+        }
+        var specified = new MenuItem { Header = "创建下一句：指定人物…" };
+        specified.Click += (_, _) => { var speaker = SpecificSpeakerRequested?.Invoke(); if (speaker != null) CreateConnectedStep(source, point, speaker); };
+        menu.Items.Add(specified);
+        menu.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Enter || menu.Items.OfType<MenuItem>().Any(x => x.IsHighlighted)) return;
+            menu.IsOpen = false; CreateConnectedStep(source, point, recommended); e.Handled = true;
+        };
+        menu.IsOpen = true;
+    }
+
+    void CreateConnectedStep(PortSource source, Point point, string speaker)
+    {
+        if (_event == null || _layout == null) return;
+        MutationStarting?.Invoke(this, EventArgs.Empty);
+        var steps = Steps(); var id = NextId("step", steps.OfType<JsonObject>().Select(s => S(s, "id")));
+        steps.Add(NewStep(id, speaker)); var pos = _layout.GetOrCreate(id); pos.X = Math.Max(20, point.X); pos.Y = Math.Max(20, point.Y);
+        SetNext(source, id); _selection = new GraphSelection(id); _selectedSteps.Clear(); _selectedSteps.Add(id);
+        Mutated?.Invoke(this, EventArgs.Empty); RefreshGraph(); SelectionChanged?.Invoke(this, EventArgs.Empty);
+        Dispatcher.BeginInvoke(() => { if (_stepEditors.TryGetValue(id, out var editor)) editor.Focus(); });
     }
 
     void Disconnect(PortSource source)
@@ -307,6 +588,7 @@ public sealed class EventFlowGraph : UserControl
     void NodeMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_connecting != null || sender is not Border border || border.Tag is not NodeTag tag) return;
+        if (IsInteractive(e.OriginalSource as DependencyObject)) return;
         if (e.ClickCount == 2) { Select(tag.StepId, null, false); FocusTextRequested?.Invoke(this, EventArgs.Empty); e.Handled = true; return; }
         Focus();
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
@@ -333,7 +615,14 @@ public sealed class EventFlowGraph : UserControl
     void CanvasMouseMove(object sender, MouseEventArgs e)
     {
         var p = e.GetPosition(_canvas);
-        if (_previewLine != null) { _previewLine.X2 = p.X; _previewLine.Y2 = p.Y; return; }
+        if (_previewPath != null)
+        {
+            _previewPath.Data = BezierGeometry(_pointerStart, p, true);
+            var hit = _canvas.InputHitTest(p) as DependencyObject;
+            var target = AncestorTag<NodeTag>(hit)?.StepId;
+            if (_hoverTarget != target) { _hoverTarget = target; RefreshPortHighlights(); }
+            return;
+        }
         if (_draggingNodes && _layout != null)
         {
             var delta = p - _pointerStart;
@@ -355,8 +644,11 @@ public sealed class EventFlowGraph : UserControl
         {
             var hit = _canvas.InputHitTest(p) as DependencyObject;
             var target = AncestorTag<NodeTag>(hit)?.StepId;
-            CompleteConnection(source, target, p);
-            _connecting = null; if (_previewLine != null) _canvas.Children.Remove(_previewLine); _previewLine = null; _canvas.ReleaseMouseCapture(); e.Handled = true; return;
+            _connecting = null; _hoverTarget = null; if (_previewPath != null) _canvas.Children.Remove(_previewPath); _previewPath = null; _canvas.ReleaseMouseCapture(); RefreshPortHighlights();
+            if (target == source.StepId) NoticeRequested?.Invoke("不能把节点连接到自己；本次连接未生效。");
+            else if (target == null) ShowCreateMenu(source, p);
+            else CompleteConnection(source, target);
+            e.Handled = true; return;
         }
         if (_draggingNodes)
         {
@@ -371,21 +663,12 @@ public sealed class EventFlowGraph : UserControl
         }
     }
 
-    void CompleteConnection(PortSource source, string? target, Point drop)
+    void CompleteConnection(PortSource source, string target)
     {
-        if (_event == null || _layout == null) return;
+        if (_event == null || _layout == null || FindStep(target) == null) return;
         MutationStarting?.Invoke(this, EventArgs.Empty);
-        if (string.IsNullOrEmpty(target))
-        {
-            var steps = Steps(); var id = NextId("step", steps.OfType<JsonObject>().Select(s => S(s, "id")));
-            var sourceStep = FindStep(source.StepId); var suggested = source.ChoiceId != null ? "@actor" : S(sourceStep ?? new JsonObject(), "speakerRef") switch { "@target" => "@actor", "@actor" => "@target", _ => "" };
-            steps.Add(NewStep(id, suggested)); target = id;
-            var pos = _layout.GetOrCreate(id); pos.X = Math.Max(20, drop.X); pos.Y = Math.Max(20, drop.Y);
-            _selection = new GraphSelection(id); _selectedSteps.Clear(); _selectedSteps.Add(id);
-        }
-        SetNext(source, target!);
+        SetNext(source, target);
         Mutated?.Invoke(this, EventArgs.Empty); RefreshGraph(); SelectionChanged?.Invoke(this, EventArgs.Empty);
-        if (_selection?.StepId == target && FindStep(target) != null) FocusTextRequested?.Invoke(this, EventArgs.Empty);
     }
 
     void SetNext(PortSource source, string target)
@@ -410,7 +693,7 @@ public sealed class EventFlowGraph : UserControl
 
     void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Delete) { DeleteSelected(); e.Handled = true; }
+        if (e.Key == Key.Delete) { if (_selectedConnection != null) { var selected = _selectedConnection; _selectedConnection = null; Disconnect(selected.Source); } else DeleteSelected(); e.Handled = true; }
         else if (e.Key == Key.C && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { CopySelected(); e.Handled = true; }
         else if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { Paste(); e.Handled = true; }
     }
@@ -452,7 +735,9 @@ public sealed class EventFlowGraph : UserControl
     static string NextId(string prefix, IEnumerable<string> used) { var set = used.ToHashSet(StringComparer.Ordinal); for (var i = 1; ; i++) { var id = $"{prefix}_{i:000}"; if (!set.Contains(id)) return id; } }
     static IEnumerable<string> Edges(JsonObject step) => step["choices"] is JsonArray { Count: > 0 } choices ? choices.OfType<JsonObject>().Select(c => S(c, "nextStepId")) : new[] { S(step, "nextStepId") };
     static T? AncestorTag<T>(DependencyObject? obj) where T : class { while (obj != null) { if (obj is FrameworkElement e && e.Tag is T tag) return tag; obj = VisualTreeHelper.GetParent(obj); } return null; }
+    static bool IsInteractive(DependencyObject? obj) { while (obj != null) { if (obj is TextBoxBase or ButtonBase or ComboBox) return true; obj = VisualTreeHelper.GetParent(obj); } return false; }
     sealed record NodeTag(string StepId);
     sealed record ChoiceTag(string StepId, string ChoiceId);
     sealed record PortSource(string StepId, string? ChoiceId);
+    sealed record GraphConnection(PortSource Source, string TargetStepId);
 }

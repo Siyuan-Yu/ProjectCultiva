@@ -6,6 +6,8 @@ public sealed class EditorSession
 {
     readonly Stack<Snapshot> _undo = new();
     readonly Stack<Snapshot> _redo = new();
+    Snapshot _cleanBaseline;
+    bool _forceDirtyUntilSaved;
 
     public ContentAuthoring.Shared.DefRef? Source { get; private set; }
     public JsonObject Working { get; private set; }
@@ -20,7 +22,9 @@ public sealed class EditorSession
         Source = source;
         Working = working;
         Layout = layout;
-        IsDirty = source == null;
+        _cleanBaseline = Capture();
+        _forceDirtyUntilSaved = source == null;
+        RecalculateDirty();
     }
 
     public bool CanUndo => _undo.Count > 0;
@@ -34,7 +38,7 @@ public sealed class EditorSession
             return;
         _undo.Push(before);
         _redo.Clear();
-        IsDirty = true;
+        RecalculateDirty();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -44,7 +48,7 @@ public sealed class EditorSession
             return;
         _undo.Push(before);
         _redo.Clear();
-        IsDirty = true;
+        RecalculateDirty();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -68,7 +72,7 @@ public sealed class EditorSession
     {
         Working = JsonNode.Parse(snapshot.RawJson)!.AsObject();
         Layout = EventGraphLayout.FromJson(snapshot.LayoutJson);
-        IsDirty = true;
+        RecalculateDirty();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -77,8 +81,16 @@ public sealed class EditorSession
         Source = source;
         _undo.Clear();
         _redo.Clear();
-        IsDirty = false;
+        _cleanBaseline = Capture();
+        _forceDirtyUntilSaved = false;
+        RecalculateDirty();
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    void RecalculateDirty()
+    {
+        var current = Capture();
+        IsDirty = _forceDirtyUntilSaved || current.RawJson != _cleanBaseline.RawJson || current.LayoutJson != _cleanBaseline.LayoutJson;
     }
 
     public readonly record struct Snapshot(string RawJson, string LayoutJson);

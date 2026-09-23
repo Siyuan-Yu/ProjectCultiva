@@ -54,6 +54,10 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, RealmLadderDefinition>();
         readonly Dictionary<DefinitionId, SpawnTableDefinition> _spawnTables =
             new Dictionary<DefinitionId, SpawnTableDefinition>();
+        readonly Dictionary<DefinitionId, WorldOpportunityDirectorDefinition> _worldOpportunityDirectors =
+            new Dictionary<DefinitionId, WorldOpportunityDirectorDefinition>();
+        readonly Dictionary<DefinitionId, WorldOpportunityDefinition> _worldOpportunities =
+            new Dictionary<DefinitionId, WorldOpportunityDefinition>();
         readonly Dictionary<DefinitionId, LocalPlaceSetDefinition> _localPlaceSets =
             new Dictionary<DefinitionId, LocalPlaceSetDefinition>();
         readonly Dictionary<DefinitionId, NpcSquadDefinition> _npcSquads =
@@ -87,6 +91,8 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, MapLayoutDefinition> MapLayouts => _mapLayouts;
         public IReadOnlyDictionary<DefinitionId, RealmLadderDefinition> RealmLadders => _realmLadders;
         public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
+        public IReadOnlyDictionary<DefinitionId, WorldOpportunityDirectorDefinition> WorldOpportunityDirectors => _worldOpportunityDirectors;
+        public IReadOnlyDictionary<DefinitionId, WorldOpportunityDefinition> WorldOpportunities => _worldOpportunities;
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
         public IReadOnlyDictionary<DefinitionId, NpcSquadDefinition> NpcSquads => _npcSquads;
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
@@ -116,6 +122,8 @@ namespace XianXia.Data.Content
             _mapLayouts.ContainsKey(id) ||
             _realmLadders.ContainsKey(id) ||
             _spawnTables.ContainsKey(id) ||
+            _worldOpportunityDirectors.ContainsKey(id) ||
+            _worldOpportunities.ContainsKey(id) ||
             _localPlaceSets.ContainsKey(id) ||
             _npcSquads.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
@@ -263,6 +271,20 @@ namespace XianXia.Data.Content
             return Register(_spawnTables, definition, definition.Id);
         }
 
+        public Result RegisterWorldOpportunityDirector(WorldOpportunityDirectorDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "WorldOpportunityDirectorDefinition is null.");
+            return Register(_worldOpportunityDirectors, definition, definition.Id);
+        }
+
+        public Result RegisterWorldOpportunity(WorldOpportunityDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "WorldOpportunityDefinition is null.");
+            return Register(_worldOpportunities, definition, definition.Id);
+        }
+
         public Result RegisterLocalPlaceSet(LocalPlaceSetDefinition definition)
         {
             if (definition == null)
@@ -370,6 +392,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetSpawnTable(DefinitionId id, out SpawnTableDefinition definition) =>
             _spawnTables.TryGetValue(id, out definition);
+
+        public bool TryGetWorldOpportunity(DefinitionId id, out WorldOpportunityDefinition definition) =>
+            _worldOpportunities.TryGetValue(id, out definition);
 
         public bool TryGetLocalPlaceSet(DefinitionId id, out LocalPlaceSetDefinition definition) =>
             _localPlaceSets.TryGetValue(id, out definition);

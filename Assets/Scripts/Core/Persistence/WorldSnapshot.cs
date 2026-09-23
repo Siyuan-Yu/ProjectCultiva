@@ -64,6 +64,59 @@ namespace XianXia.Core.Persistence
             new List<OutdoorDestructibleSnapshotDto>();
         public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
             new List<OutdoorFarmPlotSnapshotDto>();
+        /// <summary>EVENT-02 additive v6 authority; null means an older v6 save with no runtime opportunities.</summary>
+        public WorldOpportunityRuntimeSnapshotDto WorldOpportunityRuntime { get; set; }
+        /// <summary>EVENT-02A additive v6 authority; null means an older v6 save with no activity feed.</summary>
+        public WorldActivityRuntimeSnapshotDto WorldActivityRuntime { get; set; }
+    }
+
+    public sealed class WorldActivityRuntimeSnapshotDto
+    {
+        public bool HasAuthority { get; set; }
+        public ulong NextActivitySequence { get; set; } = 1;
+        public List<WorldActivityEntrySnapshotDto> Entries { get; set; } =
+            new List<WorldActivityEntrySnapshotDto>();
+    }
+
+    public sealed class WorldActivityEntrySnapshotDto
+    {
+        public string ActivityId { get; set; } = string.Empty;
+        public string SourceKind { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+        public ulong CreatedDayIndex { get; set; }
+        public string State { get; set; } = string.Empty;
+        public bool IsRead { get; set; }
+        public bool HasResolvedDayIndex { get; set; }
+        public ulong ResolvedDayIndex { get; set; }
+    }
+
+    public sealed class WorldOpportunityRuntimeSnapshotDto
+    {
+        public bool HasAuthority { get; set; }
+        public ulong NextInstanceSequence { get; set; } = 1;
+        public List<WorldOpportunityInstanceSnapshotDto> Instances { get; set; } =
+            new List<WorldOpportunityInstanceSnapshotDto>();
+        public List<WorldOpportunitySurfaceRefreshSnapshotDto> SurfaceRefreshStates { get; set; } =
+            new List<WorldOpportunitySurfaceRefreshSnapshotDto>();
+    }
+
+    public sealed class WorldOpportunityInstanceSnapshotDto
+    {
+        public string InstanceId { get; set; } = string.Empty;
+        public string OpportunityDefinitionId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public ulong SpawnedEntityId { get; set; }
+        public ulong CreatedDayIndex { get; set; }
+        public ulong ExpireDayIndexExclusive { get; set; }
+        public string DiscoveryMode { get; set; } = string.Empty;
+    }
+
+    public sealed class WorldOpportunitySurfaceRefreshSnapshotDto
+    {
+        public string SurfaceId { get; set; } = string.Empty;
+        public ulong LastRefreshDayIndex { get; set; }
     }
 
     public sealed class OutdoorConstructedAssetSnapshotDto

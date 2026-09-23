@@ -1,6 +1,6 @@
 # ContentAuthoring（Windows / WPF）
 
-本目录有 10 个独立编辑器工程，以及共享库。Editor metadata 的唯一真源是 [EditorManifest.json](EditorManifest.json)：它定义工程路径、生命周期、默认发布集合、未来替代工具与提示说明。
+本目录有 11 个独立编辑器工程，以及共享库。Editor metadata 的唯一真源是 [EditorManifest.json](EditorManifest.json)：它定义工程路径、生命周期、默认发布集合、未来替代工具与提示说明。
 
 ## 日常编译与启动
 
@@ -26,6 +26,7 @@
 | `ManualArtEditor` | 功法与斗技 |
 | `QuestEditor` | 任务 |
 | `EventEditor` | 事件 |
+| `OpportunityEditor` | 世界机会 Director、模板、NPC 人物池与过期结果 |
 | `WorkAreaEditor` | 工区规则、容量与权限 |
 | `WorldComposer` | Continuous Surface 大世界拼装、路径、链接放置、预览与 Bake |
 | `FineEditor` | WorldSite Blueprint / Detail Patch 的逐 Surface Cell 精修与对象放置 |

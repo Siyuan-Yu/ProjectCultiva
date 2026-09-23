@@ -58,6 +58,10 @@ namespace XianXia.Data.Serialization
             root["suppressedCharacterContacts"] = JsonValue.FromArray(suppressedContacts);
             if (snapshot.CharacterEncounter != null)
                 root["characterEncounter"] = CharacterEncounterJson.Write(snapshot.CharacterEncounter);
+            if (snapshot.WorldOpportunityRuntime != null)
+                root["worldOpportunityRuntime"] = SerializeWorldOpportunityRuntime(snapshot.WorldOpportunityRuntime);
+            if (snapshot.WorldActivityRuntime != null)
+                root["worldActivityRuntime"] = SerializeWorldActivityRuntime(snapshot.WorldActivityRuntime);
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
         }
 
@@ -299,12 +303,145 @@ namespace XianXia.Data.Serialization
                 }
                 if (root.TryGetProperty("characterEncounter", out var characterEncounter))
                     snapshot.CharacterEncounter = CharacterEncounterJson.Read(characterEncounter);
+                if (root.TryGetProperty("worldOpportunityRuntime", out var opportunityRuntime) &&
+                    opportunityRuntime.Kind == JsonValueKind.Object)
+                    snapshot.WorldOpportunityRuntime = ReadWorldOpportunityRuntime(opportunityRuntime);
+                if (root.TryGetProperty("worldActivityRuntime", out var activityRuntime) &&
+                    activityRuntime.Kind == JsonValueKind.Object)
+                    snapshot.WorldActivityRuntime = ReadWorldActivityRuntime(activityRuntime);
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)
             {
                 return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "JSON parse failed.", ex.Message);
             }
+        }
+
+        static JsonValue SerializeWorldOpportunityRuntime(WorldOpportunityRuntimeSnapshotDto runtime)
+        {
+            var instances = new List<JsonValue>();
+            if (runtime.Instances != null)
+                foreach (var instance in runtime.Instances)
+                    if (instance != null) instances.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["instanceId"] = JsonValue.FromString(instance.InstanceId ?? string.Empty),
+                        ["opportunityDefinitionId"] = JsonValue.FromString(instance.OpportunityDefinitionId ?? string.Empty),
+                        ["surfaceId"] = JsonValue.FromString(instance.SurfaceId ?? string.Empty),
+                        ["spawnedEntityId"] = U(instance.SpawnedEntityId),
+                        ["createdDayIndex"] = U(instance.CreatedDayIndex),
+                        ["expireDayIndexExclusive"] = U(instance.ExpireDayIndexExclusive),
+                        ["discoveryMode"] = JsonValue.FromString(instance.DiscoveryMode ?? string.Empty)
+                    }));
+            var refresh = new List<JsonValue>();
+            if (runtime.SurfaceRefreshStates != null)
+                foreach (var state in runtime.SurfaceRefreshStates)
+                    if (state != null) refresh.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["surfaceId"] = JsonValue.FromString(state.SurfaceId ?? string.Empty),
+                        ["lastRefreshDayIndex"] = U(state.LastRefreshDayIndex)
+                    }));
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["hasAuthority"] = JsonValue.FromBool(runtime.HasAuthority),
+                ["nextInstanceSequence"] = U(runtime.NextInstanceSequence),
+                ["instances"] = JsonValue.FromArray(instances),
+                ["surfaceRefreshStates"] = JsonValue.FromArray(refresh)
+            });
+        }
+
+        static JsonValue SerializeWorldActivityRuntime(WorldActivityRuntimeSnapshotDto runtime)
+        {
+            var entries = new List<JsonValue>();
+            if (runtime.Entries != null)
+                foreach (var entry in runtime.Entries)
+                {
+                    if (entry == null) continue;
+                    var values = new Dictionary<string, JsonValue>
+                    {
+                        ["activityId"] = JsonValue.FromString(entry.ActivityId ?? string.Empty),
+                        ["sourceKind"] = JsonValue.FromString(entry.SourceKind ?? string.Empty),
+                        ["sourceId"] = JsonValue.FromString(entry.SourceId ?? string.Empty),
+                        ["title"] = JsonValue.FromString(entry.Title ?? string.Empty),
+                        ["body"] = JsonValue.FromString(entry.Body ?? string.Empty),
+                        ["createdDayIndex"] = U(entry.CreatedDayIndex),
+                        ["state"] = JsonValue.FromString(entry.State ?? string.Empty),
+                        ["isRead"] = JsonValue.FromBool(entry.IsRead)
+                    };
+                    if (entry.HasResolvedDayIndex)
+                        values["resolvedDayIndex"] = U(entry.ResolvedDayIndex);
+                    entries.Add(JsonValue.FromObject(values));
+                }
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["hasAuthority"] = JsonValue.FromBool(runtime.HasAuthority),
+                ["nextActivitySequence"] = U(runtime.NextActivitySequence),
+                ["entries"] = JsonValue.FromArray(entries)
+            });
+        }
+
+        static WorldActivityRuntimeSnapshotDto ReadWorldActivityRuntime(JsonValue node)
+        {
+            var runtime = new WorldActivityRuntimeSnapshotDto
+            {
+                HasAuthority = node.GetBool("hasAuthority", false),
+                NextActivitySequence = ReadU(node, "nextActivitySequence")
+            };
+            if (node.TryGetProperty("entries", out var entries) && entries.Kind == JsonValueKind.Array)
+                foreach (var entry in entries.Array)
+                {
+                    if (entry.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid WorldActivity entry.");
+                    var hasResolved = entry.TryGetProperty("resolvedDayIndex", out var resolved) &&
+                                      (resolved.Kind == JsonValueKind.Number || resolved.Kind == JsonValueKind.String);
+                    runtime.Entries.Add(new WorldActivityEntrySnapshotDto
+                    {
+                        ActivityId = entry.GetString("activityId", string.Empty),
+                        SourceKind = entry.GetString("sourceKind", string.Empty),
+                        SourceId = entry.GetString("sourceId", string.Empty),
+                        Title = entry.GetString("title", string.Empty),
+                        Body = entry.GetString("body", string.Empty),
+                        CreatedDayIndex = ReadU(entry, "createdDayIndex"),
+                        State = entry.GetString("state", string.Empty),
+                        IsRead = entry.GetBool("isRead", false),
+                        HasResolvedDayIndex = hasResolved,
+                        ResolvedDayIndex = hasResolved ? ReadU(entry, "resolvedDayIndex") : 0
+                    });
+                }
+            return runtime;
+        }
+
+        static WorldOpportunityRuntimeSnapshotDto ReadWorldOpportunityRuntime(JsonValue node)
+        {
+            var runtime = new WorldOpportunityRuntimeSnapshotDto
+            {
+                HasAuthority = node.GetBool("hasAuthority", false),
+                NextInstanceSequence = ReadU(node, "nextInstanceSequence")
+            };
+            if (node.TryGetProperty("instances", out var instances) && instances.Kind == JsonValueKind.Array)
+                foreach (var instance in instances.Array)
+                {
+                    if (instance.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid WorldOpportunity instance.");
+                    runtime.Instances.Add(new WorldOpportunityInstanceSnapshotDto
+                    {
+                        InstanceId = instance.GetString("instanceId", string.Empty),
+                        OpportunityDefinitionId = instance.GetString("opportunityDefinitionId", string.Empty),
+                        SurfaceId = instance.GetString("surfaceId", string.Empty),
+                        SpawnedEntityId = ReadU(instance, "spawnedEntityId"),
+                        CreatedDayIndex = ReadU(instance, "createdDayIndex"),
+                        ExpireDayIndexExclusive = ReadU(instance, "expireDayIndexExclusive"),
+                        DiscoveryMode = instance.GetString("discoveryMode", string.Empty)
+                    });
+                }
+            if (node.TryGetProperty("surfaceRefreshStates", out var refresh) && refresh.Kind == JsonValueKind.Array)
+                foreach (var state in refresh.Array)
+                {
+                    if (state.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid WorldOpportunity refresh state.");
+                    runtime.SurfaceRefreshStates.Add(new WorldOpportunitySurfaceRefreshSnapshotDto
+                    {
+                        SurfaceId = state.GetString("surfaceId", string.Empty),
+                        LastRefreshDayIndex = ReadU(state, "lastRefreshDayIndex")
+                    });
+                }
+            return runtime;
         }
 
         static List<JsonValue> SerializeEntities(List<EntitySnapshotDto> entities)

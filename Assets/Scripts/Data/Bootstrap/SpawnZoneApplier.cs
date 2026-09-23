@@ -148,7 +148,7 @@ namespace XianXia.Data.Bootstrap
             {
                 for (var i = 0; i < spawnCountOverride; i++)
                 {
-                    var pick = PickWeighted(table, random);
+                    var pick = SpawnTableWeightedPicker.PickDefinitionId(table, random);
                     if (!string.IsNullOrEmpty(pick))
                         list.Add(pick);
                 }
@@ -169,34 +169,6 @@ namespace XianXia.Data.Bootstrap
             }
 
             return list;
-        }
-
-        static string PickWeighted(SpawnTableDefinition table, IRandomSource random)
-        {
-            var total = 0;
-            for (var i = 0; i < table.Entries.Count; i++)
-            {
-                var w = table.Entries[i]?.Weight ?? 0;
-                if (w > 0)
-                    total += w;
-            }
-
-            if (total <= 0)
-                return table.Entries[0].DefinitionId;
-
-            var roll = random.NextInt(0, total);
-            var acc = 0;
-            for (var i = 0; i < table.Entries.Count; i++)
-            {
-                var entry = table.Entries[i];
-                if (entry == null || entry.Weight < 1)
-                    continue;
-                acc += entry.Weight;
-                if (roll < acc)
-                    return entry.DefinitionId?.Trim();
-            }
-
-            return table.Entries[table.Entries.Count - 1].DefinitionId?.Trim();
         }
 
         /// <summary>Bind the spawned entity to its current Surface Site.</summary>

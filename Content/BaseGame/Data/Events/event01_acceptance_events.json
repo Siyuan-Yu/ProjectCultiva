@@ -30,7 +30,9 @@
                   "id": "acceptance:event01_priority_done"
                 }
               ],
-              "nextStepId": ""
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
             }
           ]
         }
@@ -44,8 +46,8 @@
       "npcDefinitionId": "base:character_ch01_ref_supervisor",
       "priority": 50,
       "topicText": "验收·询问今日差事",
-      "once": true,
-      "onceScope": "perActorTarget",
+      "once": false,
+      "onceScope": "global",
       "conditions": [],
       "entryStepId": "ask",
       "steps": [
@@ -60,7 +62,9 @@
               "text": "询问今日差事",
               "conditions": [],
               "outcomes": [],
-              "nextStepId": "player_work"
+              "nextStepId": "player_work",
+              "unavailableMode": "disabled",
+              "requirementText": ""
             },
             {
               "id": "show_qi",
@@ -152,7 +156,7 @@
       "npcDefinitionId": "base:character_ch01_ref_supervisor",
       "priority": 50,
       "topicText": "验收·问点私事",
-      "once": true,
+      "once": false,
       "onceScope": "global",
       "conditions": [],
       "entryStepId": "start",
@@ -168,7 +172,9 @@
               "text": "没什么，只是随口问问。",
               "conditions": [],
               "outcomes": [],
-              "nextStepId": "player_leave"
+              "nextStepId": "player_leave",
+              "unavailableMode": "disabled",
+              "requirementText": ""
             }
           ]
         },

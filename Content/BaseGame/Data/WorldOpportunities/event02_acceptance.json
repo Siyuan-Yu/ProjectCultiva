@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:character_event02_wounded_cultivator_a",
+      "type": "character",
+      "name": "受伤散修甲",
+      "tags": ["npc", "cultivator", "wounded", "event02_acceptance"],
+      "baseAttributes": { "MaxHp": 45, "Attack": 8, "Defense": 5, "Speed": 8 },
+      "initialRealmPlaceholder": "QiRefining"
+    },
+    {
+      "id": "base:character_event02_wounded_cultivator_b",
+      "type": "character",
+      "name": "受伤散修乙",
+      "tags": ["npc", "cultivator", "wounded", "event02_acceptance"],
+      "baseAttributes": { "MaxHp": 42, "Attack": 7, "Defense": 6, "Speed": 7 },
+      "initialRealmPlaceholder": "QiRefining"
+    },
+    {
+      "id": "base:character_event02_temporary_merchant",
+      "type": "character",
+      "name": "临时行商",
+      "tags": ["npc", "merchant", "event02_acceptance"],
+      "baseAttributes": { "MaxHp": 36, "Attack": 4, "Defense": 4, "Speed": 7 },
+      "initialRealmPlaceholder": "Mortal"
+    },
+    {
+      "id": "base:spawn_event02_wounded_cultivator_pool",
+      "type": "spawnTable",
+      "name": "EVENT-02 受伤散修人物池",
+      "entries": [
+        { "definitionId": "base:character_event02_wounded_cultivator_a", "weight": 1, "countMin": 1, "countMax": 1 },
+        { "definitionId": "base:character_event02_wounded_cultivator_b", "weight": 1, "countMin": 1, "countMax": 1 }
+      ]
+    },
+    {
+      "id": "base:spawn_event02_merchant_pool",
+      "type": "spawnTable",
+      "name": "EVENT-02 临时行商人物池",
+      "entries": [
+        { "definitionId": "base:character_event02_temporary_merchant", "weight": 1, "countMin": 1, "countMax": 1 }
+      ]
+    },
+    {
+      "id": "base:world_opportunity_director_main_wilderness",
+      "type": "worldOpportunityDirector",
+      "name": "主荒野机会调度",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "targetActiveMin": 2,
+      "targetActiveMax": 2
+    },
+    {
+      "id": "base:world_opportunity_event02_wounded_cultivator",
+      "type": "worldOpportunity",
+      "name": "受伤散修",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 100,
+      "maxActive": 1,
+      "spawnTableId": "base:spawn_event02_wounded_cultivator_pool",
+      "durationDays": 2,
+      "minPlayerDistanceWorld": 2.0,
+      "maxPlayerDistanceWorld": 3.0,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "worldVisible",
+      "publicNoticeText": "",
+      "conditions": [],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:world_opportunity_event02_temporary_merchant",
+      "type": "worldOpportunity",
+      "name": "临时行商",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 100,
+      "maxActive": 1,
+      "spawnTableId": "base:spawn_event02_merchant_pool",
+      "durationDays": 1,
+      "minPlayerDistanceWorld": 2.0,
+      "maxPlayerDistanceWorld": 3.0,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "publicNotice",
+      "publicNoticeTitle": "临时行商",
+      "publicNoticeText": "听说荒村附近来了一名临时行商。",
+      "publicNoticeRevealExactLocation": true,
+      "conditions": [],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:event_event02_wounded_cultivator_talk",
+      "type": "contentEvent",
+      "name": "EVENT-02 受伤散修交谈",
+      "trigger": "onTalk",
+      "npcTags": ["cultivator", "wounded"],
+      "worldOpportunityId": "base:world_opportunity_event02_wounded_cultivator",
+      "priority": 50,
+      "topicText": "询问伤势",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [],
+      "entryStepId": "start",
+      "steps": [
+        {
+          "id": "start",
+          "speakerRef": "@target",
+          "text": "「劳烦……给我一点时间缓缓。」",
+          "outcomes": [],
+          "choices": [
+            { "id": "ask", "text": "询问伤势", "conditions": [], "outcomes": [], "nextStepId": "answer", "unavailableMode": "disabled", "requirementText": "" },
+            { "id": "leave", "text": "离开", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+          ]
+        },
+        { "id": "answer", "speakerRef": "@target", "text": "「只是旧伤复发，不碍事。多谢道友关心。」", "outcomes": [], "choices": [] }
+      ]
+    },
+    {
+      "id": "base:event_event02_temporary_merchant_talk",
+      "type": "contentEvent",
+      "name": "EVENT-02 临时行商交谈",
+      "trigger": "onTalk",
+      "worldOpportunityId": "base:world_opportunity_event02_temporary_merchant",
+      "priority": 50,
+      "topicText": "打听来意",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [],
+      "entryStepId": "start",
+      "steps": [
+        { "id": "start", "speakerRef": "@target", "text": "「路过此地，歇一日便走。若有需要，尽管看看。」", "outcomes": [], "choices": [] }
+      ]
+    }
+  ]
+}

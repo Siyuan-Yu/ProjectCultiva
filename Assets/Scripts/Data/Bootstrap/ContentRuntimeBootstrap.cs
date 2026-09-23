@@ -9,6 +9,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Opportunity;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -57,6 +58,58 @@ namespace XianXia.Data.Bootstrap
             if (world == null || registry == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Content definition bootstrap args null.");
 
+            world.WorldOpportunities.ClearDefinitions();
+            foreach (var kv in registry.WorldOpportunityDirectors)
+            {
+                var definition = kv.Value;
+                if (!world.WorldOpportunities.RegisterDirector(new WorldOpportunityDirectorSpec
+                {
+                    Id = definition.Id.ToString(),
+                    Name = definition.Name ?? string.Empty,
+                    SurfaceId = definition.SurfaceId ?? string.Empty,
+                    TargetActiveMin = definition.TargetActiveMin,
+                    TargetActiveMax = definition.TargetActiveMax
+                }))
+                    return Result.Failure(ErrorCode.ContentLoadFailed, "Duplicate WorldOpportunity Director for Surface.", definition.SurfaceId);
+            }
+
+            foreach (var kv in registry.WorldOpportunities)
+            {
+                var definition = kv.Value;
+                var spec = new WorldOpportunitySpec
+                {
+                    Id = definition.Id.ToString(),
+                    Name = definition.Name ?? string.Empty,
+                    SurfaceId = definition.SurfaceId ?? string.Empty,
+                    Weight = definition.Weight,
+                    MaxActive = definition.MaxActive,
+                    SpawnTableId = definition.SpawnTableId ?? string.Empty,
+                    DurationDays = definition.DurationDays,
+                    MinPlayerDistanceWorld = definition.MinPlayerDistanceWorld,
+                    MaxPlayerDistanceWorld = definition.MaxPlayerDistanceWorld,
+                    AllowInsideWorldSite = definition.AllowInsideWorldSite,
+                    DiscoveryMode = definition.DiscoveryMode ?? WorldOpportunityDiscoveryMode.WorldVisible,
+                    PublicNoticeTitle = definition.PublicNoticeTitle ?? string.Empty,
+                    PublicNoticeText = definition.PublicNoticeText ?? string.Empty,
+                    PublicNoticeRevealExactLocation = definition.PublicNoticeRevealExactLocation
+                };
+                spec.Conditions.AddRange(definition.Conditions);
+                spec.ExpireOutcomes.AddRange(definition.ExpireOutcomes);
+                if (!DefinitionId.TryParse(definition.SpawnTableId, out var tableId) ||
+                    !registry.TryGetSpawnTable(tableId, out var table))
+                    return Result.Failure(ErrorCode.NotFound, "WorldOpportunity spawn table missing.", definition.SpawnTableId);
+                for (var i = 0; i < table.Entries.Count; i++)
+                {
+                    var entry = table.Entries[i];
+                    if (entry == null || entry.Weight <= 0) continue;
+                    var built = ContentGameStart.BuildSpawnFromDefinition(registry, entry.DefinitionId, entityKindNpc: true);
+                    if (built.IsFailure) return Result.Failure(built.Error);
+                    spec.NpcCandidates.Add(new WorldOpportunityNpcCandidate { Spawn = built.Value, Weight = entry.Weight });
+                }
+                if (!world.WorldOpportunities.RegisterSpec(spec))
+                    return Result.Failure(ErrorCode.ContentLoadFailed, "WorldOpportunity registration failed.", spec.Id);
+            }
+
             foreach (var kv in registry.Quests)
             {
                 var def = kv.Value;
@@ -89,12 +142,14 @@ namespace XianXia.Data.Bootstrap
                     LocationId = def.LocationId ?? string.Empty,
                     QuestId = def.QuestId ?? string.Empty,
                     NpcDefinitionId = def.NpcDefinitionId ?? string.Empty,
+                    WorldOpportunityId = def.WorldOpportunityId ?? string.Empty,
                     WorldObjectKind = def.WorldObjectKind ?? string.Empty,
                     WorldObjectId = def.WorldObjectId ?? string.Empty,
                     Priority = def.Priority, TopicText = def.TopicText, OnceScope = def.OnceScope,
                     EntryStepId = def.EntryStepId,
                     Once = def.Once
                 };
+                spec.NpcTags.AddRange(def.NpcTags);
                 spec.Steps.AddRange(def.Steps);
                 spec.Conditions.AddRange(def.Conditions);
                 for (var i = 0; i < def.Choices.Count; i++)

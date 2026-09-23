@@ -68,6 +68,8 @@ namespace XianXia.Core.Simulation
             Flags = new WorldFlagBoard();
             Quests = new QuestBoard();
             ContentEvents = new ContentEventBoard();
+            WorldOpportunities = new WorldOpportunityBoard();
+            WorldActivities = new WorldActivityBoard();
             Chapters = new ChapterBoard();
             SupervisorAnger = new XianXia.Core.Social.SupervisorAngerBoard();
             LocationLabor = new LocationLaborProgressBoard();
@@ -167,6 +169,12 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Content Ready: content events (session-only; not in Snapshot v1).</summary>
         public ContentEventBoard ContentEvents { get; }
+
+        /// <summary>Dynamic NPC opportunity definitions and persistent runtime instances.</summary>
+        public WorldOpportunityBoard WorldOpportunities { get; }
+
+        /// <summary>Persistent player-facing world activity feed; distinct from Quest and ContentEvent.</summary>
+        public WorldActivityBoard WorldActivities { get; }
 
         /// <summary>Chapter Production: active chapter＋beats (session-only; not in Snapshot v1).</summary>
         public ChapterBoard Chapters { get; }

@@ -16,22 +16,29 @@ public partial class MainWindow : Window
     EditorSession.Snapshot? _pendingGraphSnapshot;
     GraphSelection? _inspectedSelection;
     bool _loading;
+    bool _focusMode;
+    string _characterSourceFilter = "";
+    readonly EventEditorUserSettings _userSettings;
+    readonly string? _userSettingsLoadWarning;
     string? _selectedBrowserId;
 
     sealed record ValidationRow(string Display, string? StepId, string? ChoiceId);
+    sealed record DefinitionOption(string Id, string Display);
 
     public MainWindow()
     {
         InitializeComponent();
+        _userSettings = EventEditorUserSettings.Load(out _userSettingsLoadWarning);
         EventTriggerBox.ItemsSource = UiLabels.Labels(UiLabels.EventTriggers);
         WorldObjectKindBox.ItemsSource = UiLabels.Labels(UiLabels.WorldObjectKinds);
-        RepeatBox.ItemsSource = new[] { "可重复", "全局一次", "每个目标一次", "每个角色×目标一次" };
+        RepeatBox.ItemsSource = new[] { "满足条件时可重复", "全局仅一次", "每个目标仅一次", "每角色×目标仅一次" };
         SpeakerBox.ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "指定人物…" };
         UnavailableBox.ItemsSource = new[] { "显示但禁用", "隐藏" };
         EventConditionEditor.Changed += ArrayEditor_Changed;
         StepOutcomeEditor.Changed += ArrayEditor_Changed;
         ChoiceConditionEditor.Changed += ArrayEditor_Changed;
         ChoiceOutcomeEditor.Changed += ArrayEditor_Changed;
+        NpcPicker.SelectionChanged += (_, _) => { if (!_loading) UpdateFallbackControls(); };
         FlowGraph.MutationStarting += (_, _) => { if (_session != null) _pendingGraphSnapshot = _session.Capture(); };
         FlowGraph.Mutated += (_, _) =>
         {
@@ -44,7 +51,9 @@ public partial class MainWindow : Window
             _inspectedSelection = FlowGraph.Selection;
             LoadInspector(_inspectedSelection);
         };
-        FlowGraph.FocusTextRequested += (_, _) => { LoadInspector(FlowGraph.Selection); StepTextBox.Focus(); };
+        FlowGraph.FocusTextRequested += (_, _) => FlowGraph.FocusSelectedText();
+        FlowGraph.SpecificSpeakerRequested = PickSpecificSpeaker;
+        FlowGraph.NoticeRequested += message => StatusText.Text = message;
         var root = PackagePaths.FindDefaultBaseGame();
         if (root != null) LoadRoot(root);
         else StatusText.Text = "未找到默认内容包，请点“打开包…”";
@@ -60,10 +69,29 @@ public partial class MainWindow : Window
         _layoutStore = new GraphLayoutStore(root);
         _session = null; _inspectedSelection = null;
         RootText.Text = root;
+        RootText.ToolTip = root;
         LayoutPathText.Text = _layoutStore.Path;
-        var characters = PackageStore.AllCharacterIds(_package);
-        NpcDefBox.ItemsSource = characters;
-        SpeakerDefBox.ItemsSource = characters;
+        NpcPicker.Configure(_package);
+        SpeakerCharacterPicker.Configure(_package);
+        WorldOpportunityBox.ItemsSource = new[] { new DefinitionOption("", "（不限定 Opportunity）") }
+            .Concat(_package.OfType("worldOpportunity")
+                .OrderBy(definition => definition.Name, StringComparer.CurrentCulture)
+                .Select(definition => new DefinitionOption(definition.Id,
+                    (string.IsNullOrWhiteSpace(definition.Name) ? definition.Id : definition.Name + " · " + definition.Id))))
+            .ToList();
+        var characterSources = PackageStore.AllCharacterDefinitions(_package)
+            .Select(character => character.SourceRelativePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        CharacterSourceBox.ItemsSource = new[] { "全部来源" }.Concat(characterSources).ToList();
+        var rememberedSource = _userSettings.GetLastCharacterSource(root);
+        _characterSourceFilter = characterSources.FirstOrDefault(source =>
+            string.Equals(source, rememberedSource, StringComparison.OrdinalIgnoreCase)) ?? "";
+        CharacterSourceBox.SelectedItem = string.IsNullOrWhiteSpace(_characterSourceFilter)
+            ? "全部来源"
+            : _characterSourceFilter;
+        ApplyCharacterSourceFilter();
         LocationBox.ItemsSource = new[] { "" }.Concat(PackageStore.AllLocationIds(_package)).ToList();
         EventConditionEditor.Configure(_package, JsonArrayEditorMode.Condition, "触发条件");
         StepOutcomeEditor.Configure(_package, JsonArrayEditorMode.Outcome, "步骤结果");
@@ -73,6 +101,8 @@ public partial class MainWindow : Window
         RebuildBrowser(selectId);
         UpdateTitle();
         StatusText.Text = $"事件 {_package.OfType("contentEvent").Count()} 条 · 默认按对象浏览";
+        if (!string.IsNullOrWhiteSpace(_userSettingsLoadWarning))
+            StatusText.Text += " · " + _userSettingsLoadWarning;
     }
 
     void RebuildBrowser(string? selectId = null)
@@ -88,13 +118,25 @@ public partial class MainWindow : Window
         else
         {
             var people = GroupItem("人物");
-            foreach (var group in events.Where(e => S(e.Raw, "trigger") == "onTalk").GroupBy(e => S(e.Raw, "npcDefinitionId")).OrderBy(g => DisplayDefinition(g.Key)))
+            foreach (var group in events.Where(e => S(e.Raw, "trigger") == "onTalk" &&
+                         !string.IsNullOrWhiteSpace(S(e.Raw, "npcDefinitionId")) &&
+                         CharacterMatchesSource(S(e.Raw, "npcDefinitionId"))).GroupBy(e => S(e.Raw, "npcDefinitionId")).OrderBy(g => DisplayDefinition(g.Key)))
             {
-                var owner = GroupItem(DisplayDefinition(group.Key));
+                var owner = CharacterGroupItem(group.Key);
                 foreach (var ev in group.OrderByDescending(e => JsonEdit.GetInt(e.Raw, "priority")).ThenBy(DisplayName, StringComparer.CurrentCulture)) owner.Items.Add(EventItem(ev));
                 people.Items.Add(owner);
             }
             if (people.Items.Count > 0) { people.IsExpanded = true; BrowserTree.Items.Add(people); }
+            var genericPeople = GroupItem("通用人物模板");
+            foreach (var group in events.Where(e => S(e.Raw, "trigger") == "onTalk" &&
+                         string.IsNullOrWhiteSpace(S(e.Raw, "npcDefinitionId")))
+                     .GroupBy(GenericBindingLabel).OrderBy(g => g.Key, StringComparer.CurrentCulture))
+            {
+                var owner = GroupItem(group.Key);
+                foreach (var ev in group.OrderByDescending(e => JsonEdit.GetInt(e.Raw, "priority")).ThenBy(DisplayName, StringComparer.CurrentCulture)) owner.Items.Add(EventItem(ev));
+                genericPeople.Items.Add(owner);
+            }
+            if (genericPeople.Items.Count > 0) { genericPeople.IsExpanded = true; BrowserTree.Items.Add(genericPeople); }
             var objects = GroupItem("世界物体");
             foreach (var group in events.Where(e => S(e.Raw, "trigger") == "onInspect").GroupBy(e => S(e.Raw, "worldObjectKind") + "\u001f" + S(e.Raw, "worldObjectId")).OrderBy(g => g.Key))
             {
@@ -117,16 +159,17 @@ public partial class MainWindow : Window
     {
         var q = SearchBox?.Text?.Trim() ?? "";
         if (q.Length == 0) return true;
-        var haystack = string.Join("\n", ev.Name, ev.Id, S(ev.Raw, "topicText"), S(ev.Raw, "npcDefinitionId"), S(ev.Raw, "worldObjectKind"), S(ev.Raw, "worldObjectId"), S(ev.Raw, "trigger"));
+        var haystack = string.Join("\n", ev.Name, ev.Id, S(ev.Raw, "topicText"), S(ev.Raw, "npcDefinitionId"),
+            JsonEdit.JoinStringArray(ev.Raw["npcTags"]), S(ev.Raw, "worldOpportunityId"),
+            S(ev.Raw, "worldObjectKind"), S(ev.Raw, "worldObjectId"), S(ev.Raw, "trigger"));
         return haystack.Contains(q, StringComparison.CurrentCultureIgnoreCase);
     }
 
     string DisplayName(DefRef ev)
     {
-        var normal = S(ev.Raw, "trigger") == "onTalk" && JsonEdit.GetInt(ev.Raw, "priority") == 0 && !JsonEdit.GetBool(ev.Raw, "once", true);
         var title = S(ev.Raw, "topicText", ev.Name);
         if (string.IsNullOrWhiteSpace(title)) title = ev.Name;
-        return normal ? "★ 普通 / 保底对话 · " + title : title;
+        return IsFallback(ev.Raw) ? "★ 保底 · " + title : title;
     }
 
     string DisplayDefinition(string id)
@@ -136,14 +179,94 @@ public partial class MainWindow : Window
         return def == null || string.IsNullOrWhiteSpace(def.Name) ? id : def.Name + "  ·  " + id;
     }
 
+    string GenericBindingLabel(DefRef ev)
+    {
+        var opportunity = S(ev.Raw, "worldOpportunityId");
+        if (!string.IsNullOrWhiteSpace(opportunity)) return "Opportunity：" + DisplayDefinition(opportunity);
+        var tags = JsonEdit.JoinStringArray(ev.Raw["npcTags"]);
+        return string.IsNullOrWhiteSpace(tags) ? "所有人物（全局上下文）" : "标签：" + tags;
+    }
+
     TreeViewItem EventItem(DefRef ev)
     {
         var panel = new StackPanel();
-        panel.Children.Add(new TextBlock { Text = DisplayName(ev), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        var facts = new WrapPanel();
+        facts.Children.Add(new TextBlock { Text = DisplayName(ev), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 5, 0) });
+        var priority = JsonEdit.GetInt(ev.Raw, "priority");
+        var conditions = (ev.Raw["conditions"] as JsonArray)?.Count ?? 0;
+        if (priority != 0) facts.Children.Add(FactBadge("P" + priority));
+        if (conditions > 0) facts.Children.Add(FactBadge("条件" + conditions));
+        if (JsonEdit.GetBool(ev.Raw, "once", true)) facts.Children.Add(FactBadge(S(ev.Raw, "onceScope", "global") switch { "perTarget" => "每个目标仅一次", "perActorTarget" => "每角色×目标仅一次", _ => "全局仅一次" }));
+        panel.Children.Add(facts);
         panel.Children.Add(new TextBlock { Text = ev.Id, Foreground = System.Windows.Media.Brushes.Gray, FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis });
         return new TreeViewItem { Header = panel, Tag = ev, IsExpanded = true };
     }
+
+    bool CharacterMatchesSource(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(_characterSourceFilter)) return true;
+        var character = _package == null ? null : PackageStore.AllCharacterDefinitions(_package)
+            .FirstOrDefault(item => string.Equals(item.Id, characterId, StringComparison.Ordinal));
+        return character != null && string.Equals(
+            character.SourceRelativePath, _characterSourceFilter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    void ApplyCharacterSourceFilter()
+    {
+        NpcPicker.SourceFilter = _characterSourceFilter;
+        SpeakerCharacterPicker.SourceFilter = _characterSourceFilter;
+    }
+    static Border FactBadge(string text) => new() { Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 235, 240)), CornerRadius = new CornerRadius(3), Padding = new Thickness(4, 1, 4, 1), Margin = new Thickness(2, 0, 2, 0), Child = new TextBlock { Text = text, Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(82, 91, 105)), FontSize = 10 } };
     static TreeViewItem GroupItem(string header) => new() { Header = header, FontWeight = FontWeights.SemiBold };
+
+    TreeViewItem CharacterGroupItem(string id)
+    {
+        var character = _package == null
+            ? null
+            : PackageStore.AllCharacterDefinitions(_package).FirstOrDefault(item =>
+                string.Equals(item.Id, id, StringComparison.Ordinal));
+        if (character == null) return GroupItem(DisplayDefinition(id));
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = character.Name, FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock
+        {
+            Text = character.Id,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            FontSize = 10,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        return new TreeViewItem
+        {
+            Header = panel,
+            ToolTip = $"{character.Id}\n来源：{character.SourceRelativePath}"
+        };
+    }
+
+    static bool IsFallback(JsonObject raw) =>
+        S(raw, "trigger") == "onTalk" &&
+        !string.IsNullOrWhiteSpace(S(raw, "npcDefinitionId")) &&
+        JsonEdit.GetInt(raw, "priority") == 0 &&
+        !JsonEdit.GetBool(raw, "once", true) &&
+        (raw["conditions"] as JsonArray)?.Count == 0;
+
+    DefRef? FindFallback(string npcDefinitionId)
+    {
+        if (_package == null || string.IsNullOrWhiteSpace(npcDefinitionId)) return null;
+        return _package.OfType("contentEvent").FirstOrDefault(def =>
+            def != _session?.Source && S(def.Raw, "npcDefinitionId") == npcDefinitionId && IsFallback(def.Raw));
+    }
+
+    IEnumerable<string> FallbackAmbiguities(JsonObject working)
+    {
+        if (_package == null) yield break;
+        var rows = _package.OfType("contentEvent")
+            .Where(def => def != _session?.Source && S(def.Raw, "id") != S(working, "id"))
+            .Select(def => (Id: def.Id, Name: DisplayName(def), Raw: def.Raw))
+            .ToList();
+        rows.Add((S(working, "id"), S(working, "name", S(working, "id")), working));
+        foreach (var group in rows.Where(x => IsFallback(x.Raw)).GroupBy(x => S(x.Raw, "npcDefinitionId"), StringComparer.Ordinal).Where(x => x.Count() > 1))
+            yield return "同一人物只能有一条保底对话：" + DisplayDefinition(group.Key) + " → " + string.Join("、", group.Select(x => x.Name + "（" + x.Id + "）"));
+    }
 
     void SelectFirstEvent(ItemCollection items)
     {
@@ -183,6 +306,7 @@ public partial class MainWindow : Window
     {
         if (_layoutStore == null) return;
         var working = (JsonObject)def.Raw.DeepClone();
+        EventEditorDocumentNormalizer.NormalizeForEditor(working);
         var ids = (working["steps"] as JsonArray ?? new JsonArray()).OfType<JsonObject>().Select(s => S(s, "id"));
         SetSession(new EditorSession(def, working, _layoutStore.Get(def.Id, ids)));
         _selectedBrowserId = def.Id;
@@ -233,17 +357,28 @@ public partial class MainWindow : Window
         var trigger = S(raw, "trigger", "manual");
         var binding = trigger switch
         {
-            "onTalk" => "与【" + DisplayDefinition(S(raw, "npcDefinitionId")) + "】交谈",
+            "onTalk" => TalkBindingSummary(raw),
             "onInspect" => "调查【" + (S(raw, "worldObjectId").Length > 0 ? DisplayDefinition(S(raw, "worldObjectId")) : UiLabels.ToLabel(UiLabels.WorldObjectKinds, S(raw, "worldObjectKind"), "世界物体")) + "】",
             _ => UiLabels.ToLabel(UiLabels.EventTriggers, trigger, trigger)
         };
         GraphSummaryText.Text = $"{binding} · Priority {JsonEdit.GetInt(raw, "priority")} · {RepeatLabel(raw)} · 条件 {(raw["conditions"] as JsonArray)?.Count ?? 0}";
     }
-    static string RepeatLabel(JsonObject raw) => !JsonEdit.GetBool(raw, "once", true) ? "可重复" : S(raw, "onceScope", "global") switch { "perTarget" => "每目标一次", "perActorTarget" => "每角色×目标一次", _ => "全局一次" };
+    string TalkBindingSummary(JsonObject raw)
+    {
+        var parts = new List<string>();
+        var npc = S(raw, "npcDefinitionId");
+        if (!string.IsNullOrWhiteSpace(npc)) parts.Add("人物 " + DisplayDefinition(npc));
+        var tags = JsonEdit.JoinStringArray(raw["npcTags"]);
+        if (!string.IsNullOrWhiteSpace(tags)) parts.Add("标签 " + tags);
+        var opportunity = S(raw, "worldOpportunityId");
+        if (!string.IsNullOrWhiteSpace(opportunity)) parts.Add("Opportunity " + DisplayDefinition(opportunity));
+        return parts.Count == 0 ? "与任意人物交谈" : "交谈绑定：" + string.Join(" ＋ ", parts);
+    }
+    static string RepeatLabel(JsonObject raw) => !JsonEdit.GetBool(raw, "once", true) ? "满足条件时可重复" : S(raw, "onceScope", "global") switch { "perTarget" => "每个目标仅一次", "perActorTarget" => "每角色×目标仅一次", _ => "全局仅一次" };
 
     void ShowEventInspector()
     {
-        CommitInspector(); _inspectedSelection = null;
+        _inspectedSelection = null;
         InspectorHint.Visibility = _session == null ? Visibility.Visible : Visibility.Collapsed;
         EventInspector.Visibility = _session == null ? Visibility.Collapsed : Visibility.Visible;
         StepInspector.Visibility = ChoiceInspector.Visibility = Visibility.Collapsed;
@@ -253,13 +388,18 @@ public partial class MainWindow : Window
         var raw = _session.Working;
         EventNameBox.Text = S(raw, "name"); EventTopicBox.Text = S(raw, "topicText"); EventIdBox.Text = S(raw, "id");
         EventTriggerBox.SelectedItem = UiLabels.ToLabel(UiLabels.EventTriggers, S(raw, "trigger", "manual"), "手动");
-        NpcDefBox.Text = S(raw, "npcDefinitionId");
+        NpcPicker.SelectedId = S(raw, "npcDefinitionId");
+        NpcTagsBox.Text = JsonEdit.JoinStringArray(raw["npcTags"]);
+        WorldOpportunityBox.SelectedItem = (WorldOpportunityBox.ItemsSource as IEnumerable<DefinitionOption>)?
+            .FirstOrDefault(option => option.Id == S(raw, "worldOpportunityId"));
+        if (WorldOpportunityBox.SelectedItem == null) WorldOpportunityBox.SelectedIndex = 0;
         WorldObjectKindBox.SelectedItem = UiLabels.ToLabel(UiLabels.WorldObjectKinds, S(raw, "worldObjectKind", "controlCore"), "控制核心");
         RefreshWorldObjectIds(S(raw, "worldObjectId"));
         PriorityBox.Text = JsonEdit.GetInt(raw, "priority").ToString();
         RepeatBox.SelectedIndex = !JsonEdit.GetBool(raw, "once", true) ? 0 : S(raw, "onceScope", "global") switch { "perTarget" => 2, "perActorTarget" => 3, _ => 1 };
         EventConditionEditor.LoadFrom(raw["conditions"]); LocationBox.Text = S(raw, "locationId"); QuestIdBox.Text = S(raw, "questId");
-        _loading = false; UpdateBindingUi();
+        FallbackBox.IsChecked = IsFallback(raw);
+        _loading = false; UpdateBindingUi(); UpdateFallbackControls();
     }
 
     void LoadInspector(GraphSelection? selection)
@@ -272,7 +412,7 @@ public partial class MainWindow : Window
         {
             StepInspector.Visibility = Visibility.Visible; ChoiceInspector.Visibility = Visibility.Collapsed; InspectorTitle.Text = "Step";
             var speaker = S(step, "speakerRef"); SpeakerBox.SelectedIndex = speaker switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 };
-            SpeakerDefBox.Text = SpeakerBox.SelectedIndex == 3 ? speaker : ""; SpeakerDefBox.IsEnabled = SpeakerBox.SelectedIndex == 3;
+            SpeakerCharacterPicker.SelectedId = SpeakerBox.SelectedIndex == 3 ? speaker : ""; SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 3;
             StepTextBox.Text = S(step, "text"); StepOutcomeEditor.LoadFrom(step["outcomes"]); StepIdText.Text = S(step, "id");
         }
         else
@@ -297,18 +437,34 @@ public partial class MainWindow : Window
             candidate["name"] = EventNameBox.Text; candidate["topicText"] = EventTopicBox.Text; candidate["priority"] = priority;
             var trigger = UiLabels.ToKey(UiLabels.EventTriggers, EventTriggerBox.SelectedItem as string ?? EventTriggerBox.Text, "manual"); candidate["trigger"] = trigger;
             JsonEdit.SetString(candidate, "locationId", LocationBox.Text); JsonEdit.SetString(candidate, "questId", QuestIdBox.Text);
-            if (trigger == "onTalk") { JsonEdit.SetString(candidate, "npcDefinitionId", NpcDefBox.Text); candidate.Remove("worldObjectKind"); candidate.Remove("worldObjectId"); }
-            else if (trigger == "onInspect") { candidate.Remove("npcDefinitionId"); JsonEdit.SetString(candidate, "worldObjectKind", UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore")); JsonEdit.SetString(candidate, "worldObjectId", WorldObjectIdBox.Text); }
-            else { candidate.Remove("npcDefinitionId"); candidate.Remove("worldObjectKind"); candidate.Remove("worldObjectId"); }
+            if (trigger == "onTalk")
+            {
+                JsonEdit.SetString(candidate, "npcDefinitionId", NpcPicker.SelectedId);
+                var tags = JsonEdit.ParseStringList(NpcTagsBox.Text);
+                if (tags.Count == 0) candidate.Remove("npcTags"); else candidate["npcTags"] = tags;
+                JsonEdit.SetString(candidate, "worldOpportunityId", (WorldOpportunityBox.SelectedItem as DefinitionOption)?.Id);
+                candidate.Remove("worldObjectKind"); candidate.Remove("worldObjectId");
+            }
+            else if (trigger == "onInspect")
+            {
+                candidate.Remove("npcDefinitionId"); candidate.Remove("npcTags"); candidate.Remove("worldOpportunityId");
+                JsonEdit.SetString(candidate, "worldObjectKind", UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore"));
+                JsonEdit.SetString(candidate, "worldObjectId", WorldObjectIdBox.Text);
+            }
+            else { candidate.Remove("npcDefinitionId"); candidate.Remove("npcTags"); candidate.Remove("worldOpportunityId"); candidate.Remove("worldObjectKind"); candidate.Remove("worldObjectId"); }
             candidate["once"] = RepeatBox.SelectedIndex != 0; candidate["onceScope"] = RepeatBox.SelectedIndex switch { 2 => "perTarget", 3 => "perActorTarget", _ => "global" };
             candidate["conditions"] = EventConditionEditor.ToJsonArray();
+            if (FallbackBox.IsChecked == true)
+            {
+                candidate["trigger"] = "onTalk"; candidate["priority"] = 0; candidate["once"] = false; candidate["onceScope"] = "global"; candidate["conditions"] = new JsonArray();
+            }
         }
         else if (_inspectedSelection != null)
         {
             var step = FindStep(candidate, _inspectedSelection.StepId);
             if (step != null && _inspectedSelection.ChoiceId == null && StepInspector.Visibility == Visibility.Visible)
             {
-                step["speakerRef"] = SpeakerBox.SelectedIndex switch { 1 => "@actor", 2 => "@target", 3 => SpeakerDefBox.Text.Trim(), _ => "" };
+                step["speakerRef"] = SpeakerBox.SelectedIndex switch { 1 => "@actor", 2 => "@target", 3 => SpeakerCharacterPicker.SelectedId, _ => "" };
                 step["text"] = StepTextBox.Text; step["outcomes"] = StepOutcomeEditor.ToJsonArray();
             }
             else if (step != null && _inspectedSelection.ChoiceId != null && ChoiceInspector.Visibility == Visibility.Visible)
@@ -345,6 +501,7 @@ public partial class MainWindow : Window
         if (_session == null || _package == null || _layoutStore == null) return false;
         CommitInspector();
         var issues = EventAuthoringValidator.Validate(_session.Working, _package);
+        issues.AddRange(FallbackAmbiguities(_session.Working));
         ShowValidation(issues);
         if (issues.Count > 0) { StatusText.Text = $"保存被阻止：{issues.Count} 个问题"; return false; }
         try
@@ -391,13 +548,21 @@ public partial class MainWindow : Window
     void NewEvent_Click(object sender, RoutedEventArgs e)
     {
         if (_package == null || !TryLeaveCurrent()) return;
-        var dialog = new NewEventDialog(_package) { Owner = this };
+        var dialog = new NewEventDialog(_package, sourceFilter: _characterSourceFilter) { Owner = this };
         if (dialog.ShowDialog() != true) return;
+        if (dialog.EventKind == "npcNormal" && FindFallback(dialog.NpcDefinitionId) is DefRef existingFallback)
+        {
+            var jump = MessageBox.Show("该人物已经存在保底对话：" + DisplayName(existingFallback) + "\n\n是否跳转到现有保底？", "不能创建第二个保底对话", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (jump == MessageBoxResult.Yes) SelectBrowserItem(existingFallback.Id);
+            return;
+        }
         var idBase = "base:event_new_" + DateTime.Now.ToString("yyyyMMddHHmmss"); var id = idBase; var suffix = 2;
         while (_package.Find(id) != null) id = idBase + "_" + suffix++;
         var trigger = dialog.EventKind is "npcNormal" or "npcSpecial" ? "onTalk" : dialog.EventKind == "object" ? "onInspect" : "manual";
         var speaker = trigger == "onTalk" ? "@target" : "";
-        var raw = new JsonObject { ["id"] = id, ["type"] = "contentEvent", ["name"] = dialog.EventName, ["trigger"] = trigger, ["priority"] = 0, ["topicText"] = dialog.EventName, ["once"] = dialog.EventKind != "npcNormal", ["onceScope"] = "global", ["conditions"] = new JsonArray(), ["entryStepId"] = "step_001", ["steps"] = new JsonArray(new JsonObject { ["id"] = "step_001", ["speakerRef"] = speaker, ["text"] = "", ["outcomes"] = new JsonArray(), ["choices"] = new JsonArray() }) };
+        var priority = dialog.EventKind == "npcSpecial" ? 10 : 0;
+        var raw = new JsonObject { ["id"] = id, ["type"] = "contentEvent", ["name"] = dialog.EventName, ["trigger"] = trigger, ["priority"] = priority, ["topicText"] = dialog.EventName, ["once"] = dialog.EventKind != "npcNormal", ["onceScope"] = "global", ["conditions"] = new JsonArray(), ["entryStepId"] = "step_001", ["steps"] = new JsonArray(new JsonObject { ["id"] = "step_001", ["speakerRef"] = speaker, ["text"] = "", ["outcomes"] = new JsonArray(), ["choices"] = new JsonArray() }) };
+        EventEditorDocumentNormalizer.NormalizeForEditor(raw);
         if (trigger == "onTalk") raw["npcDefinitionId"] = dialog.NpcDefinitionId;
         if (trigger == "onInspect") { raw["worldObjectKind"] = dialog.WorldObjectKind; JsonEdit.SetString(raw, "worldObjectId", dialog.WorldObjectId); }
         var layout = new EventGraphLayout { EventId = id }; layout.GetOrCreate("step_001").X = 120; layout.GetOrCreate("step_001").Y = 120;
@@ -415,6 +580,7 @@ public partial class MainWindow : Window
             var step = new JsonObject { ["id"] = "step_001", ["speakerRef"] = S(raw, "trigger") == "onTalk" ? "@target" : "", ["text"] = S(raw, "body"), ["outcomes"] = new JsonArray(), ["choices"] = choices };
             raw.Remove("body"); raw.Remove("choices"); raw["entryStepId"] = "step_001"; raw["steps"] = new JsonArray(step);
             layout.EventId = S(raw, "id"); var node = layout.GetOrCreate("step_001"); node.X = 120; node.Y = 120;
+            EventEditorDocumentNormalizer.NormalizeForEditor(raw);
         });
         ReloadGraph(); FlowGraph.Select("step_001"); StatusText.Text = "已转换为 Steps working copy；保存前仍可放弃。";
     }
@@ -429,20 +595,98 @@ public partial class MainWindow : Window
     void Redo_Click(object sender, RoutedEventArgs e) { CommitInspector(); _session?.Redo(); ReloadGraph(); ShowEventInspector(); }
     void AutoLayout_Click(object sender, RoutedEventArgs e) { CommitInspector(); FlowGraph.AutoLayout(); }
     void ZoomFit_Click(object sender, RoutedEventArgs e) => FlowGraph.ZoomToFit();
-    void ShowEventInspector_Click(object sender, RoutedEventArgs e) => ShowEventInspector();
+    void FocusMode_Click(object sender, RoutedEventArgs e)
+    {
+        _focusMode = !_focusMode;
+        BrowserPanel.Visibility = BrowserSplitter.Visibility = _focusMode ? Visibility.Collapsed : Visibility.Visible;
+        InspectorPanel.Visibility = InspectorSplitter.Visibility = _focusMode ? Visibility.Collapsed : Visibility.Visible;
+        BrowserColumn.Width = _focusMode ? new GridLength(0) : new GridLength(310);
+        BrowserSplitterColumn.Width = _focusMode ? new GridLength(0) : new GridLength(5);
+        InspectorSplitterColumn.Width = _focusMode ? new GridLength(0) : new GridLength(5);
+        InspectorColumn.Width = _focusMode ? new GridLength(0) : new GridLength(390);
+        FocusModeButton.Content = _focusMode ? "退出专注" : "专注模式";
+        StatusText.Text = _focusMode ? "已进入专注模式：对话图占满工作区。" : "已退出专注模式。";
+    }
+
+    string? PickSpecificSpeaker()
+    {
+        if (_package == null) return null;
+        var picker = new CharacterPickerDialog(_package, sourceFilter: _characterSourceFilter) { Owner = this, Title = "选择指定说话人物" };
+        return picker.ShowDialog() == true ? picker.SelectedId : null;
+    }
+    void ShowEventInspector_Click(object sender, RoutedEventArgs e) { CommitInspector(); ShowEventInspector(); }
     void AddEntryStep_Click(object sender, RoutedEventArgs e) => FlowGraph.AddStep();
     void SetEntry_Click(object sender, RoutedEventArgs e) { if (_inspectedSelection != null) FlowGraph.SetEntry(_inspectedSelection.StepId); }
     void AddChoice_Click(object sender, RoutedEventArgs e) { if (_inspectedSelection != null) FlowGraph.AddChoice(_inspectedSelection.StepId); }
     void DeleteChoice_Click(object sender, RoutedEventArgs e) { if (_inspectedSelection?.ChoiceId is string choiceId) FlowGraph.DeleteChoice(_inspectedSelection.StepId, choiceId); }
     void SearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (!_loading) RebuildBrowser(_selectedBrowserId); }
+    void CharacterSourceBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || CharacterSourceBox == null) return;
+        _characterSourceFilter = CharacterSourceBox.SelectedIndex <= 0
+            ? ""
+            : CharacterSourceBox.SelectedItem as string ?? "";
+        ApplyCharacterSourceFilter();
+        RebuildBrowser(_selectedBrowserId);
+        var status = string.IsNullOrWhiteSpace(_characterSourceFilter)
+            ? "人物来源：全部来源"
+            : "人物来源：" + _characterSourceFilter;
+        if (_package != null && !_userSettings.TrySetLastCharacterSource(
+                _package.Root, _characterSourceFilter, out var warning))
+            status += " · " + warning;
+        StatusText.Text = status;
+    }
     void BrowserMode_Changed(object sender, RoutedEventArgs e) { if (!_loading && BrowserTree != null) RebuildBrowser(_selectedBrowserId); }
     void Inspector_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) { if (e.NewFocus is DependencyObject next && IsDescendantOf(next, (DependencyObject)sender)) return; CommitInspector(); }
     static bool IsDescendantOf(DependencyObject child, DependencyObject parent) { for (var current = child; current != null; current = System.Windows.Media.VisualTreeHelper.GetParent(current)) if (ReferenceEquals(current, parent)) return true; return false; }
     void EventTriggerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (!_loading) UpdateBindingUi(); }
     void WorldObjectKindBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (!_loading) RefreshWorldObjectIds(WorldObjectIdBox.Text); }
-    void SpeakerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (SpeakerDefBox != null) SpeakerDefBox.IsEnabled = SpeakerBox.SelectedIndex == 3; }
-    void UpdateBindingUi() { var trigger = UiLabels.ToKey(UiLabels.EventTriggers, EventTriggerBox.SelectedItem as string ?? EventTriggerBox.Text, "manual"); NpcBindingPanel.Visibility = trigger == "onTalk" ? Visibility.Visible : Visibility.Collapsed; ObjectBindingPanel.Visibility = trigger == "onInspect" ? Visibility.Visible : Visibility.Collapsed; }
+    void SpeakerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (SpeakerCharacterPicker != null) SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 3; }
+    void FallbackBox_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var npc = NpcPicker.SelectedId;
+        if (npc.Length == 0)
+        {
+            MessageBox.Show("请先选择互动人物。", "无法设置保底对话", MessageBoxButton.OK, MessageBoxImage.Information);
+            _loading = true; FallbackBox.IsChecked = false; _loading = false; return;
+        }
+        if (FindFallback(npc) is DefRef existing)
+        {
+            var jump = MessageBox.Show("该人物已经存在保底对话：" + DisplayName(existing) + "\n\n是否跳转到现有保底？", "不能设置第二个保底对话", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            _loading = true; FallbackBox.IsChecked = false; _loading = false;
+            if (jump == MessageBoxResult.Yes) Dispatcher.BeginInvoke(() => SelectBrowserItem(existing.Id));
+            return;
+        }
+        EventTriggerBox.SelectedItem = UiLabels.ToLabel(UiLabels.EventTriggers, "onTalk", "人物交谈");
+        PriorityBox.Text = "0"; RepeatBox.SelectedIndex = 0; EventConditionEditor.LoadFrom(new JsonArray());
+        UpdateFallbackControls(); StatusText.Text = "已设为保底对话：Priority 0、满足条件时可重复、无事件条件。";
+        Dispatcher.BeginInvoke(CommitInspector);
+    }
+
+    void FallbackBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        PriorityBox.Text = "10"; UpdateFallbackControls(); StatusText.Text = "已取消保底；当前事件恢复为普通对话事件（Priority 10）。";
+        Dispatcher.BeginInvoke(CommitInspector);
+    }
+
+    void UpdateFallbackControls()
+    {
+        if (FallbackBox == null) return;
+        var fallback = FallbackBox.IsChecked == true;
+        FallbackBox.IsEnabled = fallback || !string.IsNullOrWhiteSpace(NpcPicker.SelectedId);
+        EventTriggerBox.IsEnabled = !fallback;
+        NpcPicker.IsEnabled = !fallback;
+        NpcTagsBox.IsEnabled = !fallback;
+        WorldOpportunityBox.IsEnabled = !fallback;
+        PriorityBox.IsEnabled = !fallback;
+        RepeatBox.IsEnabled = !fallback;
+        EventConditionsGroup.IsEnabled = !fallback;
+    }
+    void UpdateBindingUi() { var trigger = UiLabels.ToKey(UiLabels.EventTriggers, EventTriggerBox.SelectedItem as string ?? EventTriggerBox.Text, "manual"); NpcBindingPanel.Visibility = trigger == "onTalk" ? Visibility.Visible : Visibility.Collapsed; ObjectBindingPanel.Visibility = trigger == "onInspect" ? Visibility.Visible : Visibility.Collapsed; UpdateFallbackControls(); }
     void RefreshWorldObjectIds(string keep) { var kind = UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore"); WorldObjectIdBox.ItemsSource = _package == null ? new[] { "" } : new[] { "" }.Concat(PackageStore.WorldObjectIds(_package, kind)).ToList(); WorldObjectIdBox.Text = keep ?? ""; }
+    void ClearNpcBinding_Click(object sender, RoutedEventArgs e) { NpcPicker.SelectedId = ""; Dispatcher.BeginInvoke(CommitInspector); }
     void ErrorList_MouseDoubleClick(object sender, MouseButtonEventArgs e) { if (ErrorList.SelectedItem is ValidationRow row && row.StepId != null) FlowGraph.Select(row.StepId, row.ChoiceId); }
     void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

@@ -2,6 +2,10 @@
 
 > **2026-09-21 Final Seal：** MAP-01～04 均已验收封板。Final Continuous Surface、Composer/FineEditor、Surface WorldMap 与正常 Gameplay authority 已落地；下文 Region／Outdoor LocalMap／Hex／旧 WorldGraph 规则只按历史或明确 Legacy Compatibility 阅读。
 
+> **2026-09-23 EVENT-02：** World Opportunity Director V1 已实现并待制作人验收。随机发生在“世界生成什么”层：仅为玩家当前 Surface 低频补充真实 NPC，再由 Continuous materialization 与 EVENT-01 互动链接管；不做走一步弹事件、hidden 或动态 WorldObject。
+
+> **2026-09-23 EVENT-02A：** publicNotice Opportunity 进入持久 World Activity feed；可配置是否公开精确位置。定位只把现有 Gameplay camera 聚焦到同 Surface 世界坐标，不移动玩家、不寻路、不切换区域。
+
 > 状态：Continuous Outdoor、WorldSite／SiteCore 与 Actual Administrative Control 已实现并封板；Future 内容制作能力除外 | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**

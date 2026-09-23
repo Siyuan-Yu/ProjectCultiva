@@ -9,19 +9,20 @@ public partial class NewEventDialog : Window
     readonly ContentPackage _package;
     public string EventKind { get; private set; } = "npcNormal";
     public string EventName => NameBox.Text.Trim();
-    public string NpcDefinitionId => NpcBox.Text.Trim();
+    public string NpcDefinitionId => NpcPicker.SelectedId;
     public string WorldObjectKind => UiLabels.ToKey(UiLabels.WorldObjectKinds, ObjectKindBox.SelectedItem as string ?? ObjectKindBox.Text, "controlCore");
     public string WorldObjectId => ObjectIdBox.Text.Trim();
 
-    public NewEventDialog(ContentPackage package, string? suggestedNpc = null)
+    public NewEventDialog(ContentPackage package, string? sourceFilter = null, string? suggestedNpc = null)
     {
         InitializeComponent();
         _package = package;
         KindBox.SelectedIndex = 0;
         ObjectKindBox.ItemsSource = UiLabels.Labels(UiLabels.WorldObjectKinds);
         ObjectKindBox.SelectedIndex = 0;
-        NpcBox.ItemsSource = PackageStore.AllCharacterIds(package);
-        NpcBox.Text = suggestedNpc ?? "";
+        NpcPicker.Configure(package);
+        NpcPicker.SourceFilter = sourceFilter ?? "";
+        NpcPicker.SelectedId = suggestedNpc ?? "";
     }
 
     void KindBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

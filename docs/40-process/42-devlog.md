@@ -1,5 +1,77 @@
 # 开发日志
 
+## 2026-09-23 — EVENT-02A Persistent World Activity Feed
+
+- 新增 `WorldActivityBoard`，以 Opportunity InstanceId 为稳定 source，持久保存 Active/History、unread、创建/结束日；publicNotice 创建 Activity 并保留一次 Toast，worldVisible 不入栏。
+- Opportunity expiry、死亡或 Removed cleanup 会立即把关联 Activity 转 History；History 上限 100。Snapshot schema 保持 v6，以 additive optional `worldActivityRuntime` 保存，Active source 缺失严格 `SnapshotInvalid`，restore 不重播 Toast。
+- Host 新增左侧紧凑活动栏、详情、历史与 exact-location 定位；定位复用 Continuous world→presentation mapper 与现有 camera rig，只移动镜头，同 Surface 以外只提示。
+- Opportunity 增加 `publicNoticeTitle`／`publicNoticeRevealExactLocation`，OpportunityEditor 提供中文表单。Acceptance 临时行商公开位置，受伤散修保持 worldVisible，两者距离均调为 2～3 world units。
+- 状态：**Implementation Complete / Producer Acceptance Pending**。仓库规则禁止自动测试，运行行为按 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md) 人工验收；未启动 Unity，未 stage／commit／push／reset。
+
+## 2026-09-23 — EVENT-02 World Opportunity Director V1
+
+- 新增独立于 legacy `OpportunitySite` 的 `worldOpportunityDirector`／`worldOpportunity` 定义、Core spec/runtime board/driver；只在玩家当前 Surface 当日首次 Tick refill，按模板与 SpawnTable 权重生成真实 NPC，并使用合法 Surface 可走坐标与精确 WorldPresence。
+- `worldVisible` 静默出现；`publicNotice` 发布轻量 `WorldOpportunityNotice` 并复用战略 Toast。到期执行受限 Flag/Counter outcomes 后 Removed/清 Presence；死亡/Removed 实例幂等清映射。
+- Snapshot schema 保持 v6，以 additive optional `worldOpportunityRuntime` 保存实例关联、expiry、next sequence 与 Surface refresh day；旧 v6 缺字段为空，存在 authority 时严格校验。
+- ContentEvent onTalk 增加 AND 语义的 `npcTags[]`／`worldOpportunityId`；EventEditor 增加可读绑定表单与通用人物模板 Browser。新增 OpportunityEditor 管理 Director、Opportunity、结构化 Conditions/Outcomes 与复用 SpawnTable 的 NPC 人物池。
+- BaseGame 增加 Main Wilderness 2/2 验收内容：受伤散修与临时行商各 1 个模板及通用对话 Event。Runtime Content validation 通过（3 chapters／4 quests／17 events）；offline compile ALL_OK；编辑器独立 build 0 error。仓库规则禁止自动测试，本轮未新增/运行测试，运行行为待制作人人工验收。
+- 状态：**Implementation Complete / Producer Acceptance Pending**。hidden 与动态 WorldObject 未实现；未启动 Unity，未 stage／commit／push／reset。完整记录见 [255](255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+
+## 2026-09-23 — EVENT-EDITOR-V2 Final Patch / Producer Acceptance Seal
+
+- 新增 editor-local `EventEditorUserSettings`，将最后一次人物来源按规范化 Package Root 保存到 `%LOCALAPPDATA%\XianXia\EventEditor\settings.json`；只恢复当前 Package 仍存在的 source，失效值回退“全部来源”。
+- 设置读写失败不阻止 EventEditor；来源恢复/切换不修改 Event working copy、Graph layout、Undo/Redo 或 dirty，也不进入 Git/Content/manifest/Runtime。
+- 制作人确认 EventEditor V2 实际验收通过：Graph-first、Step/Choice 连线、inline authoring、Speaker、Conditions/Outcomes、Priority/Topic/Repeat/Once、显式保底、dirty、undo/redo、layout、Browser、全局人物来源、可读 Picker、NPC onTalk 与 WorldObject onInspect authoring 均纳入封板。
+- 当前状态更新为 **Producer Accepted / Sealed（2026-09-23）**；不继续拆 V2.7/V2.8。EVENT-02 Opportunity、随机绑定、ContentIntent、NPC 找玩家／跟随、概率、剧情持久化、新 Graph node／Runtime framework 均未实施。
+- EventEditor build 0 warning／0 error，`git diff --check` 通过；Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）。正式 exe 更新时间 2026-09-23 15:22:04，单窗口启动后 Responding。computer-use 未暴露 native app surface，重启恢复的点击级 smoke 留给制作人直接复核；设置文件尚未主动切换来源时不会提前创建，且始终位于仓库外。未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.6 Repeat/Fallback Semantics + Global Character Source
+
+- 静态审计 `ContentEventService`：Repeatable 在 fired gate 直接放行，完成时不 MarkFired；Once 完成后才按 scope 标记；Trigger/Binding/Conditions 后只保留最高 Priority 同层。当前“验收·问点私事”为 P50、repeatable、0 Conditions，因此 Runtime 无需修改。
+- 重复规则改为“满足条件时可重复／全局仅一次／每个目标仅一次／每角色×目标仅一次”；保底帮助明确 onTalk、P0、repeatable、0 Conditions 且只在无更高合法对话时出现。
+- 顶部新增由实际 definitions 动态收集的全局“人物来源”；按对象人物 Browser、Event NPC、New Event NPC、指定 Speaker 共用。Picker 内独立来源下拉删除，当前 binding 被筛掉时保留并提示。
+- 来源状态纯属 authoring view，不进 Event/Character/manifest/Runtime，不触发 working-copy mutation；未改 Graph、Opportunity、Snapshot、Quest、Character schema 或 Content layout。
+- 仓库规则禁止新增或运行自动化测试，本轮未改/未跑 NUnit；Resolver、既有 Once/Priority 测试源码与 acceptance JSON 已静态回读。Shared/EventEditor build 0 warning／0 error，Runtime/测试文件 diff 为空，`git diff --check` 通过。Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）；正式 exe 更新时间 2026-09-23 14:54:12，单窗口启动后 Responding。computer-use 未暴露 native app surface，点击级筛选 smoke 待制作人验收。未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.5 Human-readable Character Picker
+
+- Shared 新增从已加载 `character` definitions 构建的 `CharacterDefinitionInfo` 查询，提供中文名、Definition ID、相对来源路径和 package 名；未读取 Authoring CSV。
+- 新增统一 WPF Character Picker：当前值显示“中文名 — ID”与灰色来源；选择窗口可按名称、ID、来源搜索，并按实际 source file 筛选。
+- Event Inspector NPC、新建事件 NPC、Step Speaker“指定人物…”共用该选择器；Browser 人物组以中文名为主、灰色 ID 为辅，Tooltip 提供来源。
+- Event 仍只保存 DefinitionId；未改 Runtime、Content schema/组织、Graph、Opportunity 或 Snapshot。
+- Shared/EventEditor build 0 warning／0 error，`git diff --check` 通过；Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）。正式 exe 更新时间 2026-09-23 14:31:28，启动后 Responding；当前 computer-use 未暴露 native app surface，搜索/筛选点击手感仍待制作人验收。未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.4 Explicit Fallback Dialogue
+
+- 删除 Browser 的“◇ 状态对话”及“普通/特殊对话”推导分类；唯一特殊 authoring 概念是由现有字段表达的保底，其它 Event 只显示 P/条件数/Repeat scope 事实 badge。
+- Event Inspector 增加保底 toggle：开启约束 onTalk、具体 NPC、P0、repeatable、无 Event Conditions 并锁定控件；取消后恢复普通编辑并设 P10。
+- 新建向导改名为“NPC 保底对话／NPC 对话事件”；创建或勾选同 NPC 第二条保底时提示跳转，保存 validation 同时报告旧包歧义。
+- BaseGame 当前唯一保底为 supervisor chat，无重复；将老五条 P10/Conditions/行为未改。EVENT-01 acceptance IDs/flags 无正式外部引用，但专项仍 Pending，故内容与 layout 保留。
+- 未改 Runtime、Graph、dirty、Snapshot 或 schema。EventEditor build 0 warning／0 error；Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）。正式 exe 更新时间 2026-09-23 13:41:14，启动后 Responding 且标题无 dirty `*`；未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.3 Canonical Working Documents
+
+- 真正根因：合法 sparse Event/Step/Choice JSON 缺少默认字段，而 Inspector no-op commit 会写出 priority/topicText/onceScope 与 Choice unavailableMode/requirementText 等显式默认，造成 JSON shape 差异、伪 dirty 和伪 Undo。
+- 新增 editor-only `EventEditorDocumentNormalizer`；Existing clone、New raw、Legacy Convert 均在 Session baseline 前 canonicalize。optional binding/location/quest 保持 sparse，打开文档不自动写磁盘。
+- GraphLayoutStore 仍在 Session 前 prune/补齐 layout；`EventFlowGraph.RefreshGraph` 改为只读，不再因 render/selection 修改 layout metadata。
+- V2.2 clean baseline 与回到 baseline 自动 clean 的逻辑保留；未改 Runtime Loader、Event resolution、Snapshot、剧情或 Content schema。
+- Shared/EventEditor build 均为 0 warning／0 error；Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）。正式 `Apps/EventEditor.exe` 更新时间 2026-09-23 12:40:59，启动后 Responding 且初始标题无 dirty `*`。当前 computer-use 未暴露 native app target，CASE 1–7 的完整点击级 smoke 仍待制作人验收；未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.2 Dirty State Correctness
+
+- 根因修复：`SetSession` 不再经 `ShowEventInspector` 把旧 Inspector controls 提交进新 Working Copy；UI load/show 与 commit 职责分离。
+- `EditorSession` 改用 Working JSON＋Graph layout clean baseline；修改、Undo、Redo 后重算真实差异，回到保存态自动清除 dirty；新建草稿首次保存前仍保持 dirty。
+- Browser 的“★ 普通 / 保底对话”收紧为无条件、可重复、Priority 0 的 onTalk；有 Event Conditions 的可重复对话显示“◇ 状态对话”。NPC 特殊对话模板默认 Priority 10。
+- 将老五条现有状态对话统一 Priority 10；Conditions、Outcomes、Quest、Minigame 和单 Step 结构保持不变。未改 Runtime event resolution、Snapshot 或 schema。
+- Shared／EventEditor 基础编译 0 warning／0 error；Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning）。正式 `Apps/EventEditor.exe` 更新时间 2026-09-23 12:24:44，启动后进程 Responding，初始窗口标题无 `*`；当前 computer-use 会话未暴露 native app target，故其余切换/编辑/Undo 手感项仍待制作人验收。未 stage／commit／push。
+
+## 2026-09-23 — EVENT-EDITOR-V2.1 Graph-first Authoring
+
+- 在既有 `EventFlowGraph`／`EditorSession` 上把 Graph 提升为主要制作面：显式 input port、放大 output port、Bezier 箭头、拖线目标高亮、节点正文/Choice inline edit、节点头 Speaker 下拉与画布快捷建 Step。
+- 连接可 hover、单击、Delete 或右键断开；拖到空白先选择 Speaker 再创建，Esc 不产生修改；自连接拒绝。自动布局会估算正文与 Choice 高度，工具栏增加专注模式。
+- 复用已有三 Step／两连接 `base:event_event_editor_v2_supervisor_chat` 与 editor-only layout 作为多节点回读案例，没有改 Runtime、JSON schema 或 Content semantics。
+- Shared 与 EventEditor 基础编译 0 warning／0 error；正式 Build All 成功发布 10 个 Editor（仅 MapEditor 既有 4 条 nullable warning），`Apps/EventEditor.exe` 更新时间 2026-09-23 11:33:38。正式 exe 启动后窗口标题正确、进程存活且 Responding；当前 computer-use 会话未暴露 native app target，故拖线手感仍不冒充自动验收。状态保持 **Implementation Complete / Producer Acceptance Pending**；未 stage／commit／push。
+
 ## 2026-09-23 — EVENT-EDITOR-V2 Visual Flow Authoring
 
 - EventEditor 从两栏 ID/长表单改为三栏“按对象/按事件 Browser＋自由 Steps Graph＋上下文 Inspector”；Event 保持 canonical Template，Graph 只映射现有 Entry/Step/Choice Next。

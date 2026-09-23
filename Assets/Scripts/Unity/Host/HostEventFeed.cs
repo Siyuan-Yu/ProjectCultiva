@@ -159,6 +159,7 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.ContentEventPresented:
                 case XianXia.Core.Events.EventType.QuestCompleted:
                 case XianXia.Core.Events.EventType.LocalMapChanged:
+                case XianXia.Core.Events.EventType.WorldOpportunityNotice:
                     return true;
                 default:
                     return false;

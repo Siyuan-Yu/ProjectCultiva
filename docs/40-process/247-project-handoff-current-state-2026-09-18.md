@@ -4,15 +4,33 @@
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。当前处于 Architecture Freeze v0.2 + ADR-0038 之后的**已封板基线**：Continuous Surface、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control 与 Separate Space 是正式主线。EVENT-01 Final 与 EVENT-EDITOR-V2 已由制作人单独授权并实施，状态均为 Implementation Complete / Producer Acceptance Pending；其他新方向仍需讨论范围，不自动编码。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。当前处于 Architecture Freeze v0.2 + ADR-0038 之后的**已封板基线**：Continuous Surface、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control 与 Separate Space 是正式主线。EVENT-EDITOR-V2 已于 2026-09-23 **Producer Accepted / Sealed**；EVENT-01 Final、EVENT-02 与 EVENT-02A 均为 **Implementation Complete / Producer Acceptance Pending**。
+
+### EVENT-02A 当前增补（2026-09-23）
+
+[256](256-event-02a-persistent-world-activity-feed-2026-09-23.md) 将 `publicNotice` 从 Toast-only 改为持久 `WorldActivityBoard` authority：Active／History、unread、最近 100 条、Snapshot v6 additive restore 与严格 Opportunity source 一致性。Host 左侧紧凑栏可反复打开详情；仅配置 `publicNoticeRevealExactLocation=true` 时显示定位，同 Surface 只移动镜头。worldVisible 不入栏，Toast 只在新 Activity 创建时播放一次。验收 Opportunity 距离改为 2～3 world units。状态 **Implementation Complete / Producer Acceptance Pending**。
+
+### EVENT-02 当前增补（2026-09-23）
+
+[255](255-event-02-world-opportunity-director-v1-2026-09-23.md) 建立独立于旧 `OpportunitySite` 的动态 NPC 机会链：当前 Surface 每日低频 refill、SpawnTable 单抽、合法可走精确坐标、真实 NPC/WorldPresence、通用 Continuous materialization、EVENT-01 onTalk 与到期 Removed。EVENT-02A 后续把 `publicNotice` 提升为持久 Activity，Toast 仅保留一次提醒。Snapshot schema 仍为 6，新增 additive optional runtime authority；旧 v6 缺字段视为空。OpportunityEditor 管理“世界生成什么”，EventEditor 管理“互动后发生什么”。V1 不支持 hidden 或动态 WorldObject。当前状态 **Implementation Complete / Producer Acceptance Pending**。
 
 ### EVENT-EDITOR-V2 当前增补（2026-09-23）
 
-[254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md) 将 EventEditor 改为 Browser＋Visual Steps Graph＋Inspector。Event 仍是独立 Template；按对象只是 binding projection。Working copy、dirty、undo/redo、自动布局、错误定位与 `Authoring/EventEditor/layouts.v1.json` 已接通。BaseGame 14 条审计基线 ContentEvent 已统一为 Steps，并新增 1 条主管普通对话保存/回读验收内容，当前共 15 条；Runtime legacy reader 保留。EVENT-02 Opportunity 与 narrative persistence 未实施，Snapshot schema 未改变。
+[254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md) 将 EventEditor 改为 Browser＋Visual Steps Graph＋Inspector。Event 仍是独立 Template；按对象只是 binding projection。Working copy、dirty、undo/redo、自动布局、错误定位与 `Authoring/EventEditor/layouts.v1.json` 已接通。EVENT-02 后续增加 tag／Opportunity onTalk binding 与通用人物模板投影；Graph authority 未变。通用 narrative persistence 仍未实现，Snapshot schema 仍为 6。
+
+制作人已完成 Graph、Step/Choice 连线、inline authoring、Priority/Topic/Repeat、保底与 Once、dirty、全局人物来源、可读 Character Picker、NPC／WorldObject authoring 的实际验收。最后剩余的“重启后不恢复人物来源”已由 final patch 以 editor-local、按 Package Root 的 `%LOCALAPPDATA%\XianXia\EventEditor\settings.json` 关闭；当前状态为 **Producer Accepted / Sealed**，不继续拆 V2.7/V2.8。
+
+V2.1 在原 Graph 上补齐 input/output port、Bezier 箭头连接、连接选择/删除、拖空白选择 Speaker 后创建、节点内 Speaker/正文/Choice 编辑、按内容估算间距与专注模式。仍只写同一 Steps working copy 和 editor-only layout；Runtime、ContentEvent schema、Priority/repeat/Host dialogue 均未改。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+V2.2 修复打开/切换 Event 时旧 Inspector 控件误写新 Session 的 dirty 根因，并把 dirty 改为 Working JSON＋layout 相对 clean baseline 的差异判断；Undo/Redo 或手工改回 baseline 会恢复 clean，新建草稿首次保存前保持 dirty。Browser fallback 分类收紧为无条件、可重复、Priority 0 的 onTalk；五条将老条件状态对话统一 Priority 10。未改 Runtime resolution 或 Snapshot。
+
+V2.3 进一步确认 sparse JSON 默认字段才是残余 false dirty 根因：新增 editor-only document normalizer，在 Existing/New/Legacy Convert 的 Session baseline 之前 canonicalize Event/Step/Choice 默认字段；optional binding 仍保持 sparse。Graph refresh 改为只读 layout，不再在 render 阶段补节点或 prune。Runtime Loader、schema 与磁盘源内容的自动写回规则未改。
+
+V2.4 删除“状态对话/特殊对话/普通对话”等伪类型，只保留由现有字段组合表达的显式保底：onTalk、具体 NPC、P0、repeatable、无 Event Conditions。Inspector toggle 负责约束字段，同 NPC 唯一性在创建/切换与保存验证两层检查；Browser 改为“★ 保底”加 Priority/Conditions/Repeat factual badges。EVENT-01 acceptance 内容经引用审计仍自包含，但专项 Pending，故未删除。
 
 ### EVENT-01 Final 当前增补（2026-09-22）
 
-[253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md) 是固定世界 NPC onTalk＋WorldObject onInspect、统一稳定 TargetKey、对象接近后复核、EventEditor 绑定及 Load definitions-only 的实施记录与人工验收入口。状态 **Implementation Complete / Producer Acceptance Pending**。沿用既有 ContentEvent／Outcome transaction／HostDialogue；旧 body／choices 兼容；Priority／Topic、整组 party-aware 条件、Step 与 once scope 均为 session runtime。Snapshot schema 仍为 6，SPACE-01-P1 serializer 保留，未 stage／commit／push。EVENT-02 Opportunity Director／ContentIntent／剧情 runtime persistence 未实施。
+[253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md) 是固定世界 NPC onTalk＋WorldObject onInspect、统一稳定 TargetKey、对象接近后复核、EventEditor 绑定及 Load definitions-only 的实施记录与人工验收入口。状态 **Implementation Complete / Producer Acceptance Pending**。沿用既有 ContentEvent／Outcome transaction／HostDialogue；旧 body／choices 兼容；Priority／Topic、整组 party-aware 条件、Step 与 once scope 均为 session runtime。EVENT-02 已在其上增加动态 NPC binding；ContentIntent 与通用剧情 runtime persistence 仍未实现。
 
 ### 基线、验收与 Git
 
@@ -1041,3 +1059,19 @@ Snapshot 在 Content rehydrate 后统一规范化 mastery 门槛并幂等恢复 
 - Hex footprint 的非空、六邻接连通、star-shaped non-empty kernel 三项规则只约束旧 Hex footprint 输入，不是 Continuous Surface、SiteCore 理论范围或 Actual Administrative Control 的通用几何规则。`WorldSiteHexFootprintBakeTransform` 仍有 `sitePlacements`／`sitePlaces`／`OpeningEntityAnchors` 与旧 LocalPosition migration 消费者，不是 dead legacy runtime。
 - 历史页 ADR-0027、212、213、245 仅增加旧名到现名索引；正文历史、旧 devlog 与已 superseded 的 ADR-0025 等保持原样。外部 `anchorQ/R`、`presenceQ/R`、`footprint[]` key 不变。
 - `WorldVec2`、`HostStrategicRosterPanelLayout`、`PlayableHostSession` 的代码改动仅为注释纠正，无行为变化。Core／Data／Unity／Editor／Tests／PlayModeTests／Assembly-CSharp 离线编译 `ALL_OK`；旧精确符号、外部 key、脚本 GUID 唯一性与 `git diff --check` 均已复核。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode；工作区保持未暂存、未提交。
+
+# 27. EVENT-EDITOR-V2.5 可读人物选择（2026-09-23）
+
+EventEditor 的人物入口统一使用 Shared `CharacterPicker`，目录 authority 是当前已加载 ContentPackage 的 `character` definitions，而非 Authoring CSV。制作界面显示中文名、稳定 ID 与定义来源，支持搜索和来源筛选；Event Inspector、新建事件与指定 Speaker 共用实现。左侧 Browser 保持中文名主标题与灰色 ID，来源仅放 Tooltip。磁盘 Event 仍只保存 DefinitionId，未修改 Runtime、Content schema/组织或 Graph 行为。
+
+# 28. EVENT-EDITOR-V2.6 Repeat 语义与全局人物来源（2026-09-23）
+
+Resolver 现状已满足 Repeatable／Once／Priority／fallback 契约：`once=false` 不读写 fired gate；Once 只在完成时按 scope 写 fired；候选只返回最高 Priority 同层。当前“验收·问点私事”为 P50 repeatable、0 Conditions，P100 完成后在没有更高层时每次交谈都应重新进入 P50 candidate layer。Runtime 未修改。
+
+EventEditor 顶部统一持有人物来源 filter，四个人物入口与按对象 Browser 共用；Picker 内不再有独立来源下拉。被筛掉的当前 binding 保留并提示，不写 Content、不 dirty。重复与保底文案已拆清，未改 Graph、Opportunity、Snapshot、Quest、Character schema 或 Content layout。
+
+# 29. EVENT-EDITOR-V2 Final Patch 与 Producer Acceptance Seal（2026-09-23）
+
+顶部人物来源现按规范化绝对 Package Root 保存在 `%LOCALAPPDATA%\XianXia\EventEditor\settings.json`；重开同一 Package 时只恢复仍存在的实际 source，否则回退“全部来源”。设置读写失败仅在状态栏提示，不阻止编辑；恢复和切换均不进入 Content、layout、Undo 或 dirty。
+
+制作人确认 EventEditor V2 全范围实际验收通过。当前正式状态为 **Producer Accepted / Sealed**；EVENT-02 Opportunity Director、随机 NPC/Object、tag/archetype binding、ContentIntent、NPC 找玩家／跟随、概率、剧情持久化、新 Graph node 或新 Runtime framework 均未实施，属于后续里程碑。

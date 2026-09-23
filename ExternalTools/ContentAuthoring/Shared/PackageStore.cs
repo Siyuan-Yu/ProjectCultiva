@@ -21,6 +21,12 @@ public sealed class DefRef
     public required JsonObject Raw { get; set; }
 }
 
+public sealed record CharacterDefinitionInfo(
+    string Id,
+    string Name,
+    string SourceRelativePath,
+    string PackageId);
+
 public sealed class ContentPackage
 {
     public required string Root { get; init; }
@@ -368,6 +374,22 @@ public static class PackageStore
 
     public static IReadOnlyList<string> AllCharacterIds(ContentPackage package) =>
         package.OfType("character").Select(c => c.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    /// <summary>从当前已加载内容包生成可供各编辑器共用的人物目录。</summary>
+    public static IReadOnlyList<CharacterDefinitionInfo> AllCharacterDefinitions(ContentPackage package)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        var packageId = Path.GetFileName(Path.TrimEndingDirectorySeparator(package.Root));
+        return package.OfType("character")
+            .Select(character => new CharacterDefinitionInfo(
+                character.Id,
+                string.IsNullOrWhiteSpace(character.Name) ? character.Id : character.Name,
+                Path.GetRelativePath(package.Root, character.FilePath).Replace('\\', '/'),
+                packageId))
+            .OrderBy(character => character.Name, StringComparer.CurrentCulture)
+            .ThenBy(character => character.Id, StringComparer.Ordinal)
+            .ToList();
+    }
 
     public static IReadOnlyList<string> AllResourceIds(ContentPackage package) =>
         package.OfType("resource").Select(r => r.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();

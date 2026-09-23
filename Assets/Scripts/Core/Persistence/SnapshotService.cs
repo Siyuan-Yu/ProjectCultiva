@@ -355,7 +355,60 @@ namespace XianXia.Core.Persistence
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
             CaptureOutdoorStatefulObjects(world, snap);
+            CaptureWorldOpportunities(world, snap);
+            CaptureWorldActivities(world, snap);
             return snap;
+        }
+
+        static void CaptureWorldActivities(SimulationWorld world, WorldSnapshot snap)
+        {
+            var runtime = new WorldActivityRuntimeSnapshotDto
+            {
+                HasAuthority = true,
+                NextActivitySequence = world.WorldActivities.NextActivitySequence
+            };
+            foreach (var entry in world.WorldActivities.Entries.Values)
+                runtime.Entries.Add(new WorldActivityEntrySnapshotDto
+                {
+                    ActivityId = entry.ActivityId,
+                    SourceKind = entry.SourceKind,
+                    SourceId = entry.SourceId,
+                    Title = entry.Title,
+                    Body = entry.Body,
+                    CreatedDayIndex = entry.CreatedDayIndex,
+                    State = entry.State,
+                    IsRead = entry.IsRead,
+                    HasResolvedDayIndex = entry.ResolvedDayIndex.HasValue,
+                    ResolvedDayIndex = entry.ResolvedDayIndex ?? 0
+                });
+            snap.WorldActivityRuntime = runtime;
+        }
+
+        static void CaptureWorldOpportunities(SimulationWorld world, WorldSnapshot snap)
+        {
+            var runtime = new WorldOpportunityRuntimeSnapshotDto
+            {
+                HasAuthority = true,
+                NextInstanceSequence = world.WorldOpportunities.NextInstanceSequence
+            };
+            foreach (var instance in world.WorldOpportunities.ActiveInstances.Values)
+                runtime.Instances.Add(new WorldOpportunityInstanceSnapshotDto
+                {
+                    InstanceId = instance.InstanceId,
+                    OpportunityDefinitionId = instance.OpportunityDefinitionId,
+                    SurfaceId = instance.SurfaceId,
+                    SpawnedEntityId = instance.SpawnedEntityId.Value,
+                    CreatedDayIndex = instance.CreatedDayIndex,
+                    ExpireDayIndexExclusive = instance.ExpireDayIndexExclusive,
+                    DiscoveryMode = instance.DiscoveryMode
+                });
+            foreach (var state in world.WorldOpportunities.SurfaceRefreshStates)
+                runtime.SurfaceRefreshStates.Add(new WorldOpportunitySurfaceRefreshSnapshotDto
+                {
+                    SurfaceId = state.Key,
+                    LastRefreshDayIndex = state.Value
+                });
+            snap.WorldOpportunityRuntime = runtime;
         }
 
         static void CapturePartyInventory(SimulationWorld world, WorldSnapshot snap)
@@ -923,7 +976,132 @@ namespace XianXia.Core.Persistence
             foreach (var key in snap.SuppressedCharacterContacts) world.Strategic.SuppressedCharacterContacts.Add(key);
             world.Strategic.CharacterEncounter = snap.CharacterEncounter;
             CharacterEncounterService.BindRuntime(world);
+            var opportunityRestore = RestoreWorldOpportunities(world, snap.WorldOpportunityRuntime);
+            if (opportunityRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(opportunityRestore.Error);
+            var activityRestore = RestoreWorldActivities(world, snap.WorldActivityRuntime);
+            if (activityRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(activityRestore.Error);
             return Result.Ok((world, loop));
+        }
+
+        static Result RestoreWorldActivities(SimulationWorld world, WorldActivityRuntimeSnapshotDto runtime)
+        {
+            if (runtime == null || !runtime.HasAuthority) return Result.Success();
+            if (runtime.NextActivitySequence == 0)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "WorldActivity next sequence is invalid.");
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var allSources = new HashSet<string>(StringComparer.Ordinal);
+            ulong highestSequence = 0;
+            var historyCount = 0;
+            var entries = runtime.Entries ?? new List<WorldActivityEntrySnapshotDto>();
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var saved = entries[i];
+                ulong sequence = 0;
+                var validSequence = saved != null && saved.ActivityId != null &&
+                    saved.ActivityId.StartsWith("activity:", StringComparison.Ordinal) &&
+                    ulong.TryParse(saved.ActivityId.Substring("activity:".Length), out sequence) && sequence > 0;
+                var active = saved != null && saved.State == WorldActivityState.Active;
+                var history = saved != null && saved.State == WorldActivityState.History;
+                ulong sourceSequence = 0;
+                var validOpportunitySource = saved != null && saved.SourceId != null &&
+                    saved.SourceId.StartsWith("opportunity:", StringComparison.Ordinal) &&
+                    ulong.TryParse(saved.SourceId.Substring("opportunity:".Length), out sourceSequence) &&
+                    sourceSequence > 0;
+                if (saved == null || !validSequence || !ids.Add(saved.ActivityId) ||
+                    string.IsNullOrWhiteSpace(saved.SourceKind) || string.IsNullOrWhiteSpace(saved.SourceId) ||
+                    !validOpportunitySource || string.IsNullOrWhiteSpace(saved.Title) ||
+                    string.IsNullOrWhiteSpace(saved.Body) || (!active && !history) ||
+                    (active && saved.HasResolvedDayIndex) || (history && !saved.HasResolvedDayIndex) ||
+                    (saved.HasResolvedDayIndex && saved.ResolvedDayIndex < saved.CreatedDayIndex) ||
+                    !string.Equals(saved.SourceKind, WorldActivitySourceKind.WorldOpportunity, StringComparison.Ordinal))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid WorldActivity entry.", i.ToString());
+                var sourceKey = saved.SourceKind + "\n" + saved.SourceId;
+                if (!allSources.Add(sourceKey) ||
+                    (active && (!world.WorldOpportunities.ActiveInstances.TryGetValue(saved.SourceId, out var source) ||
+                                source.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice)))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "WorldActivity source is duplicated or its active Opportunity is missing.", saved.SourceId);
+                if (history && ++historyCount > WorldActivityBoard.HistoryCapacity)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "WorldActivity history exceeds capacity.");
+                if (!world.WorldActivities.RestoreEntry(new WorldActivityEntry
+                {
+                    ActivityId = saved.ActivityId,
+                    SourceKind = saved.SourceKind,
+                    SourceId = saved.SourceId,
+                    Title = saved.Title,
+                    Body = saved.Body ?? string.Empty,
+                    CreatedDayIndex = saved.CreatedDayIndex,
+                    State = saved.State,
+                    IsRead = saved.IsRead,
+                    ResolvedDayIndex = saved.HasResolvedDayIndex ? saved.ResolvedDayIndex : (ulong?)null
+                }))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "WorldActivity entry cannot be restored.", saved.ActivityId);
+                if (sequence > highestSequence) highestSequence = sequence;
+            }
+            if (runtime.NextActivitySequence <= highestSequence)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "WorldActivity next sequence would collide with an existing entry.");
+            world.WorldActivities.RestoreSequence(runtime.NextActivitySequence);
+            return Result.Success();
+        }
+
+        static Result RestoreWorldOpportunities(SimulationWorld world, WorldOpportunityRuntimeSnapshotDto runtime)
+        {
+            if (runtime == null || !runtime.HasAuthority) return Result.Success();
+            if (runtime.NextInstanceSequence == 0)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity next sequence is invalid.");
+            var instanceIds = new HashSet<string>(StringComparer.Ordinal);
+            var entityIds = new HashSet<ulong>();
+            ulong highestInstanceSequence = 0;
+            var instances = runtime.Instances ?? new List<WorldOpportunityInstanceSnapshotDto>();
+            for (var i = 0; i < instances.Count; i++)
+            {
+                var saved = instances[i];
+                ulong instanceSequence = 0;
+                var hasValidInstanceSequence = saved != null &&
+                    saved.InstanceId != null &&
+                    saved.InstanceId.StartsWith("opportunity:", StringComparison.Ordinal) &&
+                    ulong.TryParse(saved.InstanceId.Substring("opportunity:".Length), out instanceSequence) &&
+                    instanceSequence > 0;
+                if (saved == null || string.IsNullOrWhiteSpace(saved.InstanceId) ||
+                    !hasValidInstanceSequence ||
+                    !instanceIds.Add(saved.InstanceId) || saved.SpawnedEntityId == 0 ||
+                    !entityIds.Add(saved.SpawnedEntityId) ||
+                    !DefinitionId.TryParse(saved.OpportunityDefinitionId, out _) ||
+                    string.IsNullOrWhiteSpace(saved.SurfaceId) ||
+                    saved.ExpireDayIndexExclusive <= saved.CreatedDayIndex ||
+                    (saved.DiscoveryMode != WorldOpportunityDiscoveryMode.WorldVisible &&
+                     saved.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate WorldOpportunity instance.", i.ToString());
+                if (instanceSequence > highestInstanceSequence) highestInstanceSequence = instanceSequence;
+                var entityId = new EntityId(saved.SpawnedEntityId);
+                if (!world.Entities.TryGet(entityId, out _))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity entity is missing.", saved.SpawnedEntityId.ToString());
+                if (!world.WorldOpportunities.AddInstance(new WorldOpportunityInstance
+                {
+                    InstanceId = saved.InstanceId,
+                    OpportunityDefinitionId = saved.OpportunityDefinitionId,
+                    SurfaceId = saved.SurfaceId,
+                    SpawnedEntityId = entityId,
+                    CreatedDayIndex = saved.CreatedDayIndex,
+                    ExpireDayIndexExclusive = saved.ExpireDayIndexExclusive,
+                    DiscoveryMode = saved.DiscoveryMode
+                }))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity binding cannot be restored.", saved.InstanceId);
+            }
+            var surfaces = runtime.SurfaceRefreshStates ?? new List<WorldOpportunitySurfaceRefreshSnapshotDto>();
+            for (var i = 0; i < surfaces.Count; i++)
+            {
+                var saved = surfaces[i];
+                if (saved == null || !world.WorldOpportunities.RestoreRefreshState(saved.SurfaceId, saved.LastRefreshDayIndex))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate WorldOpportunity Surface refresh state.", i.ToString());
+            }
+            if (runtime.NextInstanceSequence <= highestInstanceSequence)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity next sequence would collide with an existing instance.");
+            world.WorldOpportunities.RestoreSequence(runtime.NextInstanceSequence);
+            return Result.Success();
         }
 
         static void RestorePartyInventory(SimulationWorld world, WorldSnapshot snap)

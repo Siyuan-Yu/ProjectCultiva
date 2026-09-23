@@ -66,7 +66,7 @@ public static class SchemaFields
         ["contentEvent"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "body", "trigger", "locationId", "questId", "once",
-            "conditions", "choices", "npcDefinitionId", "worldObjectKind", "worldObjectId",
+            "conditions", "choices", "npcDefinitionId", "npcTags", "worldOpportunityId", "worldObjectKind", "worldObjectId",
             "priority", "topicText", "onceScope", "entryStepId", "steps"
         },
         ["chapter"] = new HashSet<string>(StringComparer.Ordinal)
@@ -91,6 +91,20 @@ public static class SchemaFields
         {
             "id", "type", "name", "worldRegionId",
             "originX", "originY", "cellSize", "width", "height", "placements"
+        },
+        ["spawnTable"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "entries"
+        },
+        ["worldOpportunityDirector"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "surfaceId", "targetActiveMin", "targetActiveMax"
+        },
+        ["worldOpportunity"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnTableId", "durationDays",
+            "minPlayerDistanceWorld", "maxPlayerDistanceWorld", "allowInsideWorldSite", "discoveryMode",
+            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation", "conditions", "expireOutcomes"
         }
     };
 

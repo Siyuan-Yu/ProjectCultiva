@@ -14,6 +14,7 @@ using XianXia.Core.Social;
 using XianXia.Core.Combat;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Opportunity;
 
 namespace XianXia.Core.Simulation
 {
@@ -27,6 +28,7 @@ namespace XianXia.Core.Simulation
         readonly SocialTickDriver _socialTickDriver;
         readonly XianXia.Core.Social.SupervisorAngerDriver _supervisorAngerDriver;
         readonly bool _socialTickEnabled;
+        readonly WorldOpportunityDriver _worldOpportunityDriver;
         readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
 
@@ -43,6 +45,7 @@ namespace XianXia.Core.Simulation
             _npcActivityDriver = npcActivityDriver ?? new NpcActivityDriver();
             _socialTickDriver = socialTickDriver ?? new SocialTickDriver();
             _supervisorAngerDriver = new XianXia.Core.Social.SupervisorAngerDriver();
+            _worldOpportunityDriver = new WorldOpportunityDriver();
             _socialTickEnabled = enableSocialTick;
             if (dayBoundaryHandlers != null)
             {
@@ -195,6 +198,7 @@ namespace XianXia.Core.Simulation
             // SurfaceVisible movement remains Host/presentation driven.
             StrategicTravelDriver.AfterTravelTick(_world, 1);
             CombatLifeStateService.TickCorpseDecay(_world);
+            _worldOpportunityDriver.Tick(_world);
             return Result.Success();
         }
 

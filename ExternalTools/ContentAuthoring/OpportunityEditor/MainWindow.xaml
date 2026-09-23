@@ -1,0 +1,106 @@
+<Window x:Class="OpportunityEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shared="clr-namespace:ContentAuthoring.Shared;assembly=Shared"
+        Title="XianXia · 世界机会编辑器" Height="900" Width="1280" WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+      <Button Content="新建 Surface Director" Width="150" Margin="0,0,8,0" Click="NewDirector_Click"/>
+      <Button Content="新建 Opportunity" Width="140" Margin="0,0,8,0" Click="NewOpportunity_Click"/>
+      <Button Content="保存当前" Width="90" Margin="0,0,8,0" Click="Save_Click"/>
+      <TextBlock x:Name="RootText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Text="请选择 Content 包。"/>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="310"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <Grid Grid.Column="0" Margin="0,0,8,0">
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="2*"/></Grid.RowDefinitions>
+        <GroupBox Header="Surface Director" Margin="0,0,0,8">
+          <ListBox x:Name="DirectorList" SelectionChanged="DirectorList_SelectionChanged" DisplayMemberPath="Display"/>
+        </GroupBox>
+        <GroupBox Grid.Row="1" Header="World Opportunity">
+          <ListBox x:Name="OpportunityList" SelectionChanged="OpportunityList_SelectionChanged" DisplayMemberPath="Display"/>
+        </GroupBox>
+      </Grid>
+      <TabControl Grid.Column="1" x:Name="EditorTabs">
+        <TabItem Header="Surface Director">
+          <StackPanel Margin="12">
+            <TextBlock Text="Director 只管理一个 Surface 上的随机机会密度。" Foreground="Gray" Margin="0,0,0,12"/>
+            <DockPanel Margin="0,0,0,8"><TextBlock Text="ID" Width="150"/><TextBox x:Name="DirectorIdBox"/></DockPanel>
+            <DockPanel Margin="0,0,0,8"><TextBlock Text="名称" Width="150"/><TextBox x:Name="DirectorNameBox"/></DockPanel>
+            <DockPanel Margin="0,0,0,8"><TextBlock Text="Surface" Width="150"/><ComboBox x:Name="DirectorSurfaceBox"/></DockPanel>
+            <DockPanel Margin="0,0,0,8"><TextBlock Text="目标同时存在·最少" Width="150"/><TextBox x:Name="TargetMinBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+            <DockPanel><TextBlock Text="目标同时存在·最多" Width="150"/><TextBox x:Name="TargetMaxBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Opportunity">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="ID" Width="150"/><TextBox x:Name="OpportunityIdBox"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="名称" Width="150"/><TextBox x:Name="OpportunityNameBox"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="Surface" Width="150"/><ComboBox x:Name="OpportunitySurfaceBox"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="权重" Width="150"/><TextBox x:Name="WeightBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="最大同时存在" Width="150"/><TextBox x:Name="MaxActiveBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+              <GroupBox Header="NPC 人物池" Margin="0,8,0,8">
+                <StackPanel Margin="8">
+                  <DockPanel Margin="0,0,0,6">
+                    <ComboBox x:Name="SpawnTableBox" SelectionChanged="SpawnTableBox_SelectionChanged" MinWidth="420"/>
+                    <Button Content="新建人物池" Width="100" Margin="8,0,0,0" Click="NewPool_Click"/>
+                  </DockPanel>
+                  <DataGrid x:Name="PoolGrid" AutoGenerateColumns="False" CanUserAddRows="False" Height="150">
+                    <DataGrid.Columns>
+                      <DataGridTextColumn Header="人物模板 ID" Binding="{Binding DefinitionId}" Width="*" IsReadOnly="True"/>
+                      <DataGridTextColumn Header="权重" Binding="{Binding Weight}" Width="90"/>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <shared:CharacterPicker x:Name="PoolCharacterPicker" Margin="0,8,0,4"/>
+                  <StackPanel Orientation="Horizontal">
+                    <Button Content="＋添加人物" Width="100" Click="AddPoolCharacter_Click"/>
+                    <Button Content="删除所选" Width="90" Margin="8,0,0,0" Click="RemovePoolCharacter_Click"/>
+                  </StackPanel>
+                </StackPanel>
+              </GroupBox>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="生命周期（天）" Width="150"/><TextBox x:Name="DurationDaysBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="距离玩家·最小" Width="150"/><TextBox x:Name="MinDistanceBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="距离玩家·最大" Width="150"/><TextBox x:Name="MaxDistanceBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+              <CheckBox x:Name="AllowInsideSiteBox" Content="允许生成在 WorldSite 内" Margin="150,0,0,8"/>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="发现方式" Width="150"/><ComboBox x:Name="DiscoveryModeBox" SelectionChanged="DiscoveryModeBox_SelectionChanged"><ComboBoxItem Content="世界可见" Tag="worldVisible"/><ComboBoxItem Content="公开消息" Tag="publicNotice"/></ComboBox></DockPanel>
+              <StackPanel x:Name="NoticePanel" Margin="0,0,0,8">
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="动态标题" Width="150"/><TextBox x:Name="NoticeTitleBox"/></DockPanel>
+                <CheckBox x:Name="RevealExactLocationBox" Content="公布准确位置" Margin="150,0,0,6"/>
+                <DockPanel><TextBlock Text="公开消息文字" Width="150"/><TextBox x:Name="NoticeTextBox"/></DockPanel>
+              </StackPanel>
+              <GroupBox Header="出现条件（结构化）" Margin="0,4,0,8">
+                <StackPanel Margin="6">
+                  <DataGrid x:Name="ConditionsGrid" AutoGenerateColumns="False" CanUserAddRows="True" Height="130">
+                    <DataGrid.Columns>
+                      <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="150"/>
+                      <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="*"/>
+                      <DataGridTextColumn Header="Amount" Binding="{Binding Amount}" Width="80"/>
+                      <DataGridTextColumn Header="Realm" Binding="{Binding Realm}" Width="110"/>
+                      <DataGridTextColumn Header="CharacterId" Binding="{Binding CharacterId}" Width="180"/>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <Button Content="删除所选条件" Width="110" Margin="0,6,0,0" Click="RemoveCondition_Click"/>
+                </StackPanel>
+              </GroupBox>
+              <GroupBox Header="到期结果（仅 Flag / Counter）">
+                <StackPanel Margin="6">
+                  <DataGrid x:Name="OutcomesGrid" AutoGenerateColumns="False" CanUserAddRows="True" Height="120">
+                    <DataGrid.Columns>
+                      <DataGridComboBoxColumn Header="Kind" SelectedItemBinding="{Binding Kind}" Width="150" ItemsSource="{x:Static local:MainWindow.AllowedOutcomeKinds}" xmlns:local="clr-namespace:OpportunityEditor"/>
+                      <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="*"/>
+                      <DataGridTextColumn Header="Amount" Binding="{Binding Amount}" Width="90"/>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <Button Content="删除所选结果" Width="110" Margin="0,6,0,0" Click="RemoveOutcome_Click"/>
+                </StackPanel>
+              </GroupBox>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -10,7 +10,7 @@
    <Grid>
     <Grid.ColumnDefinitions>
      <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
-     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="270"/>
+     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="270"/>
     </Grid.ColumnDefinitions>
     <Button Content="打开包…" Padding="12,6" Click="OpenPackage_Click"/>
     <Button Grid.Column="1" Content="＋ 新建" Padding="12,6" Margin="7,0,0,0" Click="NewEvent_Click"/>
@@ -19,14 +19,22 @@
     <Button Grid.Column="4" x:Name="RedoButton" Content="重做" Padding="12,6" Margin="7,0,0,0" Click="Redo_Click"/>
     <Button Grid.Column="5" Content="自动整理" Padding="12,6" Margin="14,0,0,0" Click="AutoLayout_Click"/>
     <Button Grid.Column="6" Content="缩放到全部" Padding="12,6" Margin="7,0,0,0" Click="ZoomFit_Click"/>
-    <TextBlock Grid.Column="7" x:Name="RootText" Foreground="#B8C0CC" VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis"/>
-    <TextBox Grid.Column="8" x:Name="SearchBox" Height="30" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged" ToolTip="搜索名称、话题、ID、人物、物体或触发时机"/>
+    <Button Grid.Column="7" x:Name="FocusModeButton" Content="专注模式" Padding="12,6" Margin="7,0,0,0" Click="FocusMode_Click" ToolTip="隐藏两侧栏，把空间留给对话图"/>
+    <StackPanel Grid.Column="8" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+     <TextBlock Text="人物来源：" Foreground="#D6DAE0" VerticalAlignment="Center"/>
+     <ComboBox x:Name="CharacterSourceBox" Width="235" Height="30" VerticalContentAlignment="Center"
+               SelectionChanged="CharacterSourceBox_SelectionChanged" ToolTip="全局筛选人物 Browser 与所有人物选择入口">
+      <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" MaxWidth="360"/></DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+    </StackPanel>
+    <TextBlock Grid.Column="9" x:Name="RootText" Foreground="#B8C0CC" VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis"/>
+    <TextBox Grid.Column="10" x:Name="SearchBox" Height="30" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged" ToolTip="搜索名称、话题、ID、人物、物体或触发时机"/>
    </Grid>
   </Border>
   <StatusBar DockPanel.Dock="Bottom" Background="#E7E9ED"><TextBlock x:Name="StatusText" Text="准备就绪"/></StatusBar>
   <Grid>
-   <Grid.ColumnDefinitions><ColumnDefinition Width="310"/><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/><ColumnDefinition Width="390"/></Grid.ColumnDefinitions>
-   <Border Grid.Column="0" Background="White" BorderBrush="#D5D8DE" BorderThickness="0,0,1,0">
+   <Grid.ColumnDefinitions><ColumnDefinition x:Name="BrowserColumn" Width="310"/><ColumnDefinition x:Name="BrowserSplitterColumn" Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition x:Name="InspectorSplitterColumn" Width="5"/><ColumnDefinition x:Name="InspectorColumn" Width="390"/></Grid.ColumnDefinitions>
+   <Border x:Name="BrowserPanel" Grid.Column="0" Background="White" BorderBrush="#D5D8DE" BorderThickness="0,0,1,0">
     <DockPanel Margin="10">
      <StackPanel DockPanel.Dock="Top">
       <TextBlock Text="内容浏览" FontSize="17" FontWeight="SemiBold" Margin="2,2,0,9"/>
@@ -38,7 +46,7 @@
      <TreeView x:Name="BrowserTree" SelectedItemChanged="BrowserTree_SelectedItemChanged" BorderThickness="0"/>
     </DockPanel>
    </Border>
-   <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="#DDE0E5"/>
+   <GridSplitter x:Name="BrowserSplitter" Grid.Column="1" HorizontalAlignment="Stretch" Background="#DDE0E5"/>
    <Grid Grid.Column="2" Background="#1D2026">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Border Background="#2B3038" Padding="12,9" BorderBrush="#3A414C" BorderThickness="0,0,0,1">
@@ -58,8 +66,8 @@
     </Grid>
     <Expander Grid.Row="2" x:Name="ErrorExpander" Header="验证问题" Background="#F7ECEC" IsExpanded="False"><ListBox x:Name="ErrorList" MaxHeight="150" MouseDoubleClick="ErrorList_MouseDoubleClick" DisplayMemberPath="Display"/></Expander>
    </Grid>
-   <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" Background="#DDE0E5"/>
-   <Border Grid.Column="4" Background="White" BorderBrush="#D5D8DE" BorderThickness="1,0,0,0">
+   <GridSplitter x:Name="InspectorSplitter" Grid.Column="3" HorizontalAlignment="Stretch" Background="#DDE0E5"/>
+   <Border x:Name="InspectorPanel" Grid.Column="4" Background="White" BorderBrush="#D5D8DE" BorderThickness="1,0,0,0">
     <DockPanel>
      <Border DockPanel.Dock="Top" Background="#F7F8FA" Padding="12,10" BorderBrush="#D5D8DE" BorderThickness="0,0,0,1"><TextBlock x:Name="InspectorTitle" Text="Inspector" FontSize="17" FontWeight="SemiBold"/></Border>
      <ScrollViewer VerticalScrollBarVisibility="Auto" LostKeyboardFocus="Inspector_LostKeyboardFocus">
@@ -70,15 +78,21 @@
         <TextBlock Text="话题文字" FontWeight="SemiBold"/><TextBox x:Name="EventTopicBox" Margin="0,4,0,10"/>
         <TextBlock Text="触发时机" FontWeight="SemiBold"/><ComboBox x:Name="EventTriggerBox" Margin="0,4,0,10" SelectionChanged="EventTriggerBox_SelectionChanged"/>
         <GroupBox Header="适用对象 / 互动绑定" Margin="0,0,0,10"><StackPanel Margin="8">
-          <StackPanel x:Name="NpcBindingPanel"><TextBlock Text="互动人物"/><ComboBox x:Name="NpcDefBox" IsEditable="True" Margin="0,4,0,8"/></StackPanel>
+          <StackPanel x:Name="NpcBindingPanel"><TextBlock Text="指定人物（可选）"/><shared:CharacterPicker x:Name="NpcPicker" Margin="0,4,0,4"/><Button Content="清除指定人物" HorizontalAlignment="Left" Padding="8,3" Margin="0,0,0,8" Click="ClearNpcBinding_Click"/>
+           <TextBlock Text="必须人物标签（全部满足；逗号或空格分隔）"/><TextBox x:Name="NpcTagsBox" Margin="0,4,0,8" ToolTip="例如：cultivator, wounded"/>
+           <TextBlock Text="Opportunity 模板（可选）"/><ComboBox x:Name="WorldOpportunityBox" DisplayMemberPath="Display" Margin="0,4,0,8"/>
+           <Border Background="#EEF5FF" BorderBrush="#B8D1EF" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,2,0,8">
+            <StackPanel><CheckBox x:Name="FallbackBox" Content="作为该人物的保底对话" FontWeight="SemiBold" Checked="FallbackBox_Checked" Unchecked="FallbackBox_Unchecked"/><TextBlock Text="保底对话无条件、可重复、Priority 0。只有当该人物当前没有更高优先级可用对话时才出现。" Foreground="#566579" FontSize="11" TextWrapping="Wrap" Margin="22,4,0,0"/></StackPanel>
+           </Border>
+          </StackPanel>
           <StackPanel x:Name="ObjectBindingPanel"><TextBlock Text="世界物体类型"/><ComboBox x:Name="WorldObjectKindBox" Margin="0,4,0,8" SelectionChanged="WorldObjectKindBox_SelectionChanged"/><TextBlock Text="世界物体实例"/><ComboBox x:Name="WorldObjectIdBox" IsEditable="True" Margin="0,4,0,8"/></StackPanel>
         </StackPanel></GroupBox>
         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="优先级" FontWeight="SemiBold"/><TextBox x:Name="PriorityBox" Margin="0,4,0,0"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="重复规则" FontWeight="SemiBold"/><ComboBox x:Name="RepeatBox" Margin="0,4,0,0"/></StackPanel></Grid>
-        <GroupBox Header="事件条件" Margin="0,0,0,10"><shared:JsonArrayEditor x:Name="EventConditionEditor" Margin="8"/></GroupBox>
+        <GroupBox x:Name="EventConditionsGroup" Header="事件条件" Margin="0,0,0,10"><shared:JsonArrayEditor x:Name="EventConditionEditor" Margin="8"/></GroupBox>
         <Expander Header="高级设置" Margin="0,4,0,10"><StackPanel Margin="8"><TextBlock Text="Event ID"/><TextBox x:Name="EventIdBox" IsReadOnly="True" Foreground="#666" Margin="0,4,0,8"/><TextBlock Text="地点 ID"/><ComboBox x:Name="LocationBox" IsEditable="True" Margin="0,4,0,8"/><TextBlock Text="任务 ID"/><TextBox x:Name="QuestIdBox" Margin="0,4,0,8"/><TextBlock Text="Graph layout metadata"/><TextBlock x:Name="LayoutPathText" Foreground="#666" TextWrapping="Wrap"/></StackPanel></Expander>
        </StackPanel>
        <StackPanel x:Name="StepInspector" Visibility="Collapsed">
-        <TextBlock Text="说话人" FontWeight="SemiBold"/><ComboBox x:Name="SpeakerBox" Margin="0,4,0,8" SelectionChanged="SpeakerBox_SelectionChanged"/><ComboBox x:Name="SpeakerDefBox" IsEditable="True" Margin="0,0,0,10"/>
+        <TextBlock Text="说话人" FontWeight="SemiBold"/><ComboBox x:Name="SpeakerBox" Margin="0,4,0,8" SelectionChanged="SpeakerBox_SelectionChanged"/><shared:CharacterPicker x:Name="SpeakerCharacterPicker" Margin="0,0,0,10"/>
         <TextBlock Text="正文" FontWeight="SemiBold"/><TextBox x:Name="StepTextBox" AcceptsReturn="True" MinHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,4,0,10"/>
         <GroupBox Header="Step Outcomes"><shared:JsonArrayEditor x:Name="StepOutcomeEditor" Margin="8"/></GroupBox>
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Button Content="设为入口" Padding="10,5" Click="SetEntry_Click"/><Button Content="＋ 添加 Choice" Padding="10,5" Margin="8,0,0,0" Click="AddChoice_Click"/></StackPanel>

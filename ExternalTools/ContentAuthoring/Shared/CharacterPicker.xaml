@@ -1,0 +1,20 @@
+<UserControl x:Class="ContentAuthoring.Shared.CharacterPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="48">
+  <Border BorderBrush="#C9CDD4" BorderThickness="1" CornerRadius="3" Background="White" Padding="8,5">
+    <DockPanel LastChildFill="True">
+      <Button x:Name="ChooseButton" DockPanel.Dock="Right" Content="选择…" Padding="10,4"
+              Margin="8,0,0,0" VerticalAlignment="Center" Click="Choose_Click"/>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock x:Name="SelectionText" FontWeight="SemiBold" Text="未选择人物"
+                   TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="SourceText" Foreground="#77808C" FontSize="11"
+                   TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="FilterHintText" Foreground="#A06422" FontSize="11"
+                   Text="当前绑定人物不属于当前人物来源筛选。" TextWrapping="Wrap"
+                   Visibility="Collapsed"/>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

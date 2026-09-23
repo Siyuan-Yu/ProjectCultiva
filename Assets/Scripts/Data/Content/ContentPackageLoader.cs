@@ -268,6 +268,12 @@ namespace XianXia.Data.Content
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
                         break;
+                    case "worldOpportunityDirector":
+                        LoadWorldOpportunityDirector(item, parsed.Value, registry, report);
+                        break;
+                    case "worldOpportunity":
+                        LoadWorldOpportunity(item, parsed.Value, registry, report);
+                        break;
                     case "hexWorld":
                         report.Add(ErrorCode.ContentLoadFailed,
                             "hexWorld is retired from runtime Content. The offline converter only detects and rejects this map input; use the existing WorldComposer/SurfaceAuthoring Legacy migration path and do not guess when no migration sample exists.",
@@ -1888,6 +1894,54 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
+        static void LoadWorldOpportunityDirector(
+            JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorldOpportunityDirectorFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var definition = new WorldOpportunityDirectorDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                SurfaceId = item.GetString("surfaceId", string.Empty),
+                TargetActiveMin = ReadInt(item, "targetActiveMin", 0),
+                TargetActiveMax = ReadInt(item, "targetActiveMax", 0)
+            };
+            var registered = registry.RegisterWorldOpportunityDirector(definition);
+            if (registered.IsFailure) report.Add(registered.Error);
+        }
+
+        static void LoadWorldOpportunity(
+            JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorldOpportunityFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var definition = new WorldOpportunityDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                SurfaceId = item.GetString("surfaceId", string.Empty),
+                Weight = ReadInt(item, "weight", 0),
+                MaxActive = ReadInt(item, "maxActive", 0),
+                SpawnTableId = item.GetString("spawnTableId", string.Empty),
+                DurationDays = ReadInt(item, "durationDays", 0),
+                MinPlayerDistanceWorld = ReadFloat(item, "minPlayerDistanceWorld", 0f),
+                MaxPlayerDistanceWorld = ReadFloat(item, "maxPlayerDistanceWorld", 0f),
+                AllowInsideWorldSite = item.GetBool("allowInsideWorldSite", false),
+                DiscoveryMode = item.GetString("discoveryMode", "worldVisible"),
+                PublicNoticeTitle = item.GetString("publicNoticeTitle", string.Empty),
+                PublicNoticeText = item.GetString("publicNoticeText", string.Empty),
+                PublicNoticeRevealExactLocation = item.GetBool("publicNoticeRevealExactLocation", false)
+            };
+            ReadConditions(item, "conditions", definition.Conditions, report, id.ToString());
+            ReadOutcomes(item, "expireOutcomes", definition.ExpireOutcomes, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var registered = registry.RegisterWorldOpportunity(definition);
+            if (registered.IsFailure) report.Add(registered.Error);
+        }
+
         static void LoadContinuousSurfaceWorldMap(JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
         {
             var compositionId = item.GetString("compositionId", string.Empty);
@@ -2426,12 +2480,14 @@ namespace XianXia.Data.Content
                 Id = id, Name = item.GetString("name", ""), Body = item.GetString("body", ""),
                 Trigger = item.GetString("trigger", ""), LocationId = item.GetString("locationId", ""),
                 QuestId = item.GetString("questId", ""), NpcDefinitionId = item.GetString("npcDefinitionId", ""),
+                WorldOpportunityId = item.GetString("worldOpportunityId", ""),
                 WorldObjectKind = item.GetString("worldObjectKind", ""),
                 WorldObjectId = item.GetString("worldObjectId", ""),
                 Once = item.GetBool("once", true), OnceScope = item.GetString("onceScope", "global"),
                 Priority = ReadInt(item, "priority", 0), TopicText = item.GetString("topicText", ""),
                 EntryStepId = item.GetString("entryStepId", "")
             };
+            ReadStringList(item, "npcTags", evt.NpcTags, report, id.ToString());
             ReadConditions(item, "conditions", evt.Conditions, report, id.ToString());
             foreach (var c in ReadEventChoices(item, report, id.ToString()))
             {

@@ -13,6 +13,8 @@ namespace XianXia.Data.Content
         public string LocationId { get; set; } = string.Empty;
         public string QuestId { get; set; } = string.Empty;
         public string NpcDefinitionId { get; set; } = string.Empty;
+        public List<string> NpcTags { get; } = new List<string>();
+        public string WorldOpportunityId { get; set; } = string.Empty;
         public string WorldObjectKind { get; set; } = string.Empty;
         public string WorldObjectId { get; set; } = string.Empty;
         public int Priority { get; set; }

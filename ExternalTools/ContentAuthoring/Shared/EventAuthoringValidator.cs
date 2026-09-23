@@ -30,12 +30,18 @@ public static class EventAuthoringValidator
         if (S(raw, "onceScope", "global") is not ("global" or "perTarget" or "perActorTarget")) errors.Add("重复范围无效");
         var trigger = S(raw, "trigger");
         var npcDefinitionId = S(raw, "npcDefinitionId");
+        var worldOpportunityId = S(raw, "worldOpportunityId");
+        var npcTags = Array(raw, "npcTags");
         var objectKind = S(raw, "worldObjectKind");
         var objectId = S(raw, "worldObjectId");
         if (trigger == "onTalk")
         {
-            if (npcDefinitionId.Length == 0) errors.Add("人物交谈事件必须选择互动人物定义");
             Character(npcDefinitionId);
+            if (worldOpportunityId.Length > 0 && package.Find(worldOpportunityId)?.Type != "worldOpportunity")
+                errors.Add("Opportunity 模板不存在：" + worldOpportunityId);
+            foreach (var tag in npcTags)
+                if (tag is not JsonValue value || !value.TryGetValue<string>(out var text) || string.IsNullOrWhiteSpace(text))
+                    errors.Add("人物标签必须是非空文字");
         }
         if (trigger == "onInspect")
         {

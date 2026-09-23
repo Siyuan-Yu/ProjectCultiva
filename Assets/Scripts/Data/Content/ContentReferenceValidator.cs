@@ -44,6 +44,7 @@ namespace XianXia.Data.Content
             ValidateItems(registry, report);
             ValidateBuildings(registry, report);
             ValidateSpawnTables(registry, report);
+            ValidateWorldOpportunities(registry, locations, producedFlags, consumedFlags, report);
             ValidateMapSpawnZones(registry, locations, report);
             ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
             ValidateOutdoorControlCores(registry, report);
@@ -325,6 +326,64 @@ namespace XianXia.Data.Content
                         table.Id + ".entries[" + i + "].definitionId",
                         report);
                 }
+            }
+        }
+
+        void ValidateWorldOpportunities(
+            DefinitionRegistry registry,
+            HashSet<string> locations,
+            HashSet<string> producedFlags,
+            HashSet<string> consumedFlags,
+            ValidationReport report)
+        {
+            var surfaces = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.WorldOpportunityDirectors)
+            {
+                var d = pair.Value;
+                var ctx = d.Id.ToString();
+                if (string.IsNullOrWhiteSpace(d.SurfaceId) || !DefinitionId.TryParse(d.SurfaceId, out var surfaceId) ||
+                    !registry.OutdoorSurfaces.ContainsKey(surfaceId))
+                    report.Add(ErrorCode.NotFound, "worldOpportunityDirector.surfaceId missing.", ctx + ":" + d.SurfaceId);
+                if (!surfaces.Add(d.SurfaceId ?? string.Empty))
+                    report.Add(ErrorCode.DuplicateDefinitionId, "同一个 Surface 只能配置一个 worldOpportunityDirector。", d.SurfaceId);
+                if (d.TargetActiveMin < 0 || d.TargetActiveMax < d.TargetActiveMin)
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunityDirector target range invalid.", ctx);
+            }
+
+            foreach (var pair in registry.WorldOpportunities)
+            {
+                var o = pair.Value;
+                var ctx = o.Id.ToString();
+                if (string.IsNullOrWhiteSpace(o.SurfaceId) || !DefinitionId.TryParse(o.SurfaceId, out var surfaceId) ||
+                    !registry.OutdoorSurfaces.ContainsKey(surfaceId))
+                    report.Add(ErrorCode.NotFound, "worldOpportunity.surfaceId missing.", ctx + ":" + o.SurfaceId);
+                if (o.Weight <= 0 || o.MaxActive <= 0 || o.DurationDays < 1)
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity weight/maxActive/durationDays must be positive.", ctx);
+                if (o.MinPlayerDistanceWorld < 0f || o.MaxPlayerDistanceWorld < o.MinPlayerDistanceWorld)
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity distance range invalid.", ctx);
+                RequireDef(registry, o.SpawnTableId, "spawnTable", ctx + ".spawnTableId", report);
+                if (string.Equals(o.DiscoveryMode, "hidden", StringComparison.OrdinalIgnoreCase))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "EVENT-02 V1 尚未支持通用隐藏 Opportunity；不要把 Cave hidden-entry 逻辑复制到随机 NPC。", ctx);
+                else if (!string.Equals(o.DiscoveryMode, "worldVisible", StringComparison.Ordinal) &&
+                         !string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal))
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity.discoveryMode must be worldVisible or publicNotice.", ctx);
+                if (string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal) &&
+                    string.IsNullOrWhiteSpace(o.PublicNoticeText))
+                    report.Add(ErrorCode.MissingRequiredField, "publicNoticeText required for publicNotice.", ctx);
+                if (!string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal) &&
+                    o.PublicNoticeRevealExactLocation)
+                    report.Add(ErrorCode.InvalidArgument, "publicNoticeRevealExactLocation is only valid for publicNotice.", ctx);
+                ScanConditions(o.Conditions, registry, locations, producedFlags, consumedFlags, ctx + ".conditions", report);
+                for (var i = 0; i < o.ExpireOutcomes.Count; i++)
+                {
+                    var outcome = o.ExpireOutcomes[i];
+                    var kind = outcome?.Kind?.Trim().ToLowerInvariant() ?? string.Empty;
+                    if (kind != "setflag" && kind != "clearflag" && kind != "addcounter" && kind != "setcounter")
+                        report.Add(ErrorCode.InvalidArgument,
+                            "EVENT-02 V1 expireOutcomes only allow setFlag/clearFlag/addCounter/setCounter.", ctx);
+                }
+                ScanOutcomes(o.ExpireOutcomes, registry, locations, producedFlags, consumedFlags, ctx + ".expireOutcomes", report);
             }
         }
 
@@ -1047,7 +1106,13 @@ namespace XianXia.Data.Content
                 var ctx = e.Id.ToString();
                 ContentEventStructureValidator.Validate(e, report);
                 if (string.Equals(e.Trigger, "onTalk", StringComparison.OrdinalIgnoreCase))
+                {
                     RequireDef(registry, e.NpcDefinitionId, "character", ctx + ".npcDefinitionId", report);
+                    RequireDef(registry, e.WorldOpportunityId, "worldOpportunity", ctx + ".worldOpportunityId", report);
+                    for (var i = 0; i < e.NpcTags.Count; i++)
+                        if (string.IsNullOrWhiteSpace(e.NpcTags[i]))
+                            report.Add(ErrorCode.InvalidArgument, "contentEvent.npcTags cannot contain blank tags.", ctx);
+                }
                 if (string.Equals(e.Trigger, "onInspect", StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrWhiteSpace(e.WorldObjectId) &&
                     HasStaticWorldObjectCatalog(e.WorldObjectKind) &&
@@ -1511,6 +1576,9 @@ namespace XianXia.Data.Content
                     break;
                 case "spawnTable":
                     ok = registry.SpawnTables.ContainsKey(id);
+                    break;
+                case "worldOpportunity":
+                    ok = registry.WorldOpportunities.ContainsKey(id);
                     break;
                 case "npcSquad":
                     ok = registry.NpcSquads.ContainsKey(id);

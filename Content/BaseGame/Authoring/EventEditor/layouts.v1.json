@@ -4,102 +4,232 @@
     {
       "eventId": "base:event_accept_event01_mansion_mark",
       "nodes": [
-        { "stepId": "inspect", "x": 100, "y": 100, "collapsed": false },
-        { "stepId": "detail", "x": 430, "y": 100, "collapsed": false }
+        {
+          "stepId": "inspect",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        },
+        {
+          "stepId": "detail",
+          "x": 430,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_accept_event01_mansion_structure",
       "nodes": [
-        { "stepId": "inspect", "x": 100, "y": 100, "collapsed": false }
+        {
+          "stepId": "inspect",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_accept_event01_supervisor_priority",
       "nodes": [
-        { "stepId": "supervisor_priority", "x": 100, "y": 100, "collapsed": false }
+        {
+          "stepId": "supervisor_priority",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_accept_event01_supervisor_topic_personal",
       "nodes": [
-        { "stepId": "start", "x": 100, "y": 100, "collapsed": false },
-        { "stepId": "player_leave", "x": 430, "y": 100, "collapsed": false },
-        { "stepId": "finish", "x": 760, "y": 100, "collapsed": false }
+        {
+          "stepId": "start",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        },
+        {
+          "stepId": "player_leave",
+          "x": 430,
+          "y": 100,
+          "collapsed": false
+        },
+        {
+          "stepId": "finish",
+          "x": 760,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_accept_event01_supervisor_topic_work",
       "nodes": [
-        { "stepId": "ask", "x": 100, "y": 270, "collapsed": false },
-        { "stepId": "player_work", "x": 430, "y": 60, "collapsed": false },
-        { "stepId": "reply_work", "x": 760, "y": 60, "collapsed": false },
-        { "stepId": "player_qi", "x": 430, "y": 270, "collapsed": false },
-        { "stepId": "reply_qi", "x": 760, "y": 270, "collapsed": false },
-        { "stepId": "player_foundation", "x": 430, "y": 480, "collapsed": false },
-        { "stepId": "reply_foundation", "x": 760, "y": 480, "collapsed": false }
+        {
+          "stepId": "ask",
+          "x": 100,
+          "y": 270,
+          "collapsed": false
+        },
+        {
+          "stepId": "player_work",
+          "x": 430,
+          "y": 60,
+          "collapsed": false
+        },
+        {
+          "stepId": "reply_work",
+          "x": 760,
+          "y": 60,
+          "collapsed": false
+        },
+        {
+          "stepId": "player_qi",
+          "x": 430,
+          "y": 270,
+          "collapsed": false
+        },
+        {
+          "stepId": "reply_qi",
+          "x": 760,
+          "y": 270,
+          "collapsed": false
+        },
+        {
+          "stepId": "player_foundation",
+          "x": 430,
+          "y": 480,
+          "collapsed": false
+        },
+        {
+          "stepId": "reply_foundation",
+          "x": 760,
+          "y": 480,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_ch01_harness_ping",
       "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_ch01_ref_miner_grumble",
       "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_ch01_ref_opening",
       "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_herb_whisper",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_jiang_lao_after",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_jiang_lao_intro",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_jiang_lao_play",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_jiang_lao_played_today",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
-      ]
-    },
-    {
-      "eventId": "base:event_jiang_lao_ready_claim",
-      "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 100, "collapsed": false }
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     },
     {
       "eventId": "base:event_event_editor_v2_supervisor_chat",
       "nodes": [
-        { "stepId": "step_001", "x": 100, "y": 170, "collapsed": false },
-        { "stepId": "step_002", "x": 430, "y": 100, "collapsed": false },
-        { "stepId": "step_003", "x": 760, "y": 100, "collapsed": false }
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 170,
+          "collapsed": false
+        },
+        {
+          "stepId": "step_002",
+          "x": 430,
+          "y": 100,
+          "collapsed": false
+        },
+        {
+          "stepId": "step_003",
+          "x": 760,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_herb_whisper",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_jiang_lao_after",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_jiang_lao_intro",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_jiang_lao_play",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_jiang_lao_played_today",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
+      ]
+    },
+    {
+      "eventId": "base:event_jiang_lao_ready_claim",
+      "nodes": [
+        {
+          "stepId": "step_001",
+          "x": 100,
+          "y": 100,
+          "collapsed": false
+        }
       ]
     }
   ]

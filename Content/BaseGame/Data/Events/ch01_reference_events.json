@@ -21,8 +21,14 @@
               "text": "知道了，开始巡视",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "event:ch01_ref_opening_seen" },
-                { "kind": "setFlag", "id": "story:ch01_phase_awaken" }
+                {
+                  "kind": "setFlag",
+                  "id": "event:ch01_ref_opening_seen"
+                },
+                {
+                  "kind": "setFlag",
+                  "id": "story:ch01_phase_awaken"
+                }
               ],
               "nextStepId": ""
             }
@@ -38,7 +44,10 @@
       "locationId": "base:loc_ref_mine",
       "once": true,
       "conditions": [
-        { "kind": "storyFlag", "id": "quest:ch01_ref_dispatch_done" }
+        {
+          "kind": "storyFlag",
+          "id": "quest:ch01_ref_dispatch_done"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [
@@ -53,7 +62,10 @@
               "text": "听几句再走",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "event:ch01_ref_miner_met" }
+                {
+                  "kind": "setFlag",
+                  "id": "event:ch01_ref_miner_met"
+                }
               ],
               "nextStepId": ""
             },
@@ -62,7 +74,10 @@
               "text": "不想惹事",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "event:ch01_ref_miner_passed" }
+                {
+                  "kind": "setFlag",
+                  "id": "event:ch01_ref_miner_passed"
+                }
               ],
               "nextStepId": ""
             }
@@ -76,9 +91,13 @@
       "name": "将老·闲谈",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
       "once": false,
       "conditions": [
-        { "kind": "missingFlag", "id": "story:jiang_lao_met" }
+        {
+          "kind": "missingFlag",
+          "id": "story:jiang_lao_met"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [
@@ -93,8 +112,14 @@
               "text": "好，日后陪您下几盘。",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "story:jiang_lao_met" },
-                { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+                {
+                  "kind": "setFlag",
+                  "id": "story:jiang_lao_met"
+                },
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_jiang_lao_chess"
+                }
               ],
               "nextStepId": ""
             },
@@ -103,8 +128,14 @@
               "text": "改日再来。",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "story:jiang_lao_met" },
-                { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+                {
+                  "kind": "setFlag",
+                  "id": "story:jiang_lao_met"
+                },
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_jiang_lao_chess"
+                }
               ],
               "nextStepId": ""
             }
@@ -118,11 +149,21 @@
       "name": "将老·邀弈",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
       "once": false,
       "conditions": [
-        { "kind": "hasFlag", "id": "story:jiang_lao_met" },
-        { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
-        { "kind": "missingDailyFlag", "id": "daily:jiang_lao_chess" }
+        {
+          "kind": "hasFlag",
+          "id": "story:jiang_lao_met"
+        },
+        {
+          "kind": "questActive",
+          "id": "base:quest_jiang_lao_chess"
+        },
+        {
+          "kind": "missingDailyFlag",
+          "id": "daily:jiang_lao_chess"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [
@@ -137,7 +178,10 @@
               "text": "对弈。",
               "conditions": [],
               "outcomes": [
-                { "kind": "startMinigame", "id": "ticTacToe" }
+                {
+                  "kind": "startMinigame",
+                  "id": "ticTacToe"
+                }
               ],
               "nextStepId": ""
             },
@@ -158,11 +202,21 @@
       "name": "将老·今日已弈",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
       "once": false,
       "conditions": [
-        { "kind": "hasFlag", "id": "story:jiang_lao_met" },
-        { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
-        { "kind": "hasDailyFlag", "id": "daily:jiang_lao_chess" }
+        {
+          "kind": "hasFlag",
+          "id": "story:jiang_lao_met"
+        },
+        {
+          "kind": "questActive",
+          "id": "base:quest_jiang_lao_chess"
+        },
+        {
+          "kind": "hasDailyFlag",
+          "id": "daily:jiang_lao_chess"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [
@@ -189,10 +243,17 @@
       "name": "将老·传承在即",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
       "once": false,
       "conditions": [
-        { "kind": "questCompleted", "id": "base:quest_jiang_lao_chess" },
-        { "kind": "missingFlag", "id": "quest:jiang_lao_chess_done" }
+        {
+          "kind": "questCompleted",
+          "id": "base:quest_jiang_lao_chess"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "quest:jiang_lao_chess_done"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [
@@ -207,11 +268,15 @@
               "text": "多谢将老。",
               "conditions": [],
               "outcomes": [],
-              "nextStepId": ""
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
             }
           ]
         }
-      ]
+      ],
+      "topicText": "",
+      "onceScope": "global"
     },
     {
       "id": "base:event_jiang_lao_after",
@@ -219,9 +284,13 @@
       "name": "将老·闲话",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
       "once": false,
       "conditions": [
-        { "kind": "hasFlag", "id": "quest:jiang_lao_chess_done" }
+        {
+          "kind": "hasFlag",
+          "id": "quest:jiang_lao_chess_done"
+        }
       ],
       "entryStepId": "step_001",
       "steps": [

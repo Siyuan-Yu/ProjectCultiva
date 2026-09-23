@@ -1,6 +1,6 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**设计已冻结；runtime 部分实现；通用内容状态磁盘持久化 Proposed / Not Implemented** | 优先级：P0 | 最后更新：2026-09-22
+> 状态：**设计已冻结；runtime 部分实现；EVENT-02A Implementation Complete / Producer Acceptance Pending；通用内容状态磁盘持久化 Proposed / Not Implemented** | 优先级：P0 | 最后更新：2026-09-23
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
 > 当前实现与磁盘边界见 [247 系统现状总表／Proposal](../40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
 
@@ -12,6 +12,20 @@
 - 通用 Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 尚未形成完整磁盘 round-trip authority。洞府 `loot:*` 的专用 taken-loot 保存不能推导为通用 Story／Content Flags 已保存。
 - Snapshot restore 的 `RuntimeContentShellBootstrap` 现会复用 New Game 的 Quest／ContentEvent definitions mapper，并调用 `ChapterRuntimeBootstrap.ApplyDefinitions`；它绝不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。Quest／Event／Chapter 的 runtime progress 仍未进入 Snapshot。
 - 下一步只形成 Proposal：任务状态／期限、永久选择、已触发事件与章节、计数／每日限制，以及“待选择事件弹窗打开时禁止保存还是保存待处理身份”的规则。制作人尚未选择，也未授权实现。
+
+### EVENT-02 World Opportunity Director V1（2026-09-23）
+
+- `WorldOpportunity` 是 Continuous Surface 上动态生成的真实 NPC 机会，不等于 legacy `OpportunitySite`。Director 只补玩家当前 Surface，并以 Surface 当日首次 Tick 为随机刷新门禁；其它 Surface 只处理已有实例到期。
+- 实例持有稳定 ID、模板、Surface、真实 EntityId、创建日与到期日。Snapshot v6 以 additive optional authority 保存这部分世界状态；它不等于 Quest／Flag／Chapter 等通用 narrative progress 已持久化。
+- onTalk 的 `npcDefinitionId`、`npcTags[]`、`worldOpportunityId` 均为可选 AND binding，直接检查当前 TargetEntityId；三者为空仍允许 global contextual Event。
+- V1 只接受 `worldVisible` 与 `publicNotice`，只生成 NPC。hidden 与动态 WorldObject 均未实现。详见 [255](../40-process/255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+
+### EVENT-02A Persistent World Activity Feed（2026-09-23）
+
+- `WorldActivityBoard` 是已获知世界机会的持久活动动态，不是 QuestBoard、ContentEvent 或通用通知中心；V1 只接 `WorldOpportunity publicNotice`。
+- publicNotice 生成时以 Opportunity InstanceId 为 SourceId 创建 unread Active Activity，并额外播放一次 Toast；Snapshot restore 只恢复状态，不重播 Toast。worldVisible 不创建 Activity 或 History。
+- Activity 随 source Opportunity 到期、死亡或 Removed 转入 History；History 最多保留最近 100 条。可公开准确位置的条目只能在同一 Surface 聚焦现有 Gameplay camera，不移动 PlayerParty、不导航、不切 Surface。
+- Snapshot schema 仍为 6，使用 additive optional `worldActivityRuntime`；新 authority 中 Active Activity 缺少对应 Opportunity Instance 时严格判为 `SnapshotInvalid`。详见 [256](../40-process/256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
 
 ## 0.1 EVENT-01 Final 已批准实施契约（2026-09-22）
 
@@ -34,7 +48,48 @@
 - Runtime 不新增 Graph/Dialogue VM/Branch schema。外部旧包的 legacy `body/choices` reader 保留；BaseGame active ContentEvent 已全部迁移为 Steps，EventEditor 不再长期编辑双 authority。
 - Editor-only layout 位于 `Content/BaseGame/Authoring/EventEditor/layouts.v1.json`，不在 Runtime Loader 扫描的 `Data` 根下，Snapshot 与正式 Content authority 均不依赖坐标。
 - Working copy、dirty、undo/redo 和保存前 validation 属 authoring transaction；不改变 `ContentOutcomeApplier` 的 runtime transaction。
-- EVENT-02 Opportunity、随机 NPC/Object、tag/archetype binding、权重与生命周期仍未实现。
+- 本节记录的是 EventEditor V2 封板当时的 authoring 边界；EVENT-02 后续已实现 NPC Opportunity 与 tag/template binding，但仍未增加 Graph node 或动态 WorldObject。
+
+### V2.1 Graph-first 制作面
+
+- Graph 是常用对话制作主界面：Step 节点内直接选择 Speaker、编辑多行正文，Choice 行内直接改文字并从各自输出口拖线；Inspector 保留 Condition、Outcome、RequirementText、hidden/disabled、Event 设置与技术字段。
+- 每个 Step 左侧显示纯编辑器 input port，右侧 Next/Choice output port 以 Bezier 箭头连接。连接可选中、Delete 或右键断开；拖线期间目标 input 高亮，释放到节点正文同样可连接，自连接会被拒绝。
+- output 释放到空白处只弹出创建菜单，不先改变 working copy；可选择玩家、互动对象、旁白或指定人物，创建后自动连接、定位并聚焦正文。空白画布右键也可创建 Step。
+- 自动布局仍是简单 Left → Right DAG 排列，但纵向间距会估算正文与 Choice 数量；“专注模式”仅折叠两侧 authoring panel。上述能力只编辑既有 Steps/Next 与 editor-only layout，不增加 Runtime 字段。
+
+### V2.2 Dirty 与对话分类
+
+- EventEditor 的 dirty 以当前 Working JSON＋Graph layout 与 clean baseline 的真实差异为准；打开、选择、pan/zoom 不产生 dirty，正文或持久化 layout 改动产生 dirty，改回原值或 Undo 回 baseline 后自动恢复 clean。新建未保存 Event 在首次保存前始终 dirty。
+- “保底对话”只用于 `onTalk + 具体 NPC binding + priority 0 + repeatable + Event conditions 为空`。V2.4 已取消“状态对话”等推导类型；其它 Event 只显示 Priority、条件数量与 repeat scope 等事实。
+- 单 Step Event 可以完整表达“一次 NPC 发言＋玩家 Choice＋结束”，不按中文句号机械拆 Step；Step 是流程单位而不是句子单位。
+
+### V2.3 Editor Working Document canonicalization
+
+- Runtime 仍允许省略默认字段；EventEditor 打开文档时只在内存 working copy 中补成 canonical representation，再建立 clean baseline。仅打开不会写回磁盘。
+- canonical defaults 覆盖 Event 的 name/trigger/priority/topicText/once/onceScope/conditions、Step 的 speakerRef/text/outcomes/choices，以及 Choice 的 text/conditions/outcomes/nextStepId/unavailableMode/requirementText；可选 binding/location/quest 空字符串继续按 sparse semantics 移除。
+- Graph layout 的 prune/default-node 补齐发生在 Session baseline 之前；纯 Graph refresh、选择、缩放不再调用会修改 layout 的 `Prune/GetOrCreate`。
+
+### V2.4 显式保底对话
+
+- Event Inspector 的“作为该人物的保底对话”是现有字段组合的 authoring 开关，不是 Runtime 字段。开启时固定 onTalk、Priority 0、可重复、Event Conditions 为空，并锁定这些控件；取消后切为普通 Event 编辑，默认 Priority 10。
+- 同一 NPC 最多一条满足保底事实的 Event；新建/勾选第二条会提示并可跳转现有保底，保存验证也会报告旧包中的歧义。
+- Browser 只给保底加“★ 保底”，其它 Event 使用原 Name/Topic，并以 `[Pxx]`、`[条件n]`、`[一次/每目标一次/每角色×目标一次]` 展示真实配置。
+
+### V2.5 人物 Definition 选择
+
+- EventEditor 的 NPC binding 与指定 Speaker 仍以稳定 Character DefinitionId 为 gameplay identity。Authoring UI 从当前已加载 ContentPackage 的 `character` definitions 构建可读目录，显示中文名、ID 与相对包根目录的来源文件，并支持三字段搜索和来源筛选。
+- 来源路径只用于制作视图，不进入 `ContentEvent.npcDefinitionId`、`speakerRef` 或 Runtime Registry；人物移动 JSON 文件后，既有 Event 引用仍按 DefinitionId 生效。
+
+### V2.6 Repeat／Once／Fallback 与全局人物来源
+
+- Repeatable 只跳过 fired gate，仍须满足 Trigger、Binding、Conditions、交互资格与 Priority arbitration；完成 Repeatable Event 不写 fired state。Once Event 仅在真正完成时按 global／perTarget／perActorTarget scope 写 fired state。
+- 保底仍是 `onTalk + P0 + once=false + 0 Event Conditions` 的 authoring shortcut，不是 Runtime 类型；只在没有更高 Priority 合法候选时进入最高 candidate layer。
+- EventEditor 顶部“人物来源”是全局、纯 authoring filter。它统一约束按对象人物 Browser、Event NPC、New Event NPC 与指定 Speaker 的候选，但不改当前 binding、不进入 Content/manifest/Runtime，也不产生 dirty。
+
+### V2 Final Patch 与封板
+
+- 最后一次人物来源按规范化 Package Root 保存在 editor-local `%LOCALAPPDATA%\XianXia\EventEditor\settings.json`；仅恢复当前 Package 仍存在的 source，失效值回退“全部来源”。该设置与 Content、layout、Runtime、Undo/Redo、dirty 完全分离。
+- 制作人于 2026-09-23 完成 EventEditor V2 实际验收，当前状态 **Producer Accepted / Sealed**。后续 EVENT-02 只扩展 NPC Opportunity 与通用 onTalk binding；ContentIntent、通用剧情持久化与新 Runtime event framework 仍未实施。
 
 ## 1. 这个系统解决什么问题
 

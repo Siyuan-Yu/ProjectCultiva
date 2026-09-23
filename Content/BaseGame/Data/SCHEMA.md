@@ -55,6 +55,8 @@ Content/BaseGame/
       content_events.json
       ch01_reference_events.json
       chapter1_harness_events.json
+    WorldOpportunities/        # type = worldOpportunityDirector｜worldOpportunity；可同文件放专用 character/spawnTable/event
+      event02_acceptance.json
     Chapters/                  # type = chapter
       chapters.json
       ch01_reference_chapter.json
@@ -92,7 +94,9 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-当前 Runtime 支持：`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`outdoorSurface`｜`outdoorSurfaceGeography`｜`localPlaceSet`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`npcSquad`｜`strategicFaction`
+当前 Runtime 支持：`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`worldOpportunityDirector`｜`worldOpportunity`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`outdoorSurface`｜`outdoorSurfaceGeography`｜`localPlaceSet`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`npcSquad`｜`strategicFaction`
+
+`worldOpportunity` 的 public notice 可选 `publicNoticeTitle` 与 `publicNoticeRevealExactLocation`。标题为空时回退 Opportunity `name`；精确位置默认 `false`，仅 `discoveryMode=publicNotice` 可启用。`worldVisible` 不创建 WorldActivity。
 
 `formalArmy` 与 `hexWorld` 是已退役的历史输入标记：Runtime Loader 命中即拒绝，不属于支持列表。`LegacyRuntimeConverter` 只无损转换 FormalArmy；`hexWorld`／`openingHexWorldId` 会被检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无迁移样例时不得猜测。
 

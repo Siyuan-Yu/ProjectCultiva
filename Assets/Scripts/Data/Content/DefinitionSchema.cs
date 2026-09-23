@@ -170,6 +170,16 @@ namespace XianXia.Data.Content
             "definitionId", "weight", "countMin", "countMax"
         };
 
+        public static readonly HashSet<string> WorldOpportunityDirectorFields = new HashSet<string>(StringComparer.Ordinal)
+        { "id", "type", "name", "surfaceId", "targetActiveMin", "targetActiveMax" };
+
+        public static readonly HashSet<string> WorldOpportunityFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnTableId", "durationDays",
+            "minPlayerDistanceWorld", "maxPlayerDistanceWorld", "allowInsideWorldSite", "discoveryMode",
+            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation", "conditions", "expireOutcomes"
+        };
+
         public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)
         { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
         public static readonly HashSet<string> SurfaceFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
@@ -193,7 +203,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ContentEventFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "body", "trigger", "locationId", "questId", "npcDefinitionId",
+            "id", "type", "name", "body", "trigger", "locationId", "questId", "npcDefinitionId", "npcTags", "worldOpportunityId",
             "worldObjectKind", "worldObjectId", "once",
             "conditions", "choices", "priority", "topicText", "onceScope", "entryStepId", "steps"
         };

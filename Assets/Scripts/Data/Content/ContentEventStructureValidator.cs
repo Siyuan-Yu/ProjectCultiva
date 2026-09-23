@@ -14,9 +14,6 @@ namespace XianXia.Data.Content
             Action<string> error = message => report.Add(ErrorCode.ContentLoadFailed, message, ctx);
             if (evt.OnceScope != "global" && evt.OnceScope != "perTarget" && evt.OnceScope != "perActorTarget")
                 error("onceScope must be global / perTarget / perActorTarget.");
-            if (string.Equals(evt.Trigger, "onTalk", StringComparison.OrdinalIgnoreCase) &&
-                string.IsNullOrWhiteSpace(evt.NpcDefinitionId))
-                error("onTalk requires npcDefinitionId.");
             if (string.Equals(evt.Trigger, "onInspect", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrWhiteSpace(evt.WorldObjectKind))

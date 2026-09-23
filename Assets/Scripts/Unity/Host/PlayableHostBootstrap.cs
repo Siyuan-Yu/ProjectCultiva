@@ -65,6 +65,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostStrategicInterruptPresenter strategicInterrupt;
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
+        [SerializeField] HostWorldActivityPanel worldActivityPanel;
         [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostConstructionPanel constructionPanel;
         [SerializeField] HostWorldMapPanel worldMapPanel;
@@ -137,6 +138,8 @@ namespace XianXia.Unity.Host
 
         public HostQuestJournal QuestJournal => questJournal;
 
+        public HostWorldActivityPanel WorldActivityPanel => worldActivityPanel;
+
         public HostInventoryPanel InventoryPanel => inventoryPanel;
 
         public HostConstructionPanel ConstructionPanel => constructionPanel;
@@ -204,6 +207,9 @@ namespace XianXia.Unity.Host
             if (questJournal == null)
                 questJournal = GetComponent<HostQuestJournal>() ??
                               GetComponentInChildren<HostQuestJournal>();
+            if (worldActivityPanel == null)
+                worldActivityPanel = GetComponent<HostWorldActivityPanel>() ??
+                                     GetComponentInChildren<HostWorldActivityPanel>();
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 GetComponentInChildren<HostInventoryPanel>();
@@ -634,6 +640,9 @@ namespace XianXia.Unity.Host
             if (questJournal == null)
                 questJournal = GetComponent<HostQuestJournal>() ??
                               gameObject.AddComponent<HostQuestJournal>();
+            if (worldActivityPanel == null)
+                worldActivityPanel = GetComponent<HostWorldActivityPanel>() ??
+                                     gameObject.AddComponent<HostWorldActivityPanel>();
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
@@ -710,6 +719,8 @@ namespace XianXia.Unity.Host
                 npcContextMenu.ClearSessionState();
             if (questJournal != null)
                 questJournal.ClearSessionState();
+            if (worldActivityPanel != null)
+                worldActivityPanel.ClearSessionState();
             if (inventoryPanel != null)
                 inventoryPanel.ClearSessionState();
             if (constructionPanel != null)
@@ -917,6 +928,7 @@ namespace XianXia.Unity.Host
             if (strategicInterrupt != null)
                 strategicInterrupt.Bind(this);
             questJournal.Bind(this, commandBridge, selectionController);
+            worldActivityPanel?.Bind(this);
             inventoryPanel.Bind(this);
             constructionPanel.Bind(this);
             if (interactSpotPresenter != null)
@@ -1181,6 +1193,11 @@ namespace XianXia.Unity.Host
                 constructionPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
+            if (worldActivityPanel != null)
+            {
+                worldActivityPanel.ClearSessionState();
+                worldActivityPanel.Bind(this);
+            }
             if (strategicInterrupt != null)
                 strategicInterrupt.ClearSessionState();
             entityViewSpawner.Clear();
@@ -1672,6 +1689,34 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现/summary>
+        /// <summary>Focuses the existing gameplay camera only; never changes party motion or world state.</summary>
+        public bool TryFocusContinuousWorldPosition(string surfaceId, WorldVec2 worldPosition, out string message)
+        {
+            message = string.Empty;
+            if (_session?.World == null || _continuousOutdoorSurfaceRuntime == null || cameraRig == null)
+            {
+                message = "当前无法定位目标。";
+                return false;
+            }
+            if (!PlayerPartyWorldLocationQuery.TryResolve(
+                    _session.World, _session.PlayerParty, out var playerLocation) ||
+                !string.Equals(playerLocation.SurfaceId, surfaceId ?? string.Empty, System.StringComparison.Ordinal))
+            {
+                message = "目标位于其它区域。";
+                return false;
+            }
+            if (!_continuousOutdoorSurfaceRuntime.IsActive ||
+                !string.Equals(_continuousOutdoorSurfaceRuntime.ActiveSurfaceId, surfaceId,
+                    System.StringComparison.Ordinal) ||
+                !_continuousOutdoorSurfaceRuntime.TryWorldToPresentation(worldPosition, out var presentation))
+            {
+                message = "当前区域尚未准备好定位。";
+                return false;
+            }
+            cameraRig.FrameWorldPoint(presentation);
+            return true;
+        }
+
         public void DispatchDrainedEvents()
         {
             if (_session?.World?.Events == null)
@@ -1681,6 +1726,16 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < drained.Count; i++)
             {
                 var evt = drained[i];
+                if (evt?.Type == XianXia.Core.Events.EventType.WorldOpportunityNotice)
+                {
+                    strategicInterrupt?.ShowTransientToast(evt.Payload);
+                    nonEncounterStrategicPopulationChanged = true;
+                }
+                else if (evt?.Type == XianXia.Core.Events.EventType.EntityCreated)
+                {
+                    // Domain-created entities rely on the existing Continuous Outdoor reconcile path.
+                    nonEncounterStrategicPopulationChanged = true;
+                }
                 if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
                     evt.Target.HasValue)
                 {

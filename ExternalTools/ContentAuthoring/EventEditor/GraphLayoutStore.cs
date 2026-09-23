@@ -27,6 +27,8 @@ public sealed class EventGraphLayout
         return found;
     }
 
+    public GraphNodeLayout? Find(string stepId) => Nodes.FirstOrDefault(n => n.StepId == stepId);
+
     public void Prune(IEnumerable<string> stepIds)
     {
         var keep = stepIds.ToHashSet(StringComparer.Ordinal);
