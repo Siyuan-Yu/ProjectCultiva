@@ -11,10 +11,24 @@ public static class UiLabels
     public static readonly Option[] EventTriggers =
     [
         new("manual", "手动"),
+        new("onTalk", "与人物交谈时"),
+        new("onInspect", "调查世界物体时"),
         new("onArrive", "抵达地点时"),
         new("onExplore", "探索时"),
         new("onQuestCompleted", "任务完成时"),
         new("onQuestFailed", "任务失败时")
+    ];
+
+    public static readonly Option[] WorldObjectKinds =
+    [
+        new("controlCore", "控制核心"),
+        new("factionFlag", "势力旗"),
+        new("farmPlot", "农田格"),
+        new("destructible", "可破坏物"),
+        new("housing", "住房工作区"),
+        new("workArea", "工作区"),
+        new("recoverySpot", "恢复处"),
+        new("storageRoom", "仓库")
     ];
 
     public static readonly Option[] JobBindingModes =

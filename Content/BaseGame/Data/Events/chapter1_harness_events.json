@@ -5,17 +5,27 @@
       "id": "base:event_ch01_harness_ping",
       "type": "contentEvent",
       "name": "Ch1 Harness·村口试探",
-      "body": "测试事件：确认选项与 Flag 链路（非剧情正文）。",
       "trigger": "onExplore",
       "locationId": "base:loc_ref_road_hub",
       "once": true,
       "conditions": [],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "ack",
-          "text": "记下此事",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_harness_resolved" }
+          "id": "step_001",
+          "speakerRef": "",
+          "text": "测试事件：确认选项与 Flag 链路（非剧情正文）。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "ack",
+              "text": "记下此事",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "event:ch01_harness_resolved" }
+              ],
+              "nextStepId": ""
+            }
           ]
         }
       ]

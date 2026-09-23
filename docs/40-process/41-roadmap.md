@@ -1,6 +1,10 @@
 # 路线图
 
-> **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续功能方向尚未批准。
+> **EVENT-EDITOR-V2（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** EventEditor 已升级为按对象/按事件 Browser＋Visual Steps Graph＋上下文 Inspector，具备 working copy、dirty、undo/redo、自动布局与 editor-only layout；BaseGame 14 条审计基线事件已统一为 Steps，并新增 1 条主管普通对话保存/回读验收内容，当前共 15 条。见 [254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md)。EVENT-02 Opportunity 仍未实现。
+
+> **EVENT-01 FINAL（2026-09-22）：Implementation Complete / Producer Acceptance Pending。** 固定世界 NPC onTalk＋WorldObject onInspect、统一稳定目标键、接近后复核、EventEditor 绑定与 Load definitions-only 已接通；见 [253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md)。EVENT-02 Opportunity Director 和剧情 runtime 持久化不在本轮。
+
+> **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续 EVENT-01 Final 已单独授权并实施，等待制作人人工验收；其余方向仍未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
 > **下一步 Proposal（尚未授权）：** 优先讨论 Quest／Flags／ContentEvents／Chapters／ContentCounters／ContentDaily 的正式磁盘持久化与待选择事件保存策略；进度可靠保存后，再用已有能力串起一段完整探索成长流程。不是当前实施任务。
 
@@ -33,7 +37,7 @@
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
 - **当前下一步：** 等待制作人讨论通用内容状态磁盘持久化 Proposal；尚未授权新功能、迁移阶段或新的关键词清理。后续发现 `Hex`／`Army` 字符串本身不构成重开专项的理由。
-- **当前待定缺口（未授权修复）：** Separate Space session JSON wire、restore 后 Quest／Event／Chapter definitions shell、WorldMap Player／NPC marker world-space scaling。先在新会话定范围，不能顺手编码。
+- **当前待定缺口：** 通用 narrative runtime Snapshot persistence 与 WorldMap Player／NPC marker world-space scaling 尚未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 已分别由 SPACE-01-P1、EVENT-01 Final 实现，均等待制作人人工验收。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。

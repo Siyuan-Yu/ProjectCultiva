@@ -11,6 +11,7 @@ namespace XianXia.Unity.Host
         const float ChoiceW = 220f;
         const float ChoiceH = 30f;
 
+        Vector2 _choicesScroll;
         readonly HostDialogueGuiToolkit _gui = new HostDialogueGuiToolkit();
 
         public void Draw(
@@ -44,11 +45,13 @@ namespace XianXia.Unity.Host
             if (choiceCount > 0)
             {
                 var cx = bar.xMax - ChoiceW - 16f;
-                var cy = bar.y + 38f;
+                _choicesScroll = GUI.BeginScrollView(new Rect(cx, bar.y + 38f, ChoiceW, bar.height - 48f),
+                    _choicesScroll, new Rect(0f, 0f, ChoiceW - 18f, choiceCount * 54f));
+                var cy = 0f;
                 for (var i = 0; i < choiceCount; i++)
                 {
                     var line = model.Choices[i];
-                    var row = new Rect(cx, cy, ChoiceW, ChoiceH);
+                    var row = new Rect(0f, cy, ChoiceW - 18f, 48f);
                     GUI.enabled = line.Enabled;
                     if (GUI.Button(row, line.Label, _gui.Button))
                     {
@@ -56,13 +59,14 @@ namespace XianXia.Unity.Host
                             onDismissFallback?.Invoke();
                         else
                             onChoiceSelected?.Invoke(i);
+                        GUI.enabled = true;
+                        break; // Selection can replace or clear the model immediately.
                     }
 
                     GUI.enabled = true;
-                    cy += ChoiceH + 6f;
-                    if (cy + ChoiceH > bar.yMax - 10f)
-                        break;
+                    cy += 54f;
                 }
+                GUI.EndScrollView();
             }
         }
     }

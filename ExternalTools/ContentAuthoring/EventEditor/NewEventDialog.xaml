@@ -1,0 +1,34 @@
+<Window x:Class="EventEditor.NewEventDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="新建事件" Width="470" Height="360" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+  <Grid Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock Text="类型" FontWeight="SemiBold"/>
+    <ComboBox x:Name="KindBox" Grid.Row="1" Margin="0,5,0,12" SelectionChanged="KindBox_SelectionChanged">
+      <ComboBoxItem Content="NPC 普通对话" Tag="npcNormal"/>
+      <ComboBoxItem Content="NPC 特殊对话" Tag="npcSpecial"/>
+      <ComboBoxItem Content="世界物体互动" Tag="object"/>
+      <ComboBoxItem Content="其他事件" Tag="other"/>
+    </ComboBox>
+    <TextBlock Grid.Row="2" Text="事件名称" FontWeight="SemiBold"/>
+    <TextBox x:Name="NameBox" Grid.Row="3" Margin="0,5,0,12" Text="新事件"/>
+    <StackPanel Grid.Row="4" x:Name="NpcPanel">
+      <TextBlock Text="互动人物" FontWeight="SemiBold"/>
+      <ComboBox x:Name="NpcBox" IsEditable="True" Margin="0,5,0,12"/>
+    </StackPanel>
+    <StackPanel Grid.Row="4" x:Name="ObjectPanel" Visibility="Collapsed">
+      <TextBlock Text="世界物体类型" FontWeight="SemiBold"/>
+      <ComboBox x:Name="ObjectKindBox" Margin="0,5,0,8" SelectionChanged="ObjectKindBox_SelectionChanged"/>
+      <TextBlock Text="实例（可留空匹配同类对象）"/>
+      <ComboBox x:Name="ObjectIdBox" IsEditable="True" Margin="0,5,0,12"/>
+    </StackPanel>
+    <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Content="取消" Width="86" Margin="0,0,8,0" IsCancel="True"/>
+      <Button Content="创建草稿" Width="100" IsDefault="True" Click="Create_Click"/>
+    </StackPanel>
+  </Grid>
+</Window>

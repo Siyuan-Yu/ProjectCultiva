@@ -261,10 +261,10 @@ namespace XianXia.Core.Content
             readonly SimulationWorld _world;
             readonly EntityId _subject;
             readonly List<InventorySlot> _inventory;
-            readonly List<string> _flags, _flagHistory, _fired, _known;
+            readonly List<string> _flags, _flagHistory, _known;
             readonly Dictionary<string, int> _counters, _daily;
             readonly Dictionary<string, QuestRuntime> _quests;
-            readonly string _activeEvent;
+            readonly ContentEventBoard.RuntimeState _contentEventState;
             readonly int _relationshipCount, _eventCursor;
             readonly ulong _eventNext;
             readonly List<DomainEvent> _events;
@@ -281,7 +281,7 @@ namespace XianXia.Core.Content
                 _counters = world.ContentCounters.CaptureState();
                 _daily = world.ContentDaily.CaptureState();
                 _quests = world.Quests.CaptureRuntime();
-                world.ContentEvents.CaptureState(out _activeEvent, out _fired);
+                _contentEventState = world.ContentEvents.CaptureState();
                 _relationshipCount = world.Relationships.EventCount;
                 world.Events.CaptureState(out _events, out _eventCursor, out _eventNext);
                 if (world.Entities.TryGet(subject, out var entity))
@@ -303,7 +303,7 @@ namespace XianXia.Core.Content
                 _world.ContentCounters.RestoreState(_counters);
                 _world.ContentDaily.RestoreState(_daily);
                 _world.Quests.RestoreRuntime(_quests);
-                _world.ContentEvents.RestoreState(_activeEvent, _fired);
+                _world.ContentEvents.RestoreState(_contentEventState);
                 _world.Relationships.Truncate(_relationshipCount);
                 RelationshipService.RebuildAllCaches(_world);
                 _world.Events.RestoreState(_events, _eventCursor, _eventNext);

@@ -193,13 +193,17 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ContentEventFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "body", "trigger", "locationId", "questId", "npcDefinitionId", "once",
-            "conditions", "choices"
+            "id", "type", "name", "body", "trigger", "locationId", "questId", "npcDefinitionId",
+            "worldObjectKind", "worldObjectId", "once",
+            "conditions", "choices", "priority", "topicText", "onceScope", "entryStepId", "steps"
         };
-
+        public static readonly HashSet<string> ContentEventStepFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "speakerRef", "text", "nextStepId", "outcomes", "choices"
+        };
         public static readonly HashSet<string> ContentEventChoiceFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "text", "conditions", "outcomes"
+            "id", "text", "conditions", "outcomes", "nextStepId", "unavailableMode", "requirementText"
         };
 
         public static readonly HashSet<string> ContentConditionFields = new HashSet<string>(StringComparer.Ordinal)

@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_accept_event01_supervisor_priority",
+      "type": "contentEvent",
+      "name": "EVENT01验收·主管优先事件",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 100,
+      "topicText": "验收·重要事情",
+      "once": true,
+      "onceScope": "global",
+      "conditions": [],
+      "entryStepId": "supervisor_priority",
+      "steps": [
+        {
+          "id": "supervisor_priority",
+          "speakerRef": "@target",
+          "text": "「先等等。有件重要的事，必须先说清楚。」\n\n【EVENT-01 验收】第一次与主管交谈时，这段 Priority 100 内容应当直接出现，并压住所有 Priority 50 验收话题。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "ack",
+              "text": "知道了。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "setFlag",
+                  "id": "acceptance:event01_priority_done"
+                }
+              ],
+              "nextStepId": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_accept_event01_supervisor_topic_work",
+      "type": "contentEvent",
+      "name": "EVENT01验收·主管多步骤话题",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 50,
+      "topicText": "验收·询问今日差事",
+      "once": true,
+      "onceScope": "perActorTarget",
+      "conditions": [],
+      "entryStepId": "ask",
+      "steps": [
+        {
+          "id": "ask",
+          "speakerRef": "@target",
+          "text": "「你又来找我做什么？」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "ask_work",
+              "text": "询问今日差事",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "player_work"
+            },
+            {
+              "id": "show_qi",
+              "text": "展示炼气境的手段",
+              "conditions": [
+                {
+                  "kind": "realmAtLeast",
+                  "realm": "QiRefining"
+                }
+              ],
+              "unavailableMode": "disabled",
+              "requirementText": "需要队伍中至少一名存活成员达到炼气境",
+              "outcomes": [],
+              "nextStepId": "player_qi"
+            },
+            {
+              "id": "secret_foundation",
+              "text": "提及只有筑基修士才知道的隐秘",
+              "conditions": [
+                {
+                  "kind": "realmAtLeast",
+                  "realm": "Foundation"
+                }
+              ],
+              "unavailableMode": "hidden",
+              "requirementText": "需要队伍中至少一名存活成员达到筑基境",
+              "outcomes": [],
+              "nextStepId": "player_foundation"
+            }
+          ]
+        },
+        {
+          "id": "player_work",
+          "speakerRef": "@actor",
+          "text": "“我想问问今日还有什么差事。”",
+          "nextStepId": "reply_work",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "reply_work",
+          "speakerRef": "@target",
+          "text": "「该做什么就做什么。别误了时辰。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "acceptance:event01_multistep_done"
+            }
+          ],
+          "choices": []
+        },
+        {
+          "id": "player_qi",
+          "speakerRef": "@actor",
+          "text": "“我已经不是从前那个只能听命干活的人了。”",
+          "nextStepId": "reply_qi",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "reply_qi",
+          "speakerRef": "@target",
+          "text": "主管重新打量了你一眼，没有立刻接话。",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "player_foundation",
+          "speakerRef": "@actor",
+          "text": "“有些事情，我知道得比你想象中更多。”",
+          "nextStepId": "reply_foundation",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "reply_foundation",
+          "speakerRef": "@target",
+          "text": "主管神色微变，却没有继续追问。",
+          "outcomes": [],
+          "choices": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_accept_event01_supervisor_topic_personal",
+      "type": "contentEvent",
+      "name": "EVENT01验收·主管第二话题",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 50,
+      "topicText": "验收·问点私事",
+      "once": true,
+      "onceScope": "global",
+      "conditions": [],
+      "entryStepId": "start",
+      "steps": [
+        {
+          "id": "start",
+          "speakerRef": "@target",
+          "text": "「私事？你什么时候也开始关心这些了？」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "没什么，只是随口问问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "player_leave"
+            }
+          ]
+        },
+        {
+          "id": "player_leave",
+          "speakerRef": "@actor",
+          "text": "“没什么，只是随口问问。”",
+          "nextStepId": "finish",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "finish",
+          "speakerRef": "@target",
+          "text": "「没事就去做你的事。」",
+          "outcomes": [],
+          "choices": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_accept_event01_mansion_mark",
+      "type": "contentEvent",
+      "name": "EVENT01验收·议政厅刻痕",
+      "trigger": "onInspect",
+      "worldObjectKind": "controlCore",
+      "worldObjectId": "base:workarea_supervisor_mansion",
+      "priority": 50,
+      "topicText": "查看墙角刻痕",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "你走近议政厅仔细查看，在墙角发现一道已经风化的旧刻痕。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "look_closer",
+              "text": "仔细看看",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "setFlag",
+                  "id": "acceptance:event01_mansion_mark_seen"
+                }
+              ],
+              "nextStepId": "detail"
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "speakerRef": "",
+          "text": "刻痕本身并没有什么力量，更像是很久以前有人随手留下的痕迹。\n\n【EVENT-01 验收】这里确认 WorldObject Inspect、旁白 Step 与 Outcome 正常。",
+          "outcomes": [],
+          "choices": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_accept_event01_mansion_structure",
+      "type": "contentEvent",
+      "name": "EVENT01验收·议政厅结构",
+      "trigger": "onInspect",
+      "worldObjectKind": "controlCore",
+      "worldObjectId": "base:workarea_supervisor_mansion",
+      "priority": 50,
+      "topicText": "观察议政厅结构",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "你绕着议政厅看了一圈。这里既是荒村的议事地点，也是当前控制核心。",
+          "outcomes": [],
+          "choices": []
+        }
+      ]
+    }
+  ]
+}

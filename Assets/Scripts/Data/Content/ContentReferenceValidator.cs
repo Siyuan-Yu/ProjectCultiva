@@ -1045,6 +1045,27 @@ namespace XianXia.Data.Content
             {
                 var e = kv.Value;
                 var ctx = e.Id.ToString();
+                ContentEventStructureValidator.Validate(e, report);
+                if (string.Equals(e.Trigger, "onTalk", StringComparison.OrdinalIgnoreCase))
+                    RequireDef(registry, e.NpcDefinitionId, "character", ctx + ".npcDefinitionId", report);
+                if (string.Equals(e.Trigger, "onInspect", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(e.WorldObjectId) &&
+                    HasStaticWorldObjectCatalog(e.WorldObjectKind) &&
+                    !WorldObjectIdExists(registry, e.WorldObjectKind, e.WorldObjectId))
+                    report.Add(ErrorCode.NotFound, "contentEvent.worldObjectId missing for kind.",
+                        ctx + ":" + e.WorldObjectKind + ":" + e.WorldObjectId);
+                foreach (var step in e.Steps)
+                {
+                    var sc = ctx + ".step." + step.Id;
+                    if (!string.IsNullOrEmpty(step.SpeakerRef) && step.SpeakerRef != "@actor" && step.SpeakerRef != "@target")
+                        RequireDef(registry, step.SpeakerRef, "character", sc + ".speakerRef", report);
+                    ScanOutcomes(step.Outcomes, registry, locations, producedFlags, consumedFlags, sc, report);
+                    foreach (var c in step.Choices)
+                    {
+                        ScanConditions(c.Conditions, registry, locations, producedFlags, consumedFlags, sc + "." + c.Id, report);
+                        ScanOutcomes(c.Outcomes, registry, locations, producedFlags, consumedFlags, sc + "." + c.Id, report);
+                    }
+                }
                 if (!string.IsNullOrEmpty(e.LocationId) && !locations.Contains(e.LocationId))
                     report.Add(ErrorCode.NotFound, "contentEvent.locationId missing.", ctx + ":" + e.LocationId);
                 RequireDef(registry, e.QuestId, "quest", ctx + ".questId", report);
@@ -1060,6 +1081,61 @@ namespace XianXia.Data.Content
                 }
             }
         }
+
+        static bool WorldObjectIdExists(DefinitionRegistry registry, string kind, string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return true;
+            if (string.Equals(kind, "controlCore", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(kind, "workArea", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var pair in registry.WorkAreas)
+                {
+                    var area = pair.Value;
+                    if (!string.Equals(pair.Key.ToString(), id, StringComparison.Ordinal)) continue;
+                    if (string.Equals(kind, "controlCore", StringComparison.OrdinalIgnoreCase)) return area.IsControlCore;
+                    var housing = area.ResidentTags.Count > 0 || area.Tags.Contains("home");
+                    if (string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase))
+                        return !area.IsControlCore && housing;
+                    return !area.IsControlCore && !housing;
+                }
+                return false;
+            }
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly) continue;
+                if (string.Equals(kind, "factionFlag", StringComparison.OrdinalIgnoreCase))
+                    for (var i = 0; i < surface.FactionFlags.Count; i++)
+                        if (string.Equals(surface.FactionFlags[i]?.FlagId, id, StringComparison.Ordinal)) return true;
+                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                {
+                    var p = surface.SitePlacements[i];
+                    if (p == null) continue;
+                    if (string.Equals(kind, "destructible", StringComparison.OrdinalIgnoreCase) &&
+                        OutdoorStatefulPlacementResolver.IsDestructibleKind(p.Kind))
+                    {
+                        if (string.Equals(p.StableId, id, StringComparison.Ordinal)) return true;
+                        for (var y = 0; y < Math.Max(1, p.SourceCellsH); y++)
+                            for (var x = 0; x < Math.Max(1, p.SourceCellsW); x++)
+                                if (string.Equals(OutdoorStatefulPlacementResolver.ResolveObjectId(p, x, y), id, StringComparison.Ordinal)) return true;
+                    }
+                    var expected = string.Equals(kind, "farmPlot", StringComparison.OrdinalIgnoreCase) ? "farmField" : kind;
+                    if (string.Equals(p.Kind, expected, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(p.StableId, id, StringComparison.Ordinal)) return true;
+                }
+            }
+            return false;
+        }
+
+        static bool HasStaticWorldObjectCatalog(string kind) =>
+            string.Equals(kind, "controlCore", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "factionFlag", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "destructible", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "workArea", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "recoverySpot", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "storageRoom", StringComparison.OrdinalIgnoreCase);
 
         void ValidateChapters(
             DefinitionRegistry registry,

@@ -44,6 +44,15 @@ namespace XianXia.Data.Bootstrap
             if (jobs.IsFailure)
                 return jobs;
 
+            // Static narrative definitions are needed after load, but no opening effect or
+            // narrative runtime progress is restored here.
+            var contentDefinitions = ContentRuntimeBootstrap.RehydrateContentDefinitions(world, registry);
+            if (contentDefinitions.IsFailure)
+                return contentDefinitions;
+            var chapterDefinitions = ChapterRuntimeBootstrap.ApplyDefinitions(world, registry);
+            if (chapterDefinitions.IsFailure)
+                return chapterDefinitions;
+
             // Content 的 stack/tag 生效后仅在不会溢出时重排，数量绝不因恢复被截断。
             world.Inventory.TryOrganizeWithoutLoss();
             return Result.Success();

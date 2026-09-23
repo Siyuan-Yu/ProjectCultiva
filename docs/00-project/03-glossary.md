@@ -8,6 +8,16 @@
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
 > 架构冻结相关术语以 **`33` v0.2**／`34`／`35`／`36`／`2C`／`2E` 为准；RPG-First／连续世界以 **`2K`／ADR-0026** 为准。
 
+## EVENT-01 互动内容术语
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 对话步骤 | ContentEventStepSpec / Step | 一个 ContentEvent 内的正文、说话人与结果／选项；不是独立 Dialogue System |
+| 话题选择 | Topic Selection | 同最高 Priority 的互动候选菜单；选择之前尚未 Begin Event |
+| 一次范围 | OnceScope | global／perTarget／perActorTarget；目标范围统一按稳定 TargetKey，仅 session fired state |
+| 互动上下文 | ContentInteractionContext | Actor、可选 Target EntityId、TargetKind、稳定 TargetKey、目标定义／实例 ID 与显示名；NPC 和固定世界物体共用 |
+| 固定世界调查 | onInspect | 对已有稳定身份 WorldObject 的主动互动；先接近并在抵达后复核对象与候选，再 Begin Event |
+
 ## 使用约定
 
 - 代码：英文 PascalCase / camelCase，取本表 Code 列

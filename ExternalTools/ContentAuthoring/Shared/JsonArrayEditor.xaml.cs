@@ -12,6 +12,8 @@ public partial class JsonArrayEditor : UserControl
     ContentPackage? _package;
     JsonArrayEditorMode _mode = JsonArrayEditorMode.Condition;
 
+    public event EventHandler? Changed;
+
     public JsonArrayEditor()
     {
         InitializeComponent();
@@ -84,6 +86,7 @@ public partial class JsonArrayEditor : UserControl
                     if (string.Equals(row.Kind, kind, StringComparison.Ordinal)) return;
                     row.Kind = kind;
                     RebuildRows();
+                    Changed?.Invoke(this, EventArgs.Empty);
                 };
                 Grid.SetColumn(kindCombo, 0);
                 grid.Children.Add(kindCombo);
@@ -117,6 +120,7 @@ public partial class JsonArrayEditor : UserControl
                 {
                     _rows.RemoveAt(index);
                     RebuildRows();
+                    Changed?.Invoke(this, EventArgs.Empty);
                 };
                 Grid.SetColumn(remove, 2);
                 grid.Children.Add(remove);
@@ -168,7 +172,7 @@ public partial class JsonArrayEditor : UserControl
         if (spec.Editor == FieldEditorKind.Number)
         {
             var box = new TextBox { Text = row.Get(spec.Key) };
-            box.TextChanged += (_, _) => row.Set(spec.Key, box.Text);
+            box.TextChanged += (_, _) => { row.Set(spec.Key, box.Text); Changed?.Invoke(this, EventArgs.Empty); };
             return box;
         }
 
@@ -182,13 +186,14 @@ public partial class JsonArrayEditor : UserControl
             {
                 if (combo.SelectedItem is string s)
                     row.Set(spec.Key, s);
+                Changed?.Invoke(this, EventArgs.Empty);
             };
-            combo.LostFocus += (_, _) => row.Set(spec.Key, combo.Text);
+            combo.LostFocus += (_, _) => { row.Set(spec.Key, combo.Text); Changed?.Invoke(this, EventArgs.Empty); };
             return combo;
         }
 
         var text = new TextBox { Text = row.Get(spec.Key) };
-        text.TextChanged += (_, _) => row.Set(spec.Key, text.Text);
+        text.TextChanged += (_, _) => { row.Set(spec.Key, text.Text); Changed?.Invoke(this, EventArgs.Empty); };
         return text;
     }
 
@@ -199,6 +204,7 @@ public partial class JsonArrayEditor : UserControl
             : ContentFieldCatalog.OutcomeKinds[0].Kind;
         _rows.Add(new RowState(defaultKind));
         RebuildRows();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     sealed class RowState

@@ -42,6 +42,8 @@ namespace XianXia.Unity.Host
         readonly HashSet<string> _seenQuestCompleted = new HashSet<string>();
         readonly HashSet<string> _seenQuestFailed = new HashSet<string>();
 
+        readonly HostDialogueController _eventController = new HostDialogueController();
+        Vector2 _eventScroll;
         QuestNotify? _activeQuestNotify;
         bool _holdingPause;
         Texture2D _px;
@@ -173,27 +175,14 @@ namespace XianXia.Unity.Host
 
         void TryAutoResolveActiveEvent(PlayableHostSession session)
         {
-            if (commandBridge == null || !session.World.ContentEvents.HasActive)
-                return;
-            if (!session.World.ContentEvents.TryGet(session.World.ContentEvents.ActiveEventId, out var spec) ||
-                spec?.Choices == null ||
-                spec.Choices.Count == 0)
-                return;
-            if (string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase) &&
-                dialoguePresenter != null)
-                return;
-
-            var subject = ResolveSubject(session);
-            for (var i = 0; i < spec.Choices.Count; i++)
-            {
-                var choice = spec.Choices[i];
-                if (choice == null || string.IsNullOrEmpty(choice.Id))
-                    continue;
-                if (!ContentConditionEvaluator.AllPass(session.World, subject, choice.Conditions))
-                    continue;
-                commandBridge.ResolveContentChoice(choice.Id);
-                return;
-            }
+            if (ShouldDelegateOnTalkToDialogue(session)) return;
+            if (!_eventController.TryBuildFromActiveEvent(session)) return;
+            for (var i = 0; i < _eventController.Model.Choices.Count; i++)
+                if (_eventController.Model.Choices[i].Enabled)
+                {
+                    _eventController.TrySelectChoice(i, session, commandBridge, bootstrap);
+                    return;
+                }
         }
 
         void OnDisable()
@@ -254,44 +243,26 @@ namespace XianXia.Unity.Host
 
         void DrawEventModal(PlayableHostSession session)
         {
-            if (!session.World.ContentEvents.TryGet(session.World.ContentEvents.ActiveEventId, out var spec))
-                return;
-
+            if (!_eventController.TryBuildFromActiveEvent(session)) return;
+            var model = _eventController.Model;
             DrawDim();
             var box = ModalBox();
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
-
-            var title = string.IsNullOrEmpty(spec.Name) ? ShortId(spec.Id) : spec.Name;
-            var kind = string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase)
-                ? "对话"
-                : "事件";
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), kind + " · " + title, _title);
-            GUI.Label(
-                new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 24f),
-                "已暂停 — 请选择后继续",
-                _body);
-            var body = string.IsNullOrEmpty(spec.Body) ? "（无正文）" : spec.Body;
-            GUI.Label(new Rect(box.x + 16f, box.y + 72f, box.width - 32f, 110f), body, _body);
-
-            var subject = ResolveSubject(session);
-            var by = box.y + 190f;
-            var bw = box.width - 32f;
-            for (var i = 0; i < spec.Choices.Count; i++)
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), model.SpeakerName, _title);
+            GUILayout.BeginArea(new Rect(box.x + 16f, box.y + 44f, box.width - 32f, box.height - 56f));
+            _eventScroll = GUILayout.BeginScrollView(_eventScroll);
+            GUILayout.Label(model.Body, _body);
+            for (var i = 0; i < model.Choices.Count; i++)
             {
-                var choice = spec.Choices[i];
-                var ok = ContentConditionEvaluator.AllPass(session.World, subject, choice.Conditions);
-                var label = string.IsNullOrEmpty(choice.Text) ? choice.Id : choice.Text;
-                if (!ok)
-                    label += "（条件未满足）";
-                GUI.enabled = ok && commandBridge != null;
-                if (GUI.Button(new Rect(box.x + 16f, by, bw, 32f), label))
-                    commandBridge.ResolveContentChoice(choice.Id);
+                var line = model.Choices[i];
+                GUI.enabled = line.Enabled;
+                if (GUILayout.Button(line.Label, GUILayout.MinHeight(32f)))
+                    _eventController.TrySelectChoice(i, session, commandBridge, bootstrap);
                 GUI.enabled = true;
-                by += 40f;
-                if (by + 32f > box.yMax - 12f)
-                    break;
             }
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
         }
 
         void DrawQuestModal(PlayableHostSession session, QuestNotify notify)

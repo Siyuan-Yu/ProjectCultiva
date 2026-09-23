@@ -5,27 +5,102 @@
       "id": "base:event_herb_whisper",
       "type": "contentEvent",
       "name": "药坡异响",
-      "body": "骨架事件：采药坡传来细微异响。",
       "trigger": "onExplore",
       "locationId": "base:loc_ref_herb_field",
       "once": true,
       "conditions": [],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "gather",
-          "text": "采一株灵草",
-          "outcomes": [
-            { "kind": "addStock", "id": "base:resource_spirit_herb", "amount": 2 },
-            { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
+          "id": "step_001",
+          "speakerRef": "",
+          "text": "骨架事件：采药坡传来细微异响。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "gather",
+              "text": "采一株灵草",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "addStock", "id": "base:resource_spirit_herb", "amount": 2 },
+                { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "meditate",
+              "text": "静坐感悟",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "grantProgress", "amount": 8 },
+                { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
+              ],
+              "nextStepId": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_event_editor_v2_supervisor_chat",
+      "type": "contentEvent",
+      "name": "主管·普通闲谈",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 0,
+      "topicText": "",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "step_001",
+      "steps": [
+        {
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "今天没什么特别的事。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "choice_001",
+              "text": "知道了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "step_002"
+            },
+            {
+              "id": "choice_002",
+              "text": "展示炼气境手段",
+              "conditions": [
+                {
+                  "kind": "realmAtLeast",
+                  "realm": "QiRefining"
+                }
+              ],
+              "unavailableMode": "disabled",
+              "requirementText": "需要队伍中至少一名成员达到炼气境",
+              "outcomes": [],
+              "nextStepId": ""
+            }
           ]
         },
         {
-          "id": "meditate",
-          "text": "静坐感悟",
+          "id": "step_002",
+          "speakerRef": "@actor",
+          "text": "我先去忙了。",
+          "nextStepId": "step_003",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "step_003",
+          "speakerRef": "@target",
+          "text": "去吧。",
           "outcomes": [
-            { "kind": "grantProgress", "amount": 8 },
-            { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
-          ]
+            {
+              "kind": "setFlag",
+              "id": "event:event_editor_v2_supervisor_chat_done"
+            }
+          ],
+          "choices": []
         }
       ]
     }

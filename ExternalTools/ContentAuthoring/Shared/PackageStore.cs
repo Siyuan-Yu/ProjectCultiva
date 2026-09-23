@@ -326,7 +326,7 @@ public static class PackageStore
 
     public static IReadOnlyList<string> AllLocationIds(ContentPackage package)
     {
-        var ids = new List<string>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var region in package.OfType("worldRegion"))
         {
             if (region.Raw["locations"] is not JsonArray locs) continue;
@@ -337,8 +337,27 @@ public static class PackageStore
             }
         }
 
-        ids.Sort(StringComparer.Ordinal);
-        return ids;
+        // Continuous Surface authority no longer requires worldRegion definitions.  Current
+        // locations are also referenced by WorkAreas and Surface place/site records.
+        static void Collect(JsonNode? node, HashSet<string> target)
+        {
+            if (node is JsonObject obj)
+            {
+                foreach (var pair in obj)
+                {
+                    if (pair.Value is JsonValue value &&
+                        (pair.Key is "locationId" or "boundLocationId" or "sourceLocationId" or "localLocationId") &&
+                        value.TryGetValue<string>(out var id) && !string.IsNullOrWhiteSpace(id))
+                        target.Add(id);
+                    else
+                        Collect(pair.Value, target);
+                }
+            }
+            else if (node is JsonArray array)
+                foreach (var item in array) Collect(item, target);
+        }
+        foreach (var def in package.Definitions) Collect(def.Raw, ids);
+        return ids.OrderBy(x => x, StringComparer.Ordinal).ToList();
     }
 
     public static bool LocationExists(ContentPackage package, string locationId) =>
@@ -493,25 +512,65 @@ public static class PackageStore
         return hits;
     }
 
-    public static bool EventStartsQuest(JsonObject ev, string questId)
+    public static IReadOnlyList<string> WorldObjectIds(ContentPackage package, string kind)
     {
-        if (ev["choices"] is not JsonArray choices) return false;
-        foreach (var choiceNode in choices)
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        if (package == null || string.IsNullOrWhiteSpace(kind)) return ids.ToList();
+        if (kind is "controlCore" or "housing" or "workArea")
         {
-            if (choiceNode is not JsonObject choice) continue;
-            if (choice["outcomes"] is not JsonArray outcomes) continue;
-            foreach (var outcomeNode in outcomes)
+            foreach (var area in package.OfType("workArea"))
             {
-                if (outcomeNode is not JsonObject outcome) continue;
-                var kind = outcome["kind"]?.GetValue<string>() ?? "";
-                var id = outcome["id"]?.GetValue<string>() ?? "";
-                if (string.Equals(kind, "startQuest", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(id, questId, StringComparison.Ordinal))
-                    return true;
+                var isCore = JsonEdit.GetBool(area.Raw, "isControlCore", false);
+                var isHousing = area.Raw["residentTags"] is JsonArray residents && residents.Count > 0 ||
+                    area.Raw["tags"] is JsonArray tags &&
+                    tags.Any(x => string.Equals(x?.GetValue<string>(), "home", StringComparison.Ordinal));
+                if ((kind == "controlCore" && isCore) || (kind == "housing" && !isCore && isHousing) ||
+                    (kind == "workArea" && !isCore && !isHousing)) ids.Add(area.Id);
             }
         }
+        foreach (var surface in package.OfType("outdoorSurface"))
+        {
+            if (kind == "factionFlag" && surface.Raw["factionFlags"] is JsonArray flags)
+                foreach (var flag in flags.OfType<JsonObject>())
+                {
+                    var id = JsonEdit.GetString(flag, "flagId");
+                    if (id.Length > 0) ids.Add(id);
+                }
+            if (surface.Raw["sitePlacements"] is not JsonArray placements) continue;
+            foreach (var placement in placements.OfType<JsonObject>())
+            {
+                var placementKind = JsonEdit.GetString(placement, "kind");
+                var stableId = JsonEdit.GetString(placement, "stableId");
+                if (stableId.Length == 0) continue;
+                if (kind == "destructible" && placementKind is "treeL" or "treeM" or "wall" or "ore")
+                {
+                    var w = Math.Max(1, JsonEdit.GetInt(placement, "sourceCellsW", 1));
+                    var h = Math.Max(1, JsonEdit.GetInt(placement, "sourceCellsH", 1));
+                    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++)
+                        ids.Add(stableId + ":" + x + ":" + y);
+                }
+                else if ((kind == "recoverySpot" && placementKind == "recoverySpot") ||
+                         (kind == "storageRoom" && placementKind == "storageRoom")) ids.Add(stableId);
+            }
+        }
+        return ids.OrderBy(x => x, StringComparer.Ordinal).ToList();
+    }
 
-        return false;
+    public static bool HasStaticWorldObjectCatalog(string kind) => kind is
+        "controlCore" or "factionFlag" or "destructible" or "housing" or "workArea" or
+        "recoverySpot" or "storageRoom";
+
+    public static bool EventStartsQuest(JsonObject ev, string questId)
+    {
+        bool Starts(JsonObject owner) => owner["outcomes"] is JsonArray outcomes &&
+            outcomes.OfType<JsonObject>().Any(o =>
+                string.Equals(JsonEdit.GetString(o, "kind"), "startQuest", StringComparison.OrdinalIgnoreCase) &&
+                JsonEdit.GetString(o, "id") == questId);
+        bool ChoiceStarts(JsonObject owner) => owner["choices"] is JsonArray choices &&
+            choices.OfType<JsonObject>().Any(Starts);
+        if (ev["steps"] is JsonArray steps)
+            return steps.OfType<JsonObject>().Any(step => Starts(step) || ChoiceStarts(step));
+        return ChoiceStarts(ev);
     }
 
     /// <summary>写入独立 mapLayout 文件（definitions 仅含一张图）。</summary>

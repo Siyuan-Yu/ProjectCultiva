@@ -45,6 +45,18 @@ namespace XianXia.Data.Bootstrap
             if (claims.IsFailure)
                 return claims;
 
+            return RehydrateContentDefinitions(world, registry);
+        }
+
+        /// <summary>
+        /// Restores immutable quest and event definitions only. It never grants opening inventory,
+        /// activates chapters, sets opening flags, or applies any one-shot opening effect.
+        /// </summary>
+        public static Result RehydrateContentDefinitions(SimulationWorld world, DefinitionRegistry registry)
+        {
+            if (world == null || registry == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Content definition bootstrap args null.");
+
             foreach (var kv in registry.Quests)
             {
                 var def = kv.Value;
@@ -77,8 +89,13 @@ namespace XianXia.Data.Bootstrap
                     LocationId = def.LocationId ?? string.Empty,
                     QuestId = def.QuestId ?? string.Empty,
                     NpcDefinitionId = def.NpcDefinitionId ?? string.Empty,
+                    WorldObjectKind = def.WorldObjectKind ?? string.Empty,
+                    WorldObjectId = def.WorldObjectId ?? string.Empty,
+                    Priority = def.Priority, TopicText = def.TopicText, OnceScope = def.OnceScope,
+                    EntryStepId = def.EntryStepId,
                     Once = def.Once
                 };
+                spec.Steps.AddRange(def.Steps);
                 spec.Conditions.AddRange(def.Conditions);
                 for (var i = 0; i < def.Choices.Count; i++)
                 {
@@ -86,6 +103,7 @@ namespace XianXia.Data.Bootstrap
                     var choice = new ContentEventChoiceSpec
                     {
                         Id = c.Id ?? string.Empty,
+                        NextStepId = c.NextStepId, UnavailableMode = c.UnavailableMode, RequirementText = c.RequirementText,
                         Text = c.Text ?? string.Empty
                     };
                     choice.Conditions.AddRange(c.Conditions);

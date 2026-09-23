@@ -31,11 +31,11 @@ public static class ContentFieldCatalog
 {
     public static readonly (string Kind, string Label)[] ConditionKinds =
     [
-        ("storyFlag", "已有 Flag"),
-        ("missingFlag", "缺少 Flag"),
+        ("storyFlag", "剧情标记已存在"),
+        ("missingFlag", "剧情标记不存在"),
         ("exploredLocation", "已探索地点"),
         ("atLocation", "当前在地点"),
-        ("stockAtLeast", "库存 ≥"),
+        ("stockAtLeast", "拥有资源数量 ≥"),
         ("realmAtLeast", "境界 ≥"),
         ("questCompleted", "任务已完成"),
         ("questActive", "任务进行中"),
@@ -53,9 +53,9 @@ public static class ContentFieldCatalog
 
     public static readonly (string Kind, string Label)[] OutcomeKinds =
     [
-        ("setFlag", "设置 Flag"),
-        ("clearFlag", "清除 Flag"),
-        ("addStock", "增加库存"),
+        ("setFlag", "设置剧情标记"),
+        ("clearFlag", "清除剧情标记"),
+        ("addStock", "给予资源"),
         ("startQuest", "开始任务"),
         ("discoverSite", "发现机缘点"),
         ("grantProgress", "修炼进度"),
@@ -69,7 +69,7 @@ public static class ContentFieldCatalog
         ("startMinigame", "开始小游戏")
     ];
 
-    public static readonly string[] RealmOptions = ["凡人", "炼气"];
+    public static readonly string[] RealmOptions = ["凡人", "炼气", "筑基"];
 
     public static IReadOnlyList<FieldSpec> FieldsForCondition(string kind) => kind switch
     {
@@ -132,7 +132,7 @@ public static class ContentFieldCatalog
         [
             new FieldSpec { Key = "id", Label = "遭遇键", Editor = FieldEditorKind.Text }
         ],
-        _ => [new FieldSpec { Key = "id", Label = "Flag / Id", Editor = FieldEditorKind.Text }]
+        _ => [new FieldSpec { Key = "id", Label = "剧情标记 / Id", Editor = FieldEditorKind.Text }]
     };
 
     public static IReadOnlyList<FieldSpec> FieldsForOutcome(string kind) => kind switch
@@ -186,6 +186,6 @@ public static class ContentFieldCatalog
         [
             new FieldSpec { Key = "id", Label = "小游戏 id（如 ticTacToe）", Editor = FieldEditorKind.Text }
         ],
-        _ => [new FieldSpec { Key = "id", Label = "Flag / Id", Editor = FieldEditorKind.Text }]
+        _ => [new FieldSpec { Key = "id", Label = "剧情标记 / Id", Editor = FieldEditorKind.Text }]
     };
 }

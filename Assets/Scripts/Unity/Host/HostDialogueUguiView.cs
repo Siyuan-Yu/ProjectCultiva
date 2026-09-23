@@ -44,6 +44,7 @@ namespace XianXia.Unity.Host
         Action _onDismissFallback;
         HostDialogueModel _model;
         Font _font;
+        ScrollRect _choiceScroll;
 
         public bool IsVisible => panelRoot != null && panelRoot.gameObject.activeSelf;
 
@@ -51,7 +52,28 @@ namespace XianXia.Unity.Host
         {
             if (panelRoot == null)
                 BuildDefaultUi();
+            EnsureChoiceScroll();
             HideImmediate();
+        }
+
+        void EnsureChoiceScroll()
+        {
+            if (choicesRoot == null || _choiceScroll != null) return;
+            var viewport = choicesRoot;
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var image = viewport.GetComponent<Image>();
+            if (image == null) image = viewport.gameObject.AddComponent<Image>();
+            image.color = Color.clear;
+            _choiceScroll = viewport.gameObject.AddComponent<ScrollRect>();
+            var content = CreateUiObject("ChoiceContent", viewport).GetComponent<RectTransform>();
+            content.anchorMin = new Vector2(0f, 1f); content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f); content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = Vector2.zero;
+            choicesRoot = content;
+            _choiceScroll.viewport = viewport; _choiceScroll.content = content;
+            _choiceScroll.horizontal = false; _choiceScroll.vertical = true;
+            _choiceScroll.movementType = ScrollRect.MovementType.Clamped;
+            _choiceScroll.scrollSensitivity = 24f;
         }
 
         public void Hide()
@@ -95,7 +117,7 @@ namespace XianXia.Unity.Host
 
         void SyncContent(HostDialogueModel model)
         {
-            var key = model.SpeakerName + "\u001f" + model.Body + "\u001f" + model.PortraitResourceId;
+            var key = model.PageKey + "|" + model.SpeakerName + "\u001f" + model.Body + "\u001f" + model.PortraitResourceId;
             if (key == _contentKey)
                 return;
 
@@ -130,6 +152,8 @@ namespace XianXia.Unity.Host
             if (choicesRoot == null)
                 return;
 
+            choicesRoot.sizeDelta = new Vector2(0f, model.Choices.Count * 54f);
+            if (_choiceScroll != null) _choiceScroll.verticalNormalizedPosition = 1f;
             for (var i = 0; i < model.Choices.Count; i++)
             {
                 var index = i;
@@ -337,9 +361,9 @@ namespace XianXia.Unity.Host
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.sizeDelta = new Vector2(0f, 32f);
-            var index = choicesRoot.childCount - 1;
-            rect.anchoredPosition = new Vector2(0f, -index * 38f);
+            rect.sizeDelta = new Vector2(0f, 48f);
+            var index = _choiceButtons.Count; // Destroy is deferred; old children must not offset the next step.
+            rect.anchoredPosition = new Vector2(0f, -index * 54f);
 
             var image = go.AddComponent<Image>();
             image.color = enabled ? ChoiceNormal : ChoiceDisabled;

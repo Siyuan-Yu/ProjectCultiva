@@ -66,7 +66,8 @@ public static class SchemaFields
         ["contentEvent"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "body", "trigger", "locationId", "questId", "once",
-            "conditions", "choices"
+            "conditions", "choices", "npcDefinitionId", "worldObjectKind", "worldObjectId",
+            "priority", "topicText", "onceScope", "entryStepId", "steps"
         },
         ["chapter"] = new HashSet<string>(StringComparer.Ordinal)
         {

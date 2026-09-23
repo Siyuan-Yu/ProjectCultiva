@@ -1,4 +1,5 @@
 using System;
+using XianXia.Core.Domain.Ids;
 using System.Collections.Generic;
 
 namespace XianXia.Core.Content
@@ -10,6 +11,26 @@ namespace XianXia.Core.Content
         readonly HashSet<string> _fired = new HashSet<string>(StringComparer.Ordinal);
 
         public string ActiveEventId { get; private set; } = string.Empty;
+
+        public string ActiveStepId { get; private set; } = string.Empty;
+        public EntityId ActiveActorId { get; private set; } = EntityId.None;
+        public EntityId ActiveTargetEntityId { get; private set; } = EntityId.None;
+        public string ActiveTargetKind { get; private set; } = string.Empty;
+        public string ActiveTargetKey { get; private set; } = string.Empty;
+        public string ActiveTargetDefinitionId { get; private set; } = string.Empty;
+        public string ActiveTargetDisplayName { get; private set; } = string.Empty;
+        public bool ActiveInteraction { get; private set; }
+
+        public string FiredKey(ContentEventSpec spec, EntityId actor, EntityId target)
+            => FiredKey(spec, actor, target.IsNone ? string.Empty : target.Value.ToString());
+
+        public string FiredKey(ContentEventSpec spec, EntityId actor, string stableTargetKey)
+        {
+            // Length prefix keeps scoped instance keys disjoint from authored definition IDs.
+            if (spec.OnceScope == "perTarget") return "#target:" + spec.Id.Length + ":" + spec.Id + ":" + stableTargetKey;
+            if (spec.OnceScope == "perActorTarget") return "#pair:" + spec.Id.Length + ":" + spec.Id + ":" + actor.Value + ":" + stableTargetKey;
+            return spec.Id;
+        }
 
         public IReadOnlyDictionary<string, ContentEventSpec> Specs => _specs;
 
@@ -33,22 +54,61 @@ namespace XianXia.Core.Content
                 _fired.Add(id);
         }
 
-        public void SetActive(string id) => ActiveEventId = id ?? string.Empty;
+        public void SetActive(string id) => SetActive(id, EntityId.None, EntityId.None, false);
 
-        public void ClearActive() => ActiveEventId = string.Empty;
+        public void SetActive(string id, EntityId actor, EntityId target, bool interaction)
+            => SetActive(id, new ContentInteractionContext
+            {
+                ActorId = actor,
+                TargetEntityId = target,
+                TargetKey = target.IsNone ? string.Empty : target.Value.ToString()
+            }, interaction);
 
-        internal void CaptureState(out string active, out List<string> fired)
+        public void SetActive(string id, ContentInteractionContext context, bool interaction)
         {
-            active = ActiveEventId;
-            fired = new List<string>(_fired);
+            context = context ?? new ContentInteractionContext();
+            ActiveEventId = id ?? string.Empty;
+            ActiveActorId = context.ActorId;
+            ActiveTargetEntityId = context.TargetEntityId;
+            ActiveTargetKind = context.TargetKind ?? string.Empty;
+            ActiveTargetKey = context.TargetKey ?? string.Empty;
+            ActiveTargetDefinitionId = context.TargetDefinitionId ?? string.Empty;
+            ActiveTargetDisplayName = context.TargetDisplayName ?? string.Empty;
+            ActiveInteraction = interaction;
+            ActiveStepId = TryGet(id, out var spec) ? (spec.Steps.Count == 0 ? "$legacy" : spec.EntryStepId) : "";
         }
 
-        internal void RestoreState(string active, IEnumerable<string> fired)
+        public void AdvanceStep(string id) => ActiveStepId = id ?? string.Empty;
+        public void ClearActive() => SetActive("", EntityId.None, EntityId.None, false);
+
+        internal sealed class RuntimeState
         {
-            ActiveEventId = active ?? string.Empty;
+            public string Event, Step;
+            public EntityId Actor, Target;
+            public string TargetKind, TargetKey, TargetDefinitionId, TargetDisplayName;
+            public bool Interaction;
+            public List<string> Fired;
+        }
+        internal RuntimeState CaptureState() => new RuntimeState
+        {
+            Event = ActiveEventId, Step = ActiveStepId, Actor = ActiveActorId,
+            Target = ActiveTargetEntityId, TargetKind = ActiveTargetKind, TargetKey = ActiveTargetKey,
+            TargetDefinitionId = ActiveTargetDefinitionId, TargetDisplayName = ActiveTargetDisplayName,
+            Interaction = ActiveInteraction, Fired = new List<string>(_fired)
+        };
+        internal void RestoreState(RuntimeState state)
+        {
+            ActiveEventId = state.Event;
+            ActiveStepId = state.Step;
+            ActiveActorId = state.Actor;
+            ActiveTargetEntityId = state.Target;
+            ActiveTargetKind = state.TargetKind ?? string.Empty;
+            ActiveTargetKey = state.TargetKey ?? string.Empty;
+            ActiveTargetDefinitionId = state.TargetDefinitionId ?? string.Empty;
+            ActiveTargetDisplayName = state.TargetDisplayName ?? string.Empty;
+            ActiveInteraction = state.Interaction;
             _fired.Clear();
-            if (fired != null) foreach (var id in fired) _fired.Add(id);
+            foreach (var key in state.Fired) _fired.Add(key);
         }
     }
 }
-

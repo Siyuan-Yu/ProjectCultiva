@@ -48,6 +48,9 @@ public static class PackageValidator
                 }
             }
 
+            if (def.Type == "contentEvent")
+                foreach (var message in EventAuthoringValidator.Validate(def.Raw, package))
+                    issues.Add(new ValidationIssue { Level = "error", Message = message, DefinitionId = def.Id, FilePath = def.FilePath });
             if (def.Type == "worldRegion")
                 ValidateRegion(def, issues);
             if (def.Type is "quest" or "contentEvent")

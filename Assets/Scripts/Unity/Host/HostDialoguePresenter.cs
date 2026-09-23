@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 
 namespace XianXia.Unity.Host
@@ -71,6 +72,21 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        public bool TryStartInteraction(EntityId actor, EntityId target, string definitionId)
+            => TryStartInteraction(ContentInteractionContext.ForNpc(actor, target, definitionId), "onTalk");
+
+        public bool TryStartInteraction(ContentInteractionContext context, string trigger)
+        {
+            var session = bootstrap?.Session;
+            if (session == null || !session.IsInitialized ||
+                !_controller.TryStartInteraction(session, context, trigger)) return false;
+            session.AcquireModalPause(PauseOwner);
+            _holdingPause = true;
+            HostInputGate.BlockWorldInteraction = true;
+            bootstrap.DispatchDrainedEvents();
+            return true;
+        }
+
         public void ShowFallback(string speakerName, string body)
         {
             _controller.ShowFallback(speakerName, body);
@@ -93,7 +109,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape) && _controller.Model.IsFallback)
+            if (Input.GetKeyDown(KeyCode.Escape) && _controller.Model.CanDismiss)
                 DismissFallback();
 
             if (uguiView != null && !useImguiFallback)
@@ -138,7 +154,7 @@ namespace XianXia.Unity.Host
 
         void DismissFallback()
         {
-            if (!_controller.Model.IsFallback)
+            if (!_controller.Model.CanDismiss)
                 return;
             _controller.Clear();
             HostInputGate.BlockWorldInteraction = false;

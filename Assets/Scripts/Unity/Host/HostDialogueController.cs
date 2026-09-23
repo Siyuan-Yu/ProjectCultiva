@@ -7,12 +7,16 @@ namespace XianXia.Unity.Host
     /// <summary>Builds dialogue view-model and resolves choices (presentation-agnostic).</summary>
     public sealed class HostDialogueController
     {
+        ContentInteractionContext _topicContext;
+        string _topicTrigger;
+        string _failureKey, _failureMessage;
         public HostDialogueModel Model { get; } = new HostDialogueModel();
 
         public void Clear()
         {
             Model.IsActive = false;
             Model.IsFallback = false;
+            Model.IsTopicSelection = false;
             Model.SpeakerName = string.Empty;
             Model.Body = string.Empty;
             Model.Choices.Clear();
@@ -26,11 +30,52 @@ namespace XianXia.Unity.Host
             if (!TryGetActiveOnTalkSpec(session.World, out var spec))
                 return false;
 
+            return TryBuildFromActiveEvent(session);
+        }
+
+        public bool TryBuildFromActiveEvent(PlayableHostSession session)
+        {
+            Clear();
+            var step = ContentEventService.ActiveStep(session.World);
+            if (step == null) return false;
             Model.IsActive = true;
-            Model.IsFallback = false;
-            Model.SpeakerName = ResolveSpeakerName(session, speakerNpc, spec);
-            Model.Body = string.IsNullOrEmpty(spec.Body) ? "（无正文）" : spec.Body;
-            BuildChoices(session, subject, spec);
+            Model.PageKey = session.World.ContentEvents.ActiveEventId + ":" + session.World.ContentEvents.ActiveStepId;
+            var speaker = ContentEventService.ResolveSpeaker(session.World, step.SpeakerRef, out var name);
+            Model.SpeakerName = speaker.IsFailure ? "【人物解析失败：" + step.SpeakerRef + "】" : name;
+            Model.Body = string.IsNullOrEmpty(step.Text) ? "（无正文）" : step.Text;
+            if (_failureKey == Model.PageKey) Model.Body += "\n" + _failureMessage;
+            BuildChoices(session, step);
+            return true;
+        }
+
+        public bool TryStartInteraction(PlayableHostSession session, EntityId actor, EntityId target, string definitionId)
+            => TryStartInteraction(session, ContentInteractionContext.ForNpc(actor, target, definitionId), "onTalk");
+
+        public bool TryStartInteraction(PlayableHostSession session, ContentInteractionContext context, string trigger)
+        {
+            if (session == null || !session.IsInitialized || context == null) return false;
+            var service = new ContentEventService();
+            var candidates = service.ResolveInteractionCandidates(session.World, context, trigger);
+            if (candidates.Count == 0) return false;
+            if (candidates.Count == 1)
+            {
+                if (service.BeginInteraction(session.World, context, candidates[0].Id, trigger).IsFailure) return false;
+                return TryBuildFromActiveEvent(session);
+            }
+            Clear();
+            _topicContext = context; _topicTrigger = trigger;
+            Model.IsActive = true;
+            Model.IsTopicSelection = true;
+            Model.PageKey = "topics:" + context.TargetKey;
+            Model.SpeakerName = !string.IsNullOrEmpty(context.TargetDisplayName)
+                ? context.TargetDisplayName
+                : session.World.Entities.TryGet(context.TargetEntityId, out var npc) ? npc.DisplayName : context.TargetDefinitionId;
+            Model.Body = string.Equals(trigger, "onInspect", System.StringComparison.OrdinalIgnoreCase)
+                ? "要调查什么？" : "想聊些什么？";
+            foreach (var spec in candidates)
+                Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = spec.Id,
+                    Label = !string.IsNullOrEmpty(spec.TopicText) ? spec.TopicText : !string.IsNullOrEmpty(spec.Name) ? spec.Name : ShortId(spec.Id) });
+            Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = "", Label = "离开" });
             return true;
         }
 
@@ -68,38 +113,44 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (string.IsNullOrEmpty(line.ChoiceId))
+            if (session == null || !session.IsInitialized) return false;
+            if (Model.IsTopicSelection)
             {
-                if (session.World.ContentEvents.HasActive)
-                    session.World.ContentEvents.ClearActive();
-                Clear();
-                return true;
+                if (string.IsNullOrEmpty(line.ChoiceId)) { Clear(); return true; }
+                var begin = new ContentEventService().BeginInteraction(
+                    session.World, _topicContext, line.ChoiceId, _topicTrigger);
+                if (begin.IsFailure)
+                {
+                    Model.Body = "话题条件已变化，请离开后重新交谈。";
+                    return false;
+                }
+                bootstrap?.DispatchDrainedEvents();
+                return TryBuildFromActiveEvent(session);
             }
-
-            if (session == null || !session.IsInitialized)
+            var step = ContentEventService.ActiveStep(session.World);
+            var choice = step?.Choices.Find(c => c.Id == line.ChoiceId);
+            string gameId = null;
+            if (choice != null) TryGetStartMinigameId(choice, out gameId);
+            var subject = session.World.ContentEvents.ActiveActorId;
+            var result = new ContentEventService().ResolveChoice(session.World, subject, line.ChoiceId);
+            if (result.IsFailure)
+            {
+                _failureKey = Model.PageKey;
+                _failureMessage = "【结算失败，请重试：" + result.Error + "】";
+                if (step != null) { Model.Body = step.Text + "\n" + _failureMessage; BuildChoices(session, step); }
                 return false;
-
-            if (TryBeginMinigame(session, line.ChoiceId, bootstrap))
-                return true;
-
-            if (bridge == null)
-                return false;
-
-            if (!bridge.ResolveContentChoice(line.ChoiceId))
-                return false;
-
+            }
+            _failureKey = null; _failureMessage = null;
             bootstrap?.DispatchDrainedEvents();
-
-            if (session.World.ContentEvents.HasActive &&
-                TryGetActiveOnTalkSpec(session.World, out var spec))
-            {
-                var subject = ResolveSubject(session);
-                Model.Choices.Clear();
-                BuildChoices(session, subject, spec);
-                return true;
-            }
-
+            if (session.World.ContentEvents.HasActive) return TryBuildFromActiveEvent(session);
             Clear();
+            if (string.Equals(gameId, HostJiangLaoChess.MinigameId, System.StringComparison.OrdinalIgnoreCase))
+                bootstrap?.TicTacToePanel?.Open(subject, outcome =>
+                {
+                    if (!session.IsInitialized) return;
+                    HostJiangLaoChess.ApplyResult(session.World, subject, outcome);
+                    bootstrap.DispatchDrainedEvents();
+                });
             return true;
         }
 
@@ -118,60 +169,6 @@ namespace XianXia.Unity.Host
             return string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        bool TryBeginMinigame(
-            PlayableHostSession session,
-            string choiceId,
-            PlayableHostBootstrap bootstrap)
-        {
-            if (!TryGetActiveOnTalkSpec(session.World, out var spec))
-                return false;
-            if (!TryFindChoice(spec, choiceId, out var choice))
-                return false;
-            if (!TryGetStartMinigameId(choice, out var gameId))
-                return false;
-
-            var subject = ResolveSubject(session);
-            var committed = new ContentEventService().ResolveChoice(session.World, subject, choiceId);
-            if (committed.IsFailure)
-                return false;
-            Clear();
-            bootstrap?.DispatchDrainedEvents();
-
-            if (!string.Equals(gameId, HostJiangLaoChess.MinigameId, System.StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            var panel = bootstrap?.TicTacToePanel;
-            if (panel == null)
-                return true;
-
-            panel.Open(subject, result =>
-            {
-                if (session == null || !session.IsInitialized)
-                    return;
-                HostJiangLaoChess.ApplyResult(session.World, subject, result);
-                bootstrap.DispatchDrainedEvents();
-            });
-            return true;
-        }
-
-        static bool TryFindChoice(ContentEventSpec spec, string choiceId, out ContentEventChoiceSpec choice)
-        {
-            choice = null;
-            if (spec?.Choices == null)
-                return false;
-            for (var i = 0; i < spec.Choices.Count; i++)
-            {
-                var c = spec.Choices[i];
-                if (c != null && string.Equals(c.Id, choiceId, System.StringComparison.Ordinal))
-                {
-                    choice = c;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         static bool TryGetStartMinigameId(ContentEventChoiceSpec choice, out string gameId)
         {
             gameId = null;
@@ -182,7 +179,7 @@ namespace XianXia.Unity.Host
                 var o = choice.Outcomes[i];
                 if (o == null || string.IsNullOrEmpty(o.Kind))
                     continue;
-                if (!string.Equals(o.Kind, "startMinigame", System.StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(o.Kind?.Trim(), "startMinigame", System.StringComparison.OrdinalIgnoreCase))
                     continue;
                 gameId = string.IsNullOrEmpty(o.Id) ? HostJiangLaoChess.MinigameId : o.Id;
                 return true;
@@ -191,52 +188,22 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        void BuildChoices(PlayableHostSession session, EntityId subject, ContentEventSpec spec)
+        void BuildChoices(PlayableHostSession session, ContentEventStepSpec step)
         {
             Model.Choices.Clear();
-            if (spec.Choices == null || spec.Choices.Count == 0)
+            if (step.Choices.Count == 0)
             {
-                Model.Choices.Add(new HostDialogueChoiceLine
-                {
-                    ChoiceId = string.Empty,
-                    Label = "继续",
-                    Enabled = true
-                });
+                Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = "", Label = "继续" });
                 return;
             }
-
-            for (var i = 0; i < spec.Choices.Count; i++)
+            foreach (var choice in step.Choices)
             {
-                var choice = spec.Choices[i];
-                if (choice == null)
-                    continue;
-                var ok = ContentConditionEvaluator.AllPass(session.World, subject, choice.Conditions);
+                var ok = ContentEventService.ActiveConditionsPass(session.World, choice.Conditions);
+                if (!ok && choice.UnavailableMode == "hidden") continue;
                 var label = string.IsNullOrEmpty(choice.Text) ? choice.Id : choice.Text;
-                if (!ok)
-                    label += "（条件未满足）";
-                Model.Choices.Add(new HostDialogueChoiceLine
-                {
-                    ChoiceId = choice.Id ?? string.Empty,
-                    Label = label,
-                    Enabled = ok
-                });
+                if (!ok) label += "（" + (string.IsNullOrEmpty(choice.RequirementText) ? "条件未满足" : choice.RequirementText) + "）";
+                Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = choice.Id, Label = label, Enabled = ok });
             }
-        }
-
-        static EntityId ResolveSubject(PlayableHostSession session)
-        {
-            return session.CharacterIds.Count > 0 ? session.CharacterIds[0] : EntityId.None;
-        }
-
-        static string ResolveSpeakerName(PlayableHostSession session, EntityId speakerNpc, ContentEventSpec spec)
-        {
-            if (!speakerNpc.IsNone &&
-                session.World.Entities.TryGet(speakerNpc, out var entity) &&
-                !string.IsNullOrEmpty(entity.DisplayName))
-                return entity.DisplayName;
-            if (!string.IsNullOrEmpty(spec.Name))
-                return spec.Name;
-            return ShortId(spec.Id);
         }
 
         static string ShortId(string id)

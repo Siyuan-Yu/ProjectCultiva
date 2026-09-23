@@ -1,10 +1,18 @@
 # Project Handoff — Continuous World Current State
 
-## 新会话恢复摘要（唯一当前入口，2026-09-22）
+## 新会话恢复摘要（唯一当前入口，2026-09-23）
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。当前处于 Architecture Freeze v0.2 + ADR-0038 之后的**已封板基线**：Continuous Surface、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control 与 Separate Space 是正式主线。下一功能方向尚未批准，新会话应先讨论范围，不自动编码。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。当前处于 Architecture Freeze v0.2 + ADR-0038 之后的**已封板基线**：Continuous Surface、PlayerParty／Squad、CharacterEncounter、WorldSite／Actual Administrative Control 与 Separate Space 是正式主线。EVENT-01 Final 与 EVENT-EDITOR-V2 已由制作人单独授权并实施，状态均为 Implementation Complete / Producer Acceptance Pending；其他新方向仍需讨论范围，不自动编码。
+
+### EVENT-EDITOR-V2 当前增补（2026-09-23）
+
+[254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md) 将 EventEditor 改为 Browser＋Visual Steps Graph＋Inspector。Event 仍是独立 Template；按对象只是 binding projection。Working copy、dirty、undo/redo、自动布局、错误定位与 `Authoring/EventEditor/layouts.v1.json` 已接通。BaseGame 14 条审计基线 ContentEvent 已统一为 Steps，并新增 1 条主管普通对话保存/回读验收内容，当前共 15 条；Runtime legacy reader 保留。EVENT-02 Opportunity 与 narrative persistence 未实施，Snapshot schema 未改变。
+
+### EVENT-01 Final 当前增补（2026-09-22）
+
+[253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md) 是固定世界 NPC onTalk＋WorldObject onInspect、统一稳定 TargetKey、对象接近后复核、EventEditor 绑定及 Load definitions-only 的实施记录与人工验收入口。状态 **Implementation Complete / Producer Acceptance Pending**。沿用既有 ContentEvent／Outcome transaction／HostDialogue；旧 body／choices 兼容；Priority／Topic、整组 party-aware 条件、Step 与 once scope 均为 session runtime。Snapshot schema 仍为 6，SPACE-01-P1 serializer 保留，未 stage／commit／push。EVENT-02 Opportunity Director／ContentIntent／剧情 runtime persistence 未实施。
 
 ### 基线、验收与 Git
 
@@ -32,7 +40,7 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 - 本封板不表示全项目完成、所有历史存档均可直接加载、所有历史字符串消失或项目无缺陷。
 - 系统现状以本文下方“当前系统现状总表”为准；表内 `Proposed / Not Implemented` 不构成开发授权。
 - 当前优先 Proposal 是通用任务／剧情状态的正式磁盘持久化；待处理事件弹窗保存策略尚需制作人选择。该 Proposal 本轮不实施。
-- 本轮文档静态核对发现两项仍待处理的代码／已确认规则差异：Snapshot restore 的 content shell 未重注册 Quest／ContentEvent／Chapter definitions；WorldMap 的 Site／Flag marker 随 world projection 缩放，但 Player／NPC Squad marker 仍固定像素。Separate Space Session 的 JSON wire 漏线已由 **SPACE-01-P1** 补齐（`strategic.separateSpace` 读写；implementation complete / producer acceptance pending）。上述差异不撤销既有历史验收记录，也不能伪装成已完成；须在新会话先定范围后另行处理。
+- Snapshot restore 的 Quest／ContentEvent／Chapter definitions shell 已由 EVENT-01 Final 补齐，且不重放 opening；narrative runtime progress 仍未持久化。Separate Space Session JSON wire 已由 **SPACE-01-P1** 补齐。两项均为 implementation complete / producer acceptance pending。WorldMap 的 Site／Flag marker 随 world projection 缩放，而 Player／NPC Squad marker 仍固定像素，仍是未授权差异。
 
 ### 新会话短阅读顺序
 
@@ -105,7 +113,7 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 |---|---|---|---|
 | 洞府发现与显形 | 当前 cave 样板支持靠近提示、神识 Survey、`KnownSites` reveal；Survey 只更新知识和表现，不提前加载 Interior 或移动 Party | `ExplorationService`、`OpportunityEntranceRules`、`KnownSitesComponent`；KnownSites 作为实体组件随当前 entity Snapshot 保存 | SPACE-01 cave 流程 Accepted / Sealed。其他秘境／遗迹不因设计存在而视为已有正式内容 |
 | 进入、同行与内部状态 | `SeparateSpaceTransitionService.Enter` 验证入口并捕获 exact outdoor return；当前真正随队成员全部 transition；Interior 只 materialize occupants／当地居民；内部战斗原地进行 | `LocalMapSession`／SeparateSpace session、`PlayerPartyTransitionMembership`、`SeparateSpaceCombatPolicy` | Implemented / Accepted / Sealed。普通 Outdoor Site 不使用这条链 |
-| 离开、回程与存读档 | authored exit edge 由 Active 触发；Leave 恢复 exact `ReturnSurfaceId + WorldPosition`；内存 DTO／helper 可 capture／restore SeparateSpace session，load 不重新调用 Enter | `SeparateSpaceExitEdgeTrigger`、`SeparateSpaceSessionSnapshotRestore`、`HostSeparateSpaceExitTrigger` | SPACE-01 历史状态 Accepted / Sealed；但当前 `JsonSnapshotSerializer` 未读写 `strategic.separateSpace`，故磁盘 JSON 对 session／return／occupants 的完整 round-trip **未接线**，不得再写成已完整持久化 |
+| 离开、回程与存读档 | authored exit edge 由 Active 触发；Leave 恢复 exact `ReturnSurfaceId + WorldPosition`；DTO／helper capture／restore SeparateSpace session，load 不重新调用 Enter；`JsonSnapshotSerializer` 已读写 `strategic.separateSpace` | `SeparateSpaceExitEdgeTrigger`、`SeparateSpaceSessionSnapshotRestore`、`HostSeparateSpaceExitTrigger` | SPACE-01 历史主线 Accepted / Sealed；SPACE-01-P1 JSON wire 修复为 Implementation Complete / Producer Acceptance Pending，schema 仍为 6 |
 | 拾取物保持 | `WorldLootPickupService` 记录稳定 loot spot id；`HasTakenWorldLootSnapshotAuthority` + `TakenWorldLootSpotIds` 保存已取状态 | `WorldSnapshot`／`SnapshotService` | 当前专用链已接线；它不是通用 Story Flag／Quest 持久化 |
 
 ### E. 人物、成长与内容
@@ -117,7 +125,7 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 | 关系、Bond、态度与档案 | `SocialBondBoard` 保存客观 Bond；五维单向态度由 `RelationshipLedger` 事件聚合；人物档案供 UI／内容查询 | `RelationshipService`、`SocialBondBoard`、profile components；Snapshot 已保存 Social Bonds、RelationshipLedger 与 PersonalityProfile tags | 2M 主线 Accepted / Sealed。关系 ≠ 私人冲突 ≠ Faction War |
 | 背包、装备、资源与掉落 | PartyInventory、物品增减、内容奖励／成本事务、装备／资源基础模型和 world loot 拾取存在 | `Core/Inventory`、`ContentOutcomeApplier`、`WorldLootPickupService`；PartyInventory 与 taken loot 已进 Snapshot | 当前结算行为保留。完整个人背包／装备栏持久化覆盖需按 DTO 逐字段核实 |
 | Quest | `QuestBoard`、期限／状态／Journal、条件与 Outcome 可在当前 runtime 工作 | `Core/Content/Quest*`、`HostQuestJournal`、`Content/BaseGame/Data/Quests/`；`QuestBoard.CaptureRuntime` 仅供 `ContentOutcomeApplier` 事务回滚 | **磁盘 Snapshot 未接线；Proposed / Not Implemented** |
-| Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持 New Game 当前会话条件、触发与推进 | `Core/Content/` + `Data/Bootstrap` + `Content/BaseGame/Data/Events|Chapters/`；未见 `WorldSnapshot` capture／restore；restore shell 也未重注册 Quest／Event／Chapter definitions | **通用磁盘持久化与读档 definitions shell 均未接线；Proposed / Not Implemented** |
+| Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持当前会话条件、触发与推进；固定 NPC／WorldObject interaction event 已接通 | `Core/Content/` + `Data/Bootstrap` + `Content/BaseGame/Data/Events|Chapters/`；restore shell 已 definitions-only 重注册 Quest／Event／Chapter，不重放 opening | EVENT-01 Final **Implementation Complete / Producer Acceptance Pending**；通用 narrative runtime 磁盘持久化仍 **Proposed / Not Implemented** |
 | ContentCounters／ContentDaily | runtime board 支持计数、每日限制／重置语义；角色 `DailyTaskComponent` 是另一条实体日程链 | `ContentCounterBoard`、`ContentDailyBoard`；通用 board 未进 `WorldSnapshot`，而 `DailyTaskComponent` 已按实体字段保存 | 不得混为一套。通用 Counter／Daily 磁盘 round-trip 为 Proposal |
 
 ### F. 工具链与工程
@@ -152,10 +160,10 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 
 - Quest／Flags／ContentEvents／Chapters／ContentCounters／ContentDaily 的 runtime boards 已承载当前会话内条件、推进、奖励和 UI。
 - `QuestBoard.CaptureRuntime`／`RestoreRuntime` 由 `ContentOutcomeApplier` 用于一次 Outcome 的事务回滚；这不是磁盘存档。
-- `WorldSnapshot`／`SnapshotService` 当前保存 PartyInventory、taken world loot spots、RelationshipLedger、entity／spatial／Encounter 等明确字段；Separate Space 虽有 DTO／capture helper，但 JSON wire 缺失；上述通用内容 boards 同样未保存。
+- `WorldSnapshot`／`SnapshotService` 当前保存 PartyInventory、taken world loot spots、RelationshipLedger、entity／spatial／Encounter 与 Separate Space session 等明确字段；上述通用 narrative boards 仍未保存。
 - `HasTakenWorldLootSnapshotAuthority`／`TakenWorldLootSpotIds` 是 loot 专用持久化，不能替代 Story／World Flags。
 - `DailyTaskComponent` 的实体字段已保存，但它与 `ContentDailyBoard` 的通用每日内容限制不是同一个 authority。
-- New Game 由 `ContentRuntimeBootstrap.Apply`／`ChapterRuntimeBootstrap` 注册 Quest／Event／Chapter definitions；Snapshot restore 当前只走 `RuntimeContentShellBootstrap`，未重注册这些 definitions。故 Proposal 不能只加 runtime DTO，还必须决定 restore 时只注册 definitions、绝不重跑 opening state 的接线。
+- New Game 与 Snapshot restore 已共用 Quest／Event definitions mapper；restore 另调用 Chapter definitions-only 注册，且绝不重跑 opening state。Proposal 现只讨论 narrative runtime DTO／serializer／restore 与 pending interaction 保存策略。
 
 ### 待制作人讨论的最小范围
 

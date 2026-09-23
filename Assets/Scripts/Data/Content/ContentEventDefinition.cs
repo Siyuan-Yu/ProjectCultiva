@@ -13,6 +13,13 @@ namespace XianXia.Data.Content
         public string LocationId { get; set; } = string.Empty;
         public string QuestId { get; set; } = string.Empty;
         public string NpcDefinitionId { get; set; } = string.Empty;
+        public string WorldObjectKind { get; set; } = string.Empty;
+        public string WorldObjectId { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public string TopicText { get; set; } = string.Empty;
+        public string OnceScope { get; set; } = "global";
+        public string EntryStepId { get; set; } = string.Empty;
+        public List<ContentEventStepSpec> Steps { get; } = new List<ContentEventStepSpec>();
         public bool Once { get; set; } = true;
         public List<ContentCondition> Conditions { get; } = new List<ContentCondition>();
         public List<ContentEventChoiceDefinition> Choices { get; } = new List<ContentEventChoiceDefinition>();
@@ -22,6 +29,9 @@ namespace XianXia.Data.Content
     {
         public string Id { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
+        public string NextStepId { get; set; } = string.Empty;
+        public string UnavailableMode { get; set; } = "disabled";
+        public string RequirementText { get; set; } = string.Empty;
         public List<ContentCondition> Conditions { get; } = new List<ContentCondition>();
         public List<ContentOutcome> Outcomes { get; } = new List<ContentOutcome>();
     }

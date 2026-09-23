@@ -72,6 +72,15 @@ namespace XianXia.Unity.Host
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.StorageRoom;
+        bool HasInspectEvent
+        {
+            get
+            {
+                var world = bootstrap?.Session?.World;
+                return world != null && _worldObjectTarget.TryCreateContentContext(_actor, out var context) &&
+                       new ContentEventService().ResolveInteractionCandidates(world, context, "onInspect").Count > 0;
+            }
+        }
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -162,7 +171,10 @@ namespace XianXia.Unity.Host
             if (HostWorldObjectPicker.TryPickAtScreenPoint(
                     bootstrap, worldCamera, Input.mousePosition, out var objectTarget))
             {
-                if (objectTarget.Kind == WorldObjectTargetKind.FarmPlot)
+                if (objectTarget.Kind == WorldObjectTargetKind.FarmPlot &&
+                    (!objectTarget.TryCreateContentContext(actor, out var farmContext) ||
+                     new ContentEventService().ResolveInteractionCandidates(
+                         bootstrap.Session.World, farmContext, "onInspect").Count == 0))
                     return bootstrap.WorkTargetMode != null &&
                            bootstrap.WorkTargetMode.TryHandleContextTarget(objectTarget);
                 _actor = actor;
@@ -225,6 +237,8 @@ namespace XianXia.Unity.Host
                         DrawDestructibleMenu();
                     else if (IsRecoverySpotTarget)
                         DrawRecoverySpotMenu();
+                    else if (_worldObjectTarget.Kind == WorldObjectTargetKind.FarmPlot)
+                        DrawFarmPlotMenu();
                     else if (IsReadOnlyWorldObjectTarget)
                         DrawReadOnlyWorldObjectMenu();
                     else
@@ -290,7 +304,7 @@ namespace XianXia.Unity.Host
             var friendly = hasSite &&
                 string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
             var canAttack = hasSite && !friendly;
-            var h = canAttack ? itemH * 2f + 58f : itemH + 34f;
+            var h = (canAttack ? itemH * 2f + 58f : itemH + 34f) + (HasInspectEvent ? itemH : 0f);
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -304,6 +318,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
             y += itemH;
+            DrawInspectButton(guiX, ref y, w, itemH);
             if (canAttack && GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击据点核心", _button))
                 BeginControlCoreAttack();
             if (canAttack)
@@ -315,7 +330,7 @@ namespace XianXia.Unity.Host
         {
             const float w = 168f;
             const float itemH = 30f;
-            var h = itemH * 2f + 34f;
+            var h = itemH * (HasInspectEvent ? 3f : 2f) + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -329,6 +344,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
             y += itemH;
+            DrawInspectButton(guiX, ref y, w, itemH);
             var verb = _targetDestructible != null && _targetDestructible.IsTree ? "砍伐" : "拆毁";
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), verb, _button))
                 BeginDestructibleAttack();
@@ -339,7 +355,7 @@ namespace XianXia.Unity.Host
         {
             const float w = 184f;
             const float itemH = 30f;
-            var h = itemH * 2f + 34f;
+            var h = itemH * (HasInspectEvent ? 3f : 2f) + 34f;
             var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(x, y, w, h);
@@ -349,7 +365,9 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "恢复处", _label);
             if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
-            if (GUI.Button(new Rect(x + 8f, y + 60f, w - 16f, itemH - 4f), "休息恢复", _button))
+            var actionY = y + 60f;
+            DrawInspectButton(x, ref actionY, w, itemH);
+            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "休息恢复", _button))
                 BeginRecoverySpot();
             TryDismissOnOutsideClick(_menuGuiRect);
         }
@@ -495,7 +513,7 @@ namespace XianXia.Unity.Host
                 return;
             }
             var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            var h = itemH * 2f + 34f;
+            var h = itemH * (HasInspectEvent ? 3f : 2f) + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -508,6 +526,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
             actionY += itemH;
+            DrawInspectButton(guiX, ref actionY, w, itemH);
             if (!friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "攻击势力旗", _button))
                 BeginFactionFlagAttack();
@@ -520,7 +539,7 @@ namespace XianXia.Unity.Host
         void DrawReadOnlyWorldObjectMenu()
         {
             const float w = 168f; const float itemH = 30f;
-            var h = itemH + 34f;
+            var h = itemH * (HasInspectEvent ? 2f : 1f) + 34f;
             var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(x, y, w, h); HostUiHitTest.Block(_menuGuiRect);
@@ -528,7 +547,70 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), _targetLabel, _label);
             if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
+            var actionY = y + 60f;
+            DrawInspectButton(x, ref actionY, w, itemH);
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawFarmPlotMenu()
+        {
+            const float w = 168f; const float itemH = 30f;
+            var h = itemH * 2f + 34f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(x, y, w, h); HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), _targetLabel, _label);
+            var actionY = y + 30f;
+            DrawInspectButton(x, ref actionY, w, itemH);
+            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "工作", _button))
+            {
+                var target = _worldObjectTarget;
+                CloseAll();
+                bootstrap?.WorkTargetMode?.TryHandleContextTarget(target);
+            }
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawInspectButton(float x, ref float y, float width, float itemHeight)
+        {
+            if (!HasInspectEvent) return;
+            if (GUI.Button(new Rect(x + 8f, y, width - 16f, itemHeight - 4f), "调查", _button))
+                BeginWorldObjectInspect();
+            y += itemHeight;
+        }
+
+        void BeginWorldObjectInspect()
+        {
+            var actor = _actor;
+            var target = _worldObjectTarget;
+            var kind = target.KindKey;
+            var stableId = target.StableObjectId;
+            var destination = target.ApproachPosition;
+            CloseAll();
+            if (actor.IsNone || string.IsNullOrEmpty(kind) || string.IsNullOrEmpty(stableId) ||
+                !target.HasApproachPosition) return;
+            if (bootstrap.ViewSpawner != null && bootstrap.ViewSpawner.Registry.TryGet(actor, out var view) &&
+                view != null && Vector3.Distance(view.transform.position, destination) > 1.5f)
+            {
+                moveController?.OrderEntityToWorldPointPublic(actor, destination,
+                    () => CompleteWorldObjectInspect(actor, kind, stableId));
+                return;
+            }
+            CompleteWorldObjectInspect(actor, kind, stableId);
+        }
+
+        void CompleteWorldObjectInspect(EntityId actor, string kind, string stableId)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || dialoguePresenter == null ||
+                !HostWorldObjectPicker.TryResolveStableTarget(bootstrap, kind, stableId, out var current) ||
+                !string.Equals(current.KindKey, kind, System.StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(current.StableObjectId, stableId, System.StringComparison.Ordinal) ||
+                !current.TryCreateContentContext(actor, out var context) ||
+                new ContentEventService().ResolveInteractionCandidates(world, context, "onInspect").Count == 0)
+                return;
+            dialoguePresenter.TryStartInteraction(context, "onInspect");
         }
 
         void BeginFactionFlagDismantle()
@@ -847,17 +929,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var talk = new ContentEventService();
-            talk.TryTalkToNpc(session.World, actor, npcDefId);
-            bootstrap.DispatchDrainedEvents();
-
-            if (session.World.ContentEvents.HasActive &&
-                dialoguePresenter != null &&
-                dialoguePresenter.TryPresentOnTalk(actor, npc))
-                return;
-
-            if (session.World.ContentEvents.HasActive)
-                return;
+            if (session.World.ContentEvents.HasActive) return;
+            if (dialoguePresenter != null && dialoguePresenter.TryStartInteraction(actor, npc, npcDefId)) return;
 
             ShowFallbackTalk("（" + _targetLabel + " 暂无对话内容）");
         }

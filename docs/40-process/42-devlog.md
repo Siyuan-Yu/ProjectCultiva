@@ -1,5 +1,38 @@
 # 开发日志
 
+## 2026-09-23 — EVENT-EDITOR-V2 Visual Flow Authoring
+
+- EventEditor 从两栏 ID/长表单改为三栏“按对象/按事件 Browser＋自由 Steps Graph＋上下文 Inspector”；Event 保持 canonical Template，Graph 只映射现有 Entry/Step/Choice Next。
+- 新增 working copy、dirty 保存保护、undo/redo、节点拖动/框选/复制粘贴/连线、拖空白创建下一句、自动 DAG layout、自然语言 speaker/condition/outcome 与 validation node 定位。技术 ID 自动管理并收入高级区。
+- layout metadata 写入 `Content/BaseGame/Authoring/EventEditor/layouts.v1.json`，Runtime 不读取。新 Event 首次保存前不写磁盘。
+- BaseGame 审计 14 条 Event：既有 Steps 5，legacy 9；9 条当前有效内容等价迁移后 legacy-authoring 为 0。Runtime legacy reader 保留。此前旧主管 reference chain 已退休。
+- 新增主管普通对话保存/回读验收内容 1 条，最终 BaseGame 共 15 条 Event；包含三 Step 对话链、普通与炼气条件 Choice、disabled RequirementText、末句 setFlag Outcome 及 editor-only layout。
+- 正式 Build All 发布 10 个 Editor；`Apps/EventEditor.exe` 可启动且 Accessibility 树可见 V2 Browser、Flow Graph 与新 Inspector。Windows 自动化层无法取得该 WPF 窗口的输入 geometry，故自动点击/拖线验收未记为通过，仍待制作人手感验收。
+- 状态：**Implementation Complete / Producer Acceptance Pending**；完整记录见 [254](254-event-editor-v2-visual-flow-authoring-2026-09-23.md)。EVENT-02 Opportunity、剧情 Snapshot persistence 与 Runtime Graph 均未实现；Snapshot schema 未改变。
+
+## 2026-09-22 — CH01 旧主管 reference 对话链退役
+
+- 从 BaseGame 删除重复触发的 `base:event_ch01_ref_supervisor_talk`、后续催促事件 `base:event_ch01_ref_supervisor_talk_hurry`，以及失去唯一入口的 `base:quest_ch01_ref_supervisor_herb_penalty`；未用 `once` 掩盖不可达内容。
+- 同步退休只为该旧 reference/test flow 自建数据的 `ContentEventSupervisorTalkTests`；当前 `Assets`／`Content` 已无三条 definition ID 及其专属 flags 的有效引用。2026-08-14／15 process 文档保留历史交付事实。
+- EVENT-01 临时 acceptance events、Runtime fallback、Priority／Topic／Step、HostDialogue、Snapshot 与 EventEditor 均未改。BaseGame Loader／ReferenceValidator 通过，离线编译 `ALL_OK`，`git diff --check` 通过；未启动 Unity，未 stage／commit／push。
+
+## 2026-09-22 — EVENT-01 FINAL 固定世界互动事件验收面
+
+- 状态：**Implementation Complete / Producer Acceptance Pending**；真实荒村 NPC／议政厅配置与 CASE A～E 路线见 [253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md)。
+- onTalk／onInspect 现共用轻量 `ContentInteractionContext` 与候选解析器；NPC 保持原 EntityId fired payload，对象使用 kind＋稳定 WorkAreaId／FlagId／StableCellId／PlacementId。PerTarget／PerActorTarget 统一消费稳定 TargetKey。
+- 对象菜单仅在有 eligible event 时增加“调查”；沿用既有移动，抵达后重找对象、核对 stable identity、重跑 eligibility，再进入 Topic／Steps 并暂停。详情、恢复、工作、攻击／拆毁入口保留。
+- EventEditor 按 Trigger 显示 NPC 或 WorldObject binding，提供静态 stable ID 可编辑下拉；Data／Shared 同步校验 kind、引用和可静态确认的 exact ID。
+- New Game 与 Load 共用 Quest／ContentEvent definitions mapper；Load 另恢复 Chapter definitions，绝不重放 opening effect。narrative runtime progress 仍未持久化，Snapshot schema 仍为 6，SPACE-01-P1 `strategic.separateSpace` wire 保留。
+- 验证按本轮明确指令执行离线编译、Shared／EventEditor build、现有轻量事件定向 tests 与 diff-check；未启动 Unity。未 stage／commit／push。
+
+## 2026-09-22 — EVENT-01A 互动事件仲裁与多步骤对话 V1
+
+- 状态：**Implementation Complete / Producer Acceptance Pending**；完整交付、JSON 与人工验收见 [252](252-event-01a-interaction-event-and-multistep-dialogue-v1-2026-09-22.md)。95／96 的旧单页边界是历史切片，本轮是制作人授权的后续扩展。
+- onTalk 改用最高 Priority 候选与 Topic Selection；Event 内 Step／Choice 通过既有 Outcome transaction 原子前进，Actor／实际 Target 与 scoped fired state 纳入回滚；legacy body／choices 不迁移。
+- interaction 专用整组 party-aware 条件不改变全局 AllPass 或 Outcome subject。原底栏与非 onTalk Interrupt 共用 Step；terminal 姜老小游戏保留。WPF EventEditor 增加中文步骤／选项表单，Shared 校验与任务关联查询同步。
+- 全仓 offline compile ALL_OK（2 个既有测试警告）；EventEditor build 0 warning／0 error；diff-check 通过。按附件要求仅在既有测试文件补少量用例、只编译，不运行测试；未启动 Unity。
+- Snapshot schema 仍为 6，SPACE-01-P1 serializer 未改；没有 World Object 接线、剧情 persistence 或额外系统。未 stage／commit／push，原 EventEditor.zip 保留。
+
 ## 2026-09-22 — SPACE-01-P1 Separate Space Snapshot JSON round-trip fix
 
 - `JsonSnapshotSerializer` 现已读写 `strategic.separateSpace`，与 `SeparateSpaceSessionSnapshotDto` 及 `SeparateSpaceSessionSnapshotRestore` 对称；旧 schema v6 存档缺字段时 `SeparateSpace == null`，保持兼容。

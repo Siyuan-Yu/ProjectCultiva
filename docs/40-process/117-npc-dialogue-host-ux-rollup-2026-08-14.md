@@ -154,3 +154,7 @@ EditMode：`ContentEventSupervisorTalkTests`。
 |------|------|
 | 2026-08-14 | 增补：对话→任务 UX polish、`stockAtLeast` 进度、主管惩罚样例链 |
 | 2026-08-14 | 初版：对话框／NPC UX／失败与多人好感／时间流速／文档同步 |
+
+## 2026-09-22 后续增补：EVENT-01 Final
+
+本页前文保留 2026-08-14 历史交付事实。后续授权的 [EVENT-01 Final](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md) 在同一 HostDialogue 与 ContentEvent 上增加最高优先级话题选择、Step、统一 NPC／WorldObject interaction context、稳定目标 repeat scope 与 onInspect；非 onTalk Interrupt 同步使用 Step。95／96 当年的“多段对话树不做”是历史切片边界，不是当时遗漏的 bug。本扩展状态为 **Implementation Complete / Producer Acceptance Pending**，不沿用本页历史验收结论。

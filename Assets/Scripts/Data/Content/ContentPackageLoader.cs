@@ -2417,65 +2417,67 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
-        static void LoadContentEvent(
-            JsonValue item,
-            DefinitionId id,
-            DefinitionRegistry registry,
-            ValidationReport report)
+        static void LoadContentEvent(JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
         {
             var errorsBefore = report.Errors.Count;
             DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ContentEventFields, report, id.ToString());
-            if (report.Errors.Count > errorsBefore)
-                return;
-
             var evt = new ContentEventDefinition
             {
-                Id = id,
-                Name = item.GetString("name", string.Empty),
-                Body = item.GetString("body", string.Empty),
-                Trigger = item.GetString("trigger", string.Empty),
-                LocationId = item.GetString("locationId", string.Empty),
-                QuestId = item.GetString("questId", string.Empty),
-                NpcDefinitionId = item.GetString("npcDefinitionId", string.Empty),
-                Once = item.GetBool("once", true)
+                Id = id, Name = item.GetString("name", ""), Body = item.GetString("body", ""),
+                Trigger = item.GetString("trigger", ""), LocationId = item.GetString("locationId", ""),
+                QuestId = item.GetString("questId", ""), NpcDefinitionId = item.GetString("npcDefinitionId", ""),
+                WorldObjectKind = item.GetString("worldObjectKind", ""),
+                WorldObjectId = item.GetString("worldObjectId", ""),
+                Once = item.GetBool("once", true), OnceScope = item.GetString("onceScope", "global"),
+                Priority = ReadInt(item, "priority", 0), TopicText = item.GetString("topicText", ""),
+                EntryStepId = item.GetString("entryStepId", "")
             };
             ReadConditions(item, "conditions", evt.Conditions, report, id.ToString());
-
-            if (item.TryGetProperty("choices", out var choices) && choices.Kind == JsonValueKind.Array)
+            foreach (var c in ReadEventChoices(item, report, id.ToString()))
             {
-                foreach (var choiceNode in choices.Array)
+                var legacy = new ContentEventChoiceDefinition { Id = c.Id, Text = c.Text,
+                    NextStepId = c.NextStepId, UnavailableMode = c.UnavailableMode, RequirementText = c.RequirementText };
+                legacy.Conditions.AddRange(c.Conditions); legacy.Outcomes.AddRange(c.Outcomes);
+                evt.Choices.Add(legacy);
+            }
+            if (item.TryGetProperty("steps", out var steps))
+            {
+                if (steps.Kind != JsonValueKind.Array || steps.Array.Count == 0)
+                    report.Add(ErrorCode.ContentLoadFailed, "steps must be a non-empty array when specified.", id.ToString());
+                else foreach (var node in steps.Array)
                 {
-                    if (choiceNode.Kind != JsonValueKind.Object)
-                    {
-                        report.Add(ErrorCode.ContentLoadFailed, "choice entries must be objects.", id.ToString());
-                        continue;
-                    }
-
-                    DefinitionSchema.RejectUnknownFields(
-                        choiceNode, DefinitionSchema.ContentEventChoiceFields, report, id + ".choice");
-                    var choice = new ContentEventChoiceDefinition
-                    {
-                        Id = choiceNode.GetString("id", string.Empty),
-                        Text = choiceNode.GetString("text", string.Empty)
-                    };
-                    if (string.IsNullOrWhiteSpace(choice.Id))
-                    {
-                        report.Add(ErrorCode.MissingRequiredField, "choice.id required.", id.ToString());
-                        return;
-                    }
-
-                    ReadConditions(choiceNode, "conditions", choice.Conditions, report, id + "." + choice.Id);
-                    ReadOutcomes(choiceNode, "outcomes", choice.Outcomes, report, id + "." + choice.Id);
-                    evt.Choices.Add(choice);
+                    if (node.Kind != JsonValueKind.Object) { report.Add(ErrorCode.ContentLoadFailed, "step must be an object.", id.ToString()); continue; }
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.ContentEventStepFields, report, id + ".step");
+                    var step = new ContentEventStepSpec { Id = node.GetString("id", ""), SpeakerRef = node.GetString("speakerRef", ""),
+                        Text = node.GetString("text", ""), NextStepId = node.GetString("nextStepId", "") };
+                    ReadOutcomes(node, "outcomes", step.Outcomes, report, id + "." + step.Id);
+                    step.Choices.AddRange(ReadEventChoices(node, report, id + "." + step.Id));
+                    evt.Steps.Add(step);
                 }
             }
-
-            if (report.Errors.Count > errorsBefore)
-                return;
-
+            ContentEventStructureValidator.Validate(evt, report);
+            if (report.Errors.Count > errorsBefore) return;
             var reg = registry.RegisterContentEvent(evt);
-            if (reg.IsFailure)
-                report.Add(reg.Error);
+            if (reg.IsFailure) report.Add(reg.Error);
+        }
+
+        static List<ContentEventChoiceSpec> ReadEventChoices(JsonValue item, ValidationReport report, string context)
+        {
+            var result = new List<ContentEventChoiceSpec>();
+            if (!item.TryGetProperty("choices", out var choices)) return result;
+            if (choices.Kind != JsonValueKind.Array) { report.Add(ErrorCode.ContentLoadFailed, "choices must be an array.", context); return result; }
+            foreach (var node in choices.Array)
+            {
+                if (node.Kind != JsonValueKind.Object) { report.Add(ErrorCode.ContentLoadFailed, "choice must be an object.", context); continue; }
+                DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.ContentEventChoiceFields, report, context + ".choice");
+                var choice = new ContentEventChoiceSpec { Id = node.GetString("id", ""), Text = node.GetString("text", ""),
+                    NextStepId = node.GetString("nextStepId", ""), UnavailableMode = node.GetString("unavailableMode", "disabled"),
+                    RequirementText = node.GetString("requirementText", "") };
+                ReadConditions(node, "conditions", choice.Conditions, report, context + "." + choice.Id);
+                ReadOutcomes(node, "outcomes", choice.Outcomes, report, context + "." + choice.Id);
+                result.Add(choice);
+            }
+            return result;
         }
 
         static void ReadConditions(

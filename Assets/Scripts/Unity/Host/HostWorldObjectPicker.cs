@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using XianXia.Core.Content;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
@@ -20,10 +22,13 @@ namespace XianXia.Unity.Host
     {
         public WorldObjectInteractionTarget(WorldObjectTargetKind kind, string workAreaId = null,
             string factionFlagId = null, HostMapPlotCell plot = null, HostMapDestructible destructible = null,
-            string displayLabel = null)
+            string displayLabel = null, Vector3? approachPosition = null)
         {
             Kind = kind; WorkAreaId = workAreaId ?? string.Empty; FactionFlagId = factionFlagId ?? string.Empty;
             Plot = plot; Destructible = destructible; DisplayLabel = displayLabel ?? string.Empty;
+            ApproachPosition = approachPosition ??
+                (plot != null ? plot.transform.position : destructible != null ? destructible.transform.position : Vector3.zero);
+            HasApproachPosition = approachPosition.HasValue || plot != null || destructible != null;
         }
         public WorldObjectTargetKind Kind { get; }
         public string WorkAreaId { get; }
@@ -31,7 +36,50 @@ namespace XianXia.Unity.Host
         public HostMapPlotCell Plot { get; }
         public HostMapDestructible Destructible { get; }
         public string DisplayLabel { get; }
+        public Vector3 ApproachPosition { get; }
+        public bool HasApproachPosition { get; }
         public bool IsValid => Kind != WorldObjectTargetKind.None;
+        public string KindKey
+        {
+            get
+            {
+                switch (Kind)
+                {
+                    case WorldObjectTargetKind.ControlCore: return "controlCore";
+                    case WorldObjectTargetKind.FactionFlag: return "factionFlag";
+                    case WorldObjectTargetKind.FarmPlot: return "farmPlot";
+                    case WorldObjectTargetKind.Destructible: return "destructible";
+                    case WorldObjectTargetKind.Housing: return "housing";
+                    case WorldObjectTargetKind.WorkArea: return "workArea";
+                    case WorldObjectTargetKind.RecoverySpot: return "recoverySpot";
+                    case WorldObjectTargetKind.StorageRoom: return "storageRoom";
+                    default: return string.Empty;
+                }
+            }
+        }
+        public string StableObjectId =>
+            Kind == WorldObjectTargetKind.FactionFlag ? FactionFlagId :
+            Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot || Kind == WorldObjectTargetKind.StorageRoom
+                ? Plot != null ? Plot.StableCellId : string.Empty :
+            Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
+            WorkAreaId;
+        public string StableTargetKey => string.IsNullOrEmpty(KindKey) || string.IsNullOrEmpty(StableObjectId)
+            ? string.Empty : KindKey + ":" + StableObjectId;
+
+        public bool TryCreateContentContext(EntityId actor, out ContentInteractionContext context)
+        {
+            context = null;
+            if (actor.IsNone || string.IsNullOrEmpty(StableTargetKey)) return false;
+            context = new ContentInteractionContext
+            {
+                ActorId = actor,
+                TargetKind = KindKey,
+                TargetKey = StableTargetKey,
+                TargetDefinitionId = StableObjectId,
+                TargetDisplayName = DisplayLabel
+            };
+            return true;
+        }
     }
 
     public static class HostWorldObjectPicker
@@ -57,16 +105,25 @@ namespace XianXia.Unity.Host
             if (HostControlCoreQuery.TryPickAtWorld(world, layout, continuous, point, out var coreId) &&
                 world.ControlCores.TryGet(coreId, out var core))
             {
+                if (!HostControlCoreQuery.TryGetApproachPoint(world, layout, continuous, core, out var approach))
+                    HostControlCoreQuery.TryGetCenter(world, layout, continuous, core, out approach);
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.ControlCore, coreId,
-                    displayLabel: string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name);
+                    displayLabel: string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name,
+                    approachPosition: approach);
                 return true;
             }
 
             if (TryPickFactionFlag(world, continuous, point, out var flag))
             {
+                UnityEngine.Vector3 approach;
+                XianXia.Core.Navigation.WalkGrid grid = null;
+                if (continuous != null) continuous.TryGetCompositeWalkGrid(out grid);
+                if (!HostFactionFlagQuery.TryGetApproachPoint(flag, continuous, grid, out approach))
+                    HostFactionFlagQuery.TryGetCenter(flag, continuous, out approach);
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.FactionFlag,
                     factionFlagId: flag.FlagId,
-                    displayLabel: "势力旗·" + StrategicFactionCatalog.DisplayName(flag.FactionId));
+                    displayLabel: "势力旗·" + StrategicFactionCatalog.DisplayName(flag.FactionId),
+                    approachPosition: approach);
                 return true;
             }
 
@@ -106,16 +163,99 @@ namespace XianXia.Unity.Host
             if (TryPickWorkArea(world, point, 6.5f, housing: true, out var workAreaId))
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Housing, workAreaId,
-                    displayLabel: ResolveWorkAreaName(world, workAreaId));
+                    displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
                 return true;
             }
             if (TryPickWorkArea(world, point, 6.5f, housing: false, out workAreaId))
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.WorkArea, workAreaId,
-                    displayLabel: ResolveWorkAreaName(world, workAreaId));
+                    displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
                 return true;
             }
             return false;
+        }
+
+        public static bool TryResolveStableTarget(PlayableHostBootstrap host, string kind, string stableId,
+            out WorldObjectInteractionTarget target)
+        {
+            target = default;
+            var world = host?.Session?.World;
+            if (world == null || string.IsNullOrEmpty(kind) || string.IsNullOrEmpty(stableId)) return false;
+            MapLayoutDefinition layout = null;
+            var continuous = host.ContinuousOutdoorSurfaceRuntime;
+            if (continuous == null || !continuous.IsActive) MapLayoutPick.TryGet(host.Session, out layout);
+            if (string.Equals(kind, "controlCore", StringComparison.OrdinalIgnoreCase) &&
+                world.ControlCores.TryGet(stableId, out var core))
+            {
+                if (!HostControlCoreQuery.TryGetApproachPoint(
+                        world, layout, continuous, core, out var coreApproach) &&
+                    !HostControlCoreQuery.TryGetCenter(
+                        world, layout, continuous, core, out coreApproach)) return false;
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.ControlCore, stableId,
+                    displayLabel: string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name,
+                    approachPosition: coreApproach);
+                return true;
+            }
+            if (string.Equals(kind, "factionFlag", StringComparison.OrdinalIgnoreCase) &&
+                world.Strategic.FactionFlags.Flags.TryGetValue(stableId, out var flag) && flag != null)
+            {
+                XianXia.Core.Navigation.WalkGrid grid = null;
+                if (continuous != null) continuous.TryGetCompositeWalkGrid(out grid);
+                if (!HostFactionFlagQuery.TryGetApproachPoint(flag, continuous, grid, out var approach) &&
+                    !HostFactionFlagQuery.TryGetCenter(flag, continuous, out approach)) return false;
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.FactionFlag,
+                    factionFlagId: stableId,
+                    displayLabel: "势力旗·" + StrategicFactionCatalog.DisplayName(flag.FactionId),
+                    approachPosition: approach);
+                return true;
+            }
+            var plots = HostMapObjectRegistry.AllPlots;
+            for (var i = 0; i < plots.Count; i++)
+            {
+                var plot = plots[i];
+                if (plot == null || !string.Equals(plot.StableCellId, stableId, StringComparison.Ordinal)) continue;
+                var plotKind = plot.IsRecoverySpot ? WorldObjectTargetKind.RecoverySpot :
+                    plot.IsStorageRoom ? WorldObjectTargetKind.StorageRoom :
+                    plot.IsPlantableField ? WorldObjectTargetKind.FarmPlot : WorldObjectTargetKind.None;
+                var expected = new WorldObjectInteractionTarget(plotKind, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                if (plotKind != WorldObjectTargetKind.None &&
+                    string.Equals(expected.KindKey, kind, StringComparison.OrdinalIgnoreCase))
+                { target = expected; return true; }
+            }
+            if (string.Equals(kind, "destructible", StringComparison.OrdinalIgnoreCase))
+            {
+                var objects = HostMapObjectRegistry.AllDestructibles;
+                for (var i = 0; i < objects.Count; i++)
+                    if (objects[i] != null && !objects[i].IsDestroyed &&
+                        string.Equals(objects[i].PlacementId, stableId, StringComparison.Ordinal))
+                    {
+                        target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Destructible,
+                            destructible: objects[i], displayLabel: objects[i].DisplayName);
+                        return true;
+                    }
+            }
+            if ((string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(kind, "workArea", StringComparison.OrdinalIgnoreCase)) &&
+                world.TryGetWorkArea(stableId, out var area) && area != null &&
+                TryGetWorkAreaApproach(world, area, out var workApproach))
+            {
+                var targetKind = string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase)
+                    ? WorldObjectTargetKind.Housing : WorldObjectTargetKind.WorkArea;
+                target = new WorldObjectInteractionTarget(targetKind, stableId,
+                    displayLabel: ResolveWorkAreaName(world, stableId), approachPosition: workApproach);
+                return true;
+            }
+            return false;
+        }
+
+        static bool TryGetWorkAreaApproach(SimulationWorld world, WorkAreaDefinition area, out Vector3 point)
+        {
+            point = default;
+            if (area == null || !HostZoneQuery.TryGetLocationCenter(world, area.LocationId, out var center)) return false;
+            var p = HostPresentationSpace.ToPresentation(center);
+            point = HostPresentationSpace.FromPresentation(p.x + area.OffsetX, p.y + area.OffsetZ);
+            return true;
         }
 
         static bool TryPickFactionFlag(SimulationWorld world,

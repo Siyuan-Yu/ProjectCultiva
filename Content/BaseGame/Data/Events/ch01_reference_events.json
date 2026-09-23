@@ -5,17 +5,27 @@
       "id": "base:event_ch01_ref_opening",
       "type": "contentEvent",
       "name": "开局·杂役晨点",
-      "body": "青云宗外围资源点。锣声未绝，主管已在路上。你们三人仍是杂役弟子：白天交差，夜里才有一点属于自己的缝隙。\n\n【测试三任务】巡视农田 → 三人分派 → 树林伐木。",
       "trigger": "manual",
       "once": true,
       "conditions": [],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "accept_yoke",
-          "text": "知道了，开始巡视",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_opening_seen" },
-            { "kind": "setFlag", "id": "story:ch01_phase_awaken" }
+          "id": "step_001",
+          "speakerRef": "",
+          "text": "青云宗外围资源点。锣声未绝，主管已在路上。你们三人仍是杂役弟子：白天交差，夜里才有一点属于自己的缝隙。\n\n【测试三任务】巡视农田 → 三人分派 → 树林伐木。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept_yoke",
+              "text": "知道了，开始巡视",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "event:ch01_ref_opening_seen" },
+                { "kind": "setFlag", "id": "story:ch01_phase_awaken" }
+              ],
+              "nextStepId": ""
+            }
           ]
         }
       ]
@@ -24,90 +34,39 @@
       "id": "base:event_ch01_ref_miner_grumble",
       "type": "contentEvent",
       "name": "矿洞·杂役闲话",
-      "body": "矿洞口有人抱怨配额又加了。三人分派之后，这类闲话才会冒出来。",
       "trigger": "onExplore",
       "locationId": "base:loc_ref_mine",
       "once": true,
       "conditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_dispatch_done" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "listen",
-          "text": "听几句再走",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_miner_met" }
-          ]
-        },
-        {
-          "id": "pass",
-          "text": "不想惹事",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_miner_passed" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "base:event_ch01_ref_supervisor_talk",
-      "type": "contentEvent",
-      "name": "杂役主管·训话",
-      "body": "「今日的配额，酉时前交齐。偷懒的，别怪我不讲情面。」\n\n你可以应声领命；若对训话不语，主管可能当场加罚。",
-      "trigger": "onTalk",
-      "npcDefinitionId": "base:character_ch01_ref_supervisor",
-      "once": false,
-      "conditions": [
-        { "kind": "missingFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" }
-      ],
-      "choices": [
-        {
-          "id": "ack",
-          "text": "遵命。",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_ack" }
-          ]
-        },
-        {
-          "id": "silent",
-          "text": "……（不语）",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_silent" },
-            { "kind": "setFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" },
+          "id": "step_001",
+          "speakerRef": "",
+          "text": "矿洞口有人抱怨配额又加了。三人分派之后，这类闲话才会冒出来。",
+          "outcomes": [],
+          "choices": [
             {
-              "kind": "relationDelta",
-              "fromDefinitionId": "base:character_ch01_ref_supervisor",
-              "toDefinitionIds": ["@party"],
-              "amount": -12
+              "id": "listen",
+              "text": "听几句再走",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "event:ch01_ref_miner_met" }
+              ],
+              "nextStepId": ""
             },
-            { "kind": "startQuest", "id": "base:quest_ch01_ref_supervisor_herb_penalty" }
+            {
+              "id": "pass",
+              "text": "不想惹事",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "event:ch01_ref_miner_passed" }
+              ],
+              "nextStepId": ""
+            }
           ]
-        }
-      ]
-    },
-    {
-      "id": "base:event_ch01_ref_supervisor_talk_hurry",
-      "type": "contentEvent",
-      "name": "杂役主管·催促",
-      "body": "「还不快去采灵药？罚单已经开了——两日内交齐，别指望我再提醒第二遍。」",
-      "trigger": "onTalk",
-      "npcDefinitionId": "base:character_ch01_ref_supervisor",
-      "once": false,
-      "conditions": [
-        { "kind": "hasFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" },
-        { "kind": "missingFlag", "id": "quest:ch01_ref_supervisor_penalty_done" }
-      ],
-      "choices": [
-        {
-          "id": "go",
-          "text": "……这就去。",
-          "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_hurry_ack" }
-          ]
-        },
-        {
-          "id": "bow",
-          "text": "是……",
-          "outcomes": []
         }
       ]
     },
@@ -115,28 +74,40 @@
       "id": "base:event_jiang_lao_intro",
       "type": "contentEvent",
       "name": "将老·闲谈",
-      "body": "泉边坐着一位须发花白的老人，膝上摆着一块磨得发亮的石板棋盘。\n\n「年轻人，别光顾着交差。老朽这辈子没别的癖好，就爱摆弄这几子。」他抬眼看你，「若你也有兴致，改日过来与我下一盘。赢我三次——嘿嘿，老朽便把压箱底的东西传给你。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,
       "conditions": [
         { "kind": "missingFlag", "id": "story:jiang_lao_met" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "accept",
-          "text": "好，日后陪您下几盘。",
-          "outcomes": [
-            { "kind": "setFlag", "id": "story:jiang_lao_met" },
-            { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
-          ]
-        },
-        {
-          "id": "later",
-          "text": "改日再来。",
-          "outcomes": [
-            { "kind": "setFlag", "id": "story:jiang_lao_met" },
-            { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "泉边坐着一位须发花白的老人，膝上摆着一块磨得发亮的石板棋盘。\n\n「年轻人，别光顾着交差。老朽这辈子没别的癖好，就爱摆弄这几子。」他抬眼看你，「若你也有兴致，改日过来与我下一盘。赢我三次——嘿嘿，老朽便把压箱底的东西传给你。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "好，日后陪您下几盘。",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "story:jiang_lao_met" },
+                { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "later",
+              "text": "改日再来。",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "story:jiang_lao_met" },
+                { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+              ],
+              "nextStepId": ""
+            }
           ]
         }
       ]
@@ -145,7 +116,6 @@
       "id": "base:event_jiang_lao_play",
       "type": "contentEvent",
       "name": "将老·邀弈",
-      "body": "将老拍拍石板：「来一盘？今日一局，明日再来。老朽不催你天天到场——只是赢满三次，东西才给你。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,
@@ -154,18 +124,31 @@
         { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
         { "kind": "missingDailyFlag", "id": "daily:jiang_lao_chess" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "play",
-          "text": "对弈。",
-          "outcomes": [
-            { "kind": "startMinigame", "id": "ticTacToe" }
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "将老拍拍石板：「来一盘？今日一局，明日再来。老朽不催你天天到场——只是赢满三次，东西才给你。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "play",
+              "text": "对弈。",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "startMinigame", "id": "ticTacToe" }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "pass",
+              "text": "今日先不下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
           ]
-        },
-        {
-          "id": "pass",
-          "text": "今日先不下。",
-          "outcomes": []
         }
       ]
     },
@@ -173,7 +156,6 @@
       "id": "base:event_jiang_lao_played_today",
       "type": "contentEvent",
       "name": "将老·今日已弈",
-      "body": "「今日已过招了。」将老收起棋子，「明日再来。老朽不缺闲工夫。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,
@@ -182,11 +164,22 @@
         { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
         { "kind": "hasDailyFlag", "id": "daily:jiang_lao_chess" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "ack",
-          "text": "改日再来。",
-          "outcomes": []
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "「今日已过招了。」将老收起棋子，「明日再来。老朽不缺闲工夫。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "ack",
+              "text": "改日再来。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
         }
       ]
     },
@@ -194,7 +187,6 @@
       "id": "base:event_jiang_lao_ready_claim",
       "type": "contentEvent",
       "name": "将老·传承在即",
-      "body": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍与开山拳秘本领走——入了炼气再研读，莫要浪费。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,
@@ -202,11 +194,22 @@
         { "kind": "questCompleted", "id": "base:quest_jiang_lao_chess" },
         { "kind": "missingFlag", "id": "quest:jiang_lao_chess_done" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "ack",
-          "text": "多谢将老。",
-          "outcomes": []
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍与开山拳秘本领走——入了炼气再研读，莫要浪费。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "ack",
+              "text": "多谢将老。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
         }
       ]
     },
@@ -214,18 +217,28 @@
       "id": "base:event_jiang_lao_after",
       "type": "contentEvent",
       "name": "将老·闲话",
-      "body": "「东西给你了，棋还是可以下的。」将老笑眯眯，「不过老规矩：一日一局。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,
       "conditions": [
         { "kind": "hasFlag", "id": "quest:jiang_lao_chess_done" }
       ],
-      "choices": [
+      "entryStepId": "step_001",
+      "steps": [
         {
-          "id": "chat",
-          "text": "再陪您坐坐。",
-          "outcomes": []
+          "id": "step_001",
+          "speakerRef": "@target",
+          "text": "「东西给你了，棋还是可以下的。」将老笑眯眯，「不过老规矩：一日一局。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "chat",
+              "text": "再陪您坐坐。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
         }
       ]
     }
