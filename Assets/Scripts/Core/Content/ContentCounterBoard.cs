@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace XianXia.Core.Content
 {
     /// <summary>
-    /// Session counters for quest／event progress（对弈胜场等）. Not in Snapshot v1.
+    /// Session counters for quest/event progress（对弈胜场等）, persisted by Snapshot v7 ContentProgress.
     /// </summary>
     public sealed class ContentCounterBoard
     {

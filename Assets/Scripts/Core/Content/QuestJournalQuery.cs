@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Content
@@ -101,6 +102,9 @@ namespace XianXia.Core.Content
                 FailResultsSummary = SummarizeOutcomes(spec.FailResults, "（无失败后果）"),
                 ObjectivesSummary = SummarizeObjectivesLive(world, spec.CompleteConditions, runtime)
             };
+            if (UsesDescriptionForInternalHandIn(spec.CompleteConditions) &&
+                !string.IsNullOrWhiteSpace(entry.Description))
+                entry.ObjectivesSummary = entry.Description;
 
             if (entry.ProgressMax > 0 || TryGetStockProgress(world, spec, out _, out _))
             {
@@ -158,6 +162,19 @@ namespace XianXia.Core.Content
             }
 
             return entry;
+        }
+
+        static bool UsesDescriptionForInternalHandIn(IReadOnlyList<ContentCondition> conditions)
+        {
+            if (conditions == null || conditions.Count != 1)
+                return false;
+            var condition = conditions[0];
+            return condition != null &&
+                   (string.Equals(condition.Kind, "hasFlag", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(condition.Kind, "storyFlag", System.StringComparison.OrdinalIgnoreCase)) &&
+                   !string.IsNullOrEmpty(condition.Id) &&
+                   condition.Id.StartsWith("quest:", System.StringComparison.Ordinal) &&
+                   condition.Id.EndsWith("_handed_in", System.StringComparison.Ordinal);
         }
 
         static int CompareEntries(QuestListEntry a, QuestListEntry b)
@@ -306,7 +323,7 @@ namespace XianXia.Core.Content
                     continue;
                 var need = c.Amount > 0 ? c.Amount : 1;
                 max += need;
-                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                var have = PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id);
                 if (have > need)
                     have = need;
                 count += have;
@@ -329,7 +346,7 @@ namespace XianXia.Core.Content
                     !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
                     continue;
                 var need = c.Amount > 0 ? c.Amount : 1;
-                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                var have = PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id);
                 if (have > need)
                     have = need;
                 parts.Add(ResourceLabel(c.Id) + " " + have + "/" + need);

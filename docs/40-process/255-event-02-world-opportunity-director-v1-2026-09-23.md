@@ -1,7 +1,7 @@
 # EVENT-02 — World Opportunity Director V1
 
-> 状态：**Implementation Complete / Producer Acceptance Pending**  
-> 日期：2026-09-23  
+> 状态：**Producer Accepted / Sealed**
+> 日期：2026-09-23
 > 范围：Continuous Surface 上的动态 NPC Opportunity；EVENT-02A 持久活动动态见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)；不包含 hidden 与动态 WorldObject。
 
 ## 1. 已实现链路
@@ -42,9 +42,12 @@ EventEditor 的 Event Settings 可选择指定人物、输入必须标签，并�
 
 验收内容经 EVENT-02A 调整为 2～3 world units；临时行商公开准确位置，受伤散修保持 worldVisible。两个模板各限 1 个，首次成功 refill 最终应各出现 1 个。
 
+这些 definitions 仍位于 `event02_acceptance.json` 并带 `event02_acceptance` tag，性质是 **acceptance/prototype content**；封板后作为 OpportunityEditor、EventEditor 与真实 NPC Opportunity 链的正式 authoring/reference sample 保留，不视为荒村正式剧情。待真实荒村内容覆盖 NPC 池、两种发现方式、对话绑定、Save/Load 与 expiry 回归用途后，再开独立清理轮删除整条 acceptance chain；本轮不删除。
+
 ## 6. 验证与未实现
 
-- 已完成 offline compile、Runtime BaseGame Content validation、Shared/EventEditor/OpportunityEditor build、Build All publish 与 `git diff --check`。
-- 仓库规则禁止代理新增或运行自动测试，因此任务书列出的定向自动测试未执行；运行行为留给制作人人工验收。
+- 制作人已验收 NPC Opportunity 生成、EVENT-01 Template interaction、合法 world spawn、同日 density/refill、Save/Load 与 expiry；状态于 2026-09-23 更新为 **Producer Accepted / Sealed**。
+- Seal 收口完成 offline compile，并以 lightweight headless harness 覆盖 shared Continuous Surface neighborhood／startup preflight；不运行 Unity 或大型测试。
 - V1 只生成真实 NPC；`hidden` 明确 validation failure。动态 WorldObject、程序化人物生成、NPC 自动找玩家、Opportunity Chain、步行随机弹剧情与通用 narrative runtime persistence 均未实现。
+- 封板后不继续扩 Opportunity Director；下一阶段使用 EVENT-01＋EVENT-02 制作真实荒村内容。
 - 本轮未 stage、commit、push、reset 或启动 Unity。

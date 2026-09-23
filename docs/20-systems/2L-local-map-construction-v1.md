@@ -13,6 +13,9 @@
 
 > **2026-09-22 现行语境：** 本文文件名中的 `LocalMap` 是历史名。普通 Outdoor Construction 已使用 Continuous Surface exact placement，不再经过 `LocalPlaceSet → LocalMap`；真 Interior／Cave／Dungeon 仍保留 Separate Space。
 
+> **2026-09-23 STRATEGIC-STOCK-01 现行资源语义：** `WorldSitePublicStockBoard + WorldSiteStorageRoomBoard + PlayerStrategicResourceService + PartyInventory` 是唯一正式 authority。玩家位于己方实际控制范围且势力至少有一个 active StorageRoom network 时，resource 的当前可用量为随身背包加全部合格己方 Site 公库；离开网络时仅为随身背包。非 resource item 始终只使用 PartyInventory。背包面板内的“势力仓库”只展示可访问公库中的战略 resource totals，并仅支持取出到背包，不是通用 Item 仓库。
+> **STRATEGIC-STOCK-01 状态：Producer Accepted / Sealed（2026-09-24）。** 当前可用库存、Content hand-in、公库事务回滚与背包内势力仓库取出规则均按上述边界封板。
+
 ## 1. 边界
 
 Construction 是独立于 Inventory 的 RPG 建筑入口。建筑不是物品；Inventory 仅提供材料。V1 只开放默认解锁的“势力控制建筑”，但目录与服务按建筑列表设计。
@@ -68,7 +71,7 @@ Construction 是独立于 Inventory 的 RPG 建筑入口。建筑不是物品；
 
 ## 6. 表现入口
 
-`HostFormalHud` 提供同级 `[地图] [建筑] [背包]` 按钮；三者互斥。`HostInventoryPanel` 只负责背包，B 只切换背包；`HostConstructionPanel` 独立显示已解锁建筑卡片。点击建造会同步关闭建筑面板并释放其暂停与输入所有权，再由 `HostConstructionController` dispatch 到 FactionFlag placement presenter。新游戏与读档重建时，Bootstrap 都会清理并重新绑定这两个独立面板。
+`HostFormalHud` 提供同级 `[地图] [建筑] [背包]` 按钮；三者互斥。`HostInventoryPanel` 在同一暂停窗口内提供“小队背包／势力仓库”两个视图；仓库入口不可访问时保留并灰显，不释放或重新获取 Pause。`HostConstructionPanel` 独立显示已解锁建筑卡片。点击建造会同步关闭建筑面板并释放其暂停与输入所有权，再由 `HostConstructionController` dispatch 到 FactionFlag placement presenter。新游戏与读档重建时，Bootstrap 都会清理并重新绑定这两个独立面板。
 
 ## 7. V1 封板边界（历史）
 

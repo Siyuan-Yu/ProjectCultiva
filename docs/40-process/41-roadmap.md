@@ -1,8 +1,12 @@
 # 路线图
 
-> **EVENT-02A（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** publicNotice 已从一次性 Toast 升级为 Snapshot v6 additive 的持久 WorldActivity Active/History；左侧活动栏支持 unread、详情、最近 100 条历史与同 Surface 镜头定位。worldVisible 不自动入栏。见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
+> **SAVE-01＋STRATEGIC-STOCK-01（2026-09-24）：Producer Accepted / Sealed。** Snapshot v7 持久保存 Quest／Flags／Event fired／Chapter／Counter／Daily／LocationLabor；对话进行中禁止保存，v1～v6 明确拒绝。临时行商与受伤散修两条 prototype 已完成 World Opportunity → Event Choice `startQuest` → Player Accessible Stock hand-in → ReadyToClaim → Journal Claim → Save/Load。resource 在可访问己方战略物资网络时聚合 PartyInventory＋eligible WorldSitePublicStock，非 resource 始终 bag-only；势力仓库 V1 只支持战略资源取出。见 [257](257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
-> **EVENT-02（2026-09-23）：Implementation Complete / Producer Acceptance Pending。** `WorldOpportunityDirector` 已按当前 Continuous Surface 的每日低频门禁生成真实 NPC，复用 SpawnTable、精确 WorldPresence、通用 materialization、EVENT-01 onTalk 与 additive Snapshot v6 authority；OpportunityEditor 与 EventEditor 通用 binding 已接通。V1 仅支持 `worldVisible`／`publicNotice`，hidden 与动态 WorldObject 尚未实现。见 [255](255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+> **EVENT-02A（2026-09-23）：Producer Accepted / Sealed。** publicNotice 已从一次性 Toast 升级为持久 WorldActivity Active/History；原 v6 additive 字段在当前 Snapshot v7 中保持原 shape。左侧活动栏支持 unread、详情、最近 100 条历史与同 Surface 镜头定位。制作人已验收 publicNotice、详情、精确位置定位、Save/Load、无重复恢复通知及 expiry→history。见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
+
+> **EVENT-02（2026-09-23）：Producer Accepted / Sealed。** `WorldOpportunityDirector` 的 NPC Opportunity 生成、EVENT-01 Template interaction、合法世界落点、同日 density/refill、Save/Load 与 expiry 已由制作人验收。V1 仅支持 `worldVisible`／`publicNotice`；hidden、动态 WorldObject 与后续扩展不在封板范围。见 [255](255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+
+> **Continuous Surface Streaming（2026-09-23）：Radius 2。** Player-centered active neighborhood 已由共享 Core policy 统一为 5×5；Runtime initial/transition 与 Startup Preflight 使用同一 radius。普通相邻 crossing 仍逐帧最多 Build 1 chunk，新增列由 3 增至 5；hard activation 最多同步 Build 25。下一阶段使用 EVENT-01＋EVENT-02 制作真实荒村内容，不继续扩 Opportunity Director。
 
 > **EVENT-EDITOR-V2（2026-09-23）：Producer Accepted / Sealed。** Graph-first Event/Dialogue authoring、Step/Choice 连线、可读 Speaker、Conditions/Outcomes、Priority/Topic/Repeat、显式保底、dirty/undo/redo、editor-only layout、对象/事件 Browser、全局人物来源、可读 Character Picker、按 Package 记忆上次来源，以及 NPC onTalk／WorldObject onInspect authoring已由制作人验收。EVENT-02 后续只扩展了 onTalk binding 表单与通用模板投影，不重开 V2 封板。
 
@@ -10,7 +14,7 @@
 
 > **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续 EVENT-01 Final 已单独授权并实施，等待制作人人工验收；其余方向仍未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
-> **下一步 Proposal（尚未授权）：** 优先讨论 Quest／Flags／ContentEvents／Chapters／ContentCounters／ContentDaily 的正式磁盘持久化与待选择事件保存策略；进度可靠保存后，再用已有能力串起一段完整探索成长流程。不是当前实施任务。
+> **下一阶段：** 使用已封板的 EVENT-01＋EVENT-02 制作真实荒村内容。Hidden Opportunity、动态 WorldObject Opportunity、程序化人物、ContentIntent、NPC 主动找玩家、Opportunity Chain、新 Activity 类别、导航 waypoint 与 camera preload 均不在当前范围。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
@@ -40,8 +44,8 @@
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **当前下一步：** 等待制作人讨论通用内容状态磁盘持久化 Proposal；尚未授权新功能、迁移阶段或新的关键词清理。后续发现 `Hex`／`Army` 字符串本身不构成重开专项的理由。
-- **当前待定缺口：** 通用 narrative runtime Snapshot persistence 与 WorldMap Player／NPC marker world-space scaling 尚未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 已分别由 SPACE-01-P1、EVENT-01 Final 实现，均等待制作人人工验收。
+- **当前下一步：** SAVE-01 与 STRATEGIC-STOCK-01 已封板；尚未授权其它新功能、迁移阶段或关键词清理。
+- **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。

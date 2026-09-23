@@ -88,7 +88,7 @@ namespace XianXia.Tests
             Assert.AreEqual(OrderSource.Player, controllable.Get<ActionStateComponent>().ActiveOrderSource);
 
             // Snapshot 不升版；v6 可选字段保存 Ledger 与 Bond。
-            Assert.AreEqual(6, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(7, WorldSnapshot.CurrentSchemaVersion);
             var snap = new SnapshotService(new JsonSnapshotSerializer()).Capture(world, loop);
             Assert.AreEqual(WorldSnapshot.CurrentSchemaVersion, snap.SchemaVersion);
             Assert.IsNotNull(snap.RelationshipEvents);

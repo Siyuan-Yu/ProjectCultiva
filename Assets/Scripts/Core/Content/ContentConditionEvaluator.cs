@@ -3,6 +3,7 @@ using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Labor;
+using XianXia.Core.Inventory;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
@@ -53,7 +54,7 @@ namespace XianXia.Core.Content
                            eSite.TryGet<KnownSitesComponent>(out var known) &&
                            known.Knows(c.Id);
                 case "stockatleast":
-                    return world.Inventory.GetCount(c.Id) >= c.Amount;
+                    return PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id) >= c.Amount;
                 case "questactive":
                     return world.Quests.TryGet(c.Id, out var qa) && qa.Status == QuestStatus.Active;
                 case "questcompleted":

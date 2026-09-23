@@ -238,10 +238,7 @@ namespace XianXia.Data.Bootstrap
                 world.ObservationDiscoverChancePercent = chance;
             }
 
-            var loop = new SimulationLoop(world, enableSocialTick: false);
-            loop.AddDayBoundaryHandler(new ChapterDayHandler());
-            loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
-            loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
+            var loop = PlayableSimulationLoopFactory.Create(world, enableSocialTick: false);
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             return Result.Ok(new PlayableDayBootstrapResult(

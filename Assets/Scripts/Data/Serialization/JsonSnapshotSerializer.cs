@@ -62,6 +62,8 @@ namespace XianXia.Data.Serialization
                 root["worldOpportunityRuntime"] = SerializeWorldOpportunityRuntime(snapshot.WorldOpportunityRuntime);
             if (snapshot.WorldActivityRuntime != null)
                 root["worldActivityRuntime"] = SerializeWorldActivityRuntime(snapshot.WorldActivityRuntime);
+            if (snapshot.ContentProgress != null)
+                root["contentProgress"] = SerializeContentProgress(snapshot.ContentProgress);
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
         }
 
@@ -309,6 +311,9 @@ namespace XianXia.Data.Serialization
                 if (root.TryGetProperty("worldActivityRuntime", out var activityRuntime) &&
                     activityRuntime.Kind == JsonValueKind.Object)
                     snapshot.WorldActivityRuntime = ReadWorldActivityRuntime(activityRuntime);
+                if (root.TryGetProperty("contentProgress", out var contentProgress) &&
+                    contentProgress.Kind == JsonValueKind.Object)
+                    snapshot.ContentProgress = ReadContentProgress(contentProgress);
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)
@@ -347,6 +352,80 @@ namespace XianXia.Data.Serialization
                 ["instances"] = JsonValue.FromArray(instances),
                 ["surfaceRefreshStates"] = JsonValue.FromArray(refresh)
             });
+        }
+
+        static JsonValue SerializeContentProgress(ContentProgressSnapshotDto content)
+        {
+            var quests = new List<JsonValue>();
+            foreach (var q in content.Quests ?? new List<QuestRuntimeSnapshotDto>()) quests.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["questId"] = JsonValue.FromString(q.QuestId ?? string.Empty), ["status"] = JsonValue.FromNumber(q.Status),
+                ["progressCount"] = JsonValue.FromNumber(q.ProgressCount), ["progressMax"] = JsonValue.FromNumber(q.ProgressMax),
+                ["acceptedAtDayIndex"] = U(q.AcceptedAtDayIndex), ["deadlineDayIndexExclusive"] = U(q.DeadlineDayIndexExclusive)
+            }));
+            var chapter = content.Chapter ?? new ChapterRuntimeSnapshotDto();
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["hasAuthority"] = JsonValue.FromBool(content.HasAuthority),
+                ["flags"] = JsonValue.FromArray(SerializeStringList(content.Flags)),
+                ["flagHistory"] = JsonValue.FromArray(SerializeStringList(content.FlagHistory)),
+                ["quests"] = JsonValue.FromArray(quests),
+                ["firedEventKeys"] = JsonValue.FromArray(SerializeStringList(content.FiredEventKeys)),
+                ["chapter"] = JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["activeChapterId"] = JsonValue.FromString(chapter.ActiveChapterId ?? string.Empty),
+                    ["chapterStartDayIndex"] = U(chapter.ChapterStartDayIndex),
+                    ["appliedBeatKeys"] = JsonValue.FromArray(SerializeStringList(chapter.AppliedBeatKeys))
+                }),
+                ["counters"] = SerializeIntEntries(content.Counters), ["dailyMarks"] = SerializeIntEntries(content.DailyMarks),
+                ["laborTicks"] = SerializeIntEntries(content.LaborTicks), ["laborHarvests"] = SerializeIntEntries(content.LaborHarvests)
+            });
+        }
+
+        static JsonValue SerializeIntEntries(List<ContentIntEntrySnapshotDto> entries)
+        {
+            var values = new List<JsonValue>();
+            foreach (var item in entries ?? new List<ContentIntEntrySnapshotDto>()) values.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+            { ["key"] = JsonValue.FromString(item.Key ?? string.Empty), ["value"] = JsonValue.FromNumber(item.Value) }));
+            return JsonValue.FromArray(values);
+        }
+
+        static ContentProgressSnapshotDto ReadContentProgress(JsonValue node)
+        {
+            var dto = new ContentProgressSnapshotDto { HasAuthority = node.GetBool("hasAuthority", false) };
+            ReadStrings(node, "flags", dto.Flags); ReadStrings(node, "flagHistory", dto.FlagHistory);
+            ReadStrings(node, "firedEventKeys", dto.FiredEventKeys);
+            if (node.TryGetProperty("quests", out var quests) && quests.Kind == JsonValueKind.Array)
+                foreach (var q in quests.Array) dto.Quests.Add(new QuestRuntimeSnapshotDto
+                {
+                    QuestId = q.GetString("questId", string.Empty), Status = (int)q.GetNumber("status"),
+                    ProgressCount = (int)q.GetNumber("progressCount"), ProgressMax = (int)q.GetNumber("progressMax"),
+                    AcceptedAtDayIndex = ReadU(q, "acceptedAtDayIndex"), DeadlineDayIndexExclusive = ReadU(q, "deadlineDayIndexExclusive")
+                });
+            if (node.TryGetProperty("chapter", out var chapter) && chapter.Kind == JsonValueKind.Object)
+            {
+                dto.Chapter.ActiveChapterId = chapter.GetString("activeChapterId", string.Empty);
+                dto.Chapter.ChapterStartDayIndex = ReadU(chapter, "chapterStartDayIndex");
+                ReadStrings(chapter, "appliedBeatKeys", dto.Chapter.AppliedBeatKeys);
+            }
+            ReadIntEntries(node, "counters", dto.Counters); ReadIntEntries(node, "dailyMarks", dto.DailyMarks);
+            ReadIntEntries(node, "laborTicks", dto.LaborTicks); ReadIntEntries(node, "laborHarvests", dto.LaborHarvests);
+            return dto;
+        }
+
+        static void ReadStrings(JsonValue node, string key, List<string> target)
+        {
+            if (!node.TryGetProperty(key, out var values) || values.Kind != JsonValueKind.Array) return;
+            foreach (var value in values.Array)
+                if (value.Kind != JsonValueKind.String) throw new System.FormatException("Invalid string entry: " + key);
+                else target.Add(value.String);
+        }
+
+        static void ReadIntEntries(JsonValue node, string key, List<ContentIntEntrySnapshotDto> target)
+        {
+            if (!node.TryGetProperty(key, out var values) || values.Kind != JsonValueKind.Array) return;
+            foreach (var value in values.Array)
+                target.Add(new ContentIntEntrySnapshotDto { Key = value.GetString("key", string.Empty), Value = (int)value.GetNumber("value") });
         }
 
         static JsonValue SerializeWorldActivityRuntime(WorldActivityRuntimeSnapshotDto runtime)

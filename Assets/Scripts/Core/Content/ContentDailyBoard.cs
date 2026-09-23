@@ -6,7 +6,7 @@ namespace XianXia.Core.Content
 {
     /// <summary>
     /// Per-game-day marks（今日已对弈／今日已拜访）. Key is author id; value is day index.
-    /// Session-only; not in Snapshot v1.
+    /// Persisted as marked day indices by Snapshot v7 ContentProgress.
     /// </summary>
     public sealed class ContentDailyBoard
     {

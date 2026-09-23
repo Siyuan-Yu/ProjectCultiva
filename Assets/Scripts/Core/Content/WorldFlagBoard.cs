@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace XianXia.Core.Content
 {
-    /// <summary>Session story／content flags (not in Snapshot v1).</summary>
+    /// <summary>Authoritative story/content flags; persisted by Snapshot v7 ContentProgress.</summary>
     public sealed class WorldFlagBoard
     {
         readonly HashSet<string> _flags = new HashSet<string>(StringComparer.Ordinal);

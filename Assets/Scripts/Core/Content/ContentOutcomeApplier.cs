@@ -12,6 +12,7 @@ using XianXia.Core.Social;
 using XianXia.Core.Inventory;
 using XianXia.Core.Combat;
 using XianXia.Core.Attributes;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Content
 {
@@ -90,6 +91,27 @@ namespace XianXia.Core.Content
                         world.Tick,
                         target: subject,
                         payload: "bag:" + o.Id + ":+" + amt);
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
+                    return Result.Success();
+                }
+                case "removestock":
+                {
+                    var amt = o.Amount <= 0 ? 1 : o.Amount;
+                    if (world.InventoryCatalog.HasTag(o.Id, "resource"))
+                    {
+                        var consumed = PlayerStrategicResourceService.TryConsume(
+                            world, o.Id, amt, out _);
+                        if (consumed.IsFailure)
+                            return consumed;
+                    }
+                    else if (world.Inventory.GetCount(o.Id) < amt ||
+                             !world.Inventory.TryRemoveAll(o.Id, amt))
+                        return Result.Failure(ErrorCode.InvalidOperation, "Party bag stock insufficient.", o.Id);
+                    world.Events.Publish(
+                        EventType.PartyInventoryChanged,
+                        world.Tick,
+                        target: subject,
+                        payload: "bag:" + o.Id + ":-" + amt);
                     QuestProgressRefresh.AfterWorldChange(world, subject);
                     return Result.Success();
                 }
@@ -261,6 +283,7 @@ namespace XianXia.Core.Content
             readonly SimulationWorld _world;
             readonly EntityId _subject;
             readonly List<InventorySlot> _inventory;
+            readonly WorldSitePublicStockBoard.RuntimeState _sitePublicStocks;
             readonly List<string> _flags, _flagHistory, _known;
             readonly Dictionary<string, int> _counters, _daily;
             readonly Dictionary<string, QuestRuntime> _quests;
@@ -277,6 +300,7 @@ namespace XianXia.Core.Content
                 _world = world;
                 _subject = subject;
                 _inventory = world.Inventory.CaptureState();
+                _sitePublicStocks = world.Strategic.SitePublicStocks.CaptureState();
                 world.Flags.CaptureState(out _flags, out _flagHistory);
                 _counters = world.ContentCounters.CaptureState();
                 _daily = world.ContentDaily.CaptureState();
@@ -299,6 +323,7 @@ namespace XianXia.Core.Content
             public void Rollback()
             {
                 _world.Inventory.RestoreState(_inventory);
+                _world.Strategic.SitePublicStocks.RestoreState(_sitePublicStocks);
                 _world.Flags.RestoreState(_flags, _flagHistory);
                 _world.ContentCounters.RestoreState(_counters);
                 _world.ContentDaily.RestoreState(_daily);

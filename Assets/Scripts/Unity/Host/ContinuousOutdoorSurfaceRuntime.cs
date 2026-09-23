@@ -25,14 +25,15 @@ namespace XianXia.Unity.Host
         string _surfaceId = string.Empty;
         readonly HashSet<SurfaceChunkCoord> _loaded = new HashSet<SurfaceChunkCoord>();
         // Presentation may temporarily contain the old logical neighborhood plus staged incoming
-        // chunks. Gameplay scope remains exactly _loaded (radius-1 / 3x3).
+        // chunks. Gameplay scope remains exactly _loaded (the shared player-centered policy).
         readonly HashSet<SurfaceChunkCoord> _presentedChunks = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _desired = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _add = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _remove = new HashSet<SurfaceChunkCoord>();
-        readonly List<SurfaceChunkCoord> _pendingAdds = new List<SurfaceChunkCoord>(3);
-        readonly List<SurfaceChunkCoord> _pendingRemoves = new List<SurfaceChunkCoord>(3);
-        readonly List<WalkGridComposer.Input> _grids = new List<WalkGridComposer.Input>(9);
+        readonly List<SurfaceChunkCoord> _pendingAdds = new List<SurfaceChunkCoord>(5);
+        readonly List<SurfaceChunkCoord> _pendingRemoves = new List<SurfaceChunkCoord>(5);
+        // Each loaded chunk can contribute terrain, site blockers, and geography blockers.
+        readonly List<WalkGridComposer.Input> _grids = new List<WalkGridComposer.Input>(75);
         WalkGrid _compositeWalkGrid;
         SimulationWorld _navigationStateWorld;
         ulong _observedDestructibleTopologyRevision;
@@ -257,7 +258,7 @@ namespace XianXia.Unity.Host
                    " Surface=" + ActiveSurfaceId +
                    " Chunk=" + CurrentChunk +
                    " Loaded=" + _loaded.Count + "[" + string.Join(",", chunks) + "]" +
-                   " LoadedNeighborhoodBoundary=radius1" +
+                   " LoadedNeighborhoodRadius=" + ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks +
                    " SurfaceCoverageBoundary=[" + minX + "," + minY + "]..[" + maxX + "," + maxY + "]" +
                    " CurrentOutdoorWorldSiteId=" + (motion != null ? motion.CurrentOutdoorWorldSiteId : string.Empty) +
                    " Presentation=" + presentation + " CanonicalWorld=" + (motion != null ? motion.WorldPosition.ToString() : string.Empty) +
@@ -714,7 +715,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>For Surface travel: distinguishes authored outer egress from merely
-        /// being outside the currently loaded radius-1 neighborhood.</summary>
+        /// being outside the currently loaded player-centered streaming neighborhood.</summary>
         public bool TryGetOuterBoundaryApproach(Vector3 desiredPresentation, out Vector3 boundaryPresentation)
         {
             boundaryPresentation = default;
@@ -827,7 +828,10 @@ namespace XianXia.Unity.Host
         void InitializeNeighborhood(SurfaceChunkCoord center)
         {
             CancelNeighborhoodTransition();
-            SurfaceChunkNeighborhood.CollectSquare(center, 1, _desired);
+            SurfaceChunkNeighborhood.CollectSquare(
+                center,
+                ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks,
+                _desired);
             _desired.RemoveWhere(coord => !HasChunk(coord));
             SurfaceChunkNeighborhood.Diff(_loaded, _desired, _add, _remove);
             foreach (var coord in _remove)
@@ -862,7 +866,10 @@ namespace XianXia.Unity.Host
 
             CurrentChunk = center;
             _pendingCenter = center;
-            SurfaceChunkNeighborhood.CollectSquare(center, 1, _desired);
+            SurfaceChunkNeighborhood.CollectSquare(
+                center,
+                ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks,
+                _desired);
             _desired.RemoveWhere(coord => !HasChunk(coord));
 
             _pendingAdds.Clear();

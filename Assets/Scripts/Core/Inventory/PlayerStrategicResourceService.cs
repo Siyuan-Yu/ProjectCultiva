@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Content;
+using XianXia.Core.Domain.Ids;
+using XianXia.Core.Events;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
@@ -29,6 +32,12 @@ namespace XianXia.Core.Inventory
         internal bool IsApplied { get; set; }
     }
 
+    public sealed class AccessibleStrategicStock
+    {
+        public string ResourceId { get; set; } = string.Empty;
+        public int Amount { get; set; }
+    }
+
     /// <summary>
     /// Read-through aggregation over PartyInventory and eligible WorldSite public stocks.
     /// It owns no inventory and persists no derived total.
@@ -36,7 +45,7 @@ namespace XianXia.Core.Inventory
     public static class PlayerStrategicResourceService
     {
         public static bool CanAccessSiteStorageNetwork(SimulationWorld world) =>
-            TryResolveCurrentManagingSite(world, out _);
+            TryResolveCurrentManagingSite(world, out _) && EligibleStorageSiteIds(world).Count > 0;
 
         public static bool TryResolveCurrentManagingSite(SimulationWorld world, out WorldSite site)
         {
@@ -69,10 +78,109 @@ namespace XianXia.Core.Inventory
         {
             if (!IsResource(world, resourceId)) return 0;
             long total = world.Inventory.GetCount(resourceId);
-            if (!TryResolveCurrentManagingSite(world, out _)) return (int)total;
+            if (!CanAccessSiteStorageNetwork(world)) return (int)total;
             foreach (var siteId in EligibleStorageSiteIds(world))
                 total += WorldSitePublicStockService.GetCount(world, siteId, resourceId);
             return total > int.MaxValue ? int.MaxValue : (int)total;
+        }
+
+        /// <summary>Current player-usable count: strategic network for resources, party bag for all other items.</summary>
+        public static int GetPlayerAccessibleCount(SimulationWorld world, string itemId) =>
+            IsResource(world, itemId)
+                ? GetAvailableCount(world, itemId)
+                : world?.Inventory?.GetCount(itemId) ?? 0;
+
+        /// <summary>Accessible player-owned public storage only; excludes PartyInventory.</summary>
+        public static int GetAccessibleStorageCount(SimulationWorld world, string resourceId)
+        {
+            if (!IsResource(world, resourceId) || !CanAccessSiteStorageNetwork(world)) return 0;
+            long total = 0;
+            foreach (var siteId in EligibleStorageSiteIds(world))
+                total += WorldSitePublicStockService.GetCount(world, siteId, resourceId);
+            return total > int.MaxValue ? int.MaxValue : (int)total;
+        }
+
+        public static void CollectAccessibleStorageStock(
+            SimulationWorld world, List<AccessibleStrategicStock> into)
+        {
+            if (into == null) throw new ArgumentNullException(nameof(into));
+            into.Clear();
+            if (!CanAccessSiteStorageNetwork(world)) return;
+            var totals = new Dictionary<string, long>(StringComparer.Ordinal);
+            foreach (var siteId in EligibleStorageSiteIds(world))
+            {
+                if (!world.Strategic.SitePublicStocks.TryGet(siteId, out var stock)) continue;
+                foreach (var resource in stock.Resources)
+                {
+                    if (resource.Value <= 0 || !IsResource(world, resource.Key)) continue;
+                    totals.TryGetValue(resource.Key, out var current);
+                    totals[resource.Key] = current + resource.Value;
+                }
+            }
+            var ids = new List<string>(totals.Keys);
+            ids.Sort(StringComparer.Ordinal);
+            for (var i = 0; i < ids.Count; i++)
+                into.Add(new AccessibleStrategicStock
+                {
+                    ResourceId = ids[i],
+                    Amount = totals[ids[i]] > int.MaxValue ? int.MaxValue : (int)totals[ids[i]]
+                });
+        }
+
+        public static Result TryWithdrawToPartyInventory(
+            SimulationWorld world, string resourceId, int amount)
+        {
+            if (world?.Inventory == null || amount <= 0 || !IsResource(world, resourceId))
+                return Result.Failure(ErrorCode.InvalidArgument,
+                    "Warehouse withdrawal requires a resource and positive amount.");
+            if (!CanAccessSiteStorageNetwork(world))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "仅在己方实际控制范围内可访问势力仓库。");
+            if (GetAccessibleStorageCount(world, resourceId) < amount)
+                return Result.Failure(ErrorCode.InvalidOperation, "势力仓库库存不足。", resourceId);
+            if (world.Inventory.GetAddCapacity(resourceId) < amount)
+                return Result.Failure(ErrorCode.InvalidOperation, "背包空间不足。", resourceId);
+
+            var plan = new List<StrategicResourceWithdrawal>();
+            var remaining = amount;
+            TryResolveCurrentManagingSite(world, out var current);
+            if (current != null && world.SiteStorageRooms.HasActiveStorageForSite(world, current.SiteId))
+                AddSiteWithdrawal(world, current.SiteId, resourceId, ref remaining, plan);
+            var siteIds = EligibleStorageSiteIds(world);
+            for (var i = 0; i < siteIds.Count && remaining > 0; i++)
+                if (current == null || !string.Equals(siteIds[i], current.SiteId, StringComparison.Ordinal))
+                    AddSiteWithdrawal(world, siteIds[i], resourceId, ref remaining, plan);
+            if (remaining != 0)
+                return Result.Failure(ErrorCode.InvalidOperation, "势力仓库取出计划不完整。", resourceId);
+
+            var inventory = world.Inventory.CaptureState();
+            var stocks = world.Strategic.SitePublicStocks.CaptureState();
+            world.Events.CaptureState(out var events, out var eventCursor, out var eventNext);
+            try
+            {
+                for (var i = 0; i < plan.Count; i++)
+                {
+                    var row = plan[i];
+                    var removed = WorldSitePublicStockService.TryRemove(
+                        world, row.SiteId, resourceId, row.Amount);
+                    if (removed.IsFailure)
+                        throw new InvalidOperationException(removed.Error.ToString());
+                }
+                if (!world.Inventory.TryAddAll(resourceId, amount))
+                    throw new InvalidOperationException("Party inventory changed during warehouse withdrawal.");
+                world.Events.Publish(EventType.PartyInventoryChanged, world.Tick,
+                    target: EntityId.None, payload: "bag:" + resourceId + ":+" + amount);
+                QuestProgressRefresh.AfterWorldChange(world, EntityId.None);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                world.Inventory.RestoreState(inventory);
+                world.Strategic.SitePublicStocks.RestoreState(stocks);
+                world.Events.RestoreState(events, eventCursor, eventNext);
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "势力仓库取出失败，事务已回滚。", ex.Message);
+            }
         }
 
         public static Result TryConsume(

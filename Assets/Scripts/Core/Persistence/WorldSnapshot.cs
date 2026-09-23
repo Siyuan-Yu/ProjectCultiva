@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 6;
+        public const int CurrentSchemaVersion = 7;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -16,6 +16,8 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV4 = 4;
         /// <summary>v5 lacks the current Continuous Surface snapshot contract.</summary>
         public const int LegacySchemaVersionV5 = 5;
+        /// <summary>v6 lacks authoritative Content Progress runtime state.</summary>
+        public const int LegacySchemaVersionV6 = 6;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -64,10 +66,46 @@ namespace XianXia.Core.Persistence
             new List<OutdoorDestructibleSnapshotDto>();
         public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
             new List<OutdoorFarmPlotSnapshotDto>();
-        /// <summary>EVENT-02 additive v6 authority; null means an older v6 save with no runtime opportunities.</summary>
+        /// <summary>EVENT-02 authority introduced in v6; its wire shape remains unchanged in v7.</summary>
         public WorldOpportunityRuntimeSnapshotDto WorldOpportunityRuntime { get; set; }
-        /// <summary>EVENT-02A additive v6 authority; null means an older v6 save with no activity feed.</summary>
+        /// <summary>EVENT-02A authority introduced in v6; its wire shape remains unchanged in v7.</summary>
         public WorldActivityRuntimeSnapshotDto WorldActivityRuntime { get; set; }
+        /// <summary>Required v7 authority for Quest/Story/Event/Chapter content progress.</summary>
+        public ContentProgressSnapshotDto ContentProgress { get; set; }
+    }
+
+    public sealed class ContentProgressSnapshotDto
+    {
+        public bool HasAuthority { get; set; }
+        public List<string> Flags { get; set; } = new List<string>();
+        public List<string> FlagHistory { get; set; } = new List<string>();
+        public List<QuestRuntimeSnapshotDto> Quests { get; set; } = new List<QuestRuntimeSnapshotDto>();
+        public List<string> FiredEventKeys { get; set; } = new List<string>();
+        public ChapterRuntimeSnapshotDto Chapter { get; set; } = new ChapterRuntimeSnapshotDto();
+        public List<ContentIntEntrySnapshotDto> Counters { get; set; } = new List<ContentIntEntrySnapshotDto>();
+        public List<ContentIntEntrySnapshotDto> DailyMarks { get; set; } = new List<ContentIntEntrySnapshotDto>();
+        public List<ContentIntEntrySnapshotDto> LaborTicks { get; set; } = new List<ContentIntEntrySnapshotDto>();
+        public List<ContentIntEntrySnapshotDto> LaborHarvests { get; set; } = new List<ContentIntEntrySnapshotDto>();
+    }
+    public sealed class QuestRuntimeSnapshotDto
+    {
+        public string QuestId { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public int ProgressCount { get; set; }
+        public int ProgressMax { get; set; }
+        public ulong AcceptedAtDayIndex { get; set; }
+        public ulong DeadlineDayIndexExclusive { get; set; }
+    }
+    public sealed class ChapterRuntimeSnapshotDto
+    {
+        public string ActiveChapterId { get; set; } = string.Empty;
+        public ulong ChapterStartDayIndex { get; set; }
+        public List<string> AppliedBeatKeys { get; set; } = new List<string>();
+    }
+    public sealed class ContentIntEntrySnapshotDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public int Value { get; set; }
     }
 
     public sealed class WorldActivityRuntimeSnapshotDto

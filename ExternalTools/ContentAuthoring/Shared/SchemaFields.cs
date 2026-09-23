@@ -131,7 +131,7 @@ public static class SchemaFields
 
     public static readonly string[] OutcomeKinds =
     [
-        "setFlag", "clearFlag", "addStock", "grantProgress", "discoverSite",
+        "setFlag", "clearFlag", "addStock", "removeStock", "grantProgress", "discoverSite",
         "relationDelta", "startQuest",
         "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame"
     ];

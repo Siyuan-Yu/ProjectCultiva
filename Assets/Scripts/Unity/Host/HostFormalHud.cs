@@ -1694,7 +1694,7 @@ namespace XianXia.Unity.Host
                     !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
                     continue;
                 var need = c.Amount > 0 ? c.Amount : 1;
-                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                var have = PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id);
                 if (have > need)
                     have = need;
                 stockParts.Add(QuestJournalQuery.ResourceLabel(c.Id) + " " + have + "/" + need);

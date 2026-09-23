@@ -65,7 +65,7 @@ XianXia.Tests/       针对 Core 的单元测试
 | Unity 版本 | 2022.3.6f1 | 已定，见 ADR-0001 |
 | 渲染管线 | Built-in | 已定，见 ADR-0001 |
 | UI 方案 | UGUI／UI Toolkit | 待定（ADR-0002） |
-| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | 当前已实现；通用内容状态持久化仍有缺口，见 247 Proposal |
+| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v7 已实现 Content Progress authority；见 257 SAVE-01 |
 | 事件脚本化 | 纯配置表／轻量表达式 | 待定；依赖 `2E` |
 
 ## 3. 工程约定
@@ -97,5 +97,5 @@ XianXia.Tests/       针对 Core 的单元测试
 ## 7. 当前 Snapshot 与内容状态边界
 
 - 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
-- 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、背包、关系、随机与窄范围 cave taken-loot 等字段。Separate Space 只有 DTO／capture helper，`JsonSnapshotSerializer` 尚未写入其 session；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
-- Quest、通用 Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 的完整磁盘持久化仍为 **Proposed / Not Implemented**。不得把 runtime 事务回滚或 loot 专用字段描述成通用剧情状态存档。
+- 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity 与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
+- SAVE-01 将 Snapshot 升为 v7，并以必需的 `contentProgress.hasAuthority=true` 保存 Flags／History、全部 Quest runtime、ContentEvent fired keys、Chapter runtime、Counters、Daily marks 与 LocationLabor facts。Active dialogue 不保存；对话进行中 `CaptureJson` 明确拒绝。v1～v6 不猜测迁移，统一返回 `SnapshotVersionMismatch`。详见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。

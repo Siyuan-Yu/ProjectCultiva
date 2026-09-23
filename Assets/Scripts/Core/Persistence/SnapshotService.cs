@@ -45,6 +45,8 @@ namespace XianXia.Core.Persistence
                 return Result.Fail<string>(ErrorCode.InvalidOperation, "Close encounter report before saving.");
             if (world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Preparing)
                 return Result.Fail<string>(ErrorCode.InvalidOperation, "Encounter is preparing; save after entry completes.");
+            if (world?.ContentEvents?.HasActive == true)
+                return Result.Fail<string>(ErrorCode.InvalidOperation, "请先完成当前对话/事件后再保存。");
             var snap = Capture(world, loop, playerParty);
             var spatialCapture = StrategicSnapshotHelper.ValidateCaptureForSerialization(
                 world, snap.Strategic);
@@ -357,6 +359,7 @@ namespace XianXia.Core.Persistence
             CaptureOutdoorStatefulObjects(world, snap);
             CaptureWorldOpportunities(world, snap);
             CaptureWorldActivities(world, snap);
+            snap.ContentProgress = ContentProgressSnapshotHelper.Capture(world);
             return snap;
         }
 
@@ -524,14 +527,12 @@ namespace XianXia.Core.Persistence
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot null.");
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
-            if (snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV2 ||
-                snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV3 ||
-                snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV4 ||
-                snap.SchemaVersion == 1)
+            if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV6)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1/v2/v3/v4 saves lack current spatial authority. Convert offline or start a new game (schema v6 required).",
+                    "Schema v1-v6 saves lack complete Content Progress authority. Start a new game (schema v7 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -938,8 +939,6 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            var loop = new SimulationLoop(world);
-            loop.RestoreNextOrderId(snap.NextOrderId);
             if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion && snap.Strategic != null)
             {
                 var strategicRestore = StrategicSnapshotHelper.Restore(world, snap.Strategic);
@@ -976,12 +975,17 @@ namespace XianXia.Core.Persistence
             foreach (var key in snap.SuppressedCharacterContacts) world.Strategic.SuppressedCharacterContacts.Add(key);
             world.Strategic.CharacterEncounter = snap.CharacterEncounter;
             CharacterEncounterService.BindRuntime(world);
+            var contentProgressRestore = ContentProgressSnapshotHelper.Restore(world, snap.ContentProgress);
+            if (contentProgressRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(contentProgressRestore.Error);
             var opportunityRestore = RestoreWorldOpportunities(world, snap.WorldOpportunityRuntime);
             if (opportunityRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(opportunityRestore.Error);
             var activityRestore = RestoreWorldActivities(world, snap.WorldActivityRuntime);
             if (activityRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(activityRestore.Error);
+            var loop = PlayableSimulationLoopFactory.Create(world, enableSocialTick: false);
+            loop.RestoreNextOrderId(snap.NextOrderId);
             return Result.Ok((world, loop));
         }
 

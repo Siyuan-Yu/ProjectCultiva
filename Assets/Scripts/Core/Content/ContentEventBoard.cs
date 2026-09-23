@@ -54,6 +54,15 @@ namespace XianXia.Core.Content
                 _fired.Add(id);
         }
 
+        public List<string> CaptureFiredKeys() => new List<string>(_fired);
+
+        public void RestoreFiredKeys(IEnumerable<string> keys)
+        {
+            _fired.Clear();
+            if (keys != null) foreach (var key in keys) _fired.Add(key);
+            ClearActive();
+        }
+
         public void SetActive(string id) => SetActive(id, EntityId.None, EntityId.None, false);
 
         public void SetActive(string id, EntityId actor, EntityId target, bool interaction)

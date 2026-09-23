@@ -6,7 +6,7 @@ namespace XianXia.Core.Navigation
     /// <summary>
     /// Reusable A* workspace for <see cref="GridPathfinder"/>.
     ///
-    /// Continuous surfaces path on a 3x3 chunk neighborhood (≈150x150 = 22,500 cells). The previous
+    /// Continuous surfaces path on the current 5x5 chunk neighborhood (≈250x250 = 62,500 cells). The previous
     /// implementation allocated g/f/cameFrom/closed plus an open list **per request**, i.e. hundreds
     /// of KB of garbage for every NPC repath. Buffers are now kept across calls and only the cells
     /// actually touched by the previous run are reset (no O(cells) re-init), so repeated finds

@@ -1,22 +1,30 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**设计已冻结；runtime 部分实现；EVENT-02A Implementation Complete / Producer Acceptance Pending；通用内容状态磁盘持久化 Proposed / Not Implemented** | 优先级：P0 | 最后更新：2026-09-23
+> 状态：**设计已冻结；runtime 部分实现；SAVE-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-24
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
-> 当前实现与磁盘边界见 [247 系统现状总表／Proposal](../40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
+> 当前实现与磁盘边界见 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 与 [257 SAVE-01](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
-## 0. 当前实现边界（2026-09-22）
+## 0. 当前实现边界（2026-09-23）
 
-- `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于当前会话内的条件、结算与 UI；`ContentOutcomeApplier` 的 runtime 事务回滚用于一次结算的全有或全无，**不是磁盘存档**。
-- `CaptureRuntime`／`RestoreRuntime`（存在于部分 board／事务辅助）只服务运行中回滚或局部事务；不能据此声称 `WorldSnapshot` 已保存相应系统。
-- 当前 `WorldSnapshot` 已实际覆盖实体与关键组件、PlayerParty／Squad／世界空间、CharacterEncounter、Separate Space session、背包、关系 ledger、随机状态，以及窄范围洞府 taken-loot 等字段；schema 仍为 6。
-- 通用 Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 尚未形成完整磁盘 round-trip authority。洞府 `loot:*` 的专用 taken-loot 保存不能推导为通用 Story／Content Flags 已保存。
-- Snapshot restore 的 `RuntimeContentShellBootstrap` 现会复用 New Game 的 Quest／ContentEvent definitions mapper，并调用 `ChapterRuntimeBootstrap.ApplyDefinitions`；它绝不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。Quest／Event／Chapter 的 runtime progress 仍未进入 Snapshot。
-- 下一步只形成 Proposal：任务状态／期限、永久选择、已触发事件与章节、计数／每日限制，以及“待选择事件弹窗打开时禁止保存还是保存待处理身份”的规则。制作人尚未选择，也未授权实现。
+- `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于条件、结算与 UI；`ContentOutcomeApplier` 的事务 memento 继续只负责一次结算回滚，磁盘持久化由独立 `ContentProgressSnapshotHelper` 负责。
+- `WorldSnapshot.CurrentSchemaVersion` 为 7。必需的 `contentProgress.hasAuthority=true` 保存 Flags／History、全部 Quest runtime（含 Inactive／Active／ReadyToClaim／Completed／Failed）、ContentEvent fired keys、Chapter runtime、Counters、Daily marks 与 LocationLabor ticks／harvests。
+- Active dialogue、当前 Step／Choice、Topic Selection 与 UI 状态不进入 Snapshot；`ContentEvents.HasActive` 时 `SnapshotService.CaptureJson` 返回“请先完成当前对话/事件后再保存。”完成原子交互后可正常保存。
+- restore 先恢复动态 runtime，再由 `RuntimeContentShellBootstrap` definitions-only 注册 Quest／Event／Chapter 定义并校验恢复 ID；不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。New Game 与 Load 共用 `PlayableSimulationLoopFactory` 的四个 day handlers。
+- v1～v6 缺少完整 Content Progress authority，统一明确拒绝并要求新开局。实体、空间、Encounter、Separate Space、WorldOpportunity、WorldActivity、背包、关系与随机等既有 Snapshot authority 保持原职责。
+
+### SAVE-01 Content Progress Persistence V1（2026-09-23）
+
+- Flags 为 authoritative replace，History 保序；Quest runtime 直接恢复而不重新 `StartQuest`；ReadyToClaim 不自动领奖，Completed／Failed 不复活。
+- fired key 按现有稳定字符串完整 round-trip，覆盖 global、perTarget、perActorTarget；restore 后 Active Event 始终为空。
+- Chapter 直接恢复 ActiveChapterId、start day 与 applied beat keys，不调用会清 beat 的 `Activate`；definitions rehydrate 后验证 active chapter 和已应用 day beat。
+- Counter／Daily／LocationLabor 使用稳定 key/value authority；Daily 保存实际 marked day index，LocationLabor 保存 opaque composite key，serializer 不拆解。
+- EVENT-02 提供两条实际 Content 链：带 publicNotice／定位的临时行商是主验收入口，受伤散修为第二条示例；两者都由接受 Choice 的同一 outcome transaction 设置 accepted flag 并 `startQuest`，拒绝无 Outcome。Active Event 以统一 Player Accessible Stock 判断灵药：在可访问己方战略物资网络时，resource 为 PartyInventory＋合格 WorldSitePublicStock；离开网络时只看 PartyInventory；非 resource 永远只看 PartyInventory。`removeStock` 使用相同语义并与 hand-in flag 原子结算。
+- 完整实施、验收路线与最终封板记录见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。制作人已于 2026-09-24 确认当前内容验收通过，状态 **Producer Accepted / Sealed**。
 
 ### EVENT-02 World Opportunity Director V1（2026-09-23）
 
 - `WorldOpportunity` 是 Continuous Surface 上动态生成的真实 NPC 机会，不等于 legacy `OpportunitySite`。Director 只补玩家当前 Surface，并以 Surface 当日首次 Tick 为随机刷新门禁；其它 Surface 只处理已有实例到期。
-- 实例持有稳定 ID、模板、Surface、真实 EntityId、创建日与到期日。Snapshot v6 以 additive optional authority 保存这部分世界状态；它不等于 Quest／Flag／Chapter 等通用 narrative progress 已持久化。
+- 实例持有稳定 ID、模板、Surface、真实 EntityId、创建日与到期日。该 authority 最初以 Snapshot v6 additive optional 字段落地，SAVE-01 升至 v7 后字段与恢复语义保持不变。
 - onTalk 的 `npcDefinitionId`、`npcTags[]`、`worldOpportunityId` 均为可选 AND binding，直接检查当前 TargetEntityId；三者为空仍允许 global contextual Event。
 - V1 只接受 `worldVisible` 与 `publicNotice`，只生成 NPC。hidden 与动态 WorldObject 均未实现。详见 [255](../40-process/255-event-02-world-opportunity-director-v1-2026-09-23.md)。
 
@@ -25,7 +33,7 @@
 - `WorldActivityBoard` 是已获知世界机会的持久活动动态，不是 QuestBoard、ContentEvent 或通用通知中心；V1 只接 `WorldOpportunity publicNotice`。
 - publicNotice 生成时以 Opportunity InstanceId 为 SourceId 创建 unread Active Activity，并额外播放一次 Toast；Snapshot restore 只恢复状态，不重播 Toast。worldVisible 不创建 Activity 或 History。
 - Activity 随 source Opportunity 到期、死亡或 Removed 转入 History；History 最多保留最近 100 条。可公开准确位置的条目只能在同一 Surface 聚焦现有 Gameplay camera，不移动 PlayerParty、不导航、不切 Surface。
-- Snapshot schema 仍为 6，使用 additive optional `worldActivityRuntime`；新 authority 中 Active Activity 缺少对应 Opportunity Instance 时严格判为 `SnapshotInvalid`。详见 [256](../40-process/256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
+- `worldActivityRuntime` 保持既有 additive authority；SAVE-01 升至 v7 后未改变其 shape。Active Activity 缺少对应 Opportunity Instance 时仍严格判为 `SnapshotInvalid`。详见 [256](../40-process/256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
 
 ## 0.1 EVENT-01 Final 已批准实施契约（2026-09-22）
 
@@ -89,7 +97,7 @@
 ### V2 Final Patch 与封板
 
 - 最后一次人物来源按规范化 Package Root 保存在 editor-local `%LOCALAPPDATA%\XianXia\EventEditor\settings.json`；仅恢复当前 Package 仍存在的 source，失效值回退“全部来源”。该设置与 Content、layout、Runtime、Undo/Redo、dirty 完全分离。
-- 制作人于 2026-09-23 完成 EventEditor V2 实际验收，当前状态 **Producer Accepted / Sealed**。后续 EVENT-02 只扩展 NPC Opportunity 与通用 onTalk binding；ContentIntent、通用剧情持久化与新 Runtime event framework 仍未实施。
+- 制作人于 2026-09-23 完成 EventEditor V2 实际验收，当前状态 **Producer Accepted / Sealed**。后续 EVENT-02 扩展 NPC Opportunity 与通用 onTalk binding；SAVE-01 已实现通用剧情 runtime persistence。ContentIntent 与新 Runtime event framework 仍未实施。
 
 ## 1. 这个系统解决什么问题
 

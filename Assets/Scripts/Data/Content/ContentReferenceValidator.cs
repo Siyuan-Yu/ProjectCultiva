@@ -1358,10 +1358,12 @@ namespace XianXia.Data.Content
                             consumedFlags.Add(o.Id);
                         break;
                     case "addstock":
+                    case "removestock":
                     {
+                        var outcomeName = kind == "removestock" ? "removeStock" : "addStock";
                         if (string.IsNullOrEmpty(o.Id) || !DefinitionId.TryParse(o.Id, out var stockId))
                         {
-                            RequireDef(registry, o.Id, "resource", ctx + ".addStock", report);
+                            RequireDef(registry, o.Id, "resource", ctx + "." + outcomeName, report);
                             break;
                         }
 
@@ -1370,7 +1372,7 @@ namespace XianXia.Data.Content
                         report.Add(
                             ErrorCode.NotFound,
                             "resource/item reference missing.",
-                            ctx + ".addStock:" + o.Id);
+                            ctx + "." + outcomeName + ":" + o.Id);
                         break;
                     }
                     case "startquest":

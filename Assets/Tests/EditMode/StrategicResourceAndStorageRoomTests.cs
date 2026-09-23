@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using XianXia.Core.Construction;
+using XianXia.Core.Content;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Inventory;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
@@ -20,6 +22,7 @@ namespace XianXia.Tests
         const string Enemy = "test:enemy";
         const string Surface = "test:surface";
         const string Wood = "base:resource_rough_wood";
+        const string Herb = "base:resource_spirit_herb";
         const string Manual = "test:manual";
         static string ContentPath => Environment.GetEnvironmentVariable("XIANXIA_BASEGAME") ??
                                      Path.GetFullPath("Content/BaseGame");
@@ -29,11 +32,134 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = Player;
             world.InventoryCatalog.Register(Wood, "粗木", 99, new[] { "resource" });
+            world.InventoryCatalog.Register(Herb, "灵药", 99, new[] { "resource" });
             world.InventoryCatalog.Register(Manual, "秘籍", 1, new[] { "manual" });
             AddSite(world, "A", Player, true, true);
             AddSite(world, "B", Player, true, true);
             world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext("A");
             return world;
+        }
+
+        [Test]
+        public void AccessibleStockUsesStorageOnlyForResourcesAndOnlyInsideControlledNetwork()
+        {
+            var world = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(world, "A", Herb, 2).IsSuccess);
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(world, "A", Manual, 9).IsSuccess);
+            var herbCondition = new ContentCondition { Kind = "stockAtLeast", Id = Herb, Amount = 1 };
+            var manualCondition = new ContentCondition { Kind = "stockAtLeast", Id = Manual, Amount = 1 };
+
+            Assert.IsTrue(PlayerStrategicResourceService.CanAccessSiteStorageNetwork(world));
+            Assert.AreEqual(2, PlayerStrategicResourceService.GetPlayerAccessibleCount(world, Herb));
+            Assert.IsTrue(ContentConditionEvaluator.Pass(world, EntityId.None, herbCondition));
+            Assert.AreEqual(0, PlayerStrategicResourceService.GetPlayerAccessibleCount(world, Manual));
+            Assert.IsFalse(ContentConditionEvaluator.Pass(world, EntityId.None, manualCondition));
+            Assert.IsTrue(ContentOutcomeApplier.Apply(world, EntityId.None,
+                new ContentOutcome { Kind = "removeStock", Id = Manual, Amount = 1 }).IsFailure);
+            Assert.AreEqual(9, WorldSitePublicStockService.GetCount(world, "A", Manual),
+                "Non-resource outcomes must never consume strategic public stock.");
+
+            world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(string.Empty);
+            Assert.IsFalse(PlayerStrategicResourceService.CanAccessSiteStorageNetwork(world));
+            Assert.AreEqual(0, PlayerStrategicResourceService.GetPlayerAccessibleCount(world, Herb));
+            Assert.IsFalse(ContentConditionEvaluator.Pass(world, EntityId.None, herbCondition));
+            Assert.AreEqual(2, WorldSitePublicStockService.GetCount(world, "A", Herb));
+
+            var noStorage = new SimulationWorld();
+            noStorage.Strategic.PlayerFactionId = Player;
+            noStorage.InventoryCatalog.Register(Herb, "灵药", 99, new[] { "resource" });
+            AddSite(noStorage, "A", Player, true, false);
+            noStorage.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext("A");
+            Assert.IsFalse(PlayerStrategicResourceService.CanAccessSiteStorageNetwork(noStorage));
+        }
+
+        [Test]
+        public void RemoveStockUsesStrategicSourcesOutsideGateAndTransactionRollback()
+        {
+            var strategic = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(strategic, "A", Herb, 2).IsSuccess);
+            Assert.IsTrue(ContentOutcomeApplier.Apply(strategic, EntityId.None,
+                new ContentOutcome { Kind = "removeStock", Id = Herb, Amount = 1 }).IsSuccess);
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(strategic, "A", Herb));
+            Assert.AreEqual(0, strategic.Inventory.GetCount(Herb));
+
+            var outside = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(outside, "A", Herb, 2).IsSuccess);
+            outside.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(string.Empty);
+            Assert.IsTrue(ContentOutcomeApplier.Apply(outside, EntityId.None,
+                new ContentOutcome { Kind = "removeStock", Id = Herb, Amount = 1 }).IsFailure);
+            Assert.AreEqual(2, WorldSitePublicStockService.GetCount(outside, "A", Herb));
+
+            var mixed = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(mixed, "A", Herb, 1).IsSuccess);
+            Assert.IsTrue(mixed.Inventory.TryAddAll(Herb, 1));
+            Assert.IsTrue(ContentOutcomeApplier.Apply(mixed, EntityId.None,
+                new ContentOutcome { Kind = "removeStock", Id = Herb, Amount = 2 }).IsSuccess);
+            Assert.AreEqual(0, WorldSitePublicStockService.GetCount(mixed, "A", Herb));
+            Assert.AreEqual(0, mixed.Inventory.GetCount(Herb));
+
+            var rollback = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(rollback, "A", Herb, 1).IsSuccess);
+            var failed = ContentOutcomeApplier.ApplyAll(rollback, EntityId.None, new[]
+            {
+                new ContentOutcome { Kind = "removeStock", Id = Herb, Amount = 1 },
+                new ContentOutcome { Kind = "unknown" }
+            });
+            Assert.IsTrue(failed.IsFailure);
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(rollback, "A", Herb));
+            Assert.AreEqual(0, rollback.Inventory.GetCount(Herb));
+            Assert.AreEqual(0, rollback.Events.Count);
+        }
+
+        [Test]
+        public void WarehouseWithdrawMovesOnlyStorageResourcesAndLeavesStockUntouchedWhenBagIsFull()
+        {
+            var world = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(world, "A", Herb, 5).IsSuccess);
+            Assert.AreEqual(5, PlayerStrategicResourceService.GetAccessibleStorageCount(world, Herb));
+            var totals = new System.Collections.Generic.List<AccessibleStrategicStock>();
+            PlayerStrategicResourceService.CollectAccessibleStorageStock(world, totals);
+            Assert.AreEqual(1, totals.Count, "Warehouse enumeration must contain resources only and exclude bag stock.");
+            Assert.AreEqual(5, totals.Single(x => x.ResourceId == Herb).Amount);
+
+            Assert.IsTrue(PlayerStrategicResourceService.TryWithdrawToPartyInventory(world, Herb, 1).IsSuccess);
+            Assert.AreEqual(4, WorldSitePublicStockService.GetCount(world, "A", Herb));
+            Assert.AreEqual(1, world.Inventory.GetCount(Herb));
+
+            var full = World();
+            full.Inventory.SetSlotCapacity(1);
+            Assert.IsTrue(full.Inventory.TryAddAll(Manual, 1));
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(full, "A", Herb, 5).IsSuccess);
+            Assert.IsTrue(PlayerStrategicResourceService.TryWithdrawToPartyInventory(full, Herb, 1).IsFailure);
+            Assert.AreEqual(5, WorldSitePublicStockService.GetCount(full, "A", Herb));
+            Assert.AreEqual(0, full.Inventory.GetCount(Herb));
+        }
+
+        [Test]
+        public void ResourceQuestConditionProgressAndJournalShareAccessibleStockCount()
+        {
+            var world = World();
+            Assert.IsTrue(WorldSitePublicStockService.SetInitial(world, "A", Herb, 2).IsSuccess);
+            var spec = new QuestSpec { Id = "test:strategic_stock_quest" };
+            spec.CompleteConditions.Add(new ContentCondition { Kind = "stockAtLeast", Id = Herb, Amount = 3 });
+            world.Quests.Register(spec);
+            Assert.IsTrue(new QuestService().TryStart(world, spec.Id, EntityId.None).IsSuccess);
+            Assert.IsTrue(world.Quests.TryGet(spec.Id, out var runtime));
+
+            new QuestService().Evaluate(world, EntityId.None);
+            Assert.AreEqual(2, runtime.ProgressCount);
+            Assert.IsFalse(ContentConditionEvaluator.AllPass(world, EntityId.None, spec.CompleteConditions));
+            Assert.IsTrue(QuestJournalQuery.TryGetStockProgress(world, spec, out var journalCount, out var max));
+            Assert.AreEqual(2, journalCount);
+            Assert.AreEqual(3, max);
+
+            world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(string.Empty);
+            new QuestService().Evaluate(world, EntityId.None);
+            Assert.AreEqual(0, runtime.ProgressCount);
+            Assert.IsFalse(ContentConditionEvaluator.AllPass(world, EntityId.None, spec.CompleteConditions));
+            Assert.IsTrue(QuestJournalQuery.TryGetStockProgress(world, spec, out journalCount, out max));
+            Assert.AreEqual(0, journalCount);
+            Assert.AreEqual(3, max);
         }
 
         static WorldSite AddSite(SimulationWorld world, string id, string owner, bool active, bool storage)

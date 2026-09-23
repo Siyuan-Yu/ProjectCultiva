@@ -27,7 +27,7 @@ namespace XianXia.Tests
             });
             world.Quests.Register(spec);
 
-            var subject = EntityId.None;
+            var subject = world.Entities.CreateCharacter(new DefinitionId("test", "quest_subject"), "subject").Value.Id;
             Assert.IsTrue(new QuestService().TryStart(world, QuestId, subject).IsSuccess);
             Assert.IsTrue(world.Quests.TryGet(QuestId, out var runtime));
             Assert.AreEqual(0, runtime.ProgressCount);

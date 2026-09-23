@@ -39,15 +39,38 @@ namespace XianXia.Tests.EditMode
         }
 
         [Test]
-        public void RadiusOneMoveEast_OnlyDiffsOuterColumns()
+        public void ActiveNeighborhood_ContainsFiveByFiveSquare()
+        {
+            var desired = new HashSet<SurfaceChunkCoord>();
+            SurfaceChunkNeighborhood.CollectSquare(
+                new SurfaceChunkCoord(0, 0),
+                ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks,
+                desired);
+
+            Assert.AreEqual(25, desired.Count);
+            Assert.IsTrue(desired.Contains(new SurfaceChunkCoord(-2, -2)));
+            Assert.IsTrue(desired.Contains(new SurfaceChunkCoord(0, 0)));
+            Assert.IsTrue(desired.Contains(new SurfaceChunkCoord(2, 2)));
+            Assert.IsFalse(desired.Contains(new SurfaceChunkCoord(3, 0)));
+            Assert.AreEqual(5, ContinuousSurfaceStreamingPolicy.ActiveDiameterChunks);
+        }
+
+        [Test]
+        public void ActiveRadiusMoveEast_OnlyDiffsOuterColumns()
         {
             var oldSet = new HashSet<SurfaceChunkCoord>(); var desired = new HashSet<SurfaceChunkCoord>();
             var added = new HashSet<SurfaceChunkCoord>(); var removed = new HashSet<SurfaceChunkCoord>();
-            SurfaceChunkNeighborhood.CollectSquare(new SurfaceChunkCoord(0, 0), 1, oldSet);
-            SurfaceChunkNeighborhood.CollectSquare(new SurfaceChunkCoord(1, 0), 1, desired);
+            var radius = ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks;
+            SurfaceChunkNeighborhood.CollectSquare(new SurfaceChunkCoord(0, 0), radius, oldSet);
+            SurfaceChunkNeighborhood.CollectSquare(new SurfaceChunkCoord(1, 0), radius, desired);
             SurfaceChunkNeighborhood.Diff(oldSet, desired, added, removed);
-            Assert.AreEqual(3, added.Count); Assert.AreEqual(3, removed.Count);
-            for (var y = -1; y <= 1; y++) { Assert.IsTrue(added.Contains(new SurfaceChunkCoord(2, y))); Assert.IsTrue(removed.Contains(new SurfaceChunkCoord(-1, y))); }
+            Assert.AreEqual(ContinuousSurfaceStreamingPolicy.ActiveDiameterChunks, added.Count);
+            Assert.AreEqual(ContinuousSurfaceStreamingPolicy.ActiveDiameterChunks, removed.Count);
+            for (var y = -radius; y <= radius; y++)
+            {
+                Assert.IsTrue(added.Contains(new SurfaceChunkCoord(radius + 1, y)));
+                Assert.IsTrue(removed.Contains(new SurfaceChunkCoord(-radius, y)));
+            }
         }
 
         [Test]

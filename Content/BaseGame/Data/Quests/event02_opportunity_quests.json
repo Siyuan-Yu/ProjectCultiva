@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_event02_wounded_cultivator_herb",
+      "type": "quest",
+      "name": "受伤散修·寻药",
+      "description": "获得任意来源的 1 份灵药，并交给受伤散修。交付后可在任务日志领取奖励。",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 2,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "hasFlag", "id": "quest:event02_wounded_cultivator_herb_handed_in" }
+      ],
+      "rewards": [
+        { "kind": "grantProgress", "amount": 3 },
+        { "kind": "setFlag", "id": "quest:event02_wounded_cultivator_herb_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_event02_temporary_merchant_herb",
+      "type": "quest",
+      "name": "临时行商·代采灵药",
+      "description": "获得任意来源的 1 份灵药，并交给临时行商，作为他临行前补充的货物。",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 2,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "hasFlag", "id": "quest:event02_temporary_merchant_herb_handed_in" }
+      ],
+      "rewards": [
+        { "kind": "grantProgress", "amount": 2 },
+        { "kind": "setFlag", "id": "quest:event02_temporary_merchant_herb_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

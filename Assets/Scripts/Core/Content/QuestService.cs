@@ -1,5 +1,6 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Events;
+using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 
@@ -242,7 +243,7 @@ namespace XianXia.Core.Content
                     !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
                     continue;
                 var need = c.Amount > 0 ? c.Amount : 1;
-                var have = world.Inventory.GetCount(c.Id);
+                var have = PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id);
                 if (have > need)
                     have = need;
                 sum += have;

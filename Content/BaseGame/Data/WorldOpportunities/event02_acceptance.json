@@ -58,7 +58,7 @@
       "weight": 100,
       "maxActive": 1,
       "spawnTableId": "base:spawn_event02_wounded_cultivator_pool",
-      "durationDays": 2,
+      "durationDays": 3,
       "minPlayerDistanceWorld": 2.0,
       "maxPlayerDistanceWorld": 3.0,
       "allowInsideWorldSite": false,
@@ -75,7 +75,7 @@
       "weight": 100,
       "maxActive": 1,
       "spawnTableId": "base:spawn_event02_merchant_pool",
-      "durationDays": 1,
+      "durationDays": 3,
       "minPlayerDistanceWorld": 2.0,
       "maxPlayerDistanceWorld": 3.0,
       "allowInsideWorldSite": false,
@@ -97,20 +97,77 @@
       "topicText": "询问伤势",
       "once": false,
       "onceScope": "global",
-      "conditions": [],
+      "conditions": [
+        { "kind": "missingFlag", "id": "story:event02_wounded_cultivator_herb_accepted" }
+      ],
       "entryStepId": "start",
       "steps": [
         {
           "id": "start",
           "speakerRef": "@target",
-          "text": "「劳烦……给我一点时间缓缓。」",
+          "text": "「只是旧伤复发，一时难以调息。若道友方便，可否替我寻些灵药？」",
           "outcomes": [],
           "choices": [
-            { "id": "ask", "text": "询问伤势", "conditions": [], "outcomes": [], "nextStepId": "answer", "unavailableMode": "disabled", "requirementText": "" },
-            { "id": "leave", "text": "离开", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+            {
+              "id": "accept",
+              "text": "我帮你去找。",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "story:event02_wounded_cultivator_herb_accepted" },
+                { "kind": "startQuest", "id": "base:quest_event02_wounded_cultivator_herb" }
+              ],
+              "nextStepId": "player_accept",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            { "id": "leave", "text": "我还有别的事。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
           ]
         },
-        { "id": "answer", "speakerRef": "@target", "text": "「只是旧伤复发，不碍事。多谢道友关心。」", "outcomes": [], "choices": [] }
+        { "id": "player_accept", "speakerRef": "@actor", "text": "好，我帮你找。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
+        { "id": "thanks", "speakerRef": "@target", "text": "「多谢道友。」", "outcomes": [], "choices": [] }
+      ]
+    },
+    {
+      "id": "base:event_event02_wounded_cultivator_herb_active",
+      "type": "contentEvent",
+      "name": "EVENT-02 受伤散修灵药交付",
+      "trigger": "onTalk",
+      "npcTags": ["cultivator", "wounded"],
+      "worldOpportunityId": "base:world_opportunity_event02_wounded_cultivator",
+      "priority": 60,
+      "topicText": "交付灵药",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        { "kind": "questActive", "id": "base:quest_event02_wounded_cultivator_herb" }
+      ],
+      "entryStepId": "start",
+      "steps": [
+        {
+          "id": "start",
+          "speakerRef": "@target",
+          "text": "「道友可寻到合用的灵药了？」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "hand_in",
+              "text": "把灵药交给他。",
+              "conditions": [
+                { "kind": "stockAtLeast", "id": "base:resource_spirit_herb", "amount": 1 }
+              ],
+              "outcomes": [
+                { "kind": "removeStock", "id": "base:resource_spirit_herb", "amount": 1 },
+                { "kind": "setFlag", "id": "quest:event02_wounded_cultivator_herb_handed_in" }
+              ],
+              "nextStepId": "player_hand_in",
+              "unavailableMode": "disabled",
+              "requirementText": "需要灵药 ×1"
+            },
+            { "id": "not_yet", "text": "我还没找到。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+          ]
+        },
+        { "id": "player_hand_in", "speakerRef": "@actor", "text": "这份灵药你先拿去用。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
+        { "id": "thanks", "speakerRef": "@target", "text": "「多谢道友，此情我记下了。」", "outcomes": [], "choices": [] }
       ]
     },
     {
@@ -123,10 +180,76 @@
       "topicText": "打听来意",
       "once": false,
       "onceScope": "global",
-      "conditions": [],
+      "conditions": [
+        { "kind": "missingFlag", "id": "story:event02_temporary_merchant_herb_accepted" }
+      ],
       "entryStepId": "start",
       "steps": [
-        { "id": "start", "speakerRef": "@target", "text": "「路过此地，歇一日便走。若有需要，尽管看看。」", "outcomes": [], "choices": [] }
+        {
+          "id": "start",
+          "speakerRef": "@target",
+          "text": "「我明日便要离开此地，只是手上的灵药还差一些。若你寻到合用的灵药，可否替我留意一份？」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "可以，我帮你留意。",
+              "conditions": [],
+              "outcomes": [
+                { "kind": "setFlag", "id": "story:event02_temporary_merchant_herb_accepted" },
+                { "kind": "startQuest", "id": "base:quest_event02_temporary_merchant_herb" }
+              ],
+              "nextStepId": "player_accept",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            { "id": "leave", "text": "我现在没空。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+          ]
+        },
+        { "id": "player_accept", "speakerRef": "@actor", "text": "可以，我帮你留意。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
+        { "id": "thanks", "speakerRef": "@target", "text": "「那便多谢了。」", "outcomes": [], "choices": [] }
+      ]
+    },
+    {
+      "id": "base:event_event02_temporary_merchant_herb_active",
+      "type": "contentEvent",
+      "name": "EVENT-02 临时行商灵药交付",
+      "trigger": "onTalk",
+      "worldOpportunityId": "base:world_opportunity_event02_temporary_merchant",
+      "priority": 60,
+      "topicText": "交付灵药",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        { "kind": "questActive", "id": "base:quest_event02_temporary_merchant_herb" }
+      ],
+      "entryStepId": "start",
+      "steps": [
+        {
+          "id": "start",
+          "speakerRef": "@target",
+          "text": "「如何，可有合适的灵药？」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "hand_in",
+              "text": "交给他一份灵药。",
+              "conditions": [
+                { "kind": "stockAtLeast", "id": "base:resource_spirit_herb", "amount": 1 }
+              ],
+              "outcomes": [
+                { "kind": "removeStock", "id": "base:resource_spirit_herb", "amount": 1 },
+                { "kind": "setFlag", "id": "quest:event02_temporary_merchant_herb_handed_in" }
+              ],
+              "nextStepId": "player_hand_in",
+              "unavailableMode": "disabled",
+              "requirementText": "需要灵药 ×1"
+            },
+            { "id": "not_yet", "text": "还没有。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+          ]
+        },
+        { "id": "player_hand_in", "speakerRef": "@actor", "text": "这一份你拿去吧。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
+        { "id": "thanks", "speakerRef": "@target", "text": "「正是我要找的。多谢了。」", "outcomes": [], "choices": [] }
       ]
     }
   ]

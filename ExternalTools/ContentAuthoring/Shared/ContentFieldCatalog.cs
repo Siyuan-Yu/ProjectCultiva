@@ -56,6 +56,7 @@ public static class ContentFieldCatalog
         ("setFlag", "设置剧情标记"),
         ("clearFlag", "清除剧情标记"),
         ("addStock", "给予资源"),
+        ("removeStock", "移除物品 / 交出物品"),
         ("startQuest", "开始任务"),
         ("discoverSite", "发现机缘点"),
         ("grantProgress", "修炼进度"),
@@ -137,7 +138,7 @@ public static class ContentFieldCatalog
 
     public static IReadOnlyList<FieldSpec> FieldsForOutcome(string kind) => kind switch
     {
-        "addStock" =>
+        "addStock" or "removeStock" =>
         [
             new FieldSpec { Key = "id", Label = "资源", Editor = FieldEditorKind.Resource },
             new FieldSpec { Key = "amount", Label = "数量", Editor = FieldEditorKind.Number }

@@ -219,7 +219,7 @@ namespace XianXia.Data.Content
         }
 
         /// <summary>
-        /// 只读 preflight：metric 合法 + center chunk 存在 + 全部已覆盖的 radius-1 neighbor
+        /// 只读 preflight：metric 合法 + center chunk 存在 + shared streaming radius 内全部已覆盖的 neighbor
         /// source 可解析。不写任何 Runtime 字段（与 activation 使用同一规则）。
         /// </summary>
         public static bool TryPreflightNeighborhood(
@@ -246,8 +246,9 @@ namespace XianXia.Data.Content
             }
 
             var present = 0;
-            for (var dy = -1; dy <= 1; dy++)
-            for (var dx = -1; dx <= 1; dx++)
+            var radius = ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks;
+            for (var dy = -radius; dy <= radius; dy++)
+            for (var dx = -radius; dx <= radius; dx++)
             {
                 var coord = new SurfaceChunkCoord(center.X + dx, center.Y + dy);
                 if (!IsChunkPresent(surface, coord))

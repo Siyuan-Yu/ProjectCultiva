@@ -1,7 +1,7 @@
 # EVENT-02A — Persistent World Activity Feed
 
-> 状态：**Implementation Complete / Producer Acceptance Pending**  
-> 日期：2026-09-23  
+> 状态：**Producer Accepted / Sealed**
+> 日期：2026-09-23
 > 范围：仅接入 WorldOpportunity `publicNotice`；不是 Quest、ContentEvent 弹窗或通用通知中心。
 
 ## 1. Runtime 与生命周期
@@ -27,15 +27,12 @@ Restore 直接写 board，不发布 `WorldOpportunityNotice`，所以 Load 后�
 - 受伤散修：worldVisible，距离 2～3 world units，不进 Activity。
 - 临时行商：publicNotice，标题“临时行商”，正文“听说荒村附近来了一名临时行商。”，公开准确位置，距离 2～3 world units。
 
-## 5. 制作人人工验收
+两项内容继续属于 `event02_acceptance.json` 的 acceptance/prototype chain；封板后作为 `worldVisible` 与 `publicNotice` 的正式 authoring/reference sample 保留，不升级为荒村正式剧情。等真实荒村内容同时覆盖静默发现、公开 Activity、定位、Save/Load 与 expiry→history 后，再单独评估整链删除。
 
-1. New Game：左侧出现 unread“临时行商”并短暂 Toast；受伤散修不入栏。
-2. 点击临时行商：显示正文、出现日、有效状态与剩余时间；unread 强调消失。
-3. 点击定位：镜头对准行商，玩家角色不移动、不产生路线、不暂停。
-4. Save → Load：Activity、read state 与同一 NPC 定位仍在，不重新 Toast。
-5. 推进一天：旧行商到期后从 Active 消失并进入 History；Director 新生成的行商拥有新 Activity 与新 Toast。
-6. 受伤散修始终只通过世界实际发现，Activity/History 不自动记录。
+## 5. 制作人验收结果
+
+制作人已于 2026-09-23 实际验收 publicNotice Activity、详情、exact-location camera locate、Save/Load、restore 不重复通知，以及 expiry 后进入 History；受伤散修保持 worldVisible 且不自动进入 Activity。状态更新为 **Producer Accepted / Sealed**。
 
 ## 6. 验证边界
 
-仓库规则禁止代理新增或运行自动测试，因此任务书定向 tests 未执行。交付只进行全程序集 offline compile、BaseGame Content validation、OpportunityEditor/Build All、静态引用检查与 `git diff --check`；Unity 运行行为等待制作人人工验收。未实现 hidden、动态 WorldObject、通用通知中心、minimap marker、waypoint、auto travel、teleport 或自动跨 Surface。
+Seal 收口只运行指定 lightweight Continuous Surface neighborhood／startup preflight tests、全程序集 offline compile、静态引用检查与 `git diff --check`；不启动 Unity或大型测试。未实现 hidden、动态 WorldObject、通用通知中心、minimap marker、waypoint、auto travel、teleport、camera preload 或自动跨 Surface。

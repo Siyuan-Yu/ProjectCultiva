@@ -91,7 +91,7 @@ namespace XianXia.Tests
 
             var dump = debug.Dump(world, subject);
             StringAssert.Contains("chapter=base:chapter_ch01_shell", dump);
-            Assert.AreEqual(5, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(7, WorldSnapshot.CurrentSchemaVersion);
         }
     }
 }

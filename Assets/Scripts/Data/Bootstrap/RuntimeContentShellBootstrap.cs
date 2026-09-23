@@ -44,14 +44,17 @@ namespace XianXia.Data.Bootstrap
             if (jobs.IsFailure)
                 return jobs;
 
-            // Static narrative definitions are needed after load, but no opening effect or
-            // narrative runtime progress is restored here.
+            // Static narrative definitions are rehydrated after Snapshot runtime state;
+            // no opening effect is replayed here, then restored ids are validated.
             var contentDefinitions = ContentRuntimeBootstrap.RehydrateContentDefinitions(world, registry);
             if (contentDefinitions.IsFailure)
                 return contentDefinitions;
             var chapterDefinitions = ChapterRuntimeBootstrap.ApplyDefinitions(world, registry);
             if (chapterDefinitions.IsFailure)
                 return chapterDefinitions;
+            var restoredProgress = XianXia.Core.Persistence.ContentProgressSnapshotHelper.ValidateDefinitions(world);
+            if (restoredProgress.IsFailure)
+                return restoredProgress;
 
             // Content 的 stack/tag 生效后仅在不会溢出时重排，数量绝不因恢复被截断。
             world.Inventory.TryOrganizeWithoutLoss();

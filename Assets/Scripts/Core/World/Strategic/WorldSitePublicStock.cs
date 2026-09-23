@@ -35,6 +35,14 @@ namespace XianXia.Core.World.Strategic
 
     public sealed class WorldSitePublicStockBoard
     {
+        internal sealed class RuntimeState
+        {
+            public readonly Dictionary<string, Dictionary<string, int>> BySite =
+                new Dictionary<string, Dictionary<string, int>>(StringComparer.Ordinal);
+            public bool HasSnapshotAuthority;
+            public bool DefaultsInitialized;
+        }
+
         readonly Dictionary<string, WorldSitePublicStockState> _bySite =
             new Dictionary<string, WorldSitePublicStockState>(StringComparer.Ordinal);
 
@@ -57,6 +65,33 @@ namespace XianXia.Core.World.Strategic
                 _bySite.Add(siteId, state);
             }
             return state;
+        }
+
+        internal RuntimeState CaptureState()
+        {
+            var captured = new RuntimeState
+            {
+                HasSnapshotAuthority = HasSnapshotAuthority,
+                DefaultsInitialized = DefaultsInitialized
+            };
+            foreach (var site in _bySite)
+                captured.BySite.Add(site.Key,
+                    new Dictionary<string, int>(site.Value.Resources, StringComparer.Ordinal));
+            return captured;
+        }
+
+        internal void RestoreState(RuntimeState state)
+        {
+            _bySite.Clear();
+            HasSnapshotAuthority = state?.HasSnapshotAuthority ?? false;
+            DefaultsInitialized = state?.DefaultsInitialized ?? false;
+            if (state == null) return;
+            foreach (var site in state.BySite)
+            {
+                var restored = GetOrCreate(site.Key);
+                foreach (var resource in site.Value)
+                    restored.Set(resource.Key, resource.Value);
+            }
         }
     }
 

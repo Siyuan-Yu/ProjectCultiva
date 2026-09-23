@@ -1,5 +1,40 @@
 # 开发日志
 
+## 2026-09-24 — SAVE-01 + STRATEGIC-STOCK-01 Producer Accepted / Sealed
+
+- 制作人确认当前内容验收通过：临时行商／受伤散修接取与交付、战略公库直接交付、势力仓库取出、Quest Active／ReadyToClaim／Completed 以及各阶段 Save/Load 均按当前范围封板。
+- SAVE-01 与 STRATEGIC-STOCK-01 状态更新为 **Producer Accepted / Sealed**。Snapshot 保持 v7；不新增 FactionInventory、通用 Item 仓库、Quest issuer、NPC 当面领奖或物流系统。
+- 本次封板提交包含此前同一未提交工作区中的 EVENT-02／EVENT-02A、Continuous Surface Streaming Radius 2、SAVE-01 与战略库存整合成果；对应已验收状态与边界由 255／256／257、roadmap 和 247 handoff 共同记录。
+
+## 2026-09-23 — STRATEGIC-STOCK-01 Resource Hand-in + Faction Warehouse Access
+
+- 确认 HUD 已使用 `PlayerStrategicResourceService.GetAvailableCount`，而 Content `stockAtLeast`／Quest progress／Journal 与 `removeStock` 仍只读写 PartyInventory，导致 HUD 数量与 NPC 交付条件不一致。
+- 新增统一 `GetPlayerAccessibleCount`：resource 在可访问己方实际控制＋active StorageRoom network 时使用 PartyInventory＋eligible WorldSitePublicStock，离开网络时 bag-only；非 resource 始终 bag-only。Condition、Quest、Journal 与 Host 任务摘要已统一调用。
+- resource `removeStock` 改用现有战略资源稳定扣除顺序；Outcome transaction 增加 WorldSitePublicStock runtime Capture/Restore，因此仓库扣除后若同组 Outcome 失败，会连同事件队列一起完全回滚。
+- 新增只统计仓库的 totals 查询和原子 `TryWithdrawToPartyInventory`。`HostInventoryPanel` 同一暂停窗口增加“小队背包／势力仓库”视图、不可访问灰显提示、资源卡片、“取出 1／取出尽量多”；不扩普通 Item 仓库、容量或物流。
+- STRATEGIC-STOCK-01＋SAVE-01／Quest／Event 定向组合 30/30，`offline-compile.ps1` 为 `ALL_OK`；未启动 Unity。
+- Snapshot 保持 v7，PartyInventory 与 WorldSitePublicStock 继续使用既有 authority。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-23 — SAVE-01 Content Progress Persistence V1 + EVENT-02 prototype Quest
+
+- Snapshot 升为 v7，新增必需 `contentProgress.hasAuthority=true`，保存 Flags／History、全部 Quest runtime、Event fired keys、Chapter runtime、Counters、Daily marks 与 LocationLabor ticks／harvests；v1～v6 明确拒绝。
+- Active Event 期间 `CaptureJson` 拒绝保存；只持久化完成后的内容事实。restore definitions-only rehydrate 后严格校验 Quest／Event／Chapter 引用。
+- 新增共享 `PlayableSimulationLoopFactory`，New Game 与 Load 各注册一次 Quota、Chapter、QuestDeadline、SupervisorPressure handlers；保留内建 WorldOpportunity driver。
+- 受伤散修初次对话的“我帮你去找。”以同一 transaction 设置 accepted flag 并启动 `base:quest_event02_wounded_cultivator_herb`；任务要求荒村药田实际采收一次，2 天期限，领奖给修为 +3 与完成 flag。Quest Active reminder 已接通，Opportunity 生命周期调为 3 天。
+- 追加更易定位的临时行商主验收任务 `base:quest_event02_temporary_merchant_herb`：接受 Choice 同一 transaction 设置 accepted flag 并 startQuest；药田实际采收一次、2 天期限、领奖修为 +2 与完成 flag。P60 Active reminder 不重复 startQuest，拒绝无 Outcome，行商 Opportunity 生命周期由 1 天调为 3 天；受伤散修任务保留。
+- 制作人修正两条 prototype 的目标语义：不再要求药田采收，改为取得任意来源的 `base:resource_spirit_herb ×1` 后回匹配 NPC Event 交付。新增通用 `removeStock` Outcome、resource/item 引用验证及 EventEditor 共享编辑 UI；扣除与 hand-in flag 位于同一既有事务，后续 Outcome 失败时 Inventory 一并恢复。任务以各自 handed-in flag 进入 ReadyToClaim，奖励方案与 LocationLabor Snapshot authority 保持。
+- SAVE-01 定向 headless tests 9/9；SAVE-01＋Quest／Event／Content 定向组合 30/30；BaseGame Content loader/reference validation 通过。离线编译与最终 diff check 见本轮最终报告。未启动 Unity，未 stage／commit／push。
+- 状态：**Implementation Complete / Producer Acceptance Pending**。完整范围与人工验收见 [257](257-save-01-content-progress-persistence-v1-2026-09-23.md)。
+
+## 2026-09-23 — EVENT-02 / EVENT-02A Seal + Continuous Surface Streaming Radius 2
+
+- 制作人已实际验收 EVENT-02 的 NPC Opportunity 生成、EVENT-01 Template interaction、合法世界落点、同日 density/refill、Save/Load 与 expiry，以及 EVENT-02A 的 publicNotice、Activity 详情、精确位置镜头定位、Save/Load、无重复恢复通知和 expiry→history；两项状态更新为 **Producer Accepted / Sealed**。
+- 新增 Core `ContinuousSurfaceStreamingPolicy`，统一 `ActiveRadiusChunks=2`、`ActiveDiameterChunks=5`。Host initial activation、staged transition 与 Data startup preflight 读取同一 policy；完整邻域为 25 chunks，地图边缘仍只消费实际 authored chunks。
+- 普通相邻 crossing 仍维持每 Update 最多 Build 1 chunk，典型新增列由 3 增至 5；hard activation／Snapshot presentation rebuild 保持同步语义，最大由 9 增至 25，是后续 Unity 人工观察的唯一新增性能点。
+- GridPathfinder 继续按 `EnsureCapacity(w * grid.Height)` 动态扩容，仅更新 5×5／约 62,500 cells 注释；未改 A*、Chunk metric、camera authority、Opportunity Runtime 或 Snapshot schema（仍为 6）。
+- 两类轻量 headless 测试共 18/18 通过，覆盖 5×5 Count=25、相邻 diff=5 与 preflight 对 shared-radius 外圈 authored chunk 的验证；offline compile `ALL_OK`。未启动 Unity，未 stage／commit／push／reset。
+- EVENT-02 acceptance definitions 暂保留为已验收的正式 authoring/reference sample，不提升为荒村正式剧情；待真实荒村内容覆盖相同制作与回归用途后再单独清理。
+
 ## 2026-09-23 — EVENT-02A Persistent World Activity Feed
 
 - 新增 `WorldActivityBoard`，以 Opportunity InstanceId 为稳定 source，持久保存 Active/History、unread、创建/结束日；publicNotice 创建 Activity 并保留一次 Toast，worldVisible 不入栏。

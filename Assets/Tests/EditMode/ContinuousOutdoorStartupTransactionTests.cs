@@ -164,6 +164,49 @@ namespace XianXia.Tests.EditMode
             Assert.AreEqual(placements, surface.SitePlacements.Count);
         }
 
+        [Test]
+        public void B04_PreflightValidatesAuthoredOuterRingAtSharedRadius()
+        {
+            var registry = LoadRegistry();
+            ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                registry, OpeningSiteId, out var surface, out _);
+            ContinuousOutdoorStartupPlanner.TryResolveBakedAnchor(
+                surface, OpeningSiteId, OpeningLocationId, out var x, out var y, out _);
+            var center = ContinuousOutdoorStartupPlanner.WorldToChunk(surface, x, y);
+            Assert.IsTrue(registry.TryGetOutdoorSurfaceGeography(surface.SurfaceId, out var geography));
+
+            var radius = ContinuousSurfaceStreamingPolicy.ActiveRadiusChunks;
+            var found = false;
+            var outer = default(SurfaceChunkCoord);
+            for (var dy = -radius; dy <= radius && !found; dy++)
+            for (var dx = -radius; dx <= radius; dx++)
+            {
+                if (System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dy)) != radius)
+                    continue;
+                var candidate = new SurfaceChunkCoord(center.X + dx, center.Y + dy);
+                if (!ContinuousOutdoorStartupPlanner.IsChunkPresent(surface, candidate) ||
+                    !geography.CoverageChunks.Contains(candidate))
+                    continue;
+                outer = candidate;
+                found = true;
+                break;
+            }
+
+            Assert.IsTrue(found, "验收 Surface 必须在 shared radius 外圈含 authored chunk");
+            geography.CoverageChunks.Remove(outer);
+            try
+            {
+                Assert.IsFalse(ContinuousOutdoorStartupPlanner.TryPreflightNeighborhood(
+                    registry, surface, center, out var failure));
+                StringAssert.Contains("GeographyMissing", failure);
+                StringAssert.Contains(outer.ToString(), failure);
+            }
+            finally
+            {
+                geography.CoverageChunks.Add(outer);
+            }
+        }
+
         // ---- C 组：prepare 结果的目标状态（§6 正常启动） ----
 
         [Test]

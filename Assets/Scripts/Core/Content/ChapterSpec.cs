@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace XianXia.Core.Content
 {
-    /// <summary>Chapter production framework template (session; not Snapshot).</summary>
+    /// <summary>Static Chapter definition; Chapter runtime progress is persisted separately.</summary>
     public sealed class ChapterSpec
     {
         public string Id { get; set; } = string.Empty;

@@ -4,7 +4,7 @@ namespace XianXia.Core.Content
     public sealed class ContentOutcome
     {
         /// <summary>
-        /// setFlag | clearFlag | addStock | startQuest | completeQuestHint |
+        /// setFlag | clearFlag | addStock | removeStock | startQuest | completeQuestHint |
         /// relationDelta | grantProgress | discoverSite |
         /// addCounter | setCounter | setDailyFlag | clearDailyFlag |
         /// learnManual | setEncounterCleared | startMinigame

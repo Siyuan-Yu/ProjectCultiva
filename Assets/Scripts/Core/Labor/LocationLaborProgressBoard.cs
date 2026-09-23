@@ -64,6 +64,19 @@ namespace XianXia.Core.Labor
         public bool HasHarvested(string characterDefinitionId, string locationId, int min = 1) =>
             GetHarvests(characterDefinitionId, locationId) >= min;
 
+        internal void CaptureState(out Dictionary<string, int> ticks, out Dictionary<string, int> harvests)
+        {
+            ticks = new Dictionary<string, int>(_ticks, StringComparer.Ordinal);
+            harvests = new Dictionary<string, int>(_harvests, StringComparer.Ordinal);
+        }
+
+        internal void RestoreState(IReadOnlyDictionary<string, int> ticks, IReadOnlyDictionary<string, int> harvests)
+        {
+            _ticks.Clear(); _harvests.Clear();
+            if (ticks != null) foreach (var pair in ticks) _ticks[pair.Key] = pair.Value;
+            if (harvests != null) foreach (var pair in harvests) _harvests[pair.Key] = pair.Value;
+        }
+
         static string Key(string characterDefinitionId, string locationId) =>
             characterDefinitionId + "|" + locationId;
     }

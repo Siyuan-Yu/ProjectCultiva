@@ -44,6 +44,23 @@ namespace XianXia.Core.Content
         public void MarkBeatApplied(string chapterId, int dayIndex) =>
             _appliedBeats.Add(BeatKey(chapterId, dayIndex));
 
+        internal void CaptureRuntime(out string activeChapterId, out ulong startDayIndex, out List<string> appliedBeatKeys)
+        {
+            activeChapterId = ActiveChapterId;
+            startDayIndex = ChapterStartDayIndex;
+            appliedBeatKeys = new List<string>(_appliedBeats);
+        }
+
+        internal void RestoreRuntime(string activeChapterId, ulong startDayIndex, IEnumerable<string> appliedBeatKeys)
+        {
+            ActiveChapterId = activeChapterId ?? string.Empty;
+            ChapterStartDayIndex = startDayIndex;
+            _appliedBeats.Clear();
+            if (appliedBeatKeys != null) foreach (var key in appliedBeatKeys) _appliedBeats.Add(key);
+        }
+
+        internal IReadOnlyCollection<string> AppliedBeatKeys => _appliedBeats;
+
         static string BeatKey(string chapterId, int dayIndex) =>
             (chapterId ?? string.Empty) + ":" + dayIndex;
     }
