@@ -1085,6 +1085,21 @@ namespace XianXia.Data.Content
             {
                 var q = kv.Value;
                 var ctx = q.Id.ToString();
+                var commission = string.Equals(q.RuntimeMode, "characterCommission", StringComparison.OrdinalIgnoreCase);
+                if (commission && !string.Equals(q.AcceptanceMode, "interaction", StringComparison.OrdinalIgnoreCase))
+                    report.Add(ErrorCode.InvalidArgument, "characterCommission requires acceptanceMode=interaction.", ctx);
+                if (commission && q.AutoOffer)
+                    report.Add(ErrorCode.InvalidArgument, "characterCommission cannot autoOffer.", ctx);
+                for (var i = 0; i < q.DeliveryRequirements.Count; i++)
+                {
+                    var requirement = q.DeliveryRequirements[i];
+                    if (requirement == null || requirement.Amount <= 0)
+                        report.Add(ErrorCode.InvalidArgument, "delivery requirement amount must be positive.", ctx);
+                    else if (!DefinitionId.TryParse(requirement.ItemId, out var deliveryId) ||
+                             (!registry.Resources.ContainsKey(deliveryId) && !registry.Items.ContainsKey(deliveryId)))
+                        report.Add(ErrorCode.NotFound, "delivery resource/item reference missing.",
+                            ctx + ".deliveryRequirements:" + requirement.ItemId);
+                }
                 ScanConditions(q.OfferConditions, registry, locations, producedFlags, consumedFlags, ctx + ".offer", report);
                 ScanConditions(q.CompleteConditions, registry, locations, producedFlags, consumedFlags, ctx + ".complete", report);
                 ScanConditions(q.FailConditions, registry, locations, producedFlags, consumedFlags, ctx + ".fail", report);
@@ -1122,7 +1137,8 @@ namespace XianXia.Data.Content
                 foreach (var step in e.Steps)
                 {
                     var sc = ctx + ".step." + step.Id;
-                    if (!string.IsNullOrEmpty(step.SpeakerRef) && step.SpeakerRef != "@actor" && step.SpeakerRef != "@target")
+                    if (!string.IsNullOrEmpty(step.SpeakerRef) && step.SpeakerRef != "@actor" &&
+                        step.SpeakerRef != "@target" && step.SpeakerRef != "@issuer")
                         RequireDef(registry, step.SpeakerRef, "character", sc + ".speakerRef", report);
                     ScanOutcomes(step.Outcomes, registry, locations, producedFlags, consumedFlags, sc, report);
                     foreach (var c in step.Choices)
@@ -1286,7 +1302,18 @@ namespace XianXia.Data.Content
                         break;
                     case "questactive":
                     case "questcompleted":
+                    case "questofferablefromtarget":
+                    case "questactivefromtarget":
+                    case "questhandedinfromtarget":
+                    case "questdeliveryavailablefromtarget":
+                    case "questreadytoclaimfromtarget":
+                    case "questcompletedfromtarget":
+                    case "questfailedfromtarget":
                         RequireDef(registry, c.Id, "quest", ctx + ".quest", report);
+                        break;
+                    case "affectionatleast":
+                        ValidateCharacterReference(c.Id, registry, ctx + ".affection.from", report);
+                        ValidateCharacterReference(c.CharacterId, registry, ctx + ".affection.to", report);
                         break;
                     case "hasmanual":
                         RequireDef(registry, c.Id, "cultivation", ctx + ".manual", report);
@@ -1376,6 +1403,8 @@ namespace XianXia.Data.Content
                         break;
                     }
                     case "startquest":
+                    case "acceptquestfromtarget":
+                    case "deliverquesttotarget":
                         RequireDef(registry, o.Id, "quest", ctx + ".startQuest", report);
                         break;
                     case "discoversite":
@@ -1412,20 +1441,20 @@ namespace XianXia.Data.Content
 
                         break;
                     case "relationdelta":
-                        RequireDef(registry, o.FromDefinitionId, "character", ctx + ".relation.from", report);
+                        ValidateCharacterReference(o.FromDefinitionId, registry, ctx + ".relation.from", report);
                         if (o.ToDefinitionIds.Count > 0)
                         {
                             for (var ti = 0; ti < o.ToDefinitionIds.Count; ti++)
                             {
                                 var targetId = o.ToDefinitionIds[ti];
-                                if (string.Equals(targetId, "@party", StringComparison.OrdinalIgnoreCase))
+                                if (IsContextCharacterReference(targetId))
                                     continue;
                                 RequireDef(registry, targetId, "character", ctx + ".relation.to", report);
                             }
                         }
                         else if (!string.IsNullOrEmpty(o.ToDefinitionId))
                         {
-                            if (!string.Equals(o.ToDefinitionId, "@party", StringComparison.OrdinalIgnoreCase))
+                            if (!IsContextCharacterReference(o.ToDefinitionId))
                                 RequireDef(registry, o.ToDefinitionId, "character", ctx + ".relation.to", report);
                         }
                         else
@@ -1439,6 +1468,19 @@ namespace XianXia.Data.Content
                         break;
                 }
             }
+        }
+
+        static bool IsContextCharacterReference(string value) =>
+            string.Equals(value, "@party", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "@actor", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "@target", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "@issuer", StringComparison.OrdinalIgnoreCase);
+
+        static void ValidateCharacterReference(string value, DefinitionRegistry registry,
+            string context, ValidationReport report)
+        {
+            if (IsContextCharacterReference(value)) return;
+            RequireDef(registry, value, "character", context, report);
         }
 
         static void ValidateFlagConsumers(

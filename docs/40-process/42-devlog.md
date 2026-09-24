@@ -1,5 +1,13 @@
 # 开发日志
 
+## 2026-09-24 — QUEST-INSTANCE-01 动态人物委托与真实互动上下文 V1
+
+- 状态：**Implementation Complete / Producer Acceptance Pending**；完整模型、边界与人工验收见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
+- Quest 模板与运行实例分离：固定任务保持模板单份语义，人物委托按真实 Issuer 分配稳定实例；Journal／HUD、领取、放弃、期限、发布者消失、事务回滚与 Snapshot v8 全部使用实例身份。
+- EVENT-02 两条灵药任务改为结构化互动接取／交付，删除 accepted／handed-in／done prototype flags；交付需求来自 Quest 模板，并继续复用 STRATEGIC-STOCK-01 的可访问库存和 `RelationshipLedger`。
+- QuestEditor／EventEditor Shared 增加中文委托制作字段；LevelTester 内容页可确定补足两名同模板临时行商，显示 Opportunity／Entity／坐标供制作人验收。后续 `ContentIntent` 等路线只记录 Planned。
+- 验证执行记录以本轮最终命令结果为准；未启动 Unity，未 stage／commit／push。
+
 ## 2026-09-24 — SAVE-01 + STRATEGIC-STOCK-01 Producer Accepted / Sealed
 
 - 制作人确认当前内容验收通过：临时行商／受伤散修接取与交付、战略公库直接交付、势力仓库取出、Quest Active／ReadyToClaim／Completed 以及各阶段 Save/Load 均按当前范围封板。

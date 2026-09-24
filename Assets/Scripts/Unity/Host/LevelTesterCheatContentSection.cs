@@ -1,6 +1,7 @@
 using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Opportunity;
 
 namespace XianXia.Unity.Host
 {
@@ -49,6 +50,14 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x + width - 90f, y, 88f, 22f), "强制呈现"))
                 ForceEvent(session, selection);
             y += 26f;
+
+            if (GUI.Button(new Rect(x, y, width, 24f), "QUEST-INSTANCE-01：生成两名同模板临时行商"))
+            {
+                var result = WorldOpportunityDriver.SpawnAcceptanceInstances(
+                    session.World, "base:world_opportunity_event02_temporary_merchant", 2, out var summary);
+                _sectionStatus = result.IsSuccess ? "已生成：" + summary : "失败：" + result.Error;
+            }
+            y += 28f;
 
             if (GUI.Button(new Rect(x, y, 100f, 24f), "刷新 Dump"))
                 RefreshDump(session, selection);

@@ -67,6 +67,7 @@ public partial class MainWindow : Window
         var locs = PackageStore.AllLocationIds(_package);
         OfferLocationBox.ItemsSource = locs;
         NpcLocationBox.ItemsSource = locs;
+        DeliveryItemBox.ItemsSource = PackageStore.AllResourceIds(_package);
     }
 
     private void OpenPackage_Click(object sender, RoutedEventArgs e)
@@ -91,6 +92,14 @@ public partial class MainWindow : Window
             AutoOfferBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "autoOffer", true);
             AbandonableBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "abandonable", false);
             DeadlineDaysBox.Text = JsonEdit.GetInt(_quest.Raw, "deadlineDays", 0).ToString();
+            SelectTagged(RuntimeModeBox, JsonEdit.GetString(_quest.Raw, "runtimeMode", "fixed"));
+            SelectTagged(AcceptanceModeBox, JsonEdit.GetString(_quest.Raw, "acceptanceMode", "journal"));
+            if (_quest.Raw["deliveryRequirements"] is JsonArray delivery && delivery.FirstOrDefault() is JsonObject req)
+            {
+                DeliveryItemBox.Text = JsonEdit.GetString(req, "itemId");
+                DeliveryAmountBox.Text = JsonEdit.GetInt(req, "amount", 1).ToString();
+            }
+            else { DeliveryItemBox.Text = ""; DeliveryAmountBox.Text = "1"; }
 
             OfferEditor.LoadFrom(_quest.Raw["offerConditions"]);
             CompleteEditor.LoadFrom(_quest.Raw["completeConditions"]);
@@ -124,6 +133,16 @@ public partial class MainWindow : Window
             _loading = false;
         }
     }
+
+    static void SelectTagged(ComboBox box, string tag)
+    {
+        foreach (var item in box.Items)
+            if (item is ComboBoxItem combo && string.Equals(combo.Tag?.ToString(), tag, StringComparison.Ordinal))
+            { box.SelectedItem = combo; return; }
+    }
+
+    static string SelectedTag(ComboBox box, string fallback) =>
+        box.SelectedItem is ComboBoxItem item ? item.Tag?.ToString() ?? fallback : fallback;
 
     void SelectOfferMode(QuestOfferMode mode)
     {
@@ -268,6 +287,9 @@ public partial class MainWindow : Window
         ["type"] = "quest",
         ["name"] = name,
         ["description"] = "",
+        ["runtimeMode"] = "fixed",
+        ["acceptanceMode"] = "journal",
+        ["deliveryRequirements"] = new JsonArray(),
         ["deadlineDays"] = 1,
         ["autoOffer"] = true,
         ["offerConditions"] = new JsonArray(),
@@ -419,6 +441,18 @@ public partial class MainWindow : Window
         _quest.Raw["name"] = NameBox.Text ?? "";
         _quest.Raw["description"] = DescBox.Text ?? "";
         _quest.Raw["abandonable"] = AbandonableBox.IsChecked == true;
+        var runtimeMode = SelectedTag(RuntimeModeBox, "fixed");
+        var acceptanceMode = SelectedTag(AcceptanceModeBox, "journal");
+        if (runtimeMode == "characterCommission" && acceptanceMode != "interaction")
+        { err = "人物委托必须选择「真实人物互动」接取入口"; return false; }
+        _quest.Raw["runtimeMode"] = runtimeMode;
+        _quest.Raw["acceptanceMode"] = acceptanceMode;
+        var deliveryItem = DeliveryItemBox.Text?.Trim() ?? "";
+        if (!int.TryParse(DeliveryAmountBox.Text?.Trim(), out var deliveryAmount) || deliveryAmount <= 0)
+        { err = "交付数量必须为正整数"; return false; }
+        _quest.Raw["deliveryRequirements"] = string.IsNullOrEmpty(deliveryItem)
+            ? new JsonArray()
+            : new JsonArray(new JsonObject { ["itemId"] = deliveryItem, ["amount"] = deliveryAmount });
         if (!int.TryParse(DeadlineDaysBox.Text?.Trim(), out var deadlineDays) || deadlineDays < 0)
         {
             err = "deadlineDays 需为非负整数";

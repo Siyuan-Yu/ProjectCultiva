@@ -25,7 +25,12 @@ namespace XianXia.Core.Content
 
     public sealed class QuestListEntry
     {
+        /// <summary>Command key: fixed definition id or dynamic QuestInstanceId.</summary>
         public string QuestId { get; set; } = string.Empty;
+        public string QuestDefinitionId { get; set; } = string.Empty;
+        public string IssuerDisplayName { get; set; } = string.Empty;
+        public string QuestInstanceId { get; set; } = string.Empty;
+        public ulong AcceptedAtDayIndex { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public QuestListKind Kind { get; set; }
@@ -68,15 +73,15 @@ namespace XianXia.Core.Content
             if (world?.Quests?.Specs == null)
                 return;
 
-            foreach (var kv in world.Quests.Specs)
+            foreach (var kv in world.Quests.Runtime)
             {
-                var spec = kv.Value;
-                if (spec == null || string.IsNullOrEmpty(spec.Id))
+                var runtime = kv.Value;
+                if (runtime == null || !world.Quests.TryGetSpec(runtime.QuestId, out var spec))
                     continue;
-                if (!world.Quests.TryGet(spec.Id, out var runtime))
+                if (spec.IsCharacterCommission && runtime.Status == QuestStatus.Inactive)
                     continue;
 
-                var entry = BuildEntry(world, subject, spec, runtime);
+                var entry = BuildEntry(world, subject, spec, runtime, kv.Key);
                 if (entry != null)
                     into.Add(entry);
             }
@@ -88,11 +93,16 @@ namespace XianXia.Core.Content
             SimulationWorld world,
             EntityId subject,
             QuestSpec spec,
-            QuestRuntime runtime)
+            QuestRuntime runtime,
+            string runtimeKey)
         {
             var entry = new QuestListEntry
             {
-                QuestId = spec.Id,
+                QuestId = runtimeKey,
+                QuestDefinitionId = spec.Id,
+                QuestInstanceId = runtime.QuestInstanceId,
+                IssuerDisplayName = runtime.IssuerDisplayName,
+                AcceptedAtDayIndex = runtime.AcceptedAtDayIndex,
                 Name = string.IsNullOrEmpty(spec.Name) ? spec.Id : spec.Name,
                 Description = spec.Description ?? string.Empty,
                 Status = runtime.Status,
@@ -102,6 +112,12 @@ namespace XianXia.Core.Content
                 FailResultsSummary = SummarizeOutcomes(spec.FailResults, "（无失败后果）"),
                 ObjectivesSummary = SummarizeObjectivesLive(world, spec.CompleteConditions, runtime)
             };
+            if (spec.IsCharacterCommission)
+                entry.Name += " · " + runtime.IssuerDisplayName + " [" + ShortInstance(runtime.QuestInstanceId) + "]";
+            if (spec.DeliveryRequirements.Count > 0)
+                entry.ObjectivesSummary = runtime.DeliveryCompleted
+                    ? "物品已交付，等待领取奖励"
+                    : SummarizeDelivery(spec.DeliveryRequirements);
             if (UsesDescriptionForInternalHandIn(spec.CompleteConditions) &&
                 !string.IsNullOrWhiteSpace(entry.Description))
                 entry.ObjectivesSummary = entry.Description;
@@ -135,7 +151,7 @@ namespace XianXia.Core.Content
                 case QuestStatus.ReadyToClaim:
                     entry.Kind = QuestListKind.ReadyToClaim;
                     entry.CanClaim = true;
-                    entry.CanAbandon = spec.Abandonable;
+                    entry.CanAbandon = false;
                     break;
                 case QuestStatus.Completed:
                     entry.Kind = QuestListKind.Completed;
@@ -145,6 +161,7 @@ namespace XianXia.Core.Content
                     break;
                 default:
                 {
+                    if (spec.IsCharacterCommission) return null;
                     var offerOk = ContentConditionEvaluator.AllPass(world, subject, spec.OfferConditions);
                     if (offerOk)
                     {
@@ -162,6 +179,22 @@ namespace XianXia.Core.Content
             }
 
             return entry;
+        }
+
+        static string ShortInstance(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return "?";
+            var index = id.LastIndexOf(':');
+            return index >= 0 ? id.Substring(index + 1) : id;
+        }
+
+        static string SummarizeDelivery(IReadOnlyList<QuestDeliveryRequirement> requirements)
+        {
+            var parts = new List<string>();
+            for (var i = 0; i < requirements.Count; i++)
+                parts.Add("交付 " + ResourceLabel(requirements[i].ItemId) + " ×" +
+                          (requirements[i].Amount > 0 ? requirements[i].Amount : 1));
+            return string.Join("；", parts);
         }
 
         static bool UsesDescriptionForInternalHandIn(IReadOnlyList<ContentCondition> conditions)

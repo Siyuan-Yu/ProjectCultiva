@@ -5,7 +5,7 @@ namespace XianXia.Core.Content
     {
         /// <summary>
         /// setFlag | clearFlag | addStock | removeStock | startQuest | completeQuestHint |
-        /// relationDelta | grantProgress | discoverSite |
+        /// relationDelta | grantProgress | discoverSite | acceptQuestFromTarget | deliverQuestToTarget |
         /// addCounter | setCounter | setDailyFlag | clearDailyFlag |
         /// learnManual | setEncounterCleared | startMinigame
         /// </summary>

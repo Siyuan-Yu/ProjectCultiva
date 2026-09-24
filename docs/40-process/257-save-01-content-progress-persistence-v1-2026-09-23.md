@@ -4,6 +4,8 @@
 > 状态：**Producer Accepted / Sealed（2026-09-24）**
 > 范围：Snapshot v7 Content Progress authority；EVENT-02 受伤散修／临时行商 prototype Quest wiring
 
+> **后续替代说明（2026-09-24）：** 本页保留 SAVE-01 封板时的历史实现与验收事实。当前两条 EVENT-02 动态任务已由 [QUEST-INSTANCE-01](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md) 改为结构化人物委托，Snapshot 当前为 v8；下文 accepted／handed-in／done flags 不再是现行 Content。
+
 ## 1. 结果
 
 SAVE-01 将“玩家做到哪里”纳入 Snapshot，把静态 Content definitions 与运行进度分离。`WorldSnapshot.CurrentSchemaVersion` 已升为 7；`contentProgress` 必须存在且 `hasAuthority=true`。v1～v6 缺少足够事实，统一返回 `SnapshotVersionMismatch`，不把缺失字段猜成空进度。

@@ -14,7 +14,9 @@ namespace XianXia.Core.Persistence
             world.Flags.CaptureState(out var flags, out var history);
             flags.Sort(StringComparer.Ordinal);
             dto.Flags.AddRange(flags); dto.FlagHistory.AddRange(history);
-            var questRuntime = world.Quests.CaptureRuntime();
+            var questState = world.Quests.CaptureRuntime();
+            dto.NextQuestInstanceSequence = questState.NextInstanceSequence;
+            var questRuntime = questState.Runtime;
             var questIds = new List<string>(questRuntime.Keys);
             questIds.Sort(StringComparer.Ordinal);
             foreach (var questId in questIds)
@@ -22,10 +24,17 @@ namespace XianXia.Core.Persistence
                 var runtime = questRuntime[questId];
                 dto.Quests.Add(new QuestRuntimeSnapshotDto
                 {
-                    QuestId = runtime.QuestId, Status = (int)runtime.Status,
+                    QuestInstanceId = runtime.QuestInstanceId, QuestId = runtime.QuestId,
+                    IssuerEntityId = runtime.IssuerEntityId.Value,
+                    SourceOpportunityInstanceId = runtime.SourceOpportunityInstanceId,
+                    IssuerDisplayName = runtime.IssuerDisplayName,
+                    AcceptedByEntityId = runtime.AcceptedByEntityId.Value,
+                    Status = (int)runtime.Status,
                     ProgressCount = runtime.ProgressCount, ProgressMax = runtime.ProgressMax,
                     AcceptedAtDayIndex = runtime.AcceptedAtDayIndex,
-                    DeadlineDayIndexExclusive = runtime.DeadlineDayIndexExclusive
+                    DeadlineDayIndexExclusive = runtime.DeadlineDayIndexExclusive,
+                    DeliveryCompleted = runtime.DeliveryCompleted,
+                    FailureReason = runtime.FailureReason
                 });
             }
             var firedKeys = world.ContentEvents.CaptureFiredKeys();
@@ -52,13 +61,20 @@ namespace XianXia.Core.Persistence
             var quests = new Dictionary<string, QuestRuntime>(StringComparer.Ordinal);
             foreach (var q in dto.Quests ?? new List<QuestRuntimeSnapshotDto>())
             {
-                if (q == null || string.IsNullOrWhiteSpace(q.QuestId) || quests.ContainsKey(q.QuestId) ||
+                if (q == null || string.IsNullOrWhiteSpace(q.QuestInstanceId) || string.IsNullOrWhiteSpace(q.QuestId) ||
+                    quests.ContainsKey(q.QuestInstanceId) ||
                     !Enum.IsDefined(typeof(QuestStatus), q.Status) || q.ProgressCount < 0 || q.ProgressMax < 0 ||
                     (q.ProgressMax > 0 && q.ProgressCount > q.ProgressMax))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate Quest runtime.", q?.QuestId);
-                quests.Add(q.QuestId, new QuestRuntime { QuestId = q.QuestId, Status = (QuestStatus)q.Status,
+                quests.Add(q.QuestInstanceId, new QuestRuntime { QuestInstanceId = q.QuestInstanceId,
+                    QuestId = q.QuestId, IssuerEntityId = new XianXia.Core.Domain.Ids.EntityId(q.IssuerEntityId),
+                    SourceOpportunityInstanceId = q.SourceOpportunityInstanceId ?? string.Empty,
+                    IssuerDisplayName = q.IssuerDisplayName ?? string.Empty,
+                    AcceptedByEntityId = new XianXia.Core.Domain.Ids.EntityId(q.AcceptedByEntityId),
+                    Status = (QuestStatus)q.Status,
                     ProgressCount = q.ProgressCount, ProgressMax = q.ProgressMax,
-                    AcceptedAtDayIndex = q.AcceptedAtDayIndex, DeadlineDayIndexExclusive = q.DeadlineDayIndexExclusive });
+                    AcceptedAtDayIndex = q.AcceptedAtDayIndex, DeadlineDayIndexExclusive = q.DeadlineDayIndexExclusive,
+                    DeliveryCompleted = q.DeliveryCompleted, FailureReason = q.FailureReason ?? string.Empty });
             }
             if (!TryMap(dto.Counters, out var counters) || !TryMap(dto.DailyMarks, out var daily) ||
                 !TryMap(dto.LaborTicks, out var ticks) || !TryMap(dto.LaborHarvests, out var harvests))
@@ -69,7 +85,9 @@ namespace XianXia.Core.Persistence
                 (string.IsNullOrEmpty(chapter.ActiveChapterId) && appliedBeatKeys.Count > 0))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid Chapter applied beat key.");
             world.Flags.RestoreState(dto.Flags, dto.FlagHistory);
-            world.Quests.RestoreRuntime(quests);
+            if (dto.NextQuestInstanceSequence == 0)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Quest instance sequence is invalid.");
+            world.Quests.RestoreRuntime(quests, dto.NextQuestInstanceSequence);
             world.ContentEvents.RestoreFiredKeys(dto.FiredEventKeys);
             world.Chapters.RestoreRuntime(chapter.ActiveChapterId, chapter.ChapterStartDayIndex, appliedBeatKeys);
             world.ContentCounters.RestoreState(counters); world.ContentDaily.RestoreState(daily);
@@ -79,9 +97,42 @@ namespace XianXia.Core.Persistence
 
         public static Result ValidateDefinitions(SimulationWorld world)
         {
+            var issuerTemplate = new HashSet<string>(StringComparer.Ordinal);
+            ulong maxCommissionSequence = 0;
             foreach (var pair in world.Quests.Runtime)
-                if (!world.Quests.Specs.ContainsKey(pair.Key))
-                    return Result.Failure(ErrorCode.SnapshotInvalid, "Restored Quest definition is missing.", pair.Key);
+            {
+                var runtime = pair.Value;
+                if (!string.Equals(pair.Key, runtime.QuestInstanceId, StringComparison.Ordinal) ||
+                    !world.Quests.Specs.TryGetValue(runtime.QuestId, out var spec))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Restored Quest definition is missing.", runtime.QuestId);
+                if (!spec.IsCharacterCommission)
+                {
+                    if (!string.Equals(runtime.QuestInstanceId, runtime.QuestId, StringComparison.Ordinal) || !runtime.IssuerEntityId.IsNone)
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Fixed Quest identity is invalid.", runtime.QuestInstanceId);
+                    continue;
+                }
+                if (runtime.IssuerEntityId.IsNone || string.IsNullOrWhiteSpace(runtime.IssuerDisplayName) ||
+                    !issuerTemplate.Add(runtime.IssuerEntityId.Value + ":" + runtime.QuestId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Commission issuer/template identity is invalid.", runtime.QuestInstanceId);
+                const string prefix = "quest-instance:";
+                if (!runtime.QuestInstanceId.StartsWith(prefix, StringComparison.Ordinal) ||
+                    !ulong.TryParse(runtime.QuestInstanceId.Substring(prefix.Length), out var sequence) || sequence == 0)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Commission instance id is invalid.", runtime.QuestInstanceId);
+                if (sequence > maxCommissionSequence) maxCommissionSequence = sequence;
+                if (runtime.DeliveryCompleted && runtime.Status != QuestStatus.ReadyToClaim && runtime.Status != QuestStatus.Completed)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Delivered commission has invalid status.", runtime.QuestInstanceId);
+                if (runtime.DeadlineDayIndexExclusive > 0 &&
+                    runtime.DeadlineDayIndexExclusive <= runtime.AcceptedAtDayIndex)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Commission deadline is invalid.", runtime.QuestInstanceId);
+                if ((runtime.Status == QuestStatus.Active || runtime.Status == QuestStatus.Inactive) &&
+                    (!world.Entities.TryGet(runtime.IssuerEntityId, out _) ||
+                     (!string.IsNullOrEmpty(runtime.SourceOpportunityInstanceId) &&
+                      (!world.WorldOpportunities.ActiveInstances.TryGetValue(runtime.SourceOpportunityInstanceId, out var source) ||
+                       source.SpawnedEntityId != runtime.IssuerEntityId))))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Active commission source is missing or mismatched.", runtime.QuestInstanceId);
+            }
+            if (world.Quests.NextInstanceSequence <= maxCommissionSequence)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Quest instance sequence would reuse an id.");
             ChapterSpec chapter = null;
             if (world.Chapters.HasActive && !world.Chapters.Specs.TryGetValue(world.Chapters.ActiveChapterId, out chapter))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Restored active Chapter definition is missing.", world.Chapters.ActiveChapterId);

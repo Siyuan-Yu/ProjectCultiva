@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 7;
+        public const int CurrentSchemaVersion = 8;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -18,6 +18,8 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV5 = 5;
         /// <summary>v6 lacks authoritative Content Progress runtime state.</summary>
         public const int LegacySchemaVersionV6 = 6;
+        /// <summary>v7 lacks stable character-issued Quest instance identity.</summary>
+        public const int LegacySchemaVersionV7 = 7;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -66,17 +68,18 @@ namespace XianXia.Core.Persistence
             new List<OutdoorDestructibleSnapshotDto>();
         public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
             new List<OutdoorFarmPlotSnapshotDto>();
-        /// <summary>EVENT-02 authority introduced in v6; its wire shape remains unchanged in v7.</summary>
+        /// <summary>EVENT-02 authority introduced in v6; its wire shape remains unchanged in v8.</summary>
         public WorldOpportunityRuntimeSnapshotDto WorldOpportunityRuntime { get; set; }
-        /// <summary>EVENT-02A authority introduced in v6; its wire shape remains unchanged in v7.</summary>
+        /// <summary>EVENT-02A authority introduced in v6; its wire shape remains unchanged in v8.</summary>
         public WorldActivityRuntimeSnapshotDto WorldActivityRuntime { get; set; }
-        /// <summary>Required v7 authority for Quest/Story/Event/Chapter content progress.</summary>
+        /// <summary>Required v8 authority for Quest instances and other Content Progress.</summary>
         public ContentProgressSnapshotDto ContentProgress { get; set; }
     }
 
     public sealed class ContentProgressSnapshotDto
     {
         public bool HasAuthority { get; set; }
+        public ulong NextQuestInstanceSequence { get; set; } = 1;
         public List<string> Flags { get; set; } = new List<string>();
         public List<string> FlagHistory { get; set; } = new List<string>();
         public List<QuestRuntimeSnapshotDto> Quests { get; set; } = new List<QuestRuntimeSnapshotDto>();
@@ -89,12 +92,19 @@ namespace XianXia.Core.Persistence
     }
     public sealed class QuestRuntimeSnapshotDto
     {
+        public string QuestInstanceId { get; set; } = string.Empty;
         public string QuestId { get; set; } = string.Empty;
+        public ulong IssuerEntityId { get; set; }
+        public string SourceOpportunityInstanceId { get; set; } = string.Empty;
+        public string IssuerDisplayName { get; set; } = string.Empty;
+        public ulong AcceptedByEntityId { get; set; }
         public int Status { get; set; }
         public int ProgressCount { get; set; }
         public int ProgressMax { get; set; }
         public ulong AcceptedAtDayIndex { get; set; }
         public ulong DeadlineDayIndexExclusive { get; set; }
+        public bool DeliveryCompleted { get; set; }
+        public string FailureReason { get; set; } = string.Empty;
     }
     public sealed class ChapterRuntimeSnapshotDto
     {

@@ -401,9 +401,9 @@ public sealed class EventFlowGraph : UserControl
         var box = new ComboBox
         {
             MinWidth = 150, MaxWidth = 210, Margin = new Thickness(5, 0, 8, 0),
-            ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "指定人物…" },
-            SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 },
-            ToolTip = value.Length > 0 && value is not ("@actor" or "@target") ? _speakerLabel(value) : "直接切换说话人"
+            ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "当前委托发布者", "指定人物…" },
+            SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, "@issuer" => 3, _ => 4 },
+            ToolTip = value.Length > 0 && value is not ("@actor" or "@target" or "@issuer") ? _speakerLabel(value) : "直接切换说话人"
         };
         box.SelectionChanged += (_, _) =>
         {
@@ -411,10 +411,11 @@ public sealed class EventFlowGraph : UserControl
             {
                 1 => "@actor",
                 2 => "@target",
-                3 => SpecificSpeakerRequested?.Invoke(),
+                3 => "@issuer",
+                4 => SpecificSpeakerRequested?.Invoke(),
                 _ => ""
             };
-            if (next == null) { box.SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 }; return; }
+            if (next == null) { box.SelectedIndex = value switch { "" => 0, "@actor" => 1, "@target" => 2, "@issuer" => 3, _ => 4 }; return; }
             var current = S(FindStep(stepId) ?? new JsonObject(), "speakerRef");
             if (current == next) return;
             MutationStarting?.Invoke(this, EventArgs.Empty);
@@ -528,6 +529,7 @@ public sealed class EventFlowGraph : UserControl
         }
         yield return Item("创建：当前玩家说话", "@actor");
         yield return Item("创建：当前互动对象说话", "@target");
+        yield return Item("创建：当前委托发布者说话", "@issuer");
         yield return Item("创建：旁白", "");
         yield return Item("创建：指定人物…", null);
     }
@@ -549,7 +551,8 @@ public sealed class EventFlowGraph : UserControl
         var sourceStep = FindStep(source.StepId);
         var recommended = source.ChoiceId != null ? "@actor" : S(sourceStep ?? new JsonObject(), "speakerRef") switch { "@target" => "@actor", "@actor" => "@target", _ => "" };
         var menu = new ContextMenu { Placement = PlacementMode.RelativePoint, PlacementTarget = _canvas, HorizontalOffset = point.X, VerticalOffset = point.Y };
-        foreach (var tuple in new[] { ("当前玩家说话", "@actor"), ("当前互动对象说话", "@target"), ("旁白", "") })
+        foreach (var tuple in new[] { ("当前玩家说话", "@actor"), ("当前互动对象说话", "@target"),
+                     ("当前委托发布者说话", "@issuer"), ("旁白", "") })
         {
             var speaker = tuple.Item2;
             var item = new MenuItem { Header = "创建下一句：" + tuple.Item1, FontWeight = speaker == recommended ? FontWeights.Bold : FontWeights.Normal, InputGestureText = speaker == recommended ? "推荐" : "" };

@@ -359,14 +359,22 @@ namespace XianXia.Data.Serialization
             var quests = new List<JsonValue>();
             foreach (var q in content.Quests ?? new List<QuestRuntimeSnapshotDto>()) quests.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
             {
+                ["questInstanceId"] = JsonValue.FromString(q.QuestInstanceId ?? string.Empty),
                 ["questId"] = JsonValue.FromString(q.QuestId ?? string.Empty), ["status"] = JsonValue.FromNumber(q.Status),
+                ["issuerEntityId"] = U(q.IssuerEntityId),
+                ["sourceOpportunityInstanceId"] = JsonValue.FromString(q.SourceOpportunityInstanceId ?? string.Empty),
+                ["issuerDisplayName"] = JsonValue.FromString(q.IssuerDisplayName ?? string.Empty),
+                ["acceptedByEntityId"] = U(q.AcceptedByEntityId),
                 ["progressCount"] = JsonValue.FromNumber(q.ProgressCount), ["progressMax"] = JsonValue.FromNumber(q.ProgressMax),
-                ["acceptedAtDayIndex"] = U(q.AcceptedAtDayIndex), ["deadlineDayIndexExclusive"] = U(q.DeadlineDayIndexExclusive)
+                ["acceptedAtDayIndex"] = U(q.AcceptedAtDayIndex), ["deadlineDayIndexExclusive"] = U(q.DeadlineDayIndexExclusive),
+                ["deliveryCompleted"] = JsonValue.FromBool(q.DeliveryCompleted),
+                ["failureReason"] = JsonValue.FromString(q.FailureReason ?? string.Empty)
             }));
             var chapter = content.Chapter ?? new ChapterRuntimeSnapshotDto();
             return JsonValue.FromObject(new Dictionary<string, JsonValue>
             {
                 ["hasAuthority"] = JsonValue.FromBool(content.HasAuthority),
+                ["nextQuestInstanceSequence"] = U(content.NextQuestInstanceSequence),
                 ["flags"] = JsonValue.FromArray(SerializeStringList(content.Flags)),
                 ["flagHistory"] = JsonValue.FromArray(SerializeStringList(content.FlagHistory)),
                 ["quests"] = JsonValue.FromArray(quests),
@@ -392,15 +400,26 @@ namespace XianXia.Data.Serialization
 
         static ContentProgressSnapshotDto ReadContentProgress(JsonValue node)
         {
-            var dto = new ContentProgressSnapshotDto { HasAuthority = node.GetBool("hasAuthority", false) };
+            var dto = new ContentProgressSnapshotDto
+            {
+                HasAuthority = node.GetBool("hasAuthority", false),
+                NextQuestInstanceSequence = ReadU(node, "nextQuestInstanceSequence")
+            };
             ReadStrings(node, "flags", dto.Flags); ReadStrings(node, "flagHistory", dto.FlagHistory);
             ReadStrings(node, "firedEventKeys", dto.FiredEventKeys);
             if (node.TryGetProperty("quests", out var quests) && quests.Kind == JsonValueKind.Array)
                 foreach (var q in quests.Array) dto.Quests.Add(new QuestRuntimeSnapshotDto
                 {
+                    QuestInstanceId = q.GetString("questInstanceId", string.Empty),
                     QuestId = q.GetString("questId", string.Empty), Status = (int)q.GetNumber("status"),
+                    IssuerEntityId = ReadU(q, "issuerEntityId"),
+                    SourceOpportunityInstanceId = q.GetString("sourceOpportunityInstanceId", string.Empty),
+                    IssuerDisplayName = q.GetString("issuerDisplayName", string.Empty),
+                    AcceptedByEntityId = ReadU(q, "acceptedByEntityId"),
                     ProgressCount = (int)q.GetNumber("progressCount"), ProgressMax = (int)q.GetNumber("progressMax"),
-                    AcceptedAtDayIndex = ReadU(q, "acceptedAtDayIndex"), DeadlineDayIndexExclusive = ReadU(q, "deadlineDayIndexExclusive")
+                    AcceptedAtDayIndex = ReadU(q, "acceptedAtDayIndex"), DeadlineDayIndexExclusive = ReadU(q, "deadlineDayIndexExclusive"),
+                    DeliveryCompleted = q.GetBool("deliveryCompleted", false),
+                    FailureReason = q.GetString("failureReason", string.Empty)
                 });
             if (node.TryGetProperty("chapter", out var chapter) && chapter.Kind == JsonValueKind.Object)
             {

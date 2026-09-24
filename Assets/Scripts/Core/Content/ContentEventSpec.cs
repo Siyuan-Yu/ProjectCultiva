@@ -12,6 +12,7 @@ namespace XianXia.Core.Content
         public string TargetKey { get; set; } = string.Empty;
         public string TargetDefinitionId { get; set; } = string.Empty;
         public string TargetDisplayName { get; set; } = string.Empty;
+        public EntityId IssuerEntityId { get; set; } = EntityId.None;
 
         public static ContentInteractionContext ForNpc(
             EntityId actor, EntityId target, string definitionId, string displayName = null) =>
@@ -23,7 +24,8 @@ namespace XianXia.Core.Content
                 // Keep the pre-EVENT-01 Final per-target key payload byte-for-byte compatible.
                 TargetKey = target.IsNone ? string.Empty : target.Value.ToString(),
                 TargetDefinitionId = definitionId ?? string.Empty,
-                TargetDisplayName = displayName ?? string.Empty
+                TargetDisplayName = displayName ?? string.Empty,
+                IssuerEntityId = target
             };
     }
 

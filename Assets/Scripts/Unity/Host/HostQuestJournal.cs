@@ -462,6 +462,12 @@ namespace XianXia.Unity.Host
                 status += " · 追踪中";
             GUI.Label(new Rect(x, y, tw, 18f), "状态：" + status, _small);
             y += 22f;
+            if (!string.IsNullOrEmpty(selected.IssuerDisplayName))
+            {
+                GUI.Label(new Rect(x, y, tw, 18f), "发布者：" + selected.IssuerDisplayName +
+                    " · 委托 " + selected.QuestInstanceId + " · 第 " + selected.AcceptedAtDayIndex + " 日接取", _small);
+                y += 22f;
+            }
             GUI.Label(new Rect(x, y, tw, 72f),
                 string.IsNullOrEmpty(selected.Description) ? "（无说明）" : selected.Description, _body);
             y += 78f;

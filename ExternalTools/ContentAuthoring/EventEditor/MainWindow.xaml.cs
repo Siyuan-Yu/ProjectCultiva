@@ -32,7 +32,7 @@ public partial class MainWindow : Window
         EventTriggerBox.ItemsSource = UiLabels.Labels(UiLabels.EventTriggers);
         WorldObjectKindBox.ItemsSource = UiLabels.Labels(UiLabels.WorldObjectKinds);
         RepeatBox.ItemsSource = new[] { "满足条件时可重复", "全局仅一次", "每个目标仅一次", "每角色×目标仅一次" };
-        SpeakerBox.ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "指定人物…" };
+        SpeakerBox.ItemsSource = new[] { "旁白", "当前玩家角色", "当前互动对象", "当前委托发布者", "指定人物…" };
         UnavailableBox.ItemsSource = new[] { "显示但禁用", "隐藏" };
         EventConditionEditor.Changed += ArrayEditor_Changed;
         StepOutcomeEditor.Changed += ArrayEditor_Changed;
@@ -339,6 +339,7 @@ public partial class MainWindow : Window
         "" => "旁白",
         "@actor" => "当前玩家角色",
         "@target" => "当前互动对象" + (_session == null ? "" : BindingSuffix(_session.Working)),
+        "@issuer" => "当前委托发布者",
         _ => DisplayDefinition(speaker)
     };
     string BindingSuffix(JsonObject raw)
@@ -411,8 +412,8 @@ public partial class MainWindow : Window
         if (selection.ChoiceId == null)
         {
             StepInspector.Visibility = Visibility.Visible; ChoiceInspector.Visibility = Visibility.Collapsed; InspectorTitle.Text = "Step";
-            var speaker = S(step, "speakerRef"); SpeakerBox.SelectedIndex = speaker switch { "" => 0, "@actor" => 1, "@target" => 2, _ => 3 };
-            SpeakerCharacterPicker.SelectedId = SpeakerBox.SelectedIndex == 3 ? speaker : ""; SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 3;
+            var speaker = S(step, "speakerRef"); SpeakerBox.SelectedIndex = speaker switch { "" => 0, "@actor" => 1, "@target" => 2, "@issuer" => 3, _ => 4 };
+            SpeakerCharacterPicker.SelectedId = SpeakerBox.SelectedIndex == 4 ? speaker : ""; SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 4;
             StepTextBox.Text = S(step, "text"); StepOutcomeEditor.LoadFrom(step["outcomes"]); StepIdText.Text = S(step, "id");
         }
         else
@@ -464,7 +465,7 @@ public partial class MainWindow : Window
             var step = FindStep(candidate, _inspectedSelection.StepId);
             if (step != null && _inspectedSelection.ChoiceId == null && StepInspector.Visibility == Visibility.Visible)
             {
-                step["speakerRef"] = SpeakerBox.SelectedIndex switch { 1 => "@actor", 2 => "@target", 3 => SpeakerCharacterPicker.SelectedId, _ => "" };
+                step["speakerRef"] = SpeakerBox.SelectedIndex switch { 1 => "@actor", 2 => "@target", 3 => "@issuer", 4 => SpeakerCharacterPicker.SelectedId, _ => "" };
                 step["text"] = StepTextBox.Text; step["outcomes"] = StepOutcomeEditor.ToJsonArray();
             }
             else if (step != null && _inspectedSelection.ChoiceId != null && ChoiceInspector.Visibility == Visibility.Visible)
@@ -641,7 +642,7 @@ public partial class MainWindow : Window
     static bool IsDescendantOf(DependencyObject child, DependencyObject parent) { for (var current = child; current != null; current = System.Windows.Media.VisualTreeHelper.GetParent(current)) if (ReferenceEquals(current, parent)) return true; return false; }
     void EventTriggerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (!_loading) UpdateBindingUi(); }
     void WorldObjectKindBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (!_loading) RefreshWorldObjectIds(WorldObjectIdBox.Text); }
-    void SpeakerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (SpeakerCharacterPicker != null) SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 3; }
+    void SpeakerBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (SpeakerCharacterPicker != null) SpeakerCharacterPicker.IsEnabled = SpeakerBox.SelectedIndex == 4; }
     void FallbackBox_Checked(object sender, RoutedEventArgs e)
     {
         if (_loading) return;

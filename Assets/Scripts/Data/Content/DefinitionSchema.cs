@@ -198,8 +198,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "description", "autoOffer", "abandonable", "deadlineDays",
+            "runtimeMode", "acceptanceMode", "deliveryRequirements",
             "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         };
+        public static readonly HashSet<string> QuestDeliveryRequirementFields = new HashSet<string>(StringComparer.Ordinal)
+        { "itemId", "amount" };
 
         public static readonly HashSet<string> ContentEventFields = new HashSet<string>(StringComparer.Ordinal)
         {

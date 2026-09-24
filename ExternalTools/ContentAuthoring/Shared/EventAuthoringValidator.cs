@@ -94,7 +94,7 @@ public static class EventAuthoringValidator
         {
             Fields(step, new[] { "id", "speakerRef", "text", "nextStepId", "outcomes", "choices" }, "步骤");
             var speaker = S(step, "speakerRef");
-            if (speaker is not ("" or "@actor" or "@target")) Character(speaker);
+            if (speaker is not ("" or "@actor" or "@target" or "@issuer")) Character(speaker);
             Choices(step, S(step, "id")); Next(S(step, "nextStepId"), "Step " + S(step, "id"));
             if (Array(step, "choices").Count > 0 && S(step, "nextStepId").Length > 0) errors.Add("有选项的步骤不能指定下一步：" + S(step, "id"));
             if (Minigame(step)) errors.Add("小游戏结果只能配置在终止选项上");

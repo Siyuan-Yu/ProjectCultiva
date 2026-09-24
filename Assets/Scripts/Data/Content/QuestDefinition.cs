@@ -10,6 +10,8 @@ namespace XianXia.Data.Content
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
+        public string RuntimeMode { get; set; } = "fixed";
+        public string AcceptanceMode { get; set; } = "journal";
         public bool Abandonable { get; set; }
         /// <summary>接取后有效游戏天数；0 = 无时限。</summary>
         public int DeadlineDays { get; set; }
@@ -18,5 +20,6 @@ namespace XianXia.Data.Content
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();
         public List<ContentOutcome> Rewards { get; } = new List<ContentOutcome>();
         public List<ContentOutcome> FailResults { get; } = new List<ContentOutcome>();
+        public List<QuestDeliveryRequirement> DeliveryRequirements { get; } = new List<QuestDeliveryRequirement>();
     }
 }

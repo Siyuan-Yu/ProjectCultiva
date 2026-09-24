@@ -49,6 +49,14 @@ public static class ContentFieldCatalog
         ("missingDailyFlag", "今日尚未标记"),
         ("hasDailyFlag", "今日已标记"),
         ("encounterCleared", "遭遇已清除")
+        , ("questOfferableFromTarget", "当前对象可发布委托")
+        , ("questActiveFromTarget", "当前对象委托进行中")
+        , ("questHandedInFromTarget", "当前对象委托已交付")
+        , ("questDeliveryAvailableFromTarget", "当前对象委托物品可交付")
+        , ("questReadyToClaimFromTarget", "当前对象委托待领奖")
+        , ("questCompletedFromTarget", "当前对象委托已完成")
+        , ("questFailedFromTarget", "当前对象委托已失败")
+        , ("affectionAtLeast", "明确方向好感 ≥")
     ];
 
     public static readonly (string Kind, string Label)[] OutcomeKinds =
@@ -68,6 +76,8 @@ public static class ContentFieldCatalog
         ("learnManual", "习得功法"),
         ("setEncounterCleared", "标记遭遇清除"),
         ("startMinigame", "开始小游戏")
+        , ("acceptQuestFromTarget", "接受当前对象委托")
+        , ("deliverQuestToTarget", "交付当前对象委托物品")
     ];
 
     public static readonly string[] RealmOptions = ["凡人", "炼气", "筑基"];
@@ -112,6 +122,18 @@ public static class ContentFieldCatalog
         [
             new FieldSpec { Key = "id", Label = "任务", Editor = FieldEditorKind.Quest }
         ],
+        "questOfferableFromTarget" or "questActiveFromTarget" or "questHandedInFromTarget" or
+        "questDeliveryAvailableFromTarget" or "questReadyToClaimFromTarget" or
+        "questCompletedFromTarget" or "questFailedFromTarget" =>
+        [
+            new FieldSpec { Key = "id", Label = "任务模板", Editor = FieldEditorKind.Quest }
+        ],
+        "affectionAtLeast" =>
+        [
+            new FieldSpec { Key = "id", Label = "来源角色（@actor/@target/@issuer）", Editor = FieldEditorKind.Text },
+            new FieldSpec { Key = "characterId", Label = "目标角色（@actor/@target/@issuer）", Editor = FieldEditorKind.Text },
+            new FieldSpec { Key = "amount", Label = "好感至少", Editor = FieldEditorKind.Number }
+        ],
         "knowsSite" =>
         [
             new FieldSpec { Key = "id", Label = "机缘点", Editor = FieldEditorKind.Site }
@@ -147,6 +169,10 @@ public static class ContentFieldCatalog
         [
             new FieldSpec { Key = "id", Label = "任务", Editor = FieldEditorKind.Quest }
         ],
+        "acceptQuestFromTarget" or "deliverQuestToTarget" =>
+        [
+            new FieldSpec { Key = "id", Label = "人物委托模板", Editor = FieldEditorKind.Quest }
+        ],
         "discoverSite" =>
         [
             new FieldSpec { Key = "id", Label = "机缘点", Editor = FieldEditorKind.Site }
@@ -157,11 +183,11 @@ public static class ContentFieldCatalog
         ],
         "relationDelta" =>
         [
-            new FieldSpec { Key = "fromDefinitionId", Label = "来自角色", Editor = FieldEditorKind.Character },
+            new FieldSpec { Key = "fromDefinitionId", Label = "来源角色（可用 @actor/@target/@issuer）", Editor = FieldEditorKind.Text },
             new FieldSpec
             {
                 Key = "toDefinitionIds",
-                Label = "目标角色（逗号分隔；@party=全队）",
+                Label = "目标角色（逗号分隔；支持 @actor/@target/@issuer/@party）",
                 Editor = FieldEditorKind.Text
             },
             new FieldSpec { Key = "amount", Label = "变化值", Editor = FieldEditorKind.Number }

@@ -88,7 +88,7 @@ namespace XianXia.Core.Content
                 if (!string.Equals(spec.Trigger, trigger, StringComparison.OrdinalIgnoreCase) ||
                     !TargetBindingMatches(world, spec, context, trigger) ||
                     !RepeatAllowed(world, spec, context.ActorId, context.TargetKey) ||
-                    !InteractionConditionsPass(world, context.ActorId, spec.Conditions)) continue;
+                    !InteractionConditionsPass(world, context, spec.Conditions)) continue;
                 if (spec.Priority < priority) continue;
                 if (spec.Priority > priority) { result.Clear(); priority = spec.Priority; }
                 result.Add(spec);
@@ -165,15 +165,21 @@ namespace XianXia.Core.Content
 
         /// <summary>One valid party member must satisfy the entire set; actor/outcome identity never changes.</summary>
         public static bool InteractionConditionsPass(SimulationWorld world, EntityId actor, IReadOnlyList<ContentCondition> conditions)
+            => InteractionConditionsPass(world, new ContentInteractionContext { ActorId = actor }, conditions);
+
+        public static bool InteractionConditionsPass(SimulationWorld world, ContentInteractionContext context,
+            IReadOnlyList<ContentCondition> conditions)
         {
+            var actor = context?.ActorId ?? EntityId.None;
             var party = world?.Strategic?.PlayerPartyContext;
             if (party == null || !party.IsMember(actor))
-                return ContentConditionEvaluator.AllPass(world, actor, conditions);
+                return ContentConditionEvaluator.AllPass(world, actor, conditions, context);
             foreach (var id in party.Members)
             {
                 if (!world.Entities.TryGet(id, out var member) || (member.Tags & EntityTag.Character) == 0) continue;
                 if (member.TryGet<LifecycleComponent>(out var life) && life.State != LifecycleState.Alive) continue;
-                if (ContentConditionEvaluator.AllPass(world, id, conditions)) return true;
+                // Ability/party conditions may use a member as subject, while explicit @actor/@target remain bound.
+                if (ContentConditionEvaluator.AllPass(world, id, conditions, context)) return true;
             }
             return false;
         }
@@ -182,7 +188,7 @@ namespace XianXia.Core.Content
         {
             var board = world.ContentEvents;
             return board.ActiveInteraction
-                ? InteractionConditionsPass(world, board.ActiveActorId, conditions)
+                ? InteractionConditionsPass(world, board.ActiveContext(), conditions)
                 : ContentConditionEvaluator.AllPass(world, board.ActiveActorId, conditions);
         }
 
@@ -197,8 +203,13 @@ namespace XianXia.Core.Content
             name = "";
             if (string.IsNullOrEmpty(speakerRef)) return Result.Success();
             Entity speaker = null;
-            if (speakerRef == "@actor" || speakerRef == "@target")
-                world.Entities.TryGet(speakerRef == "@actor" ? world.ContentEvents.ActiveActorId : world.ContentEvents.ActiveTargetEntityId, out speaker);
+            if (speakerRef == "@actor" || speakerRef == "@target" || speakerRef == "@issuer")
+            {
+                var id = speakerRef == "@actor" ? world.ContentEvents.ActiveActorId
+                    : speakerRef == "@target" ? world.ContentEvents.ActiveTargetEntityId
+                    : world.ContentEvents.ActiveIssuerEntityId;
+                world.Entities.TryGet(id, out speaker);
+            }
             else
                 foreach (var entity in world.Entities.All)
                     if (entity.DefinitionId.ToString() == speakerRef && (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0)
@@ -266,7 +277,7 @@ namespace XianXia.Core.Content
             {
                 choice = step.Choices.Find(c => c.Id == choiceId);
                 if (choice == null) return Result.Failure(ErrorCode.NotFound, "Choice missing.", choiceId);
-                var pass = board.ActiveInteraction ? InteractionConditionsPass(world, subject, choice.Conditions)
+                var pass = board.ActiveInteraction ? InteractionConditionsPass(world, board.ActiveContext(), choice.Conditions)
                     : ContentConditionEvaluator.AllPass(world, subject, choice.Conditions);
                 if (!pass) return Result.Failure(ErrorCode.InvalidOperation, "Choice conditions not met.", choiceId);
             }
@@ -278,7 +289,7 @@ namespace XianXia.Core.Content
             var outcomes = new List<ContentOutcome>(step.Outcomes);
             if (choice != null) outcomes.AddRange(choice.Outcomes);
             var finished = string.IsNullOrEmpty(next);
-            var applied = ContentOutcomeApplier.ApplyAll(world, subject, outcomes, () =>
+            var applied = ContentOutcomeApplier.ApplyAll(world, subject, outcomes, board.ActiveContext(), () =>
             {
                 if (!finished) { board.AdvanceStep(next); return Result.Success(); }
                 if (spec.Once) board.MarkFired(board.FiredKey(spec, subject, board.ActiveTargetKey));

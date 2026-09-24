@@ -146,6 +146,19 @@ public static class PackageValidator
         {
             CheckCond(def.Raw["offerConditions"], "offerConditions");
             CheckCond(def.Raw["completeConditions"], "completeConditions");
+            var runtimeMode = JsonEdit.GetString(def.Raw, "runtimeMode", "fixed");
+            var acceptanceMode = JsonEdit.GetString(def.Raw, "acceptanceMode", "journal");
+            if (runtimeMode == "characterCommission" && acceptanceMode != "interaction")
+                issues.Add(new ValidationIssue { Level = "error", Message = $"{def.Id} 人物委托必须通过真实人物互动接取", DefinitionId = def.Id, FilePath = def.FilePath });
+            if (def.Raw["deliveryRequirements"] is JsonArray requirements)
+                foreach (var node in requirements)
+                {
+                    var requirement = node as JsonObject;
+                    var itemId = requirement == null ? "" : JsonEdit.GetString(requirement, "itemId");
+                    var amount = requirement == null ? 0 : JsonEdit.GetInt(requirement, "amount", 0);
+                    if (string.IsNullOrEmpty(itemId) || amount <= 0)
+                        issues.Add(new ValidationIssue { Level = "error", Message = $"{def.Id} 交付物品与数量无效", DefinitionId = def.Id, FilePath = def.FilePath });
+                }
         }
 
         if (def.Type == "contentEvent")

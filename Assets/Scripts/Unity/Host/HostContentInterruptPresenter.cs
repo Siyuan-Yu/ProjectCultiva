@@ -279,11 +279,14 @@ namespace XianXia.Unity.Host
                     : "任务失败";
             var name = notify.QuestId;
             var desc = "";
-            if (session.World.Quests.TryGetSpec(notify.QuestId, out var spec))
+            if (session.World.Quests.TryGet(notify.QuestId, out var runtime) &&
+                session.World.Quests.TryGetSpec(runtime.QuestId, out var spec))
             {
                 if (!string.IsNullOrEmpty(spec.Name))
                     name = spec.Name;
                 desc = spec.Description ?? "";
+                if (!string.IsNullOrEmpty(runtime.IssuerDisplayName))
+                    desc = "发布者：" + runtime.IssuerDisplayName + "\n" + desc;
             }
 
             GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), kindLabel + " · " + name, _title);

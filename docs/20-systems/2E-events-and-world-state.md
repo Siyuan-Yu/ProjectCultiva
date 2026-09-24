@@ -1,16 +1,26 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**设计已冻结；runtime 部分实现；SAVE-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-24
+> 状态：**设计已冻结；QUEST-INSTANCE-01 Implementation Complete / Producer Acceptance Pending** | 优先级：P0 | 最后更新：2026-09-24
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
 > 当前实现与磁盘边界见 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 与 [257 SAVE-01](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
-## 0. 当前实现边界（2026-09-23）
+## 0. 当前实现边界（2026-09-24）
 
 - `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于条件、结算与 UI；`ContentOutcomeApplier` 的事务 memento 继续只负责一次结算回滚，磁盘持久化由独立 `ContentProgressSnapshotHelper` 负责。
-- `WorldSnapshot.CurrentSchemaVersion` 为 7。必需的 `contentProgress.hasAuthority=true` 保存 Flags／History、全部 Quest runtime（含 Inactive／Active／ReadyToClaim／Completed／Failed）、ContentEvent fired keys、Chapter runtime、Counters、Daily marks 与 LocationLabor ticks／harvests。
+- `WorldSnapshot.CurrentSchemaVersion` 为 8。必需的 `contentProgress.hasAuthority=true` 除既有内容进度外，还保存人物委托实例、发布者、来源 Opportunity、接取者、原始期限、交付事实、失败原因与下一实例序列。
 - Active dialogue、当前 Step／Choice、Topic Selection 与 UI 状态不进入 Snapshot；`ContentEvents.HasActive` 时 `SnapshotService.CaptureJson` 返回“请先完成当前对话/事件后再保存。”完成原子交互后可正常保存。
 - restore 先恢复动态 runtime，再由 `RuntimeContentShellBootstrap` definitions-only 注册 Quest／Event／Chapter 定义并校验恢复 ID；不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。New Game 与 Load 共用 `PlayableSimulationLoopFactory` 的四个 day handlers。
-- v1～v6 缺少完整 Content Progress authority，统一明确拒绝并要求新开局。实体、空间、Encounter、Separate Space、WorldOpportunity、WorldActivity、背包、关系与随机等既有 Snapshot authority 保持原职责。
+- v1～v7 缺少当前人物委托实例／发布者 authority，统一明确拒绝并要求新开局；不从旧 flag 或附近同模板 NPC 猜测发布者。
+
+### QUEST-INSTANCE-01 动态人物委托与真实互动上下文 V1（2026-09-24）
+
+- `QuestSpec` 仍是模板；固定任务以模板 ID 保持既有单份语义。`characterCommission` 由 `QuestBoard` 分配稳定 `QuestInstanceId`，同模板不同真实发布者可并存，同一发布者＋模板最多保留一份历史实例。
+- 人物委托只能由 `acceptanceMode=interaction` 和真实 `ContentInteractionContext.TargetEntityId` 接取。任务日志不列出未接取的人物委托模板，Core 的旧 `TryStart(templateId)` 也拒绝绕过互动来源。
+- 实例保存 `IssuerEntityId`、可空 `SourceOpportunityInstanceId`、发布者接取时名称、`AcceptedByEntityId`、接取日、原始 exclusive deadline、交付事实与失败原因。放弃只允许未交付 Active；原期限内可与同一发布者重接且不刷新期限。
+- 委托交付需求来自 `deliveryRequirements[]`。`deliverQuestToTarget` 精确解析当前 Target 的实例，按 STRATEGIC-STOCK-01 语义扣资源，记录交付并转为 ReadyToClaim；空 `completeConditions` 不会自动完成。
+- 当前交互角色引用统一支持 `@actor`、`@target`、`@issuer`。上下文引用缺失或固定 DefinitionId 对应多个实例时明确失败。`affectionAtLeast` 保持明确方向；`relationDelta` 可将当前 Target 对当前 Actor 的 Affection 写入唯一 `RelationshipLedger`。
+- 未交付 Active 委托在发布者死亡／Removed 或来源 Opportunity 到期时幂等失败；Chunk 卸载、View 缺失、离开 Surface 或临时战斗不触发。ReadyToClaim／Completed 保留历史并可在日志领奖。
+- 两条 EVENT-02 灵药任务已改为人物委托，删除 accepted／handed-in／done prototype flags。完整实现与验收路线见 [258](../40-process/258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
 
 ### SAVE-01 Content Progress Persistence V1（2026-09-23）
 
@@ -18,7 +28,7 @@
 - fired key 按现有稳定字符串完整 round-trip，覆盖 global、perTarget、perActorTarget；restore 后 Active Event 始终为空。
 - Chapter 直接恢复 ActiveChapterId、start day 与 applied beat keys，不调用会清 beat 的 `Activate`；definitions rehydrate 后验证 active chapter 和已应用 day beat。
 - Counter／Daily／LocationLabor 使用稳定 key/value authority；Daily 保存实际 marked day index，LocationLabor 保存 opaque composite key，serializer 不拆解。
-- EVENT-02 提供两条实际 Content 链：带 publicNotice／定位的临时行商是主验收入口，受伤散修为第二条示例；两者都由接受 Choice 的同一 outcome transaction 设置 accepted flag 并 `startQuest`，拒绝无 Outcome。Active Event 以统一 Player Accessible Stock 判断灵药：在可访问己方战略物资网络时，resource 为 PartyInventory＋合格 WorldSitePublicStock；离开网络时只看 PartyInventory；非 resource 永远只看 PartyInventory。`removeStock` 使用相同语义并与 hand-in flag 原子结算。
+- 本节保留 SAVE-01 的持久化封板事实；其 EVENT-02 prototype flag 交付流已由上方 QUEST-INSTANCE-01 结构化实例与交付结果替代。
 - 完整实施、验收路线与最终封板记录见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。制作人已于 2026-09-24 确认当前内容验收通过，状态 **Producer Accepted / Sealed**。
 
 ### EVENT-02 World Opportunity Director V1（2026-09-23）

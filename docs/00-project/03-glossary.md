@@ -2,7 +2,7 @@
 
 > **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影。历史 FormalArmy／Hex 输入不是 runtime definition，必须先离线转换为独立的当前格式副本。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
-> 状态：持续维护 | 最后更新：2026-09-23
+> 状态：持续维护 | 最后更新：2026-09-24
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -25,6 +25,15 @@
 | 世界活动动态 | WorldActivity | 玩家已获知、仍可回看的世界事实提示；不是 Quest，也不是 ContentEvent 弹窗 |
 | 活动动态栏 | HostWorldActivityPanel | 左侧 Active Activity 列表、详情与最近 100 条 History 的 Host 表现 |
 | 公开消息 | publicNotice | Opportunity 生成时建立持久 WorldActivity，并额外播放一次非阻塞 Toast；Toast 不是真源 |
+
+## QUEST-INSTANCE-01 委托术语
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 任务模板 | QuestSpec / QuestDefinitionId | Content 中的任务规则；固定任务可保持单份语义，人物委托可生成多份运行实例 |
+| 任务实例 | QuestRuntime / QuestInstanceId | 玩家任务日志中的稳定运行身份；保存发布者、来源 Opportunity、期限、交付与状态 |
+| 委托发布者 | IssuerEntityId / @issuer | 发布该份人物委托的真实 Character Entity；与同 DefinitionId 的其它人物严格区分 |
+| 人物委托 | characterCommission | 必须通过带真实 Target 的互动接取；同一发布者与模板最多保留一份历史实例 |
 
 ## 使用约定
 

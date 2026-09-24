@@ -22,12 +22,27 @@ namespace XianXia.Core.Content
             SimulationWorld world,
             EntityId subject,
             System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes)
-            => ApplyAll(world, subject, outcomes, null);
+            => ApplyAll(world, subject, outcomes, null, null);
+
+        public static Result ApplyAll(
+            SimulationWorld world,
+            EntityId subject,
+            System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes,
+            ContentInteractionContext context)
+            => ApplyAll(world, subject, outcomes, context, null);
 
         internal static Result ApplyAll(
             SimulationWorld world,
             EntityId subject,
             System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes,
+            Func<Result> finalize)
+            => ApplyAll(world, subject, outcomes, null, finalize);
+
+        internal static Result ApplyAll(
+            SimulationWorld world,
+            EntityId subject,
+            System.Collections.Generic.IReadOnlyList<ContentOutcome> outcomes,
+            ContentInteractionContext context,
             Func<Result> finalize)
         {
             if (world == null)
@@ -38,7 +53,7 @@ namespace XianXia.Core.Content
                 if (outcomes != null)
                     for (var i = 0; i < outcomes.Count; i++)
                     {
-                        var r = ApplyOne(world, subject, outcomes[i]);
+                        var r = ApplyOne(world, subject, outcomes[i], context);
                         if (r.IsFailure)
                         {
                             transaction.Rollback();
@@ -66,7 +81,8 @@ namespace XianXia.Core.Content
         public static Result Apply(SimulationWorld world, EntityId subject, ContentOutcome o)
             => ApplyAll(world, subject, new[] { o });
 
-        static Result ApplyOne(SimulationWorld world, EntityId subject, ContentOutcome o)
+        static Result ApplyOne(SimulationWorld world, EntityId subject, ContentOutcome o,
+            ContentInteractionContext context)
         {
             if (world == null || o == null || string.IsNullOrEmpty(o.Kind))
                 return Result.Failure(ErrorCode.InvalidArgument, "Outcome invalid.");
@@ -117,8 +133,12 @@ namespace XianXia.Core.Content
                 }
                 case "startquest":
                     return new QuestService().TryStart(world, o.Id, subject);
+                case "acceptquestfromtarget":
+                    return new QuestService().TryAcceptFromTarget(world, o.Id, context);
+                case "deliverquesttotarget":
+                    return new QuestService().TryDeliverToTarget(world, o.Id, context);
                 case "relationdelta":
-                    return ApplyRelation(world, o);
+                    return ApplyRelation(world, o, context);
                 case "grantprogress":
                     if (!world.Entities.TryGet(subject, out var e) ||
                         !e.TryGet<CultivationComponent>(out var cult))
@@ -182,8 +202,10 @@ namespace XianXia.Core.Content
             }
         }
 
-        static Result ApplyRelation(SimulationWorld world, ContentOutcome o)
+        static Result ApplyRelation(SimulationWorld world, ContentOutcome o, ContentInteractionContext context)
         {
+            if (o.FromDefinitionId != null && o.FromDefinitionId.StartsWith("@", StringComparison.Ordinal))
+                return ApplyContextRelation(world, o, context);
             if (!DefinitionId.TryParse(o.FromDefinitionId, out var fromDef))
                 return Result.Failure(ErrorCode.InvalidDefinitionId, "relationDelta definition ids invalid.");
 
@@ -233,6 +255,25 @@ namespace XianXia.Core.Content
                     return r;
             }
 
+            return Result.Success();
+        }
+
+        static Result ApplyContextRelation(SimulationWorld world, ContentOutcome o, ContentInteractionContext context)
+        {
+            var fromResult = ContentEntityReferenceResolver.Resolve(world, context, o.FromDefinitionId, out var from);
+            if (fromResult.IsFailure) return fromResult;
+            var refs = new List<string>();
+            if (o.ToDefinitionIds != null) refs.AddRange(o.ToDefinitionIds);
+            if (refs.Count == 0 && !string.IsNullOrWhiteSpace(o.ToDefinitionId)) refs.Add(o.ToDefinitionId);
+            if (refs.Count == 0) return Result.Failure(ErrorCode.InvalidArgument, "relationDelta target required.");
+            var service = new RelationshipService();
+            foreach (var reference in refs)
+            {
+                var targetResult = ContentEntityReferenceResolver.Resolve(world, context, reference, out var to);
+                if (targetResult.IsFailure) return targetResult;
+                var recorded = service.Record(world, from, to, o.Amount, "content_event");
+                if (recorded.IsFailure) return recorded;
+            }
             return Result.Success();
         }
 
@@ -286,7 +327,7 @@ namespace XianXia.Core.Content
             readonly WorldSitePublicStockBoard.RuntimeState _sitePublicStocks;
             readonly List<string> _flags, _flagHistory, _known;
             readonly Dictionary<string, int> _counters, _daily;
-            readonly Dictionary<string, QuestRuntime> _quests;
+            readonly QuestBoard.RuntimeState _quests;
             readonly ContentEventBoard.RuntimeState _contentEventState;
             readonly int _relationshipCount, _eventCursor;
             readonly ulong _eventNext;

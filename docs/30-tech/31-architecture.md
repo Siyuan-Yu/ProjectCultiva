@@ -65,7 +65,7 @@ XianXia.Tests/       针对 Core 的单元测试
 | Unity 版本 | 2022.3.6f1 | 已定，见 ADR-0001 |
 | 渲染管线 | Built-in | 已定，见 ADR-0001 |
 | UI 方案 | UGUI／UI Toolkit | 待定（ADR-0002） |
-| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v7 已实现 Content Progress authority；见 257 SAVE-01 |
+| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v8 已实现 Content Progress 与动态 Quest Instance authority；见 257／258 |
 | 事件脚本化 | 纯配置表／轻量表达式 | 待定；依赖 `2E` |
 
 ## 3. 工程约定
@@ -98,4 +98,4 @@ XianXia.Tests/       针对 Core 的单元测试
 
 - 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
 - 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity 与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
-- SAVE-01 将 Snapshot 升为 v7，并以必需的 `contentProgress.hasAuthority=true` 保存 Flags／History、全部 Quest runtime、ContentEvent fired keys、Chapter runtime、Counters、Daily marks 与 LocationLabor facts。Active dialogue 不保存；对话进行中 `CaptureJson` 明确拒绝。v1～v6 不猜测迁移，统一返回 `SnapshotVersionMismatch`。详见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
+- SAVE-01 的 v7 Content Progress authority 继续保留；QUEST-INSTANCE-01 将当前格式升为 v8，Quest runtime 以稳定实例身份保存发布者、Opportunity 来源、接取者、期限、交付与失败原因以及下一实例序列。Active dialogue 仍不保存；v1～v7 不猜测动态委托发布者，统一要求新开局。详见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)／[258](../40-process/258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。

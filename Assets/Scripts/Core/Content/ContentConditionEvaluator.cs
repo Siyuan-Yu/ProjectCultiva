@@ -15,20 +15,22 @@ namespace XianXia.Core.Content
         public static bool AllPass(
             SimulationWorld world,
             EntityId subject,
-            System.Collections.Generic.IReadOnlyList<ContentCondition> conditions)
+            System.Collections.Generic.IReadOnlyList<ContentCondition> conditions,
+            ContentInteractionContext context = null)
         {
             if (conditions == null || conditions.Count == 0)
                 return true;
             for (var i = 0; i < conditions.Count; i++)
             {
-                if (!Pass(world, subject, conditions[i]))
+                if (!Pass(world, subject, conditions[i], context))
                     return false;
             }
 
             return true;
         }
 
-        public static bool Pass(SimulationWorld world, EntityId subject, ContentCondition c)
+        public static bool Pass(SimulationWorld world, EntityId subject, ContentCondition c,
+            ContentInteractionContext context = null)
         {
             if (world == null || c == null || string.IsNullOrEmpty(c.Kind))
                 return false;
@@ -61,6 +63,24 @@ namespace XianXia.Core.Content
                     // 目标达成（待领奖）即可解锁后续；领奖与否不挡剧情链。
                     return world.Quests.TryGet(c.Id, out var qc) &&
                            QuestStatusUtil.IsObjectivesDone(qc.Status);
+                case "questofferablefromtarget":
+                    return new QuestService().CanOfferFromTarget(world, c.Id, context);
+                case "questactivefromtarget":
+                    return TryIssuerQuest(world, context, c.Id, out var qi) && qi.Status == QuestStatus.Active;
+                case "questdeliveryavailablefromtarget":
+                    return new QuestService().CanDeliverToTarget(world, c.Id, context);
+                case "questhandedinfromtarget":
+                    return TryIssuerQuest(world, context, c.Id, out var qh) && qh.DeliveryCompleted;
+                case "questreadytoclaimfromtarget":
+                    return TryIssuerQuest(world, context, c.Id, out var qr) && qr.Status == QuestStatus.ReadyToClaim;
+                case "questcompletedfromtarget":
+                    return TryIssuerQuest(world, context, c.Id, out var qd) && qd.Status == QuestStatus.Completed;
+                case "questfailedfromtarget":
+                    return TryIssuerQuest(world, context, c.Id, out var qf) && qf.Status == QuestStatus.Failed;
+                case "affectionatleast":
+                    return ContentEntityReferenceResolver.Resolve(world, context, c.Id, out var from) .IsSuccess &&
+                           ContentEntityReferenceResolver.Resolve(world, context, c.CharacterId, out var to).IsSuccess &&
+                           world.Relationships.Score(from, to) >= c.Amount;
                 case "exploredlocation":
                     return world.Flags.Has(ExploredFlag(c.Id));
                 case "hasmanual":
@@ -105,6 +125,14 @@ namespace XianXia.Core.Content
         }
 
         public static string ExploredFlag(string locationId) => "explored:" + (locationId ?? string.Empty);
+
+        static bool TryIssuerQuest(SimulationWorld world, ContentInteractionContext context,
+            string questDefinitionId, out QuestRuntime runtime)
+        {
+            runtime = null;
+            return world != null && context != null && !context.TargetEntityId.IsNone &&
+                   world.Quests.TryGetForIssuer(questDefinitionId, context.TargetEntityId, out runtime);
+        }
 
         /// <summary>Convention flag for cave／遭遇 cleared（content uses setEncounterCleared）.</summary>
         public static string EncounterFlag(string encounterId) =>

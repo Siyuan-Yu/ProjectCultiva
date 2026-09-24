@@ -21,7 +21,7 @@ namespace XianXia.Core.Input
         Travel = 10,
         /// <summary>Content Ready: resolve active content event choice (ChoiceId).</summary>
         ResolveContentChoice = 11,
-        /// <summary>Content Ready: start quest by QuestId if offer conditions pass.</summary>
+        /// <summary>Start a fixed journal-compatible quest; character commissions reject this route.</summary>
         StartQuest = 12,
         /// <summary>Demo parity [49]/[32]: cancel active action and clear pending player orders.</summary>
         Stop = 13,

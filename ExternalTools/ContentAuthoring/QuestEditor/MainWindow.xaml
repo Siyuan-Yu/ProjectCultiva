@@ -37,6 +37,26 @@
               <TextBlock Text="description"/>
               <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap"
                        VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"/>
+              <DockPanel Margin="0,8,0,0">
+                <TextBlock Text="任务类型" Width="90" VerticalAlignment="Center"/>
+                <ComboBox x:Name="RuntimeModeBox" SelectedIndex="0">
+                  <ComboBoxItem Content="固定剧情任务" Tag="fixed"/>
+                  <ComboBoxItem Content="人物委托" Tag="characterCommission"/>
+                </ComboBox>
+              </DockPanel>
+              <DockPanel Margin="0,8,0,0">
+                <TextBlock Text="接取入口" Width="90" VerticalAlignment="Center"/>
+                <ComboBox x:Name="AcceptanceModeBox" SelectedIndex="0">
+                  <ComboBoxItem Content="任务日志 / 既有入口" Tag="journal"/>
+                  <ComboBoxItem Content="真实人物互动" Tag="interaction"/>
+                </ComboBox>
+              </DockPanel>
+              <DockPanel Margin="0,8,0,0">
+                <TextBlock Text="交付物品" Width="90" VerticalAlignment="Center"/>
+                <ComboBox x:Name="DeliveryItemBox" IsEditable="True" Width="300"/>
+                <TextBlock Text="数量" Margin="10,0,6,0" VerticalAlignment="Center"/>
+                <TextBox x:Name="DeliveryAmountBox" Text="1" Width="60"/>
+              </DockPanel>
               <CheckBox x:Name="AbandonableBox" Content="允许玩家放弃 (abandonable)" Margin="0,8,0,0"/>
               <DockPanel Margin="0,8,0,0">
                 <TextBlock Text="deadlineDays" Width="90" VerticalAlignment="Center"
@@ -85,7 +105,7 @@
             </StackPanel>
           </GroupBox>
 
-          <GroupBox Header="④ 完成条件" Margin="0,0,0,8">
+          <GroupBox Header="④ 完成条件（交付型人物委托可留空）" Margin="0,0,0,8">
             <shared:JsonArrayEditor x:Name="CompleteEditor" Margin="6"/>
           </GroupBox>
 

@@ -7,7 +7,9 @@ namespace XianXia.Core.Content
         /// atLocation | hasFlag | missingFlag | realmAtLeast | knowsSite |
         /// stockAtLeast | questActive | questCompleted | exploredLocation | hasManual |
         /// laborAtLocation | uniqueLaborAtLocation | uniqueHarvestAtLocation | characterAtLocation |
-        /// counterAtLeast | missingDailyFlag | hasDailyFlag | encounterCleared
+        /// counterAtLeast | missingDailyFlag | hasDailyFlag | encounterCleared |
+        /// questOfferableFromTarget | questActiveFromTarget | questHandedInFromTarget |
+        /// questReadyToClaimFromTarget | questCompletedFromTarget | questFailedFromTarget | affectionAtLeast
         /// </summary>
         public string Kind { get; set; } = string.Empty;
         public string Id { get; set; } = string.Empty;

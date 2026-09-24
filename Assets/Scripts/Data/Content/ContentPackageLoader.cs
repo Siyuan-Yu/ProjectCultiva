@@ -2455,6 +2455,8 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 Description = item.GetString("description", string.Empty),
                 AutoOffer = item.GetBool("autoOffer", false),
+                RuntimeMode = item.GetString("runtimeMode", "fixed"),
+                AcceptanceMode = item.GetString("acceptanceMode", "journal"),
                 Abandonable = item.GetBool("abandonable", false),
                 DeadlineDays = (int)item.GetNumber("deadlineDays", 0)
             };
@@ -2463,6 +2465,20 @@ namespace XianXia.Data.Content
             ReadConditions(item, "failConditions", quest.FailConditions, report, id.ToString());
             ReadOutcomes(item, "rewards", quest.Rewards, report, id.ToString());
             ReadOutcomes(item, "failResults", quest.FailResults, report, id.ToString());
+            if (item.TryGetProperty("deliveryRequirements", out var requirements))
+            {
+                if (requirements.Kind != JsonValueKind.Array)
+                    report.Add(ErrorCode.ContentLoadFailed, "deliveryRequirements must be an array.", id.ToString());
+                else foreach (var requirement in requirements.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(requirement, DefinitionSchema.QuestDeliveryRequirementFields, report, id + ".deliveryRequirements");
+                    quest.DeliveryRequirements.Add(new QuestDeliveryRequirement
+                    {
+                        ItemId = requirement.GetString("itemId", string.Empty),
+                        Amount = (int)requirement.GetNumber("amount", 1)
+                    });
+                }
+            }
             if (report.Errors.Count > errorsBefore)
                 return;
 

@@ -528,11 +528,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV6)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV7)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v6 saves lack complete Content Progress authority. Start a new game (schema v7 required).",
+                    "Schema v1-v7 saves lack stable Quest instance/issuer authority. Start a new game (schema v8 required).",
                     snap.SchemaVersion.ToString());
             }
 

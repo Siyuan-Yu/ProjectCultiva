@@ -61,6 +61,7 @@ public static class SchemaFields
         ["quest"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "description", "autoOffer", "abandonable", "deadlineDays",
+            "runtimeMode", "acceptanceMode", "deliveryRequirements",
             "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         },
         ["contentEvent"] = new HashSet<string>(StringComparer.Ordinal)
@@ -127,12 +128,15 @@ public static class SchemaFields
         "stockAtLeast", "realmAtLeast", "hasManual", "knowsSite", "questActive", "questCompleted",
         "laborAtLocation", "characterAtLocation", "uniqueLaborAtLocation", "uniqueHarvestAtLocation",
         "counterAtLeast", "missingDailyFlag", "hasDailyFlag", "encounterCleared"
+        , "questOfferableFromTarget", "questActiveFromTarget", "questHandedInFromTarget",
+        "questDeliveryAvailableFromTarget", "questReadyToClaimFromTarget",
+        "questCompletedFromTarget", "questFailedFromTarget", "affectionAtLeast"
     ];
 
     public static readonly string[] OutcomeKinds =
     [
         "setFlag", "clearFlag", "addStock", "removeStock", "grantProgress", "discoverSite",
-        "relationDelta", "startQuest",
+        "relationDelta", "startQuest", "acceptQuestFromTarget", "deliverQuestToTarget",
         "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame"
     ];
 

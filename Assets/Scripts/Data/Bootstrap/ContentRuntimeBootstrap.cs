@@ -119,6 +119,8 @@ namespace XianXia.Data.Bootstrap
                     Name = def.Name ?? string.Empty,
                     Description = def.Description ?? string.Empty,
                     AutoOffer = def.AutoOffer,
+                    RuntimeMode = def.RuntimeMode,
+                    AcceptanceMode = def.AcceptanceMode,
                     Abandonable = def.Abandonable,
                     DeadlineDays = def.DeadlineDays
                 };
@@ -127,6 +129,7 @@ namespace XianXia.Data.Bootstrap
                 spec.FailConditions.AddRange(def.FailConditions);
                 spec.Rewards.AddRange(def.Rewards);
                 spec.FailResults.AddRange(def.FailResults);
+                spec.DeliveryRequirements.AddRange(def.DeliveryRequirements);
                 world.Quests.Register(spec);
             }
 

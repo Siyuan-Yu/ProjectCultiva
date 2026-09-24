@@ -8,6 +8,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Exploration;
 using XianXia.Core.Random;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
@@ -21,6 +22,38 @@ namespace XianXia.Core.Opportunity
         const int TemplateAttempts = 64;
         const float MinimumOpportunitySpacing = 1.5f;
         ulong _lastExpiryDay = ulong.MaxValue;
+
+        /// <summary>Explicit LevelTester acceptance entry; does not alter normal director density.</summary>
+        public static Result SpawnAcceptanceInstances(SimulationWorld world, string definitionId, int count,
+            out string summary)
+        {
+            summary = string.Empty;
+            if (world == null || count <= 0 || !world.WorldOpportunities.TryGetSpec(definitionId, out var spec))
+                return Result.Failure(ErrorCode.InvalidArgument, "Acceptance opportunity request invalid.", definitionId);
+            var party = world.Strategic?.PlayerPartyContext;
+            if (!PlayerPartyWorldLocationQuery.TryResolve(world, party, out var location) ||
+                !string.Equals(location.SurfaceId, spec.SurfaceId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "Player is not on the opportunity surface.", spec.SurfaceId);
+            var day = DayClock.FromWorldTick(world.Tick).DayIndex;
+            var existingCount = world.WorldOpportunities.CountActive(definitionId);
+            if (existingCount > count)
+                return Result.Failure(ErrorCode.InvalidOperation, "More acceptance instances are already active.", definitionId);
+            for (var i = existingCount; i < count; i++)
+            {
+                if (!TrySpawn(world, spec, location.WorldPosition, day))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Could not place acceptance opportunity.", definitionId);
+            }
+            var created = new List<string>();
+            foreach (var pair in world.WorldOpportunities.ActiveInstances)
+                if (string.Equals(pair.Value.OpportunityDefinitionId, definitionId, StringComparison.Ordinal) &&
+                    world.WorldPresence.TryGet(pair.Value.SpawnedEntityId, out var presence))
+                    created.Add(pair.Key + " / Entity " + pair.Value.SpawnedEntityId.Value +
+                                " / (" + presence.ContinuousWorldPosition.X.ToString("0.00") + ", " +
+                                presence.ContinuousWorldPosition.Y.ToString("0.00") + ")");
+            created.Sort(StringComparer.Ordinal);
+            summary = string.Join("；", created);
+            return Result.Success();
+        }
 
         public void Tick(SimulationWorld world)
         {
@@ -182,6 +215,8 @@ namespace XianXia.Core.Opportunity
             for (var i = 0; i < expired.Count; i++)
             {
                 if (!world.WorldOpportunities.ActiveInstances.TryGetValue(expired[i], out var instance)) continue;
+                new QuestService().FailIssuerCommissions(
+                    world, instance.SpawnedEntityId, instance.InstanceId, "issuer_opportunity_expired");
                 if (world.WorldOpportunities.TryGetSpec(instance.OpportunityDefinitionId, out var spec))
                     ContentOutcomeApplier.ApplyAll(world, instance.SpawnedEntityId, spec.ExpireOutcomes);
                 RemoveEntityFromWorld(world, instance.SpawnedEntityId);
@@ -201,6 +236,9 @@ namespace XianXia.Core.Opportunity
                     stale.Add(instance.InstanceId);
             for (var i = 0; i < stale.Count; i++)
             {
+                if (!world.WorldOpportunities.ActiveInstances.TryGetValue(stale[i], out var instance)) continue;
+                new QuestService().FailIssuerCommissions(
+                    world, instance.SpawnedEntityId, instance.InstanceId, "issuer_dead_or_removed");
                 world.WorldActivities.ResolveSource(
                     WorldActivitySourceKind.WorldOpportunity, stale[i], day);
                 world.WorldOpportunities.RemoveInstance(stale[i]);

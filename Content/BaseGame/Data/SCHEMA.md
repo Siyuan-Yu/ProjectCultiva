@@ -100,7 +100,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 `formalArmy` 与 `hexWorld` 是已退役的历史输入标记：Runtime Loader 命中即拒绝，不属于支持列表。`LegacyRuntimeConverter` 只无损转换 FormalArmy；`hexWorld`／`openingHexWorldId` 会被检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无迁移样例时不得猜测。
 
-> **Definition ≠ runtime progress：** `quest`／`contentEvent`／`chapter` 等 JSON 是静态定义。当前 Quest／Flags／Events／Chapters／ContentCounters／ContentDaily 的 runtime 状态尚未完整进入 `WorldSnapshot`；不能因本 Schema 支持定义加载，就声称任务／剧情进度已完整磁盘持久化。现状与 Proposal 见 [247 handoff](../../../docs/40-process/247-project-handoff-current-state-2026-09-18.md#proposal通用内容状态磁盘持久化尚未授权)。
+> **Definition ≠ runtime progress：** `quest`／`contentEvent`／`chapter` JSON 是静态规则；当前运行进度由 Snapshot v8 `contentProgress` 保存。人物委托的 `QuestInstanceId`、真实发布者与交付状态只由 Runtime 创建，不写回 Content。
 
 ## retired input = hexWorld（仅离线转换参考）
 
@@ -471,6 +471,9 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 | Field | Notes |
 |---|---|
 | `autoOffer` | 条件满足时自动接取 |
+| `runtimeMode` | `fixed`（默认）或 `characterCommission`（人物委托） |
+| `acceptanceMode` | `journal`（默认既有入口）或 `interaction`；人物委托必须为 `interaction` |
+| `deliveryRequirements[]` | 一次性交付目标：`itemId`／正整数 `amount`；交付型任务可令 `completeConditions=[]` |
 | `abandonable` | 玩家是否可在任务日志中放弃（默认 false） |
 | `deadlineDays` | 接取后有效游戏天数；`0` = 无时限。超时自动 `Failed` 并应用 `failResults` |
 | 状态机 | Inactive → Active → **ReadyToClaim（待领奖）** → Completed；奖励仅在领取时发放 |
@@ -481,7 +484,7 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 
 ### condition.kind
 
-`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`｜`laborAtLocation`｜`uniqueLaborAtLocation`｜`uniqueHarvestAtLocation`｜`characterAtLocation`｜`counterAtLeast`｜`missingDailyFlag`｜`hasDailyFlag`｜`encounterCleared`
+`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`｜`laborAtLocation`｜`uniqueLaborAtLocation`｜`uniqueHarvestAtLocation`｜`characterAtLocation`｜`counterAtLeast`｜`missingDailyFlag`｜`hasDailyFlag`｜`encounterCleared`｜`questOfferableFromTarget`｜`questActiveFromTarget`｜`questHandedInFromTarget`｜`questDeliveryAvailableFromTarget`｜`questReadyToClaimFromTarget`｜`questCompletedFromTarget`｜`questFailedFromTarget`｜`affectionAtLeast`
 
 | kind | 含义 | 主要字段 |
 |---|---|---|
@@ -494,17 +497,21 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 | `missingDailyFlag` | **今日尚未**标记该键（可再对弈／拜访） | `id` |
 | `hasDailyFlag` | **今日已**标记该键 | `id` |
 | `encounterCleared` | 遭遇已清除（flag `encounter:{id}`） | `id`（遭遇／洞窟键） |
+| `quest*FromTarget` | 查询当前真实交谈对象发布的该任务模板实例 | `id`（Quest DefinitionId） |
+| `affectionAtLeast` | 明确来源角色对目标角色的 Affection ≥ | `id`（来源 ref）／`characterId`（目标 ref）／`amount` |
 
 劳动／采集进度由 `LocationLaborProgressBoard` 维护；采集节奏由 Host（约 10s/份＠1x、可自动续采）决定。  
 计数／日访由 `ContentCounterBoard`／`ContentDailyBoard` 维护（**不进 Snapshot v1**）。
 
 ### outcome.kind
 
-`setFlag`｜`clearFlag`｜`addStock`｜`startQuest`｜`relationDelta`｜`grantProgress`｜`discoverSite`｜`addCounter`｜`setCounter`｜`setDailyFlag`｜`clearDailyFlag`｜`learnManual`｜`setEncounterCleared`｜`startMinigame`
+`setFlag`｜`clearFlag`｜`addStock`｜`removeStock`｜`startQuest`｜`acceptQuestFromTarget`｜`deliverQuestToTarget`｜`relationDelta`｜`grantProgress`｜`discoverSite`｜`addCounter`｜`setCounter`｜`setDailyFlag`｜`clearDailyFlag`｜`learnManual`｜`setEncounterCleared`｜`startMinigame`
 
 | kind | 主要字段 |
 |---|---|
-| `relationDelta` | `fromDefinitionId`（单个）／`toDefinitionId`（单个，兼容旧数据）／`toDefinitionIds`（字符串数组，可多目标；`@party` = 当前全体可控角色）／`amount` |
+| `relationDelta` | 固定 DefinitionId 兼容；互动可用 `@actor`／`@target`／`@issuer`，`@party` 仍表示当前全体可控角色；方向为 from → to |
+| `acceptQuestFromTarget` | `id`＝人物委托模板；当前 Target 为真实发布者并创建／恢复其唯一实例 |
+| `deliverQuestToTarget` | `id`＝人物委托模板；按模板 `deliveryRequirements[]` 原子扣除并转 ReadyToClaim |
 | `addCounter` | `id`／`amount`（默认 +1） |
 | `setCounter` | `id`／`amount` |
 | `setDailyFlag`／`clearDailyFlag` | `id`（与 missingDailyFlag 同键） |
@@ -531,7 +538,7 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 | `trigger` | `onExplore`｜`onArrive`｜`onQuestCompleted`｜`onTalk`｜`manual` |
 | `locationId`／`questId`／`npcDefinitionId` | 触发上下文过滤（`onTalk` 配 NPC 的 character definition id；事件编辑器可填） |
 
-**对话发任务：** 不在人物 JSON 上写任务列表。用 `trigger=onTalk`＋`npcDefinitionId`＋选项 `outcomes` 的 `startQuest`。运行时动态靠 conditions／flag／章节 beat／`TryPresentById`。
+**对话发任务：** 固定任务可继续使用 `startQuest`。人物委托使用 `questOfferableFromTarget`／`acceptQuestFromTarget`，交付使用 `questActiveFromTarget`／`questDeliveryAvailableFromTarget`／`deliverQuestToTarget`；不得手写实例 ID、运行时 EntityId 或实例进度 flag。
 
 | `once` | 默认 true |
 | `conditions`／`choices[]` | choice：id／text／conditions／outcomes |
@@ -539,7 +546,7 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 **Host 打断呈现（CIF）：** 激活的 contentEvent → 强制暂停＋选项弹层（`ResolveContentChoice`）。  
 QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）。详见 `docs/40-process/95-content-interrupt-system-plan-v0.1.md`。
 
-会话态：Quest／ContentEvent／Flags **不进 Snapshot v1**。
+当前进度进入 Snapshot v8；Active dialogue 仍禁止保存。
 
 ## Sample IDs
 
@@ -563,7 +570,7 @@ QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）�
 | `eventChainIds[]` | 事件链清单（制作／计划；触发仍靠 explore／beat／条件） |
 | `dayBeats[]` | `dayIndex`／`conditions`／`questOfferIds`／`contentEventIds`／`setFlags` |
 
-会话态：Chapter／Quest／ContentEvent／Flags **不进 Snapshot v1**。
+Chapter／Quest／ContentEvent fired／Flags 进入 Snapshot v8；Active dialogue 不保存。
 
 ## type = building（CW-03 SiteCore）
 

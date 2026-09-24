@@ -1610,10 +1610,12 @@ namespace XianXia.Unity.Host
                 session.World.Quests.TryGet(trackedId, out var rt) &&
                 rt.Status != QuestStatus.Failed &&
                 rt.Status != QuestStatus.Completed &&
-                session.World.Quests.TryGetSpec(trackedId, out var spec))
+                session.World.Quests.TryGetSpec(rt.QuestId, out var spec))
             {
                 var title = string.IsNullOrEmpty(spec.Name) ? trackedId : spec.Name;
                 sb.AppendLine("追踪：" + title);
+                if (!string.IsNullOrEmpty(rt.IssuerDisplayName))
+                    sb.AppendLine("发布者：" + rt.IssuerDisplayName + " · 委托 " + rt.QuestInstanceId);
                 sb.AppendLine("状态：" + QuestStatusName(rt.Status));
                 if (!string.IsNullOrEmpty(spec.Description))
                 {
@@ -1669,6 +1671,15 @@ namespace XianXia.Unity.Host
             QuestSpec spec,
             QuestRuntime rt)
         {
+            if (spec != null && spec.DeliveryRequirements.Count > 0)
+            {
+                if (rt != null && rt.DeliveryCompleted) return "物品已交付";
+                var delivery = new System.Collections.Generic.List<string>();
+                for (var i = 0; i < spec.DeliveryRequirements.Count; i++)
+                    delivery.Add("交付 " + QuestJournalQuery.ResourceLabel(spec.DeliveryRequirements[i].ItemId) +
+                                 " ×" + spec.DeliveryRequirements[i].Amount);
+                return string.Join("；", delivery);
+            }
             if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
                 return "（无）";
             for (var i = 0; i < spec.CompleteConditions.Count; i++)

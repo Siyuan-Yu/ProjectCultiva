@@ -1,5 +1,7 @@
 # 路线图
 
+> **QUEST-INSTANCE-01（2026-09-24）：Implementation Complete / Producer Acceptance Pending。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。LevelTester 内容页提供“两名同模板临时行商”确定验收入口。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
+
 > **SAVE-01＋STRATEGIC-STOCK-01（2026-09-24）：Producer Accepted / Sealed。** Snapshot v7 持久保存 Quest／Flags／Event fired／Chapter／Counter／Daily／LocationLabor；对话进行中禁止保存，v1～v6 明确拒绝。临时行商与受伤散修两条 prototype 已完成 World Opportunity → Event Choice `startQuest` → Player Accessible Stock hand-in → ReadyToClaim → Journal Claim → Save/Load。resource 在可访问己方战略物资网络时聚合 PartyInventory＋eligible WorldSitePublicStock，非 resource 始终 bag-only；势力仓库 V1 只支持战略资源取出。见 [257](257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
 > **EVENT-02A（2026-09-23）：Producer Accepted / Sealed。** publicNotice 已从一次性 Toast 升级为持久 WorldActivity Active/History；原 v6 additive 字段在当前 Snapshot v7 中保持原 shape。左侧活动栏支持 unread、详情、最近 100 条历史与同 Surface 镜头定位。制作人已验收 publicNotice、详情、精确位置定位、Save/Load、无重复恢复通知及 expiry→history。见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
@@ -44,11 +46,12 @@
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **当前下一步：** SAVE-01 与 STRATEGIC-STOCK-01 已封板；尚未授权其它新功能、迁移阶段或关键词清理。
+- **当前下一步：** QUEST-INSTANCE-01 等待制作人人工验收；之后规划 NPC `ContentIntent`＋可取消延迟反应。
 - **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
+- **QUEST-INSTANCE-01 后续顺序（Planned / Not Implemented）：** NPC `ContentIntent`＋可取消延迟反应 → 势力继承与控制恢复 → 动态物体与发现 → 人物知情与信息传播 → 完整交易 → 实体装备与制作成长 → 生产与物流 → NPC 战略自主行为。小游戏中途保存作为独立正确性待办，不并入本轮。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 

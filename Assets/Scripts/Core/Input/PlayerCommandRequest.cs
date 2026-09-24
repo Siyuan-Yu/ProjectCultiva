@@ -63,7 +63,7 @@ namespace XianXia.Core.Input
         /// <summary>Content Ready: used when Kind == ResolveContentChoice.</summary>
         public string ChoiceId { get; }
 
-        /// <summary>Content Ready: used when Kind == StartQuest.</summary>
+        /// <summary>Quest command key: fixed definition id or dynamic QuestInstanceId.</summary>
         public string QuestId { get; }
 
         public bool IsSocialIntent =>

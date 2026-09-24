@@ -224,10 +224,10 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void LegacyV6AndMissingV7AuthorityAreRejected()
+        public void LegacyV7AndMissingV8AuthorityAreRejected()
         {
             var service = new SnapshotService(new JsonSnapshotSerializer());
-            var legacy = service.Restore(new WorldSnapshot { SchemaVersion = 6 });
+            var legacy = service.Restore(new WorldSnapshot { SchemaVersion = 7 });
             Assert.IsTrue(legacy.IsFailure);
             Assert.AreEqual(ErrorCode.SnapshotVersionMismatch, legacy.Error.Code);
 
@@ -250,155 +250,12 @@ namespace XianXia.Tests
                 ContentProgressSnapshotHelper.Restore(new SimulationWorld(), dto).Error.Code);
 
             var restored = new SimulationWorld();
-            var missingDefinitions = new ContentProgressSnapshotDto { HasAuthority = true };
-            missingDefinitions.Quests.Add(new QuestRuntimeSnapshotDto { QuestId = "test:missing", Status = (int)QuestStatus.Active });
+            var missingDefinitions = new ContentProgressSnapshotDto { HasAuthority = true, NextQuestInstanceSequence = 2 };
+            missingDefinitions.Quests.Add(new QuestRuntimeSnapshotDto
+            { QuestInstanceId = "test:missing", QuestId = "test:missing", Status = (int)QuestStatus.Active });
             Assert.IsTrue(ContentProgressSnapshotHelper.Restore(restored, missingDefinitions).IsSuccess);
             Assert.AreEqual(ErrorCode.SnapshotInvalid,
                 ContentProgressSnapshotHelper.ValidateDefinitions(restored).Error.Code);
-        }
-
-        [Test]
-        public void BaseGameOpportunityContentWiresBothEventsToHandInQuests()
-        {
-            var root = Environment.GetEnvironmentVariable("XIANXIA_BASEGAME") ??
-                       Path.GetFullPath(Path.Combine("Content", "BaseGame"));
-            var loaded = new ContentPackageLoader().Load(new[] { root });
-            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
-            var registry = loaded.Value.Registry;
-
-            Assert.IsTrue(registry.TryGetQuest(
-                new DefinitionId("base", "quest_event02_wounded_cultivator_herb"), out var quest));
-            Assert.AreEqual(2, quest.DeadlineDays);
-            Assert.IsTrue(quest.Abandonable);
-            Assert.IsTrue(quest.CompleteConditions.Any(c => c.Kind == "hasFlag" &&
-                c.Id == "quest:event02_wounded_cultivator_herb_handed_in"));
-            Assert.IsTrue(quest.Description.Contains("任意来源") && quest.Description.Contains("交给受伤散修"));
-            Assert.IsTrue(quest.Rewards.Any(o => o.Kind == "grantProgress" && o.Amount == 3));
-            Assert.IsTrue(quest.Rewards.Any(o => o.Kind == "setFlag" &&
-                o.Id == "quest:event02_wounded_cultivator_herb_done"));
-
-            Assert.IsTrue(registry.TryGetContentEvent(
-                new DefinitionId("base", "event_event02_wounded_cultivator_talk"), out var talk));
-            var accept = talk.Steps.SelectMany(step => step.Choices).Single(choice => choice.Id == "accept");
-            Assert.IsTrue(accept.Outcomes.Any(o => o.Kind == "setFlag" &&
-                o.Id == "story:event02_wounded_cultivator_herb_accepted"));
-            Assert.IsTrue(accept.Outcomes.Any(o => o.Kind == "startQuest" &&
-                o.Id == "base:quest_event02_wounded_cultivator_herb"));
-
-            Assert.IsTrue(registry.TryGetContentEvent(
-                new DefinitionId("base", "event_event02_wounded_cultivator_herb_active"), out var reminder));
-            Assert.AreEqual(60, reminder.Priority);
-            Assert.IsTrue(reminder.Conditions.Any(c => c.Kind == "questActive" && c.Id == quest.Id.ToString()));
-            var woundedHandIn = reminder.Steps.SelectMany(step => step.Choices)
-                .Single(choice => choice.Id == "hand_in");
-            Assert.IsTrue(woundedHandIn.Conditions.Any(c => c.Kind == "stockAtLeast" &&
-                c.Id == SpiritHerbId && c.Amount == 1));
-            Assert.IsTrue(woundedHandIn.Outcomes.Any(o => o.Kind == "removeStock" &&
-                o.Id == SpiritHerbId && o.Amount == 1));
-            Assert.IsTrue(woundedHandIn.Outcomes.Any(o => o.Kind == "setFlag" &&
-                o.Id == "quest:event02_wounded_cultivator_herb_handed_in"));
-            Assert.AreEqual("disabled", woundedHandIn.UnavailableMode);
-            Assert.AreEqual("需要灵药 ×1", woundedHandIn.RequirementText);
-            Assert.IsTrue(registry.TryGetWorldOpportunity(
-                new DefinitionId("base", "world_opportunity_event02_wounded_cultivator"), out var opportunity));
-            Assert.AreEqual(3, opportunity.DurationDays);
-
-            Assert.IsTrue(registry.TryGetQuest(
-                new DefinitionId("base", "quest_event02_temporary_merchant_herb"), out var merchantQuest));
-            Assert.AreEqual("临时行商·代采灵药", merchantQuest.Name);
-            Assert.AreEqual(2, merchantQuest.DeadlineDays);
-            Assert.IsTrue(merchantQuest.Abandonable);
-            Assert.IsTrue(merchantQuest.CompleteConditions.Any(c => c.Kind == "hasFlag" &&
-                c.Id == "quest:event02_temporary_merchant_herb_handed_in"));
-            Assert.IsTrue(merchantQuest.Description.Contains("任意来源") && merchantQuest.Description.Contains("交给临时行商"));
-            Assert.IsTrue(merchantQuest.Rewards.Any(o => o.Kind == "grantProgress" && o.Amount == 2));
-            Assert.IsTrue(merchantQuest.Rewards.Any(o => o.Kind == "setFlag" &&
-                o.Id == "quest:event02_temporary_merchant_herb_done"));
-            Assert.IsTrue(registry.WorkAreas.Values.Any(area =>
-                area.LocationId == "base:loc_ref_herb_field"));
-
-            Assert.IsTrue(registry.TryGetContentEvent(
-                new DefinitionId("base", "event_event02_temporary_merchant_talk"), out var merchantTalk));
-            Assert.AreEqual(50, merchantTalk.Priority);
-            Assert.IsFalse(merchantTalk.Once);
-            Assert.IsTrue(merchantTalk.Conditions.Any(c => c.Kind == "missingFlag" &&
-                c.Id == "story:event02_temporary_merchant_herb_accepted"));
-            var merchantAccept = merchantTalk.Steps.SelectMany(step => step.Choices)
-                .Single(choice => choice.Id == "accept");
-            Assert.IsTrue(merchantAccept.Outcomes.Any(o => o.Kind == "setFlag" &&
-                o.Id == "story:event02_temporary_merchant_herb_accepted"));
-            Assert.IsTrue(merchantAccept.Outcomes.Any(o => o.Kind == "startQuest" &&
-                o.Id == "base:quest_event02_temporary_merchant_herb"));
-            var merchantLeave = merchantTalk.Steps.SelectMany(step => step.Choices)
-                .Single(choice => choice.Id == "leave");
-            Assert.AreEqual(0, merchantLeave.Outcomes.Count, "Refusing must not set the accepted flag or start the quest.");
-
-            Assert.IsTrue(registry.TryGetContentEvent(
-                new DefinitionId("base", "event_event02_temporary_merchant_herb_active"), out var merchantReminder));
-            Assert.AreEqual(60, merchantReminder.Priority);
-            Assert.IsFalse(merchantReminder.Once);
-            Assert.IsTrue(merchantReminder.Conditions.Any(c => c.Kind == "questActive" &&
-                c.Id == merchantQuest.Id.ToString()));
-            var merchantHandIn = merchantReminder.Steps.SelectMany(step => step.Choices)
-                .Single(choice => choice.Id == "hand_in");
-            Assert.IsTrue(merchantHandIn.Conditions.Any(c => c.Kind == "stockAtLeast" &&
-                c.Id == SpiritHerbId && c.Amount == 1));
-            Assert.IsTrue(merchantHandIn.Outcomes.Any(o => o.Kind == "removeStock" &&
-                o.Id == SpiritHerbId && o.Amount == 1));
-            Assert.IsTrue(merchantHandIn.Outcomes.Any(o => o.Kind == "setFlag" &&
-                o.Id == "quest:event02_temporary_merchant_herb_handed_in"));
-            Assert.AreEqual("disabled", merchantHandIn.UnavailableMode);
-            Assert.AreEqual("需要灵药 ×1", merchantHandIn.RequirementText);
-            Assert.IsFalse(merchantReminder.Steps.SelectMany(step => step.Outcomes)
-                .Concat(merchantReminder.Steps.SelectMany(step => step.Choices).SelectMany(choice => choice.Outcomes))
-                .Any(o => o.Kind == "startQuest"));
-            Assert.IsTrue(registry.TryGetWorldOpportunity(
-                new DefinitionId("base", "world_opportunity_event02_temporary_merchant"), out var merchantOpportunity));
-            Assert.AreEqual(3, merchantOpportunity.DurationDays);
-
-            var runtimeWorld = new SimulationWorld();
-            Assert.IsTrue(ContentRuntimeBootstrap.RehydrateContentDefinitions(runtimeWorld, registry).IsSuccess);
-            var events = new ContentEventService();
-            runtimeWorld.ContentEvents.SetActive(merchantTalk.Id.ToString());
-            Assert.IsTrue(events.ResolveChoice(runtimeWorld, EntityId.None, "leave").IsSuccess);
-            Assert.IsFalse(runtimeWorld.Flags.Has("story:event02_temporary_merchant_herb_accepted"));
-            Assert.IsTrue(runtimeWorld.Quests.TryGet(merchantQuest.Id.ToString(), out var declinedQuest));
-            Assert.AreEqual(QuestStatus.Inactive, declinedQuest.Status);
-
-            runtimeWorld.ContentEvents.SetActive(merchantTalk.Id.ToString());
-            Assert.IsTrue(events.ResolveChoice(runtimeWorld, EntityId.None, "accept").IsSuccess);
-            Assert.IsTrue(runtimeWorld.Flags.Has("story:event02_temporary_merchant_herb_accepted"));
-            Assert.IsTrue(runtimeWorld.Quests.TryGet(merchantQuest.Id.ToString(), out var acceptedQuest));
-            Assert.AreEqual(QuestStatus.Active, acceptedQuest.Status);
-            var journal = new System.Collections.Generic.List<QuestListEntry>();
-            QuestJournalQuery.Collect(runtimeWorld, EntityId.None, journal);
-            var merchantEntry = journal.Single(entry => entry.QuestId == merchantQuest.Id.ToString());
-            Assert.IsTrue(merchantEntry.ObjectivesSummary.Contains("交给临时行商"));
-            Assert.IsFalse(merchantEntry.ObjectivesSummary.Contains("quest:event02"));
-
-            runtimeWorld.InventoryCatalog.Register(SpiritHerbId, "灵药", 99, null);
-            Assert.IsTrue(runtimeWorld.Inventory.TryAddAll(SpiritHerbId, 1),
-                "Any legal acquisition path only needs to add the herb to PartyInventory.");
-            new QuestService().Evaluate(runtimeWorld, EntityId.None);
-            Assert.AreEqual(QuestStatus.Active, acceptedQuest.Status,
-                "Owning the herb must not complete the quest before hand-in.");
-            Assert.IsTrue(ContentConditionEvaluator.AllPass(runtimeWorld, EntityId.None, merchantHandIn.Conditions));
-
-            runtimeWorld.ContentEvents.SetActive(merchantReminder.Id.ToString());
-            Assert.IsTrue(events.ResolveChoice(runtimeWorld, EntityId.None, "hand_in").IsSuccess);
-            Assert.AreEqual(0, runtimeWorld.Inventory.GetCount(SpiritHerbId));
-            Assert.IsTrue(runtimeWorld.Flags.Has("quest:event02_temporary_merchant_herb_handed_in"));
-            Assert.AreEqual(QuestStatus.Active, acceptedQuest.Status,
-                "The quest evaluates when the hand-in dialogue finishes.");
-            Assert.IsTrue(events.ResolveChoice(runtimeWorld, EntityId.None, string.Empty).IsSuccess);
-            Assert.IsTrue(events.ResolveChoice(runtimeWorld, EntityId.None, string.Empty).IsSuccess);
-            Assert.AreEqual(QuestStatus.ReadyToClaim, acceptedQuest.Status);
-
-            var restored = RoundTrip(runtimeWorld).world;
-            Assert.AreEqual(0, restored.Inventory.GetCount(SpiritHerbId));
-            Assert.IsTrue(restored.Flags.Has("quest:event02_temporary_merchant_herb_handed_in"));
-            Assert.IsTrue(restored.Quests.TryGet(merchantQuest.Id.ToString(), out var restoredQuest));
-            Assert.AreEqual(QuestStatus.ReadyToClaim, restoredQuest.Status);
         }
 
         static QuestSpec CounterQuest(string id, string counter, int amount, int deadlineDays = 0)

@@ -19,6 +19,7 @@ namespace XianXia.Core.Content
         public string ActiveTargetKey { get; private set; } = string.Empty;
         public string ActiveTargetDefinitionId { get; private set; } = string.Empty;
         public string ActiveTargetDisplayName { get; private set; } = string.Empty;
+        public EntityId ActiveIssuerEntityId { get; private set; } = EntityId.None;
         public bool ActiveInteraction { get; private set; }
 
         public string FiredKey(ContentEventSpec spec, EntityId actor, EntityId target)
@@ -83,6 +84,7 @@ namespace XianXia.Core.Content
             ActiveTargetKey = context.TargetKey ?? string.Empty;
             ActiveTargetDefinitionId = context.TargetDefinitionId ?? string.Empty;
             ActiveTargetDisplayName = context.TargetDisplayName ?? string.Empty;
+            ActiveIssuerEntityId = context.IssuerEntityId;
             ActiveInteraction = interaction;
             ActiveStepId = TryGet(id, out var spec) ? (spec.Steps.Count == 0 ? "$legacy" : spec.EntryStepId) : "";
         }
@@ -90,10 +92,19 @@ namespace XianXia.Core.Content
         public void AdvanceStep(string id) => ActiveStepId = id ?? string.Empty;
         public void ClearActive() => SetActive("", EntityId.None, EntityId.None, false);
 
+        public ContentInteractionContext ActiveContext() => new ContentInteractionContext
+        {
+            ActorId = ActiveActorId, TargetEntityId = ActiveTargetEntityId,
+            TargetKind = ActiveTargetKind, TargetKey = ActiveTargetKey,
+            TargetDefinitionId = ActiveTargetDefinitionId,
+            TargetDisplayName = ActiveTargetDisplayName,
+            IssuerEntityId = ActiveIssuerEntityId
+        };
+
         internal sealed class RuntimeState
         {
             public string Event, Step;
-            public EntityId Actor, Target;
+            public EntityId Actor, Target, Issuer;
             public string TargetKind, TargetKey, TargetDefinitionId, TargetDisplayName;
             public bool Interaction;
             public List<string> Fired;
@@ -103,6 +114,7 @@ namespace XianXia.Core.Content
             Event = ActiveEventId, Step = ActiveStepId, Actor = ActiveActorId,
             Target = ActiveTargetEntityId, TargetKind = ActiveTargetKind, TargetKey = ActiveTargetKey,
             TargetDefinitionId = ActiveTargetDefinitionId, TargetDisplayName = ActiveTargetDisplayName,
+            Issuer = ActiveIssuerEntityId,
             Interaction = ActiveInteraction, Fired = new List<string>(_fired)
         };
         internal void RestoreState(RuntimeState state)
@@ -115,6 +127,7 @@ namespace XianXia.Core.Content
             ActiveTargetKey = state.TargetKey ?? string.Empty;
             ActiveTargetDefinitionId = state.TargetDefinitionId ?? string.Empty;
             ActiveTargetDisplayName = state.TargetDisplayName ?? string.Empty;
+            ActiveIssuerEntityId = state.Issuer;
             ActiveInteraction = state.Interaction;
             _fired.Clear();
             foreach (var key in state.Fired) _fired.Add(key);
