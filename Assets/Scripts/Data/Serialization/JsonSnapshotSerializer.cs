@@ -75,6 +75,9 @@ namespace XianXia.Data.Serialization
             try
             {
                 var root = SimpleJson.Parse(json);
+                if (root.GetNumber("schemaVersion") != WorldSnapshot.CurrentSchemaVersion)
+                    return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
+                        "Schema v11 required; v1-v10 lack temporary Quest companion authority. Start a new game.");
                 var snapshot = new WorldSnapshot
                 {
                     SchemaVersion = (int)root.GetNumber("schemaVersion"),
@@ -375,11 +378,36 @@ namespace XianXia.Data.Serialization
                 ["deliveryCompleted"] = JsonValue.FromBool(q.DeliveryCompleted),
                 ["failureReason"] = JsonValue.FromString(q.FailureReason ?? string.Empty)
             }));
+            var scheduled = new List<JsonValue>();
+            foreach (var item in content.ScheduledEvents ?? new List<ScheduledContentEventSnapshotDto>())
+                scheduled.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["instanceId"] = JsonValue.FromString(item.InstanceId ?? string.Empty),
+                    ["eventId"] = JsonValue.FromString(item.EventId ?? string.Empty),
+                    ["scheduledAtTick"] = U(item.ScheduledAtTick),
+                    ["executeTick"] = U(item.ExecuteTick),
+                    ["actorEntityId"] = U(item.ActorEntityId),
+                    ["targetEntityId"] = U(item.TargetEntityId),
+                    ["targetKind"] = JsonValue.FromString(item.TargetKind ?? string.Empty),
+                    ["targetKey"] = JsonValue.FromString(item.TargetKey ?? string.Empty),
+                    ["targetDefinitionId"] = JsonValue.FromString(item.TargetDefinitionId ?? string.Empty),
+                    ["targetDisplayName"] = JsonValue.FromString(item.TargetDisplayName ?? string.Empty),
+                    ["issuerEntityId"] = U(item.IssuerEntityId),
+                    ["opportunityInstanceId"] = JsonValue.FromString(item.OpportunityInstanceId ?? string.Empty),
+                }));
+            var companions = new List<JsonValue>();
+            foreach (var b in content.QuestCompanions ?? new List<QuestCompanionSnapshotDto>())
+                companions.Add(JsonValue.FromObject(new Dictionary<string,JsonValue> {
+                    ["companionEntityId"] = U(b.CompanionEntityId), ["questInstanceId"] = JsonValue.FromString(b.QuestInstanceId),
+                    ["originalSquadId"] = JsonValue.FromString(b.OriginalSquadId), ["state"] = JsonValue.FromNumber(b.State) }));
             var chapter = content.Chapter ?? new ChapterRuntimeSnapshotDto();
             return JsonValue.FromObject(new Dictionary<string, JsonValue>
             {
                 ["hasAuthority"] = JsonValue.FromBool(content.HasAuthority),
                 ["nextQuestInstanceSequence"] = U(content.NextQuestInstanceSequence),
+                ["nextScheduledEventSequence"] = U(content.NextScheduledEventSequence),
+                ["scheduledEvents"] = JsonValue.FromArray(scheduled),
+                ["questCompanions"] = JsonValue.FromArray(companions),
                 ["flags"] = JsonValue.FromArray(SerializeStringList(content.Flags)),
                 ["flagHistory"] = JsonValue.FromArray(SerializeStringList(content.FlagHistory)),
                 ["quests"] = JsonValue.FromArray(quests),
@@ -410,6 +438,51 @@ namespace XianXia.Data.Serialization
                 HasAuthority = node.GetBool("hasAuthority", false),
                 NextQuestInstanceSequence = ReadU(node, "nextQuestInstanceSequence")
             };
+            if (!node.TryGetProperty("nextScheduledEventSequence", out var scheduledSequence) ||
+                scheduledSequence.Kind != JsonValueKind.String ||
+                !ulong.TryParse(scheduledSequence.String, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var nextScheduled) || nextScheduled == 0)
+                throw new System.FormatException("contentProgress.nextScheduledEventSequence required (v10).");
+            dto.NextScheduledEventSequence = nextScheduled;
+            if (!node.TryGetProperty("scheduledEvents", out var scheduled) || scheduled.Kind != JsonValueKind.Array)
+                throw new System.FormatException("contentProgress.scheduledEvents authority required (v10).");
+            foreach (var item in scheduled.Array)
+            {
+                if (item.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid scheduled event entry.");
+                foreach (var key in new[] { "instanceId", "eventId", "targetKind", "targetKey", "targetDefinitionId", "targetDisplayName", "opportunityInstanceId" })
+                    if (!item.TryGetProperty(key, out var value) || value.Kind != JsonValueKind.String)
+                        throw new System.FormatException("Scheduled event string field required: " + key);
+                foreach (var key in new[] { "scheduledAtTick", "executeTick", "actorEntityId", "targetEntityId", "issuerEntityId" })
+                    if (!item.TryGetProperty(key, out var value) || value.Kind != JsonValueKind.String ||
+                        !ulong.TryParse(value.String, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _))
+                        throw new System.FormatException("Scheduled event uint64 field required: " + key);
+                dto.ScheduledEvents.Add(new ScheduledContentEventSnapshotDto
+                {
+                    InstanceId = item.GetString("instanceId", string.Empty),
+                    EventId = item.GetString("eventId", string.Empty),
+                    ScheduledAtTick = ReadU(item, "scheduledAtTick"),
+                    ExecuteTick = ReadU(item, "executeTick"),
+                    ActorEntityId = ReadU(item, "actorEntityId"),
+                    TargetEntityId = ReadU(item, "targetEntityId"),
+                    TargetKind = item.GetString("targetKind", string.Empty),
+                    TargetKey = item.GetString("targetKey", string.Empty),
+                    TargetDefinitionId = item.GetString("targetDefinitionId", string.Empty),
+                    TargetDisplayName = item.GetString("targetDisplayName", string.Empty),
+                    IssuerEntityId = ReadU(item, "issuerEntityId"),
+                    OpportunityInstanceId = item.GetString("opportunityInstanceId", string.Empty),
+                });
+            }
+            if (!node.TryGetProperty("questCompanions",out var companions) || companions.Kind != JsonValueKind.Array)
+                throw new System.FormatException("contentProgress.questCompanions authority required (v11).");
+            foreach (var b in companions.Array)
+            {
+                if (b.Kind != JsonValueKind.Object || !b.TryGetProperty("companionEntityId",out var id) || id.Kind != JsonValueKind.String ||
+                    !ulong.TryParse(id.String,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out var entityId) || entityId == 0 ||
+                    !b.TryGetProperty("questInstanceId",out var quest) || quest.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(quest.String) ||
+                    !b.TryGetProperty("originalSquadId",out var squad) || squad.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(squad.String) ||
+                    !b.TryGetProperty("state",out var state) || state.Kind != JsonValueKind.Number || (state.Number != 0 && state.Number != 1))
+                    throw new System.FormatException("Invalid Quest companion entry.");
+                dto.QuestCompanions.Add(new QuestCompanionSnapshotDto { CompanionEntityId = entityId, QuestInstanceId = quest.String, OriginalSquadId = squad.String, State = (int)state.Number });
+            }
             ReadStrings(node, "flags", dto.Flags); ReadStrings(node, "flagHistory", dto.FlagHistory);
             ReadStrings(node, "firedEventKeys", dto.FiredEventKeys);
             if (node.TryGetProperty("quests", out var quests) && quests.Kind == JsonValueKind.Array)

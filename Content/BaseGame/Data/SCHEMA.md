@@ -579,3 +579,10 @@ Chapter／Quest／ContentEvent fired／Flags 进入 Snapshot v8；Active dialogu
 `placementKind = "recoverySpot"` 表示 2×2 室外恢复处：`createsWorldSite` 必须为 `false`，`outdoorKind` 必须为 `recoverySpot`，且 `footprintCellsW/H` 必须为 `2`。恢复处只保存稳定物理身份，不创建行政资产锚点；使用它不要求所属势力，但建造时整个 footprint 必须位于玩家势力的 Actual Control 内。
 
 BaseGame 当前一级新建据点范围为 `4.2 × 2.8` 世界单位，属于 CW-03 的可调内容参数，不是所有 Site／等级的永久常量。
+
+## SOCIAL-QUEST-01：Quest 分类
+
+Quest 可选字符串 `questKind` 只接受 `general`（省略默认）与 `secretRealm`，区分大小写；其它值或非字符串拒绝加载。与 `runtimeMode=fixed|characterCommission` 正交。QuestEditor 增加「普通任务／秘境任务」下拉。
+仅 Active secretRealm QuestInstance 派生 Priority=0「关于【任务名】」，不生成 Event 定义，不推断名称/tags/地点。邀请绑定 QuestInstanceId。
+验收：`base:quest_social01_cave`、`base:quest_social01_cave_b`、`base:quest_social01_general`，manual、可放弃，`exploredLocation:base:loc_cave_chamber` 完成。
+Snapshot v11 的 `contentProgress.questCompanions` 必备数组包含 `companionEntityId`（uint64 十进制字符串）、`questInstanceId`、`originalSquadId`、`state`（0 Active / 1 PendingDeparture）。Topics 不存档。

@@ -1,5 +1,17 @@
 # 术语表
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+仅 Active + questKind=secretRealm 的真实 QuestInstance 投影 Priority0 话题；普通 general 不自动投影。NPC→实际 Actor 的 RelationshipLedger Score 独立门槛20。绑定保存 CompanionEntityId、QuestInstanceId、OriginalSquadId、Active/PendingDeparture，不改变 faction/tag/永久 roster。Dynamic Opportunity NPC V1 拒绝邀请。
+
+Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验实体/实例/受控 Squad，恢复不重放邀请、不替换同模板实体、不新增 controllability bool。v1～v10 严格拒绝。任务 ReadyToClaim/Completed/Failed/放弃后锁定 PendingDeparture，安全普通 Surface 经私有生命周期入口离队，共用精确位置与工作清理；原 Squad 仍合法、同 Surface 同落点且可接纳才恢复，否则 singleton。
+
+
 > **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影。历史 FormalArmy／Hex 输入不是 runtime definition，必须先离线转换为独立的当前格式副本。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
 > 状态：持续维护 | 最后更新：2026-09-24

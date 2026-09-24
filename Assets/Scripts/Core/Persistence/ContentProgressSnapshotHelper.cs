@@ -10,7 +10,11 @@ namespace XianXia.Core.Persistence
     {
         public static ContentProgressSnapshotDto Capture(SimulationWorld world)
         {
+            QuestCompanionService.Reconcile(world);
             var dto = new ContentProgressSnapshotDto { HasAuthority = true };
+            foreach (var b in world.QuestCompanions.Capture())
+                dto.QuestCompanions.Add(new QuestCompanionSnapshotDto { CompanionEntityId = b.CompanionEntityId.Value,
+                    QuestInstanceId = b.QuestInstanceId, OriginalSquadId = b.OriginalSquadId, State = (int)b.State });
             world.Flags.CaptureState(out var flags, out var history);
             flags.Sort(StringComparer.Ordinal);
             dto.Flags.AddRange(flags); dto.FlagHistory.AddRange(history);
@@ -37,6 +41,23 @@ namespace XianXia.Core.Persistence
                     FailureReason = runtime.FailureReason
                 });
             }
+            dto.NextScheduledEventSequence = world.ScheduledContentEvents.NextInstanceSequence;
+            foreach (var item in world.ScheduledContentEvents.OrderedPending())
+                dto.ScheduledEvents.Add(new ScheduledContentEventSnapshotDto
+                {
+                    InstanceId = item.InstanceId,
+                    EventId = item.EventId,
+                    ScheduledAtTick = item.ScheduledAtTick,
+                    ExecuteTick = item.ExecuteTick,
+                    ActorEntityId = item.ActorEntityId.Value,
+                    TargetEntityId = item.TargetEntityId.Value,
+                    TargetKind = item.TargetKind,
+                    TargetKey = item.TargetKey,
+                    TargetDefinitionId = item.TargetDefinitionId,
+                    TargetDisplayName = item.TargetDisplayName,
+                    IssuerEntityId = item.IssuerEntityId.Value,
+                    OpportunityInstanceId = item.OpportunityInstanceId,
+                });
             var firedKeys = world.ContentEvents.CaptureFiredKeys();
             firedKeys.Sort(StringComparer.Ordinal);
             dto.FiredEventKeys.AddRange(firedKeys);
@@ -84,10 +105,44 @@ namespace XianXia.Core.Persistence
             if (!UniqueStrings(appliedBeatKeys, false) ||
                 (string.IsNullOrEmpty(chapter.ActiveChapterId) && appliedBeatKeys.Count > 0))
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid Chapter applied beat key.");
+            if (dto.ScheduledEvents == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Scheduled events missing.");
+            var schedules = new List<ScheduledContentEventInstance>();
+            foreach (var item in dto.ScheduledEvents)
+            {
+                if (item == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Null scheduled event.");
+                schedules.Add(new ScheduledContentEventInstance
+                {
+                    InstanceId = item.InstanceId,
+                    EventId = item.EventId,
+                    ScheduledAtTick = item.ScheduledAtTick,
+                    ExecuteTick = item.ExecuteTick,
+                    ActorEntityId = new XianXia.Core.Domain.Ids.EntityId(item.ActorEntityId),
+                    TargetEntityId = new XianXia.Core.Domain.Ids.EntityId(item.TargetEntityId),
+                    TargetKind = item.TargetKind,
+                    TargetKey = item.TargetKey,
+                    TargetDefinitionId = item.TargetDefinitionId,
+                    TargetDisplayName = item.TargetDisplayName,
+                    IssuerEntityId = new XianXia.Core.Domain.Ids.EntityId(item.IssuerEntityId),
+                    OpportunityInstanceId = item.OpportunityInstanceId,
+                });
+            }
+            var scheduledRestore = world.ScheduledContentEvents.Restore(schedules, dto.NextScheduledEventSequence, world.Tick.Value);
+            if (scheduledRestore.IsFailure) return scheduledRestore;
             world.Flags.RestoreState(dto.Flags, dto.FlagHistory);
             if (dto.NextQuestInstanceSequence == 0)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Quest instance sequence is invalid.");
             world.Quests.RestoreRuntime(quests, dto.NextQuestInstanceSequence);
+            if (dto.QuestCompanions == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Quest companions authority missing.");
+            var companions = new List<QuestCompanionBinding>();
+            var companionIds = new HashSet<ulong>();
+            foreach (var b in dto.QuestCompanions)
+            {
+                if (b == null || !companionIds.Add(b.CompanionEntityId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Null or duplicate Quest companion.");
+                companions.Add(new QuestCompanionBinding { CompanionEntityId = new XianXia.Core.Domain.Ids.EntityId(b.CompanionEntityId),
+                    QuestInstanceId = b.QuestInstanceId, OriginalSquadId = b.OriginalSquadId, State = (QuestCompanionState)b.State });
+            }
+            world.QuestCompanions.Restore(companions);
             world.ContentEvents.RestoreFiredKeys(dto.FiredEventKeys);
             world.Chapters.RestoreRuntime(chapter.ActiveChapterId, chapter.ChapterStartDayIndex, appliedBeatKeys);
             world.ContentCounters.RestoreState(counters); world.ContentDaily.RestoreState(daily);
@@ -97,6 +152,23 @@ namespace XianXia.Core.Persistence
 
         public static Result ValidateDefinitions(SimulationWorld world)
         {
+            var companions = QuestCompanionService.ValidateRestored(world,world.Strategic.PlayerPartyContext?.ControlledSquadId,true);
+            if (companions.IsFailure) return companions;
+            foreach (var item in world.ScheduledContentEvents.Pending)
+            {
+                if (!world.ContentEvents.TryGet(item.EventId, out _))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Scheduled Event definition missing.", item.EventId);
+                // Missing/dead sources are legitimate stale pending state; dispatcher cancels at deadline.
+                // Existing sources must match exactly. Never substitute a same-template entity.
+                if (!item.TargetEntityId.IsNone && world.Entities.TryGet(item.TargetEntityId, out var target) &&
+                    !string.IsNullOrEmpty(item.TargetDefinitionId) && target.DefinitionId.ToString() != item.TargetDefinitionId)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Scheduled Target identity mismatch.", item.InstanceId);
+                if (!string.IsNullOrEmpty(item.OpportunityInstanceId) && world.WorldOpportunities.TryGetInstance(item.OpportunityInstanceId, out var source) &&
+                    (item.TargetKind == "opportunityObject"
+                        ? item.TargetKey != "opportunityObject:" + source.WorldObjectInstanceId || item.TargetDefinitionId != source.OpportunityDefinitionId
+                        : item.TargetEntityId.IsNone || item.TargetEntityId != source.SpawnedEntityId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Scheduled Opportunity identity mismatch.", item.InstanceId);
+            }
             var issuerTemplate = new HashSet<string>(StringComparer.Ordinal);
             ulong maxCommissionSequence = 0;
             foreach (var pair in world.Quests.Runtime)

@@ -351,7 +351,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < selectionController.State.Count; i++)
             {
                 var selected = selectionController.State.SelectedIds[i];
-                if (_session.PlayerParty?.IsMember(selected) != true) continue;
+                if (_session.PlayerParty?.IsPlayerControllableMember(selected) != true) continue;
                 id = selected;
                 break;
             }
@@ -786,11 +786,13 @@ namespace XianXia.Unity.Host
             }
 
             var allowed = BuildAllowedSet(_session.CharacterIds);
+            foreach (var member in _session.PlayerParty.Members)
+                if (_session.PlayerParty.IsPlayerControllableMember(member)) allowed.Add(member.Value);
             var active = ResolveActiveCharacter();
             for (var i = 0; i < targets.Count; i++)
             {
                 var id = targets[i];
-                if (id.IsNone || !allowed.Contains(id.Value))
+                if (id.IsNone || !allowed.Contains(id.Value) || !XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(_session.World,id))
                 {
                     _lastFailureCount++;
                     Debug.LogWarning("[HostCommand] Skip non-controllable entity: " + id, this);
@@ -925,10 +927,12 @@ namespace XianXia.Unity.Host
             }
 
             var controllable = BuildAllowedSet(session.CharacterIds);
+            foreach (var member in session.PlayerParty.Members)
+                if (session.PlayerParty.IsPlayerControllableMember(member)) controllable.Add(member.Value);
             for (var i = 0; i < selection.Count; i++)
             {
                 var id = selection[i];
-                if (!id.IsNone && controllable.Contains(id.Value))
+                if (!id.IsNone && controllable.Contains(id.Value) && XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(session.World,id))
                 {
                     actor = id;
                     break;

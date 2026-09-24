@@ -1,5 +1,15 @@
 # 路线图
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
+
+
 > **2026-09-24 DYNAMIC-DISCOVERY-01＋MAP-COORD-01：Producer Accepted / Sealed。** WorldOpportunity 动态物体、三种 discovery mode、稳定 onInspect、显式 resolve、Activity 生命周期、Snapshot v9、Producer authoring、LevelTester 验收入口及 WorldMap Surface 坐标读数已完成人工验收并封板；见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)／[262](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md)。下一里程碑为 **KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation（Planned）**，本轮未开始实施。
 
 > **QUEST-INSTANCE-01（2026-09-24）：Producer Accepted / Sealed。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。双同模板行商的独立接取、交付、领奖、失效与 Save/Load 已由制作人验收。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。

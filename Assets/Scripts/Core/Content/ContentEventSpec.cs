@@ -13,6 +13,7 @@ namespace XianXia.Core.Content
         public string TargetDefinitionId { get; set; } = string.Empty;
         public string TargetDisplayName { get; set; } = string.Empty;
         public EntityId IssuerEntityId { get; set; } = EntityId.None;
+        public string OpportunityInstanceId { get; set; } = string.Empty;
 
         public static ContentInteractionContext ForNpc(
             EntityId actor, EntityId target, string definitionId, string displayName = null) =>

@@ -1,4 +1,4 @@
-﻿<Window x:Class="QuestEditor.MainWindow"
+<Window x:Class="QuestEditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shared="clr-namespace:ContentAuthoring.Shared;assembly=Shared"
@@ -38,10 +38,17 @@
               <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap"
                        VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"/>
               <DockPanel Margin="0,8,0,0">
-                <TextBlock Text="任务类型" Width="90" VerticalAlignment="Center"/>
+                <TextBlock Text="实例模式" Width="90" VerticalAlignment="Center"/>
                 <ComboBox x:Name="RuntimeModeBox" SelectedIndex="0">
                   <ComboBoxItem Content="固定剧情任务" Tag="fixed"/>
                   <ComboBoxItem Content="人物委托" Tag="characterCommission"/>
+                </ComboBox>
+              </DockPanel>
+              <DockPanel Margin="0,8,0,0">
+                <TextBlock Text="任务分类" Width="90" VerticalAlignment="Center"/>
+                <ComboBox x:Name="QuestKindBox" SelectedIndex="0">
+                  <ComboBoxItem Content="普通任务" Tag="general"/>
+                  <ComboBoxItem Content="秘境任务" Tag="secretRealm"/>
                 </ComboBox>
               </DockPanel>
               <DockPanel Margin="0,8,0,0">

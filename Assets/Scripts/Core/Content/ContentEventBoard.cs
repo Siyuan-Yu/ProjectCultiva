@@ -21,6 +21,11 @@ namespace XianXia.Core.Content
         public string ActiveTargetDisplayName { get; private set; } = string.Empty;
         public EntityId ActiveIssuerEntityId { get; private set; } = EntityId.None;
         public bool ActiveInteraction { get; private set; }
+        public string ActiveScheduledInstanceId { get; private set; } = string.Empty;
+        public string ActiveOpportunityInstanceId { get; private set; } = string.Empty;
+
+        internal void SetScheduledActive(ScheduledContentEventInstance item)
+        { SetActive(item.EventId, item.Context(), false); ActiveScheduledInstanceId = item.InstanceId; }
 
         public string FiredKey(ContentEventSpec spec, EntityId actor, EntityId target)
             => FiredKey(spec, actor, target.IsNone ? string.Empty : target.Value.ToString());
@@ -78,6 +83,8 @@ namespace XianXia.Core.Content
         {
             context = context ?? new ContentInteractionContext();
             ActiveEventId = id ?? string.Empty;
+            ActiveScheduledInstanceId = string.Empty;
+            ActiveOpportunityInstanceId = context.OpportunityInstanceId ?? string.Empty;
             ActiveActorId = context.ActorId;
             ActiveTargetEntityId = context.TargetEntityId;
             ActiveTargetKind = context.TargetKind ?? string.Empty;
@@ -98,12 +105,12 @@ namespace XianXia.Core.Content
             TargetKind = ActiveTargetKind, TargetKey = ActiveTargetKey,
             TargetDefinitionId = ActiveTargetDefinitionId,
             TargetDisplayName = ActiveTargetDisplayName,
-            IssuerEntityId = ActiveIssuerEntityId
+            IssuerEntityId = ActiveIssuerEntityId, OpportunityInstanceId = ActiveOpportunityInstanceId
         };
 
         internal sealed class RuntimeState
         {
-            public string Event, Step;
+            public string Event, Step, Scheduled, Opportunity;
             public EntityId Actor, Target, Issuer;
             public string TargetKind, TargetKey, TargetDefinitionId, TargetDisplayName;
             public bool Interaction;
@@ -111,7 +118,7 @@ namespace XianXia.Core.Content
         }
         internal RuntimeState CaptureState() => new RuntimeState
         {
-            Event = ActiveEventId, Step = ActiveStepId, Actor = ActiveActorId,
+            Event = ActiveEventId, Step = ActiveStepId, Scheduled = ActiveScheduledInstanceId, Opportunity = ActiveOpportunityInstanceId, Actor = ActiveActorId,
             Target = ActiveTargetEntityId, TargetKind = ActiveTargetKind, TargetKey = ActiveTargetKey,
             TargetDefinitionId = ActiveTargetDefinitionId, TargetDisplayName = ActiveTargetDisplayName,
             Issuer = ActiveIssuerEntityId,
@@ -120,6 +127,7 @@ namespace XianXia.Core.Content
         internal void RestoreState(RuntimeState state)
         {
             ActiveEventId = state.Event;
+            ActiveScheduledInstanceId = state.Scheduled; ActiveOpportunityInstanceId = state.Opportunity;
             ActiveStepId = state.Step;
             ActiveActorId = state.Actor;
             ActiveTargetEntityId = state.Target;

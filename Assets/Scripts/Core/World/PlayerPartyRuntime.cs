@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
@@ -67,7 +68,19 @@ namespace XianXia.Core.World
 
         public int Count => TryGetControlledSquad(out var squad) ? squad.MemberCharacterIds.Count : 0;
 
-        public bool HasActive => !_activeId.IsNone && IsMember(_activeId);
+        public bool HasActive => !_activeId.IsNone && IsPlayerControllableMember(_activeId);
+
+        public bool IsPlayerControllableMember(EntityId id) => IsMember(id) && CanPlayerControlCharacter(_world,id);
+
+        /// <summary>Permanent Character roster or existing player-faction management authority; attachment never grants control.</summary>
+        public static bool CanPlayerControlCharacter(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone || world.QuestCompanions.TryGet(id,out _) || !world.Entities.TryGet(id,out var entity)) return false;
+            if ((entity.Tags & EntityTag.Character) != 0) return true;
+            return (entity.Tags & EntityTag.Npc) != 0 && !string.IsNullOrEmpty(world.Strategic.PlayerFactionId) &&
+                entity.TryGet<FactionMembershipComponent>(out var faction) && faction.IsAffiliated &&
+                faction.FactionId == world.Strategic.PlayerFactionId;
+        }
 
         public bool IsMember(EntityId id) => TryGetControlledSquad(out var squad) && squad.Contains(id);
 
@@ -97,6 +110,7 @@ namespace XianXia.Core.World
             _controlledSquadId = squad.SquadId;
             _activeId = activeId.IsNone || !squad.Contains(activeId) ? new EntityId(squad.MemberCharacterIds[0]) : activeId;
             _controlState = PlayerPartyControlState.Active;
+            RefreshActiveAfterLifeState(_world);
             SquadWorldMotionService.ReconcilePlayerPartyAuthority(_world, this);
             return true;
         }
@@ -175,6 +189,7 @@ namespace XianXia.Core.World
 
             _activeId = activeId;
             _controlState = PlayerPartyControlState.Active;
+            RefreshActiveAfterLifeState(_world);
             SquadWorldMotionService.ReconcilePlayerPartyAuthority(_world, this);
             return true;
         }
@@ -189,6 +204,16 @@ namespace XianXia.Core.World
             if (!ValidateJoin(world, roster, candidate, out error))
                 return false;
 
+            var moved = SquadMembershipService.Transfer(world, candidate, _controlledSquadId);
+            if (moved.IsFailure) { error = moved.Error.ToString(); return false; }
+            RefreshActiveAfterLifeState(world);
+            return true;
+        }
+
+        // Only QuestCompanionService may bypass the permanent manageable-roster requirement.
+        internal bool TryAddQuestCompanion(SimulationWorld world, EntityId candidate, out string error)
+        {
+            if (!ValidateMemberJoin(world, candidate, out error)) return false;
             var moved = SquadMembershipService.Transfer(world, candidate, _controlledSquadId);
             if (moved.IsFailure) { error = moved.Error.ToString(); return false; }
             RefreshActiveAfterLifeState(world);
@@ -224,9 +249,9 @@ namespace XianXia.Core.World
                 return false;
             }
 
-            if (!IsMember(id))
+            if (!IsPlayerControllableMember(id))
             {
-                error = "Not in party.";
+                error = "该同行者不可由玩家操控。";
                 return false;
             }
 
@@ -254,7 +279,7 @@ namespace XianXia.Core.World
 
             var continuousCombat = world.Strategic?.ContinuousManualCombat;
             var restrictToBattleParticipants = continuousCombat != null && continuousCombat.IsActive;
-            if (!_activeId.IsNone &&
+            if (IsPlayerControllableMember(_activeId) &&
                 (!restrictToBattleParticipants || continuousCombat.IsFriendly(_activeId)) &&
                 CanActAsActive(world, _activeId, out _))
             {
@@ -269,7 +294,7 @@ namespace XianXia.Core.World
                     continue;
                 if (restrictToBattleParticipants && !continuousCombat.IsFriendly(m))
                     continue;
-                if (CanActAsActive(world, m, out _))
+                if (IsPlayerControllableMember(m) && CanActAsActive(world, m, out _))
                 {
                     _activeId = m;
                     _controlState = PlayerPartyControlState.Active;
@@ -332,6 +357,12 @@ namespace XianXia.Core.World
                 return false;
             }
 
+            return ValidateMemberJoin(world, candidate, out error);
+        }
+
+        bool ValidateMemberJoin(SimulationWorld world, EntityId candidate, out string error)
+        {
+            error = null;
             if (IsMember(candidate))
             {
                 error = "Already in party.";

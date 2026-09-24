@@ -58,6 +58,7 @@ namespace XianXia.Unity.Host
         string _snapshotStatus = string.Empty;
         string _partyCombatCheatStatus = string.Empty;
         Vector2 _tabScroll;
+        float _contentHeight = 480f;
         Rect _panelRect;
         bool _panelRectInitialized;
         GUIStyle _title;
@@ -159,7 +160,7 @@ namespace XianXia.Unity.Host
                 case CheatTab.Background:
                     return 520f;
                 case CheatTab.Content:
-                    return 480f;
+                    return Mathf.Max(480f, _contentHeight);
                 case CheatTab.Diplomacy:
                     return 420f;
                 case CheatTab.Snapshot:
@@ -184,7 +185,7 @@ namespace XianXia.Unity.Host
                     _background.Draw(bootstrap, x, 0f, width, _body);
                     break;
                 case CheatTab.Content:
-                    _content.Draw(bootstrap, selectionController, x, 0f, width, _body);
+                    _contentHeight = _content.Draw(bootstrap, selectionController, x, 0f, width, _body);
                     break;
                 case CheatTab.Diplomacy:
                     _diplomacy.Draw(bootstrap, x, 0f, width, _body);

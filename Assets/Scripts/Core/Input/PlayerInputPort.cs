@@ -46,6 +46,10 @@ namespace XianXia.Core.Input
             if (request == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "PlayerCommandRequest is null.");
 
+            if (_loop.World.Strategic.PlayerPartyContext != null &&
+                !XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(_loop.World,request.Subject))
+                return Result.Failure(ErrorCode.InvalidOperation,"该角色不可接受玩家手动指令。");
+
             if (request.IsSocialIntent)
                 return SubmitSocial(request);
 

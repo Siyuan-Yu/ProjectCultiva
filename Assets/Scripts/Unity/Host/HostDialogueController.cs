@@ -9,6 +9,8 @@ namespace XianXia.Unity.Host
     {
         ContentInteractionContext _topicContext;
         string _topicTrigger;
+        string _discussedQuestInstanceId;
+        readonly System.Collections.Generic.Dictionary<string, SecretRealmQuestSocialTopic> _socialTopics = new System.Collections.Generic.Dictionary<string, SecretRealmQuestSocialTopic>();
         string _failureKey, _failureMessage;
         public HostDialogueModel Model { get; } = new HostDialogueModel();
 
@@ -17,6 +19,8 @@ namespace XianXia.Unity.Host
             Model.IsActive = false;
             Model.IsFallback = false;
             Model.IsTopicSelection = false;
+            Model.IsQuestDiscussion = false;
+            _socialTopics.Clear();
             Model.SpeakerName = string.Empty;
             Model.Body = string.Empty;
             Model.Choices.Clear();
@@ -40,6 +44,8 @@ namespace XianXia.Unity.Host
             if (step == null) return false;
             Model.IsActive = true;
             Model.PageKey = session.World.ContentEvents.ActiveEventId + ":" + session.World.ContentEvents.ActiveStepId;
+            if (!string.IsNullOrEmpty(session.World.ContentEvents.ActiveScheduledInstanceId))
+                Model.PageKey += ":" + session.World.ContentEvents.ActiveScheduledInstanceId;
             var speaker = ContentEventService.ResolveSpeaker(session.World, step.SpeakerRef, out var name);
             Model.SpeakerName = speaker.IsFailure ? "【人物解析失败：" + step.SpeakerRef + "】" : name;
             Model.Body = string.IsNullOrEmpty(step.Text) ? "（无正文）" : step.Text;
@@ -55,9 +61,12 @@ namespace XianXia.Unity.Host
         {
             if (session == null || !session.IsInitialized || context == null) return false;
             var service = new ContentEventService();
-            var candidates = service.ResolveInteractionCandidates(session.World, context, trigger);
-            if (candidates.Count == 0) return false;
-            if (candidates.Count == 1)
+            var candidates = new System.Collections.Generic.List<ContentEventSpec>(service.ResolveInteractionCandidates(session.World, context, trigger));
+            var social = trigger == "onTalk" ? SecretRealmQuestSocialTopicQuery.Query(session.World, context.ActorId, context.TargetEntityId) : new System.Collections.Generic.List<SecretRealmQuestSocialTopic>();
+            if (candidates.Count > 0 && candidates[0].Priority > 0) social.Clear();
+            if (social.Count > 0 && candidates.Count > 0 && candidates[0].Priority < 0) candidates.Clear();
+            if (candidates.Count == 0 && social.Count == 0) return false;
+            if (candidates.Count == 1 && social.Count == 0)
             {
                 if (service.BeginInteraction(session.World, context, candidates[0].Id, trigger).IsFailure) return false;
                 return TryBuildFromActiveEvent(session);
@@ -72,6 +81,12 @@ namespace XianXia.Unity.Host
                 : session.World.Entities.TryGet(context.TargetEntityId, out var npc) ? npc.DisplayName : context.TargetDefinitionId;
             Model.Body = string.Equals(trigger, "onInspect", System.StringComparison.OrdinalIgnoreCase)
                 ? "要调查什么？" : "想聊些什么？";
+            foreach (var topic in social)
+            {
+                var key = "quest-social:" + topic.QuestInstanceId;
+                _socialTopics.Add(key, topic);
+                Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = key, Label = topic.DisplayTopic });
+            }
             foreach (var spec in candidates)
                 Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = spec.Id,
                     Label = !string.IsNullOrEmpty(spec.TopicText) ? spec.TopicText : !string.IsNullOrEmpty(spec.Name) ? spec.Name : ShortId(spec.Id) });
@@ -114,9 +129,38 @@ namespace XianXia.Unity.Host
             }
 
             if (session == null || !session.IsInitialized) return false;
+            if (Model.IsQuestDiscussion)
+            {
+                if (line.ChoiceId == "invite")
+                {
+                    var inviteResult = QuestCompanionService.TryInvite(session.World, _topicContext.ActorId, _topicContext.TargetEntityId, _discussedQuestInstanceId,
+                        bootstrap != null && !session.InitialBootstrapPending && session.PendingRestoredStrategicSnapshot == null &&
+                        bootstrap.ContinuousOutdoorSurfaceRuntime?.IsTransitioning != true && bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsFighting != true);
+                    if (inviteResult.CanInvite) bootstrap?.PlayerPartyController?.NotifyMemberJoined(_topicContext.TargetEntityId);
+                    Model.Body = inviteResult.Reason;
+                    Model.Choices.Clear();
+                    Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = "", Label = "结束交谈" });
+                }
+                else Clear();
+                return true;
+            }
             if (Model.IsTopicSelection)
             {
                 if (string.IsNullOrEmpty(line.ChoiceId)) { Clear(); return true; }
+                if (_socialTopics.TryGetValue(line.ChoiceId, out var topic))
+                {
+                    var current = SecretRealmQuestSocialTopicQuery.Query(session.World, _topicContext.ActorId, _topicContext.TargetEntityId);
+                    if (!current.Exists(t => t.QuestInstanceId == topic.QuestInstanceId))
+                    { Model.Body = "这件事的进展已经变了，改日再谈吧。"; return false; }
+                    _discussedQuestInstanceId = topic.QuestInstanceId;
+                    Model.IsTopicSelection = false; Model.IsQuestDiscussion = true;
+                    Model.PageKey = "quest-discussion:" + topic.QuestInstanceId;
+                    Model.Body = "你想邀我一起去办【" + topic.QuestName + "】这件事？";
+                    Model.Choices.Clear();
+                    Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = "invite", Label = "邀请同行" });
+                    Model.Choices.Add(new HostDialogueChoiceLine { ChoiceId = "", Label = "暂且告辞" });
+                    return true;
+                }
                 var begin = new ContentEventService().BeginInteraction(
                     session.World, _topicContext, line.ChoiceId, _topicTrigger);
                 if (begin.IsFailure)
@@ -162,7 +206,7 @@ namespace XianXia.Unity.Host
         public static bool TryGetActiveOnTalkSpec(SimulationWorld world, out ContentEventSpec spec)
         {
             spec = null;
-            if (world == null || !world.ContentEvents.HasActive)
+            if (world == null || !world.ContentEvents.HasActive || !string.IsNullOrEmpty(world.ContentEvents.ActiveScheduledInstanceId))
                 return false;
             if (!world.ContentEvents.TryGet(world.ContentEvents.ActiveEventId, out spec) || spec == null)
                 return false;

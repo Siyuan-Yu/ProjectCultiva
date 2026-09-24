@@ -14,7 +14,8 @@ namespace XianXia.Unity.Host
     {
         public bool IsActive { get; set; }
         public bool IsTopicSelection { get; set; }
-        public bool CanDismiss => IsFallback || IsTopicSelection;
+        public bool IsQuestDiscussion { get; set; }
+        public bool CanDismiss => IsFallback || IsTopicSelection || IsQuestDiscussion;
         public string PageKey { get; set; } = string.Empty;
         public bool IsFallback { get; set; }
         public string SpeakerName { get; set; } = string.Empty;

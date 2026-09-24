@@ -198,7 +198,7 @@ namespace XianXia.Core.Content
                 return ContentConditionEvaluator.AllPass(world, actor, conditions, context);
             foreach (var id in party.Members)
             {
-                if (!world.Entities.TryGet(id, out var member) || (member.Tags & EntityTag.Character) == 0) continue;
+                if (!world.Entities.TryGet(id, out var member) || (member.Tags & (EntityTag.Character | EntityTag.Npc)) == 0) continue;
                 if (member.TryGet<LifecycleComponent>(out var life) && life.State != LifecycleState.Alive) continue;
                 // Ability/party conditions may use a member as subject, while explicit @actor/@target remain bound.
                 if (ContentConditionEvaluator.AllPass(world, id, conditions, context)) return true;
@@ -211,7 +211,7 @@ namespace XianXia.Core.Content
             var board = world.ContentEvents;
             return board.ActiveInteraction
                 ? InteractionConditionsPass(world, board.ActiveContext(), conditions)
-                : ContentConditionEvaluator.AllPass(world, board.ActiveActorId, conditions);
+                : ContentConditionEvaluator.AllPass(world, board.ActiveActorId, conditions, board.ActiveContext());
         }
 
         public static ContentEventStepSpec ActiveStep(SimulationWorld world)
@@ -300,7 +300,7 @@ namespace XianXia.Core.Content
                 choice = step.Choices.Find(c => c.Id == choiceId);
                 if (choice == null) return Result.Failure(ErrorCode.NotFound, "Choice missing.", choiceId);
                 var pass = board.ActiveInteraction ? InteractionConditionsPass(world, board.ActiveContext(), choice.Conditions)
-                    : ContentConditionEvaluator.AllPass(world, subject, choice.Conditions);
+                    : ContentConditionEvaluator.AllPass(world, subject, choice.Conditions, board.ActiveContext());
                 if (!pass) return Result.Failure(ErrorCode.InvalidOperation, "Choice conditions not met.", choiceId);
             }
             else if (!string.IsNullOrEmpty(choiceId))
@@ -314,7 +314,7 @@ namespace XianXia.Core.Content
             var applied = ContentOutcomeApplier.ApplyAll(world, subject, outcomes, board.ActiveContext(), () =>
             {
                 if (!finished) { board.AdvanceStep(next); return Result.Success(); }
-                if (spec.Once) board.MarkFired(board.FiredKey(spec, subject, board.ActiveTargetKey));
+                if (spec.Once && string.IsNullOrEmpty(board.ActiveScheduledInstanceId)) board.MarkFired(board.FiredKey(spec, subject, board.ActiveTargetKey));
                 // Evaluate while this event still owns active: no automatic chained event after Finish.
                 new QuestService().Evaluate(world, subject);
                 board.ClearActive();

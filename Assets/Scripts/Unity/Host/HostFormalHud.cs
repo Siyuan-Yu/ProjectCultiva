@@ -205,6 +205,8 @@ namespace XianXia.Unity.Host
 
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {
+                    if (!party.IsPlayerControllableMember(id))
+                    { selectionController.SelectEntity(id,false); x += size + gap; continue; }
                     var now = Time.unscaledTime;
                     var isDoubleClick =
                         !_partyBarLastClickId.IsNone &&
@@ -223,7 +225,7 @@ namespace XianXia.Unity.Host
                             SetPartyStatus("镜头定位主控：" + ent.DisplayName);
                         }
                     }
-                    else if (controller != null)
+                    else if (controller != null && party.IsPlayerControllableMember(id))
                     {
                         if (controller.TrySwitchActive(id, out var err))
                             SetPartyStatus(isActive ? null : "切换主控：" + ent.DisplayName);
@@ -252,7 +254,7 @@ namespace XianXia.Unity.Host
             if (controller == null)
                 return;
 
-            if (party.IsActive(focus))
+            if (!PlayerPartyRuntime.CanPlayerControlCharacter(session.World, focus) || party.IsActive(focus))
                 return;
 
             HostUiHitTest.Block(row);

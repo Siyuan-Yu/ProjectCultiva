@@ -1,5 +1,15 @@
 # RPG-First：Active Character、PlayerParty、Continuous Surface 与 Legacy Compatibility
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验实体/实例/受控 Squad，恢复不重放邀请、不替换同模板实体、不新增 controllability bool。v1～v10 严格拒绝。任务 ReadyToClaim/Completed/Failed/放弃后锁定 PendingDeparture，安全普通 Surface 经私有生命周期入口离队，共用精确位置与工作清理；原 Squad 仍合法、同 Surface 同落点且可接纳才恢复，否则 singleton。
+
+
 > **2026-09-22 正式运行依赖退役落实：** 正常 runtime authority 仍为 `SurfaceId + exact WorldPosition`，且旧依赖已从“运行时 quarantine”推进到物理退役：`SimulationWorld` 无 HexWorld，Core Hex 目录已删除，PlayerParty／WorldPresence 无 Hex 参数或缓存，正常产品不编译旧 Hex 几何。Runtime Loader 拒绝 `formalArmy`／`hexWorld`；`LegacyRuntimeConverter` 只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot，`hexWorld`／`openingHexWorldId` 会被检测并拒绝，必须使用现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。新增 `Legacy*` adapter 不再是终态。见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
 > **2026-09-21 LEGACY-FINAL-C Seal：** 现代 Character residual 统一为 `AtWorldPosition + SurfaceId + exact WorldPosition`；AtHex 只允许旧档、旧 Outdoor LocalMap／Hex travel 与非连续兼容输入。旧 StrategicEncounter、RetreatingArmy 与 LingeringBattlefield runtime 已退出，旧玩家 travel helper 使用明确 Legacy compatibility 名称。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。

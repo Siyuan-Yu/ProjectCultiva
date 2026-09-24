@@ -85,6 +85,7 @@ namespace XianXia.Unity.Host
         public string LastMovementDiagnostic { get; private set; } = string.Empty;
         public string SurfaceEgressStatus { get; private set; } = "None";
         public bool IsActive { get; private set; }
+        public bool IsTransitioning => _streamTransitionPhase != StreamTransitionPhase.None;
         public string ActiveSurfaceId => IsActive ? _surfaceId : string.Empty;
         public SurfaceChunkCoord CurrentChunk { get; private set; }
         public int LoadedChunkCount => _loaded.Count;

@@ -89,6 +89,8 @@ namespace XianXia.Core.Content
 
             switch (o.Kind.Trim().ToLowerInvariant())
             {
+                case "scheduleevent":
+                    return world.ScheduledContentEvents.Schedule(world, subject, o.Id, o.Amount, context);
                 case "setflag":
                 case "setstoryflag":
                     StoryFlagService.Set(world, o.Id, subject);
@@ -340,7 +342,9 @@ namespace XianXia.Core.Content
             readonly List<string> _flags, _flagHistory, _known;
             readonly Dictionary<string, int> _counters, _daily;
             readonly QuestBoard.RuntimeState _quests;
+            readonly List<QuestCompanionBinding> _companions;
             readonly ContentEventBoard.RuntimeState _contentEventState;
+            readonly ScheduledContentEventBoard.RuntimeState _scheduledEvents;
             readonly WorldOpportunityBoard.RuntimeState _worldOpportunities;
             readonly XianXia.Core.World.WorldActivityBoard.RuntimeState _worldActivities;
             readonly int _relationshipCount, _eventCursor;
@@ -360,7 +364,9 @@ namespace XianXia.Core.Content
                 _counters = world.ContentCounters.CaptureState();
                 _daily = world.ContentDaily.CaptureState();
                 _quests = world.Quests.CaptureRuntime();
+                _companions = world.QuestCompanions.Capture();
                 _contentEventState = world.ContentEvents.CaptureState();
+                _scheduledEvents = world.ScheduledContentEvents.CaptureState();
                 _worldOpportunities = world.WorldOpportunities.CaptureRuntimeState();
                 _worldActivities = world.WorldActivities.CaptureRuntimeState();
                 _relationshipCount = world.Relationships.EventCount;
@@ -385,7 +391,9 @@ namespace XianXia.Core.Content
                 _world.ContentCounters.RestoreState(_counters);
                 _world.ContentDaily.RestoreState(_daily);
                 _world.Quests.RestoreRuntime(_quests);
+                _world.QuestCompanions.Restore(_companions);
                 _world.ContentEvents.RestoreState(_contentEventState);
+                _world.ScheduledContentEvents.RestoreState(_scheduledEvents);
                 _world.WorldOpportunities.RestoreRuntimeState(_worldOpportunities);
                 _world.WorldActivities.RestoreRuntimeState(_worldActivities);
                 _world.Relationships.Truncate(_relationshipCount);

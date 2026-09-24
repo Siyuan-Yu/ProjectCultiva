@@ -1,5 +1,15 @@
 # 角色社会关系 V1
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+仅 Active + questKind=secretRealm 的真实 QuestInstance 投影 Priority0 话题；普通 general 不自动投影。NPC→实际 Actor 的 RelationshipLedger Score 独立门槛20。绑定保存 CompanionEntityId、QuestInstanceId、OriginalSquadId、Active/PendingDeparture，不改变 faction/tag/永久 roster。Dynamic Opportunity NPC V1 拒绝邀请。
+
+
 > **CW-U0 战斗接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；关系第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。既有 RelationshipLedger、Bond／Attitude 与已验收社交不改；介入运行待 CW-U3。
 
 > 状态：**已实现／已人工验收／已封板**｜优先级：P0｜最后更新：2026-09-22

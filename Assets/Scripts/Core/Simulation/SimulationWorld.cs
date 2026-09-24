@@ -68,6 +68,7 @@ namespace XianXia.Core.Simulation
             Flags = new WorldFlagBoard();
             Quests = new QuestBoard();
             ContentEvents = new ContentEventBoard();
+            ScheduledContentEvents = new ScheduledContentEventBoard();
             WorldOpportunities = new WorldOpportunityBoard();
             WorldActivities = new WorldActivityBoard();
             Chapters = new ChapterBoard();
@@ -166,9 +167,11 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Content Ready: quest specs＋runtime (session-only; not in Snapshot v1).</summary>
         public QuestBoard Quests { get; }
+        public QuestCompanionBoard QuestCompanions { get; } = new QuestCompanionBoard();
 
         /// <summary>Content Ready: content events (session-only; not in Snapshot v1).</summary>
         public ContentEventBoard ContentEvents { get; }
+        public ScheduledContentEventBoard ScheduledContentEvents { get; }
 
         /// <summary>Dynamic NPC opportunity definitions and persistent runtime instances.</summary>
         public WorldOpportunityBoard WorldOpportunities { get; }

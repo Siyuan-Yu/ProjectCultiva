@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_social01_cave",
+      "type": "quest",
+      "name": "秘境同行·废弃洞府",
+      "description": "手动接取；探索废弃洞府内室完成。秘境任务可在 NPC 对话中邀请临时同行，任务日志允许放弃。",
+      "questKind": "secretRealm",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "offerConditions": [],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_cave_chamber"
+        }
+      ],
+      "rewards": [],
+      "failConditions": [],
+      "failResults": [],
+      "deadlineDays": 7
+    },
+    {
+      "id": "base:quest_social01_cave_b",
+      "type": "quest",
+      "name": "秘境同行·洞府再访",
+      "description": "手动接取；探索废弃洞府内室完成。秘境任务可在 NPC 对话中邀请临时同行，任务日志允许放弃。",
+      "questKind": "secretRealm",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "offerConditions": [],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_cave_chamber"
+        }
+      ],
+      "rewards": [],
+      "failConditions": [],
+      "failResults": [],
+      "deadlineDays": 9
+    },
+    {
+      "id": "base:quest_social01_general",
+      "type": "quest",
+      "name": "普通任务·洞府见闻",
+      "description": "手动接取；探索废弃洞府内室完成。秘境任务可在 NPC 对话中邀请临时同行，任务日志允许放弃。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "offerConditions": [],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_cave_chamber"
+        }
+      ],
+      "rewards": [],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

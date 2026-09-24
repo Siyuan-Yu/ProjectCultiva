@@ -69,6 +69,12 @@ namespace XianXia.Unity.Host
 
         public void Begin(EntityId attacker, EntityId defender)
         {
+            if (bootstrap?.Session?.PlayerParty?.IsPlayerControllableMember(attacker) != true) return;
+            BeginAutomatic(attacker,defender);
+        }
+
+        internal void BeginAutomatic(EntityId attacker, EntityId defender)
+        {
             var world = bootstrap?.Session?.World;
             // SPACE-01：双方均在 Separate Space → 直接本地 melee，不进 CharacterEncounter。
             if (world != null &&
@@ -79,7 +85,7 @@ namespace XianXia.Unity.Host
             }
 
             if (world?.Strategic?.CharacterEncounter != null)
-            { bootstrap.GetComponent<HostCharacterEncounter>().SetTarget(attacker, defender); return; }
+            { bootstrap.GetComponent<HostCharacterEncounter>().SetTargetAutomatic(attacker, defender); return; }
             var party = world?.Strategic?.PlayerPartyContext;
             if (party != null && (party.IsMember(attacker) || party.IsMember(defender)))
             { bootstrap.GetComponent<HostCharacterEncounter>()?.Request(attacker, defender, automatic: true); return; }
@@ -139,8 +145,14 @@ namespace XianXia.Unity.Host
         /// <summary>玩家下令移动／Stop：若该单位是攻方则仅他脱离；无人攻则整场结束。</summary>
         public void DisengageIfAttacker(EntityId id)
         {
+            if (bootstrap?.Session?.PlayerParty?.IsPlayerControllableMember(id) != true) return;
+            StopAutomatic(id);
+        }
+
+        internal void StopAutomatic(EntityId id)
+        {
             if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null)
-            { bootstrap.GetComponent<HostCharacterEncounter>().Stop(id); return; }
+            { bootstrap.GetComponent<HostCharacterEncounter>().StopAutomatic(id); return; }
             if (!IsFighting || id.IsNone || !IsAttacker(id))
                 return;
             RemoveAttacker(id, "脱离战斗");
@@ -149,6 +161,7 @@ namespace XianXia.Unity.Host
         /// <summary>选中单位若在交战中（攻或守）则整场停战。</summary>
         public void DisengageIfInvolved(EntityId id)
         {
+            if (bootstrap?.Session?.PlayerParty?.IsPlayerControllableMember(id) != true) return;
             if (!IsFighting || id.IsNone)
                 return;
             if (!IsInFight(id))
@@ -163,7 +176,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < selection.State.Count; i++)
             {
                 var id = selection.State.SelectedIds[i];
-                if (IsInFight(id))
+                if (bootstrap.Session.PlayerParty.IsPlayerControllableMember(id) && IsInFight(id))
                 {
                     ClearInternal("脱离战斗");
                     return;

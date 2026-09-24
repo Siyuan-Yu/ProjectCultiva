@@ -92,6 +92,7 @@ public partial class MainWindow : Window
             AutoOfferBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "autoOffer", true);
             AbandonableBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "abandonable", false);
             DeadlineDaysBox.Text = JsonEdit.GetInt(_quest.Raw, "deadlineDays", 0).ToString();
+            SelectTagged(QuestKindBox, JsonEdit.GetString(_quest.Raw, "questKind", "general"));
             SelectTagged(RuntimeModeBox, JsonEdit.GetString(_quest.Raw, "runtimeMode", "fixed"));
             SelectTagged(AcceptanceModeBox, JsonEdit.GetString(_quest.Raw, "acceptanceMode", "journal"));
             if (_quest.Raw["deliveryRequirements"] is JsonArray delivery && delivery.FirstOrDefault() is JsonObject req)
@@ -446,6 +447,7 @@ public partial class MainWindow : Window
         if (runtimeMode == "characterCommission" && acceptanceMode != "interaction")
         { err = "人物委托必须选择「真实人物互动」接取入口"; return false; }
         _quest.Raw["runtimeMode"] = runtimeMode;
+        _quest.Raw["questKind"] = SelectedTag(QuestKindBox, "general");
         _quest.Raw["acceptanceMode"] = acceptanceMode;
         var deliveryItem = DeliveryItemBox.Text?.Trim() ?? "";
         if (!int.TryParse(DeliveryAmountBox.Text?.Trim(), out var deliveryAmount) || deliveryAmount <= 0)

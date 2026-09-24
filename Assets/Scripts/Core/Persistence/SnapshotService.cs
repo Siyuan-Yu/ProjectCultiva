@@ -533,11 +533,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV8)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV10)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v8 saves lack current dynamic opportunity-object authority. Start a new game (schema v9 required).",
+                    "Schema v1-v10 saves lack temporary Quest companion authority. Start a new game (schema v11 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -983,6 +983,8 @@ namespace XianXia.Core.Persistence
             var contentProgressRestore = ContentProgressSnapshotHelper.Restore(world, snap.ContentProgress);
             if (contentProgressRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(contentProgressRestore.Error);
+            var companionRestore = QuestCompanionService.ValidateRestored(world,snap.Strategic.ControlledSquadId,false);
+            if (companionRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(companionRestore.Error);
             var opportunityRestore = RestoreWorldOpportunities(world, snap.WorldOpportunityRuntime);
             if (opportunityRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(opportunityRestore.Error);

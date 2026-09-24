@@ -146,6 +146,9 @@ public static class PackageValidator
         {
             CheckCond(def.Raw["offerConditions"], "offerConditions");
             CheckCond(def.Raw["completeConditions"], "completeConditions");
+            var questKind = JsonEdit.GetString(def.Raw,"questKind","general");
+            if (questKind != "general" && questKind != "secretRealm")
+                issues.Add(new ValidationIssue { Level = "error", Message = $"{def.Id} 未知任务分类：{questKind}", DefinitionId = def.Id, FilePath = def.FilePath });
             var runtimeMode = JsonEdit.GetString(def.Raw, "runtimeMode", "fixed");
             var acceptanceMode = JsonEdit.GetString(def.Raw, "acceptanceMode", "journal");
             if (runtimeMode == "characterCommission" && acceptanceMode != "interaction")

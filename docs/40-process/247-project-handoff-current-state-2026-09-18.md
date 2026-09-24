@@ -1,5 +1,15 @@
 # Project Handoff — Continuous World Current State
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
+
+
 ## 2026-09-25 最新接续摘要：DYNAMIC-DISCOVERY-01＋MAP-COORD-01 FINAL SEAL
 
 [DYNAMIC-DISCOVERY-01](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md) 与 [MAP-COORD-01](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md) 已于 2026-09-24 完成制作人人工验收，状态均为 **Producer Accepted / Sealed**。`WorldOpportunity` 现同时支持既有 NPC 与不创建 Character Entity 的动态 WorldObject；动态物体以 Opportunity Instance 派生稳定 `WorldObjectInstanceId`，直接保存 `SurfaceId + exact WorldPosition`，由独立 Host transient registry 呈现与拾取，不进入导航阻挡。

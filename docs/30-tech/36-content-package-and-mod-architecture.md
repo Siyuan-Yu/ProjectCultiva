@@ -1,5 +1,15 @@
 # ContentPackage 与 Mod Ready 架构
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验实体/实例/受控 Squad，恢复不重放邀请、不替换同模板实体、不新增 controllability bool。v1～v10 严格拒绝。任务 ReadyToClaim/Completed/Failed/放弃后锁定 PendingDeparture，安全普通 Surface 经私有生命周期入口离队，共用精确位置与工作清理；原 Squad 仍合法、同 Surface 同落点且可接纳才恢复，否则 singleton。
+
+
 > **2026-09-22 Current Implementation：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) 的 WorldComposer／FineEditor Production V1、deterministic composition／bake 与 Final Continuous Surface runtime 输入已经实现、验收并封板。自动水文、道路 A*、detail scatter、完整 terrain compatibility matrix、通用 Mod patch 等仍为 Future。
 
 > **2026-09-15 Editor 工具链／旧地图 Content 迁移方向：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 补充 **Authoring Source ≠ Runtime Generated Content** 契约（见 §2.3）：`WorldComposition`／`WorldSiteBlueprint`／`DetailPatch` 是 Authoring Source，由 bake 产出的 Final Continuous Surface 才是 Runtime Content。**不要让 Authoring JSON 自动成为正常 runtime DefinitionRegistry authority。**

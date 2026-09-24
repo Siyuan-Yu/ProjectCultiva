@@ -184,6 +184,8 @@ namespace XianXia.Unity.Host
             if (id.IsNone)
                 return false;
             // No filter configured (unit tests) → all bound views treated as selectable.
+            var world = GetComponent<PlayableHostBootstrap>()?.Session?.World;
+            if (world != null) return XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(world,id);
             if (_partyFilter.Count == 0)
                 return true;
             return _partyFilter.Contains(id.Value);
@@ -196,7 +198,7 @@ namespace XianXia.Unity.Host
             {
                 if (view == null || !view.IsBound)
                     continue;
-                if (_partyFilter.Count > 0 && !_partyFilter.Contains(view.EntityId.Value))
+                if (!IsPartyUnit(view.EntityId))
                     continue;
                 _boxBuffer.Add(view.EntityId);
             }

@@ -10,6 +10,8 @@ namespace XianXia.Data.Content
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
+        public string QuestKind { get; set; } = "general";
+        public bool IsSecretRealm => QuestKind == "secretRealm";
         public string RuntimeMode { get; set; } = "fixed";
         public string AcceptanceMode { get; set; } = "journal";
         public bool Abandonable { get; set; }

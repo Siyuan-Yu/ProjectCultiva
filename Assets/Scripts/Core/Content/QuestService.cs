@@ -71,7 +71,7 @@ namespace XianXia.Core.Content
             runtime.DeliveryCompleted = true;
             runtime.ProgressMax = spec.DeliveryRequirements.Count;
             runtime.ProgressCount = runtime.ProgressMax;
-            runtime.Status = QuestStatus.ReadyToClaim;
+            runtime.Status = QuestStatus.ReadyToClaim; QuestCompanionService.QuestStatusChanged(world, runtime);
             world.Events.Publish(EventType.QuestCompleted, world.Tick, actor: context.ActorId,
                 target: runtime.IssuerEntityId, payload: runtime.QuestInstanceId);
             return Result.Success();
@@ -103,7 +103,7 @@ namespace XianXia.Core.Content
             var rewardContext = new ContentInteractionContext
             { ActorId = subject, IssuerEntityId = runtime.IssuerEntityId };
             var rewarded = ContentOutcomeApplier.ApplyAll(world, subject, spec.Rewards, rewardContext, () =>
-            { runtime.Status = QuestStatus.Completed; return Result.Success(); });
+            { runtime.Status = QuestStatus.Completed; QuestCompanionService.QuestStatusChanged(world, runtime); return Result.Success(); });
             if (rewarded.IsFailure) return rewarded;
             world.Events.Publish(EventType.QuestRewardsClaimed, world.Tick, target: subject, payload: runtime.QuestInstanceId);
             return Result.Success();
@@ -115,7 +115,7 @@ namespace XianXia.Core.Content
             if (!spec.Abandonable) return Result.Failure(ErrorCode.InvalidOperation, "Quest cannot be abandoned.", questKey);
             if (runtime.Status != QuestStatus.Active || runtime.DeliveryCompleted)
                 return Result.Failure(ErrorCode.InvalidOperation, "Only an undelivered active quest can be abandoned.", questKey);
-            runtime.Status = QuestStatus.Inactive;
+            runtime.Status = QuestStatus.Inactive; QuestCompanionService.QuestStatusChanged(world, runtime);
             runtime.ProgressCount = 0; runtime.ProgressMax = 0;
             if (!spec.IsCharacterCommission) { runtime.AcceptedAtDayIndex = 0; runtime.DeadlineDayIndexExclusive = 0; }
             world.Events.Publish(EventType.QuestAbandoned, world.Tick, target: subject, payload: runtime.QuestInstanceId);
@@ -142,7 +142,7 @@ namespace XianXia.Core.Content
                 if (spec.DeliveryRequirements.Count > 0 || spec.CompleteConditions.Count == 0) continue;
                 if (ContentConditionEvaluator.AllPass(world, subject, spec.CompleteConditions))
                 {
-                    runtime.Status = QuestStatus.ReadyToClaim;
+                    runtime.Status = QuestStatus.ReadyToClaim; QuestCompanionService.QuestStatusChanged(world, runtime);
                     if (runtime.ProgressMax > 0) runtime.ProgressCount = runtime.ProgressMax;
                     world.Events.Publish(EventType.QuestCompleted, world.Tick, target: subject, payload: runtime.QuestInstanceId);
                     new ContentEventService().TryTrigger(world, subject, "onQuestCompleted", spec.Id);
@@ -272,7 +272,7 @@ namespace XianXia.Core.Content
             var failureContext = new ContentInteractionContext
             { ActorId = subject, IssuerEntityId = runtime.IssuerEntityId };
             var applied = ContentOutcomeApplier.ApplyAll(world, subject, spec.FailResults, failureContext, () =>
-            { runtime.Status = QuestStatus.Failed; runtime.FailureReason = failureReason; return Result.Success(); });
+            { runtime.Status = QuestStatus.Failed; QuestCompanionService.QuestStatusChanged(world, runtime); runtime.FailureReason = failureReason; return Result.Success(); });
             if (applied.IsFailure) return;
             world.Events.Publish(EventType.QuestFailed, world.Tick, target: subject, payload: runtime.QuestInstanceId);
         }

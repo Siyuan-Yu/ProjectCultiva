@@ -131,6 +131,7 @@ namespace XianXia.Data.Bootstrap
                     Description = def.Description ?? string.Empty,
                     AutoOffer = def.AutoOffer,
                     RuntimeMode = def.RuntimeMode,
+                    QuestKind = def.QuestKind,
                     AcceptanceMode = def.AcceptanceMode,
                     Abandonable = def.Abandonable,
                     DeadlineDays = def.DeadlineDays

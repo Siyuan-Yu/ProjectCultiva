@@ -39,6 +39,11 @@ namespace XianXia.Unity.Host
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
                 return;
 
+            var controllableSelection = false;
+            if (selectionController != null) foreach (var id in selectionController.State.SelectedIds)
+                if (bootstrap.Session.PlayerParty.IsPlayerControllableMember(id)) controllableSelection = true;
+            if (!controllableSelection) return;
+
             var rect = new Rect(Screen.width - 210f, 120f, 200f, 400f);
             GUI.Box(rect, "角色指令 (V)");
             var y = rect.y + 28f;
@@ -100,6 +105,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < selectionController.State.Count; i++)
             {
                 var id = selectionController.State.SelectedIds[i];
+                if (!session.PlayerParty.IsPlayerControllableMember(id)) continue;
                 var r = session.Port.Submit(new PlayerCommandRequest(id, kind, 4));
                 if (r.IsSuccess)
                     ok++;

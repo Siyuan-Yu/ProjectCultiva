@@ -230,6 +230,9 @@ namespace XianXia.Unity.Host
                 return Result.Fail<string>(ErrorCode.InvalidOperation, LastError);
             }
 
+            if (HasModalPauseOwner("Dialogue"))
+                return Result.Fail<string>(ErrorCode.InvalidOperation, "请先结束对话再保存。 ");
+            XianXia.Core.Content.QuestCompanionService.Reconcile(World);
             var service = new SnapshotService(new JsonSnapshotSerializer());
             var captured = service.CaptureJson(World, Loop, PlayerParty);
             if (captured.IsFailure)

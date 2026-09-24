@@ -171,6 +171,24 @@ namespace XianXia.Unity.Host
             }
 
             SyncPause(session);
+            ScheduledContentEventDispatcher.Dispatch(session.World, CanPresentScheduledEvent(session));
+            SyncPause(session);
+        }
+
+        // One Host policy, shared by every scheduled presentation attempt. Manual pause is allowed.
+        bool CanPresentScheduledEvent(PlayableHostSession session)
+        {
+            if (!session.IsInitialized || session.InitialBootstrapPending || session.PendingRestoredStrategicSnapshot != null ||
+                session.World.ContentEvents.HasActive || session.ModalHardPaused || HasBlockingInterrupt ||
+                HostInputGate.BlockWorldInteraction || (dialoguePresenter != null && dialoguePresenter.IsActive)) return false;
+            if (XianXia.Core.World.Strategic.CharacterEncounterService.BlocksOrdinaryContinuousSurface(session.World) ||
+                XianXia.Core.World.Strategic.StrategicClockFreezeService.IsWorldTickFrozen(session.World)) return false;
+            if (session.World.Strategic?.ContinuousManualCombat?.IsActive == true) return false;
+            var melee = bootstrap.GetComponent<HostNpcMeleeAssault>();
+            if (melee != null && melee.IsFighting) return false;
+            var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            if (surface != null && surface.IsTransitioning) return false;
+            return true;
         }
 
         void TryAutoResolveActiveEvent(PlayableHostSession session)

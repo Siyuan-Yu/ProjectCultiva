@@ -1102,6 +1102,8 @@ namespace XianXia.Data.Content
             {
                 var q = kv.Value;
                 var ctx = q.Id.ToString();
+                if (q.QuestKind != "general" && q.QuestKind != "secretRealm")
+                    report.Add(ErrorCode.InvalidArgument, "questKind must be general or secretRealm.", ctx);
                 var commission = string.Equals(q.RuntimeMode, "characterCommission", StringComparison.OrdinalIgnoreCase);
                 if (commission && !string.Equals(q.AcceptanceMode, "interaction", StringComparison.OrdinalIgnoreCase))
                     report.Add(ErrorCode.InvalidArgument, "characterCommission requires acceptanceMode=interaction.", ctx);
@@ -1435,6 +1437,10 @@ namespace XianXia.Data.Content
                     case "acceptquestfromtarget":
                     case "deliverquesttotarget":
                         RequireDef(registry, o.Id, "quest", ctx + ".startQuest", report);
+                        break;
+                    case "scheduleevent":
+                        RequireDef(registry, o.Id, "contentEvent", ctx + ".scheduleEvent", report);
+                        if (o.Amount <= 0) report.Add(ErrorCode.InvalidArgument, "scheduleEvent amount must be positive integer days.", ctx);
                         break;
                     case "resolvecurrentopportunity":
                         if (!string.IsNullOrWhiteSpace(o.Id) || o.Amount != 0)

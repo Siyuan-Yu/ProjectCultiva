@@ -9,6 +9,8 @@ namespace XianXia.Core.Content
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
+        public string QuestKind { get; set; } = "general";
+        public bool IsSecretRealm => QuestKind == "secretRealm";
         /// <summary>fixed | characterCommission。</summary>
         public string RuntimeMode { get; set; } = "fixed";
         /// <summary>journal | interaction。人物委托必须为 interaction。</summary>

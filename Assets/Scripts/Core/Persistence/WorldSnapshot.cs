@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 9;
+        public const int CurrentSchemaVersion = 11;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -22,6 +22,9 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV7 = 7;
         /// <summary>v8 lacks dynamic opportunity-object identity, position, and discovery authority.</summary>
         public const int LegacySchemaVersionV8 = 8;
+        /// <summary>v9 lacks scheduled ContentEvent authority and original context deadlines.</summary>
+        public const int LegacySchemaVersionV9 = 9;
+        public const int LegacySchemaVersionV10 = 10;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -81,7 +84,10 @@ namespace XianXia.Core.Persistence
     public sealed class ContentProgressSnapshotDto
     {
         public bool HasAuthority { get; set; }
+        public List<QuestCompanionSnapshotDto> QuestCompanions { get; set; } = new List<QuestCompanionSnapshotDto>();
         public ulong NextQuestInstanceSequence { get; set; } = 1;
+        public ulong NextScheduledEventSequence { get; set; } = 1;
+        public List<ScheduledContentEventSnapshotDto> ScheduledEvents { get; set; } = new List<ScheduledContentEventSnapshotDto>();
         public List<string> Flags { get; set; } = new List<string>();
         public List<string> FlagHistory { get; set; } = new List<string>();
         public List<QuestRuntimeSnapshotDto> Quests { get; set; } = new List<QuestRuntimeSnapshotDto>();
@@ -91,6 +97,28 @@ namespace XianXia.Core.Persistence
         public List<ContentIntEntrySnapshotDto> DailyMarks { get; set; } = new List<ContentIntEntrySnapshotDto>();
         public List<ContentIntEntrySnapshotDto> LaborTicks { get; set; } = new List<ContentIntEntrySnapshotDto>();
         public List<ContentIntEntrySnapshotDto> LaborHarvests { get; set; } = new List<ContentIntEntrySnapshotDto>();
+    }
+    public sealed class QuestCompanionSnapshotDto
+    {
+        public ulong CompanionEntityId { get; set; }
+        public string QuestInstanceId { get; set; } = "";
+        public string OriginalSquadId { get; set; } = "";
+        public int State { get; set; }
+    }
+    public sealed class ScheduledContentEventSnapshotDto
+    {
+        public string InstanceId { get; set; } = string.Empty;
+        public string EventId { get; set; } = string.Empty;
+        public ulong ScheduledAtTick { get; set; }
+        public ulong ExecuteTick { get; set; }
+        public ulong ActorEntityId { get; set; }
+        public ulong TargetEntityId { get; set; }
+        public string TargetKind { get; set; } = string.Empty;
+        public string TargetKey { get; set; } = string.Empty;
+        public string TargetDefinitionId { get; set; } = string.Empty;
+        public string TargetDisplayName { get; set; } = string.Empty;
+        public ulong IssuerEntityId { get; set; }
+        public string OpportunityInstanceId { get; set; } = string.Empty;
     }
     public sealed class QuestRuntimeSnapshotDto
     {

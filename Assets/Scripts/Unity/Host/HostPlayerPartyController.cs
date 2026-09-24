@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using XianXia.Core.Actions;
+using XianXia.Core.Content;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -151,7 +152,14 @@ namespace XianXia.Unity.Host
             if (!Party.TryAddMember(session.World, session.CharacterIds, candidate, out error))
                 return false;
 
-            var world = session.World;
+            NotifyMemberJoined(candidate);
+            return true;
+        }
+
+        public void NotifyMemberJoined(EntityId candidate)
+        {
+            var world = bootstrap.Session.World;
+            if (Party?.IsMember(candidate) != true) return;
             BackgroundCharacterTravelService.CancelTravelIfAny(world, candidate);
             if (PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world))
             {
@@ -174,10 +182,51 @@ namespace XianXia.Unity.Host
             OrderFollowerTowardActive(candidate);
             bootstrap.NotifyOutdoorEntityScopeChanged();
             bootstrap.FlushLoadedDestinationArrivals();
-            return true;
+        }
+
+        bool CanProcessCompanionDeparture()
+        {
+            var session = bootstrap?.Session;
+            return session != null && session.IsInitialized && !session.InitialBootstrapPending &&
+                session.PendingRestoredStrategicSnapshot == null && !session.ModalHardPaused &&
+                !HostInputGate.BlockWorldInteraction && bootstrap.GetComponent<HostDialoguePresenter>()?.IsActive != true &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime?.IsTransitioning != true && _melee?.IsFighting != true;
+        }
+
+        void TickQuestCompanions()
+        {
+            var world = bootstrap.Session.World;
+            QuestCompanionService.Reconcile(world);
+            if (!CanProcessCompanionDeparture()) return;
+            var ids = new List<EntityId>(world.QuestCompanions.Bindings.Keys);
+            ids.Sort((a,b) => a.Value.CompareTo(b.Value));
+            foreach (var id in ids)
+            {
+                if (!QuestCompanionService.CanDepart(world,id)) continue;
+                if (Party.ActiveCharacterId == id && !TrySwitchActive(QuestCompanionService.DepartureSuccessor(world,id),out _)) continue;
+                TryDepartQuestCompanion(id,out _);
+            }
         }
 
         public bool TryStopFollow(EntityId id, out string error)
+        {
+            error = null;
+            var world = bootstrap?.Session?.World;
+            if (!PlayerPartyRuntime.CanPlayerControlCharacter(world, id))
+            { error = "该角色不可手动解除同行；任务临时同行者只在任务结束后安全离队。"; return false; }
+            return RemoveFollowerPreservingPosition(id, out error);
+        }
+
+        // Only the Quest lifecycle pump calls this; never exposed as a player command.
+        bool TryDepartQuestCompanion(EntityId id, out string error)
+        {
+            error = null;
+            if (!CanProcessCompanionDeparture() || !QuestCompanionService.CanDepart(bootstrap.Session.World, id))
+            { error = "任务同行者尚未满足安全离队条件。"; return false; }
+            return RemoveFollowerPreservingPosition(id, out error);
+        }
+
+        bool RemoveFollowerPreservingPosition(EntityId id, out string error)
         {
             error = null;
             if (Party == null || !Party.TryRemoveMember(id, out error))
@@ -229,6 +278,7 @@ namespace XianXia.Unity.Host
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, Party);
             }
 
+            if (world != null) QuestCompanionService.FinishDeparture(world,id);
             bootstrap?.NotifyOutdoorEntityScopeChanged();
             bootstrap?.FlushLoadedDestinationArrivals();
             return true;
@@ -396,7 +446,7 @@ namespace XianXia.Unity.Host
             _move?.CancelPresentationMovementPublic(id);
             _workLoop?.StopLoop(id);
             _farm?.Stop(id);
-            _melee?.DisengageIfAttacker(id);
+            _melee?.StopAutomatic(id);
             if (_commands != null && bootstrap?.Session != null)
                 _commands.IssueOne(id, PlayerCommandKind.Stop, 0);
         }
@@ -407,6 +457,7 @@ namespace XianXia.Unity.Host
                 return;
 
             RefreshActiveControlAfterLifeStateChange(requestImmediateExternalHandoffRetry: false);
+            TickQuestCompanions();
             var encounter = bootstrap.Session.World.Strategic.CharacterEncounter;
             if (encounter != null)
             {
@@ -1481,7 +1532,7 @@ namespace XianXia.Unity.Host
                     !world.LocalMap.ContainsOccupant(id))
                     continue;
 
-                _melee.Begin(id, defender);
+                _melee.BeginAutomatic(id, defender);
             }
         }
 
@@ -1768,7 +1819,7 @@ namespace XianXia.Unity.Host
         {
             _move?.CancelPresentationMovementPublic(id);
             StopFollowerPartyDerivedWork(id);
-            _melee?.DisengageIfAttacker(id);
+            _melee?.StopAutomatic(id);
         }
     }
 }

@@ -1,5 +1,15 @@
 # 架构决策记录（ADR）索引
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+[ADR-0041](ADR-0041-secret-realm-quest-companion-and-snapshot-v11.md)：Producer Accepted / Sealed。
+
+
 > 最新：[ADR-0039](ADR-0039-external-faction-control-handoff.md) — PlayerParty 外部势力控制转移；区分全员弥留的 Emergency Takeover 与真正死亡 Succession。
 > 正式封板（2026-09-22）：废弃运行入口清理、Hex／Army 命名与兼容身份、WorldSite／Hex footprint 命名尾项均已完成；制作人确认此前运行行为人工验收通过，后续限定同体改名与说明收尾经静态复核通过。C# compatibility 入口已统一为 `Legacy*`，外部 Content／Snapshot wire 名保持稳定。
 > 地图／工具方向：[ADR-0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)；MAP-01～04 已实现、验收并封板，Future 扩展仍不视为已实现。

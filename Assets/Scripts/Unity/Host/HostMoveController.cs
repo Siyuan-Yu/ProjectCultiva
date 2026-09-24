@@ -1335,6 +1335,8 @@ namespace XianXia.Unity.Host
         void StopOne(EntityId id)
         {
             ClearHostMove(id);
+            if (bootstrap.Session?.World?.QuestCompanions.TryGet(id,out _) == true)
+            { bootstrap.Session.Loop.StopSubject(id); return; } // Internal follower cleanup, not a player command.
             if (commandBridge != null)
                 commandBridge.IssueOne(id, PlayerCommandKind.Stop, 0);
             else if (bootstrap.Session?.Port != null)

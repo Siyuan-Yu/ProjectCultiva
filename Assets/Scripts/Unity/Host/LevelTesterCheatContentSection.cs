@@ -36,7 +36,7 @@ namespace XianXia.Unity.Host
             }
 
             RefreshDump(session, selection);
-
+            y = DrawQuestSocial(session,selection,x,y,width,body);
             GUI.Label(new Rect(x, y, 40f, lineH), "标记");
             _flagInput = GUI.TextField(new Rect(x + 44f, y, width - 200f, 22f), _flagInput);
             if (GUI.Button(new Rect(x + width - 148f, y, 68f, 22f), "设置"))
@@ -93,6 +93,47 @@ namespace XianXia.Unity.Host
             GUI.TextArea(new Rect(x, y, width, dumpH), _dump);
             y += dumpH + 4f;
             return y;
+        }
+
+        float DrawQuestSocial(PlayableHostSession session, HostSelectionController selection, float x,float y,float width,GUIStyle body)
+        {
+            GUI.Label(new Rect(x,y,width,20), "SOCIAL-QUEST-01（关系方向：NPC → 当前 Active，门槛 20）",body); y += 24;
+            foreach (var suffix in new[] { "cave", "cave_b", "general" })
+            {
+                var id = "base:quest_social01_" + suffix;
+                if (GUI.Button(new Rect(x,y,width,24), "接取：" + (suffix == "general" ? "普通对照任务" : suffix == "cave" ? "秘境任务 A" : "秘境任务 B")))
+                {
+                    var result = new QuestService().TryStart(session.World,id,session.PlayerParty.ActiveCharacterId);
+                    _sectionStatus = result.IsSuccess ? "已接取 " + id : result.Error.ToString();
+                }
+                y += 27;
+            }
+            if (GUI.Button(new Rect(x,y,width,24),"选中 NPC → Active 好感设为 19（不足）")) SetSocialScore(session,selection,19,false); y += 27;
+            if (GUI.Button(new Rect(x,y,width,24),"选中 NPC → Active 好感设为 20（达标）")) SetSocialScore(session,selection,20,false); y += 27;
+            if (GUI.Button(new Rect(x,y,width,24),"仅 Active → 选中 NPC 好感设为 30（反向对照）")) SetSocialScore(session,selection,30,true); y += 27;
+            var actor = session.PlayerParty.ActiveCharacterId;
+            var target = selection != null && selection.State.Count > 0 ? selection.State.SelectedIds[0] : EntityId.None;
+            var text = "Actor=" + actor + " Target=" + target + " NPC→Actor=" + session.World.Relationships.Score(target,actor) + "\n";
+            foreach (var q in session.World.Quests.Runtime.Values)
+                if (session.World.Quests.TryGetSpec(q.QuestId,out var spec) && (spec.IsSecretRealm || q.QuestId == "base:quest_social01_general"))
+                    text += q.QuestInstanceId + " | " + spec.QuestKind + " | " + q.Status + "\n";
+            foreach (var b in session.World.QuestCompanions.Bindings.Values)
+                text += "NPC=" + b.CompanionEntityId + " Quest=" + b.QuestInstanceId + "\nOriginalSquad=" + b.OriginalSquadId + " | " + b.State + "\n";
+            var height = body.CalcHeight(new GUIContent(text),width);
+            GUI.Label(new Rect(x,y,width,height),text,body);
+            return y + height + 5;
+        }
+
+        void SetSocialScore(PlayableHostSession session,HostSelectionController selection,int score,bool reverse)
+        {
+            var actor = session.PlayerParty.ActiveCharacterId;
+            var target = selection != null && selection.State.Count > 0 ? selection.State.SelectedIds[0] : EntityId.None;
+            if (actor.IsNone || target == actor || !session.World.Entities.TryGet(target,out var npc) ||
+                (npc.Tags & XianXia.Core.Entities.EntityTag.Npc) == 0)
+            { _sectionStatus = "请先选中一名真实 NPC，并保持合法 Active。"; return; }
+            var from = reverse ? actor : target; var to = reverse ? target : actor;
+            var result = new XianXia.Core.Social.RelationshipService().Record(session.World,from,to,score-session.World.Relationships.Score(from,to),"social_quest01_acceptance");
+            _sectionStatus = result.IsSuccess ? "好感已通过 RelationshipLedger 更新。" : result.Error.ToString();
         }
 
         void RunFlag(PlayableHostSession session, HostSelectionController selection, bool set)

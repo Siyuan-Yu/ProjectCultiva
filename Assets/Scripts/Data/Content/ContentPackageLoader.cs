@@ -2464,6 +2464,7 @@ namespace XianXia.Data.Content
                 Description = item.GetString("description", string.Empty),
                 AutoOffer = item.GetBool("autoOffer", false),
                 RuntimeMode = item.GetString("runtimeMode", "fixed"),
+                QuestKind = item.TryGetProperty("questKind", out var questKind) ? (questKind.Kind == JsonValueKind.String ? questKind.String : "<invalid>") : "general",
                 AcceptanceMode = item.GetString("acceptanceMode", "journal"),
                 Abandonable = item.GetBool("abandonable", false),
                 DeadlineDays = (int)item.GetNumber("deadlineDays", 0)
@@ -2626,6 +2627,10 @@ namespace XianXia.Data.Content
                     FromDefinitionId = node.GetString("fromDefinitionId", string.Empty),
                     ToDefinitionId = node.GetString("toDefinitionId", string.Empty)
                 };
+                if (string.Equals(o.Kind, "scheduleEvent", StringComparison.OrdinalIgnoreCase) &&
+                    (!node.TryGetProperty("amount", out var delay) || delay.Kind != JsonValueKind.Number ||
+                     delay.Number < 1 || delay.Number > int.MaxValue || delay.Number != Math.Floor(delay.Number)))
+                    report.Add(ErrorCode.InvalidArgument, "scheduleEvent amount must be positive integer days.", context);
                 o.ToDefinitionIds.AddRange(toDefinitionIds);
                 if (string.IsNullOrWhiteSpace(o.Kind))
                 {

@@ -69,6 +69,7 @@ namespace XianXia.Unity.Host
             bool allowPendingCancel = true)
         {
             if (_host?.Session?.World == null) return;
+            if (!automatic && !_host.Session.PlayerParty.IsPlayerControllableMember(attacker)) return;
             // SPACE-01 guard：Separate Space 不得创建 Independent CharacterEncounter。
             if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(
                     _host.Session.World, attacker, target))
@@ -82,7 +83,10 @@ namespace XianXia.Unity.Host
             if (_host.Session.World.Strategic.CharacterEncounter != null)
             {
                 if (Phase == PresentationPhase.Active || Phase == PresentationPhase.ReadyToEnd)
-                    SetTarget(attacker, target);
+                {
+                    if (automatic) SetTargetAutomatic(attacker,target);
+                    else SetTarget(attacker,target);
+                }
                 return;
             }
             if (HasPending) return;
@@ -347,6 +351,12 @@ namespace XianXia.Unity.Host
 
         public void SetTarget(EntityId attacker, EntityId target)
         {
+            if (_host?.Session?.PlayerParty?.IsPlayerControllableMember(attacker) != true) return;
+            SetTargetAutomatic(attacker,target);
+        }
+
+        internal void SetTargetAutomatic(EntityId attacker,EntityId target)
+        {
             if (Phase == PresentationPhase.ReadyToStart)
                 return;
             var world = _host?.Session?.World;
@@ -367,6 +377,12 @@ namespace XianXia.Unity.Host
         }
 
         public void Stop(EntityId id)
+        {
+            if (_host?.Session?.PlayerParty?.IsPlayerControllableMember(id) != true) return;
+            StopAutomatic(id);
+        }
+
+        internal void StopAutomatic(EntityId id)
         {
             var member = _host?.Session?.World?.Strategic?.CharacterEncounter?.Find(id.Value);
             if (member != null) member.TargetId = ulong.MaxValue;

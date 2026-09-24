@@ -1,5 +1,15 @@
 # 事件、未来事件与世界账本（2E）
 
+## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
+
+仅 Active + questKind=secretRealm 的真实 QuestInstance 投影 Priority0 话题；普通 general 不自动投影。NPC→实际 Actor 的 RelationshipLedger Score 独立门槛20。绑定保存 CompanionEntityId、QuestInstanceId、OriginalSquadId、Active/PendingDeparture，不改变 faction/tag/永久 roster。Dynamic Opportunity NPC V1 拒绝邀请。
+
+
 > 状态：**设计已冻结；DYNAMIC-DISCOVERY-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-25
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
 > 当前实现与磁盘边界见 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 与 [257 SAVE-01](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
