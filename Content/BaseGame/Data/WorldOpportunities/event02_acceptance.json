@@ -47,8 +47,8 @@
       "type": "worldOpportunityDirector",
       "name": "主荒野机会调度",
       "surfaceId": "base:surface_main_wilderness_v1",
-      "targetActiveMin": 2,
-      "targetActiveMax": 2
+      "targetActiveMin": 3,
+      "targetActiveMax": 3
     },
     {
       "id": "base:world_opportunity_event02_wounded_cultivator",
@@ -73,9 +73,9 @@
       "name": "临时行商",
       "surfaceId": "base:surface_main_wilderness_v1",
       "weight": 100,
-      "maxActive": 1,
+      "maxActive": 2,
       "spawnTableId": "base:spawn_event02_merchant_pool",
-      "durationDays": 3,
+      "durationDays": 5,
       "minPlayerDistanceWorld": 2.0,
       "maxPlayerDistanceWorld": 3.0,
       "allowInsideWorldSite": false,
@@ -187,7 +187,7 @@
         {
           "id": "start",
           "speakerRef": "@target",
-          "text": "「我明日便要离开此地，只是手上的灵药还差一些。若你寻到合用的灵药，可否替我留意一份？」",
+          "text": "「我过几日便要离开此地，只是手上的灵药还差一些。若你寻到合用的灵药，可否替我留意一份？」",
           "outcomes": [],
           "choices": [
             {

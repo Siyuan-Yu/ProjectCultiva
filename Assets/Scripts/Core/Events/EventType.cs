@@ -77,7 +77,9 @@ namespace XianXia.Core.Events
         /// <summary>WorldSite public administrative stock changed.</summary>
         WorldSitePublicStockChanged = 44,
         /// <summary>EVENT-02 public notice; Host presents a non-blocking toast.</summary>
-        WorldOpportunityNotice = 45
+        WorldOpportunityNotice = 45,
+        /// <summary>A wiped PlayerParty transferred control to a living player-faction successor.</summary>
+        PlayerSuccessionResolved = 46
     }
 }
 

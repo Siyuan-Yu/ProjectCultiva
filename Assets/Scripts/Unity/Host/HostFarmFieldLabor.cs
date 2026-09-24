@@ -43,6 +43,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostWorkLoop workLoop;
 
         readonly List<Worker> _workers = new List<Worker>(8);
+        readonly List<EntityId> _commandWorkers = new List<EntityId>(6);
         readonly HashSet<int> _reserved = new HashSet<int>();
         readonly Dictionary<ulong, float> _npcRetryAt = new Dictionary<ulong, float>();
         ulong _lastPresentedFarmTick = ulong.MaxValue;
@@ -141,7 +142,7 @@ namespace XianXia.Unity.Host
                 return 0;
 
             var actingFactionId = world.Strategic?.PlayerFactionId ?? string.Empty;
-            var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+            var authorization = WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
                 world, clickedPlot.StableCellId, actingFactionId);
             if (!authorization.IsAllowed)
             {
@@ -149,12 +150,22 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            var n = 0;
-            for (var i = 0; i < selectionController.State.Count; i++)
+            var party = bootstrap.Session.PlayerParty;
+            var resolution = HostPlayerMoveCommandGate.CollectPartyWorkersOrActive(
+                world, selectionController, party, _commandWorkers);
+            if (_commandWorkers.Count == 0)
             {
-                var id = selectionController.State.SelectedIds[i];
-                if (!selectionController.IsPartyUnit(id))
-                    continue;
+                ToastSelectionOrActive(
+                    resolution == PartyWorkerCommandResolutionStatus.InvalidNonEmptySelection
+                        ? "当前选择不允许下达农作命令"
+                        : "当前没有可执行农作的队员");
+                return 0;
+            }
+
+            var n = 0;
+            for (var i = 0; i < _commandWorkers.Count; i++)
+            {
+                var id = _commandWorkers[i];
                 if (Begin(id, clickedPlot.LocationId, fromNpcSchedule: false))
                     n++;
             }
@@ -418,7 +429,7 @@ namespace XianXia.Unity.Host
                     return false;
                 worker.ActingFactionId = membership.FactionId;
             }
-            var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+            var authorization = WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
                 world, cell.StableCellId, worker.ActingFactionId);
             return authorization.IsAllowed;
         }
@@ -432,7 +443,7 @@ namespace XianXia.Unity.Host
                 return;
             moveController?.CancelPresentationMovementPublic(worker.Id);
             if (!worker.FromNpcSchedule)
-                Toast(worker.Id, "农田已失去己方管理，自动农作停止", new Color(1f, .45f, .35f));
+                Toast(worker.Id, "已失去该农田的劳作权限，自动农作停止", new Color(1f, .45f, .35f));
             worker.Phase = Phase.Idle;
         }
 
@@ -586,15 +597,15 @@ namespace XianXia.Unity.Host
             return i >= 0 && i + 1 < itemId.Length ? itemId.Substring(i + 1) : itemId;
         }
 
-        public static string DescribeAuthorizationDenial(AdministrativeAssetAuthorization authorization)
+        public static string DescribeAuthorizationDenial(AdministrativeAssetWorkAuthorization authorization)
         {
-            switch (authorization?.Status ?? AdministrativeAssetAuthorizationStatus.Invalid)
+            switch (authorization?.Status ?? AdministrativeAssetWorkAuthorizationStatus.Invalid)
             {
-                case AdministrativeAssetAuthorizationStatus.Unmanaged:
+                case AdministrativeAssetWorkAuthorizationStatus.Unmanaged:
                     return "该农田暂无行政管理，无法组织农作";
-                case AdministrativeAssetAuthorizationStatus.ManagedByOtherFaction:
+                case AdministrativeAssetWorkAuthorizationStatus.ManagedByOtherFaction:
                     return "该农田由其他势力管理，无法组织农作";
-                case AdministrativeAssetAuthorizationStatus.NotAdministrativeAsset:
+                case AdministrativeAssetWorkAuthorizationStatus.NotAdministrativeAsset:
                     return "该地块不是可组织管理的农田";
                 default:
                     return "无法确认该农田的行政管理";
@@ -603,14 +614,26 @@ namespace XianXia.Unity.Host
 
         void ToastSelection(string text)
         {
-            if (selectionController == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
+            ToastSelectionOrActive(text);
+        }
+
+        void ToastSelectionOrActive(string text)
+        {
+            var party = bootstrap?.Session?.PlayerParty;
+            var shown = false;
+            if (selectionController != null)
             {
-                var id = selectionController.State.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
+                for (var i = 0; i < selectionController.State.Count; i++)
+                {
+                    var id = selectionController.State.SelectedIds[i];
+                    if (party?.IsMember(id) != true)
+                        continue;
                     Toast(id, text, new Color(1f, .45f, .35f));
+                    shown = true;
+                }
             }
+            if (!shown && party?.HasActive == true)
+                Toast(party.ActiveCharacterId, text, new Color(1f, .45f, .35f));
         }
 
         void Toast(EntityId id, string text, Color color)

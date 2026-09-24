@@ -1,7 +1,7 @@
 # QUEST-INSTANCE-01 — 动态人物委托与真实互动上下文 V1
 
-> 状态：**Implementation Complete / Producer Acceptance Pending**  
-> 日期：2026-09-24  
+> 状态：**Producer Accepted / Sealed**
+> 日期：2026-09-24
 > 范围：Quest Template／Instance、互动接取与交付、真实角色关系、生命周期、Journal/HUD、Snapshot v8、QuestEditor／EventEditor、确定验收入口
 
 ## 1. 最终模型
@@ -39,16 +39,28 @@ v1～v7 不包含可可信恢复的发布者实例身份，明确 `SnapshotVersi
 
 ## 6. 确定人工验收入口
 
-1. New Game 后打开 LevelTester 开发工具（反引号），进入“内容”。
-2. 点击“QUEST-INSTANCE-01：生成两名同模板临时行商”。按钮只补足到两名，不改变正式 Director 默认密度；状态行显示两条 Opportunity InstanceId、EntityId 与精确坐标。
-3. 左侧活动动态出现两条临时行商，可分别定位。两者使用相同 `base:character_event02_temporary_merchant`、相同 Opportunity／Event／Quest 模板，但是真实 Entity 不同。
-4. 分别接取甲、乙，任务日志应显示两条“临时行商·代采灵药”，发布者与实例编号不同。
-5. 准备两份任意来源灵药；只向甲交付，甲为 ReadyToClaim、甲对当前交谈者 Affection +1，乙仍 Active。再向乙交付，乙独立 ReadyToClaim、关系独立变化。
-6. 在接取、单份交付、双份交付与领奖阶段分别 Save／Load，确认实例、发布者、期限、交付、关系与状态不串线；重复点击不能重复扣物品、加关系或领奖。
-7. 任务日志分别领取，确认两份 Completed。受伤散修保留为第二模板验证，不要求随机寻找。
+验收 Content 将 Main Wilderness acceptance Director 固定为 3/3：受伤散修 `maxActive=1`、临时行商 `maxActive=2`，因此正常 refill 填满后稳定为一名散修与两名行商。开发工具“QUEST-INSTANCE-01：生成两名同模板临时行商”仍可在旧存档或当日已刷新状态下确定补足到两名。行商 Opportunity 生命周期与委托期限均为 5 天。
+
+A. New Game 后同时找到行商 A、B；也可打开 LevelTester 开发工具（反引号）→“内容”→点击“QUEST-INSTANCE-01：生成两名同模板临时行商”。状态行显示两条不同 OpportunityInstanceId、EntityId 与精确坐标。左侧两条 Activity 分别持有各自 Source Opportunity InstanceId，逐条打开并点击“定位”即可区分 A、B。
+
+B. 分别与 A、B 交谈并接取同一个 `base:quest_event02_temporary_merchant_herb` 模板。两者共用同一个 Character Definition／Spawn Pool、Event Template 和 Quest Definition，但 EntityId、OpportunityInstanceId、QuestInstanceId 均不同。
+
+C. 打开任务日志，确认出现两条“临时行商·代采灵药”，发布者与实例编号不同，期限均为 5 天。
+
+D. 准备两份任意合法来源的灵药，只向 A 交付：A 进入 ReadyToClaim，B 必须仍为 Active；物品、关系与交付事实不得写到 B。
+
+E. Save → Load，确认 A／B 的 Entity、Opportunity、Quest Instance 身份，以及 A ReadyToClaim／B Active 状态保持且不串线。
+
+F. 再向 B 交付：B 独立进入 ReadyToClaim，A 状态保持不变。
+
+G. 分别在任务日志领奖：两条实例各自 Completed，奖励不串线，不允许任一实例重复领奖。
 
 ## 7. 本轮边界与验证
 
 固定剧情任务、EVENT-01/02、Activity、Continuous Surface 5×5 streaming、SAVE-01 与 STRATEGIC-STOCK-01 既有能力保持兼容。未实现 `ContentIntent`、延迟反应、知识传播、势力继承、完整交易／装备／制作／物流或 NPC 战略自主行为；小游戏中途保存仍为独立待办。
 
 本轮执行离线全程序集编译、相关轻量测试、BaseGame Content Loader／ReferenceValidator、QuestEditor／EventEditor build、正式 Build All 与 `git diff --check`；未启动 Unity。正式状态在制作人人工验收前保持 **Implementation Complete / Producer Acceptance Pending**。
+
+## 8. 2026-09-24 制作人封板
+
+制作人已实际完成同模板随机 NPC 的独立 Issuer／Opportunity／Quest Instance、分别接取与灵药交付、ReadyToClaim／Claim／Completed、发布者到期失效、双行商隔离、Save/Load，以及 Actor／Target／Issuer 关系上下文验收。QUEST-INSTANCE-01 当前正式状态为 **Producer Accepted / Sealed**。上方 Pending 文字保留为实施完成时点的历史记录，不回写为当时已验收。

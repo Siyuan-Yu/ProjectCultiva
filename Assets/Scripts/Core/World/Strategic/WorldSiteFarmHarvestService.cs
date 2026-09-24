@@ -25,7 +25,7 @@ namespace XianXia.Core.World.Strategic
                 !membership.IsAffiliated)
                 return Result.Fail<int>(ErrorCode.InvalidArgument, "NPC farm harvest requires a real affiliated worker and cell.");
 
-            var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+            var authorization = WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
                 world, stableCellId, membership.FactionId);
             if (!authorization.IsAllowed || authorization.ManagingSite == null)
                 return Result.Fail<int>(ErrorCode.InvalidOperation, "NPC worker is no longer authorized for this farm cell.");

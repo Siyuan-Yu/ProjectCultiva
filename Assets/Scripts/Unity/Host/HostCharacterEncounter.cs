@@ -47,6 +47,15 @@ namespace XianXia.Unity.Host
         public EntityId PendingTarget => _pendingTarget;
         public bool ReadyToStartIsRestore => _startGate.IsRestore;
         public bool CanCancel => HasPending && _allowPendingCancel;
+        /// <summary>Preparing/pending presentation is Host-owned before Core publishes a state.</summary>
+        public bool BlocksPlayerFactionSuccession =>
+            HasPending || _entryRoutine != null || _preparedField != null || _restoreState != null ||
+            Phase == PresentationPhase.Pending ||
+            Phase == PresentationPhase.Preparing ||
+            Phase == PresentationPhase.ReadyToCommit ||
+            Phase == PresentationPhase.ReadyToStart ||
+            Phase == PresentationPhase.Active ||
+            Phase == PresentationPhase.ReadyToEnd;
         public static bool CanAdvanceTacticalPresentation(PresentationPhase phase, bool isPaused) =>
             phase != PresentationPhase.ReadyToStart && !isPaused;
         public void Bind(PlayableHostBootstrap host) { _host = host; _world = host.Session.World; }
@@ -592,6 +601,9 @@ namespace XianXia.Unity.Host
             _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             _host.ContinuousOutdoorSurfaceRuntime.LeaveIndependentField(state);
             Phase = PresentationPhase.Report;
+            // A wiped party may only transfer authority after CommitAndReturn and after the
+            // independent field presentation has released the old battlefield.
+            _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             return true;
         }
 

@@ -160,6 +160,7 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.QuestCompleted:
                 case XianXia.Core.Events.EventType.LocalMapChanged:
                 case XianXia.Core.Events.EventType.WorldOpportunityNotice:
+                case XianXia.Core.Events.EventType.PlayerSuccessionResolved:
                     return true;
                 default:
                     return false;

@@ -513,6 +513,13 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        public bool IsWorldPositionInLoadedNeighborhood(
+            string surfaceId,
+            WorldVec2 worldPosition) =>
+            IsActive && _mapper != null &&
+            string.Equals(_surfaceId, surfaceId ?? string.Empty, StringComparison.Ordinal) &&
+            _loaded.Contains(_mapper.WorldToChunk(worldPosition.X, worldPosition.Y));
+
         /// <summary>Surface membership comes from the authored Outdoor Surface, never from the
         /// optional regional SurfaceGround geography.</summary>
         public bool IsFieldSquadInLoadedNeighborhood(SquadState squad, SquadWorldMotionState motion)
@@ -1311,6 +1318,13 @@ namespace XianXia.Unity.Host
         public void DeactivatePresentationOnly() => DeactivatePresentationOnly(captureEntityPositions: true);
 
         public void DeactivateForInteriorTransition() => DeactivatePresentationOnly(captureEntityPositions: false);
+
+        /// <summary>
+        /// Succession is an authority jump, not ordinary streaming. Do not capture the old
+        /// battlefield/corpse views back into Domain while rebuilding around the successor.
+        /// </summary>
+        public void DeactivateForSuccessionReanchor() =>
+            DeactivatePresentationOnly(captureEntityPositions: false);
 
         void DeactivatePresentationOnly(bool captureEntityPositions)
         {

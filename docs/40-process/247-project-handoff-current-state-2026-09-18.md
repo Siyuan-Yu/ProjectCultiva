@@ -1,14 +1,40 @@
 # Project Handoff — Continuous World Current State
 
-## 新会话恢复摘要（唯一当前入口，2026-09-24）
+## 2026-09-24 最新接续摘要：SEAL-20260924 / SUCCESSION Final Audit
+
+QUEST-INSTANCE-01、VASSAL-WORK-01 与 VASSAL-WORK-01-P1 已由制作人人工验收并正式 **Producer Accepted / Sealed**。P1 的最终 opening context-menu 问题属于 Host Active/View/Selection 初始化时机，并非 Direct Vassal Work Authorization 失败。
+
+SUCCESSION-01 主体审计通过，未重建系统。仅修正来源 NPC squad 在 successor 同时为 command target 时的悬挂目标；无候选扫描从逐帧改为 0.75 秒 throttle，首次进入／显式刷新／Snapshot restore 仍立即；LevelTester 护卫限定玩家势力。候选、精确位置、远距无捕获 Surface re-anchor、物化后 Camera/Selection、Separate Space wipe 与 Snapshot v8 行为保持。SUCCESSION-01 状态仍为 **Implementation Complete / Producer Acceptance Pending**，等待制作人执行 CASE 2/3/4。下一阶段 `DYNAMIC-DISCOVERY-01` 仅 Planned，未实施。未启动 Unity，未 stage／commit／push。
+
+## 2026-09-24 最新接续摘要：VASSAL-WORK-01-P1
+
+制作人实际验收证明 Direct Vassal Labor Authorization 已正确生效；残余故障是 Host opening selection 时机。Continuous New Game 曾在 Active EntityView materialize 前选中，Registry gate 令其失败，最终物化后未补选；Context Gate 接受空 selection，但农田旧入口没有 Worker。
+
+P1 已在最终 opening population Refresh/Prune/Spawn 后仅为空 selection 补选已物化 Active，并把 party-work actor 语义集中到 `HostPlayerMoveCommandGate`：合法非空选择使用所选 Party members，空选择隐式使用可行动 Active，非法非空选择不回退。农田开工为 0 时会显示明确反馈。Snapshot restore 既有 rebind 未改，Vassal Work Authorization／仓储／建造／收获归属均未改，Snapshot 仍为 v8。状态 **Implementation Complete / Producer Acceptance Pending**；离线编译 `ALL_OK`，未运行自动测试或 Unity，未 stage／commit／push。
+
+## 2026-09-24 最新接续摘要：VASSAL-WORK-01
+
+[VASSAL-WORK-01](260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md) 已完成实施，状态 **Implementation Complete / Producer Acceptance Pending**。严格 `WorldAdministrativeAssetAuthorizationService` 未放宽；新增 Work Authorization 只允许实际管理势力自己或其直接附庸劳作，并明确区分 `AllowedAsManager`／`AllowedAsVassalWorker`。玩家开工、逐格复核、Host Hover、NPC WorkArea 与 NPC schedule 收获均已统一接线。
+
+Ch01 真实 opening 已有 `base:faction_player → base:sect_huangcun_labor` 直接附庸，故现有荒村宗主粮田／药田会自然开放劳动，不含 ID hardcode。玩家手控产物仍进背包，NPC schedule 产物仍进宗主实际 Site 公库；宗主仓储、建造、拆除、管理、住房、时间表和 ControlCore 继续隔离。解除附庸或 War 后权限即时失效。Snapshot 仍为 v8；离线编译 `ALL_OK`，未运行自动测试或 Unity，未 stage／commit／push。完成本项人工验收后继续既有 SUCCESSION-01 验收。
+
+## 2026-09-24 最新接续摘要：SUCCESSION-01
+
+QUEST-INSTANCE-01 已由制作人人工验收通过并封板，正式状态为 **Producer Accepted / Sealed**。旧文档中的 Pending 是实施时点历史，不回写。当前最新实现是 [SUCCESSION-01](259-succession-01-player-faction-succession-2026-09-24.md)：只有旧 PlayerParty 全员真正 Dead/Removed 才从玩家势力其它真实人物中选择继承者；战力最高优先、同战力较小 EntityId 优先，普通队内 Active 接替仍保持固定 Party 顺序。
+
+继承者在改变 Squad 前捕获精确 Surface/WorldPosition/Site/来源 Squad；旧死亡 Party 退为 singleton，新 `squad:player` 仅含继承者。NPC squad 只分离继承者。Host 对跨 Surface 或超出 loaded 5×5 的位置执行无旧位置捕获的 hard re-anchor，并在 EntityView 就绪后镜头/选中。Separate Space 全灭只释放玩家表现 ownership，不把尸体送回洞口。无候选继续保持 AwaitingSuccession，可存档并在 world shell 恢复后重试。Snapshot schema 仍为 v8。
+
+LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选准备与正式全灭按钮。当前状态 **Implementation Complete / Producer Acceptance Pending**；不得进入 NPC AI。后续顺序为 Dynamic WorldObject / Discovery → Knowledge + delayed event foundation → Full trading → Equipment/crafting → Production/logistics → NPC AI last。本轮未启动 Unity，未新增/运行自动测试，未暂存、未提交、未推送。
+
+## 新会话恢复摘要（2026-09-24；最新增量以上方 SUCCESSION-01 为准）
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；当前增量为 QUEST-INSTANCE-01，状态 **Implementation Complete / Producer Acceptance Pending**。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01 已 **Producer Accepted / Sealed**，当前增量为 SUCCESSION-01，状态 **Implementation Complete / Producer Acceptance Pending**。
 
 ### QUEST-INSTANCE-01 当前实现（2026-09-24）
 
-[258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md) 将人物委托从“模板 ID＋全局 flag”升级为稳定 `QuestInstanceId`。同模板 NPC A／B 可分别接取、交付、领奖、放弃、失效和存读档；`@actor`／`@target`／`@issuer` 精确指向真实 Entity，关系继续写入 `RelationshipLedger`。当前 Snapshot schema 为 v8，v1～v7 要求新开局。固定任务保留既有模板单份语义。LevelTester 内容页可确定生成两名同模板临时行商。本轮未获制作人验收，未提交。
+[258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md) 将人物委托从“模板 ID＋全局 flag”升级为稳定 `QuestInstanceId`。同模板 NPC A／B 可分别接取、交付、领奖、放弃、失效和存读档；`@actor`／`@target`／`@issuer` 精确指向真实 Entity，关系继续写入 `RelationshipLedger`。当前 Snapshot schema 为 v8，v1～v7 要求新开局。固定任务保留既有模板单份语义。LevelTester 内容页可确定生成两名同模板临时行商。制作人已于 2026-09-24 完成双实例完整路线人工验收，状态 **Producer Accepted / Sealed**。
 
 ### SAVE-01＋STRATEGIC-STOCK-01 当前封板（2026-09-24）
 
@@ -154,7 +180,7 @@ V2.4 删除“状态对话/特殊对话/普通对话”等伪类型，只保留�
 | 行动、Order 与日程 | `ActiveActions`、Order queues、Schedule definitions／entity binding 与 `DailyTaskComponent` 已用于当前劳动、修炼、恢复和日程链 | Snapshot 已保存 active actions、orders、schedules、entity schedule id 与 daily task fields；Host ritual channel 自身不是 Snapshot authority | 当前基础链已实现；不得从可序列化目标推断所有 Action／Host UI 中间态均可无损继续 |
 | 关系、Bond、态度与档案 | `SocialBondBoard` 保存客观 Bond；五维单向态度由 `RelationshipLedger` 事件聚合；人物档案供 UI／内容查询 | `RelationshipService`、`SocialBondBoard`、profile components；Snapshot 已保存 Social Bonds、RelationshipLedger 与 PersonalityProfile tags | 2M 主线 Accepted / Sealed。关系 ≠ 私人冲突 ≠ Faction War |
 | 背包、装备、资源与掉落 | 非 resource 只使用 PartyInventory；resource 在可访问己方战略物资网络时统一使用 PartyInventory＋eligible WorldSitePublicStock，离开网络退回 bag-only。`stockAtLeast`、Quest progress／Journal 与 `removeStock` 共用该语义 | `PlayerStrategicResourceService` 是访问与稳定扣除顺序 authority；`HostInventoryPanel` 同窗提供小队背包／势力仓库，只允许战略资源从公库取到背包；PartyInventory、WorldSitePublicStock 与 taken loot 均沿用既有 Snapshot 字段 | STRATEGIC-STOCK-01 **Producer Accepted / Sealed**；势力仓库不是通用 Item／装备仓库，不含容量与物流 |
-| Quest | 固定任务与人物委托共用 `QuestBoard`／`QuestService`；Journal/HUD 按实例操作 | Snapshot v8 保存实例、发布者、来源 Opportunity、交付、期限与序列；definitions 仍来自 Content | QUEST-INSTANCE-01 **Implementation Complete / Producer Acceptance Pending** |
+| Quest | 固定任务与人物委托共用 `QuestBoard`／`QuestService`；Journal/HUD 按实例操作 | Snapshot v8 保存实例、发布者、来源 Opportunity、交付、期限与序列；definitions 仍来自 Content | QUEST-INSTANCE-01 **Producer Accepted / Sealed** |
 | Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持条件、触发与推进；固定 NPC／WorldObject interaction event 已接通 | v7 保存 Flags／History、fired keys 与 Chapter runtime；restore shell definitions-only 重注册并校验，不重放 opening；Active dialogue 不保存 | SAVE-01 **Producer Accepted / Sealed**；EVENT-01 Final 状态不变 |
 | ContentCounters／ContentDaily／LocationLabor | runtime board 支持计数、每日限制与采收／劳动 Quest facts；角色 `DailyTaskComponent` 是另一条实体日程链 | v7 保存全部 Counter、marked day index 及 opaque labor tick／harvest key；`DailyTaskComponent` 仍按实体字段保存 | SAVE-01 **Producer Accepted / Sealed**；两类 Daily authority 不混用 |
 

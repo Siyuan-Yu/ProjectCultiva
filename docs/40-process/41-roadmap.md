@@ -1,6 +1,8 @@
 # 路线图
 
-> **QUEST-INSTANCE-01（2026-09-24）：Implementation Complete / Producer Acceptance Pending。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。LevelTester 内容页提供“两名同模板临时行商”确定验收入口。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
+> **QUEST-INSTANCE-01（2026-09-24）：Producer Accepted / Sealed。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。双同模板行商的独立接取、交付、领奖、失效与 Save/Load 已由制作人验收。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
+
+> **VASSAL-WORK-01＋P1（2026-09-24）：Producer Accepted / Sealed。** 直接附庸可在宗主药田／粮田劳作，但不共享仓储、建造或管理权；解除附庸即时失权。首次 New Game Active/View/Selection 初始化与 empty-selection Active fallback 已由制作人验收。见 [260](260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md)。
 
 > **SAVE-01＋STRATEGIC-STOCK-01（2026-09-24）：Producer Accepted / Sealed。** Snapshot v7 持久保存 Quest／Flags／Event fired／Chapter／Counter／Daily／LocationLabor；对话进行中禁止保存，v1～v6 明确拒绝。临时行商与受伤散修两条 prototype 已完成 World Opportunity → Event Choice `startQuest` → Player Accessible Stock hand-in → ReadyToClaim → Journal Claim → Save/Load。resource 在可访问己方战略物资网络时聚合 PartyInventory＋eligible WorldSitePublicStock，非 resource 始终 bag-only；势力仓库 V1 只支持战略资源取出。见 [257](257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
@@ -276,6 +278,20 @@
 - [ ] 一次死亡/传承
 
 完成标准：**你自己愿意连续玩 90 分钟**，且能说出至少一个"这局发生的故事"。
+
+### 2026-09-24 当前推进点
+
+- [x] QUEST-INSTANCE-01：制作人人工验收通过，状态 **Producer Accepted / Sealed**。
+- [x] VASSAL-WORK-01：直接附庸劳动、仓储／建造隔离与解除附庸失权已由制作人人工验收，状态 **Producer Accepted / Sealed**。
+- [x] VASSAL-WORK-01-P1：首次 New Game 右键、empty selection fallback 与合法多人农作已由制作人人工验收，状态 **Producer Accepted / Sealed**。
+- [x] SUCCESSION-01：全 Party 真死亡后的玩家势力继承、精确位置接管、Continuous Surface 重锚与无候选等待态已实现；进入制作人人工验收。
+- [ ] SUCCESSION-01 制作人按 CASE 1～6 验收。
+- [ ] SUCCESSION-01 验收通过后的下一阶段：**DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**（Planned，本轮不实施）。
+- [ ] 下一阶段 2：Knowledge + delayed event foundation。
+- [ ] 下一阶段 3：Full trading。
+- [ ] 下一阶段 4：Equipment / crafting。
+- [ ] 下一阶段 5：Production / logistics。
+- [ ] NPC AI 最后统一规划；在上述阶段之前不提前展开。
 
 ## M4 — 横向扩展
 

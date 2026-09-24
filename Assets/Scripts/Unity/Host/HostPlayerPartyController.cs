@@ -92,6 +92,9 @@ namespace XianXia.Unity.Host
         bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
         EntityId _observedActiveCharacterId = EntityId.None;
+        bool _wasAwaitingSuccession;
+        float _nextSuccessionRetryAt;
+        const float SuccessionRetryIntervalSeconds = .75f;
 
         [SerializeField] float followerChopSearchRadius = 10f;
 
@@ -127,6 +130,8 @@ namespace XianXia.Unity.Host
             _cameraRig = host.GetComponent<PlayableHostCameraRig>();
             _spawner = host.ViewSpawner;
             _observedActiveCharacterId = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            _wasAwaitingSuccession = Party?.IsAwaitingSuccession == true;
+            _nextSuccessionRetryAt = 0f;
         }
 
         public bool TryFollowActive(EntityId candidate, out string error)
@@ -396,7 +401,7 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
 
-            RefreshActiveControlAfterLifeStateChange();
+            RefreshActiveControlAfterLifeStateChange(requestImmediateSuccessionRetry: false);
             var encounter = bootstrap.Session.World.Strategic.CharacterEncounter;
             if (encounter != null)
             {
@@ -427,17 +432,91 @@ namespace XianXia.Unity.Host
             TickContinuousSurfaceAutoTravelMovement();
         }
 
-        public void RefreshActiveControlAfterLifeStateChange()
+        public void RefreshActiveControlAfterLifeStateChange(
+            bool requestImmediateSuccessionRetry = true)
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
             var previousActive = _observedActiveCharacterId;
             PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(
                 bootstrap.Session.World);
+            var now = Time.unscaledTime;
+            var shouldRetrySuccession = Party.IsAwaitingSuccession &&
+                !IsSuccessionBlockedByEncounterPresentation() &&
+                (requestImmediateSuccessionRetry || !_wasAwaitingSuccession ||
+                 now >= _nextSuccessionRetryAt);
+            if (shouldRetrySuccession)
+            {
+                // The Core wipe handoff intentionally does not know about EntityViews. Freeze
+                // persistent cave placements while the old Separate Space still owns them.
+                if (bootstrap.Session.World.LocalMap.IsActive)
+                    HostSnapshotLocalPlacementCaptureSync
+                        .FlushActiveSeparateSpaceCharacterPlacementsFromViews(bootstrap);
+                var succession = PlayerFactionSuccessionService.TryResolve(
+                    bootstrap.Session.World, Party);
+                if (succession.IsResolved)
+                    PrepareSuccessionPresentation(succession);
+                _nextSuccessionRetryAt = now + SuccessionRetryIntervalSeconds;
+            }
+            if (!Party.IsAwaitingSuccession)
+                _nextSuccessionRetryAt = 0f;
+            _wasAwaitingSuccession = Party.IsAwaitingSuccession;
             var currentActive = Party.ActiveCharacterId;
             if (previousActive != currentActive)
                 ApplyAutomaticActiveChange(previousActive, currentActive);
             _observedActiveCharacterId = currentActive;
+        }
+
+        /// <summary>
+        /// Snapshot v8 already restores every succession authority. This retry runs only after
+        /// Content, squads, exact presence and Surface registrations have all been rehydrated;
+        /// presentation is rebuilt by the caller immediately afterwards.
+        /// </summary>
+        public bool TryResolveSuccessionAfterWorldShellRestore()
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
+                return false;
+            PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(
+                bootstrap.Session.World);
+            if (!Party.IsAwaitingSuccession || IsSuccessionBlockedByEncounterPresentation())
+                return false;
+            var result = PlayerFactionSuccessionService.TryResolve(
+                bootstrap.Session.World, Party);
+            _wasAwaitingSuccession = Party.IsAwaitingSuccession;
+            _nextSuccessionRetryAt = result.IsResolved
+                ? 0f
+                : Time.unscaledTime + SuccessionRetryIntervalSeconds;
+            _observedActiveCharacterId = Party.ActiveCharacterId;
+            return result.IsResolved;
+        }
+
+        bool IsSuccessionBlockedByEncounterPresentation()
+        {
+            var encounterHost = bootstrap != null
+                ? bootstrap.GetComponent<HostCharacterEncounter>()
+                : null;
+            return encounterHost != null && encounterHost.BlocksPlayerFactionSuccession;
+        }
+
+        void PrepareSuccessionPresentation(PlayerFactionSuccessionResult succession)
+        {
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (surface == null)
+                return;
+
+            if (surface.IsActive &&
+                !surface.IsWorldPositionInLoadedNeighborhood(
+                    succession.SurfaceId, succession.WorldPosition))
+                surface.DeactivateForSuccessionReanchor();
+
+            if (!surface.IsActive)
+                surface.TryActivateAtCurrentWorldPosition();
+            if (surface.IsActive)
+            {
+                surface.SyncPartyPresentation();
+                bootstrap.NotifyOutdoorEntityScopeChanged();
+                bootstrap.FlushLoadedDestinationArrivals();
+            }
         }
 
         void ApplyAutomaticActiveChange(EntityId previousActive, EntityId currentActive)

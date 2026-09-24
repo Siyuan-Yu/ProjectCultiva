@@ -165,7 +165,7 @@ namespace XianXia.Unity.Host
                 case CheatTab.Snapshot:
                     return 260f;
                 case CheatTab.Battle:
-                    return 520f;
+                    return 680f;
                 case CheatTab.Diagnostics:
                     return 760f;
                 default:
@@ -320,10 +320,16 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, y, width, 24f), "让所选 NPC 小队移动到主控附近测试点"))
                 MoveSelectedNpcSquadNearPlayer();
             y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "SUCCESSION-01：准备 A/B 继承候选"))
+                _partyCombatCheatStatus = LevelTesterSuccessionCheats.TryPrepare(bootstrap).Message;
+            y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "SUCCESSION-01：使当前 Party 正式全灭"))
+                _partyCombatCheatStatus = LevelTesterSuccessionCheats.TryKillCurrentParty(bootstrap).Message;
+            y += 28f;
             if (!string.IsNullOrEmpty(_partyCombatCheatStatus))
             {
-                GUI.Label(new Rect(x, y, width, 44f), _partyCombatCheatStatus, _body);
-                y += 48f;
+                GUI.Label(new Rect(x, y, width, 100f), _partyCombatCheatStatus, _body);
+                y += 104f;
             }
 
             var world = bootstrap?.Session?.World;

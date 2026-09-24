@@ -201,6 +201,110 @@ namespace XianXia.Core.World.Strategic
             return Transfer(world, member, singletonId);
         }
 
+        /// <summary>
+        /// Replaces a wiped PlayerParty squad with one successor in a single validated
+        /// membership transaction. The old members become singleton squads; their lifecycle and
+        /// spatial state are deliberately untouched. If the successor came from an NPC squad,
+        /// only that member is detached and the remaining squad keeps its command and motion.
+        /// </summary>
+        public static Result<SquadState> ReplacePlayerSquadForSuccession(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            EntityId successor)
+        {
+            if (world?.Strategic?.Squads == null || party == null || successor.IsNone ||
+                !world.Entities.TryGet(successor, out var successorEntity) ||
+                successorEntity == null ||
+                (successorEntity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
+                return Result.Fail<SquadState>(ErrorCode.InvalidArgument,
+                    "Succession requires a real Character successor.");
+            if (!party.IsAwaitingSuccession ||
+                string.IsNullOrEmpty(party.ControlledSquadId) ||
+                !world.Strategic.Squads.TryGet(party.ControlledSquadId, out var oldPlayerSquad) ||
+                oldPlayerSquad == null || oldPlayerSquad.Contains(successor))
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
+                    "PlayerParty is not ready for succession.");
+            if (!string.Equals(oldPlayerSquad.SquadId, PlayerSquadId, StringComparison.Ordinal))
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
+                    "Controlled PlayerParty squad identity is invalid.", oldPlayerSquad.SquadId);
+
+            world.Strategic.Squads.TryGetForCharacter(successor, out var sourceSquad);
+            if (IsBattleLocked(world, oldPlayerSquad) || IsBattleLocked(world, sourceSquad))
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
+                    "Battle participant cannot change squad during succession.");
+
+            // Validate every destination before changing the reverse index. A character cannot
+            // already own a singleton while it is indexed to the authoritative player squad.
+            var retiredMembers = new List<EntityId>(oldPlayerSquad.MemberCharacterIds.Count);
+            for (var i = 0; i < oldPlayerSquad.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(oldPlayerSquad.MemberCharacterIds[i]);
+                var singletonId = SingletonSquadId(id);
+                if (world.Strategic.Squads.TryGet(singletonId, out var existing) &&
+                    !ReferenceEquals(existing, oldPlayerSquad))
+                    return Result.Fail<SquadState>(ErrorCode.AlreadyExists,
+                        "Retired PlayerParty member already has a singleton squad.", singletonId);
+                retiredMembers.Add(id);
+            }
+
+            // Detach only the successor. The source squad's remaining member order, command and
+            // motion object stay intact; leader replacement follows the existing stable rule.
+            if (sourceSquad != null)
+            {
+                sourceSquad.Remove(successor);
+                world.Strategic.Squads.RemoveReverse(successor);
+                if (sourceSquad.LeaderCharacterId == successor &&
+                    sourceSquad.MemberCharacterIds.Count > 0)
+                    sourceSquad.LeaderCharacterId =
+                        new EntityId(sourceSquad.MemberCharacterIds[0]);
+                if (sourceSquad.CommandTargetCharacterId == successor)
+                {
+                    sourceSquad.CommandTargetCharacterId =
+                        sourceSquad.MemberCharacterIds.Count > 0
+                            ? sourceSquad.LeaderCharacterId
+                            : EntityId.None;
+                    sourceSquad.CommandRevision++;
+                }
+                if (sourceSquad.MemberCharacterIds.Count == 0)
+                {
+                    world.Strategic.Squads.Remove(sourceSquad.SquadId);
+                    world.Strategic.SquadWorldMotions.Remove(sourceSquad.SquadId);
+                }
+            }
+
+            // Retire the old controlled squad without altering any corpse or world presence.
+            for (var i = 0; i < retiredMembers.Count; i++)
+                world.Strategic.Squads.RemoveReverse(retiredMembers[i]);
+            world.Strategic.Squads.Remove(oldPlayerSquad.SquadId);
+            world.Strategic.SquadWorldMotions.Remove(oldPlayerSquad.SquadId);
+            for (var i = 0; i < retiredMembers.Count; i++)
+            {
+                var id = retiredMembers[i];
+                var singleton = new SquadState
+                {
+                    SquadId = SingletonSquadId(id),
+                    LeaderCharacterId = id
+                };
+                singleton.Add(id);
+                world.Strategic.Squads.Register(singleton);
+            }
+
+            var replacement = new SquadState
+            {
+                SquadId = PlayerSquadId,
+                DisplayName = oldPlayerSquad.DisplayName,
+                FactionId = string.IsNullOrEmpty(oldPlayerSquad.FactionId)
+                    ? world.Strategic.PlayerFactionId
+                    : oldPlayerSquad.FactionId,
+                LeaderCharacterId = successor,
+                CommandKind = SquadCommandKind.FollowLeader
+            };
+            replacement.Add(successor);
+            world.Strategic.Squads.Register(replacement);
+            BackgroundCharacterTravelService.CancelTravelIfAny(world, successor);
+            return Result.Ok(replacement);
+        }
+
         public static void EnsureSingletonsForUnassignedCharacters(SimulationWorld world)
         {
             if (world?.Strategic?.Squads == null) return;

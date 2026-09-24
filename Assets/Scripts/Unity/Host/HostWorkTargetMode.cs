@@ -119,7 +119,13 @@ namespace XianXia.Unity.Host
         {
             if (target.Kind != WorldObjectTargetKind.FarmPlot || target.Plot == null) return false;
             var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-            if (farm != null && farm.BeginForSelection(target.Plot) > 0) Resume();
+            if (farm == null)
+                return false;
+            var started = farm.BeginForSelection(target.Plot);
+            if (started > 0)
+                Resume();
+            // A valid farm target consumes the click. BeginForSelection provides an explicit
+            // denial/no-worker/no-job message when no worker starts, so this is never silent.
             return true;
         }
 
@@ -546,29 +552,31 @@ namespace XianXia.Unity.Host
             SetArmed(ArmKind.None);
         }
 
-        /// <summary>Resolve the clicked farm cell through the Core administrative authority.</summary>
-        AdministrativeAssetAuthorization ResolveFarmAuthorization(HostMapPlotCell plot)
+        /// <summary>Resolve the clicked farm cell through the Core work/use authority.</summary>
+        AdministrativeAssetWorkAuthorization ResolveFarmAuthorization(HostMapPlotCell plot)
         {
             var world = bootstrap?.Session?.World;
-            return WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+            return WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
                 world,
                 plot?.StableCellId ?? string.Empty,
                 world?.Strategic?.PlayerFactionId ?? string.Empty);
         }
 
         static string DescribeFarmHover(
-            AdministrativeAssetAuthorization authorization,
+            AdministrativeAssetWorkAuthorization authorization,
             bool contextClick)
         {
-            switch (authorization?.Status ?? AdministrativeAssetAuthorizationStatus.Invalid)
+            switch (authorization?.Status ?? AdministrativeAssetWorkAuthorizationStatus.Invalid)
             {
-                case AdministrativeAssetAuthorizationStatus.Allowed:
+                case AdministrativeAssetWorkAuthorizationStatus.AllowedAsManager:
                     return (contextClick ? "右键农作" : "农作") + " · 己方管理";
-                case AdministrativeAssetAuthorizationStatus.Unmanaged:
+                case AdministrativeAssetWorkAuthorizationStatus.AllowedAsVassalWorker:
+                    return (contextClick ? "右键农作" : "农作") + " · 宗主领地，附庸可劳作";
+                case AdministrativeAssetWorkAuthorizationStatus.Unmanaged:
                     return "农田 · 无人管理，无法组织农作";
-                case AdministrativeAssetAuthorizationStatus.ManagedByOtherFaction:
+                case AdministrativeAssetWorkAuthorizationStatus.ManagedByOtherFaction:
                     return "农田 · 他方管理，无法组织农作";
-                case AdministrativeAssetAuthorizationStatus.NotAdministrativeAsset:
+                case AdministrativeAssetWorkAuthorizationStatus.NotAdministrativeAsset:
                     return "农田 · 非行政资产，无法组织农作";
                 default:
                     return "农田 · 无法确认行政管理";

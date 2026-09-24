@@ -220,6 +220,31 @@ namespace XianXia.Core.Exploration
         }
 
         /// <summary>
+        /// Ends only the active PlayerParty presentation claim after a genuine party wipe.
+        /// Unlike <see cref="Leave"/>, this never evacuates occupants and never changes corpse
+        /// EntityLocation. Persistent Separate Space state therefore remains available on re-entry.
+        /// </summary>
+        public static void ReleasePlayerControlAfterPartyWipe(SimulationWorld world)
+        {
+            var session = world?.LocalMap;
+            if (session == null || !session.IsActive)
+                return;
+
+            var nextMapLayoutId = session.HasOutdoorReturn
+                ? string.Empty
+                : session.OverworldMapLayoutId ?? string.Empty;
+            session.ActiveMapLayoutId = nextMapLayoutId;
+            session.ClearOccupants();
+            session.ClearSeparateSpaceIdentity();
+            session.OverworldMapLayoutId = string.Empty;
+            session.ReturnLocationId = string.Empty;
+            session.HasOutdoorReturn = false;
+            session.ReturnSurfaceId = string.Empty;
+            session.ReturnWorldX = 0f;
+            session.ReturnWorldY = 0f;
+        }
+
+        /// <summary>
         /// Active Separate Space local placement owns its Characters. Removes stale Outdoor
         /// personal presence from current occupants and from persistent Characters whose authored
         /// EntityLocation belongs to the active map. It never changes placement or membership.

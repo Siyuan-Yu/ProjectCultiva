@@ -66,7 +66,7 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// Faction authorization for organized work on an explicitly registered administrative asset.
+    /// Strict faction management authorization for an explicitly registered administrative asset.
     /// Site succession is resolved on every call; no manager or claim winner is cached here.
     /// </summary>
     public static class WorldAdministrativeAssetAuthorizationService
@@ -106,7 +106,89 @@ namespace XianXia.Core.World.Strategic
                 status, actingFactionId, anchor, managingSite, winningClaim);
     }
 
-    /// <summary>Resolves whether a faction may use at least one real farm cell in a WorkArea location.</summary>
+    public enum AdministrativeAssetWorkAuthorizationStatus
+    {
+        Invalid = 0,
+        AllowedAsManager = 1,
+        AllowedAsVassalWorker = 2,
+        Unmanaged = 3,
+        ManagedByOtherFaction = 4,
+        NotAdministrativeAsset = 5
+    }
+
+    /// <summary>
+    /// Read-only permission for labor/use on an administrative asset. This does not grant management,
+    /// construction, storage, housing, schedule, or control authority.
+    /// </summary>
+    public sealed class AdministrativeAssetWorkAuthorization
+    {
+        internal AdministrativeAssetWorkAuthorization(
+            AdministrativeAssetWorkAuthorizationStatus status,
+            AdministrativeAssetAuthorization managementAuthorization)
+        {
+            Status = status;
+            ManagementAuthorization = managementAuthorization;
+        }
+
+        public AdministrativeAssetWorkAuthorizationStatus Status { get; }
+        public bool IsAllowed =>
+            Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsManager ||
+            Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsVassalWorker;
+        public bool IsAllowedAsVassalWorker =>
+            Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsVassalWorker;
+        public AdministrativeAssetAuthorization ManagementAuthorization { get; }
+        public string ActingFactionId => ManagementAuthorization?.ActingFactionId ?? string.Empty;
+        public OutdoorAdministrativeAssetAnchor Anchor => ManagementAuthorization?.Anchor;
+        public WorldSite ManagingSite => ManagementAuthorization?.ManagingSite;
+        public string ManagingFactionId => ManagementAuthorization?.ManagingFactionId ?? string.Empty;
+        public TerritoryClaimState WinningClaim => ManagementAuthorization?.WinningClaim;
+    }
+
+    /// <summary>
+    /// Labor/use authorization layered on top of strict administrative management authorization.
+    /// A direct vassal may work its overlord's asset, while the actual manager remains unchanged.
+    /// </summary>
+    public static class WorldAdministrativeAssetWorkAuthorizationService
+    {
+        public static AdministrativeAssetWorkAuthorization ResolveForFaction(
+            SimulationWorld world,
+            string stableAssetId,
+            string actingFactionId)
+        {
+            var management = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                world, stableAssetId, actingFactionId);
+            switch (management.Status)
+            {
+                case AdministrativeAssetAuthorizationStatus.Allowed:
+                    return Result(AdministrativeAssetWorkAuthorizationStatus.AllowedAsManager, management);
+                case AdministrativeAssetAuthorizationStatus.ManagedByOtherFaction:
+                    if (FactionDiplomacyRelationQuery.GetRelation(
+                            world, actingFactionId, management.ManagingFactionId) ==
+                        FactionDiplomacyRelation.Overlord)
+                        return Result(
+                            AdministrativeAssetWorkAuthorizationStatus.AllowedAsVassalWorker,
+                            management);
+                    return Result(
+                        AdministrativeAssetWorkAuthorizationStatus.ManagedByOtherFaction,
+                        management);
+                case AdministrativeAssetAuthorizationStatus.Unmanaged:
+                    return Result(AdministrativeAssetWorkAuthorizationStatus.Unmanaged, management);
+                case AdministrativeAssetAuthorizationStatus.NotAdministrativeAsset:
+                    return Result(
+                        AdministrativeAssetWorkAuthorizationStatus.NotAdministrativeAsset,
+                        management);
+                default:
+                    return Result(AdministrativeAssetWorkAuthorizationStatus.Invalid, management);
+            }
+        }
+
+        static AdministrativeAssetWorkAuthorization Result(
+            AdministrativeAssetWorkAuthorizationStatus status,
+            AdministrativeAssetAuthorization managementAuthorization) =>
+            new AdministrativeAssetWorkAuthorization(status, managementAuthorization);
+    }
+
+    /// <summary>Resolves whether a faction may work at least one real farm cell in a WorkArea location.</summary>
     public static class WorldAdministrativeFarmWorkAreaAuthorizationService
     {
         public static bool HasAllowedFarmCell(SimulationWorld world, string locationId, string actingFactionId)
@@ -118,7 +200,7 @@ namespace XianXia.Core.World.Strategic
             {
                 var anchor = anchors[i];
                 if (anchor == null || !OutdoorStatefulObjectSemantics.IsFarmPlotKind(anchor.Kind)) continue;
-                if (WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                if (WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
                         world, anchor.StableAssetId, actingFactionId).IsAllowed) return true;
             }
             return false;

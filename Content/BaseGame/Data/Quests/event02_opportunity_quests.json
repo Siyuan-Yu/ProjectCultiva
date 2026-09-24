@@ -31,7 +31,7 @@
       "runtimeMode": "characterCommission",
       "acceptanceMode": "interaction",
       "abandonable": true,
-      "deadlineDays": 2,
+      "deadlineDays": 5,
       "offerConditions": [],
       "deliveryRequirements": [
         { "itemId": "base:resource_spirit_herb", "amount": 1 }

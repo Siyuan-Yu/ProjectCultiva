@@ -928,3 +928,9 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
 
 目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。
+
+## 45. Direct Vassal Labor Access（2026-09-24）
+
+直接附庸对宗主的明确劳动行政资产拥有**劳作使用许可**，但不获得领地控制、产权或管理权。方向以现有查询为准：`GetRelation(world, vassal, overlord) == Overlord` 时允许；反向、联盟、中立、兄弟附庸、战争和已解除附庸均不允许。War 的既有优先级会覆盖脏数据中的旧附庸关系。
+
+该许可当前只由农田劳动链显式消费，不进入 Site ownership、TerritoryClaim、建造、拆除、住房、时间表、ControlCore 或势力仓储。完整实现与人工验收见 [260](../40-process/260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md)。旧文档中“盟友／附庸不共享控制范围”的规则仍然成立；劳动使用许可不是控制范围共享。

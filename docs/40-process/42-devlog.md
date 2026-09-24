@@ -1,5 +1,29 @@
 # 开发日志
 
+## 2026-09-24 — SEAL-20260924 + SUCCESSION-01 Final Audit
+
+- 制作人人工验收确认 QUEST-INSTANCE-01、VASSAL-WORK-01 与 VASSAL-WORK-01-P1 全部通过，当前状态更新为 **Producer Accepted / Sealed**。P1 明确是 Host Active/View/Selection opening initialization correctness，不是附庸授权失败。
+- SUCCESSION-01 不重写：Core 只接受 AwaitingSuccession；候选、CombatPower/EntityId 排序、精确位置预捕获、单人 Player Squad、远距无捕获重锚、物化后 Camera/Selection、Separate Space wipe 与 Snapshot v8 恢复链审计通过。
+- 小型 hardening：来源 NPC squad 若以 successor 为 command target，拆出时改指向稳定新 leader 并递增 revision；无候选 Update 重试降为最多每 0.75 秒一次，首次进入、显式生命周期刷新和 Snapshot restore 仍立即；LevelTester 护卫限定为玩家势力人物。
+- SUCCESSION-01 仍为 **Implementation Complete / Producer Acceptance Pending**。下一阶段 `DYNAMIC-DISCOVERY-01` 只记 Planned，未实施；NPC AI 仍最后。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`。仓库规则禁止执行代理新增/运行自动测试，本轮只编译测试程序集；未启动 Unity，未 stage／commit／push。
+
+## 2026-09-24 — VASSAL-WORK-01-P1 First New-Game Farm Right-Click
+
+- 根因是 Continuous New Game 在 Active EntityView materialize 前调用 `SelectEntity`，Registry gate 令初选失败；最终 opening population barrier 未补选。空 selection 对 Context Gate 合法，但旧农田入口只枚举显式 selection，因此首次右键被吞且没有 Worker。
+- `FinalizeContinuousOutdoorOpeningPopulation` 在最终 Refresh/Prune/Spawn 后调用单一 helper：只为空 selection 补选已物化 Active，不覆盖已有 Active 或明确 selection。Load 的既有 rebind-selection 未改。
+- `HostPlayerMoveCommandGate` 增加统一 party-work actor resolver：合法非空 selection 返回所选 Party members；空 selection 返回可行动 Active；非法非空 selection 不 fallback。农田入口保留多人劳动并对非法上下文／无可执行成员给出明确反馈。
+- Farm Context Target 在组件存在时明确消费；开工为 0 时已有授权、选择或无农活反馈，不再静默。VASSAL Work Authorization、仓储、建造、收获归属与 Vassalage 全部未修改；Snapshot 保持 v8。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`。按 `AGENTS.md` 未新增或运行自动测试，CASE 1～4 转为制作人人工验收；未启动 Unity，未 stage／commit／push。
+
+## 2026-09-24 — VASSAL-WORK-01 Direct Vassal Labor Access
+
+- 新增独立 `WorldAdministrativeAssetWorkAuthorizationService`：严格管理授权保持原样；己方管理与直接附庸劳作分别返回 `AllowedAsManager`／`AllowedAsVassalWorker`，实际 Managing Site/Faction 不改。
+- 玩家开工、逐格持续复核、Host Hover、NPC WorkArea 候选与 NPC schedule 收获统一消费 Work Authorization。解除附庸或进入战争后不使用开工缓存，自动农作会停止并显示通用失权提示。
+- 玩家手控收获仍进 PartyInventory；NPC 日程收获仍进真实 Managing Site 公库。玩家仓储网络、建造、拆除、住房、日程、ControlCore 与领地控制均未放宽。
+- Ch01 现有 `strategicOpening` 已提供玩家→压迫宗门的真实直接附庸关系，无新增剧情 hardcode 或 Content fixture。Snapshot 保持 v8。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`。仓库规则禁止执行代理新增或运行自动测试，CASE 1～10 转为 [260](260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md) 的制作人人工验收；未启动 Unity，未 stage／commit／push。
+
 ## 2026-09-24 — QUEST-INSTANCE-01 动态人物委托与真实互动上下文 V1
 
 - 状态：**Implementation Complete / Producer Acceptance Pending**；完整模型、边界与人工验收见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
@@ -5269,3 +5293,13 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 关联复核修复失能 NPC 的 action 前工位预占，以及 Host 农作／拆毁会话在 incapacitated 后仍可继续的缺口；只释放该主体自己的预约与表现移动。
 - 当前 BaseGame 的 5 本功法与 2 门斗技已按制作人要求显式补齐至化境：四段熟练门槛 20/30/40/50，灵草／粗木各 1/2/3/4。选中仪式主体时，常驻角色面板上方直接绘制读条，不再依赖境界／熟练详情页保持打开。
 - Core／Data／Unity／Tests 离线编译通过；稳定 headless 集中矩阵 40/40。未启动 Unity，未运行 PlayMode、Unity Test Runner 或 batchmode。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-24 — SUCCESSION-01 玩家势力继承与控制重锚
+
+- QUEST-INSTANCE-01 的动态委托、双同模板发布者独立实例、交付、领奖、生命周期失败与 Save/Load 已由制作人人工验收通过，正式状态更新为 **Producer Accepted / Sealed**；旧 Pending 记录保留为当时历史，不回写。
+- 新增 Core `PlayerFactionSuccessionService`：只在 `AllMembersDead / IsAwaitingSuccession` 扫描玩家势力外部人物；要求 Alive、可主控、精确 Surface 世界位置且无 encounter ownership。按 `CombatPowerCalculator.ForEntity` 最高战力选择，并列按较小 EntityId。
+- 新增 Squad 原子替换 helper：旧死亡 Party 退为 singleton，新 `squad:player` 只含 successor；NPC squad 只拆 successor，剩余成员、稳定 leader 与 motion 保持。继承前先捕获来源 Squad、Surface、位置与 Site context。
+- PlayerParty motion 严格切到 successor 原位置并清旧路线；Separate Space wipe 只释放 active player presentation/session，不撤离尸体、不清洞府持久状态。Host 在跨 Surface 或超出 loaded 5×5 时无捕获地 hard re-anchor，物化后才镜头和选中。
+- 新增 `PlayerSuccessionResolved` transient toast、明确无候选 HUD 文案，以及 LevelTester 战斗页的 A/B 候选准备与正式生命周期全灭入口。
+- Snapshot 继续为 v8；成功态由既有 PlayerParty/Squad/Motion/Presence 字段完整表达，AwaitingSuccession 在 content/world shell 完成后重试。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`；按仓库 `AGENTS.md` 禁令未新增或运行自动测试，未启动 Unity／PlayMode／batchmode。改动未暂存、未提交、未推送。

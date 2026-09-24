@@ -1026,7 +1026,27 @@ namespace XianXia.Unity.Host
             _session.RefreshViewableEntityIds();
             entityViewSpawner.PruneHiddenViews(_session);
             entityViewSpawner.SpawnMissingVisibleViews(_session);
+            EnsureActiveSelectionAfterPresentationMaterialized();
             _openingPopulationBarrierApplied = true;
+        }
+
+        /// <summary>
+        /// Finalizes the New Game Active/View/Selection invariant after Continuous presentation exists.
+        /// Existing explicit selections are preserved; only an empty selection is initialized.
+        /// </summary>
+        public bool EnsureActiveSelectionAfterPresentationMaterialized()
+        {
+            var party = _session?.PlayerParty;
+            if (selectionController == null || entityViewSpawner == null ||
+                party?.HasActive != true)
+                return false;
+            var active = party.ActiveCharacterId;
+            if (selectionController.State.Contains(active))
+                return true;
+            if (selectionController.State.Count > 0 ||
+                !entityViewSpawner.Registry.Contains(active))
+                return false;
+            return selectionController.SelectEntity(active, false);
         }
 
         /// <summary>
@@ -1171,6 +1191,10 @@ namespace XianXia.Unity.Host
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
             EnsureSocialNotificationOverlay();
             socialNotificationOverlay.Clear();
+
+            // All snapshot/content/world authorities are now restored. A saved wiped party may
+            // retry succession here, before PartyWorld resolution and any presentation rebuild.
+            PlayerPartyController?.TryResolveSuccessionAfterWorldShellRestore();
 
             // SPACE-01：Active Separate Space 时禁止 Outdoor ActiveControlled resolver 抢先改 PartyWorld。
             if (_session.World?.LocalMap != null && _session.World.LocalMap.IsActive)
@@ -1727,6 +1751,11 @@ namespace XianXia.Unity.Host
             {
                 var evt = drained[i];
                 if (evt?.Type == XianXia.Core.Events.EventType.WorldOpportunityNotice)
+                {
+                    strategicInterrupt?.ShowTransientToast(evt.Payload);
+                    nonEncounterStrategicPopulationChanged = true;
+                }
+                else if (evt?.Type == XianXia.Core.Events.EventType.PlayerSuccessionResolved)
                 {
                     strategicInterrupt?.ShowTransientToast(evt.Payload);
                     nonEncounterStrategicPopulationChanged = true;

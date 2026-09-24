@@ -255,6 +255,12 @@ CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。
 
 恢复处建成后通过通用 `OutdoorConstructedAssetBoard` 保留稳定物理身份，立即参与当前已加载 chunk 的 materialization，并沿用同一 snapshot DTO 保存。使用恢复处不检查所属势力：玩家右键选择“休息恢复”，抵达中心后执行 6 WorldTicks（游戏内 30 分钟）的 `RecoveryAction`，完成时把当前生命与当前灵力写到角色现有上限；弥留、死亡、Removed 或战斗冻结期间不可使用。本轮不提供恢复处拆除、床位、收费、NPC 自动使用或医疗系统。
 
+## 2026-09-24：行政管理权与农田劳作权分离
+
+`WorldAdministrativeAssetAuthorizationService` 继续只回答严格管理权；`WorldAdministrativeAssetWorkAuthorizationService` 在其上增加直接附庸对宗主劳动资产的单向使用许可。结果保留真实 `ManagingFactionId`，并区分己方管理与附庸劳作。当前只有药田／粮田的手动劳动、逐格复核、NPC WorkArea 候选和 NPC 收获提交接入该许可。
+
+附庸劳动不会开放宗主仓库、建造范围、拆除或其它行政能力。玩家手控收获仍进 PartyInventory；NPC 日程收获仍进真实 Managing Site 公库。解除附庸或进入战争后，持续复核会停止原有农作。详见 [VASSAL-WORK-01](../40-process/260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md)。
+
 正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
 
 目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。
