@@ -400,10 +400,15 @@ namespace XianXia.Core.Persistence
                     InstanceId = instance.InstanceId,
                     OpportunityDefinitionId = instance.OpportunityDefinitionId,
                     SurfaceId = instance.SurfaceId,
+                    SpawnKind = instance.SpawnKind,
                     SpawnedEntityId = instance.SpawnedEntityId.Value,
+                    WorldObjectInstanceId = instance.WorldObjectInstanceId,
+                    WorldX = instance.WorldX,
+                    WorldY = instance.WorldY,
                     CreatedDayIndex = instance.CreatedDayIndex,
                     ExpireDayIndexExclusive = instance.ExpireDayIndexExclusive,
-                    DiscoveryMode = instance.DiscoveryMode
+                    DiscoveryMode = instance.DiscoveryMode,
+                    IsDiscovered = instance.IsDiscovered
                 });
             foreach (var state in world.WorldOpportunities.SurfaceRefreshStates)
                 runtime.SurfaceRefreshStates.Add(new WorldOpportunitySurfaceRefreshSnapshotDto
@@ -528,11 +533,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV7)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV8)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v7 saves lack stable Quest instance/issuer authority. Start a new game (schema v8 required).",
+                    "Schema v1-v8 saves lack current dynamic opportunity-object authority. Start a new game (schema v9 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -1024,7 +1029,9 @@ namespace XianXia.Core.Persistence
                 var sourceKey = saved.SourceKind + "\n" + saved.SourceId;
                 if (!allSources.Add(sourceKey) ||
                     (active && (!world.WorldOpportunities.ActiveInstances.TryGetValue(saved.SourceId, out var source) ||
-                                source.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice)))
+                                (source.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice &&
+                                 !(source.DiscoveryMode == WorldOpportunityDiscoveryMode.HiddenUntilDiscovered &&
+                                   source.IsDiscovered)))))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "WorldActivity source is duplicated or its active Opportunity is missing.", saved.SourceId);
                 if (history && ++historyCount > WorldActivityBoard.HistoryCapacity)
@@ -1058,6 +1065,7 @@ namespace XianXia.Core.Persistence
                 return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity next sequence is invalid.");
             var instanceIds = new HashSet<string>(StringComparer.Ordinal);
             var entityIds = new HashSet<ulong>();
+            var objectIds = new HashSet<string>(StringComparer.Ordinal);
             ulong highestInstanceSequence = 0;
             var instances = runtime.Instances ?? new List<WorldOpportunityInstanceSnapshotDto>();
             for (var i = 0; i < instances.Count; i++)
@@ -1071,27 +1079,44 @@ namespace XianXia.Core.Persistence
                     instanceSequence > 0;
                 if (saved == null || string.IsNullOrWhiteSpace(saved.InstanceId) ||
                     !hasValidInstanceSequence ||
-                    !instanceIds.Add(saved.InstanceId) || saved.SpawnedEntityId == 0 ||
-                    !entityIds.Add(saved.SpawnedEntityId) ||
+                    !instanceIds.Add(saved.InstanceId) ||
                     !DefinitionId.TryParse(saved.OpportunityDefinitionId, out _) ||
                     string.IsNullOrWhiteSpace(saved.SurfaceId) ||
                     saved.ExpireDayIndexExclusive <= saved.CreatedDayIndex ||
                     (saved.DiscoveryMode != WorldOpportunityDiscoveryMode.WorldVisible &&
-                     saved.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice))
+                     saved.DiscoveryMode != WorldOpportunityDiscoveryMode.PublicNotice &&
+                     saved.DiscoveryMode != WorldOpportunityDiscoveryMode.HiddenUntilDiscovered))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate WorldOpportunity instance.", i.ToString());
                 if (instanceSequence > highestInstanceSequence) highestInstanceSequence = instanceSequence;
+                var npc = saved.SpawnKind == WorldOpportunitySpawnKind.Npc;
+                var obj = saved.SpawnKind == WorldOpportunitySpawnKind.WorldObject;
+                var finite = !float.IsNaN(saved.WorldX) && !float.IsInfinity(saved.WorldX) &&
+                             !float.IsNaN(saved.WorldY) && !float.IsInfinity(saved.WorldY);
+                if ((!npc && !obj) ||
+                    (npc && (saved.SpawnedEntityId == 0 || !entityIds.Add(saved.SpawnedEntityId) ||
+                             !string.IsNullOrEmpty(saved.WorldObjectInstanceId))) ||
+                    (obj && (saved.SpawnedEntityId != 0 || string.IsNullOrWhiteSpace(saved.WorldObjectInstanceId) ||
+                             !objectIds.Add(saved.WorldObjectInstanceId) || !finite ||
+                             saved.WorldObjectInstanceId != WorldOpportunityBoard.WorldObjectIdFor(saved.InstanceId))) ||
+                    (saved.DiscoveryMode == WorldOpportunityDiscoveryMode.HiddenUntilDiscovered && !obj))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid WorldOpportunity spawn identity.", saved.InstanceId);
                 var entityId = new EntityId(saved.SpawnedEntityId);
-                if (!world.Entities.TryGet(entityId, out _))
+                if (npc && !world.Entities.TryGet(entityId, out _))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity entity is missing.", saved.SpawnedEntityId.ToString());
                 if (!world.WorldOpportunities.AddInstance(new WorldOpportunityInstance
                 {
                     InstanceId = saved.InstanceId,
                     OpportunityDefinitionId = saved.OpportunityDefinitionId,
                     SurfaceId = saved.SurfaceId,
+                    SpawnKind = saved.SpawnKind,
                     SpawnedEntityId = entityId,
+                    WorldObjectInstanceId = saved.WorldObjectInstanceId,
+                    WorldX = saved.WorldX,
+                    WorldY = saved.WorldY,
                     CreatedDayIndex = saved.CreatedDayIndex,
                     ExpireDayIndexExclusive = saved.ExpireDayIndexExclusive,
-                    DiscoveryMode = saved.DiscoveryMode
+                    DiscoveryMode = saved.DiscoveryMode,
+                    IsDiscovered = saved.IsDiscovered
                 }))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "WorldOpportunity binding cannot be restored.", saved.InstanceId);
             }

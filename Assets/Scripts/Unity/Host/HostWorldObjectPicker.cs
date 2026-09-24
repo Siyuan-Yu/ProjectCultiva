@@ -12,7 +12,8 @@ namespace XianXia.Unity.Host
     public enum WorldObjectTargetKind
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
-        Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8
+        Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8,
+        OpportunityObject = 9
     }
 
     public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
@@ -22,10 +23,12 @@ namespace XianXia.Unity.Host
     {
         public WorldObjectInteractionTarget(WorldObjectTargetKind kind, string workAreaId = null,
             string factionFlagId = null, HostMapPlotCell plot = null, HostMapDestructible destructible = null,
-            string displayLabel = null, Vector3? approachPosition = null)
+            string displayLabel = null, Vector3? approachPosition = null,
+            HostDynamicWorldObjectEntry opportunityObject = null)
         {
             Kind = kind; WorkAreaId = workAreaId ?? string.Empty; FactionFlagId = factionFlagId ?? string.Empty;
             Plot = plot; Destructible = destructible; DisplayLabel = displayLabel ?? string.Empty;
+            OpportunityObject = opportunityObject;
             ApproachPosition = approachPosition ??
                 (plot != null ? plot.transform.position : destructible != null ? destructible.transform.position : Vector3.zero);
             HasApproachPosition = approachPosition.HasValue || plot != null || destructible != null;
@@ -35,6 +38,7 @@ namespace XianXia.Unity.Host
         public string FactionFlagId { get; }
         public HostMapPlotCell Plot { get; }
         public HostMapDestructible Destructible { get; }
+        public HostDynamicWorldObjectEntry OpportunityObject { get; }
         public string DisplayLabel { get; }
         public Vector3 ApproachPosition { get; }
         public bool HasApproachPosition { get; }
@@ -53,6 +57,7 @@ namespace XianXia.Unity.Host
                     case WorldObjectTargetKind.WorkArea: return "workArea";
                     case WorldObjectTargetKind.RecoverySpot: return "recoverySpot";
                     case WorldObjectTargetKind.StorageRoom: return "storageRoom";
+                    case WorldObjectTargetKind.OpportunityObject: return "opportunityObject";
                     default: return string.Empty;
                 }
             }
@@ -62,6 +67,7 @@ namespace XianXia.Unity.Host
             Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot || Kind == WorldObjectTargetKind.StorageRoom
                 ? Plot != null ? Plot.StableCellId : string.Empty :
             Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
+            Kind == WorldObjectTargetKind.OpportunityObject ? OpportunityObject?.WorldObjectInstanceId ?? string.Empty :
             WorkAreaId;
         public string StableTargetKey => string.IsNullOrEmpty(KindKey) || string.IsNullOrEmpty(StableObjectId)
             ? string.Empty : KindKey + ":" + StableObjectId;
@@ -75,7 +81,8 @@ namespace XianXia.Unity.Host
                 ActorId = actor,
                 TargetKind = KindKey,
                 TargetKey = StableTargetKey,
-                TargetDefinitionId = StableObjectId,
+                TargetDefinitionId = Kind == WorldObjectTargetKind.OpportunityObject
+                    ? OpportunityObject?.OpportunityDefinitionId ?? string.Empty : StableObjectId,
                 TargetDisplayName = DisplayLabel
             };
             return true;
@@ -101,6 +108,16 @@ namespace XianXia.Unity.Host
             MapLayoutDefinition layout = null;
             var continuous = host.ContinuousOutdoorSurfaceRuntime;
             if (continuous == null || !continuous.IsActive) MapLayoutPick.TryGet(host.Session, out layout);
+
+            if (purpose == WorldObjectPickPurpose.PlayerInteraction &&
+                HostDynamicWorldObjectRegistry.TryPick(point, out var opportunityObject))
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.OpportunityObject,
+                    displayLabel: opportunityObject.DisplayLabel,
+                    approachPosition: opportunityObject.ApproachPosition,
+                    opportunityObject: opportunityObject);
+                return true;
+            }
 
             if (HostControlCoreQuery.TryPickAtWorld(world, layout, continuous, point, out var coreId) &&
                 world.ControlCores.TryGet(coreId, out var core))
@@ -184,6 +201,17 @@ namespace XianXia.Unity.Host
             MapLayoutDefinition layout = null;
             var continuous = host.ContinuousOutdoorSurfaceRuntime;
             if (continuous == null || !continuous.IsActive) MapLayoutPick.TryGet(host.Session, out layout);
+            if (string.Equals(kind, "opportunityObject", StringComparison.OrdinalIgnoreCase) &&
+                HostDynamicWorldObjectRegistry.TryResolve(stableId, out var opportunityObject) &&
+                world.WorldOpportunities.TryGetByWorldObject(stableId, out var opportunityInstance) &&
+                opportunityInstance.IsDiscovered)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.OpportunityObject,
+                    displayLabel: opportunityObject.DisplayLabel,
+                    approachPosition: opportunityObject.ApproachPosition,
+                    opportunityObject: opportunityObject);
+                return true;
+            }
             if (string.Equals(kind, "controlCore", StringComparison.OrdinalIgnoreCase) &&
                 world.ControlCores.TryGet(stableId, out var core))
             {

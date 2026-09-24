@@ -47,6 +47,13 @@ public static class EventAuthoringValidator
         {
             var kinds = UiLabels.WorldObjectKinds.Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
             if (!kinds.Contains(objectKind)) errors.Add("调查事件必须选择合法的世界物体类型");
+            if (objectKind == "opportunityObject")
+            {
+                var opportunity = package.Find(worldOpportunityId);
+                if (opportunity?.Type != "worldOpportunity" || JsonEdit.GetString(opportunity.Raw, "spawnKind", "npc") != "worldObject")
+                    errors.Add("动态机会物体必须选择 spawnKind=worldObject 的 Opportunity 模板");
+                if (objectId.Length > 0) errors.Add("动态机会物体不能填写运行时实例 ID");
+            }
             if (objectId.Length > 0 && PackageStore.HasStaticWorldObjectCatalog(objectKind) &&
                 !PackageStore.WorldObjectIds(package, objectKind).Contains(objectId, StringComparer.Ordinal))
                 errors.Add("世界物体实例不存在于当前内容包：" + objectId);

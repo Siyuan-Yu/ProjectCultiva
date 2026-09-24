@@ -4,6 +4,8 @@
 > 日期：2026-09-23
 > 范围：Continuous Surface 上的动态 NPC Opportunity；EVENT-02A 持久活动动态见 [256](256-event-02a-persistent-world-activity-feed-2026-09-23.md)；不包含 hidden 与动态 WorldObject。
 
+> **历史边界说明：** 本页保留 EVENT-02 V1 当时的范围；“通用 hidden／动态 WorldObject 延期”已由 **DYNAMIC-DISCOVERY-01 于 2026-09-24 supersede**。现行规则见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+
 ## 1. 已实现链路
 
 `worldOpportunityDirector` 按当前 PlayerParty Surface 管理目标密度；`WorldOpportunityDriver` 只在该 Surface 当日首次 Tick 时补充机会。模板按 `weight` 抽取，并受 `maxActive`、`conditions` 与 Surface 约束。NPC 人物池直接复用 `SpawnTableDefinition`，SpawnZone 与 Opportunity 共同使用 Core `WeightedRandomPicker` 的权重算法；单实例选一个 Character definition，再复用 `ContentGameStart.BuildSpawnFromDefinition` 与 `GameStartBootstrap.SpawnIntoWorld`。

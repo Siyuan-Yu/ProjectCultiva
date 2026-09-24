@@ -25,11 +25,15 @@
 | `CharacterNpcEditor` | 人物与 NPC 规则 |
 | `ManualArtEditor` | 功法与斗技 |
 | `QuestEditor` | 任务 |
-| `EventEditor` | 事件 |
-| `OpportunityEditor` | 世界机会 Director、模板、NPC 人物池与过期结果 |
+| `EventEditor` | 事件、固定对象与动态 Opportunity Object onInspect、显式机会解决 |
+| `OpportunityEditor` | 世界机会 Director、NPC／动态 WorldObject 生成、发现规则与过期结果 |
 | `WorkAreaEditor` | 工区规则、容量与权限 |
 | `WorldComposer` | Continuous Surface 大世界拼装、路径、链接放置、预览与 Bake |
 | `FineEditor` | WorldSite Blueprint / Detail Patch 的逐 Surface Cell 精修与对象放置 |
+
+### OpportunityEditor 与 EventEditor：动态机会物体
+
+OpportunityEditor 的“生成内容”可选随机人物或动态物体。动态物体配置 MapKind 外观、显示名称、世界宽高，以及 `worldVisible`／`publicNotice`／`hiddenUntilDiscovered`；publicNotice 编辑公告与是否公开精确位置，hidden 编辑发现半径与发现后文案。`weight > 0` 可被 Director 随机抽取，`weight = 0` 只允许 explicit／debug／scripted spawn。EventEditor 在 `onInspect` 下选择“动态机会物体”与 WorldOpportunity 模板，并可添加无需实例 ID 的“解决当前世界机会”。两套 authoring 已随 DYNAMIC-DISCOVERY-01 完成制作人验收并封板。
 
 ### WorldComposer
 

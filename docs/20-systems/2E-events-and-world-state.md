@@ -1,16 +1,26 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**设计已冻结；QUEST-INSTANCE-01 Implementation Complete / Producer Acceptance Pending** | 优先级：P0 | 最后更新：2026-09-24
+> 状态：**设计已冻结；DYNAMIC-DISCOVERY-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-25
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
 > 当前实现与磁盘边界见 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 与 [257 SAVE-01](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
 ## 0. 当前实现边界（2026-09-24）
 
 - `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于条件、结算与 UI；`ContentOutcomeApplier` 的事务 memento 继续只负责一次结算回滚，磁盘持久化由独立 `ContentProgressSnapshotHelper` 负责。
-- `WorldSnapshot.CurrentSchemaVersion` 为 8。必需的 `contentProgress.hasAuthority=true` 除既有内容进度外，还保存人物委托实例、发布者、来源 Opportunity、接取者、原始期限、交付事实、失败原因与下一实例序列。
+- `WorldSnapshot.CurrentSchemaVersion` 为 9。除 v8 的人物委托与内容进度外，v9 保存动态 Opportunity Object 的 SpawnKind、稳定对象实例 ID、精确坐标、发现模式与发现状态。
 - Active dialogue、当前 Step／Choice、Topic Selection 与 UI 状态不进入 Snapshot；`ContentEvents.HasActive` 时 `SnapshotService.CaptureJson` 返回“请先完成当前对话/事件后再保存。”完成原子交互后可正常保存。
 - restore 先恢复动态 runtime，再由 `RuntimeContentShellBootstrap` definitions-only 注册 Quest／Event／Chapter 定义并校验恢复 ID；不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。New Game 与 Load 共用 `PlayableSimulationLoopFactory` 的四个 day handlers。
-- v1～v7 缺少当前人物委托实例／发布者 authority，统一明确拒绝并要求新开局；不从旧 flag 或附近同模板 NPC 猜测发布者。
+- v1～v8 均按当前严格策略拒绝；v8 不含动态对象 authority，不从旧存档猜测对象身份、位置或发现状态。
+
+### DYNAMIC-DISCOVERY-01 动态物体与通用发现 V1（2026-09-24）
+
+- `WorldOpportunity` 同时支持 `npc` 与 `worldObject`。动态物体以 Opportunity Instance 派生稳定 ObjectInstanceId，并直接保存 `SurfaceId + exact WorldPosition`；不创建 Character Entity，也不进入导航阻挡。
+- DiscoveryMode 固定为 `worldVisible`、`publicNotice`、`hiddenUntilDiscovered`。hidden Domain Instance 先存在；Presentation、Interaction、Activity 与定位在发现前均不存在。任一存活 PlayerParty 成员进入 authored radius 后永久揭示。
+- 已发现 hidden 创建持久 WorldActivity 并发一次发现通知；restore 只恢复状态，不重播。worldVisible 仍无 Activity，publicNotice 仍按 authored exact-location policy。
+- `onInspect` 可按 `worldObjectKind=opportunityObject + worldOpportunityId` 绑定动态模板；稳定 TargetKey 指向对象实例，Target Entity 永远为空。Inspect 不隐含 Resolve。
+- terminal 只来自显式 `resolveCurrentOpportunity` 或 expiry。显式解决与 Activity History 变更参加同一 Outcome transaction；未发现 hidden 到期不泄漏进 History。
+- 完整实现、边界与人工验收见 [261](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+- 制作人已于 2026-09-24 验收 Hidden 石碑的未发现隐藏、距离发现、调查保留、显式解决与 Activity 链；当前状态 **Producer Accepted / Sealed**。
 
 ### QUEST-INSTANCE-01 动态人物委托与真实互动上下文 V1（2026-09-24）
 
@@ -36,14 +46,14 @@
 - `WorldOpportunity` 是 Continuous Surface 上动态生成的真实 NPC 机会，不等于 legacy `OpportunitySite`。Director 只补玩家当前 Surface，并以 Surface 当日首次 Tick 为随机刷新门禁；其它 Surface 只处理已有实例到期。
 - 实例持有稳定 ID、模板、Surface、真实 EntityId、创建日与到期日。该 authority 最初以 Snapshot v6 additive optional 字段落地，SAVE-01 升至 v7 后字段与恢复语义保持不变。
 - onTalk 的 `npcDefinitionId`、`npcTags[]`、`worldOpportunityId` 均为可选 AND binding，直接检查当前 TargetEntityId；三者为空仍允许 global contextual Event。
-- V1 只接受 `worldVisible` 与 `publicNotice`，只生成 NPC。hidden 与动态 WorldObject 均未实现。详见 [255](../40-process/255-event-02-world-opportunity-director-v1-2026-09-23.md)。
+- EVENT-02 V1 当时只接受 `worldVisible`／`publicNotice` 与 NPC；该历史延期已由 **DYNAMIC-DISCOVERY-01（2026-09-24）supersede**。NPC 旧定义缺 `spawnKind` 仍按 `npc` 兼容，动态 WorldObject 与 `hiddenUntilDiscovered` 的现行规则见 [261](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
 
 ### EVENT-02A Persistent World Activity Feed（2026-09-23）
 
-- `WorldActivityBoard` 是已获知世界机会的持久活动动态，不是 QuestBoard、ContentEvent 或通用通知中心；V1 只接 `WorldOpportunity publicNotice`。
-- publicNotice 生成时以 Opportunity InstanceId 为 SourceId 创建 unread Active Activity，并额外播放一次 Toast；Snapshot restore 只恢复状态，不重播 Toast。worldVisible 不创建 Activity 或 History。
+- `WorldActivityBoard` 是已获知世界机会的持久活动动态，不是 QuestBoard、ContentEvent 或通用通知中心；EVENT-02A V1 只接 `publicNotice`，DYNAMIC-DISCOVERY-01 后也接已揭示的 `hiddenUntilDiscovered`。
+- publicNotice 生成时、hidden 首次揭示时，均以 Opportunity InstanceId 为 SourceId 创建 unread Active Activity，并额外播放一次 Toast；Snapshot restore 只恢复状态，不重播 Toast。worldVisible 不创建 Activity 或 History，未发现 hidden 到期也不进入 History。
 - Activity 随 source Opportunity 到期、死亡或 Removed 转入 History；History 最多保留最近 100 条。可公开准确位置的条目只能在同一 Surface 聚焦现有 Gameplay camera，不移动 PlayerParty、不导航、不切 Surface。
-- `worldActivityRuntime` 保持既有 additive authority；SAVE-01 升至 v7 后未改变其 shape。Active Activity 缺少对应 Opportunity Instance 时仍严格判为 `SnapshotInvalid`。详见 [256](../40-process/256-event-02a-persistent-world-activity-feed-2026-09-23.md)。
+- `worldActivityRuntime` 保持既有 additive authority；当前 Snapshot v9 继续要求 Active Activity 存在对应 Opportunity Instance，缺失时严格判为 `SnapshotInvalid`。详见 [256](../40-process/256-event-02a-persistent-world-activity-feed-2026-09-23.md) 与 [261](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
 
 ## 0.1 EVENT-01 Final 已批准实施契约（2026-09-22）
 
@@ -66,7 +76,7 @@
 - Runtime 不新增 Graph/Dialogue VM/Branch schema。外部旧包的 legacy `body/choices` reader 保留；BaseGame active ContentEvent 已全部迁移为 Steps，EventEditor 不再长期编辑双 authority。
 - Editor-only layout 位于 `Content/BaseGame/Authoring/EventEditor/layouts.v1.json`，不在 Runtime Loader 扫描的 `Data` 根下，Snapshot 与正式 Content authority 均不依赖坐标。
 - Working copy、dirty、undo/redo 和保存前 validation 属 authoring transaction；不改变 `ContentOutcomeApplier` 的 runtime transaction。
-- 本节记录的是 EventEditor V2 封板当时的 authoring 边界；EVENT-02 后续已实现 NPC Opportunity 与 tag/template binding，但仍未增加 Graph node 或动态 WorldObject。
+- 本节记录的是 EventEditor V2 封板当时的 authoring 边界；EVENT-02 后续实现 NPC Opportunity 与 tag/template binding，DYNAMIC-DISCOVERY-01 又增加动态 Opportunity Object binding，但仍未增加新的 Graph node。
 
 ### V2.1 Graph-first 制作面
 

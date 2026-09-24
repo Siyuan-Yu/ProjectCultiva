@@ -49,6 +49,9 @@ namespace XianXia.Data.Bootstrap
             var contentDefinitions = ContentRuntimeBootstrap.RehydrateContentDefinitions(world, registry);
             if (contentDefinitions.IsFailure)
                 return contentDefinitions;
+            var opportunityDefinitions = world.WorldOpportunities.ValidateRuntimeDefinitions(world);
+            if (opportunityDefinitions.IsFailure)
+                return opportunityDefinitions;
             var chapterDefinitions = ChapterRuntimeBootstrap.ApplyDefinitions(world, registry);
             if (chapterDefinitions.IsFailure)
                 return chapterDefinitions;

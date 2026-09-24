@@ -1,6 +1,6 @@
 # 111 · 事件编辑器用法（EventEditor V2）
 
-> 状态：**Producer Accepted / Sealed（2026-09-23）**｜最后更新：2026-09-23
+> 状态：**Producer Accepted / Sealed（含 DYNAMIC-DISCOVERY-01 binding）**｜最后更新：2026-09-25
 > 工程：`ExternalTools/ContentAuthoring/EventEditor/`；正式产物：`ExternalTools/ContentAuthoring/Apps/EventEditor.exe`。
 > 实施记录：[254 EVENT-EDITOR-V2](254-event-editor-v2-visual-flow-authoring-2026-09-23.md)。
 
@@ -71,6 +71,14 @@ V2.6 起来源筛选不再位于每个 Picker 内，而统一放在顶部“人�
 Inspector 复用 Shared 的结构化编辑器，并以中文表达当前 Runtime 已支持的 kind，例如“境界 ≥”“剧情标记已存在”“任务已完成”“设置剧情标记”“开始任务”“给予资源”“关系变化”。少见的 key 放在对应行字段中，不要求普通路径手写 JSON。
 
 保存前仍以 `EventAuthoringValidator` 与 Runtime Content validation 为 authority。错误面板把能定位的消息映射回 Step/Choice；双击错误会选中节点、定位画布并打开相应 Inspector，错误节点显示红框。
+
+### 动态机会物体（DYNAMIC-DISCOVERY-01）
+
+`Trigger = onInspect` 时可把“世界物体类型”选为“动态机会物体”，随后从 World Opportunity 模板选择器中选择 `spawnKind=worldObject` 的定义。编辑器保存 `worldObjectKind=opportunityObject` 与模板 `worldOpportunityId`，并保持 `worldObjectId` 为空；运行时实例 ID 由 Opportunity Board 分配，作者不手写。
+
+Step／Choice Outcomes 可选“解决当前世界机会”（`resolveCurrentOpportunity`）。该 Outcome 不需要 ID 或 Amount；普通 Inspect 不会自动结束机会，只有明确配置这个 Outcome 或等待 expiry 才进入 terminal。
+
+该动态模板绑定与显式解决 authoring 已随 DYNAMIC-DISCOVERY-01 于 2026-09-24 完成制作人验收并封板。
 
 ## 6. Working copy、保存与 layout
 

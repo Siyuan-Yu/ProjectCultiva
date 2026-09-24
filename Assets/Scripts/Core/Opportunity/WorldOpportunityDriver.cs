@@ -45,14 +45,32 @@ namespace XianXia.Core.Opportunity
             }
             var created = new List<string>();
             foreach (var pair in world.WorldOpportunities.ActiveInstances)
-                if (string.Equals(pair.Value.OpportunityDefinitionId, definitionId, StringComparison.Ordinal) &&
-                    world.WorldPresence.TryGet(pair.Value.SpawnedEntityId, out var presence))
-                    created.Add(pair.Key + " / Entity " + pair.Value.SpawnedEntityId.Value +
-                                " / (" + presence.ContinuousWorldPosition.X.ToString("0.00") + ", " +
-                                presence.ContinuousWorldPosition.Y.ToString("0.00") + ")");
+                if (string.Equals(pair.Value.OpportunityDefinitionId, definitionId, StringComparison.Ordinal))
+                {
+                    var value = pair.Value;
+                    if (value.SpawnKind == WorldOpportunitySpawnKind.WorldObject)
+                        created.Add(value.InstanceId + " / " + value.WorldObjectInstanceId + " / " + value.SurfaceId +
+                                    " / (" + value.WorldX.ToString("0.00") + ", " + value.WorldY.ToString("0.00") +
+                                    ") / " + value.DiscoveryMode + " / Discovered=" + value.IsDiscovered);
+                    else if (world.WorldPresence.TryGet(value.SpawnedEntityId, out var presence))
+                        created.Add(value.InstanceId + " / Entity " + value.SpawnedEntityId.Value +
+                                    " / (" + presence.ContinuousWorldPosition.X.ToString("0.00") + ", " +
+                                    presence.ContinuousWorldPosition.Y.ToString("0.00") + ")");
+                }
             created.Sort(StringComparer.Ordinal);
             summary = string.Join("；", created);
             return Result.Success();
+        }
+
+        public static int ClearAcceptanceInstances(SimulationWorld world, params string[] definitionIds)
+        {
+            if (world == null || definitionIds == null) return 0;
+            var wanted = new HashSet<string>(definitionIds, StringComparer.Ordinal);
+            var ids = new List<string>();
+            foreach (var instance in world.WorldOpportunities.ActiveInstances.Values)
+                if (wanted.Contains(instance.OpportunityDefinitionId)) ids.Add(instance.InstanceId);
+            for (var i = 0; i < ids.Count; i++) ResolveCurrent(world, ids[i]);
+            return ids.Count;
         }
 
         public void Tick(SimulationWorld world)
@@ -127,6 +145,8 @@ namespace XianXia.Core.Opportunity
         static bool TrySpawn(SimulationWorld world, WorldOpportunitySpec spec, WorldVec2 playerPosition, ulong day)
         {
             if (!TryFindPosition(world, spec, playerPosition, out var position)) return false;
+            if (string.Equals(spec.SpawnKind, WorldOpportunitySpawnKind.WorldObject, StringComparison.Ordinal))
+                return TrySpawnWorldObject(world, spec, position, day);
             var npc = PickNpc(world, spec);
             if (npc?.Spawn == null) return false;
             var spawned = GameStartBootstrap.SpawnIntoWorld(world, npc.Spawn);
@@ -148,10 +168,12 @@ namespace XianXia.Core.Opportunity
                 InstanceId = world.WorldOpportunities.AllocateInstanceId(),
                 OpportunityDefinitionId = spec.Id,
                 SurfaceId = spec.SurfaceId,
+                SpawnKind = WorldOpportunitySpawnKind.Npc,
                 SpawnedEntityId = entity.Id,
                 CreatedDayIndex = day,
                 ExpireDayIndexExclusive = day + (ulong)Math.Max(1, spec.DurationDays),
-                DiscoveryMode = spec.DiscoveryMode
+                DiscoveryMode = spec.DiscoveryMode,
+                IsDiscovered = true
             };
             if (!world.WorldOpportunities.AddInstance(instance))
             {
@@ -167,6 +189,35 @@ namespace XianXia.Core.Opportunity
                     spec.PublicNoticeText,
                     day);
                 world.Events.Publish(EventType.WorldOpportunityNotice, world.Tick, target: entity.Id, payload: spec.PublicNoticeText);
+            }
+            return true;
+        }
+
+        static bool TrySpawnWorldObject(SimulationWorld world, WorldOpportunitySpec spec, WorldVec2 position, ulong day)
+        {
+            var instanceId = world.WorldOpportunities.AllocateInstanceId();
+            var instance = new WorldOpportunityInstance
+            {
+                InstanceId = instanceId,
+                OpportunityDefinitionId = spec.Id,
+                SurfaceId = spec.SurfaceId,
+                SpawnKind = WorldOpportunitySpawnKind.WorldObject,
+                SpawnedEntityId = EntityId.None,
+                WorldObjectInstanceId = WorldOpportunityBoard.WorldObjectIdFor(instanceId),
+                WorldX = position.X,
+                WorldY = position.Y,
+                CreatedDayIndex = day,
+                ExpireDayIndexExclusive = day + (ulong)Math.Max(1, spec.DurationDays),
+                DiscoveryMode = spec.DiscoveryMode,
+                IsDiscovered = !string.Equals(spec.DiscoveryMode, WorldOpportunityDiscoveryMode.HiddenUntilDiscovered, StringComparison.Ordinal)
+            };
+            if (!world.WorldOpportunities.AddInstance(instance)) return false;
+            if (string.Equals(spec.DiscoveryMode, WorldOpportunityDiscoveryMode.PublicNotice, StringComparison.Ordinal))
+            {
+                world.WorldActivities.CreateActive(WorldActivitySourceKind.WorldOpportunity, instance.InstanceId,
+                    string.IsNullOrWhiteSpace(spec.PublicNoticeTitle) ? spec.Name : spec.PublicNoticeTitle,
+                    spec.PublicNoticeText, day);
+                world.Events.Publish(EventType.WorldOpportunityNotice, world.Tick, payload: spec.PublicNoticeText);
             }
             return true;
         }
@@ -191,10 +242,14 @@ namespace XianXia.Core.Opportunity
                 var separated = true;
                 foreach (var other in world.WorldOpportunities.ActiveInstances.Values)
                 {
-                    if (!string.Equals(other.SurfaceId, spec.SurfaceId, StringComparison.Ordinal) ||
-                        !world.WorldPresence.TryGet(other.SpawnedEntityId, out var presence) || presence == null ||
-                        !presence.HasContinuousWorldPosition) continue;
-                    if (WorldVec2.Distance(candidate, presence.ContinuousWorldPosition) < MinimumOpportunitySpacing)
+                    if (!string.Equals(other.SurfaceId, spec.SurfaceId, StringComparison.Ordinal)) continue;
+                    WorldVec2 otherPosition;
+                    if (other.SpawnKind == WorldOpportunitySpawnKind.WorldObject)
+                        otherPosition = new WorldVec2(other.WorldX, other.WorldY);
+                    else if (world.WorldPresence.TryGet(other.SpawnedEntityId, out var presence) && presence != null &&
+                             presence.HasContinuousWorldPosition) otherPosition = presence.ContinuousWorldPosition;
+                    else continue;
+                    if (WorldVec2.Distance(candidate, otherPosition) < MinimumOpportunitySpacing)
                     {
                         separated = false;
                         break;
@@ -215,11 +270,13 @@ namespace XianXia.Core.Opportunity
             for (var i = 0; i < expired.Count; i++)
             {
                 if (!world.WorldOpportunities.ActiveInstances.TryGetValue(expired[i], out var instance)) continue;
-                new QuestService().FailIssuerCommissions(
-                    world, instance.SpawnedEntityId, instance.InstanceId, "issuer_opportunity_expired");
+                if (instance.SpawnKind == WorldOpportunitySpawnKind.Npc)
+                    new QuestService().FailIssuerCommissions(
+                        world, instance.SpawnedEntityId, instance.InstanceId, "issuer_opportunity_expired");
                 if (world.WorldOpportunities.TryGetSpec(instance.OpportunityDefinitionId, out var spec))
                     ContentOutcomeApplier.ApplyAll(world, instance.SpawnedEntityId, spec.ExpireOutcomes);
-                RemoveEntityFromWorld(world, instance.SpawnedEntityId);
+                if (instance.SpawnKind == WorldOpportunitySpawnKind.Npc)
+                    RemoveEntityFromWorld(world, instance.SpawnedEntityId);
                 world.WorldActivities.ResolveSource(
                     WorldActivitySourceKind.WorldOpportunity, instance.InstanceId, day);
                 world.WorldOpportunities.RemoveInstance(instance.InstanceId);
@@ -230,9 +287,10 @@ namespace XianXia.Core.Opportunity
         {
             var stale = new List<string>();
             foreach (var instance in world.WorldOpportunities.ActiveInstances.Values)
-                if (!world.Entities.TryGet(instance.SpawnedEntityId, out var entity) ||
+                if (instance.SpawnKind == WorldOpportunitySpawnKind.Npc &&
+                    (!world.Entities.TryGet(instance.SpawnedEntityId, out var entity) ||
                     (entity.TryGet<LifecycleComponent>(out var life) &&
-                     (life.State == LifecycleState.Dead || life.State == LifecycleState.Removed)))
+                     (life.State == LifecycleState.Dead || life.State == LifecycleState.Removed))))
                     stale.Add(instance.InstanceId);
             for (var i = 0; i < stale.Count; i++)
             {
@@ -243,6 +301,20 @@ namespace XianXia.Core.Opportunity
                     WorldActivitySourceKind.WorldOpportunity, stale[i], day);
                 world.WorldOpportunities.RemoveInstance(stale[i]);
             }
+        }
+
+        public static Result ResolveCurrent(SimulationWorld world, string opportunityInstanceId)
+        {
+            if (world == null || !world.WorldOpportunities.TryGetInstance(opportunityInstanceId, out var instance))
+                return Result.Failure(ErrorCode.NotFound, "WorldOpportunity instance is no longer active.", opportunityInstanceId);
+            var day = DayClock.FromWorldTick(world.Tick).DayIndex;
+            if (instance.SpawnKind == WorldOpportunitySpawnKind.Npc)
+                RemoveEntityFromWorld(world, instance.SpawnedEntityId);
+            world.WorldActivities.ResolveSource(WorldActivitySourceKind.WorldOpportunity, instance.InstanceId, day);
+            world.WorldOpportunities.RemoveInstance(instance.InstanceId);
+            world.Events.Publish(EventType.WorldOpportunityResolved, world.Tick,
+                target: instance.SpawnedEntityId, payload: instance.InstanceId);
+            return Result.Success();
         }
 
         static void RemoveEntityFromWorld(SimulationWorld world, EntityId entityId)

@@ -103,9 +103,11 @@ public static class SchemaFields
         },
         ["worldOpportunity"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnTableId", "durationDays",
+            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnKind", "spawnTableId", "durationDays",
             "minPlayerDistanceWorld", "maxPlayerDistanceWorld", "allowInsideWorldSite", "discoveryMode",
-            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation", "conditions", "expireOutcomes"
+            "worldObjectKind", "worldObjectLabel", "worldObjectWorldWidth", "worldObjectWorldHeight",
+            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation",
+            "discoveryRadiusWorld", "discoveryNoticeTitle", "discoveryNoticeText", "conditions", "expireOutcomes"
         }
     };
 
@@ -137,7 +139,8 @@ public static class SchemaFields
     [
         "setFlag", "clearFlag", "addStock", "removeStock", "grantProgress", "discoverSite",
         "relationDelta", "startQuest", "acceptQuestFromTarget", "deliverQuestToTarget",
-        "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame"
+        "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame",
+        "resolveCurrentOpportunity"
     ];
 
     public static readonly string[] EventTriggers =

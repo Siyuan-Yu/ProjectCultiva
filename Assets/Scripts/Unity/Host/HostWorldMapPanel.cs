@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
@@ -40,6 +41,8 @@ namespace XianXia.Unity.Host
         GUIStyle _title;
         GUIStyle _body;
         GUIStyle _toggle;
+        GUIStyle _axisCenter;
+        GUIStyle _axisLeft;
         bool _showGrid = true;
         bool _showGeography = true;
         bool _showTerritory = true;
@@ -239,7 +242,9 @@ namespace XianXia.Unity.Host
             var local = new Rect(0, 0, mapRect.width, mapRect.height);
             var projection = new SurfaceWorldMapViewportProjection(local, _centerX, _centerY, _viewHalf);
             DrawSurface(local, projection, world, nav);
+            var pointerAvailable = TryResolvePointerWorld(local, mapRect, projection, out var pointerWorld);
             HandleMapInput(local, mapRect, projection, world, nav);
+            DrawCoordinateReference(local, projection, world, nav, pointerAvailable, pointerWorld);
             GUI.EndGroup();
             GUI.Label(new Rect(16, Screen.height - FooterHeight + 3, Screen.width - 32, 26), _status, _body);
             DrawRosterPanels(world);
@@ -355,6 +360,70 @@ namespace XianXia.Unity.Host
                     GUI.Label(new Rect(point.x - 70f, point.y - 18f, 140f, 20f),
                         landmark.Label, _body);
             }
+        }
+
+        static bool TryResolvePointerWorld(Rect local, Rect mapRect,
+            SurfaceWorldMapViewportProjection projection, out Vector2 worldPosition)
+        {
+            worldPosition = default;
+            var current = Event.current;
+            if (current == null || !local.Contains(current.mousePosition) ||
+                HostUiHitTest.ContainsCurrentGuiPoint(current.mousePosition + mapRect.position)) return false;
+            return projection.TryScreenToWorld(current.mousePosition, out worldPosition);
+        }
+
+        void DrawCoordinateReference(Rect local, SurfaceWorldMapViewportProjection projection,
+            SimulationWorld world, SurfaceGroundNavigation nav, bool pointerAvailable, Vector2 pointerWorld)
+        {
+            var bounds = projection.VisibleWorldBounds;
+            DrawAxisTicks(local, projection, bounds);
+
+            var pointerText = pointerAvailable
+                ? "坐标  X " + FormatCoordinate(pointerWorld.x) + "  Y " + FormatCoordinate(pointerWorld.y)
+                : "坐标  —";
+            var playerText = "玩家坐标：不可用";
+            var party = bootstrap?.Session?.PlayerParty;
+            if (PlayerPartyWorldLocationQuery.TryResolve(world, party, out var resolved) &&
+                string.Equals(resolved.SurfaceId, nav.SurfaceId, StringComparison.Ordinal))
+                playerText = "玩家  X " + FormatCoordinate(resolved.WorldPosition.X) +
+                             "  Y " + FormatCoordinate(resolved.WorldPosition.Y);
+
+            var panel = new Rect(local.xMax - 278f, local.yMax - 54f, 270f, 46f);
+            Fill(panel, new Color(.06f, .07f, .08f, .78f));
+            GUI.Label(new Rect(panel.x + 8f, panel.y + 3f, panel.width - 16f, 20f), pointerText, _body);
+            GUI.Label(new Rect(panel.x + 8f, panel.y + 22f, panel.width - 16f, 20f), playerText, _body);
+        }
+
+        void DrawAxisTicks(Rect local, SurfaceWorldMapViewportProjection projection, Rect bounds)
+        {
+            var color = new Color(.12f, .10f, .08f, .58f);
+            var xInterval = SurfaceWorldMapViewportProjection.ChooseMajorInterval(bounds.width);
+            var yInterval = SurfaceWorldMapViewportProjection.ChooseMajorInterval(bounds.height);
+            var firstX = Mathf.Ceil(bounds.xMin / xInterval) * xInterval;
+            var firstY = Mathf.Ceil(bounds.yMin / yInterval) * yInterval;
+            for (var value = firstX; value <= bounds.xMax + xInterval * .001f; value += xInterval)
+            {
+                var point = projection.ProjectWorld(value, bounds.yMin);
+                Fill(new Rect(point.x, local.yMax - 7f, 1f, 7f), color);
+                var label = FormatTick(value);
+                GUI.Label(new Rect(point.x - 28f, local.yMax - 26f, 56f, 18f), label,
+                    _axisCenter);
+            }
+            for (var value = firstY; value <= bounds.yMax + yInterval * .001f; value += yInterval)
+            {
+                var point = projection.ProjectWorld(bounds.xMin, value);
+                Fill(new Rect(local.xMin, point.y, 7f, 1f), color);
+                GUI.Label(new Rect(local.xMin + 9f, point.y - 9f, 54f, 18f), FormatTick(value),
+                    _axisLeft);
+            }
+        }
+
+        static string FormatCoordinate(float value) => value.ToString("0.0", CultureInfo.InvariantCulture);
+        static string FormatTick(float value)
+        {
+            if (Mathf.Abs(value) < .0001f) value = 0f;
+            return value.ToString(Mathf.Abs(value) < 10f && value != Mathf.Round(value) ? "0.#" : "0",
+                CultureInfo.InvariantCulture);
         }
 
         void DrawSites(SurfaceWorldMapViewportProjection projection, SimulationWorld world,
@@ -701,6 +770,9 @@ namespace XianXia.Unity.Host
             _toggle.onHover.textColor = Color.white;
             _toggle.active.textColor = Color.white;
             _toggle.onActive.textColor = Color.white;
+            _axisCenter = new GUIStyle(_body) { fontSize = 11, alignment = TextAnchor.MiddleCenter, wordWrap = false };
+            _axisCenter.normal.textColor = new Color(.12f, .10f, .08f, .70f);
+            _axisLeft = new GUIStyle(_axisCenter) { alignment = TextAnchor.MiddleLeft };
         }
     }
 }

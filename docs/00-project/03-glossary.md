@@ -190,6 +190,8 @@
 | 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为派生查询；`LegacyCurrentHex` 仅兼容摘要／旧路线提交或缓存；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
 | 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**（仅指这个泛化概念本身）；它与已实现的 `Continuous Outdoor World Surface` 不是同一个东西；见 203 |
 | 连续室外世界表面 | Continuous Outdoor World Surface | 一个大陆内普通 Outdoor Geography 的真实连续物理世界 | **Current：runtime 已存在并承担正常 Outdoor 物理空间**（ADR-0031）；Indoor / Cave 等独立 Space 不在其中。**Future：新的 World Authoring／Composition／完整 de-Hex 与 Final Surface bake 尚未实现**（ADR-0036／ADR-0037）；不得再把「未实现」读成整个 Continuous Surface 不存在 |
+| 动态机会物体 | Dynamic Opportunity Object | `WorldOpportunity.spawnKind=worldObject` 生成的短生命周期互动道具 | Core 保存稳定 `WorldObjectInstanceId + SurfaceId + exact WorldPosition`；Host View 随 Chunk 装卸；不是 Character、Building、WorldSite 或导航障碍 |
+| 靠近后发现 | hiddenUntilDiscovered | 动态机会物体的发现模式 | Domain 实例先存在；发现前无表现／交互／Activity，任一存活 PlayerParty 成员进入半径后永久揭示，直至 resolve／expiry |
 | 世界空间标识 | WorldSpaceId | 标识一个独立 Physical World Space（例如一块大陆或特殊独立世界） | 长期 Outdoor Physical Position = `WorldSpaceId + WorldPosition`；Future 架构 |
 | 表面区块 | Surface Chunk（现称 RuntimeChunk） | 连续世界中 Runtime Streaming／materialization 的技术单位 | **不是 Gameplay Boundary，也不是地图制作／authoring 基本单位**；不等于 Strategic Hex；当前 50×50 Surface Cells，未来是否迁 100×100 待 profiling（Open）；见 ADR-0031 |
 | 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |

@@ -42,7 +42,8 @@
               <DockPanel Margin="0,0,0,6"><TextBlock Text="Surface" Width="150"/><ComboBox x:Name="OpportunitySurfaceBox"/></DockPanel>
               <DockPanel Margin="0,0,0,6"><TextBlock Text="权重" Width="150"/><TextBox x:Name="WeightBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
               <DockPanel Margin="0,0,0,6"><TextBlock Text="最大同时存在" Width="150"/><TextBox x:Name="MaxActiveBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
-              <GroupBox Header="NPC 人物池" Margin="0,8,0,8">
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="生成内容" Width="150"/><ComboBox x:Name="SpawnKindBox" SelectionChanged="SpawnKindBox_SelectionChanged"><ComboBoxItem Content="随机人物" Tag="npc"/><ComboBoxItem Content="动态物体" Tag="worldObject"/></ComboBox></DockPanel>
+              <GroupBox x:Name="NpcPanel" Header="NPC 人物池" Margin="0,8,0,8">
                 <StackPanel Margin="8">
                   <DockPanel Margin="0,0,0,6">
                     <ComboBox x:Name="SpawnTableBox" SelectionChanged="SpawnTableBox_SelectionChanged" MinWidth="420"/>
@@ -61,15 +62,28 @@
                   </StackPanel>
                 </StackPanel>
               </GroupBox>
+              <GroupBox x:Name="WorldObjectPanel" Header="动态物体" Margin="0,8,0,8">
+                <StackPanel Margin="8">
+                  <DockPanel Margin="0,0,0,6"><TextBlock Text="物体外观 Kind" Width="150"/><ComboBox x:Name="WorldObjectKindBox"/></DockPanel>
+                  <DockPanel Margin="0,0,0,6"><TextBlock Text="显示名称" Width="150"/><TextBox x:Name="WorldObjectLabelBox"/></DockPanel>
+                  <DockPanel Margin="0,0,0,6"><TextBlock Text="世界宽度" Width="150"/><TextBox x:Name="WorldObjectWidthBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+                  <DockPanel><TextBlock Text="世界高度" Width="150"/><TextBox x:Name="WorldObjectHeightBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+                </StackPanel>
+              </GroupBox>
               <DockPanel Margin="0,0,0,6"><TextBlock Text="生命周期（天）" Width="150"/><TextBox x:Name="DurationDaysBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
               <DockPanel Margin="0,0,0,6"><TextBlock Text="距离玩家·最小" Width="150"/><TextBox x:Name="MinDistanceBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
               <DockPanel Margin="0,0,0,6"><TextBlock Text="距离玩家·最大" Width="150"/><TextBox x:Name="MaxDistanceBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
               <CheckBox x:Name="AllowInsideSiteBox" Content="允许生成在 WorldSite 内" Margin="150,0,0,8"/>
-              <DockPanel Margin="0,0,0,6"><TextBlock Text="发现方式" Width="150"/><ComboBox x:Name="DiscoveryModeBox" SelectionChanged="DiscoveryModeBox_SelectionChanged"><ComboBoxItem Content="世界可见" Tag="worldVisible"/><ComboBoxItem Content="公开消息" Tag="publicNotice"/></ComboBox></DockPanel>
+              <DockPanel Margin="0,0,0,6"><TextBlock Text="发现方式" Width="150"/><ComboBox x:Name="DiscoveryModeBox" SelectionChanged="DiscoveryModeBox_SelectionChanged"><ComboBoxItem Content="世界可见" Tag="worldVisible"/><ComboBoxItem Content="公开消息" Tag="publicNotice"/><ComboBoxItem Content="靠近后发现" Tag="hiddenUntilDiscovered"/></ComboBox></DockPanel>
               <StackPanel x:Name="NoticePanel" Margin="0,0,0,8">
                 <DockPanel Margin="0,0,0,6"><TextBlock Text="动态标题" Width="150"/><TextBox x:Name="NoticeTitleBox"/></DockPanel>
                 <CheckBox x:Name="RevealExactLocationBox" Content="公布准确位置" Margin="150,0,0,6"/>
                 <DockPanel><TextBlock Text="公开消息文字" Width="150"/><TextBox x:Name="NoticeTextBox"/></DockPanel>
+              </StackPanel>
+              <StackPanel x:Name="DiscoveryPanel" Margin="0,0,0,8">
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="发现距离" Width="150"/><TextBox x:Name="DiscoveryRadiusBox" Width="90" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="发现后标题" Width="150"/><TextBox x:Name="DiscoveryTitleBox"/></DockPanel>
+                <DockPanel><TextBlock Text="发现后文字" Width="150"/><TextBox x:Name="DiscoveryTextBox"/></DockPanel>
               </StackPanel>
               <GroupBox Header="出现条件（结构化）" Margin="0,4,0,8">
                 <StackPanel Margin="6">

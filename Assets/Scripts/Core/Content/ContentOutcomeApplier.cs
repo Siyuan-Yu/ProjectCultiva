@@ -185,6 +185,18 @@ namespace XianXia.Core.Content
                 case "startminigame":
                     // Host 拦截并打开小游戏；Core 侧视为已接受该 outcome。
                     return Result.Success();
+                case "resolvecurrentopportunity":
+                {
+                    if (context == null || !string.Equals(context.TargetKind, "opportunityObject", StringComparison.OrdinalIgnoreCase))
+                        return Result.Failure(ErrorCode.InvalidOperation,
+                            "resolveCurrentOpportunity requires an opportunityObject interaction context.");
+                    const string prefix = "opportunityObject:";
+                    var objectId = context.TargetKey != null && context.TargetKey.StartsWith(prefix, StringComparison.Ordinal)
+                        ? context.TargetKey.Substring(prefix.Length) : string.Empty;
+                    if (!world.WorldOpportunities.TryGetByWorldObject(objectId, out var opportunity))
+                        return Result.Failure(ErrorCode.NotFound, "Current WorldOpportunity is no longer active.", objectId);
+                    return WorldOpportunityDriver.ResolveCurrent(world, opportunity.InstanceId);
+                }
                 case "learnmanual":
                 {
                     if (!DefinitionId.TryParse(o.Id, out var manualId))
@@ -329,6 +341,8 @@ namespace XianXia.Core.Content
             readonly Dictionary<string, int> _counters, _daily;
             readonly QuestBoard.RuntimeState _quests;
             readonly ContentEventBoard.RuntimeState _contentEventState;
+            readonly WorldOpportunityBoard.RuntimeState _worldOpportunities;
+            readonly XianXia.Core.World.WorldActivityBoard.RuntimeState _worldActivities;
             readonly int _relationshipCount, _eventCursor;
             readonly ulong _eventNext;
             readonly List<DomainEvent> _events;
@@ -347,6 +361,8 @@ namespace XianXia.Core.Content
                 _daily = world.ContentDaily.CaptureState();
                 _quests = world.Quests.CaptureRuntime();
                 _contentEventState = world.ContentEvents.CaptureState();
+                _worldOpportunities = world.WorldOpportunities.CaptureRuntimeState();
+                _worldActivities = world.WorldActivities.CaptureRuntimeState();
                 _relationshipCount = world.Relationships.EventCount;
                 world.Events.CaptureState(out _events, out _eventCursor, out _eventNext);
                 if (world.Entities.TryGet(subject, out var entity))
@@ -370,6 +386,8 @@ namespace XianXia.Core.Content
                 _world.ContentDaily.RestoreState(_daily);
                 _world.Quests.RestoreRuntime(_quests);
                 _world.ContentEvents.RestoreState(_contentEventState);
+                _world.WorldOpportunities.RestoreRuntimeState(_worldOpportunities);
+                _world.WorldActivities.RestoreRuntimeState(_worldActivities);
                 _world.Relationships.Truncate(_relationshipCount);
                 RelationshipService.RebuildAllCaches(_world);
                 _world.Events.RestoreState(_events, _eventCursor, _eventNext);

@@ -1,5 +1,27 @@
 # 开发日志
 
+## 2026-09-25 — SEAL DYNAMIC-DISCOVERY-01 + MAP-COORD-01
+
+- 制作人确认 2026-09-24 人工验收通过：Hidden 石碑未发现前不显示，进入 authored radius 后出现并标记 Discovered，可正常调查；Inspect 不自动 Resolve，显式 Resolve 后对象消失且 Activity 正常。DYNAMIC-DISCOVERY-01 状态更新为 **Producer Accepted / Sealed**。
+- MAP-COORD-01 的 pointer／player exact Surface coordinate、zoom／pan inverse mapping 与 major ticks 同步封板，且不为 Hidden Opportunity 增加 marker、Activity、locator、名称或位置泄漏。状态 **Producer Accepted / Sealed**。
+- Snapshot 正式保持 v9；v8 开发存档严格不兼容。OpportunityEditor／EventEditor authoring、三条 weight=0 acceptance fixtures、LevelTester 与正式文档已收口。下一里程碑为 **KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation（Planned）**，本轮未开始实施。
+- 封板验证：本轮 Discovery／Activity／NPC／Snapshot／WorldMap 定向 17/17，EVENT-01 onInspect／Quest Instance／SAVE-01 回归 25/25；全程序集 offline compile `ALL_OK`，OpportunityEditor／EventEditor Release build 均 0 warning／0 error，BaseGame Content reference validation 与 `git diff --check` 通过。
+
+## 2026-09-25 — MAP-COORD-01 WorldMap World Coordinate Readout
+
+- 正式 Continuous Surface WorldMap 右下角新增鼠标 Surface-local 坐标和 PlayerParty authoritative 坐标；鼠标离开有效地图或玩家不在当前可映射 Surface 时显示不可用，不保留旧值。UI 只显示一位小数，不修改任何 WorldPosition authority。
+- 复用 `SurfaceWorldMapViewportProjection` 的同一 scale／center／Y 反向关系实现 map→world 严格逆变换，zoom 与 pan 后仍按 marker 的真实 world position 返回。地图下边缘／左边缘增加淡色 major ticks，间隔按 visible span 从 1／2／5×10ⁿ 自适应选择。
+- 未增加 Hidden Opportunity marker、Activity、locator、Debug teleport 或 camera locator。DYNAMIC-DISCOVERY-01 验收改为 LevelTester 输出坐标 → WorldMap 判断方向 → 关闭地图后实际探索发现。该实现时点状态为 **Implementation Complete / Producer Acceptance Pending**，现已由上方 Final Seal 更新；本轮当时未启动 Unity，未 stage／commit／push。
+
+## 2026-09-24 — DYNAMIC-DISCOVERY-01 Dynamic WorldObject + Generic Discovery Foundation V1
+
+- `WorldOpportunity` 从 NPC-only 泛化为 `npc | worldObject`，动态物体保存稳定 ObjectInstanceId、精确 Surface 坐标与永久发现状态；旧 NPC 定义缺 `spawnKind` 继续按 npc。
+- 三种模式统一为 `worldVisible`／`publicNotice`／`hiddenUntilDiscovered`。hidden Domain 先存在，任一存活 PlayerParty 成员进入发现距离后才创建 Activity、通知、表现与互动；Load 不重放首次发现。
+- Host 新增 loaded-chunk presenter 与独立 transient registry，复用 MapKind prefab/fallback 外观；动态物体无导航 Collider，也不进入 Plot／Destructible 工作语义。onInspect 以稳定对象实例上下文绑定 Opportunity 模板。
+- 新增事务安全的 `resolveCurrentOpportunity`；Inspect 不隐含 Resolve。显式解决或 expiry 才移出 Active Board，已知 Activity 进入中性“已结束”History；未发现 hidden 到期不泄漏。
+- Snapshot 升到 v9，v8 开发存档不猜测迁移。OpportunityEditor／EventEditor、三种 LevelTester 验收内容与入口已接通；完整人工验收见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+- 本轮／Host 定向 headless 13/13，EVENT-01／QUEST-INSTANCE-01／SAVE-01 回归 25/25；三种 visibility/activity 语义、NPC expiry／roundtrip、Snapshot v9 roundtrip、v8 明确拒绝、BaseGame Content reference validation、全程序集 offline compile `ALL_OK` 与两个 Editor Release build（各 0 warning／0 error）均通过。未启动 Unity，未 stage／commit／push。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-24 — SEAL Player Control Continuity / Succession Final
 
 - 制作人人工验收确认 Party 内 B 顺序接替、全员弥留后的远处 C Emergency Handoff、旧 A/B 原地可营救、真正全灭后的 C Succession、exact position、远 5×5 re-anchor、目的地人口即时物化、无需头像刷新、Committed 战报与 ordinary world 共存，以及 Save／Load，反馈“这一轮很完美”。

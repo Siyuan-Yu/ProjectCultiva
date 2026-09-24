@@ -148,23 +148,23 @@ namespace XianXia.Unity.Host
                    entry.SourceKind == WorldActivitySourceKind.WorldOpportunity &&
                    world.WorldOpportunities.ActiveInstances.TryGetValue(entry.SourceId, out var instance) &&
                    world.WorldOpportunities.TryGetSpec(instance.OpportunityDefinitionId, out var spec) &&
-                   spec.PublicNoticeRevealExactLocation &&
-                   world.WorldPresence.TryGet(instance.SpawnedEntityId, out var presence) &&
-                   presence != null && presence.HasContinuousWorldPosition;
+                   ((instance.DiscoveryMode == XianXia.Core.Opportunity.WorldOpportunityDiscoveryMode.PublicNotice &&
+                     spec.PublicNoticeRevealExactLocation) ||
+                    (instance.DiscoveryMode == XianXia.Core.Opportunity.WorldOpportunityDiscoveryMode.HiddenUntilDiscovered &&
+                     instance.IsDiscovered)) && HasPosition(world, instance);
         }
 
         void Locate(WorldActivityEntry entry)
         {
             var world = bootstrap.Session.World;
             if (!world.WorldOpportunities.ActiveInstances.TryGetValue(entry.SourceId, out var instance) ||
-                !world.WorldPresence.TryGet(instance.SpawnedEntityId, out var presence) || presence == null ||
-                !presence.HasContinuousWorldPosition)
+                !TryPosition(world, instance, out var surfaceId, out var position))
             {
-                _status = "目标已经离开。";
+                _status = "该活动已结束。";
                 return;
             }
             if (!bootstrap.TryFocusContinuousWorldPosition(
-                    presence.PersonalSurfaceId, presence.ContinuousWorldPosition, out var message))
+                    surfaceId, position, out var message))
             {
                 _status = message;
                 return;
@@ -186,7 +186,7 @@ namespace XianXia.Unity.Host
             {
                 var entry = _history[i];
                 if (GUI.Button(new Rect(4f, y, view.width - 8f, 24f),
-                    "第 " + ((entry.ResolvedDayIndex ?? entry.CreatedDayIndex) + 1) + " 天 · " + entry.Title + "已经离开。"))
+                    "第 " + ((entry.ResolvedDayIndex ?? entry.CreatedDayIndex) + 1) + " 天 · " + entry.Title + " · 已结束"))
                 {
                     _selectedActivityId = entry.ActivityId;
                     _historyOpen = false;
@@ -197,6 +197,26 @@ namespace XianXia.Unity.Host
             }
             GUI.EndScrollView();
             HostUiHitTest.Block(rect);
+        }
+
+        static bool HasPosition(XianXia.Core.Simulation.SimulationWorld world,
+            XianXia.Core.Opportunity.WorldOpportunityInstance instance) =>
+            TryPosition(world, instance, out _, out _);
+
+        static bool TryPosition(XianXia.Core.Simulation.SimulationWorld world,
+            XianXia.Core.Opportunity.WorldOpportunityInstance instance, out string surfaceId,
+            out XianXia.Core.World.WorldVec2 position)
+        {
+            surfaceId = string.Empty; position = default;
+            if (instance.SpawnKind == XianXia.Core.Opportunity.WorldOpportunitySpawnKind.WorldObject)
+            {
+                surfaceId = instance.SurfaceId;
+                position = new XianXia.Core.World.WorldVec2(instance.WorldX, instance.WorldY);
+                return true;
+            }
+            if (!world.WorldPresence.TryGet(instance.SpawnedEntityId, out var presence) || presence == null ||
+                !presence.HasContinuousWorldPosition) return false;
+            surfaceId = presence.PersonalSurfaceId; position = presence.ContinuousWorldPosition; return true;
         }
 
         void EnsureStyles()

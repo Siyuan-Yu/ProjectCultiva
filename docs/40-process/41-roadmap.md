@@ -1,5 +1,7 @@
 # 路线图
 
+> **2026-09-24 DYNAMIC-DISCOVERY-01＋MAP-COORD-01：Producer Accepted / Sealed。** WorldOpportunity 动态物体、三种 discovery mode、稳定 onInspect、显式 resolve、Activity 生命周期、Snapshot v9、Producer authoring、LevelTester 验收入口及 WorldMap Surface 坐标读数已完成人工验收并封板；见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)／[262](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md)。下一里程碑为 **KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation（Planned）**，本轮未开始实施。
+
 > **QUEST-INSTANCE-01（2026-09-24）：Producer Accepted / Sealed。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。双同模板行商的独立接取、交付、领奖、失效与 Save/Load 已由制作人验收。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
 
 > **VASSAL-WORK-01＋P1（2026-09-24）：Producer Accepted / Sealed。** 直接附庸可在宗主药田／粮田劳作，但不共享仓储、建造或管理权；解除附庸即时失权。首次 New Game Active/View/Selection 初始化与 empty-selection Active fallback 已由制作人验收。见 [260](260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md)。
@@ -18,7 +20,7 @@
 
 > **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续 EVENT-01 Final 已单独授权并实施，等待制作人人工验收；其余方向仍未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
-> **下一阶段：** 使用已封板的 EVENT-01＋EVENT-02 制作真实荒村内容。Hidden Opportunity、动态 WorldObject Opportunity、程序化人物、ContentIntent、NPC 主动找玩家、Opportunity Chain、新 Activity 类别、导航 waypoint 与 camera preload 均不在当前范围。
+> **EVENT-02 封板时点的后续说明：** 当时 Hidden Opportunity 与动态 WorldObject Opportunity 不在范围；二者现已由 DYNAMIC-DISCOVERY-01 实施。程序化人物、ContentIntent、NPC 主动找玩家、Opportunity Chain、导航 waypoint 与 camera preload 仍未批准实施。
 
 > **2026-09-17 地图进度（历史）：** [MAP-01](242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md)、[MAP-02](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 与 [MAP-03](244-map-03-normal-gameplay-surface-authority-cutover-2026-09-16.md) 均已 **Producer Accepted / Sealed**。主 Continuous Surface 的正常 Gameplay 使用精确世界位置与 Surface authority；Hex/Outdoor LocalMap 旧路径仍保留为 legacy/derived compatibility。MAP-04 物理清理正在实施；当前状态见 [245](245-map-04-physical-legacy-cleanup-2026-09-17.md)。
 
@@ -48,12 +50,12 @@
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **当前下一步：** QUEST-INSTANCE-01 等待制作人人工验收；之后规划 NPC `ContentIntent`＋可取消延迟反应。
+- **当前下一步：** `KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation`，状态 **Planned**，尚未开始实施。
 - **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
-- **QUEST-INSTANCE-01 后续顺序（Planned / Not Implemented）：** NPC `ContentIntent`＋可取消延迟反应 → 势力继承与控制恢复 → 动态物体与发现 → 人物知情与信息传播 → 完整交易 → 实体装备与制作成长 → 生产与物流 → NPC 战略自主行为。小游戏中途保存作为独立正确性待办，不并入本轮。
+- **后续方向（Planned / Not Implemented）：** 人物知情与延迟事件 → 完整交易 → 实体装备与制作成长 → 生产与物流 → NPC 战略自主行为。小游戏中途保存作为独立正确性待办，不并入本轮。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 
@@ -287,8 +289,9 @@
 - [x] SUCCESSION-01：全 Party 真死亡后的玩家势力继承、精确位置接管、Continuous Surface 重锚与无候选等待态已于 2026-09-24 **Producer Accepted / Sealed**。
 - [x] CONTROL-HANDOFF-01：全员弥留时的 Emergency Takeover、Recovery Squad、Separate Space 释放与 v8 恢复已于 2026-09-24 **Producer Accepted / Sealed**。
 - [x] CONTROL-HANDOFF-01-P1：Committed report-only spatial boundary、战后即时目的地 materialization 与 Camera／Selection barrier 已于 2026-09-24 **Producer Accepted / Sealed**。
-- [ ] 下一正式里程碑：**DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**（Planned，尚未实施）。
-- [ ] 下一阶段 2：Knowledge + delayed event foundation。
+- [x] **DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**：2026-09-24 **Producer Accepted / Sealed**。
+- [x] **MAP-COORD-01 — WorldMap World Coordinate Readout**：2026-09-24 **Producer Accepted / Sealed**。
+- [ ] 下一正式里程碑：**KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation**（Planned）。
 - [ ] 下一阶段 3：Full trading。
 - [ ] 下一阶段 4：Equipment / crafting。
 - [ ] 下一阶段 5：Production / logistics。

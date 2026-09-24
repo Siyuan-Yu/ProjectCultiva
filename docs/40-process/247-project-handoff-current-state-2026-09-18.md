@@ -1,12 +1,20 @@
 # Project Handoff — Continuous World Current State
 
-## 2026-09-24 最新接续摘要：PLAYER CONTROL CONTINUITY / SUCCESSION FINAL SEAL
+## 2026-09-25 最新接续摘要：DYNAMIC-DISCOVERY-01＋MAP-COORD-01 FINAL SEAL
+
+[DYNAMIC-DISCOVERY-01](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md) 与 [MAP-COORD-01](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md) 已于 2026-09-24 完成制作人人工验收，状态均为 **Producer Accepted / Sealed**。`WorldOpportunity` 现同时支持既有 NPC 与不创建 Character Entity 的动态 WorldObject；动态物体以 Opportunity Instance 派生稳定 `WorldObjectInstanceId`，直接保存 `SurfaceId + exact WorldPosition`，由独立 Host transient registry 呈现与拾取，不进入导航阻挡。
+
+发现模式固定为 `worldVisible`、`publicNotice`、`hiddenUntilDiscovered`。隐藏物体在 Domain 中先存在，任一存活 PlayerParty 成员进入 authored radius 后永久揭示；发现前不创建 Presentation、Interaction、Activity、Toast 或定位入口。onInspect 通过 `worldObjectKind=opportunityObject + worldOpportunityId` 绑定模板，`resolveCurrentOpportunity` 显式终结当前实例并与 Activity 变更共同参与 Outcome transaction；Inspect 本身不等于解决。
+
+Snapshot 当前为 **v9**，持久保存 SpawnKind、稳定物体身份、精确坐标与发现状态；v8 及更早版本明确不兼容，不猜测迁移。OpportunityEditor、EventEditor 与 LevelTester 三条稳定验收物体已接通。制作人确认 Hidden 石碑的未发现隐藏、距离发现、调查保留、显式解决与 Activity 主链通过。WorldMap 另以同一 Surface 投影显示 pointer／player exact coordinate 与自适应 major ticks，不泄漏隐藏 Opportunity。下一里程碑为 `KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation`，状态 **Planned**。
+
+## 2026-09-24 已封板基线：PLAYER CONTROL CONTINUITY / SUCCESSION FINAL SEAL
 
 制作人已完成人工验收并确认“这一轮很完美”。SUCCESSION-01、CONTROL-HANDOFF-01 与 CONTROL-HANDOFF-01-P1 均为 **Producer Accepted / Sealed**。现行控制连续性分三级：当前 Party 内仍有合法成员时按固定顺序接替；无可控成员但仍有生者时走 Emergency External Handoff，旧生者留在原地 idle Recovery Squad；全员 Dead／Removed 时走 True-Death Succession，旧成员保持 corpse／singleton authority。外部候选共用统一 policy，以 CombatPower 最高、稳定 EntityId tie-break，并在 membership mutation 前捕获真实 `SurfaceId + exact WorldPosition`。
 
-接管者若来自 NPC Squad，只拆本人并保留其余 roster／motion。跨 Surface 或远出旧 loaded 5×5 时以接管者 chunk hard re-anchor；目的地 Surface、邻域 Site／Squad／Population 与 successor EntityView 同步就绪后才切 Camera／Selection。CharacterEncounter `Preparing / Active / ReadyToEnd` 持有 spatial authority；`Committed` 仅保留战报，不阻断 ordinary world，`CloseReport` 不承担世界重载。Separate Space handoff 不执行正常 Leave，旧伤员／尸体保持洞内持久位置。Snapshot 继续 v8，成功态不重复 handoff，无候选等待态在完整 world shell 恢复后可重新检查。
+接管者若来自 NPC Squad，只拆本人并保留其余 roster／motion。跨 Surface 或远出旧 loaded 5×5 时以接管者 chunk hard re-anchor；目的地 Surface、邻域 Site／Squad／Population 与 successor EntityView 同步就绪后才切 Camera／Selection。CharacterEncounter `Preparing / Active / ReadyToEnd` 持有 spatial authority；`Committed` 仅保留战报，不阻断 ordinary world，`CloseReport` 不承担世界重载。Separate Space handoff 不执行正常 Leave，旧伤员／尸体保持洞内持久位置。该封板时点使用 Snapshot v8；当前全局 schema 已由 DYNAMIC-DISCOVERY-01 提升为 v9，控制连续性字段 shape 未变。
 
-旧“只有全员真正死亡才允许切到势力其它人物；全员弥留保持 TemporarilyUnavailable”的规则已标记 **Superseded on 2026-09-24**，现行真源为 [ADR-0039](43-decisions/ADR-0039-external-faction-control-handoff.md)、[2K §4](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[259](259-succession-01-player-faction-succession-2026-09-24.md) 与 [260](260-control-handoff-01-emergency-faction-control-transfer-2026-09-24.md)。下一里程碑为 `DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation`，状态 **Planned**，尚未实施；NPC AI 继续最后。
+旧“只有全员真正死亡才允许切到势力其它人物；全员弥留保持 TemporarilyUnavailable”的规则已标记 **Superseded on 2026-09-24**，现行真源为 [ADR-0039](43-decisions/ADR-0039-external-faction-control-handoff.md)、[2K §4](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[259](259-succession-01-player-faction-succession-2026-09-24.md) 与 [260](260-control-handoff-01-emergency-faction-control-transfer-2026-09-24.md)。DYNAMIC-DISCOVERY-01 的当前状态见本页顶部；NPC AI 继续最后。
 
 ## 2026-09-24 实施时点历史：CONTROL-HANDOFF-01（状态已由顶部 Final Seal 取代）
 
@@ -42,11 +50,15 @@ QUEST-INSTANCE-01 已由制作人人工验收通过并封板，正式状态为 *
 
 LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选准备与正式全灭按钮。该段记录的**历史实施时点状态**为 Implementation Complete / Producer Acceptance Pending；当前状态已由本页顶部 Final Seal 更新。后续顺序为 Dynamic WorldObject / Discovery → Knowledge + delayed event foundation → Full trading → Equipment/crafting → Production/logistics → NPC AI last。
 
-## 新会话恢复摘要（2026-09-24；最新状态以顶部 Final Seal 为准）
+## 新会话恢复摘要（2026-09-25；最新状态以顶部 Final Seal 摘要为准）
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01 与 P1 均已 **Producer Accepted / Sealed**。下一里程碑 DYNAMIC-DISCOVERY-01 仅 Planned。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01、DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均已 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v9；下一里程碑 KNOWLEDGE-DELAY-01 为 Planned。
+
+### DYNAMIC-DISCOVERY-01 当前实现（2026-09-24）
+
+[261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md) 增加动态 Opportunity WorldObject、三种发现模式、稳定模板 onInspect、显式 transaction-safe resolve、Activity 生命周期和 Snapshot v9。隐藏物体发现前不泄漏任何 Host 表现或 Activity，发现后永久可见并可定位；worldVisible 不入 Activity，publicNotice 保持即时公开。OpportunityEditor 与 EventEditor 已覆盖全部新字段，LevelTester 提供三条稳定验收实例与清理入口。状态 **Producer Accepted / Sealed**。
 
 ### QUEST-INSTANCE-01 当前实现（2026-09-24）
 
@@ -54,19 +66,19 @@ PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结�
 
 ### SAVE-01＋STRATEGIC-STOCK-01 当前封板（2026-09-24）
 
-[257](257-save-01-content-progress-persistence-v1-2026-09-23.md) 的 Content Progress 与战略库存封板继续有效；QUEST-INSTANCE-01 已把当时两条 prototype flag 流替换为结构化人物委托。当前 Snapshot 为 v8，v1～v7 明确拒绝；资源访问仍保持 PartyInventory＋可访问战略库存的既有语义。
+[257](257-save-01-content-progress-persistence-v1-2026-09-23.md) 的 Content Progress 与战略库存封板继续有效；QUEST-INSTANCE-01 已把当时两条 prototype flag 流替换为结构化人物委托。当前 Snapshot 为 v9，v8 及更早版本明确拒绝；ContentProgress 与资源访问 shape 未变，仍保持 PartyInventory＋可访问战略库存的既有语义。
 
 ### Continuous Surface Streaming Radius 2（2026-09-23）
 
-Core `ContinuousSurfaceStreamingPolicy` 是唯一 active-neighborhood policy：radius 2、diameter 5。`ContinuousOutdoorSurfaceRuntime.InitializeNeighborhood`、`RequestNeighborhoodTransition` 与 `ContinuousOutdoorStartupPlanner.TryPreflightNeighborhood` 共用该值；完整邻域 25 chunks，authored edge 可少于 25。相邻 crossing 仍 staged 且每 Update 最多 Build 1，典型新增 5 chunks；initial activation／Snapshot presentation rebuild 最多同步 Build 25，需在 Unity 观察首次激活耗时。Chunk metric、player-centered authority、GridPathfinder 算法与 Opportunity Runtime 未改变；QUEST-INSTANCE-01 后当前 Snapshot schema 为 8。
+Core `ContinuousSurfaceStreamingPolicy` 是唯一 active-neighborhood policy：radius 2、diameter 5。`ContinuousOutdoorSurfaceRuntime.InitializeNeighborhood`、`RequestNeighborhoodTransition` 与 `ContinuousOutdoorStartupPlanner.TryPreflightNeighborhood` 共用该值；完整邻域 25 chunks，authored edge 可少于 25。相邻 crossing 仍 staged 且每 Update 最多 Build 1，典型新增 5 chunks；initial activation／Snapshot presentation rebuild 最多同步 Build 25。Chunk metric、player-centered authority 与 GridPathfinder 算法未改变；当前 Snapshot schema 为 9。
 
 ### EVENT-02A 当前封板（2026-09-23）
 
-[256](256-event-02a-persistent-world-activity-feed-2026-09-23.md) 将 `publicNotice` 从 Toast-only 改为持久 `WorldActivityBoard` authority：Active／History、unread、最近 100 条与严格 Opportunity source 一致性。原 v6 additive 字段在当前 Snapshot v8 中保持原 shape。Host 左侧紧凑栏可反复打开详情；仅配置 `publicNoticeRevealExactLocation=true` 时显示定位，同 Surface 只移动镜头。worldVisible 不入栏，Toast 只在新 Activity 创建时播放一次。制作人已验收完整链路，状态 **Producer Accepted / Sealed**。
+[256](256-event-02a-persistent-world-activity-feed-2026-09-23.md) 将 `publicNotice` 从 Toast-only 改为持久 `WorldActivityBoard` authority：Active／History、unread、最近 100 条与严格 Opportunity source 一致性。其原字段 shape 在当前 Snapshot v9 中保持；DYNAMIC-DISCOVERY-01 另使已发现 `hiddenUntilDiscovered` 进入 Activity，并让动态物体定位使用实例精确坐标。worldVisible 仍不入栏，Toast 仍只在 Activity 首次创建时播放一次。EVENT-02A 原范围已 **Producer Accepted / Sealed**。
 
 ### EVENT-02 当前封板（2026-09-23）
 
-[255](255-event-02-world-opportunity-director-v1-2026-09-23.md) 建立独立于旧 `OpportunitySite` 的动态 NPC 机会链：当前 Surface 每日低频 refill、SpawnTable 单抽、合法可走精确坐标、真实 NPC/WorldPresence、通用 Continuous materialization、EVENT-01 onTalk 与到期 Removed。EVENT-02A 后续把 `publicNotice` 提升为持久 Activity，Toast 仅保留一次提醒。原 v6 additive `worldOpportunityRuntime` 在当前 v8 中保持原 shape 与恢复语义。OpportunityEditor 管理“世界生成什么”，EventEditor 管理“互动后发生什么”。制作人已验收 V1 完整链路，状态 **Producer Accepted / Sealed**。V1 不支持 hidden 或动态 WorldObject，封板后不继续扩展 Director。
+[255](255-event-02-world-opportunity-director-v1-2026-09-23.md) 建立独立于旧 `OpportunitySite` 的动态 NPC 机会链：当前 Surface 每日低频 refill、SpawnTable 单抽、合法可走精确坐标、真实 NPC/WorldPresence、通用 Continuous materialization、EVENT-01 onTalk 与到期 Removed。该 V1 范围已 **Producer Accepted / Sealed**；“不支持 hidden 或动态 WorldObject”是当时范围，现已由 DYNAMIC-DISCOVERY-01 的 additive 扩展取代。当前 Snapshot v9 同时保存 NPC 与动态物体实例。
 
 ### EVENT-EDITOR-V2 当前增补（2026-09-23）
 
@@ -196,18 +208,19 @@ V2.4 删除“状态对话/特殊对话/普通对话”等伪类型，只保留�
 | 行动、Order 与日程 | `ActiveActions`、Order queues、Schedule definitions／entity binding 与 `DailyTaskComponent` 已用于当前劳动、修炼、恢复和日程链 | Snapshot 已保存 active actions、orders、schedules、entity schedule id 与 daily task fields；Host ritual channel 自身不是 Snapshot authority | 当前基础链已实现；不得从可序列化目标推断所有 Action／Host UI 中间态均可无损继续 |
 | 关系、Bond、态度与档案 | `SocialBondBoard` 保存客观 Bond；五维单向态度由 `RelationshipLedger` 事件聚合；人物档案供 UI／内容查询 | `RelationshipService`、`SocialBondBoard`、profile components；Snapshot 已保存 Social Bonds、RelationshipLedger 与 PersonalityProfile tags | 2M 主线 Accepted / Sealed。关系 ≠ 私人冲突 ≠ Faction War |
 | 背包、装备、资源与掉落 | 非 resource 只使用 PartyInventory；resource 在可访问己方战略物资网络时统一使用 PartyInventory＋eligible WorldSitePublicStock，离开网络退回 bag-only。`stockAtLeast`、Quest progress／Journal 与 `removeStock` 共用该语义 | `PlayerStrategicResourceService` 是访问与稳定扣除顺序 authority；`HostInventoryPanel` 同窗提供小队背包／势力仓库，只允许战略资源从公库取到背包；PartyInventory、WorldSitePublicStock 与 taken loot 均沿用既有 Snapshot 字段 | STRATEGIC-STOCK-01 **Producer Accepted / Sealed**；势力仓库不是通用 Item／装备仓库，不含容量与物流 |
-| Quest | 固定任务与人物委托共用 `QuestBoard`／`QuestService`；Journal/HUD 按实例操作 | Snapshot v8 保存实例、发布者、来源 Opportunity、交付、期限与序列；definitions 仍来自 Content | QUEST-INSTANCE-01 **Producer Accepted / Sealed** |
-| Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持条件、触发与推进；固定 NPC／WorldObject interaction event 已接通 | v7 保存 Flags／History、fired keys 与 Chapter runtime；restore shell definitions-only 重注册并校验，不重放 opening；Active dialogue 不保存 | SAVE-01 **Producer Accepted / Sealed**；EVENT-01 Final 状态不变 |
-| ContentCounters／ContentDaily／LocationLabor | runtime board 支持计数、每日限制与采收／劳动 Quest facts；角色 `DailyTaskComponent` 是另一条实体日程链 | v7 保存全部 Counter、marked day index 及 opaque labor tick／harvest key；`DailyTaskComponent` 仍按实体字段保存 | SAVE-01 **Producer Accepted / Sealed**；两类 Daily authority 不混用 |
+| Quest | 固定任务与人物委托共用 `QuestBoard`／`QuestService`；Journal/HUD 按实例操作 | 当前 Snapshot v9 保存实例、发布者、来源 Opportunity、交付、期限与序列；Quest shape 自 v8 后未变，definitions 仍来自 Content | QUEST-INSTANCE-01 **Producer Accepted / Sealed** |
+| Flags／ContentEvents／Chapters | `WorldFlagBoard`／`StoryFlagService`、`ContentEventBoard`、`ChapterBoard`／day handler 支持条件、触发与推进；固定与动态 WorldObject interaction event 已接通 | 当前 v9 保存 Flags／History、fired keys 与 Chapter runtime；restore shell definitions-only 重注册并校验，不重放 opening；Active dialogue 不保存 | SAVE-01／DYNAMIC-DISCOVERY-01 **Producer Accepted / Sealed** |
+| WorldOpportunity／WorldActivity | NPC 与动态 WorldObject 共用 Opportunity lifecycle；动态物体有稳定 object identity、三种发现模式、模板 onInspect 与显式 resolve | v9 保存 SpawnKind、NPC／物体互斥身份、精确坐标、发现状态及 Activity；hidden 发现前不泄漏 | DYNAMIC-DISCOVERY-01 **Producer Accepted / Sealed** |
+| ContentCounters／ContentDaily／LocationLabor | runtime board 支持计数、每日限制与采收／劳动 Quest facts；角色 `DailyTaskComponent` 是另一条实体日程链 | 当前 v9 保存全部 Counter、marked day index 及 opaque labor tick／harvest key；`DailyTaskComponent` 仍按实体字段保存 | SAVE-01 **Producer Accepted / Sealed**；两类 Daily authority 不混用 |
 
 ### F. 工具链与工程
 
 | 范围 | 当前能做什么／authority | 入口与输出 | 状态／边界 |
 |---|---|---|---|
-| ContentAuthoring | `EditorManifest.json` 当前 8 个 Active + 2 个 Legacy Compatibility editor；`WorldComposer` 做大陆宏观 composition／道路河流／Blueprint／Patch／预览／Bake；`FineEditor` 做 1×1 Surface Cell 精修与对象放置；MapEditor／LocalPlaceEditor 只维护合法独立空间 | `ContentAuthoring.sln`、`编译-所有编辑器.cmd`、`启动-*.cmd`；发布到 generated `Apps/*.exe` | MAP-01 Production V1 Accepted / Sealed。自动水文等 Future 不得写成已完成 |
+| ContentAuthoring | `EditorManifest.json` 是编辑器清单 authority；`WorldComposer`／`FineEditor` 维护 Continuous Surface；OpportunityEditor 已覆盖 NPC／动态 WorldObject、发现规则，EventEditor 已覆盖 Opportunity Object onInspect 与显式 resolve | `ContentAuthoring.sln`、`编译-所有编辑器.cmd`、`启动-*.cmd`；发布到 generated `Apps/*.exe` | MAP-01／DYNAMIC-DISCOVERY-01 编辑器能力均已封板 |
 | Authoring → Runtime | Authoring Source 只由 baker 消费；Preview／Bake 共用 `CompositionEngine`；候选导出不改 Runtime，`CompatibilityPublisher` 可 staging／backup／rollback 原子替换 Surface、Geography、WorldMap cache 三文件 | `Content/BaseGame/Authoring/ContinuousSurface/` → candidate 或 `Content/BaseGame/Data/Worlds/` | Authoring Source ≠ Runtime Content；不得让编辑源成为 runtime DefinitionRegistry authority。发布后 Content Validation 入口本轮未重新核实 |
 | Runtime / converter / prototype 边界 | Core／Data／Unity 正式程序集不反向依赖工具；`LegacyRuntimeConverter` 只做有证据的无损 FormalArmy／hybrid Snapshot 转换，hexWorld fail-closed；Demo Runtime 只读参考 | `ExternalTools/ContentAuthoring/LegacyRuntimeConverter/`；输入只读，输出必须是不同且不存在的文件 | Converter 自测记录仅为历史；本轮不重跑。不得把工具接回正常 Loader |
-| Content／Snapshot 版本策略 | JSON ContentPackage + namespaced DefinitionId；Loader 严格校验；Snapshot 由版本化 DTO／serializer 恢复；未知／旧 authority 明确报错，不静默猜 | `Content/BaseGame/manifest.json`、`ContentPackageLoader`、`WorldSnapshot`、`JsonSnapshotSerializer` | 当前正式 BaseGame 可用；完整外部 Mods 产品能力、复杂 migration 平台未实现 |
+| Content／Snapshot 版本策略 | JSON ContentPackage + namespaced DefinitionId；Loader 严格校验；当前 Snapshot v9 由版本化 DTO／serializer 恢复；v8 及更早 authority 明确报错，不静默猜 | `Content/BaseGame/manifest.json`、`ContentPackageLoader`、`WorldSnapshot`、`JsonSnapshotSerializer` | 当前正式 BaseGame 可用；完整外部 Mods 产品能力、复杂 migration 平台未实现 |
 | 启动、构建与诊断 | Unity 版本 2022.3.6f1 Built-in；LevelTester 是主要逻辑试玩入口但不在 Build Settings；Build Settings 当前启用 DemoParityHost／Demo_v0_1；工具 Build All 日志为 `build-all.log`，WorldComposer／FineEditor crash log 在 `Apps/` | 根 `README.md`、`docs/40-process/114-level-tester.md`、`ExternalTools/ContentAuthoring/README.md`、`tools/offline-compile.ps1` | 本轮未编译、未启动 Unity。generated `Apps/` 静态观察仍有已移出 manifest 的旧 exe，须以后 Build All 刷新后再确认；不影响 manifest 作为工具清单真源 |
 
 ## 已确认且不随换会话重议的设计边界
@@ -228,7 +241,7 @@ V2.4 删除“状态对话/特殊对话/普通对话”等伪类型，只保留�
 <a id="save01通用内容状态磁盘持久化"></a>
 ## SAVE-01：通用内容状态磁盘持久化
 
-- Snapshot v8 的 `ContentProgress` 是 Quest／Story／Event／Chapter 内容进度磁盘 authority；`hasAuthority=true` 用于区分合法空状态与缺失／损坏数据，Quest 实例身份与序列同属 authority。
+- 当前 Snapshot v9 的 `ContentProgress` 是 Quest／Story／Event／Chapter 内容进度磁盘 authority；其 shape 自 v8 后未变。`hasAuthority=true` 用于区分合法空状态与缺失／损坏数据，Quest 实例身份与序列同属 authority。
 - Flags／History、全部 Quest runtime、fired event keys、Chapter runtime、Counters／Daily、LocationLabor ticks／harvests 完整 round-trip。Quest／Event／Chapter definitions 仍来自当前 Content Package。
 - Active Event 期间禁止保存，不持久化 pending dialogue。v1～v6 无法可靠推导上述状态，统一拒绝。
 - New Game／Load 使用同一 `PlayableSimulationLoopFactory`，避免 Quest deadline 与 Chapter day beat 在读档后丢失或重复注册。

@@ -111,6 +111,10 @@ namespace XianXia.Core.Content
                 (!world.Entities.TryGet(context.TargetEntityId, out var entity) ||
                  entity.DefinitionId.ToString() != context.TargetDefinitionId))
                 return Result.Failure(ErrorCode.NotFound, "Interaction target changed or missing.");
+            if (string.Equals(context.TargetKind, "opportunityObject", StringComparison.OrdinalIgnoreCase) &&
+                (!TryResolveOpportunityObject(world, context, out var opportunityTarget) ||
+                 !string.Equals(context.TargetDefinitionId, opportunityTarget.OpportunityDefinitionId, StringComparison.Ordinal)))
+                return Result.Failure(ErrorCode.NotFound, "Dynamic opportunity object changed or missing.");
             foreach (var candidate in ResolveInteractionCandidates(world, context, trigger))
             {
                 if (candidate.Id != eventId) continue;
@@ -145,11 +149,29 @@ namespace XianXia.Core.Content
                 return true;
             }
             if (string.Equals(trigger, "onInspect", StringComparison.OrdinalIgnoreCase))
-                return !string.IsNullOrEmpty(context.TargetKey) &&
-                       string.Equals(spec.WorldObjectKind, context.TargetKind, StringComparison.OrdinalIgnoreCase) &&
-                       (string.IsNullOrEmpty(spec.WorldObjectId) ||
-                        string.Equals(spec.WorldObjectId, context.TargetDefinitionId, StringComparison.Ordinal));
+            {
+                if (string.IsNullOrEmpty(context.TargetKey) ||
+                    !string.Equals(spec.WorldObjectKind, context.TargetKind, StringComparison.OrdinalIgnoreCase)) return false;
+                if (string.Equals(context.TargetKind, "opportunityObject", StringComparison.OrdinalIgnoreCase))
+                    return TryResolveOpportunityObject(world, context, out var opportunity) &&
+                           opportunity.IsDiscovered &&
+                           string.Equals(spec.WorldOpportunityId, opportunity.OpportunityDefinitionId, StringComparison.Ordinal);
+                return string.IsNullOrEmpty(spec.WorldObjectId) ||
+                       string.Equals(spec.WorldObjectId, context.TargetDefinitionId, StringComparison.Ordinal);
+            }
             return true;
+        }
+
+        static bool TryResolveOpportunityObject(SimulationWorld world, ContentInteractionContext context,
+            out XianXia.Core.Opportunity.WorldOpportunityInstance instance)
+        {
+            instance = null;
+            if (world == null || context == null ||
+                !string.Equals(context.TargetKind, "opportunityObject", StringComparison.OrdinalIgnoreCase)) return false;
+            const string prefix = "opportunityObject:";
+            var objectId = context.TargetKey.StartsWith(prefix, StringComparison.Ordinal)
+                ? context.TargetKey.Substring(prefix.Length) : string.Empty;
+            return world.WorldOpportunities.TryGetByWorldObject(objectId, out instance);
         }
 
         static bool RepeatAllowed(SimulationWorld world, ContentEventSpec spec, EntityId actor, EntityId target)

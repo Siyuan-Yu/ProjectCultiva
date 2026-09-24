@@ -15,6 +15,8 @@ namespace XianXia.Data.Content
     /// </summary>
     public sealed class ContentReferenceValidator
     {
+        static readonly HashSet<string> DynamicOpportunityObjectKinds = new HashSet<string>(StringComparer.Ordinal)
+        { "treeS", "treeM", "treeL", "ore", "cushion", "rock", "cave", "loot", "herbField", "rallyPoint" };
         public ValidationReport Validate(DefinitionRegistry registry)
         {
             var report = new ValidationReport();
@@ -357,17 +359,32 @@ namespace XianXia.Data.Content
                 if (string.IsNullOrWhiteSpace(o.SurfaceId) || !DefinitionId.TryParse(o.SurfaceId, out var surfaceId) ||
                     !registry.OutdoorSurfaces.ContainsKey(surfaceId))
                     report.Add(ErrorCode.NotFound, "worldOpportunity.surfaceId missing.", ctx + ":" + o.SurfaceId);
-                if (o.Weight <= 0 || o.MaxActive <= 0 || o.DurationDays < 1)
-                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity weight/maxActive/durationDays must be positive.", ctx);
+                if (o.Weight < 0 || o.MaxActive <= 0 || o.DurationDays < 1)
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity weight must be non-negative; maxActive/durationDays must be positive.", ctx);
                 if (o.MinPlayerDistanceWorld < 0f || o.MaxPlayerDistanceWorld < o.MinPlayerDistanceWorld)
                     report.Add(ErrorCode.InvalidArgument, "worldOpportunity distance range invalid.", ctx);
-                RequireDef(registry, o.SpawnTableId, "spawnTable", ctx + ".spawnTableId", report);
+                var npc = string.IsNullOrWhiteSpace(o.SpawnKind) || o.SpawnKind == "npc";
+                var worldObject = o.SpawnKind == "worldObject";
+                if (!npc && !worldObject)
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity.spawnKind must be npc or worldObject.", ctx);
+                if (npc) RequireDef(registry, o.SpawnTableId, "spawnTable", ctx + ".spawnTableId", report);
+                if (worldObject && (string.IsNullOrWhiteSpace(o.WorldObjectKind) ||
+                    o.WorldObjectWorldWidth <= 0f || o.WorldObjectWorldHeight <= 0f))
+                    report.Add(ErrorCode.InvalidArgument, "worldObject opportunity requires kind and positive width/height.", ctx);
+                else if (worldObject && !DynamicOpportunityObjectKinds.Contains(o.WorldObjectKind))
+                    report.Add(ErrorCode.InvalidArgument, "worldObjectKind is not an approved MapKindCatalog prop.", ctx + ":" + o.WorldObjectKind);
                 if (string.Equals(o.DiscoveryMode, "hidden", StringComparison.OrdinalIgnoreCase))
                     report.Add(ErrorCode.InvalidArgument,
-                        "EVENT-02 V1 尚未支持通用隐藏 Opportunity；不要把 Cave hidden-entry 逻辑复制到随机 NPC。", ctx);
+                        "discoveryMode 'hidden' is invalid; use hiddenUntilDiscovered.", ctx);
                 else if (!string.Equals(o.DiscoveryMode, "worldVisible", StringComparison.Ordinal) &&
-                         !string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal))
-                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity.discoveryMode must be worldVisible or publicNotice.", ctx);
+                         !string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal) &&
+                         !string.Equals(o.DiscoveryMode, "hiddenUntilDiscovered", StringComparison.Ordinal))
+                    report.Add(ErrorCode.InvalidArgument, "worldOpportunity.discoveryMode must be worldVisible, publicNotice, or hiddenUntilDiscovered.", ctx);
+                if (npc && string.Equals(o.DiscoveryMode, "hiddenUntilDiscovered", StringComparison.Ordinal))
+                    report.Add(ErrorCode.InvalidArgument, "V1 hiddenUntilDiscovered 仅支持动态 WorldObject。", ctx);
+                if (worldObject && string.Equals(o.DiscoveryMode, "hiddenUntilDiscovered", StringComparison.Ordinal) &&
+                    o.DiscoveryRadiusWorld <= 0f)
+                    report.Add(ErrorCode.InvalidArgument, "hiddenUntilDiscovered requires discoveryRadiusWorld > 0.", ctx);
                 if (string.Equals(o.DiscoveryMode, "publicNotice", StringComparison.Ordinal) &&
                     string.IsNullOrWhiteSpace(o.PublicNoticeText))
                     report.Add(ErrorCode.MissingRequiredField, "publicNoticeText required for publicNotice.", ctx);
@@ -1134,6 +1151,18 @@ namespace XianXia.Data.Content
                     !WorldObjectIdExists(registry, e.WorldObjectKind, e.WorldObjectId))
                     report.Add(ErrorCode.NotFound, "contentEvent.worldObjectId missing for kind.",
                         ctx + ":" + e.WorldObjectKind + ":" + e.WorldObjectId);
+                if (string.Equals(e.Trigger, "onInspect", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(e.WorldObjectKind, "opportunityObject", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.IsNullOrWhiteSpace(e.WorldOpportunityId))
+                        report.Add(ErrorCode.MissingRequiredField, "opportunityObject onInspect requires worldOpportunityId.", ctx);
+                    else if (!DefinitionId.TryParse(e.WorldOpportunityId, out var opportunityId) ||
+                             !registry.WorldOpportunities.TryGetValue(opportunityId, out var opportunity) ||
+                             opportunity.SpawnKind != "worldObject")
+                        report.Add(ErrorCode.InvalidArgument, "onInspect worldOpportunityId must reference a worldObject opportunity.", ctx);
+                    if (!string.IsNullOrWhiteSpace(e.WorldObjectId))
+                        report.Add(ErrorCode.InvalidArgument, "opportunityObject onInspect must not author a runtime worldObjectId.", ctx);
+                }
                 foreach (var step in e.Steps)
                 {
                     var sc = ctx + ".step." + step.Id;
@@ -1406,6 +1435,10 @@ namespace XianXia.Data.Content
                     case "acceptquestfromtarget":
                     case "deliverquesttotarget":
                         RequireDef(registry, o.Id, "quest", ctx + ".startQuest", report);
+                        break;
+                    case "resolvecurrentopportunity":
+                        if (!string.IsNullOrWhiteSpace(o.Id) || o.Amount != 0)
+                            report.Add(ErrorCode.InvalidArgument, "resolveCurrentOpportunity takes no id or amount.", ctx);
                         break;
                     case "discoversite":
                         RequireDef(registry, o.Id, "opportunitySite", ctx + ".discoverSite", report);

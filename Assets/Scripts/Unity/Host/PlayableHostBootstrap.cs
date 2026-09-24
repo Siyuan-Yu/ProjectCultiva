@@ -93,6 +93,7 @@ namespace XianXia.Unity.Host
 
         PlayableHostSession _session = new PlayableHostSession();
         ContinuousOutdoorSurfaceRuntime _continuousOutdoorSurfaceRuntime;
+        HostDynamicOpportunityObjectPresenter _dynamicOpportunityObjectPresenter;
         readonly OutdoorEntityReconcileGate _outdoorEntityReconcileGate =
             new OutdoorEntityReconcileGate();
         float _autoTickAccumulator;
@@ -124,6 +125,7 @@ namespace XianXia.Unity.Host
         public HostMoveController MoveController => moveController;
 
         public ContinuousOutdoorSurfaceRuntime ContinuousOutdoorSurfaceRuntime => _continuousOutdoorSurfaceRuntime;
+        public HostDynamicOpportunityObjectPresenter DynamicOpportunityObjectPresenter => _dynamicOpportunityObjectPresenter;
 
         public HostPlayerPartyController PlayerPartyController =>
             GetComponent<HostPlayerPartyController>();
@@ -803,6 +805,9 @@ namespace XianXia.Unity.Host
             _continuousOutdoorSurfaceRuntime = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
                                                gameObject.AddComponent<ContinuousOutdoorSurfaceRuntime>();
             _continuousOutdoorSurfaceRuntime.Bind(this);
+            _dynamicOpportunityObjectPresenter = GetComponent<HostDynamicOpportunityObjectPresenter>() ??
+                                                 gameObject.AddComponent<HostDynamicOpportunityObjectPresenter>();
+            _dynamicOpportunityObjectPresenter.Bind(this);
             (GetComponent<HostCharacterEncounter>() ?? gameObject.AddComponent<HostCharacterEncounter>()).Bind(this);
             var continuousOutdoorStartup = false;
             var continuousStartupPlan = default(ContinuousOutdoorStartupPlanner.StartupPlan);

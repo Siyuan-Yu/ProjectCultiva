@@ -332,10 +332,15 @@ namespace XianXia.Data.Serialization
                         ["instanceId"] = JsonValue.FromString(instance.InstanceId ?? string.Empty),
                         ["opportunityDefinitionId"] = JsonValue.FromString(instance.OpportunityDefinitionId ?? string.Empty),
                         ["surfaceId"] = JsonValue.FromString(instance.SurfaceId ?? string.Empty),
+                        ["spawnKind"] = JsonValue.FromString(instance.SpawnKind ?? string.Empty),
                         ["spawnedEntityId"] = U(instance.SpawnedEntityId),
+                        ["worldObjectInstanceId"] = JsonValue.FromString(instance.WorldObjectInstanceId ?? string.Empty),
+                        ["worldX"] = JsonValue.FromNumber(instance.WorldX),
+                        ["worldY"] = JsonValue.FromNumber(instance.WorldY),
                         ["createdDayIndex"] = U(instance.CreatedDayIndex),
                         ["expireDayIndexExclusive"] = U(instance.ExpireDayIndexExclusive),
-                        ["discoveryMode"] = JsonValue.FromString(instance.DiscoveryMode ?? string.Empty)
+                        ["discoveryMode"] = JsonValue.FromString(instance.DiscoveryMode ?? string.Empty),
+                        ["isDiscovered"] = JsonValue.FromBool(instance.IsDiscovered)
                     }));
             var refresh = new List<JsonValue>();
             if (runtime.SurfaceRefreshStates != null)
@@ -523,10 +528,15 @@ namespace XianXia.Data.Serialization
                         InstanceId = instance.GetString("instanceId", string.Empty),
                         OpportunityDefinitionId = instance.GetString("opportunityDefinitionId", string.Empty),
                         SurfaceId = instance.GetString("surfaceId", string.Empty),
+                        SpawnKind = instance.GetString("spawnKind", string.Empty),
                         SpawnedEntityId = ReadU(instance, "spawnedEntityId"),
+                        WorldObjectInstanceId = instance.GetString("worldObjectInstanceId", string.Empty),
+                        WorldX = (float)instance.GetNumber("worldX", 0),
+                        WorldY = (float)instance.GetNumber("worldY", 0),
                         CreatedDayIndex = ReadU(instance, "createdDayIndex"),
                         ExpireDayIndexExclusive = ReadU(instance, "expireDayIndexExclusive"),
-                        DiscoveryMode = instance.GetString("discoveryMode", string.Empty)
+                        DiscoveryMode = instance.GetString("discoveryMode", string.Empty),
+                        IsDiscovered = instance.GetBool("isDiscovered", false)
                     });
                 }
             if (node.TryGetProperty("surfaceRefreshStates", out var refresh) && refresh.Kind == JsonValueKind.Array)

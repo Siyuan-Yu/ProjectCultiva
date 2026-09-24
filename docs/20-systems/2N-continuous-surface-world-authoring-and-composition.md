@@ -118,4 +118,10 @@ MAP-01 当前交付：
 
 MAP-02 令主 Continuous Surface 的 WorldMap 直接消费同源地图 cache，按 exact `WorldPosition` 投影、反投影与点选；Surface 模式不再把画面、点击或路线目标降格为 Hex center。Surface terrain、森林与既有 Site／party／路线呈现在同一 world-space 中；旧 Hex WorldMap 分支仅保留给尚未迁出的 compatibility world。
 
+MAP-COORD-01（2026-09-25）在同一投影上增加正式坐标读数：鼠标位于实际地图区域时显示 Surface-local `WorldPosition` X/Y，离开后立即显示“坐标 —”；玩家坐标只读取 `PlayerPartyWorldLocationQuery` 的 authoritative Surface position，不读取 GameObject Transform。`SurfaceWorldMapViewportProjection` 同时负责 world→map 与 map→world，故默认视图、缩放和平移共用严格逆变换；UI 只格式化为一位小数，不改 runtime 值。地图下边缘和左边缘使用随 visible world span 选择的 1/2/5×10ⁿ major interval，维持约 5～10 个参考区间。
+
+坐标显示只提供同一 Surface 的空间参照，不产生对象知识。未发现的 `hiddenUntilDiscovered` Opportunity 仍无 marker、Activity、Toast、locator 或 View；开发验收可读取 LevelTester 输出坐标并在 WorldMap 判断方向，正式玩家不会因此获知隐藏对象位置。
+
+MAP-COORD-01 已随 DYNAMIC-DISCOVERY-01 于 2026-09-24 完成制作人验收并 **Producer Accepted / Sealed**；实现与验收记录见 [262](../40-process/262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md)。
+
 MAP-02 本身不是完整去 Hex；MAP-03 正常 gameplay consumer cutover 与 MAP-04 物理清理均已完成并通过制作人人工验收。仍保留的 Hex／Outdoor LocalMap 符号必须能落入 ADR-0038 的旧输入、明确 compatibility、工具或测试边界；[245](../40-process/245-map-04-physical-legacy-cleanup-2026-09-17.md) 是该阶段的历史审计记录。

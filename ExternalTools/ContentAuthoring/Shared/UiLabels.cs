@@ -28,7 +28,8 @@ public static class UiLabels
         new("housing", "住房工作区"),
         new("workArea", "工作区"),
         new("recoverySpot", "恢复处"),
-        new("storageRoom", "仓库")
+        new("storageRoom", "仓库"),
+        new("opportunityObject", "动态机会物体")
     ];
 
     public static readonly Option[] JobBindingModes =

@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 8;
+        public const int CurrentSchemaVersion = 9;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -20,6 +20,8 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV6 = 6;
         /// <summary>v7 lacks stable character-issued Quest instance identity.</summary>
         public const int LegacySchemaVersionV7 = 7;
+        /// <summary>v8 lacks dynamic opportunity-object identity, position, and discovery authority.</summary>
+        public const int LegacySchemaVersionV8 = 8;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -155,10 +157,15 @@ namespace XianXia.Core.Persistence
         public string InstanceId { get; set; } = string.Empty;
         public string OpportunityDefinitionId { get; set; } = string.Empty;
         public string SurfaceId { get; set; } = string.Empty;
+        public string SpawnKind { get; set; } = string.Empty;
         public ulong SpawnedEntityId { get; set; }
+        public string WorldObjectInstanceId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
         public ulong CreatedDayIndex { get; set; }
         public ulong ExpireDayIndexExclusive { get; set; }
         public string DiscoveryMode { get; set; } = string.Empty;
+        public bool IsDiscovered { get; set; }
     }
 
     public sealed class WorldOpportunitySurfaceRefreshSnapshotDto

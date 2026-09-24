@@ -29,6 +29,7 @@ namespace XianXia.Core.Simulation
         readonly XianXia.Core.Social.SupervisorAngerDriver _supervisorAngerDriver;
         readonly bool _socialTickEnabled;
         readonly WorldOpportunityDriver _worldOpportunityDriver;
+        readonly WorldOpportunityDiscoveryService _worldOpportunityDiscoveryService;
         readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
 
@@ -46,6 +47,7 @@ namespace XianXia.Core.Simulation
             _socialTickDriver = socialTickDriver ?? new SocialTickDriver();
             _supervisorAngerDriver = new XianXia.Core.Social.SupervisorAngerDriver();
             _worldOpportunityDriver = new WorldOpportunityDriver();
+            _worldOpportunityDiscoveryService = new WorldOpportunityDiscoveryService();
             _socialTickEnabled = enableSocialTick;
             if (dayBoundaryHandlers != null)
             {
@@ -199,6 +201,7 @@ namespace XianXia.Core.Simulation
             StrategicTravelDriver.AfterTravelTick(_world, 1);
             CombatLifeStateService.TickCorpseDecay(_world);
             _worldOpportunityDriver.Tick(_world);
+            _worldOpportunityDiscoveryService.Tick(_world);
             return Result.Success();
         }
 

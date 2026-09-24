@@ -1014,37 +1014,12 @@ namespace XianXia.Unity.Host
             Color fallbackColor,
             int sortingOrder = -30)
         {
-            GameObject go = null;
-            var usedMissingPlaceholder = false;
-            if (MapLayoutPrefabResolver.TryInstantiate(kind, prefabPath, out go))
-            {
-                // resolved prefab
-            }
-            else if (MapLayoutPrefabResolver.TryInstantiate(kind, MapKindCatalog.MissingPrefab, out go, warnOnMissing: false))
-            {
-                usedMissingPlaceholder = true;
-            }
-            else
-            {
-                go = new GameObject(name);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = HostSpriteFactory.MissingPrefabSprite();
-                sr.color = Color.white;
-                sr.sortingOrder = sortingOrder + 50;
-                usedMissingPlaceholder = true;
-            }
-
-            go.name = usedMissingPlaceholder ? name + "_MissingPrefab" : name;
-            go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
-            go.transform.localScale = Vector3.one;
             var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
-            go.transform.position = intended;
-            FitToWorldSize(go, Mathf.Max(0.01f, worldW), Mathf.Max(0.01f, worldH));
-            AlignBoundsCenter(go, intended);
-            ApplySortingOrder(go, usedMissingPlaceholder ? sortingOrder + 50 : sortingOrder);
-            if (!usedMissingPlaceholder && prefabPath == MapKindCatalog.Wall)
+            var go = HostMapObjectVisualFactory.Create(kind, prefabPath, name,
+                _buildRoot != null ? _buildRoot : mapRoot, intended, worldW, worldH, sortingOrder, false,
+                out var usedMissingVisual);
+            if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
-            StripNonHostBehaviours(go);
             TrackBuilt(go);
             return go;
         }

@@ -50,6 +50,8 @@ public partial class MainWindow : Window
         PoolGrid.ItemsSource = _poolEntries;
         ConditionsGrid.ItemsSource = _conditions;
         OutcomesGrid.ItemsSource = _outcomes;
+        WorldObjectKindBox.ItemsSource = MapKindPrefabCatalog.OpportunityPropKinds;
+        SpawnKindBox.SelectedIndex = 0;
         DiscoveryModeBox.SelectedIndex = 0;
         var root = PackagePaths.FindDefaultBaseGame();
         if (root != null) LoadRoot(root);
@@ -130,6 +132,11 @@ public partial class MainWindow : Window
         SelectOption(OpportunitySurfaceBox, JsonEdit.GetString(raw, "surfaceId"));
         WeightBox.Text = JsonEdit.GetInt(raw, "weight", 1).ToString(CultureInfo.InvariantCulture);
         MaxActiveBox.Text = JsonEdit.GetInt(raw, "maxActive", 1).ToString(CultureInfo.InvariantCulture);
+        SelectSpawnKind(JsonEdit.GetString(raw, "spawnKind", "npc"));
+        WorldObjectKindBox.SelectedItem = JsonEdit.GetString(raw, "worldObjectKind");
+        WorldObjectLabelBox.Text = JsonEdit.GetString(raw, "worldObjectLabel");
+        WorldObjectWidthBox.Text = JsonEdit.GetDouble(raw, "worldObjectWorldWidth", 1).ToString(CultureInfo.InvariantCulture);
+        WorldObjectHeightBox.Text = JsonEdit.GetDouble(raw, "worldObjectWorldHeight", 1).ToString(CultureInfo.InvariantCulture);
         DurationDaysBox.Text = JsonEdit.GetInt(raw, "durationDays", 1).ToString(CultureInfo.InvariantCulture);
         MinDistanceBox.Text = JsonEdit.GetDouble(raw, "minPlayerDistanceWorld").ToString(CultureInfo.InvariantCulture);
         MaxDistanceBox.Text = JsonEdit.GetDouble(raw, "maxPlayerDistanceWorld").ToString(CultureInfo.InvariantCulture);
@@ -138,14 +145,25 @@ public partial class MainWindow : Window
         NoticeTitleBox.Text = JsonEdit.GetString(raw, "publicNoticeTitle");
         NoticeTextBox.Text = JsonEdit.GetString(raw, "publicNoticeText");
         RevealExactLocationBox.IsChecked = JsonEdit.GetBool(raw, "publicNoticeRevealExactLocation");
+        DiscoveryRadiusBox.Text = JsonEdit.GetDouble(raw, "discoveryRadiusWorld", 1.25).ToString(CultureInfo.InvariantCulture);
+        DiscoveryTitleBox.Text = JsonEdit.GetString(raw, "discoveryNoticeTitle");
+        DiscoveryTextBox.Text = JsonEdit.GetString(raw, "discoveryNoticeText");
         LoadConditions(raw["conditions"] as JsonArray);
         LoadOutcomes(raw["expireOutcomes"] as JsonArray);
         RefreshSpawnTables(JsonEdit.GetString(raw, "spawnTableId"));
         LoadSelectedPool();
         EditorTabs.SelectedIndex = 1;
         _loading = false;
-        UpdateNoticeVisibility();
+        UpdatePanels();
     }
+
+    void SelectSpawnKind(string kind)
+    {
+        foreach (ComboBoxItem item in SpawnKindBox.Items)
+            if (string.Equals(item.Tag as string, kind, StringComparison.Ordinal)) { SpawnKindBox.SelectedItem = item; return; }
+        SpawnKindBox.SelectedIndex = 0;
+    }
+    string SpawnKind => (SpawnKindBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "npc";
 
     void SelectDiscoveryMode(string mode)
     {
@@ -219,7 +237,7 @@ public partial class MainWindow : Window
         var raw = new JsonObject
         {
             ["id"] = id, ["type"] = "worldOpportunity", ["name"] = "新世界机会", ["surfaceId"] = "",
-            ["weight"] = 1, ["maxActive"] = 1, ["spawnTableId"] = "", ["durationDays"] = 1,
+            ["weight"] = 1, ["maxActive"] = 1, ["spawnKind"] = "npc", ["spawnTableId"] = "", ["durationDays"] = 1,
             ["minPlayerDistanceWorld"] = 3.0, ["maxPlayerDistanceWorld"] = 8.0,
             ["allowInsideWorldSite"] = false, ["discoveryMode"] = "worldVisible",
             ["conditions"] = new JsonArray(), ["expireOutcomes"] = new JsonArray()
@@ -275,7 +293,15 @@ public partial class MainWindow : Window
     void RemoveCondition_Click(object sender, RoutedEventArgs e) { if (ConditionsGrid.SelectedItem is ConditionRow row) _conditions.Remove(row); }
     void RemoveOutcome_Click(object sender, RoutedEventArgs e) { if (OutcomesGrid.SelectedItem is OutcomeRow row) _outcomes.Remove(row); }
     void DiscoveryModeBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateNoticeVisibility();
-    void UpdateNoticeVisibility() { if (NoticePanel != null) NoticePanel.Visibility = DiscoveryMode == "publicNotice" ? Visibility.Visible : Visibility.Collapsed; }
+    void SpawnKindBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdatePanels();
+    void UpdateNoticeVisibility() => UpdatePanels();
+    void UpdatePanels()
+    {
+        if (NoticePanel != null) NoticePanel.Visibility = DiscoveryMode == "publicNotice" ? Visibility.Visible : Visibility.Collapsed;
+        if (DiscoveryPanel != null) DiscoveryPanel.Visibility = DiscoveryMode == "hiddenUntilDiscovered" ? Visibility.Visible : Visibility.Collapsed;
+        if (NpcPanel != null) NpcPanel.Visibility = SpawnKind == "npc" ? Visibility.Visible : Visibility.Collapsed;
+        if (WorldObjectPanel != null) WorldObjectPanel.Visibility = SpawnKind == "worldObject" ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     void Save_Click(object sender, RoutedEventArgs e)
     {
@@ -319,21 +345,40 @@ public partial class MainWindow : Window
         var surface = (OpportunitySurfaceBox.SelectedItem as Option)?.Id ?? "";
         var tableId = (SpawnTableBox.SelectedItem as Option)?.Id ?? "";
         if (string.IsNullOrWhiteSpace(surface)) throw new InvalidOperationException("请选择 Surface。");
-        if (_spawnTable == null || string.IsNullOrWhiteSpace(tableId)) throw new InvalidOperationException("请选择或新建 NPC 人物池。");
-        if (_poolEntries.Count == 0) throw new InvalidOperationException("NPC 人物池至少需要一名人物。");
+        var spawnKind = SpawnKind;
+        if (spawnKind == "npc" && (_spawnTable == null || string.IsNullOrWhiteSpace(tableId))) throw new InvalidOperationException("请选择或新建 NPC 人物池。");
+        if (spawnKind == "npc" && _poolEntries.Count == 0) throw new InvalidOperationException("NPC 人物池至少需要一名人物。");
+        if (spawnKind == "npc" && DiscoveryMode == "hiddenUntilDiscovered") throw new InvalidOperationException("V1 靠近后发现仅支持动态物体。");
         var mode = DiscoveryMode;
         if (mode == "publicNotice" && string.IsNullOrWhiteSpace(NoticeTextBox.Text)) throw new InvalidOperationException("公开消息方式必须填写消息文字。");
         var minDistance = Number(MinDistanceBox.Text, "最小距离");
         var maxDistance = Number(MaxDistanceBox.Text, "最大距离");
         if (minDistance < 0 || maxDistance < minDistance) throw new InvalidOperationException("玩家距离范围无效。");
+        var objectWidth = Number(WorldObjectWidthBox.Text, "世界宽度");
+        var objectHeight = Number(WorldObjectHeightBox.Text, "世界高度");
+        if (spawnKind == "worldObject" && (WorldObjectKindBox.SelectedItem == null || objectWidth <= 0 || objectHeight <= 0))
+            throw new InvalidOperationException("动态物体必须选择外观 Kind，并设置正数宽高。");
+        var discoveryRadius = Number(DiscoveryRadiusBox.Text, "发现距离");
+        if (mode == "hiddenUntilDiscovered" && discoveryRadius <= 0) throw new InvalidOperationException("发现距离必须大于 0。");
         foreach (var outcome in _outcomes)
             if (!AllowedOutcomeKinds.Contains(outcome.Kind)) throw new InvalidOperationException("到期结果仅允许 setFlag / clearFlag / addCounter / setCounter。");
 
         var raw = _opportunity.Raw;
         raw["id"] = Required(OpportunityIdBox.Text, "Opportunity ID"); raw["type"] = "worldOpportunity";
         raw["name"] = Required(OpportunityNameBox.Text, "名称"); raw["surfaceId"] = surface;
-        raw["weight"] = Positive(WeightBox.Text, "权重"); raw["maxActive"] = Positive(MaxActiveBox.Text, "最大同时存在");
-        raw["spawnTableId"] = tableId; raw["durationDays"] = Positive(DurationDaysBox.Text, "生命周期");
+        raw["weight"] = PositiveOrZero(WeightBox.Text, "权重"); raw["maxActive"] = Positive(MaxActiveBox.Text, "最大同时存在");
+        raw["spawnKind"] = spawnKind; raw["durationDays"] = Positive(DurationDaysBox.Text, "生命周期");
+        if (spawnKind == "npc")
+        {
+            raw["spawnTableId"] = tableId;
+            raw.Remove("worldObjectKind"); raw.Remove("worldObjectLabel"); raw.Remove("worldObjectWorldWidth"); raw.Remove("worldObjectWorldHeight");
+        }
+        else
+        {
+            raw.Remove("spawnTableId"); raw["worldObjectKind"] = WorldObjectKindBox.SelectedItem as string;
+            raw["worldObjectLabel"] = Required(WorldObjectLabelBox.Text, "显示名称");
+            raw["worldObjectWorldWidth"] = objectWidth; raw["worldObjectWorldHeight"] = objectHeight;
+        }
         raw["minPlayerDistanceWorld"] = minDistance; raw["maxPlayerDistanceWorld"] = maxDistance;
         raw["allowInsideWorldSite"] = AllowInsideSiteBox.IsChecked == true; raw["discoveryMode"] = mode;
         if (mode == "publicNotice")
@@ -349,8 +394,15 @@ public partial class MainWindow : Window
             raw.Remove("publicNoticeText");
             raw.Remove("publicNoticeRevealExactLocation");
         }
+        if (mode == "hiddenUntilDiscovered")
+        {
+            raw["discoveryRadiusWorld"] = discoveryRadius;
+            JsonEdit.SetString(raw, "discoveryNoticeTitle", DiscoveryTitleBox.Text);
+            JsonEdit.SetString(raw, "discoveryNoticeText", DiscoveryTextBox.Text);
+        }
+        else { raw.Remove("discoveryRadiusWorld"); raw.Remove("discoveryNoticeTitle"); raw.Remove("discoveryNoticeText"); }
         raw["conditions"] = WriteConditions(); raw["expireOutcomes"] = WriteOutcomes();
-        SavePool();
+        if (spawnKind == "npc") SavePool();
         PackageStore.SaveDefinition(_package, _opportunity);
     }
 

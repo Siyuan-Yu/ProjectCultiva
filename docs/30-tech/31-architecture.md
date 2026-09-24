@@ -11,6 +11,8 @@
 
 > **2026-09-24 Player Control Continuity Seal：** [ADR-0039](../40-process/43-decisions/ADR-0039-external-faction-control-handoff.md) 冻结 Party 内顺序接替、Emergency External Handoff 与 True-Death Succession。Snapshot 保持 v8；Squads、ControlledSquadId、PlayerParty runtime、PlayerPartyWorldMotion、CharacterWorldPresence 与 Separate Space state 已足够表达成功态和无候选等待态。
 
+> **2026-09-24 DYNAMIC-DISCOVERY-01 Seal：** WorldOpportunity 已泛化为 NPC／Dynamic WorldObject；对象 Domain identity 与精确 Surface 坐标独立于 Host View。Snapshot 当前为 v9；v8 开发存档不猜测迁移。制作人验收通过，状态 **Producer Accepted / Sealed**；完整边界见 [261](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+
 ## 0. 文档分工
 
 | 文档 | 内容 |
@@ -67,7 +69,7 @@ XianXia.Tests/       针对 Core 的单元测试
 | Unity 版本 | 2022.3.6f1 | 已定，见 ADR-0001 |
 | 渲染管线 | Built-in | 已定，见 ADR-0001 |
 | UI 方案 | UGUI／UI Toolkit | 待定（ADR-0002） |
-| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v8 已实现 Content Progress、动态 Quest Instance 与 External Control Handoff authority；成功态不重复 handoff，无候选态在 world shell 完整恢复后重试；见 257／258／259／260 |
+| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v9 在 v8 Content Progress、动态 Quest Instance 与 External Control Handoff authority 上增加动态 Opportunity Object identity／位置／发现状态；见 257／258／259／260／261 |
 | 事件脚本化 | 纯配置表／轻量表达式 | 待定；依赖 `2E` |
 
 ## 3. 工程约定
@@ -99,5 +101,5 @@ XianXia.Tests/       针对 Core 的单元测试
 ## 7. 当前 Snapshot 与内容状态边界
 
 - 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
-- 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity 与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
+- 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity（含动态对象稳定身份、精确坐标与发现状态）与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。
 - SAVE-01 的 v7 Content Progress authority 继续保留；QUEST-INSTANCE-01 将当前格式升为 v8，Quest runtime 以稳定实例身份保存发布者、Opportunity 来源、接取者、期限、交付与失败原因以及下一实例序列。Active dialogue 仍不保存；v1～v7 不猜测动态委托发布者，统一要求新开局。详见 [257](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)／[258](../40-process/258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。

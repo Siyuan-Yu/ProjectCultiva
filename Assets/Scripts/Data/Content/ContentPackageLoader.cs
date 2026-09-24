@@ -1925,7 +1925,12 @@ namespace XianXia.Data.Content
                 SurfaceId = item.GetString("surfaceId", string.Empty),
                 Weight = ReadInt(item, "weight", 0),
                 MaxActive = ReadInt(item, "maxActive", 0),
+                SpawnKind = item.GetString("spawnKind", "npc"),
                 SpawnTableId = item.GetString("spawnTableId", string.Empty),
+                WorldObjectKind = item.GetString("worldObjectKind", string.Empty),
+                WorldObjectLabel = item.GetString("worldObjectLabel", string.Empty),
+                WorldObjectWorldWidth = ReadFloat(item, "worldObjectWorldWidth", 1f),
+                WorldObjectWorldHeight = ReadFloat(item, "worldObjectWorldHeight", 1f),
                 DurationDays = ReadInt(item, "durationDays", 0),
                 MinPlayerDistanceWorld = ReadFloat(item, "minPlayerDistanceWorld", 0f),
                 MaxPlayerDistanceWorld = ReadFloat(item, "maxPlayerDistanceWorld", 0f),
@@ -1933,7 +1938,10 @@ namespace XianXia.Data.Content
                 DiscoveryMode = item.GetString("discoveryMode", "worldVisible"),
                 PublicNoticeTitle = item.GetString("publicNoticeTitle", string.Empty),
                 PublicNoticeText = item.GetString("publicNoticeText", string.Empty),
-                PublicNoticeRevealExactLocation = item.GetBool("publicNoticeRevealExactLocation", false)
+                PublicNoticeRevealExactLocation = item.GetBool("publicNoticeRevealExactLocation", false),
+                DiscoveryRadiusWorld = ReadFloat(item, "discoveryRadiusWorld", 0f),
+                DiscoveryNoticeTitle = item.GetString("discoveryNoticeTitle", string.Empty),
+                DiscoveryNoticeText = item.GetString("discoveryNoticeText", string.Empty)
             };
             ReadConditions(item, "conditions", definition.Conditions, report, id.ToString());
             ReadOutcomes(item, "expireOutcomes", definition.ExpireOutcomes, report, id.ToString());

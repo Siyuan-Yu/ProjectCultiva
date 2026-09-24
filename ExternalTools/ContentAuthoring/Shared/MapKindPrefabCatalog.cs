@@ -8,6 +8,8 @@ namespace ContentAuthoring.Shared;
 /// </summary>
 public static class MapKindPrefabCatalog
 {
+    public static readonly string[] OpportunityPropKinds =
+        ["treeS", "treeM", "treeL", "ore", "cushion", "rock", "cave", "loot", "herbField", "rallyPoint"];
     public enum KindMode
     {
         Placeable = 0,

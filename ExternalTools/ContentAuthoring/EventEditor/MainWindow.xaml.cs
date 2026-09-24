@@ -79,6 +79,12 @@ public partial class MainWindow : Window
                 .Select(definition => new DefinitionOption(definition.Id,
                     (string.IsNullOrWhiteSpace(definition.Name) ? definition.Id : definition.Name + " · " + definition.Id))))
             .ToList();
+        ObjectWorldOpportunityBox.ItemsSource = _package.OfType("worldOpportunity")
+            .Where(definition => S(definition.Raw, "spawnKind", "npc") == "worldObject")
+            .OrderBy(definition => definition.Name, StringComparer.CurrentCulture)
+            .Select(definition => new DefinitionOption(definition.Id,
+                (string.IsNullOrWhiteSpace(definition.Name) ? definition.Id : definition.Name + " · " + definition.Id)))
+            .ToList();
         var characterSources = PackageStore.AllCharacterDefinitions(_package)
             .Select(character => character.SourceRelativePath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -396,6 +402,8 @@ public partial class MainWindow : Window
         if (WorldOpportunityBox.SelectedItem == null) WorldOpportunityBox.SelectedIndex = 0;
         WorldObjectKindBox.SelectedItem = UiLabels.ToLabel(UiLabels.WorldObjectKinds, S(raw, "worldObjectKind", "controlCore"), "控制核心");
         RefreshWorldObjectIds(S(raw, "worldObjectId"));
+        ObjectWorldOpportunityBox.SelectedItem = (ObjectWorldOpportunityBox.ItemsSource as IEnumerable<DefinitionOption>)?
+            .FirstOrDefault(option => option.Id == S(raw, "worldOpportunityId"));
         PriorityBox.Text = JsonEdit.GetInt(raw, "priority").ToString();
         RepeatBox.SelectedIndex = !JsonEdit.GetBool(raw, "once", true) ? 0 : S(raw, "onceScope", "global") switch { "perTarget" => 2, "perActorTarget" => 3, _ => 1 };
         EventConditionEditor.LoadFrom(raw["conditions"]); LocationBox.Text = S(raw, "locationId"); QuestIdBox.Text = S(raw, "questId");
@@ -448,9 +456,19 @@ public partial class MainWindow : Window
             }
             else if (trigger == "onInspect")
             {
-                candidate.Remove("npcDefinitionId"); candidate.Remove("npcTags"); candidate.Remove("worldOpportunityId");
-                JsonEdit.SetString(candidate, "worldObjectKind", UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore"));
-                JsonEdit.SetString(candidate, "worldObjectId", WorldObjectIdBox.Text);
+                candidate.Remove("npcDefinitionId"); candidate.Remove("npcTags");
+                var objectKind = UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore");
+                JsonEdit.SetString(candidate, "worldObjectKind", objectKind);
+                if (objectKind == "opportunityObject")
+                {
+                    candidate.Remove("worldObjectId");
+                    JsonEdit.SetString(candidate, "worldOpportunityId", (ObjectWorldOpportunityBox.SelectedItem as DefinitionOption)?.Id);
+                }
+                else
+                {
+                    candidate.Remove("worldOpportunityId");
+                    JsonEdit.SetString(candidate, "worldObjectId", WorldObjectIdBox.Text);
+                }
             }
             else { candidate.Remove("npcDefinitionId"); candidate.Remove("npcTags"); candidate.Remove("worldOpportunityId"); candidate.Remove("worldObjectKind"); candidate.Remove("worldObjectId"); }
             candidate["once"] = RepeatBox.SelectedIndex != 0; candidate["onceScope"] = RepeatBox.SelectedIndex switch { 2 => "perTarget", 3 => "perActorTarget", _ => "global" };
@@ -686,7 +704,7 @@ public partial class MainWindow : Window
         EventConditionsGroup.IsEnabled = !fallback;
     }
     void UpdateBindingUi() { var trigger = UiLabels.ToKey(UiLabels.EventTriggers, EventTriggerBox.SelectedItem as string ?? EventTriggerBox.Text, "manual"); NpcBindingPanel.Visibility = trigger == "onTalk" ? Visibility.Visible : Visibility.Collapsed; ObjectBindingPanel.Visibility = trigger == "onInspect" ? Visibility.Visible : Visibility.Collapsed; UpdateFallbackControls(); }
-    void RefreshWorldObjectIds(string keep) { var kind = UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore"); WorldObjectIdBox.ItemsSource = _package == null ? new[] { "" } : new[] { "" }.Concat(PackageStore.WorldObjectIds(_package, kind)).ToList(); WorldObjectIdBox.Text = keep ?? ""; }
+    void RefreshWorldObjectIds(string keep) { var kind = UiLabels.ToKey(UiLabels.WorldObjectKinds, WorldObjectKindBox.SelectedItem as string ?? WorldObjectKindBox.Text, "controlCore"); var dynamicObject = kind == "opportunityObject"; FixedObjectPanel.Visibility = dynamicObject ? Visibility.Collapsed : Visibility.Visible; OpportunityObjectPanel.Visibility = dynamicObject ? Visibility.Visible : Visibility.Collapsed; WorldObjectIdBox.ItemsSource = _package == null ? new[] { "" } : new[] { "" }.Concat(PackageStore.WorldObjectIds(_package, kind)).ToList(); WorldObjectIdBox.Text = dynamicObject ? "" : keep ?? ""; }
     void ClearNpcBinding_Click(object sender, RoutedEventArgs e) { NpcPicker.SelectedId = ""; Dispatcher.BeginInvoke(CommitInspector); }
     void ErrorList_MouseDoubleClick(object sender, MouseButtonEventArgs e) { if (ErrorList.SelectedItem is ValidationRow row && row.StepId != null) FlowGraph.Select(row.StepId, row.ChoiceId); }
     void Window_PreviewKeyDown(object sender, KeyEventArgs e)

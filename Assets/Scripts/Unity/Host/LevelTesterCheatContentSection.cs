@@ -59,6 +59,26 @@ namespace XianXia.Unity.Host
             }
             y += 28f;
 
+            GUI.Label(new Rect(x, y, width, lineH), "DYNAMIC-DISCOVERY-01", body); y += lineH + 2f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "生成 Hidden 石碑"))
+                SpawnDynamic(session, "base:world_opportunity_dynamic_hidden_stele");
+            y += 27f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "生成 PublicNotice 包裹"))
+                SpawnDynamic(session, "base:world_opportunity_dynamic_public_package");
+            y += 27f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "生成 WorldVisible 灵草"))
+                SpawnDynamic(session, "base:world_opportunity_dynamic_visible_herb");
+            y += 27f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "清理 DYNAMIC-DISCOVERY-01 验收物体"))
+            {
+                var count = WorldOpportunityDriver.ClearAcceptanceInstances(session.World,
+                    "base:world_opportunity_dynamic_hidden_stele",
+                    "base:world_opportunity_dynamic_public_package",
+                    "base:world_opportunity_dynamic_visible_herb");
+                _sectionStatus = "已清理 " + count + " 个动态机会物体。";
+            }
+            y += 28f;
+
             if (GUI.Button(new Rect(x, y, 100f, 24f), "刷新 Dump"))
                 RefreshDump(session, selection);
             y += 28f;
@@ -85,6 +105,12 @@ namespace XianXia.Unity.Host
                 ? (set ? "成功：标记已设置。" : "成功：标记已清除。")
                 : "失败：" + r.Error;
             RefreshDump(session, selection);
+        }
+
+        void SpawnDynamic(PlayableHostSession session, string definitionId)
+        {
+            var result = WorldOpportunityDriver.SpawnAcceptanceInstances(session.World, definitionId, 1, out var summary);
+            _sectionStatus = result.IsSuccess ? "已生成：" + summary : "失败：" + result.Error;
         }
 
         void ForceEvent(PlayableHostSession session, HostSelectionController selection)

@@ -175,9 +175,11 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> WorldOpportunityFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnTableId", "durationDays",
+            "id", "type", "name", "surfaceId", "weight", "maxActive", "spawnKind", "spawnTableId", "durationDays",
             "minPlayerDistanceWorld", "maxPlayerDistanceWorld", "allowInsideWorldSite", "discoveryMode",
-            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation", "conditions", "expireOutcomes"
+            "worldObjectKind", "worldObjectLabel", "worldObjectWorldWidth", "worldObjectWorldHeight",
+            "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation",
+            "discoveryRadiusWorld", "discoveryNoticeTitle", "discoveryNoticeText", "conditions", "expireOutcomes"
         };
 
         public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)

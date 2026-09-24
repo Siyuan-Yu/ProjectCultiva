@@ -2,7 +2,9 @@
 
 > **2026-09-21 Final Seal：** MAP-01～04 均已验收封板。Final Continuous Surface、Composer/FineEditor、Surface WorldMap 与正常 Gameplay authority 已落地；下文 Region／Outdoor LocalMap／Hex／旧 WorldGraph 规则只按历史或明确 Legacy Compatibility 阅读。
 
-> **2026-09-23 EVENT-02：** World Opportunity Director V1 已实现并待制作人验收。随机发生在“世界生成什么”层：仅为玩家当前 Surface 低频补充真实 NPC，再由 Continuous materialization 与 EVENT-01 互动链接管；不做走一步弹事件、hidden 或动态 WorldObject。
+> **2026-09-24 动态机会物体 Seal：** WorldOpportunity 可在 Continuous Surface 保存稳定对象实例与精确坐标；Host 只在当前 loaded chunk 物化已可见对象，Chunk unload 仅销毁 View。V1 动态对象不阻挡导航，也不升级为 Building／WorldSite。制作人验收通过，状态 **Producer Accepted / Sealed**；见 [DYNAMIC-DISCOVERY-01](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+
+> **2026-09-23 EVENT-02 历史边界：** World Opportunity Director V1 当时只为玩家当前 Surface 低频补充真实 NPC；其“hidden／动态 WorldObject 不做”已由 2026-09-24 DYNAMIC-DISCOVERY-01 supersede，历史范围保留。
 
 > **2026-09-23 EVENT-02A：** publicNotice Opportunity 进入持久 World Activity feed；可配置是否公开精确位置。定位只把现有 Gameplay camera 聚焦到同 Surface 世界坐标，不移动玩家、不寻路、不切换区域。
 

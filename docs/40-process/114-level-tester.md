@@ -87,6 +87,12 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
 Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Gameplay UI，不为各系统单独占用 F-Key。
 
+### DYNAMIC-DISCOVERY-01 验收入口（2026-09-24）
+
+进入 **Content** 页签后可确定生成三类动态物体：隐藏石碑、公开包裹、世界可见灵草。隐藏石碑用于验证半径外完全不可见、进入半径后永久揭示，以及 onInspect 后仍保留、选择显式解决后才移除；公开包裹用于验证生成时 Activity／Toast／定位；世界可见灵草用于验证直接呈现且不进入 Activity。该页签另有清理这三类 acceptance instance 的按钮和当前实例／发现／Activity 状态摘要。完整 AL～AQ 路线见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+
+制作人已于 2026-09-24 完成主链人工验收，DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均为 **Producer Accepted / Sealed**。Hidden 入口继续只输出开发验收坐标，不增加 Debug Locate；使用 WorldMap 正式坐标参照判断方向后关闭地图实际探索。
+
 ---
 
 ## 操作键（正式 Gameplay）

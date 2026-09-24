@@ -168,7 +168,7 @@ PlayerAgency
 Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCharacterUnavailable`，**不立即改变玩家身份**。
 当前 Active 失能时按 PlayerParty 固定顺序自动切换到下一名可控成员。Party 已无任何可控成员时进入统一 External Faction Control Handoff：仍有生者为 Emergency Takeover，全员 Dead／Removed 为 Succession。两者复用玩家势力外部候选与最强战力稳定排序，并在接管者自己的位置继续。Emergency Takeover 将旧 Party 生者留在原地 Recovery Squad；无外部候选则不拆旧 Party。玩家势力无人时的终局延期，不在此处补 GameOver 或复活。见 ADR-0039。
 
-External Handoff 的 membership transaction 只把 successor 本人从来源 NPC Squad 拆出，保留其余 roster 与 motion；旧存活失能成员进入 idle Recovery Squad，旧 Dead／Removed 成员各自进入唯一 singleton/corpse authority。Snapshot v8 已由 Squads、ControlledSquadId、PlayerParty runtime、PlayerPartyWorldMotion、CharacterWorldPresence 与 Separate Space state 完整表达成功态和等待态，不增加 schema；恢复成功态不得重复 handoff，等待态只在 world shell 完整后重新检查候选。
+External Handoff 的 membership transaction 只把 successor 本人从来源 NPC Squad 拆出，保留其余 roster 与 motion；旧存活失能成员进入 idle Recovery Squad，旧 Dead／Removed 成员各自进入唯一 singleton/corpse authority。当前 Snapshot v9 继续由 Squads、ControlledSquadId、PlayerParty runtime、PlayerPartyWorldMotion、CharacterWorldPresence 与 Separate Space state 完整表达成功态和等待态；v9 增量只属于动态 Opportunity WorldObject，控制交接 shape 未变。恢复成功态不得重复 handoff，等待态只在 world shell 完整后重新检查候选。
 
 失去势力领导权：去掉势力管理，保留人物控制；旧势力 AI 继续。
 

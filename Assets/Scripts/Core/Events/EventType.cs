@@ -81,7 +81,11 @@ namespace XianXia.Core.Events
         /// <summary>A wiped PlayerParty transferred control to a living player-faction successor.</summary>
         PlayerSuccessionResolved = 46,
         /// <summary>A living but fully incapacitated PlayerParty transferred control externally.</summary>
-        PlayerEmergencyControlTransferred = 47
+        PlayerEmergencyControlTransferred = 47,
+        /// <summary>A hidden dynamic WorldOpportunity object became player-known.</summary>
+        WorldOpportunityDiscovered = 48,
+        /// <summary>An active WorldOpportunity reached its explicit resolved terminal state.</summary>
+        WorldOpportunityResolved = 49
     }
 }
 

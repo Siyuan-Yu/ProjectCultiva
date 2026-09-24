@@ -78,6 +78,7 @@ public static class ContentFieldCatalog
         ("startMinigame", "开始小游戏")
         , ("acceptQuestFromTarget", "接受当前对象委托")
         , ("deliverQuestToTarget", "交付当前对象委托物品")
+        , ("resolveCurrentOpportunity", "解决当前世界机会")
     ];
 
     public static readonly string[] RealmOptions = ["凡人", "炼气", "筑基"];
@@ -160,6 +161,7 @@ public static class ContentFieldCatalog
 
     public static IReadOnlyList<FieldSpec> FieldsForOutcome(string kind) => kind switch
     {
+        "resolveCurrentOpportunity" => [],
         "addStock" or "removeStock" =>
         [
             new FieldSpec { Key = "id", Label = "资源", Editor = FieldEditorKind.Resource },

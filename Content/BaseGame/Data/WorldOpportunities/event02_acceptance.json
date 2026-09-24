@@ -5,24 +5,53 @@
       "id": "base:character_event02_wounded_cultivator_a",
       "type": "character",
       "name": "受伤散修甲",
-      "tags": ["npc", "cultivator", "wounded", "event02_acceptance"],
-      "baseAttributes": { "MaxHp": 45, "Attack": 8, "Defense": 5, "Speed": 8 },
+      "tags": [
+        "npc",
+        "cultivator",
+        "wounded",
+        "event02_acceptance"
+      ],
+      "baseAttributes": {
+        "MaxHp": 45,
+        "Attack": 8,
+        "Defense": 5,
+        "Speed": 8
+      },
       "initialRealmPlaceholder": "QiRefining"
     },
     {
       "id": "base:character_event02_wounded_cultivator_b",
       "type": "character",
       "name": "受伤散修乙",
-      "tags": ["npc", "cultivator", "wounded", "event02_acceptance"],
-      "baseAttributes": { "MaxHp": 42, "Attack": 7, "Defense": 6, "Speed": 7 },
+      "tags": [
+        "npc",
+        "cultivator",
+        "wounded",
+        "event02_acceptance"
+      ],
+      "baseAttributes": {
+        "MaxHp": 42,
+        "Attack": 7,
+        "Defense": 6,
+        "Speed": 7
+      },
       "initialRealmPlaceholder": "QiRefining"
     },
     {
       "id": "base:character_event02_temporary_merchant",
       "type": "character",
       "name": "临时行商",
-      "tags": ["npc", "merchant", "event02_acceptance"],
-      "baseAttributes": { "MaxHp": 36, "Attack": 4, "Defense": 4, "Speed": 7 },
+      "tags": [
+        "npc",
+        "merchant",
+        "event02_acceptance"
+      ],
+      "baseAttributes": {
+        "MaxHp": 36,
+        "Attack": 4,
+        "Defense": 4,
+        "Speed": 7
+      },
       "initialRealmPlaceholder": "Mortal"
     },
     {
@@ -30,8 +59,18 @@
       "type": "spawnTable",
       "name": "EVENT-02 受伤散修人物池",
       "entries": [
-        { "definitionId": "base:character_event02_wounded_cultivator_a", "weight": 1, "countMin": 1, "countMax": 1 },
-        { "definitionId": "base:character_event02_wounded_cultivator_b", "weight": 1, "countMin": 1, "countMax": 1 }
+        {
+          "definitionId": "base:character_event02_wounded_cultivator_a",
+          "weight": 1,
+          "countMin": 1,
+          "countMax": 1
+        },
+        {
+          "definitionId": "base:character_event02_wounded_cultivator_b",
+          "weight": 1,
+          "countMin": 1,
+          "countMax": 1
+        }
       ]
     },
     {
@@ -39,7 +78,12 @@
       "type": "spawnTable",
       "name": "EVENT-02 临时行商人物池",
       "entries": [
-        { "definitionId": "base:character_event02_temporary_merchant", "weight": 1, "countMin": 1, "countMax": 1 }
+        {
+          "definitionId": "base:character_event02_temporary_merchant",
+          "weight": 1,
+          "countMin": 1,
+          "countMax": 1
+        }
       ]
     },
     {
@@ -91,14 +135,20 @@
       "type": "contentEvent",
       "name": "EVENT-02 受伤散修交谈",
       "trigger": "onTalk",
-      "npcTags": ["cultivator", "wounded"],
+      "npcTags": [
+        "cultivator",
+        "wounded"
+      ],
       "worldOpportunityId": "base:world_opportunity_event02_wounded_cultivator",
       "priority": 50,
       "topicText": "询问伤势",
       "once": false,
       "onceScope": "global",
       "conditions": [
-        { "kind": "questOfferableFromTarget", "id": "base:quest_event02_wounded_cultivator_herb" }
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_event02_wounded_cultivator_herb"
+        }
       ],
       "entryStepId": "start",
       "steps": [
@@ -113,17 +163,41 @@
               "text": "我帮你去找。",
               "conditions": [],
               "outcomes": [
-                { "kind": "acceptQuestFromTarget", "id": "base:quest_event02_wounded_cultivator_herb" }
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_event02_wounded_cultivator_herb"
+                }
               ],
               "nextStepId": "player_accept",
               "unavailableMode": "disabled",
               "requirementText": ""
             },
-            { "id": "leave", "text": "我还有别的事。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+            {
+              "id": "leave",
+              "text": "我还有别的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
           ]
         },
-        { "id": "player_accept", "speakerRef": "@actor", "text": "好，我帮你找。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
-        { "id": "thanks", "speakerRef": "@target", "text": "「多谢道友。」", "outcomes": [], "choices": [] }
+        {
+          "id": "player_accept",
+          "speakerRef": "@actor",
+          "text": "好，我帮你找。",
+          "nextStepId": "thanks",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「多谢道友。」",
+          "outcomes": [],
+          "choices": []
+        }
       ]
     },
     {
@@ -131,14 +205,20 @@
       "type": "contentEvent",
       "name": "EVENT-02 受伤散修灵药交付",
       "trigger": "onTalk",
-      "npcTags": ["cultivator", "wounded"],
+      "npcTags": [
+        "cultivator",
+        "wounded"
+      ],
       "worldOpportunityId": "base:world_opportunity_event02_wounded_cultivator",
       "priority": 60,
       "topicText": "交付灵药",
       "once": false,
       "onceScope": "global",
       "conditions": [
-        { "kind": "questActiveFromTarget", "id": "base:quest_event02_wounded_cultivator_herb" }
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_event02_wounded_cultivator_herb"
+        }
       ],
       "entryStepId": "start",
       "steps": [
@@ -152,21 +232,55 @@
               "id": "hand_in",
               "text": "把灵药交给他。",
               "conditions": [
-                { "kind": "questDeliveryAvailableFromTarget", "id": "base:quest_event02_wounded_cultivator_herb" }
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_event02_wounded_cultivator_herb"
+                }
               ],
               "outcomes": [
-                { "kind": "deliverQuestToTarget", "id": "base:quest_event02_wounded_cultivator_herb" },
-                { "kind": "relationDelta", "fromDefinitionId": "@target", "toDefinitionIds": ["@actor"], "amount": 1 }
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_event02_wounded_cultivator_herb"
+                },
+                {
+                  "kind": "relationDelta",
+                  "fromDefinitionId": "@target",
+                  "toDefinitionIds": [
+                    "@actor"
+                  ],
+                  "amount": 1
+                }
               ],
               "nextStepId": "player_hand_in",
               "unavailableMode": "disabled",
               "requirementText": "需要灵药 ×1"
             },
-            { "id": "not_yet", "text": "我还没找到。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+            {
+              "id": "not_yet",
+              "text": "我还没找到。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
           ]
         },
-        { "id": "player_hand_in", "speakerRef": "@actor", "text": "这份灵药你先拿去用。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
-        { "id": "thanks", "speakerRef": "@target", "text": "「多谢道友，此情我记下了。」", "outcomes": [], "choices": [] }
+        {
+          "id": "player_hand_in",
+          "speakerRef": "@actor",
+          "text": "这份灵药你先拿去用。",
+          "nextStepId": "thanks",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「多谢道友，此情我记下了。」",
+          "outcomes": [],
+          "choices": []
+        }
       ]
     },
     {
@@ -180,7 +294,10 @@
       "once": false,
       "onceScope": "global",
       "conditions": [
-        { "kind": "questOfferableFromTarget", "id": "base:quest_event02_temporary_merchant_herb" }
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_event02_temporary_merchant_herb"
+        }
       ],
       "entryStepId": "start",
       "steps": [
@@ -195,17 +312,41 @@
               "text": "可以，我帮你留意。",
               "conditions": [],
               "outcomes": [
-                { "kind": "acceptQuestFromTarget", "id": "base:quest_event02_temporary_merchant_herb" }
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_event02_temporary_merchant_herb"
+                }
               ],
               "nextStepId": "player_accept",
               "unavailableMode": "disabled",
               "requirementText": ""
             },
-            { "id": "leave", "text": "我现在没空。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+            {
+              "id": "leave",
+              "text": "我现在没空。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
           ]
         },
-        { "id": "player_accept", "speakerRef": "@actor", "text": "可以，我帮你留意。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
-        { "id": "thanks", "speakerRef": "@target", "text": "「那便多谢了。」", "outcomes": [], "choices": [] }
+        {
+          "id": "player_accept",
+          "speakerRef": "@actor",
+          "text": "可以，我帮你留意。",
+          "nextStepId": "thanks",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「那便多谢了。」",
+          "outcomes": [],
+          "choices": []
+        }
       ]
     },
     {
@@ -219,7 +360,10 @@
       "once": false,
       "onceScope": "global",
       "conditions": [
-        { "kind": "questActiveFromTarget", "id": "base:quest_event02_temporary_merchant_herb" }
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_event02_temporary_merchant_herb"
+        }
       ],
       "entryStepId": "start",
       "steps": [
@@ -233,21 +377,288 @@
               "id": "hand_in",
               "text": "交给他一份灵药。",
               "conditions": [
-                { "kind": "questDeliveryAvailableFromTarget", "id": "base:quest_event02_temporary_merchant_herb" }
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_event02_temporary_merchant_herb"
+                }
               ],
               "outcomes": [
-                { "kind": "deliverQuestToTarget", "id": "base:quest_event02_temporary_merchant_herb" },
-                { "kind": "relationDelta", "fromDefinitionId": "@target", "toDefinitionIds": ["@actor"], "amount": 1 }
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_event02_temporary_merchant_herb"
+                },
+                {
+                  "kind": "relationDelta",
+                  "fromDefinitionId": "@target",
+                  "toDefinitionIds": [
+                    "@actor"
+                  ],
+                  "amount": 1
+                }
               ],
               "nextStepId": "player_hand_in",
               "unavailableMode": "disabled",
               "requirementText": "需要灵药 ×1"
             },
-            { "id": "not_yet", "text": "还没有。", "conditions": [], "outcomes": [], "nextStepId": "", "unavailableMode": "disabled", "requirementText": "" }
+            {
+              "id": "not_yet",
+              "text": "还没有。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
           ]
         },
-        { "id": "player_hand_in", "speakerRef": "@actor", "text": "这一份你拿去吧。", "nextStepId": "thanks", "outcomes": [], "choices": [] },
-        { "id": "thanks", "speakerRef": "@target", "text": "「正是我要找的。多谢了。」", "outcomes": [], "choices": [] }
+        {
+          "id": "player_hand_in",
+          "speakerRef": "@actor",
+          "text": "这一份你拿去吧。",
+          "nextStepId": "thanks",
+          "outcomes": [],
+          "choices": []
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「正是我要找的。多谢了。」",
+          "outcomes": [],
+          "choices": []
+        }
+      ]
+    },
+    {
+      "id": "base:world_opportunity_dynamic_hidden_stele",
+      "type": "worldOpportunity",
+      "name": "残破石碑",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 0,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "rock",
+      "worldObjectLabel": "残破石碑",
+      "worldObjectWorldWidth": 1.2,
+      "worldObjectWorldHeight": 1.5,
+      "durationDays": 5,
+      "minPlayerDistanceWorld": 2.0,
+      "maxPlayerDistanceWorld": 3.0,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "hiddenUntilDiscovered",
+      "discoveryRadiusWorld": 1.25,
+      "discoveryNoticeTitle": "残破石碑",
+      "discoveryNoticeText": "你在荒草间发现了一块残破石碑。",
+      "conditions": [],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:world_opportunity_dynamic_public_package",
+      "type": "worldOpportunity",
+      "name": "遗落包裹",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 0,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "loot",
+      "worldObjectLabel": "遗落包裹",
+      "worldObjectWorldWidth": 1.0,
+      "worldObjectWorldHeight": 1.0,
+      "durationDays": 3,
+      "minPlayerDistanceWorld": 2.0,
+      "maxPlayerDistanceWorld": 3.0,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "publicNotice",
+      "publicNoticeTitle": "遗落包裹",
+      "publicNoticeText": "有人看见荒村附近遗落了一个包裹。",
+      "publicNoticeRevealExactLocation": true,
+      "conditions": [],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:world_opportunity_dynamic_visible_herb",
+      "type": "worldOpportunity",
+      "name": "奇异灵草",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 0,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "herbField",
+      "worldObjectLabel": "奇异灵草",
+      "worldObjectWorldWidth": 1.0,
+      "worldObjectWorldHeight": 1.0,
+      "durationDays": 3,
+      "minPlayerDistanceWorld": 2.0,
+      "maxPlayerDistanceWorld": 3.0,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "worldVisible",
+      "conditions": [],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:event_dynamic_hidden_stele_inspect",
+      "type": "contentEvent",
+      "name": "DYNAMIC-DISCOVERY-01·查看残破石碑",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_dynamic_hidden_stele",
+      "priority": 50,
+      "topicText": "查看碑文",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "acceptance:dynamic_hidden_stele_seen"
+        }
+      ],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "石碑上的字迹已经剥落大半，只能辨认出几句残缺的行路记载。石碑仍留在原处。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "acceptance:dynamic_hidden_stele_seen"
+            }
+          ],
+          "choices": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_dynamic_hidden_stele_resolve",
+      "type": "contentEvent",
+      "name": "DYNAMIC-DISCOVERY-01·结束石碑调查",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_dynamic_hidden_stele",
+      "priority": 60,
+      "topicText": "结束调查",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [
+        {
+          "kind": "storyFlag",
+          "id": "acceptance:dynamic_hidden_stele_seen"
+        }
+      ],
+      "entryStepId": "resolve",
+      "steps": [
+        {
+          "id": "resolve",
+          "speakerRef": "",
+          "text": "你已经记下碑文，决定取走一块松动的残片。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "take_fragment",
+              "text": "取走残片，结束调查",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "暂时保留石碑",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_dynamic_public_package_inspect",
+      "type": "contentEvent",
+      "name": "DYNAMIC-DISCOVERY-01·调查遗落包裹",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_dynamic_public_package",
+      "priority": 50,
+      "topicText": "检查包裹",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "包裹上没有留下主人的名号，里面也没有值得记录的货物。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "finish",
+              "text": "收起包裹，结束此事",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_dynamic_visible_herb_inspect",
+      "type": "contentEvent",
+      "name": "DYNAMIC-DISCOVERY-01·观察奇异灵草",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_dynamic_visible_herb",
+      "priority": 50,
+      "topicText": "观察灵草",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "这株灵草叶脉微亮，在荒野中十分醒目。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "暂时不动它",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "finish",
+              "text": "结束观察并移除验收物体",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
       ]
     }
   ]

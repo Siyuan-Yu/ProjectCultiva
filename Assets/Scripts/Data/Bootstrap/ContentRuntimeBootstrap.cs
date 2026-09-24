@@ -83,7 +83,12 @@ namespace XianXia.Data.Bootstrap
                     SurfaceId = definition.SurfaceId ?? string.Empty,
                     Weight = definition.Weight,
                     MaxActive = definition.MaxActive,
+                    SpawnKind = definition.SpawnKind ?? WorldOpportunitySpawnKind.Npc,
                     SpawnTableId = definition.SpawnTableId ?? string.Empty,
+                    WorldObjectKind = definition.WorldObjectKind ?? string.Empty,
+                    WorldObjectLabel = definition.WorldObjectLabel ?? string.Empty,
+                    WorldObjectWorldWidth = definition.WorldObjectWorldWidth,
+                    WorldObjectWorldHeight = definition.WorldObjectWorldHeight,
                     DurationDays = definition.DurationDays,
                     MinPlayerDistanceWorld = definition.MinPlayerDistanceWorld,
                     MaxPlayerDistanceWorld = definition.MaxPlayerDistanceWorld,
@@ -91,20 +96,26 @@ namespace XianXia.Data.Bootstrap
                     DiscoveryMode = definition.DiscoveryMode ?? WorldOpportunityDiscoveryMode.WorldVisible,
                     PublicNoticeTitle = definition.PublicNoticeTitle ?? string.Empty,
                     PublicNoticeText = definition.PublicNoticeText ?? string.Empty,
-                    PublicNoticeRevealExactLocation = definition.PublicNoticeRevealExactLocation
+                    PublicNoticeRevealExactLocation = definition.PublicNoticeRevealExactLocation,
+                    DiscoveryRadiusWorld = definition.DiscoveryRadiusWorld,
+                    DiscoveryNoticeTitle = definition.DiscoveryNoticeTitle ?? string.Empty,
+                    DiscoveryNoticeText = definition.DiscoveryNoticeText ?? string.Empty
                 };
                 spec.Conditions.AddRange(definition.Conditions);
                 spec.ExpireOutcomes.AddRange(definition.ExpireOutcomes);
-                if (!DefinitionId.TryParse(definition.SpawnTableId, out var tableId) ||
-                    !registry.TryGetSpawnTable(tableId, out var table))
-                    return Result.Failure(ErrorCode.NotFound, "WorldOpportunity spawn table missing.", definition.SpawnTableId);
-                for (var i = 0; i < table.Entries.Count; i++)
+                if (spec.SpawnKind == WorldOpportunitySpawnKind.Npc)
                 {
-                    var entry = table.Entries[i];
-                    if (entry == null || entry.Weight <= 0) continue;
-                    var built = ContentGameStart.BuildSpawnFromDefinition(registry, entry.DefinitionId, entityKindNpc: true);
-                    if (built.IsFailure) return Result.Failure(built.Error);
-                    spec.NpcCandidates.Add(new WorldOpportunityNpcCandidate { Spawn = built.Value, Weight = entry.Weight });
+                    if (!DefinitionId.TryParse(definition.SpawnTableId, out var tableId) ||
+                        !registry.TryGetSpawnTable(tableId, out var table))
+                        return Result.Failure(ErrorCode.NotFound, "WorldOpportunity spawn table missing.", definition.SpawnTableId);
+                    for (var i = 0; i < table.Entries.Count; i++)
+                    {
+                        var entry = table.Entries[i];
+                        if (entry == null || entry.Weight <= 0) continue;
+                        var built = ContentGameStart.BuildSpawnFromDefinition(registry, entry.DefinitionId, entityKindNpc: true);
+                        if (built.IsFailure) return Result.Failure(built.Error);
+                        spec.NpcCandidates.Add(new WorldOpportunityNpcCandidate { Spawn = built.Value, Weight = entry.Weight });
+                    }
                 }
                 if (!world.WorldOpportunities.RegisterSpec(spec))
                     return Result.Failure(ErrorCode.ContentLoadFailed, "WorldOpportunity registration failed.", spec.Id);

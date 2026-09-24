@@ -7,7 +7,7 @@ namespace XianXia.Core.Content
         /// setFlag | clearFlag | addStock | removeStock | startQuest | completeQuestHint |
         /// relationDelta | grantProgress | discoverSite | acceptQuestFromTarget | deliverQuestToTarget |
         /// addCounter | setCounter | setDailyFlag | clearDailyFlag |
-        /// learnManual | setEncounterCleared | startMinigame
+        /// learnManual | setEncounterCleared | startMinigame | resolveCurrentOpportunity
         /// </summary>
         public string Kind { get; set; } = string.Empty;
         public string Id { get; set; } = string.Empty;

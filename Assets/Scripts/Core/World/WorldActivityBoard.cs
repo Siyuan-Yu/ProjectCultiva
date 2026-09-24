@@ -112,6 +112,34 @@ namespace XianXia.Core.World
 
         public void RestoreSequence(ulong next) => NextActivitySequence = next == 0 ? 1UL : next;
 
+        public sealed class RuntimeState
+        {
+            internal readonly List<WorldActivityEntry> Entries = new List<WorldActivityEntry>();
+            internal ulong Next;
+        }
+
+        public RuntimeState CaptureRuntimeState()
+        {
+            var state = new RuntimeState { Next = NextActivitySequence };
+            foreach (var entry in _entries.Values) state.Entries.Add(Clone(entry));
+            return state;
+        }
+
+        public void RestoreRuntimeState(RuntimeState state)
+        {
+            _entries.Clear(); _activeBySource.Clear();
+            if (state == null) { NextActivitySequence = 1; return; }
+            NextActivitySequence = state.Next;
+            foreach (var entry in state.Entries) RestoreEntry(Clone(entry));
+        }
+
+        static WorldActivityEntry Clone(WorldActivityEntry entry) => new WorldActivityEntry
+        {
+            ActivityId = entry.ActivityId, SourceKind = entry.SourceKind, SourceId = entry.SourceId,
+            Title = entry.Title, Body = entry.Body, CreatedDayIndex = entry.CreatedDayIndex,
+            State = entry.State, IsRead = entry.IsRead, ResolvedDayIndex = entry.ResolvedDayIndex
+        };
+
         void TrimHistory()
         {
             while (HistoryCount() > HistoryCapacity)

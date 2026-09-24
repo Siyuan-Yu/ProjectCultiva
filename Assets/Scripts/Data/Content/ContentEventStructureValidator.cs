@@ -94,7 +94,7 @@ namespace XianXia.Data.Content
         internal static readonly HashSet<string> WorldObjectKinds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "controlCore", "factionFlag", "farmPlot", "destructible",
-            "housing", "workArea", "recoverySpot", "storageRoom"
+            "housing", "workArea", "recoverySpot", "storageRoom", "opportunityObject"
         };
     }
 }
