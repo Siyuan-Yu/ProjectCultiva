@@ -14,7 +14,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 
 > **现行术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 是玩家 Squad／Active 控制投影。历史 FormalArmy／Hex 输入不是 runtime definition，必须先离线转换为独立的当前格式副本。CharacterEncounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)／[ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。
 
-> 状态：持续维护 | 最后更新：2026-09-24
+> 状态：持续维护 | 最后更新：2026-09-25
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -398,3 +398,25 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | WorldSiteCoreWarfareService | 玩家 SiteCore 战争统一领域入口；真实守军查询、目标约束、占领争夺与原政治服务交接 |
 | SiteCoreEncounterObjective | CharacterEncounter 内最多一个未完成的战略核心目标；FixedSiteCoreCapture 或 RemovableFactionFlagDestruction，保存目标身份与结果，不复制物理或政治权威 |
 | ObjectiveDefenderSquads | 当前遭遇因战略目标追加的真实防守小队事实；独立于被冻结的关系候选，不重置原 roster |
+
+## DELAYED-EVENT-01（2026-09-25）
+
+| 术语 | 含义 |
+|---|---|
+| ScheduledContentEventBoard | 延迟 ContentEvent pending authority；事务与 Snapshot v10 保存队列和递增序号 |
+| ScheduledContentEventInstance | 指定 EventId、绝对 ExecuteTick 和原实例上下文的一次独立执行约定；失效取消，不按模板寻找替身 |
+
+## SOCIAL-QUEST-01（2026-09-25）
+
+| 术语 | 含义 |
+|---|---|
+| QuestKind / IsSecretRealm | Quest 正式类型 general/secretRealm，独立于 definition.type |
+| SecretRealmQuestSocialTopic | 真实 Active 秘境 QuestInstance 的 Priority=0 派生社交话题 |
+| QuestCompanionBoard | 临时 NPC→QuestInstance 绑定 authority，不改变永久 roster 或 FactionMembership |
+| PendingDeparture | 任务目的已结束，等待普通户外安全时机退出 Party；不在秘境中消失 |
+
+
+### SOCIAL-QUEST-01 最终 P1 语义更正（2026-09-25）
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行保留 Party/Squad presence、容量、转场与自动战斗；不可切 Active，不接受玩家手动战斗指令。可控性由永久 Character roster / 既有玩家势力管理身份派生，并排除临时绑定；UI 与后端共用判定，读档/自动切换也执行。此规则替代此前临时同行可切 Active 的描述。Snapshot v11 shape 和绑定生命周期不变。制作人主流程已验收；P1 与封板详情见 process 264。

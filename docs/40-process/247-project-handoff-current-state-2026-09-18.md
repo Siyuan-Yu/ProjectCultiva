@@ -10,13 +10,28 @@ Temporary quest companion participates in party travel and combat, but is not a 
 当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
 
 
+> 2026-09-25 SOCIAL-QUEST-01 最终 P1：制作人主流程人工验收通过。临时同行仅参与移动/空间/战斗，不授予 Active 或玩家手动战斗控制；统一 authority、UI/backend guard、restore reconcile 已实施。Snapshot v11 不变；最终封板授权已由制作人给出。后续方向不自动开始。
+
+## 2026-09-25 — SOCIAL-QUEST-01
+
+**Producer Accepted / Sealed**。在未提交 DELAYED-EVENT-01 基线上完成 questKind、Active 秘境实例话题、NPC→Actor 门槛20、临时同行绑定、Party/Squad 跟随与安全离队、Snapshot v11、QuestEditor 与 LevelTester 验收入口。保留前轮改动；无 stage/commit/push，无 Unity/行为测试。详见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+
+当前路线：SOCIAL-QUEST-01 → Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor：Future / Only if gameplay later requires it。后续不自动启动。
+
+
+## 2026-09-25 当前接续：DELAYED-EVENT-01
+
+[263](263-delayed-event-01-content-event-scheduling-2026-09-25.md) 已完成独立延迟队列、原实例上下文、Outcome 事务回滚、安全串行呈现、Snapshot v10、EventEditor 增量与临时行商验收内容。状态 **Implementation Complete / Producer Acceptance Pending**；未提交、未封板。Snapshot 当前 v10，v1～v9 严格拒绝。
+
+当前路线：DELAYED-EVENT-01 → SOCIAL-QUEST-01（Quest Social Topic + Invite NPC To Join / Participate）→ Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation 为 Future / Only if gameplay later proves it necessary。下面旧 KNOWLEDGE-DELAY-01／Knowledge + delayed 的路线表述均已 superseded，不是当前授权。
+
 ## 2026-09-25 最新接续摘要：DYNAMIC-DISCOVERY-01＋MAP-COORD-01 FINAL SEAL
 
 [DYNAMIC-DISCOVERY-01](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md) 与 [MAP-COORD-01](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md) 已于 2026-09-24 完成制作人人工验收，状态均为 **Producer Accepted / Sealed**。`WorldOpportunity` 现同时支持既有 NPC 与不创建 Character Entity 的动态 WorldObject；动态物体以 Opportunity Instance 派生稳定 `WorldObjectInstanceId`，直接保存 `SurfaceId + exact WorldPosition`，由独立 Host transient registry 呈现与拾取，不进入导航阻挡。
 
 发现模式固定为 `worldVisible`、`publicNotice`、`hiddenUntilDiscovered`。隐藏物体在 Domain 中先存在，任一存活 PlayerParty 成员进入 authored radius 后永久揭示；发现前不创建 Presentation、Interaction、Activity、Toast 或定位入口。onInspect 通过 `worldObjectKind=opportunityObject + worldOpportunityId` 绑定模板，`resolveCurrentOpportunity` 显式终结当前实例并与 Activity 变更共同参与 Outcome transaction；Inspect 本身不等于解决。
 
-Snapshot 当前为 **v9**，持久保存 SpawnKind、稳定物体身份、精确坐标与发现状态；v8 及更早版本明确不兼容，不猜测迁移。OpportunityEditor、EventEditor 与 LevelTester 三条稳定验收物体已接通。制作人确认 Hidden 石碑的未发现隐藏、距离发现、调查保留、显式解决与 Activity 主链通过。WorldMap 另以同一 Surface 投影显示 pointer／player exact coordinate 与自适应 major ticks，不泄漏隐藏 Opportunity。下一里程碑为 `KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation`，状态 **Planned**。
+Snapshot 当前为 **v9**，持久保存 SpawnKind、稳定物体身份、精确坐标与发现状态；v8 及更早版本明确不兼容，不猜测迁移。OpportunityEditor、EventEditor 与 LevelTester 三条稳定验收物体已接通。制作人确认 Hidden 石碑的未发现隐藏、距离发现、调查保留、显式解决与 Activity 主链通过。WorldMap 另以同一 Surface 投影显示 pointer／player exact coordinate 与自适应 major ticks，不泄漏隐藏 Opportunity。当时 KNOWLEDGE-DELAY-01 方向已由顶部 DELAYED-EVENT-01 / SOCIAL-QUEST-01 顺序替代。
 
 ## 2026-09-24 已封板基线：PLAYER CONTROL CONTINUITY / SUCCESSION FINAL SEAL
 
@@ -64,7 +79,7 @@ LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01、DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均已 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v9；下一里程碑 KNOWLEDGE-DELAY-01 为 Planned。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01、DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均已 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v10；DELAYED-EVENT-01 已实施待验收，下一 SOCIAL-QUEST-01 为 Planned。
 
 ### DYNAMIC-DISCOVERY-01 当前实现（2026-09-24）
 

@@ -85,6 +85,7 @@ public partial class JsonArrayEditor : UserControl
                     if (kindCombo.SelectedItem is not ComboBoxItem item || item.Tag is not string kind) return;
                     if (string.Equals(row.Kind, kind, StringComparison.Ordinal)) return;
                     row.Kind = kind;
+                    if (kind == "scheduleEvent" && string.IsNullOrEmpty(row.Get("amount"))) row.Set("amount", "1");
                     RebuildRows();
                     Changed?.Invoke(this, EventArgs.Empty);
                 };
@@ -169,6 +170,32 @@ public partial class JsonArrayEditor : UserControl
             _ => []
         };
 
+        if (spec.Editor == FieldEditorKind.Event)
+        {
+            var panel = new StackPanel();
+            var search = new TextBox { ToolTip = "搜索事件名称或 Id" };
+            var combo = new ComboBox { DisplayMemberPath = "Label", SelectedValuePath = "Id" };
+            var options = _package?.OfType("contentEvent").OrderBy(e => e.Id, StringComparer.Ordinal)
+                .Select(e => new EventOption(e.Id, JsonEdit.GetString(e.Raw, "name") + " · " + e.Id)).ToList() ?? [];
+            bool refreshing = false;
+            void Refresh()
+            {
+                refreshing = true;
+                combo.ItemsSource = options.Where(e => e.Id == row.Get(spec.Key) ||
+                    e.Label.Contains(search.Text, StringComparison.OrdinalIgnoreCase)).ToList();
+                combo.SelectedValue = row.Get(spec.Key);
+                refreshing = false;
+            }
+            Refresh();
+            search.TextChanged += (_, _) => Refresh();
+            combo.SelectionChanged += (_, _) =>
+            {
+                if (refreshing || combo.SelectedValue is not string id || id == row.Get(spec.Key)) return;
+                row.Set(spec.Key, id); Changed?.Invoke(this, EventArgs.Empty);
+            };
+            panel.Children.Add(search); panel.Children.Add(combo);
+            return panel;
+        }
         if (spec.Editor == FieldEditorKind.Number)
         {
             var box = new TextBox { Text = row.Get(spec.Key) };
@@ -206,6 +233,8 @@ public partial class JsonArrayEditor : UserControl
         RebuildRows();
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    sealed record EventOption(string Id, string Label);
 
     sealed class RowState
     {

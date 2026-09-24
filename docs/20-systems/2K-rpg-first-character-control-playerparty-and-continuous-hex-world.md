@@ -550,3 +550,16 @@ CharacterEncounter = 临时战术空间 + participant origin／return／tactical
 
 Retired：HexWorld、Hex path、Outdoor LocalMap、FormalArmy runtime
 ```
+
+## SOCIAL-QUEST-01 Temporary Quest Companion（2026-09-25）
+
+Producer Accepted / Sealed；见 [264](../40-process/264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。QuestCompanionBoard 保存 CompanionEntityId、QuestInstanceId、OriginalSquadId、Active/PendingDeparture，membership 仍来自受控 Squad。仅专用受控加入入口绕过永久 roster，容量/空间/生命/battle lock 共用。原 Squad 保留剩余成员，命令目标失效则转 leader，空源 motion 删除。
+Host 共用加入 follow、头像/Active、空间转场与 CharacterEncounter；Selection/CommandBridge 投影当前 Party，不写 session.CharacterIds。
+任务结束先 PendingDeparture；回普通 Continuous Surface 且无独立空间/战斗/Dialogue/transition/modal，并有另一合法 Active 才离队。本人 Active 时先按 Party 稳定顺序切换；本人失能则等待。复用 TryStopFollow 保留 view 精确落点、清跟随和工作；原 Squad 合法、未满、无锁、同 Surface 同落点才恢复，否则 singleton，不 teleport。
+死亡/Removed 清绑定；既有 Emergency handoff 使成员离开受控 Squad 时清绑定，不干预其恢复 Squad/死亡/继承规则。Snapshot 必须匹配受控 Squad；重复/非法绑定拒绝，恢复不重新邀请。
+
+
+### SOCIAL-QUEST-01 最终 P1 语义更正（2026-09-25）
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行保留 Party/Squad presence、容量、转场与自动战斗；不可切 Active，不接受玩家手动战斗指令。可控性由永久 Character roster / 既有玩家势力管理身份派生，并排除临时绑定；UI 与后端共用判定，读档/自动切换也执行。此规则替代此前临时同行可切 Active 的描述。Snapshot v11 shape 和绑定生命周期不变。制作人主流程已验收；P1 与封板详情见 process 264。

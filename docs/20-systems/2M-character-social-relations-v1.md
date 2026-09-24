@@ -125,3 +125,15 @@ Host 使用统一“人物档案”大面板：左侧身份栏固定，顶部为
 不实现自动关系衰减、目击与消息传播、关系图谱编辑器、程序化家谱、恋爱／结拜／拜师完整玩法、势力外交联动、复仇任务或报复 AI。
 
 后续附近敌情应复用本页真实 Bond／Attitude／Ledger 事实，但不得把态度直接写成 War，或给仇敌跨大陆永久精确追踪。战争敌对和私人敌对可统一提示，原因必须保留；具体阈值、天数、距离、合并和滞回参数待调。
+
+## SOCIAL-QUEST-01 临时秘境同行（2026-09-25）
+
+Producer Accepted / Sealed；见 [264](../40-process/264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+关系唯一真源 RelationshipLedger，方向 **NPC→实际 Actor**，独立 `SecretRealmQuestInviteMinScore=20`（含等于），不复用其它阈值或组件缓存。LevelTester 经 RelationshipService 写19/20及反向30对照。
+Actor 是可行动 Party 成员且有合法 Active；Target 是真实可行动 Character/Npc、非敌对、无 battle lock、未在 Party/其它绑定、同可交互空间，Party 最多6人。WorldOpportunity NPC V1 拒绝，不改到期生命周期。同行不改 faction/tag/永久 roster/招募。无性格/风险决策、Knowledge/Rumor 或主动 AI。
+
+
+### SOCIAL-QUEST-01 最终 P1 语义更正（2026-09-25）
+
+Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
+临时同行保留 Party/Squad presence、容量、转场与自动战斗；不可切 Active，不接受玩家手动战斗指令。可控性由永久 Character roster / 既有玩家势力管理身份派生，并排除临时绑定；UI 与后端共用判定，读档/自动切换也执行。此规则替代此前临时同行可切 Active 的描述。Snapshot v11 shape 和绑定生命周期不变。制作人主流程已验收；P1 与封板详情见 process 264。

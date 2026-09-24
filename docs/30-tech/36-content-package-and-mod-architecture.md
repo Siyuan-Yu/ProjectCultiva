@@ -14,7 +14,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 
 > **2026-09-15 Editor 工具链／旧地图 Content 迁移方向：** [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) 补充 **Authoring Source ≠ Runtime Generated Content** 契约（见 §2.3）：`WorldComposition`／`WorldSiteBlueprint`／`DetailPatch` 是 Authoring Source，由 bake 产出的 Final Continuous Surface 才是 Runtime Content。**不要让 Authoring JSON 自动成为正常 runtime DefinitionRegistry authority。**
 
-> 状态：**ContentPackage／BaseGame loader 已实现；外部 Mod 产品能力仍为分阶段设计** | 优先级：P0 | 最后更新：2026-09-22
+> 状态：**ContentPackage／BaseGame loader 已实现；外部 Mod 产品能力仍为分阶段设计** | 优先级：P0 | 最后更新：2026-09-25
 > **当前不承诺 Mods/ 产品加载、任意脚本 Mod、Workshop、热重载或完整 SDK。**
 
 ## 1. 正式定位
@@ -198,3 +198,13 @@ Content/
 - 重复 ID／缺依赖／循环依赖无法静默进游戏  
 - 存档含 Mod 列表；缺 Mod 有警告  
 - 白名单外 Effect 配置在校验期失败  
+
+## 11. DELAYED-EVENT-01 authoring 与存档契约（2026-09-25）
+
+[ADR-0040](../40-process/43-decisions/ADR-0040-delayed-content-event-authority-and-snapshot-v10.md) 确认 `{"kind":"scheduleEvent","id":"base:event_followup","amount":1}`，Id 必须为存在的 ContentEvent，Amount 必须是 1～Int32.MaxValue 整数日，runtime 再检查 deadline overflow。
+Step/Choice 普通 Outcome 复用 Shared editor；不新增节点或作者手填 runtime id。WorldOpportunity expireOutcomes 的窄白名单保持四种轻量结果，不因此扩成延迟触发入口。
+Snapshot v10 在 ContentProgress 保存独立队列和 next sequence；旧 v1～v9 严格拒绝。状态 Implementation Complete / Producer Acceptance Pending，具体接线见 [263](../40-process/263-delayed-event-01-content-event-scheduling-2026-09-25.md)。
+
+## SOCIAL-QUEST-01 / Snapshot v11（2026-09-25）
+
+Producer Accepted / Sealed；见 [264](../40-process/264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。questKind 正式 Data→Core 投影，schema/reference validator 同步，未知值拒绝。Snapshot v10→v11 保留 scheduled events，新增 ContentProgress.questCompanions 必备数组；实体/实例/状态/受控 Squad 验证，rehydrate 后再验证 secretRealm。v1～v10 拒绝，无 runtime migration。

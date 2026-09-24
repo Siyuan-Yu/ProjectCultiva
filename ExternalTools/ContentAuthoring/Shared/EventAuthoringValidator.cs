@@ -72,6 +72,17 @@ public static class EventAuthoringValidator
         {
             if (next.Length > 0 && !map.ContainsKey(next)) errors.Add(context + " 下一步不存在：" + next);
         }
+        void Outcomes(JsonObject owner)
+        {
+            foreach (var node in Array(owner, "outcomes"))
+            {
+                if (node is not JsonObject outcome) { errors.Add("结果必须为对象"); continue; }
+                if (S(outcome, "kind") != "scheduleEvent") continue;
+                if (package.Find(S(outcome, "id"))?.Type != "contentEvent") errors.Add("延迟事件必须选择存在的后续事件");
+                if (outcome["amount"] is not JsonValue value || !value.TryGetValue<int>(out var days) || days < 1)
+                    errors.Add("延迟天数必须为大于零的整数");
+            }
+        }
         void Choices(JsonObject owner, string ownerId)
         {
             var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -82,7 +93,7 @@ public static class EventAuthoringValidator
                 var id = S(c, "id");
                 if (string.IsNullOrWhiteSpace(id) || !ids.Add(id)) errors.Add("选项标识为空或同一步骤内重复：" + id);
                 if (S(c, "unavailableMode", "disabled") is not ("disabled" or "hidden")) errors.Add("选项不可用显示方式无效：" + id);
-                Array(c, "conditions"); Array(c, "outcomes");
+                Array(c, "conditions"); Outcomes(c);
                 Next(S(c, "nextStepId"), "选项 " + id + "（Step " + ownerId + "）");
                 if (Minigame(c) && S(c, "nextStepId").Length > 0) errors.Add("小游戏选项必须结束事件：" + id);
             }
@@ -100,6 +111,7 @@ public static class EventAuthoringValidator
         foreach (var step in map.Values)
         {
             Fields(step, new[] { "id", "speakerRef", "text", "nextStepId", "outcomes", "choices" }, "步骤");
+            Outcomes(step);
             var speaker = S(step, "speakerRef");
             if (speaker is not ("" or "@actor" or "@target" or "@issuer")) Character(speaker);
             Choices(step, S(step, "id")); Next(S(step, "nextStepId"), "Step " + S(step, "id"));

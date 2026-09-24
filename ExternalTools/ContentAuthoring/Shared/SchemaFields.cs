@@ -140,7 +140,7 @@ public static class SchemaFields
         "setFlag", "clearFlag", "addStock", "removeStock", "grantProgress", "discoverSite",
         "relationDelta", "startQuest", "acceptQuestFromTarget", "deliverQuestToTarget",
         "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame",
-        "resolveCurrentOpportunity"
+        "resolveCurrentOpportunity", "scheduleEvent"
     ];
 
     public static readonly string[] EventTriggers =

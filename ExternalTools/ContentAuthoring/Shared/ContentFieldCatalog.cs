@@ -20,6 +20,7 @@ public enum FieldEditorKind
     Number,
     Location,
     Quest,
+    Event,
     Character,
     Resource,
     Site,
@@ -79,6 +80,7 @@ public static class ContentFieldCatalog
         , ("acceptQuestFromTarget", "接受当前对象委托")
         , ("deliverQuestToTarget", "交付当前对象委托物品")
         , ("resolveCurrentOpportunity", "解决当前世界机会")
+        , ("scheduleEvent", "延迟事件 / Schedule Event")
     ];
 
     public static readonly string[] RealmOptions = ["凡人", "炼气", "筑基"];
@@ -161,6 +163,11 @@ public static class ContentFieldCatalog
 
     public static IReadOnlyList<FieldSpec> FieldsForOutcome(string kind) => kind switch
     {
+        "scheduleEvent" =>
+        [
+            new FieldSpec { Key = "id", Label = "后续事件", Editor = FieldEditorKind.Event },
+            new FieldSpec { Key = "amount", Label = "延迟天数（整数 ≥ 1）", Editor = FieldEditorKind.Number }
+        ],
         "resolveCurrentOpportunity" => [],
         "addStock" or "removeStock" =>
         [

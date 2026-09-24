@@ -69,6 +69,8 @@ Temporary quest companion participates in party travel and combat, but is not a 
 | [0038](ADR-0038-continuous-world-legacy-migration-final-seal.md) | Continuous World Legacy Migration Final Seal | **已采纳；Implementation Complete / Producer Accepted / Sealed** | 冻结 Surface／Squad／CharacterEncounter／Actual Control authority；旧 schema／DTO／adapter 仅限明确兼容边界；废弃入口及 Hex／Army／WorldSite 命名边界专项已封板 |
 | [0039](ADR-0039-external-faction-control-handoff.md) | PlayerParty 外部势力控制转移 | **已采纳；Producer Accepted / Sealed（2026-09-24）** | 全员弥留可由外部势力人物紧急接管；生者保留为 Recovery Squad；真正死亡继承语义保持；Committed 仅保留战报 |
 
+| [0040](ADR-0040-delayed-content-event-authority-and-snapshot-v10.md) | Delayed ContentEvent authority 与 Snapshot v10 | Design Confirmed / Implemented / Producer Acceptance Pending | 原实例上下文、绝对 Tick、事务回滚与一次消费；Knowledge 延期 |
+
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 
 RPG-First 控制模型另见 **[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)** + **[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)**（2026-08-25）。
@@ -76,3 +78,5 @@ RPG-First 控制模型另见 **[ADR-0026](ADR-0026-rpg-first-playerparty-and-for
 战略势力／Army 军事规则另见 **[ADR-0024](ADR-0024-real-cultivators-and-army-strategic-model.md)** + **[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)**（跨点必须 Army 已 supersede）。
 
 战略 Hex 空间与 Content Authoring 另见 **[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)** + **[155](../155-hex-strategic-worldmap-migration-2026-08-23.md)** + **[158](../158-hex-world-content-authoring-pipeline-2026-08-23.md)**（2026-08-23）。
+
+[ADR-0041 — 秘境任务社交、临时同行与 Snapshot v11](ADR-0041-secret-realm-quest-companion-and-snapshot-v11.md)：Design Confirmed；Implementation Complete / Producer Acceptance Pending（2026-09-25）。

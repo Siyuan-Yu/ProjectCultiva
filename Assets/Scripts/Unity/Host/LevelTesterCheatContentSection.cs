@@ -37,6 +37,26 @@ namespace XianXia.Unity.Host
 
             RefreshDump(session, selection);
             y = DrawQuestSocial(session,selection,x,y,width,body);
+            var schedules = session.World.ScheduledContentEvents;
+            GUI.Label(new Rect(x, y, width, lineH), "Scheduled Content Events · pending " + schedules.Pending.Count +
+                " · 已履约 " + session.World.ContentCounters.Get("acceptance:delayed_event_presented"), body);
+            y += lineH;
+            foreach (var item in schedules.OrderedPending())
+            {
+                var remaining = item.ExecuteTick > session.World.Tick.Value ? item.ExecuteTick - session.World.Tick.Value : 0;
+                var info = item.InstanceId + " / " + item.EventId + "\nExecuteTick=" + item.ExecuteTick +
+                    " remaining=" + remaining + " ticks / " + ((double)remaining / XianXia.Core.Domain.Time.WorldTick.TicksPerDay).ToString("0.###") +
+                    " days\nActor=" + item.ActorEntityId + " Target=" + item.TargetEntityId + " Issuer=" + item.IssuerEntityId +
+                    "\nOpportunity=" + item.OpportunityInstanceId + " Key=" + item.TargetKey;
+                var height = body.CalcHeight(new GUIContent(info), width);
+                GUI.Label(new Rect(x, y, width, height), info, body); y += height + 4f;
+            }
+            if (!string.IsNullOrEmpty(schedules.LastDiagnostic))
+            {
+                var height = body.CalcHeight(new GUIContent(schedules.LastDiagnostic), width);
+                GUI.Label(new Rect(x, y, width, height), schedules.LastDiagnostic, body); y += height + 4f;
+            }
+
             GUI.Label(new Rect(x, y, 40f, lineH), "标记");
             _flagInput = GUI.TextField(new Rect(x + 44f, y, width - 200f, 22f), _flagInput);
             if (GUI.Button(new Rect(x + width - 148f, y, 68f, 22f), "设置"))

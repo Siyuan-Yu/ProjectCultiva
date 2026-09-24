@@ -10,6 +10,28 @@ Temporary quest companion participates in party travel and combat, but is not a 
 当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
 
 
+## 2026-09-25 — SOCIAL-QUEST-01 Stop Follow exposure P1
+
+Producer Accepted / Sealed。制作人已确认临时同行不可切主控、跟随/转场/战斗正常；本次修正人物面板“停止跟随”显示条件，并拆开普通手动解除与任务生命周期安全离队入口，共用原位置保留/清理逻辑。详见264补充。本轮不add/commit/push，暂不执行此前封板安排。
+
+
+> 2026-09-25 SOCIAL-QUEST-01 最终 P1：制作人主流程人工验收通过。临时同行仅参与移动/空间/战斗，不授予 Active 或玩家手动战斗控制；统一 authority、UI/backend guard、restore reconcile 已实施。Snapshot v11 不变；最终封板授权已由制作人给出。后续方向不自动开始。
+
+## 2026-09-25 — SOCIAL-QUEST-01
+
+**Producer Accepted / Sealed**。在未提交 DELAYED-EVENT-01 基线上完成 questKind、Active 秘境实例话题、NPC→Actor 门槛20、临时同行绑定、Party/Squad 跟随与安全离队、Snapshot v11、QuestEditor 与 LevelTester 验收入口。保留前轮改动；无 stage/commit/push，无 Unity/行为测试。详见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+
+当前路线：SOCIAL-QUEST-01 → Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor：Future / Only if gameplay later requires it。后续不自动启动。
+
+
+## 2026-09-25 — DELAYED-EVENT-01 延迟 ContentEvent 基础
+
+- 制作人明确将 Knowledge/Rumor/Information Propagation 延期，仅授权 Delayed Event；下一 SOCIAL-QUEST-01，NPC AI 最后。决定见 [ADR-0040](43-decisions/ADR-0040-delayed-content-event-authority-and-snapshot-v10.md)。
+- 新增独立 pending authority，按绝对 WorldTick 与原真实 Actor/Target/Issuer/Opportunity 执行；Outcome transaction 同时回滚队列与序号。safe 后只激活一条，来源或 Conditions 失效取消；scheduled instance 不被 global once 吞掉。
+- Snapshot v10 保存完整上下文、deadline 与 next sequence；v1～v9 严格拒绝。EventEditor Shared Outcome 增量、行商独立验收内容与 LevelTester 只读诊断已接通。
+- Core/Data/Unity/Unity.Editor 离线编译通过，EventEditor 编译通过，正式 Content loader/引用验证与 DTO JSON 静态往返完成；未启动 Unity、未运行行为测试。运行验收仍由制作人执行。
+- 完整范围、文件清单与 18 项人工验收见 [263](263-delayed-event-01-content-event-scheduling-2026-09-25.md)。状态 **Implementation Complete / Producer Acceptance Pending**；未 git add/commit/push。
+
 ## 2026-09-25 — SEAL DYNAMIC-DISCOVERY-01 + MAP-COORD-01
 
 - 制作人确认 2026-09-24 人工验收通过：Hidden 石碑未发现前不显示，进入 authored radius 后出现并标记 Discovered，可正常调查；Inspect 不自动 Resolve，显式 Resolve 后对象消失且 Activity 正常。DYNAMIC-DISCOVERY-01 状态更新为 **Producer Accepted / Sealed**。

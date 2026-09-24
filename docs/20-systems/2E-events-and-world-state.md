@@ -10,17 +10,27 @@ Temporary quest companion participates in party travel and combat, but is not a 
 仅 Active + questKind=secretRealm 的真实 QuestInstance 投影 Priority0 话题；普通 general 不自动投影。NPC→实际 Actor 的 RelationshipLedger Score 独立门槛20。绑定保存 CompanionEntityId、QuestInstanceId、OriginalSquadId、Active/PendingDeparture，不改变 faction/tag/永久 roster。Dynamic Opportunity NPC V1 拒绝邀请。
 
 
-> 状态：**设计已冻结；DYNAMIC-DISCOVERY-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-25
+> 状态：**既有基线已封板；DELAYED-EVENT-01 Producer Accepted / Sealed** | 优先级：P0 | 最后更新：2026-09-25
 > 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
 > 当前实现与磁盘边界见 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 与 [257 SAVE-01](../40-process/257-save-01-content-progress-persistence-v1-2026-09-23.md)。
 
-## 0. 当前实现边界（2026-09-24）
+## 0. 当前实现边界（2026-09-25）
 
 - `DomainEvent` 流、内容 Flags、Quest／Chapter／ContentEvent／Counter／Daily 等 runtime board 已用于条件、结算与 UI；`ContentOutcomeApplier` 的事务 memento 继续只负责一次结算回滚，磁盘持久化由独立 `ContentProgressSnapshotHelper` 负责。
-- `WorldSnapshot.CurrentSchemaVersion` 为 9。除 v8 的人物委托与内容进度外，v9 保存动态 Opportunity Object 的 SpawnKind、稳定对象实例 ID、精确坐标、发现模式与发现状态。
+- `WorldSnapshot.CurrentSchemaVersion` 为 10；v10 在 ContentProgress 中增加 ScheduledEvents 与 NextScheduledEventSequence。除 v8 的人物委托与内容进度外，v9 保存动态 Opportunity Object 的 SpawnKind、稳定对象实例 ID、精确坐标、发现模式与发现状态。
 - Active dialogue、当前 Step／Choice、Topic Selection 与 UI 状态不进入 Snapshot；`ContentEvents.HasActive` 时 `SnapshotService.CaptureJson` 返回“请先完成当前对话/事件后再保存。”完成原子交互后可正常保存。
 - restore 先恢复动态 runtime，再由 `RuntimeContentShellBootstrap` definitions-only 注册 Quest／Event／Chapter 定义并校验恢复 ID；不执行 OpeningInventory、OpeningScenario、章节激活或 opening flag。New Game 与 Load 共用 `PlayableSimulationLoopFactory` 的四个 day handlers。
-- v1～v8 均按当前严格策略拒绝；v8 不含动态对象 authority，不从旧存档猜测对象身份、位置或发现状态。
+- v1～v9 均按当前严格策略拒绝；v9 缺少延迟事件 authority，不猜测迁移。
+
+### DELAYED-EVENT-01（2026-09-25）
+
+- `scheduleEvent` 是现有 Step/Choice Outcome，`Id` 为目标事件、`Amount` 为正整数日。经 ContentOutcomeApplier 创建独立 schedule，pending 与递增序号参加相同事务回滚。
+- `ScheduledContentEventBoard` 保存绝对 WorldTick deadline 与原真实 Actor/Target/Issuer、TargetKind/Key/DefinitionId/DisplayName、runtime 推导的 OpportunityInstanceId。TargetView 卸载不代表失效；不按模板重绑定。
+- Host 单一 safe helper 检查战斗、正式 Dialogue/Topic、Modal、restore、stream transition；Manual Pause 可以呈现。unsafe 保持 pending；safe 后 Core 依 ExecuteTick/sequence 查原定义、身份和原 Actor+Context 的 Conditions。失效/条件失败取消，诊断原因；成功进入 Active 即消费，一次只开一条。
+- scheduled instance 是 exactly-once authority，不经过 Trigger/Priority/Topic/RepeatAllowed，不写普通 global fired key。普通 onTalk/onInspect 等 once/repeat 保持原状。
+- Snapshot v10 直接还原 deadline 与稳定身份；序号、唯一性、字段形状、日期、定义和现存身份错配均校验。来源自然失效的 pending 仍可存读档，到期取消。Active Event/Dialogue 仍按旧规则禁存。
+- EventEditor Shared Outcome 增加事件 Name+Id 搜索选择和整数天数，沿用 Working Copy/Undo/Redo/dirty；不新增 Graph Node。实施、入口和待执行清单见 [263](../40-process/263-delayed-event-01-content-event-scheduling-2026-09-25.md) 与 [ADR-0040](../40-process/43-decisions/ADR-0040-delayed-content-event-authority-and-snapshot-v10.md)。
+- 当前路线：DELAYED-EVENT-01 → SOCIAL-QUEST-01（Quest Social Topic + Invite NPC To Join / Participate）→ Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation = Future / Only if gameplay later proves it necessary；以下历史 Knowledge 设计不构成近期授权。
 
 ### DYNAMIC-DISCOVERY-01 动态物体与通用发现 V1（2026-09-24）
 
@@ -186,6 +196,8 @@ Action / System 结算
 
 ## 4. ScheduledEvent
 
+> 本节为通用未来事件历史设计。DELAYED-EVENT-01 只落实 §0 的 ScheduledContentEventInstance；CancellationKey、通用替换和下列非 ContentEvent 用途未授权，不可据此扩大本轮范围。
+
 表达**未来**要发生的事。
 
 ### 4.1 最小字段
@@ -221,7 +233,7 @@ Action / System 结算
 | `FactionLedger` | 势力态度、外交、宣战等 |
 | `TerritoryLedger` | 所有权、控制核心、关键设施状态 |
 | `QuestAndObligationLedger` | 任务、配额、义务 |
-| `KnowledgeLedger` | 谁知道什么（见 §6） |
+| `KnowledgeLedger` | 历史方向，superseded / future-not-authorized；仅明确玩法需要时重议 |
 | `HistoryLedger` | 长期历史摘要（见 §7） |
 
 ## 5A. RelationshipLedger 唯一真源（v0.2）
@@ -247,7 +259,9 @@ Ledger 至少保存每条 `RelationshipEvent`：
 
 ---
 
-必须区分：
+> **历史 Knowledge 草案（superseded / future-not-authorized，2026-09-25）：** 下列 Known/Suspected/Unknown 只留历史背景；不实现、不作为 DELAYED-EVENT-01 前置。
+
+历史设想区分：
 
 1. **世界事实是否发生**  
 2. **哪个角色／势力知道**  
@@ -310,7 +324,7 @@ Ledger 至少保存每条 `RelationshipEvent`：
 
 - `Dead` 必须进入快照与 History；普通复活不得默认可用。  
 - `Missing`／`Captured`／`Incapacitated` 与 `Dead` 语义不得混用。  
-- 角色死亡可触发：任务失败／关系结束／传承结算／Knowledge 更新等 DomainEvent。  
+- 角色死亡可触发：任务失败／关系结束／传承结算等 DomainEvent；Knowledge 更新仅 Future。
 
 ## 9. 什么进入长期历史
 
@@ -335,12 +349,19 @@ Ledger 至少保存每条 `RelationshipEvent`：
 
 - [ ] EventType 枚举第一批完整清单  
 - [ ] History 压缩与归档策略（多少 Tick 裁短日志）  
-- [ ] Knowledge 传播规则（对话、审讯、异象）  
+- [ ] Knowledge 传播规则（Future / Only if gameplay later proves it necessary；未授权）
 - [ ] CancellationKey 冲突策略细则  
 
 ## 12. 验证方式（实现期）
 
 - 系统中不存在“私有 float cooldown 决定逻辑到期”的泄漏（抽检）  
 - 存档不含全量事件溯源重放路径  
-- Knowledge 查询：同一事实对不同主体返回不同知道程度  
+- 历史 Future Knowledge 查询设想：同一事实对不同主体返回不同知道程度（未授权，不属于本轮验收）
 - 破坏性 schema 变更未升 SaveVersion 时 CI 失败
+
+## SOCIAL-QUEST-01：秘境任务派生话题（2026-09-25）
+
+Producer Accepted / Sealed。见 [264](../40-process/264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+QuestDefinition/QuestSpec 的 questKind=general|secretRealm，缺省 general；实例上下文以 QuestInstanceId 为准。仅 Active 秘境任务派生 Priority=0 话题。最高 authored Priority>0 覆盖；最高0同列；无 authored 可打开 social picker；普通 fallback 保留。
+HostDialogueController 讨论模式复用 Presenter/UGUI/Dialogue pause/input gate；每次邀请重新调 Service，返回中文回应。不伪造 Event/Graph Node。ReadyToClaim/Completed/Failed/Active→Inactive 锁定 PendingDeparture，重新接取不解锁旧 binding。Outcome 事务备份/回滚 CompanionBoard；QuestRuntime clone/restore 保留全部原实例字段。
+Snapshot v11 在 ContentProgress 新增绑定，v1～v10 严格拒绝。Active Dialogue（含话题/讨论）禁止保存；没有扩大其它禁存范围。

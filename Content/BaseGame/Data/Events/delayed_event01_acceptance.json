@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_delayed_event01_merchant_appointment",
+      "type": "contentEvent",
+      "name": "DELAYED-EVENT-01·临时行商约定",
+      "trigger": "onTalk",
+      "worldOpportunityId": "base:world_opportunity_event02_temporary_merchant",
+      "priority": 50,
+      "topicText": "约定之后再谈（DELAYED 验收）",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "appointment",
+      "steps": [
+        {
+          "id": "appointment",
+          "speakerRef": "@target",
+          "text": "我会记着与你的约定。定个日子，到时我们再谈。若我已离开，此约便作罢。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "tomorrow",
+              "text": "明日再谈",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "scheduleEvent",
+                  "id": "base:event_delayed_event01_merchant_followup",
+                  "amount": 1
+                }
+              ]
+            },
+            {
+              "id": "six_days",
+              "text": "六日后再谈",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "scheduleEvent",
+                  "id": "base:event_delayed_event01_merchant_followup",
+                  "amount": 6
+                }
+              ]
+            },
+            {
+              "id": "twice",
+              "text": "明日再谈两次（独立实例验收）",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "scheduleEvent",
+                  "id": "base:event_delayed_event01_merchant_followup",
+                  "amount": 1
+                },
+                {
+                  "kind": "scheduleEvent",
+                  "id": "base:event_delayed_event01_merchant_followup",
+                  "amount": 1
+                }
+              ]
+            },
+            {
+              "id": "block_followup",
+              "text": "验收：让后续条件不成立（影响所有待履约约定）",
+              "outcomes": [
+                {
+                  "kind": "setFlag",
+                  "id": "acceptance:delayed_event_blocked"
+                }
+              ]
+            },
+            {
+              "id": "unblock_followup",
+              "text": "验收：恢复后续条件",
+              "outcomes": [
+                {
+                  "kind": "clearFlag",
+                  "id": "acceptance:delayed_event_blocked"
+                }
+              ]
+            },
+            {
+              "id": "leave",
+              "text": "暂不约定",
+              "outcomes": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_delayed_event01_merchant_followup",
+      "type": "contentEvent",
+      "name": "DELAYED-EVENT-01·原行商履约",
+      "trigger": "manual",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "acceptance:delayed_event_blocked"
+        }
+      ],
+      "entryStepId": "followup",
+      "steps": [
+        {
+          "id": "followup",
+          "speakerRef": "@target",
+          "text": "是我，与你定下约定的那个行商。约定的时刻到了，我们接着谈吧。每一次约定，我都会单独履行。",
+          "choices": [
+            {
+              "id": "finish",
+              "text": "记下这次履约",
+              "outcomes": [
+                {
+                  "kind": "addCounter",
+                  "id": "acceptance:delayed_event_presented",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -10,7 +10,9 @@ Temporary quest companion participates in party travel and combat, but is not a 
 当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
 
 
-> **2026-09-24 DYNAMIC-DISCOVERY-01＋MAP-COORD-01：Producer Accepted / Sealed。** WorldOpportunity 动态物体、三种 discovery mode、稳定 onInspect、显式 resolve、Activity 生命周期、Snapshot v9、Producer authoring、LevelTester 验收入口及 WorldMap Surface 坐标读数已完成人工验收并封板；见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)／[262](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md)。下一里程碑为 **KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation（Planned）**，本轮未开始实施。
+> 2026-09-25 SOCIAL-QUEST-01 最终 P1：制作人主流程人工验收通过。临时同行仅参与移动/空间/战斗，不授予 Active 或玩家手动战斗控制；统一 authority、UI/backend guard、restore reconcile 已实施。Snapshot v11 不变；最终封板授权已由制作人给出。后续方向不自动开始。
+
+> **2026-09-24 DYNAMIC-DISCOVERY-01＋MAP-COORD-01：Producer Accepted / Sealed。** WorldOpportunity 动态物体、三种 discovery mode、稳定 onInspect、显式 resolve、Activity 生命周期、Snapshot v9、Producer authoring、LevelTester 验收入口及 WorldMap Surface 坐标读数已完成人工验收并封板；见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)／[262](262-map-coord-01-worldmap-world-coordinate-readout-2026-09-25.md)。后续路线已由下述 2026-09-25 DELAYED-EVENT-01 决定替代。
 
 > **QUEST-INSTANCE-01（2026-09-24）：Producer Accepted / Sealed。** Quest 模板与运行实例已分离；人物委托按真实发布者生成稳定实例，互动接取／结构化交付、关系方向、生命周期、Journal/HUD 与 Snapshot v8 已贯通。双同模板行商的独立接取、交付、领奖、失效与 Save/Load 已由制作人验收。后续 `ContentIntent`、可取消延迟反应等只保持 Planned。见 [258](258-quest-instance-01-dynamic-character-commissions-v1-2026-09-24.md)。
 
@@ -26,7 +28,7 @@ Temporary quest companion participates in party travel and combat, but is not a 
 
 > **EVENT-EDITOR-V2（2026-09-23）：Producer Accepted / Sealed。** Graph-first Event/Dialogue authoring、Step/Choice 连线、可读 Speaker、Conditions/Outcomes、Priority/Topic/Repeat、显式保底、dirty/undo/redo、editor-only layout、对象/事件 Browser、全局人物来源、可读 Character Picker、按 Package 记忆上次来源，以及 NPC onTalk／WorldObject onInspect authoring已由制作人验收。EVENT-02 后续只扩展了 onTalk binding 表单与通用模板投影，不重开 V2 封板。
 
-> **EVENT-01 FINAL（2026-09-22）：Implementation Complete / Producer Acceptance Pending。** 固定世界 NPC onTalk＋WorldObject onInspect、统一稳定目标键、接近后复核、EventEditor 绑定与 Load definitions-only 已接通；见 [253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md)。EVENT-02 Opportunity Director 和剧情 runtime 持久化不在本轮。
+> **EVENT-01 FINAL（2026-09-22）：Producer Accepted / Sealed。** 固定世界 NPC onTalk＋WorldObject onInspect、统一稳定目标键、接近后复核、EventEditor 绑定与 Load definitions-only 已接通；见 [253](253-event-01-final-fixed-world-interaction-acceptance-2026-09-22.md)。EVENT-02 Opportunity Director 和剧情 runtime 持久化不在本轮。
 
 > **当前状态（2026-09-22）：LEGACY-FINAL-SEAL、Hex／Army 正式运行依赖退役与 021915 统一收尾均已正式 Sealed。** MAP-01～04、SPACE-01 与 LEGACY-FINAL-A／B／C 同样均已 **Producer Accepted / Sealed**；最终冻结矩阵见 [ADR-0038](43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。后续 EVENT-01 Final 已单独授权并实施，等待制作人人工验收；其余方向仍未批准。
 > 未来新会话请从 [247 Project Handoff — Continuous World Current State](247-project-handoff-current-state-2026-09-18.md) 开始（Milestone 表、Current Architecture、Known Issues、Do Not Regress、Resume Order、可复制上下文）。
@@ -51,7 +53,7 @@ Temporary quest companion participates in party travel and combat, but is not a 
 > **Historical / Superseded（2026-09-15 当时实测）：** 当时 External Editor、旧 Content 数量与 fallback 状态如下文原记录。后续 MAP-01～04 与 2026-09-22 runtime retirement 已改变正式边界：WorldComposer／FineEditor V1 已落地，Runtime Loader 拒绝 `hexWorld`／`formalArmy`。不得把这段历史数字当作当前运行输入清单。
 
 
-> **当前唯一状态（2026-09-22）：** CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C 与 LEGACY-FINAL-SEAL 已封板。当前没有获批实施主线。
+> **当前唯一状态（2026-09-22）：** CW-U0～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C 与 LEGACY-FINAL-SEAL 已封板。该时点无获批实施主线；2026-09-25 已授权 DELAYED-EVENT-01。
 
 > 状态：CW-10 与 CW-10.5 均为 **Producer Accepted / Sealed（2026-09-20）**。保持既有编号，不重排 CW-06 / CW-07。
 >
@@ -60,12 +62,14 @@ Temporary quest companion participates in party travel and combat, but is not a 
 ## 当前阶段说明
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
-- **当前下一步：** `KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation`，状态 **Planned**，尚未开始实施。
+- **前轮：** DELAYED-EVENT-01，Implementation Complete / Producer Acceptance Pending；见 [263](263-delayed-event-01-content-event-scheduling-2026-09-25.md)。
+- **当前：** SOCIAL-QUEST-01 — Secret-Realm Quest Social Topic + Temporary Quest Companion，Producer Accepted / Sealed；见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+- **Knowledge / Rumor / Information Propagation：** Future / Only if gameplay later proves it necessary，非近期必做、非 Delayed Event 依赖。
 - **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
 - **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
-- **后续方向（Planned / Not Implemented）：** 人物知情与延迟事件 → 完整交易 → 实体装备与制作成长 → 生产与物流 → NPC 战略自主行为。小游戏中途保存作为独立正确性待办，不并入本轮。
+- **路线（当前已实施，后续 Planned）：** SOCIAL-QUEST-01 → Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。小游戏中途保存作为独立正确性待办，不并入本轮。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 
@@ -301,7 +305,8 @@ Temporary quest companion participates in party travel and combat, but is not a 
 - [x] CONTROL-HANDOFF-01-P1：Committed report-only spatial boundary、战后即时目的地 materialization 与 Camera／Selection barrier 已于 2026-09-24 **Producer Accepted / Sealed**。
 - [x] **DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**：2026-09-24 **Producer Accepted / Sealed**。
 - [x] **MAP-COORD-01 — WorldMap World Coordinate Readout**：2026-09-24 **Producer Accepted / Sealed**。
-- [ ] 下一正式里程碑：**KNOWLEDGE-DELAY-01 — Character/Faction Knowledge + Delayed Content Event Foundation**（Planned）。
+- [ ] 前轮：**DELAYED-EVENT-01**（Implementation Complete / Producer Acceptance Pending）。
+- [ ] 当前：**SOCIAL-QUEST-01**（Producer Accepted / Sealed）。
 - [ ] 下一阶段 3：Full trading。
 - [ ] 下一阶段 4：Equipment / crafting。
 - [ ] 下一阶段 5：Production / logistics。
