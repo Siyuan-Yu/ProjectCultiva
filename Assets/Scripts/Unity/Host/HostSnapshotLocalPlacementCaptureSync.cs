@@ -3,6 +3,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -82,7 +83,7 @@ namespace XianXia.Unity.Host
             if (world?.LocalMap == null || spawner == null)
                 return 0;
             var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            if (world.Strategic.CharacterEncounter != null)
+            if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(world))
             { continuous?.CaptureIndependentField(); return 0; }
             if (continuous != null && continuous.IsActive && !world.LocalMap.IsInInterior)
                 return continuous.CaptureCurrentPersonalPlacements();

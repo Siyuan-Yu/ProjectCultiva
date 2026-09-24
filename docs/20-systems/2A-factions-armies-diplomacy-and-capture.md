@@ -46,6 +46,12 @@
 
 **个人 `RelationshipLedger` 与 `Faction Diplomacy` 是不同层级，禁止混成一张表。**
 
+### 0.1 玩家势力控制连续性（2026-09-24 Sealed）
+
+玩家控制首先在当前 PlayerParty 内按固定成员顺序寻找下一名 `CanActAsActive`，不以 CombatPower 排序。当前 Party 已无可控成员时，才进入统一 External Faction Control Handoff：仍有 Alive／Incapacitated 成员为 Emergency Takeover；全员 Dead／Removed 为 True-Death Succession。两者共用玩家势力、非旧 Party、Alive、可控、无未结束 Encounter ownership、拥有可信 exact Surface position 的候选策略，并按 CombatPower 最高、稳定 EntityId tie-break 选择。
+
+Emergency 的旧生者组成原地 idle Recovery Squad；Succession 的旧死亡成员保留 singleton/corpse authority。接管者若来自 NPC Squad，只移出本人并稳定修复来源 Leader／command target，禁止把整队转成 PlayerParty。完整控制、位置与无候选规则见 [2K §4](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) 与 [ADR-0039](../40-process/43-decisions/ADR-0039-external-faction-control-handoff.md)。
+
 ---
 
 ## 1. Faction 三层数据概念

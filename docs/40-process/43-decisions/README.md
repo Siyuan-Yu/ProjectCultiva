@@ -1,10 +1,10 @@
 # 架构决策记录（ADR）索引
 
-> 最新：[ADR-0038](ADR-0038-continuous-world-legacy-migration-final-seal.md) — Continuous World Legacy Migration Final Seal；冻结现代 authority、兼容隔离与后续禁区。
+> 最新：[ADR-0039](ADR-0039-external-faction-control-handoff.md) — PlayerParty 外部势力控制转移；区分全员弥留的 Emergency Takeover 与真正死亡 Succession。
 > 正式封板（2026-09-22）：废弃运行入口清理、Hex／Army 命名与兼容身份、WorldSite／Hex footprint 命名尾项均已完成；制作人确认此前运行行为人工验收通过，后续限定同体改名与说明收尾经静态复核通过。C# compatibility 入口已统一为 `Legacy*`，外部 Content／Snapshot wire 名保持稳定。
 > 地图／工具方向：[ADR-0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[ADR-0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md)；MAP-01～04 已实现、验收并封板，Future 扩展仍不视为已实现。
 
-> 状态：现行 | 最后更新：2026-09-22
+> 状态：现行 | 最后更新：2026-09-24
 > 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 > 模板：[`adr-template.md`](../../90-templates/adr-template.md)
 > **编号 0009 预留正式 UI 方案。**
@@ -57,6 +57,7 @@
 | [0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) | 连续世界制作与去 Hex 产品方向 | **MAP-01～04 Producer Accepted / Sealed** | Final Surface、Composer/Fine Editor、WorldMap LOD、正常 Gameplay Surface authority；Future 自动化能力仍未实现 |
 | [0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | External Content Authoring 工具链与旧地图 Content 迁移方向 | **MAP-01～04 Producer Accepted / Sealed** | Authoring Source ≠ Runtime Content；旧 Outdoor Content／Editor 已按 MAP 分期退休 |
 | [0038](ADR-0038-continuous-world-legacy-migration-final-seal.md) | Continuous World Legacy Migration Final Seal | **已采纳；Implementation Complete / Producer Accepted / Sealed** | 冻结 Surface／Squad／CharacterEncounter／Actual Control authority；旧 schema／DTO／adapter 仅限明确兼容边界；废弃入口及 Hex／Army／WorldSite 命名边界专项已封板 |
+| [0039](ADR-0039-external-faction-control-handoff.md) | PlayerParty 外部势力控制转移 | **已采纳；Producer Accepted / Sealed（2026-09-24）** | 全员弥留可由外部势力人物紧急接管；生者保留为 Recovery Squad；真正死亡继承语义保持；Committed 仅保留战报 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

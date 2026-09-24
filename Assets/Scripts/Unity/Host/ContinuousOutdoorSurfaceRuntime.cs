@@ -440,10 +440,9 @@ namespace XianXia.Unity.Host
             RefreshDynamicNavigationIfDirty();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             var currentWorld = _bootstrap?.Session?.World;
-            var continuousCombat = IsBoundContinuousManualCombat(currentWorld);
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 currentWorld.LocalMap.IsInInterior ||
-                (currentWorld.Strategic.CharacterEncounter != null && !continuousCombat))
+                CharacterEncounterService.BlocksOrdinaryContinuousSurface(currentWorld))
             {
                 if (IsActive) DeactivatePresentationOnly();
                 return;
@@ -626,12 +625,13 @@ namespace XianXia.Unity.Host
             // Independent CharacterEncounter owns participant tactical coordinates and presence.
             // The ordinary Continuous WorldPosition synchronizer must not project PartyTravel
             // back onto those members from LateUpdate.
-            if (world.Strategic.CharacterEncounter != null)
+            if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(world))
                 return;
             var motion = world.PlayerPartyTravel;
             var party = session.PlayerParty;
             if (motion == null || party == null || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
-                world.LocalMap.IsInInterior || world.Strategic.CharacterEncounter != null) return;
+                world.LocalMap.IsInInterior ||
+                CharacterEncounterService.BlocksOrdinaryContinuousSurface(world)) return;
             var views = _bootstrap.ViewSpawner.Registry;
             if (!views.TryGet(party.ActiveCharacterId, out var active) || active == null) return;
             var safe = motion.WorldPosition;
@@ -771,7 +771,7 @@ namespace XianXia.Unity.Host
             var world = _bootstrap?.Session?.World;
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 world.LocalMap.IsInInterior ||
-                (world.Strategic.CharacterEncounter != null && !IsBoundContinuousManualCombat(world))) return false;
+                CharacterEncounterService.BlocksOrdinaryContinuousSurface(world)) return false;
             // Explicit acceptance-surface activation remains authoritative until its owner is
             // deactivated; normal resolver never selects acceptance-only content on its own.
             if (IsActive && TryResolveSurface(out var active) && active.AcceptanceOnly) return true;

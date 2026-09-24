@@ -180,7 +180,7 @@ namespace XianXia.Unity.Host
             {
                 var message = party.IsAwaitingSuccession
                     ? "当前小队全员阵亡；玩家势力暂无可接管人物。终局机制尚未定义，可读档或等待合法继承条件出现。"
-                    : "全队暂时无法操作，但仍有生者；可完成战斗收尾、读档或等待合法恢复。";
+                    : "当前小队暂无可行动成员，且玩家势力暂无可接管人物；等待恢复。";
                 var messageHeight = party.IsAwaitingSuccession ? 42f : 24f;
                 GUI.Label(new Rect(x, y, 760f, messageHeight), message, _small);
                 y += messageHeight + 2f;

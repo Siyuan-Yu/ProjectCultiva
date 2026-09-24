@@ -79,7 +79,9 @@ namespace XianXia.Core.Events
         /// <summary>EVENT-02 public notice; Host presents a non-blocking toast.</summary>
         WorldOpportunityNotice = 45,
         /// <summary>A wiped PlayerParty transferred control to a living player-faction successor.</summary>
-        PlayerSuccessionResolved = 46
+        PlayerSuccessionResolved = 46,
+        /// <summary>A living but fully incapacitated PlayerParty transferred control externally.</summary>
+        PlayerEmergencyControlTransferred = 47
     }
 }
 

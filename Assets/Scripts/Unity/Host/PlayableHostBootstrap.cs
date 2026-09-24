@@ -1101,7 +1101,8 @@ namespace XianXia.Unity.Host
 
                 if (_session?.World?.LocalMap?.IsInInterior == true)
                     return "Authority=SeparateSpace";
-                if (_session?.World?.Strategic?.CharacterEncounter != null)
+                if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(
+                        _session?.World))
                     return "Authority=CharacterEncounter";
                 return "Authority=Unavailable";
             }
@@ -1194,7 +1195,7 @@ namespace XianXia.Unity.Host
 
             // All snapshot/content/world authorities are now restored. A saved wiped party may
             // retry succession here, before PartyWorld resolution and any presentation rebuild.
-            PlayerPartyController?.TryResolveSuccessionAfterWorldShellRestore();
+            PlayerPartyController?.TryResolveExternalHandoffAfterWorldShellRestore();
 
             // SPACE-01：Active Separate Space 时禁止 Outdoor ActiveControlled resolver 抢先改 PartyWorld。
             if (_session.World?.LocalMap != null && _session.World.LocalMap.IsActive)
@@ -1242,7 +1243,8 @@ namespace XianXia.Unity.Host
             {
                 RebuildSeparateSpacePresentationAfterLoad();
             }
-            else if (_session.World.Strategic.CharacterEncounter != null)
+            else if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(
+                         _session.World))
             {
                 var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
                                                 _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
@@ -1755,7 +1757,8 @@ namespace XianXia.Unity.Host
                     strategicInterrupt?.ShowTransientToast(evt.Payload);
                     nonEncounterStrategicPopulationChanged = true;
                 }
-                else if (evt?.Type == XianXia.Core.Events.EventType.PlayerSuccessionResolved)
+                else if (evt?.Type == XianXia.Core.Events.EventType.PlayerSuccessionResolved ||
+                         evt?.Type == XianXia.Core.Events.EventType.PlayerEmergencyControlTransferred)
                 {
                     strategicInterrupt?.ShowTransientToast(evt.Payload);
                     nonEncounterStrategicPopulationChanged = true;

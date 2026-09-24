@@ -271,6 +271,19 @@ namespace XianXia.Core.World.Strategic
                    state.Find(id.Value) != null;
         }
 
+        /// <summary>
+        /// Preparing and live independent encounters own the presentation surface. A committed
+        /// encounter is report-only and must coexist with the ordinary Continuous Surface.
+        /// </summary>
+        public static bool BlocksOrdinaryContinuousSurface(SimulationWorld world)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            return state != null &&
+                   (state.Phase == CharacterEncounterPhase.Preparing ||
+                    state.Phase == CharacterEncounterPhase.Active ||
+                    state.Phase == CharacterEncounterPhase.ReadyToEnd);
+        }
+
         public static Result Begin(SimulationWorld world, CharacterEncounterState state)
         {
             if (world.Strategic.CharacterEncounter != null || state == null || state.Phase != CharacterEncounterPhase.Preparing)

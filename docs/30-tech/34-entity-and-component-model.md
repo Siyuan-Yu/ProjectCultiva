@@ -1,6 +1,6 @@
 # 实体与能力模块模型
 
-> 状态：**已冻结并按 ADR-0032～0035／0038 定向补充**；现行 Character／Squad／Encounter／Surface 生命周期已落地，Future 扩展除外 | 优先级：P0 | 最后更新：2026-09-21
+> 状态：**已冻结并按 ADR-0032～0035／0038／0039 定向补充**；现行 Character／Squad／Encounter／Surface 与外部控制转移生命周期已落地并封板，Future 扩展除外 | 优先级：P0 | 最后更新：2026-09-24
 > 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`
 > 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1
 > 新功能仍需单独授权；Final Seal 不改变本页领域模型。
@@ -166,7 +166,9 @@ PlayerAgency
 **分离：** DirectControl ≠ FocusCharacter ≠ FactionLeader ≠ PlayerIdentity。
 
 Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCharacterUnavailable`，**不立即改变玩家身份**。
-当前 Active 失能时按 PlayerParty 固定顺序自动切换到下一名可控成员。只有 Party 全员真正死亡后，才从玩家势力中选择存活、可主控且按既有战力口径最强者，并在其自己的位置继续。全员弥留但仍有生者不得触发势力继承；其败退／待恢复安全出口的现有实现需定向核查。玩家势力无人时的终局延期，不在此处补 GameOver 或复活。
+当前 Active 失能时按 PlayerParty 固定顺序自动切换到下一名可控成员。Party 已无任何可控成员时进入统一 External Faction Control Handoff：仍有生者为 Emergency Takeover，全员 Dead／Removed 为 Succession。两者复用玩家势力外部候选与最强战力稳定排序，并在接管者自己的位置继续。Emergency Takeover 将旧 Party 生者留在原地 Recovery Squad；无外部候选则不拆旧 Party。玩家势力无人时的终局延期，不在此处补 GameOver 或复活。见 ADR-0039。
+
+External Handoff 的 membership transaction 只把 successor 本人从来源 NPC Squad 拆出，保留其余 roster 与 motion；旧存活失能成员进入 idle Recovery Squad，旧 Dead／Removed 成员各自进入唯一 singleton/corpse authority。Snapshot v8 已由 Squads、ControlledSquadId、PlayerParty runtime、PlayerPartyWorldMotion、CharacterWorldPresence 与 Separate Space state 完整表达成功态和等待态，不增加 schema；恢复成功态不得重复 handoff，等待态只在 world shell 完整后重新检查候选。
 
 失去势力领导权：去掉势力管理，保留人物控制；旧势力 AI 继续。
 
@@ -252,8 +254,8 @@ Unity 层可维护 `EntityId → GameObject` 的表现映射表，**单向**，�
 - [ ] 实体化时从群体抽样属性的算法
 - [ ] ArmyGroup 与视觉代理数量上限的具体数
 - [ ] TemporaryProtection 替代后果的第一批事件模板
-- [x] 继承原则：Active 按 Party 固定顺序自动接替；仅 Party 全员真正死亡后自动选择玩家势力最强合格角色，并在继承者原位置继续
-- [ ] 全员弥留但未死亡时，现有败退／待恢复安全出口如何接线；空势力终局明确延期
+- [x] 外部控制转移：Active 先在 Party 内固定顺序接替；无可控成员时按 ADR-0039 区分 Emergency Takeover 与 Succession，并在接管者原位置继续
+- [x] 全员弥留但未死亡且存在外部候选时转为 Recovery Squad；无候选时保留旧 Party 等待恢复；空势力终局仍延期
 - [ ] Party 与 ControlledEntityIds 字段表
 
 ## 10. 验证方式（实现期）

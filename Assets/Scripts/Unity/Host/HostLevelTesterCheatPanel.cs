@@ -326,6 +326,9 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, y, width, 24f), "SUCCESSION-01：使当前 Party 正式全灭"))
                 _partyCombatCheatStatus = LevelTesterSuccessionCheats.TryKillCurrentParty(bootstrap).Message;
             y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 24f), "CONTROL-HANDOFF-01：使当前 Party 全员弥留"))
+                _partyCombatCheatStatus = LevelTesterSuccessionCheats.TryIncapacitateCurrentParty(bootstrap).Message;
+            y += 28f;
             if (!string.IsNullOrEmpty(_partyCombatCheatStatus))
             {
                 GUI.Label(new Rect(x, y, width, 100f), _partyCombatCheatStatus, _body);

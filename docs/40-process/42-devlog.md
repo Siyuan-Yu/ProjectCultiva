@@ -1,5 +1,27 @@
 # 开发日志
 
+## 2026-09-24 — SEAL Player Control Continuity / Succession Final
+
+- 制作人人工验收确认 Party 内 B 顺序接替、全员弥留后的远处 C Emergency Handoff、旧 A/B 原地可营救、真正全灭后的 C Succession、exact position、远 5×5 re-anchor、目的地人口即时物化、无需头像刷新、Committed 战报与 ordinary world 共存，以及 Save／Load，反馈“这一轮很完美”。
+- SUCCESSION-01、CONTROL-HANDOFF-01 与 CONTROL-HANDOFF-01-P1 状态统一更新为 **Producer Accepted / Sealed**。旧“只有全员真正死亡才允许外部转移；全员弥留只能等待”的规则标记为 **Superseded on 2026-09-24**。
+- Current Design 已分别写入 PlayerParty／Character／Squad、Faction、Combat Encounter、Continuous Surface、Separate Space、Snapshot、ADR、roadmap 与 current handoff；Snapshot 继续 v8。
+- 最终审计将残余四处 `CharacterEncounter != null` 空间判断统一到 phase predicate；无第二套 candidate logic、无 Emergency trigger 漏接、无 successor 双 membership、无 singleton 重复注册。`tools/offline-compile.ps1` 全程序集 `ALL_OK`；Control Handoff／Encounter Return／Core Snapshot／Content loader 定向 headless 40/40，`git diff --check` 通过。
+- 下一正式里程碑为 **DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation（Planned）**；Knowledge、Trade、Equipment/Crafting、Production/Logistics 及 NPC AI 仍未实施，NPC AI 保持最后。
+
+## 2026-09-24 — CONTROL-HANDOFF-01-P1 Post-Battle Destination Materialization
+
+- 将 CharacterEncounter 普通 Continuous Surface 门禁统一为 `Preparing / Active / ReadyToEnd`；`Committed` 只保留战报，可与 C 所在普通 Surface、人口和 EntityView 共存。
+- 独立战场退出在 `NeedsExternalControlHandoff` 时不再按旧 Party 位置重建；接管后由单一同步呈现门槛完成目标 Surface、位置、邻域 Site／Squad／Population reconcile 与接管者 View，全部满足后才切 Camera／Selection，失败则由同一入口重试。
+- 审计真正死亡退休链确认每个旧成员只注册一次 singleton；增加两个死亡成员、每人唯一 singleton、接管者成为新 `squad:player` 的回归覆盖。Snapshot 保持 v8，未修改 Content。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`；定向 CharacterEncounter Return + Control Handoff 11/11。状态仍为 **Implementation Complete / Producer Acceptance Pending**；SUCCESSION-01 同样保持 Pending，未启动 Unity，未 stage／commit／push。
+
+## 2026-09-24 — CONTROL-HANDOFF-01 Emergency Faction Control Transfer
+
+- 制作人修订最终控制规则：PlayerParty 无任何可控成员时统一进入 External Faction Control Handoff；仍有生者为 Emergency Takeover，全员 Dead／Removed 为 Succession。新增 ADR-0039，定向替代 ADR-0034 的“全员弥留不转控制”。
+- Core 泛化原继承服务并复用同一候选、CombatPower/EntityId 排序、exact position 与 Surface handoff。Emergency 将旧 Party 生者留在 idle Recovery Squad，Dead／Removed 仍走 singleton/corpse；无候选不改旧 Party，恢复成员不自动抢回控制。
+- Separate Space 释放入口泛化，两种 handoff 均只释放 presentation authority；Emergency 使用独立 DomainEvent/Toast。Snapshot 继续 v8，无新增字段。LevelTester 新增正式 CombatLifeState 全员弥留入口。
+- 状态：**Implementation Complete / Producer Acceptance Pending**。CONTROL-HANDOFF-01 与 SUCCESSION-01 必须共同人工验收后才可 Sealed；后续阶段未启动。
+
 ## 2026-09-24 — SEAL-20260924 + SUCCESSION-01 Final Audit
 
 - 制作人人工验收确认 QUEST-INSTANCE-01、VASSAL-WORK-01 与 VASSAL-WORK-01-P1 全部通过，当前状态更新为 **Producer Accepted / Sealed**。P1 明确是 Host Active/View/Selection opening initialization correctness，不是附庸授权失败。

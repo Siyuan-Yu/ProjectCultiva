@@ -14,13 +14,13 @@
 
 > **2026-09-14 历史补丁：** ADR-0035 当时将成员与人物遭遇迁移到统一 Squad，并退役玩家 FormalArmy 产品入口；当时保留的旧 Content／Save adapter 随 2026-09-22 正式运行依赖退役改为 runtime 拒绝 + 独立离线转换。
 
-> 状态：PlayerParty／Squad／Surface travel authority 与旧运行依赖退役已实现；飞舟、完整势力继承等明确为 Future｜优先级：P0｜最后更新：2026-09-22
+> 状态：PlayerParty／Squad／Surface travel authority、Emergency Handoff 与 True-Death Succession 已实现、人工验收并封板；飞舟仍为 Future｜优先级：P0｜最后更新：2026-09-24
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`、`ADR-0027`、`ADR-0031`
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`
 > **本页是玩家控制模型、PlayerParty、世界存在状态、Continuous Surface 与 Legacy Compatibility 边界的正式产品真源。**
 > 旧 RTS 多选、Army-required World Travel 与远距离切换控制均已退休；历史段落不得作为恢复这些入口的依据。
-> **2026-09-22 当前 WorldMap 规则：** `1 Hex = 1 LocalMap` 与切换 Hex executor 只作历史记录；WorldMap 是 planning overlay，打开时冻结 Surface path 表现，选择目标后关闭地图再由同一 Surface travel authority 继续旅行。控制继承、冲突与飞舟职责以 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 为准。
+> **2026-09-24 当前 WorldMap／控制规则：** `1 Hex = 1 LocalMap` 与切换 Hex executor 只作历史记录；WorldMap 是 planning overlay，打开时冻结 Surface path 表现，选择目标后关闭地图再由同一 Surface travel authority 继续旅行。控制连续性以 [ADR-0039](../40-process/43-decisions/ADR-0039-external-faction-control-handoff.md) 为准；冲突与飞舟未冲突部分继续见 ADR-0034。
 
 > **当前实现闭包（2026-09-22）：** 上述旧 runtime 容器、PlayerParty／WorldSite Hex API 与 Core Hex 几何类型均已退出正式产品代码；历史段落中的名称只说明迁移过程，不是当前可调用 API。稳定旧 wire key／数值仅用于拒绝诊断和离线转换，不在 runtime 自动迁移。
 >
@@ -128,26 +128,39 @@ PlayerParty
 ---
 
 <a id="control-succession"></a>
-## 4. Active 自动接替与势力继承（2026-09-12）
+## 4. Active 自动接替与外部势力控制转移（2026-09-24）
 
 ### 情况 A：当前 Active 失能，Party 仍有可控成员
 
 按 Party 固定顺序从第二位开始依次选择下一名可控成员并自动切换。这里不按战力排序，也不弹继承选择窗口。每个成员保留自己的位置和状态。
 
-### 情况 B：Party 全员真正死亡
+### 情况 B：Party 无可控成员但仍有生者（Emergency Takeover）
 
-只有当前 Party **全部真正死亡**后才触发势力继承。全员弥留、倒地或暂时不可操作但仍有生者，不等于全灭，应进入已有战败／等待恢复出口；该出口完整性在实现前核查。
+当前 Party 没有任何 `CanActAsActive` 成员、但仍有 Alive／Incapacitated 成员时，可从玩家势力其它合法人物中执行紧急接管。必须先正式提交战斗、伤亡和战报并清除 Encounter participant authority；战斗过程中不得切走。
+
+旧 Party 的存活成员留在原地组成 idle Recovery Squad，保留伤势、势力与精确位置，不治疗、不复活、不传送、不自动跟随新主控。其后恢复也不会自动抢回控制；玩家可通过正常 Party 管理重新接纳。没有外部候选时不拆旧 Party，继续 `TemporarilyUnavailable`，等待原成员恢复。
+
+### 情况 C：Party 全员真正死亡（Succession）
+
+当前 Party 全部真正 Dead／Removed 时触发势力继承。Dead／Removed 成员继续使用现有 singleton/corpse retirement，不进入可移动 Recovery Squad。
 
 继承者必须属于玩家势力、存活且当前可担任主控，并按项目现有战力口径自动选择最高者；并列使用稳定结果。旧“必须位于己方 Site／不得在出征 FormalArmy”限制由 ADR-0034 替代，不得据此排除实际最强合格者。
 
+Emergency 与 Succession 共用同一外部候选规则：实际 Character、玩家势力、非旧 Party、Alive、`CanActAsActive`、不受未结束 Encounter 持有，并由 `CharacterWorldPresenceQuery` 解析出 finite 的合法 `SurfaceId + exact WorldPosition`。AtWorldPosition、带 exact anchor 的 AtWorldSite 与当前 SquadWorldMotion 均可；禁止 Site center、arrival point、旧 Hex、旧战场或旧 Party 坐标猜测。按 `CombatPowerCalculator.ForEntity` 最高者选择，同值按稳定 EntityId；不使用距离、名称、字典顺序或随机。
+
 ```text
 先提交旧 Party 的真实伤亡、消耗与遭遇结果
-→ 选择玩家势力最强合格者
-→ 在继承者自己的实际世界位置取得控制
-→ 建立以其为 Active 的新 PlayerParty
+→ 在同一候选规则中选择玩家势力最强合格者
+→ 按 Emergency Takeover／Succession 处理旧成员
+→ 在接管者自己的实际世界位置取得控制
+→ 建立只含接管者的 PlayerParty
 ```
 
 不得把继承者传送到旧战场、复活旧队或自动补齐六人。玩家势力无人时的终局明确延期：本阶段不定义 GameOver、强制重开、免费复活或凭空继承者。
+
+接管者若原属于 NPC Squad，只拆出本人；其余 roster、原位置与 motion 保留，原 Leader 被拆出时按稳定成员顺序补 Leader。接管前必须先解析并捕获其真实位置，再解除来源 Squad／BackgroundTravel authority、重建单人 `squad:player` 并设置 PlayerParty motion，禁止先 detach 后猜位置。
+
+表现交接继续使用唯一 player-centered Continuous Surface streaming。跨 Surface，或同 Surface 但接管点在旧 loaded 5×5 外时，执行 hard re-anchor 并以接管者 chunk 为中心同步构建新邻域；已在当前邻域内则避免无意义重建。Surface、正确 ActiveSurfaceId、接管点 loaded、邻域人口 reconcile 与 successor EntityView 全部就绪后，才能切 Camera／Selection。
 
 ---
 

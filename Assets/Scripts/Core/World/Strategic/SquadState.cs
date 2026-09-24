@@ -202,28 +202,32 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// Replaces a wiped PlayerParty squad with one successor in a single validated
-        /// membership transaction. The old members become singleton squads; their lifecycle and
-        /// spatial state are deliberately untouched. If the successor came from an NPC squad,
-        /// only that member is detached and the remaining squad keeps its command and motion.
+        /// Replaces a PlayerParty that has no eligible Active with one external controller. A
+        /// genuine succession retires every old member to singleton authority. An emergency
+        /// takeover keeps living old members together in an idle recovery squad while dead or
+        /// removed members use the existing singleton/corpse retirement. Lifecycle and exact
+        /// spatial state are deliberately untouched.
         /// </summary>
-        public static Result<SquadState> ReplacePlayerSquadForSuccession(
+        public static Result<SquadState> ReplacePlayerSquadForExternalHandoff(
             SimulationWorld world,
             PlayerPartyRuntime party,
-            EntityId successor)
+            EntityId successor,
+            PlayerFactionControlHandoffKind kind,
+            out string recoverySquadId)
         {
+            recoverySquadId = string.Empty;
             if (world?.Strategic?.Squads == null || party == null || successor.IsNone ||
                 !world.Entities.TryGet(successor, out var successorEntity) ||
                 successorEntity == null ||
                 (successorEntity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
                 return Result.Fail<SquadState>(ErrorCode.InvalidArgument,
-                    "Succession requires a real Character successor.");
-            if (!party.IsAwaitingSuccession ||
+                    "External control handoff requires a real Character successor.");
+            if (!party.NeedsExternalControlHandoff ||
                 string.IsNullOrEmpty(party.ControlledSquadId) ||
                 !world.Strategic.Squads.TryGet(party.ControlledSquadId, out var oldPlayerSquad) ||
                 oldPlayerSquad == null || oldPlayerSquad.Contains(successor))
                 return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
-                    "PlayerParty is not ready for succession.");
+                    "PlayerParty is not ready for external control handoff.");
             if (!string.Equals(oldPlayerSquad.SquadId, PlayerSquadId, StringComparison.Ordinal))
                 return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
                     "Controlled PlayerParty squad identity is invalid.", oldPlayerSquad.SquadId);
@@ -231,14 +235,27 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Squads.TryGetForCharacter(successor, out var sourceSquad);
             if (IsBattleLocked(world, oldPlayerSquad) || IsBattleLocked(world, sourceSquad))
                 return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
-                    "Battle participant cannot change squad during succession.");
+                    "Battle participant cannot change squad during external control handoff.");
 
-            // Validate every destination before changing the reverse index. A character cannot
-            // already own a singleton while it is indexed to the authoritative player squad.
+            if ((kind == PlayerFactionControlHandoffKind.EmergencyTakeover &&
+                 party.ControlState != PlayerPartyControlState.TemporarilyUnavailable) ||
+                (kind == PlayerFactionControlHandoffKind.Succession && !party.IsAwaitingSuccession))
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
+                    "External control handoff kind does not match PlayerParty state.");
+
             var retiredMembers = new List<EntityId>(oldPlayerSquad.MemberCharacterIds.Count);
+            var recoveryMembers = new List<EntityId>(oldPlayerSquad.MemberCharacterIds.Count);
             for (var i = 0; i < oldPlayerSquad.MemberCharacterIds.Count; i++)
             {
                 var id = new EntityId(oldPlayerSquad.MemberCharacterIds[i]);
+                var isLiving = world.Entities.TryGet(id, out var memberEntity) && memberEntity != null &&
+                    memberEntity.TryGet<LifecycleComponent>(out var life) && life != null &&
+                    !life.IsDead && !life.IsRemoved;
+                if (kind == PlayerFactionControlHandoffKind.EmergencyTakeover && isLiving)
+                {
+                    recoveryMembers.Add(id);
+                    continue;
+                }
                 var singletonId = SingletonSquadId(id);
                 if (world.Strategic.Squads.TryGet(singletonId, out var existing) &&
                     !ReferenceEquals(existing, oldPlayerSquad))
@@ -246,6 +263,11 @@ namespace XianXia.Core.World.Strategic
                         "Retired PlayerParty member already has a singleton squad.", singletonId);
                 retiredMembers.Add(id);
             }
+            if (kind == PlayerFactionControlHandoffKind.EmergencyTakeover && recoveryMembers.Count == 0)
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation,
+                    "Emergency takeover requires at least one living old Party member.");
+            if (recoveryMembers.Count > 0)
+                recoverySquadId = NextRecoverySquadId(world);
 
             // Detach only the successor. The source squad's remaining member order, command and
             // motion object stay intact; leader replacement follows the existing stable rule.
@@ -272,11 +294,30 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            // Retire the old controlled squad without altering any corpse or world presence.
-            for (var i = 0; i < retiredMembers.Count; i++)
-                world.Strategic.Squads.RemoveReverse(retiredMembers[i]);
+            // Retire the old controlled identity without altering lifecycle or world presence.
+            for (var i = 0; i < oldPlayerSquad.MemberCharacterIds.Count; i++)
+                world.Strategic.Squads.RemoveReverse(
+                    new EntityId(oldPlayerSquad.MemberCharacterIds[i]));
             world.Strategic.Squads.Remove(oldPlayerSquad.SquadId);
             world.Strategic.SquadWorldMotions.Remove(oldPlayerSquad.SquadId);
+
+            if (recoveryMembers.Count > 0)
+            {
+                var recovery = new SquadState
+                {
+                    SquadId = recoverySquadId,
+                    DisplayName = "失能待援小队",
+                    FactionId = string.IsNullOrEmpty(oldPlayerSquad.FactionId)
+                        ? world.Strategic.PlayerFactionId
+                        : oldPlayerSquad.FactionId,
+                    LeaderCharacterId = recoveryMembers[0],
+                    CommandKind = SquadCommandKind.None,
+                    CommandTargetCharacterId = EntityId.None
+                };
+                for (var i = 0; i < recoveryMembers.Count; i++)
+                    recovery.Add(recoveryMembers[i]);
+                world.Strategic.Squads.Register(recovery);
+            }
             for (var i = 0; i < retiredMembers.Count; i++)
             {
                 var id = retiredMembers[i];
@@ -303,6 +344,15 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Squads.Register(replacement);
             BackgroundCharacterTravelService.CancelTravelIfAny(world, successor);
             return Result.Ok(replacement);
+        }
+
+        static string NextRecoverySquadId(SimulationWorld world)
+        {
+            const string prefix = "squad:recovery:";
+            ulong sequence = 1;
+            while (world.Strategic.Squads.TryGet(prefix + sequence, out _))
+                sequence++;
+            return prefix + sequence;
         }
 
         public static void EnsureSingletonsForUnassignedCharacters(SimulationWorld world)

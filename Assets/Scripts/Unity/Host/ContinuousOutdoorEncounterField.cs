@@ -967,12 +967,21 @@ namespace XianXia.Unity.Host
             if (_independentNavigationRefresh != null) StopCoroutine(_independentNavigationRefresh);
             _independentNavigationRefresh = null;
             RemovePresentedField(); _independentFieldId = string.Empty;
-            // Ordinary activation reads the unchanged original party motion and individual presence.
+            // A pending external handoff must never rebuild the old Party's ordinary surface.
+            // The following control refresh installs the successor's authority and materializes
+            // that destination directly. A still-valid Party keeps the established return path.
             IsActive = false;
-            TryActivateAtCurrentWorldPosition();
-            _bootstrap.FlushLoadedDestinationArrivals();
+            if (ShouldRestoreOrdinarySurfaceAfterIndependentField(
+                    _bootstrap.Session.PlayerParty))
+            {
+                TryActivateAtCurrentWorldPosition();
+                _bootstrap.FlushLoadedDestinationArrivals();
+            }
             LogReturnedSiteResidualDiagnostics(completed);
         }
+
+        public static bool ShouldRestoreOrdinarySurfaceAfterIndependentField(
+            PlayerPartyRuntime party) => party?.NeedsExternalControlHandoff != true;
 
         /// <summary>One-shot producer diagnostic after Encounter return and ordinary population reconcile.</summary>
         void LogReturnedSiteResidualDiagnostics(CharacterEncounterState completed)

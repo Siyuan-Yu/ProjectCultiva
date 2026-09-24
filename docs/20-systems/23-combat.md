@@ -6,7 +6,7 @@
 
 > **⚠️ 2026-09-12 · 当前设计替代：** [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 已替代 186 的普通户外“原地战斗”目标。所有新的玩家实战进入取自接战地点当前状态的临时独立战场；186 只保留为当时实现记录。
 
-> 状态：现代 CharacterEncounter 主线已实现、验收并封板；大型战争、NPC 对 NPC 战斗等 Future 范围未实现 | 优先级：P0 | 最后更新：2026-09-21
+> 状态：现代 CharacterEncounter 主线及战后控制连续性已实现、验收并封板；大型战争、NPC 对 NPC 战斗等 Future 范围未实现 | 优先级：P0 | 最后更新：2026-09-24
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`21-core-loop-and-time.md`、`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`、[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)
 
@@ -72,8 +72,11 @@
 | 一次收尾 | 最多一次；先暂停告知；沿用现有生命、消耗和位置状态 | 收尾解决；标记本场收尾已使用 |
 | 最终结算 | 暂停局部时间；提交唯一战果和奖励；禁止生产、建设或长期修炼 | 唯一结算完成 |
 | 返回 | 各回自己的战前世界锚点；只做必要最小合法性修正 | 释放本场暂停原因并抑制同次接触立即重开 |
+| Committed／战报 | 战果和返回已经提交；战报可以继续显示 | 关闭战报只结束 report lifecycle，不再释放空间 authority |
 
 有限候选的已判定／未判定、已决定／在途／到场、一次收尾是否已使用、每人原锚点和唯一结算结果都属于需保存的生命周期事实。读档不得重新抽取已决定的援军、重复加入参与者或再次发放奖励；本规则只锁契约，不规定新的 RNG API。
+
+`Preparing / Active / ReadyToEnd` 持有 tactical／independent battle spatial authority，普通 Continuous Surface 不得覆盖。`Committed` 已释放该 authority，只保留 Battle Report；它不得阻止普通 Surface activation、PlayerParty presentation、External Handoff 目的地物化或 NPC／Squad／Site population reconcile。**Battle Report lifetime ≠ Battle Spatial Authority lifetime**，`CloseReport` 不能成为世界重新加载的隐式触发器。
 
 ## 4. 单 Active 战术操作语法
 

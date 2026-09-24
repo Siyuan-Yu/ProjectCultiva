@@ -8,9 +8,11 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// Reconciles the player controlled squad after a member stops being able to fight.
-    /// A living successor remains the control anchor; non-fighting members then leave to their
-    /// singleton squads. If nobody can act, membership is retained only for terminal control
-    /// semantics and carries no travel, transition or materialization authority.
+    /// A living successor remains the control anchor. Incapacitated members stay in the Party so
+    /// a later full-party emergency handoff can preserve the defeated group as one recovery squad;
+    /// Host movement already skips them. Dead/Removed members keep the existing singleton/corpse
+    /// retirement when another Active remains. If nobody can act, membership is retained until an
+    /// external handoff succeeds or a member recovers.
     /// </summary>
     public static class PlayerPartyLifeStateMembershipService
     {
@@ -33,7 +35,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             party.RefreshActiveAfterLifeState(world);
-            // Active combat can temporarily restrict succession. Keep the logical control squad
+            // Active combat can temporarily restrict external handoff. Keep the logical control squad
             // intact until an eligible successor can be selected, while all physical gates still
             // reject the non-fighting members immediately.
             if (!hasLivingMember || !party.HasActive)
@@ -49,8 +51,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!world.Entities.TryGet(id, out var entity) || entity == null ||
                     !entity.TryGet<LifecycleComponent>(out var life) || life == null ||
-                    (life.State != LifecycleState.Incapacitated &&
-                     life.State != LifecycleState.Dead &&
+                    (life.State != LifecycleState.Dead &&
                      life.State != LifecycleState.Removed))
                     continue;
 

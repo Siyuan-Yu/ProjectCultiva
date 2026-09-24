@@ -5,6 +5,7 @@ using NUnit.Framework;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
@@ -107,6 +108,29 @@ namespace XianXia.Tests
             Assert.AreEqual(participant.ReturnX, after.WorldPosX);
             Assert.AreEqual(participant.ReturnY, after.WorldPosY);
             Assert.IsTrue(entity.Get<LifecycleComponent>().IsIncapacitated);
+        }
+
+        [Test]
+        public void OrdinaryContinuousSurfaceIsBlockedOnlyByPreCommitEncounterPhases()
+        {
+            var world = new SimulationWorld();
+            Assert.IsFalse(CharacterEncounterService.BlocksOrdinaryContinuousSurface(world));
+            foreach (var phase in new[]
+                     {
+                         CharacterEncounterPhase.Preparing,
+                         CharacterEncounterPhase.Active,
+                         CharacterEncounterPhase.ReadyToEnd
+                     })
+            {
+                world.Strategic.CharacterEncounter = new CharacterEncounterState { Phase = phase };
+                Assert.IsTrue(CharacterEncounterService.BlocksOrdinaryContinuousSurface(world),
+                    phase.ToString());
+            }
+            world.Strategic.CharacterEncounter = new CharacterEncounterState
+            {
+                Phase = CharacterEncounterPhase.Committed
+            };
+            Assert.IsFalse(CharacterEncounterService.BlocksOrdinaryContinuousSurface(world));
         }
 
         [Test]

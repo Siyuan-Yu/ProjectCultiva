@@ -1,13 +1,15 @@
 # SUCCESSION-01 — Player Faction Succession & Control Re-anchor V1
 
-> 状态：**Implementation Complete / Producer Acceptance Pending**
+> **2026-09-24 最终修订与封板：** 本页保留 SUCCESSION-01 实施时点记录。其“只有全员真正死亡才允许外部转移控制”已被 [ADR-0039](43-decisions/ADR-0039-external-faction-control-handoff.md) 与 [CONTROL-HANDOFF-01](260-control-handoff-01-emergency-faction-control-transfer-2026-09-24.md) 定向替代；真正死亡 Succession 规则继续有效。三项已共同完成人工验收并正式封板。
+
+> 状态：**Producer Accepted / Sealed**
 > 日期：2026-09-24
 > Snapshot：v8（未升版）
 > 前置封板：QUEST-INSTANCE-01 **Producer Accepted / Sealed**
 
 ## 1. Authority 与触发边界
 
-`PlayerFactionSuccessionService` 是势力继承唯一 Core authority。只有 `PlayerPartyRuntime.IsAwaitingSuccession == true`，即旧 Party 每名成员均为 Dead/Removed，才会扫描候选。`TemporarilyUnavailable`、弥留、倒地、战斗中暂时无可操作成员均不触发。普通 Party 内仍有合法成员时继续按既有成员顺序替换 Active，不使用战力排序。
+`PlayerFactionControlHandoffService` 是统一 External Faction Control Handoff Core authority。True-Death Succession 分支只在 `PlayerPartyRuntime.IsAwaitingSuccession == true`，即旧 Party 每名成员均为 Dead/Removed 时成立；仍有生者但 Party 无可控成员由同一服务的 Emergency Takeover 分支处理。普通 Party 内仍有合法成员时继续按既有成员顺序替换 Active，不使用战力排序。
 
 CharacterEncounter 的 Preparing／Active／ReadyToEnd、Host pending/preparing presentation 或 continuous manual-combat authority 会延后继承。`HostCharacterEncounter.TryFinishBattle` 先执行 `CommitAndReturn`、return anchors、report 与 participant cleanup，离开 independent field 后才再次触发继承检查。
 
@@ -21,7 +23,7 @@ CharacterEncounter 的 Preparing／Active／ReadyToEnd、Host pending/preparing 
 
 ## 3. Squad 与精确世界接管
 
-`SquadMembershipService.ReplacePlayerSquadForSuccession` 在完整预检后完成 membership transaction：
+`SquadMembershipService.ReplacePlayerSquadForExternalHandoff` 在完整预检后完成 membership transaction：
 
 - 旧 `squad:player` 全员转为各自 singleton；不改 Entity、Lifecycle、corpse 或 world placement。
 - successor 若属于 NPC squad，只移出本人；剩余成员顺序、command、world motion 保持，若 successor 是 leader 则按原成员顺序选新 leader。
@@ -33,7 +35,7 @@ CharacterEncounter 的 Preparing／Active／ReadyToEnd、Host pending/preparing 
 
 ## 4. Separate Space 与 Host re-anchor
 
-Separate Space wipe 会先由 Host 冻结当前持久角色的 EntityLocation presentation placement，再由 `ReleasePlayerControlAfterPartyWipe` 只释放 active PlayerParty session/occupants。它不调用正常 Leave、不撤离尸体、不改尸体位置、不删除洞府持久状态。
+Separate Space wipe 会先由 Host 冻结当前持久角色的 EntityLocation presentation placement，再由 `ReleasePlayerControlForExternalHandoff` 只释放 active PlayerParty control presentation authority。它不调用正常 Leave、不撤离尸体、不改尸体位置、不删除洞府持久状态。
 
 Host 在 succession domain handoff 后检查 successor 是否处于当前 loaded neighborhood。Surface 改变或同 Surface 但超出 loaded 5×5 时，调用不捕获旧实体位置的 succession deactivate，再从新 PlayerParty motion 激活 Surface；若已经在 loaded neighborhood，只同步新 Party presentation。完成物化后才复用 `ApplyAutomaticActiveChange` 镜头与选中逻辑。
 
@@ -84,10 +86,10 @@ CASE 2 成功后保存并读取。确认同一个 B 仍是唯一 Party member/Ac
 
 - `tools/offline-compile.ps1`：全程序集 `ALL_OK`。
 - `git diff --check`：通过。
-- 仓库 `AGENTS.md` 禁止 agent 编写或运行任何自动测试，因此本轮没有新增/运行 Core、Snapshot、EditMode、PlayMode 或 headless tests；测试程序集仅参与离线编译。
+- 最终封板轮按制作人明确指令执行现有 targeted headless tests；结果见本轮 devlog 与最终 Git seal 报告。
 - 未启动 Unity；未修改 Snapshot schema、正式 Content balance、普通 Party replacement、Quest/Event/Opportunity runtime 或 NPC AI。
 - 未 `git add`、commit、push。
 
-2026-09-24 Final Audit：候选门槛、CombatPower＋EntityId 排序、精确位置预捕获、玩家 Squad 单人重建、远 Surface／远 5×5 无捕获重锚、物化后 Camera/Selection、Separate Space 尸体保留与 Snapshot v8 恢复链均符合当前规则。仅做来源 Squad command target 悬挂修复、无候选 retry throttle，以及 LevelTester 护卫限定为玩家势力的小型 correctness hardening。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+2026-09-24 Final Audit：候选门槛、CombatPower＋EntityId 排序、精确位置预捕获、玩家 Squad 单人重建、远 Surface／远 5×5 无捕获重锚、物化后 Camera/Selection、Separate Space 尸体保留与 Snapshot v8 恢复链均符合当前规则。来源 Squad command target、无候选 retry throttle、Committed report-only spatial authority 与战后即时目的地 materialization 均已收口。制作人确认“这一轮很完美”，状态为 **Producer Accepted / Sealed**。
 
 SUCCESSION-01 人工验收通过后的下一阶段计划为 **DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**；其后仍为 Knowledge + delayed event foundation → Full trading → Equipment/crafting → Production/logistics → NPC AI last。本轮未开始实现下一阶段。

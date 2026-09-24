@@ -1,6 +1,6 @@
 # ADR-0020：FocusCharacter 与 ControlAuthority 分离；失能不立即改玩家身份
 
-> **PARTIALLY SUPERSEDED（2026-09-12）：** “否则早期 GameOver、后期继承待定”已由 [ADR-0034](ADR-0034-conflict-control-succession-and-airship-role.md) 替代：队内按固定顺序自动接替；仅全队真正死亡后自动选择玩家势力最强合格角色；空势力终局延期。DirectControl／Focus／FactionLeader／PlayerIdentity 分离及失能不立即抹掉玩家身份仍有效。
+> **PARTIALLY SUPERSEDED（2026-09-12；再次修订于 2026-09-24）：** “否则早期 GameOver、后期继承待定”先由 ADR-0034 替代；其中“仅全队真正死亡才允许外部接管”又于 2026-09-24 被 [ADR-0039](ADR-0039-external-faction-control-handoff.md) 替代。现行规则是队内固定顺序接替；当前 Party 无可控成员时尝试统一 External Handoff，仍有生者为 Emergency、全员死亡为 Succession；空势力终局延期。DirectControl／Focus／FactionLeader／PlayerIdentity 分离及失能不立即抹掉玩家身份仍有效。
 
 - 状态：**已采纳**（补充 ADR-0011）
 - 日期：2026-07-31

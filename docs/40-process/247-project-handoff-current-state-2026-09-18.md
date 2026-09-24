@@ -1,10 +1,26 @@
 # Project Handoff — Continuous World Current State
 
-## 2026-09-24 最新接续摘要：SEAL-20260924 / SUCCESSION Final Audit
+## 2026-09-24 最新接续摘要：PLAYER CONTROL CONTINUITY / SUCCESSION FINAL SEAL
+
+制作人已完成人工验收并确认“这一轮很完美”。SUCCESSION-01、CONTROL-HANDOFF-01 与 CONTROL-HANDOFF-01-P1 均为 **Producer Accepted / Sealed**。现行控制连续性分三级：当前 Party 内仍有合法成员时按固定顺序接替；无可控成员但仍有生者时走 Emergency External Handoff，旧生者留在原地 idle Recovery Squad；全员 Dead／Removed 时走 True-Death Succession，旧成员保持 corpse／singleton authority。外部候选共用统一 policy，以 CombatPower 最高、稳定 EntityId tie-break，并在 membership mutation 前捕获真实 `SurfaceId + exact WorldPosition`。
+
+接管者若来自 NPC Squad，只拆本人并保留其余 roster／motion。跨 Surface 或远出旧 loaded 5×5 时以接管者 chunk hard re-anchor；目的地 Surface、邻域 Site／Squad／Population 与 successor EntityView 同步就绪后才切 Camera／Selection。CharacterEncounter `Preparing / Active / ReadyToEnd` 持有 spatial authority；`Committed` 仅保留战报，不阻断 ordinary world，`CloseReport` 不承担世界重载。Separate Space handoff 不执行正常 Leave，旧伤员／尸体保持洞内持久位置。Snapshot 继续 v8，成功态不重复 handoff，无候选等待态在完整 world shell 恢复后可重新检查。
+
+旧“只有全员真正死亡才允许切到势力其它人物；全员弥留保持 TemporarilyUnavailable”的规则已标记 **Superseded on 2026-09-24**，现行真源为 [ADR-0039](43-decisions/ADR-0039-external-faction-control-handoff.md)、[2K §4](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[259](259-succession-01-player-faction-succession-2026-09-24.md) 与 [260](260-control-handoff-01-emergency-faction-control-transfer-2026-09-24.md)。下一里程碑为 `DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation`，状态 **Planned**，尚未实施；NPC AI 继续最后。
+
+## 2026-09-24 实施时点历史：CONTROL-HANDOFF-01（状态已由顶部 Final Seal 取代）
+
+制作人修订 SUCCESSION-01 最终产品规则：[ADR-0039](43-decisions/ADR-0039-external-faction-control-handoff.md) 将外部势力控制转移统一为 Emergency Takeover 与 Succession。当前 Party 无任何可控成员但仍有生者时，如果玩家势力存在外部合法人物，也会在战斗正式提交后接管；旧生者保留在原地 idle Recovery Squad，Dead／Removed 继续 singleton/corpse retirement。无候选时不拆旧 Party，等待恢复。
+
+实现记录见 [260](260-control-handoff-01-emergency-faction-control-transfer-2026-09-24.md)。候选筛选、CombatPower/EntityId 排序、精确位置、Surface re-anchor 与 Separate Space presentation release 只有一套；Emergency 使用独立 DomainEvent/Toast。Snapshot 仍为 v8。LevelTester “战斗”新增“CONTROL-HANDOFF-01：使当前 Party 全员弥留”。**历史实施时点状态**为 Implementation Complete / Producer Acceptance Pending；当前状态已由本页顶部 Final Seal 更新为 Producer Accepted / Sealed。
+
+P1 已修正战后即时目的地物化：CharacterEncounter `Committed` 仅保留战报，不再阻断普通 Continuous Surface；独立战场退出在等待外部接管时跳过旧 Party Surface 重建，并由唯一 Host 呈现门槛同步完成 C 的 Surface、邻域人口与 EntityView 后再切 Camera／Selection。真正死亡旧成员 singleton 注册保持每人一次，双死亡回归已覆盖。无需关闭战报或点击 HUD 头像触发刷新。两项状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-24 实施时点历史：SEAL-20260924 / SUCCESSION Final Audit（状态已由顶部 Final Seal 取代）
 
 QUEST-INSTANCE-01、VASSAL-WORK-01 与 VASSAL-WORK-01-P1 已由制作人人工验收并正式 **Producer Accepted / Sealed**。P1 的最终 opening context-menu 问题属于 Host Active/View/Selection 初始化时机，并非 Direct Vassal Work Authorization 失败。
 
-SUCCESSION-01 主体审计通过，未重建系统。仅修正来源 NPC squad 在 successor 同时为 command target 时的悬挂目标；无候选扫描从逐帧改为 0.75 秒 throttle，首次进入／显式刷新／Snapshot restore 仍立即；LevelTester 护卫限定玩家势力。候选、精确位置、远距无捕获 Surface re-anchor、物化后 Camera/Selection、Separate Space wipe 与 Snapshot v8 行为保持。SUCCESSION-01 状态仍为 **Implementation Complete / Producer Acceptance Pending**，等待制作人执行 CASE 2/3/4。下一阶段 `DYNAMIC-DISCOVERY-01` 仅 Planned，未实施。未启动 Unity，未 stage／commit／push。
+SUCCESSION-01 主体审计通过，未重建系统。仅修正来源 NPC squad 在 successor 同时为 command target 时的悬挂目标；无候选扫描从逐帧改为 0.75 秒 throttle，首次进入／显式刷新／Snapshot restore 仍立即；LevelTester 护卫限定玩家势力。候选、精确位置、远距无捕获 Surface re-anchor、物化后 Camera/Selection、Separate Space wipe 与 Snapshot v8 行为保持。**历史实施时点状态**为 Implementation Complete / Producer Acceptance Pending；当前状态已由本页顶部 Final Seal 更新。
 
 ## 2026-09-24 最新接续摘要：VASSAL-WORK-01-P1
 
@@ -18,19 +34,19 @@ P1 已在最终 opening population Refresh/Prune/Spawn 后仅为空 selection �
 
 Ch01 真实 opening 已有 `base:faction_player → base:sect_huangcun_labor` 直接附庸，故现有荒村宗主粮田／药田会自然开放劳动，不含 ID hardcode。玩家手控产物仍进背包，NPC schedule 产物仍进宗主实际 Site 公库；宗主仓储、建造、拆除、管理、住房、时间表和 ControlCore 继续隔离。解除附庸或 War 后权限即时失效。Snapshot 仍为 v8；离线编译 `ALL_OK`，未运行自动测试或 Unity，未 stage／commit／push。完成本项人工验收后继续既有 SUCCESSION-01 验收。
 
-## 2026-09-24 最新接续摘要：SUCCESSION-01
+## 2026-09-24 实施时点历史：SUCCESSION-01（状态已由顶部 Final Seal 取代）
 
 QUEST-INSTANCE-01 已由制作人人工验收通过并封板，正式状态为 **Producer Accepted / Sealed**。旧文档中的 Pending 是实施时点历史，不回写。当前最新实现是 [SUCCESSION-01](259-succession-01-player-faction-succession-2026-09-24.md)：只有旧 PlayerParty 全员真正 Dead/Removed 才从玩家势力其它真实人物中选择继承者；战力最高优先、同战力较小 EntityId 优先，普通队内 Active 接替仍保持固定 Party 顺序。
 
 继承者在改变 Squad 前捕获精确 Surface/WorldPosition/Site/来源 Squad；旧死亡 Party 退为 singleton，新 `squad:player` 仅含继承者。NPC squad 只分离继承者。Host 对跨 Surface 或超出 loaded 5×5 的位置执行无旧位置捕获的 hard re-anchor，并在 EntityView 就绪后镜头/选中。Separate Space 全灭只释放玩家表现 ownership，不把尸体送回洞口。无候选继续保持 AwaitingSuccession，可存档并在 world shell 恢复后重试。Snapshot schema 仍为 v8。
 
-LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选准备与正式全灭按钮。当前状态 **Implementation Complete / Producer Acceptance Pending**；不得进入 NPC AI。后续顺序为 Dynamic WorldObject / Discovery → Knowledge + delayed event foundation → Full trading → Equipment/crafting → Production/logistics → NPC AI last。本轮未启动 Unity，未新增/运行自动测试，未暂存、未提交、未推送。
+LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选准备与正式全灭按钮。该段记录的**历史实施时点状态**为 Implementation Complete / Producer Acceptance Pending；当前状态已由本页顶部 Final Seal 更新。后续顺序为 Dynamic WorldObject / Discovery → Knowledge + delayed event foundation → Full trading → Equipment/crafting → Production/logistics → NPC AI last。
 
-## 新会话恢复摘要（2026-09-24；最新增量以上方 SUCCESSION-01 为准）
+## 新会话恢复摘要（2026-09-24；最新状态以顶部 Final Seal 为准）
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01 已 **Producer Accepted / Sealed**，当前增量为 SUCCESSION-01，状态 **Implementation Complete / Producer Acceptance Pending**。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01 与 P1 均已 **Producer Accepted / Sealed**。下一里程碑 DYNAMIC-DISCOVERY-01 仅 Planned。
 
 ### QUEST-INSTANCE-01 当前实现（2026-09-24）
 

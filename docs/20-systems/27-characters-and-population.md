@@ -1,6 +1,6 @@
 # 角色、修士与凡人人口
 
-> 状态：四层模拟与现行 PlayerParty／Squad 生命周期已冻结；队内接替已落地，完整势力继承仍为 Future | 优先级：P0 | 最后更新：2026-09-21
+> 状态：四层模拟与现行 PlayerParty／Squad 生命周期已冻结；队内接替、Emergency Handoff 与 True-Death Succession 已实现、人工验收并封板 | 优先级：P0 | 最后更新：2026-09-24
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`24`、`26`、`2B`、`28`、`23`、`../30-tech/33`、`../30-tech/34`
 > 当前实现边界以 `33`、`34` 与 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 为准；Future／Not Implemented 条目不构成当前开发授权。
@@ -36,9 +36,10 @@
 
 - Dead 与 Removed 保持分离；弥留／暂时失能但仍存活也不等于死亡。
 - 当前 Active 失能时，按 Party 固定顺序从第二位开始自动选择下一名可控成员；不按战力排队，也不弹选择窗口。
-- 只有当前 Party 全员真正死亡后，才从玩家势力中自动选择存活、可担任主控且按现有口径战力最高的角色。并列须稳定处理；旧“必须在己方 Site／未出征”限制不再适用。
-- 先结算旧队的真实伤亡与消耗，再于继承者自己的实际位置取得控制；不传送、不复活、不自动补队。
-- 全员失能但未死亡时沿用真实生命状态下的战败／恢复出口，具体完整性待核查。玩家势力无人时的最终结局明确延期。
+- 当前 Party 无任何可控成员时，从玩家势力中自动选择存活、可担任主控且按现有口径战力最高的外部人物。并列须稳定处理；旧“必须在己方 Site／未出征”限制不再适用。
+- 仍有生者时是 Emergency Takeover：旧生者留在原地 Recovery Squad；全员 Dead／Removed 时是 Succession。先结算真实伤亡与消耗，再于接管者自己的实际位置取得控制；不传送、不复活、不自动补队。
+- 全员失能但没有外部候选时保留原 PlayerParty 等待恢复。玩家势力无人时的最终结局明确延期。
+- Recovery Squad 是玩家势力普通、非主控 Squad：保留旧成员的真实位置、伤势和生命周期，`CommandKind=None`，不自动移动、跟随、治疗、回队或抢回 Active。Dead／Removed 不进入可移动 Recovery Squad，继续使用 corpse／singleton／retired membership。恢复后的旧成员只能通过正常 Party transfer／add／management 重新组织。
 
 正式控制契约见 [2K §4](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) 与 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md)。
 
@@ -207,5 +208,5 @@
 - [x] 修士会因不满、理念冲突等**可解释原因**叛离／离开（见 `33` §20、`34`；禁止无预兆抽奖）
 - [x] 角色默认永久死亡；剧情重要≠不死；可选 TemporaryProtection（见 `33` §19）
 - [ ] 修士死亡后的传承内容清单与结算流程（机制允许永久失去内容）
-- [x] Active 失能按 Party 固定顺序自动接替；仅 Party 全员真正死亡后由玩家势力最强合格角色在其原位置继承
-- [ ] 全员弥留但未死亡的既有败退／待恢复安全出口接线；空势力终局明确延期
+- [x] Active 失能先按 Party 固定顺序接替；无可控成员时按 ADR-0039 执行 Emergency Takeover 或 Succession
+- [x] 全员弥留的 Recovery Squad／无候选等待恢复规则已确定；空势力终局仍延期

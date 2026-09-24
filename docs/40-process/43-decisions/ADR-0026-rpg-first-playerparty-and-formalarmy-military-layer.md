@@ -36,7 +36,7 @@
 4. **FormalArmy = 军事组织／远征任务层** — 不再是世界移动、宣战、参战或占领资格；默认可自动处理远方战斗。玩家实际参与只按真实遭遇、可达性和参战规则，不按 `HexDistance ≤ 1` 或 Army 类型授予。
 5. **Continuous HexWorld topology** — HexWorld=世界本身；LocalMap=近景；WorldMap=总览／旅行视图。
 6. **PresenceHex** — Multi-Hex Site 上 Character 的固定世界位置代理（与 AnchorHex 职责分离）。
-7. **Succession V1（已由 ADR-0034 修订）** — Active 失能先按 Party 固定顺序接替；只有当前 Party 全员真正死亡才触发势力继承，并自动选择玩家势力中存活、可操控且按既有战力口径最强者。不得用“己方 Site／未出征”排除最强合格者；空势力终局延期。
+7. **Succession V1（已由 ADR-0034、ADR-0039 修订）** — 本条保留历史原文；现行规则按 ADR-0039 区分全员弥留的 Emergency Takeover 与全员 Dead／Removed 的 Succession，并复用同一外部候选规则。空势力终局延期。
 8. **Character Policy** — 非 Active 以长期权限／倾向控制，不做远程逐步 RTS 命令。
 9. **真人接管** — 攻击势力有效拥有的建筑须先处理战争授权；议政厅在同源独立战场内可由主控或己方派出修士正式接管。PlayerParty、FormalArmy 与飞舟类型本身均不授予接管特权。
 10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。

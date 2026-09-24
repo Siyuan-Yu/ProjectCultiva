@@ -1244,7 +1244,7 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<EntityLocationComponent>(out var loc))
                 return;
 
-            if (session.World.Strategic.CharacterEncounter != null)
+            if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(session.World))
             {
                 var tactical = HostPresentationSpace.ToPresentation(view.transform.position);
                 loc.SetPresentationOverride(tactical.x, tactical.y);

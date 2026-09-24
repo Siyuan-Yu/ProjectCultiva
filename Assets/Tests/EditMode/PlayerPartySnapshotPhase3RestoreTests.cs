@@ -125,6 +125,9 @@ namespace XianXia.Tests
                 world.PlayerPartyTravel.WorldPosition.Y + 0.017f);
             world.PlayerPartyTravel.SetAtSurfacePosition(savedSurface, savedPosition);
             world.WorldPresence.SetAtWorldPosition(active, savedPosition, savedSurface);
+            // This test isolates spatial authority. PlayableDayBootstrap may present the authored
+            // opening dialogue, and SAVE-01 correctly rejects capture while any event is active.
+            world.ContentEvents.ClearActive();
 
             var service = new SnapshotService(new JsonSnapshotSerializer());
             var json = service.CaptureJson(world, started.Value.Loop, party);

@@ -220,11 +220,12 @@ namespace XianXia.Core.Exploration
         }
 
         /// <summary>
-        /// Ends only the active PlayerParty presentation claim after a genuine party wipe.
+        /// Ends only the active PlayerParty presentation claim before an external faction control
+        /// handoff. The old Party may be dead or merely incapacitated.
         /// Unlike <see cref="Leave"/>, this never evacuates occupants and never changes corpse
         /// EntityLocation. Persistent Separate Space state therefore remains available on re-entry.
         /// </summary>
-        public static void ReleasePlayerControlAfterPartyWipe(SimulationWorld world)
+        public static void ReleasePlayerControlForExternalHandoff(SimulationWorld world)
         {
             var session = world?.LocalMap;
             if (session == null || !session.IsActive)

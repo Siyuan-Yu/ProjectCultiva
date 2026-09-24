@@ -30,7 +30,7 @@
 | 24 | [世界与据点](24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore 已落地；旧结构仅兼容 | ADR-0031/0032/0038 |
 | 25 | [修炼与突破](25-cultivation-and-breakthrough.md) | P0 | 突破=事件已冻结方向 | |
 | 26 | [领地经营](26-territory-management.md) | P0 | SiteCore／Actual Administrative Control 已落地；未来经济扩展未实现 | ADR-0032/0038 |
-| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层与当前 Party／Squad 生命周期已落地；完整继承仍属 Future | ADR-0034 |
+| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层与当前 Party／Squad 生命周期、Emergency Handoff、True-Death Succession 已落地并封板 | ADR-0039 |
 | 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger V1 已验收；预警／敌情明确为 Future | |
 | 29 | [世界观哲学](29-karma-and-consequence.md) | P1 | 设计方向已定 | |
 | 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | WorldSite／Claim／Actual Control 与现行冲突接管已落地；旧 Army 段落为 Historical | ADR-0033/0034/0038 |

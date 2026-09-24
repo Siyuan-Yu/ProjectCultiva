@@ -170,6 +170,10 @@ PlayerParty member 进入 `Incapacitated`、`Dead` 或 `Removed` 后：
 
 Snapshot restore 会 reconcile 本轮之前仍把非战斗成员留在 `squad:player` 的存档；active Separate Space occupant／placement 会移除 stale Outdoor presence，placement restore 不重新入队。该行为已通过 Producer Acceptance。
 
+### External Control Handoff（2026-09-24 Sealed）
+
+旧 PlayerParty 在 Cave／Interior 内全员失能或死亡而由外部人物接管时，不执行正常 Leave。Host 只释放旧 PlayerParty 对 active Separate Space 的 player-control presentation authority；旧人物继续保留洞内 `EntityLocation`、exact local placement、伤势或 corpse 状态，洞府持久状态不变，不送回入口、不治疗、不复活。接管者随后在自己的 Outdoor `SurfaceId + exact WorldPosition` 建立新 PlayerParty 与 presentation。以后重新进入该空间时，旧人物仍由原持久状态恢复。
+
 ### Save/Load Acceptance Fix：Snapshot authority 与 Opening migration
 
 新格式存档中，Character 没有 Outdoor `WorldPresence` 可以是明确且合法的结果。`EntityLocationSnapshotAuthorityComponent.SnapshotFieldPresent == true` 表示 Snapshot 已经正式表达该 Character 的 `EntityLocation` 以及是否存在 Outdoor presence；`RestoreMissingLegacyOpeningPresences` 不得把“没有 saved WorldPresence”解释为旧档缺失并恢复 Opening anchor。

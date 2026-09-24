@@ -92,9 +92,11 @@ namespace XianXia.Unity.Host
         bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
         EntityId _observedActiveCharacterId = EntityId.None;
-        bool _wasAwaitingSuccession;
-        float _nextSuccessionRetryAt;
-        const float SuccessionRetryIntervalSeconds = .75f;
+        bool _wasNeedingExternalHandoff;
+        float _nextExternalHandoffRetryAt;
+        bool _hasPendingExternalHandoffPresentation;
+        PlayerFactionControlHandoffResult _pendingExternalHandoffPresentation;
+        const float ExternalHandoffRetryIntervalSeconds = .75f;
 
         [SerializeField] float followerChopSearchRadius = 10f;
 
@@ -130,8 +132,10 @@ namespace XianXia.Unity.Host
             _cameraRig = host.GetComponent<PlayableHostCameraRig>();
             _spawner = host.ViewSpawner;
             _observedActiveCharacterId = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            _wasAwaitingSuccession = Party?.IsAwaitingSuccession == true;
-            _nextSuccessionRetryAt = 0f;
+            _wasNeedingExternalHandoff = Party?.NeedsExternalControlHandoff == true;
+            _nextExternalHandoffRetryAt = 0f;
+            _hasPendingExternalHandoffPresentation = false;
+            _pendingExternalHandoffPresentation = default;
         }
 
         public bool TryFollowActive(EntityId candidate, out string error)
@@ -362,7 +366,8 @@ namespace XianXia.Unity.Host
 
         void RebindAllFollowers()
         {
-            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
+            if (CharacterEncounterService.BlocksOrdinaryContinuousSurface(
+                    bootstrap?.Session?.World)) return;
             if (Party == null || _spawner == null)
                 return;
 
@@ -401,7 +406,7 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
 
-            RefreshActiveControlAfterLifeStateChange(requestImmediateSuccessionRetry: false);
+            RefreshActiveControlAfterLifeStateChange(requestImmediateExternalHandoffRetry: false);
             var encounter = bootstrap.Session.World.Strategic.CharacterEncounter;
             if (encounter != null)
             {
@@ -416,7 +421,7 @@ namespace XianXia.Unity.Host
             SquadCommandService.SetExecution(bootstrap.Session.World, Party.ControlledSquadId,
                 Party.ActiveCharacterId.IsNone ? SquadCommandKind.None : SquadCommandKind.FollowLeader,
                 Party.ActiveCharacterId);
-            if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
+            if (Party.ActiveCharacterId.IsNone)
                 return;
 
             if (_pendingSnapshotFollowRebind)
@@ -433,34 +438,62 @@ namespace XianXia.Unity.Host
         }
 
         public void RefreshActiveControlAfterLifeStateChange(
-            bool requestImmediateSuccessionRetry = true)
+            bool requestImmediateExternalHandoffRetry = true)
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
             var previousActive = _observedActiveCharacterId;
             PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(
                 bootstrap.Session.World);
-            var now = Time.unscaledTime;
-            var shouldRetrySuccession = Party.IsAwaitingSuccession &&
-                !IsSuccessionBlockedByEncounterPresentation() &&
-                (requestImmediateSuccessionRetry || !_wasAwaitingSuccession ||
-                 now >= _nextSuccessionRetryAt);
-            if (shouldRetrySuccession)
+            if (_hasPendingExternalHandoffPresentation)
             {
-                // The Core wipe handoff intentionally does not know about EntityViews. Freeze
-                // persistent cave placements while the old Separate Space still owns them.
+                if (Party.ActiveCharacterId != _pendingExternalHandoffPresentation.SuccessorId)
+                {
+                    _hasPendingExternalHandoffPresentation = false;
+                    _pendingExternalHandoffPresentation = default;
+                }
+                else
+                {
+                    if (!PrepareExternalHandoffPresentation(
+                            _pendingExternalHandoffPresentation))
+                        return;
+                    _hasPendingExternalHandoffPresentation = false;
+                    _pendingExternalHandoffPresentation = default;
+                    ApplyAutomaticActiveChange(previousActive, Party.ActiveCharacterId);
+                    _observedActiveCharacterId = Party.ActiveCharacterId;
+                    previousActive = _observedActiveCharacterId;
+                }
+            }
+            var now = Time.unscaledTime;
+            var shouldRetryExternalHandoff = Party.NeedsExternalControlHandoff &&
+                !IsExternalHandoffBlockedByEncounterPresentation() &&
+                (requestImmediateExternalHandoffRetry || !_wasNeedingExternalHandoff ||
+                 now >= _nextExternalHandoffRetryAt);
+            if (shouldRetryExternalHandoff)
+            {
+                // Core handoff intentionally does not know about EntityViews. Freeze persistent
+                // cave placements while the old Separate Space still owns them.
                 if (bootstrap.Session.World.LocalMap.IsActive)
                     HostSnapshotLocalPlacementCaptureSync
                         .FlushActiveSeparateSpaceCharacterPlacementsFromViews(bootstrap);
-                var succession = PlayerFactionSuccessionService.TryResolve(
+                var handoff = PlayerFactionControlHandoffService.TryResolve(
                     bootstrap.Session.World, Party);
-                if (succession.IsResolved)
-                    PrepareSuccessionPresentation(succession);
-                _nextSuccessionRetryAt = now + SuccessionRetryIntervalSeconds;
+                if (handoff.IsResolved)
+                {
+                    if (!PrepareExternalHandoffPresentation(handoff))
+                    {
+                        _hasPendingExternalHandoffPresentation = true;
+                        _pendingExternalHandoffPresentation = handoff;
+                        _wasNeedingExternalHandoff = Party.NeedsExternalControlHandoff;
+                        _nextExternalHandoffRetryAt = now + ExternalHandoffRetryIntervalSeconds;
+                        return;
+                    }
+                }
+                _nextExternalHandoffRetryAt = now + ExternalHandoffRetryIntervalSeconds;
             }
-            if (!Party.IsAwaitingSuccession)
-                _nextSuccessionRetryAt = 0f;
-            _wasAwaitingSuccession = Party.IsAwaitingSuccession;
+            if (!Party.NeedsExternalControlHandoff)
+                _nextExternalHandoffRetryAt = 0f;
+            _wasNeedingExternalHandoff = Party.NeedsExternalControlHandoff;
             var currentActive = Party.ActiveCharacterId;
             if (previousActive != currentActive)
                 ApplyAutomaticActiveChange(previousActive, currentActive);
@@ -468,56 +501,125 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Snapshot v8 already restores every succession authority. This retry runs only after
+        /// Snapshot v8 already restores every external handoff authority. This retry runs only after
         /// Content, squads, exact presence and Surface registrations have all been rehydrated;
         /// presentation is rebuilt by the caller immediately afterwards.
         /// </summary>
-        public bool TryResolveSuccessionAfterWorldShellRestore()
+        public bool TryResolveExternalHandoffAfterWorldShellRestore()
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return false;
             PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(
                 bootstrap.Session.World);
-            if (!Party.IsAwaitingSuccession || IsSuccessionBlockedByEncounterPresentation())
+            if (!Party.NeedsExternalControlHandoff || IsExternalHandoffBlockedByEncounterPresentation())
                 return false;
-            var result = PlayerFactionSuccessionService.TryResolve(
+            var result = PlayerFactionControlHandoffService.TryResolve(
                 bootstrap.Session.World, Party);
-            _wasAwaitingSuccession = Party.IsAwaitingSuccession;
-            _nextSuccessionRetryAt = result.IsResolved
+            _wasNeedingExternalHandoff = Party.NeedsExternalControlHandoff;
+            _nextExternalHandoffRetryAt = result.IsResolved
                 ? 0f
-                : Time.unscaledTime + SuccessionRetryIntervalSeconds;
+                : Time.unscaledTime + ExternalHandoffRetryIntervalSeconds;
             _observedActiveCharacterId = Party.ActiveCharacterId;
             return result.IsResolved;
         }
 
-        bool IsSuccessionBlockedByEncounterPresentation()
+        bool IsExternalHandoffBlockedByEncounterPresentation()
         {
             var encounterHost = bootstrap != null
                 ? bootstrap.GetComponent<HostCharacterEncounter>()
                 : null;
-            return encounterHost != null && encounterHost.BlocksPlayerFactionSuccession;
+            return encounterHost != null && encounterHost.BlocksExternalControlHandoff;
         }
 
-        void PrepareSuccessionPresentation(PlayerFactionSuccessionResult succession)
+        bool PrepareExternalHandoffPresentation(PlayerFactionControlHandoffResult handoff)
         {
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            if (surface == null)
-                return;
+            var session = bootstrap?.Session;
+            if (surface == null || session?.World == null || bootstrap.ViewSpawner == null ||
+                !handoff.IsResolved || handoff.SuccessorId.IsNone)
+                return false;
 
-            if (surface.IsActive &&
-                !surface.IsWorldPositionInLoadedNeighborhood(
-                    succession.SurfaceId, succession.WorldPosition))
+            if (RequiresExternalHandoffHardReanchor(
+                    surface.IsActive,
+                    surface.IsWorldPositionInLoadedNeighborhood(
+                        handoff.SurfaceId, handoff.WorldPosition)))
                 surface.DeactivateForSuccessionReanchor();
 
             if (!surface.IsActive)
-                surface.TryActivateAtCurrentWorldPosition();
-            if (surface.IsActive)
-            {
-                surface.SyncPartyPresentation();
-                bootstrap.NotifyOutdoorEntityScopeChanged();
-                bootstrap.FlushLoadedDestinationArrivals();
-            }
+                if (!surface.TryActivateAtCurrentWorldPosition())
+                    return false;
+
+            // This is the single destination-presentation barrier for external handoff. Force the
+            // complete current neighborhood/site/squad/population reconcile and view refresh
+            // synchronously before camera or selection may observe the new Active identity.
+            var generationBefore = surface.EntityReconcileGeneration;
+            surface.ReconcileOutdoorEntityMaterializationForScopeChange();
+            bootstrap.NotifyOutdoorEntityScopeChanged();
+            bootstrap.FlushLoadedDestinationArrivals();
+            surface.SyncPartyPresentation();
+
+            var world = session.World;
+            var motion = world.PlayerPartyTravel;
+            var failure = string.Empty;
+            var hasSuccessorView = bootstrap.ViewSpawner.Registry.TryGet(
+                handoff.SuccessorId, out var successorView) && successorView != null;
+            var surfaceInvariant = surface.TryValidateSurfaceActivationPostconditions(
+                out failure);
+            var ready = ExternalHandoffPresentationPostconditionsMet(
+                handoff.SuccessorId,
+                session.PlayerParty.ActiveCharacterId,
+                handoff.SurfaceId,
+                surface.ActiveSurfaceId,
+                handoff.WorldPosition,
+                motion != null ? motion.WorldPosition : default,
+                surface.IsActive,
+                motion != null && motion.HasPosition,
+                motion != null && string.Equals(motion.SurfaceId, handoff.SurfaceId,
+                    System.StringComparison.Ordinal),
+                surface.IsWorldPositionInLoadedNeighborhood(
+                    handoff.SurfaceId, handoff.WorldPosition),
+                surface.EntityReconcileGeneration > generationBefore,
+                world.ContinuousOutdoorMaterialization.IsMaterialized(handoff.SuccessorId),
+                hasSuccessorView,
+                surfaceInvariant);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ready)
+                Debug.LogError(
+                    "[ExternalControlHandoffPresentationNotReady] Successor=" +
+                    handoff.SuccessorId.Value + " Surface=" + handoff.SurfaceId +
+                    " Failure=" + (failure ?? "postcondition"), this);
+#endif
+            return ready;
         }
+
+        public static bool RequiresExternalHandoffHardReanchor(
+            bool surfaceActive,
+            bool destinationInLoadedNeighborhood) =>
+            surfaceActive && !destinationInLoadedNeighborhood;
+
+        public static bool ExternalHandoffPresentationPostconditionsMet(
+            EntityId successor,
+            EntityId active,
+            string expectedSurfaceId,
+            string activeSurfaceId,
+            WorldVec2 expectedPosition,
+            WorldVec2 actualPosition,
+            bool surfaceActive,
+            bool motionHasPosition,
+            bool motionUsesExpectedSurface,
+            bool positionLoaded,
+            bool neighborhoodReconciled,
+            bool successorMaterialized,
+            bool successorViewExists,
+            bool surfaceInvariant) =>
+            !successor.IsNone && successor == active && surfaceActive &&
+            string.Equals(activeSurfaceId, expectedSurfaceId,
+                System.StringComparison.Ordinal) &&
+            motionHasPosition && motionUsesExpectedSurface &&
+            Mathf.Abs(actualPosition.X - expectedPosition.X) < .0001f &&
+            Mathf.Abs(actualPosition.Y - expectedPosition.Y) < .0001f &&
+            positionLoaded && neighborhoodReconciled && successorMaterialized &&
+            successorViewExists && surfaceInvariant;
 
         void ApplyAutomaticActiveChange(EntityId previousActive, EntityId currentActive)
         {

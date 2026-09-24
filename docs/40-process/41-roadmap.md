@@ -284,9 +284,10 @@
 - [x] QUEST-INSTANCE-01：制作人人工验收通过，状态 **Producer Accepted / Sealed**。
 - [x] VASSAL-WORK-01：直接附庸劳动、仓储／建造隔离与解除附庸失权已由制作人人工验收，状态 **Producer Accepted / Sealed**。
 - [x] VASSAL-WORK-01-P1：首次 New Game 右键、empty selection fallback 与合法多人农作已由制作人人工验收，状态 **Producer Accepted / Sealed**。
-- [x] SUCCESSION-01：全 Party 真死亡后的玩家势力继承、精确位置接管、Continuous Surface 重锚与无候选等待态已实现；进入制作人人工验收。
-- [ ] SUCCESSION-01 制作人按 CASE 1～6 验收。
-- [ ] SUCCESSION-01 验收通过后的下一阶段：**DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**（Planned，本轮不实施）。
+- [x] SUCCESSION-01：全 Party 真死亡后的玩家势力继承、精确位置接管、Continuous Surface 重锚与无候选等待态已于 2026-09-24 **Producer Accepted / Sealed**。
+- [x] CONTROL-HANDOFF-01：全员弥留时的 Emergency Takeover、Recovery Squad、Separate Space 释放与 v8 恢复已于 2026-09-24 **Producer Accepted / Sealed**。
+- [x] CONTROL-HANDOFF-01-P1：Committed report-only spatial boundary、战后即时目的地 materialization 与 Camera／Selection barrier 已于 2026-09-24 **Producer Accepted / Sealed**。
+- [ ] 下一正式里程碑：**DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**（Planned，尚未实施）。
 - [ ] 下一阶段 2：Knowledge + delayed event foundation。
 - [ ] 下一阶段 3：Full trading。
 - [ ] 下一阶段 4：Equipment / crafting。

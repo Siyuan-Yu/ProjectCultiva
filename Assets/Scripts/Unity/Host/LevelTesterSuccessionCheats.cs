@@ -155,6 +155,43 @@ namespace XianXia.Unity.Host
                 "；继承检查已触发。");
         }
 
+        public static CharacterCombatCheatResult TryIncapacitateCurrentParty(
+            PlayableHostBootstrap bootstrap)
+        {
+            var world = bootstrap?.Session?.World;
+            var party = bootstrap?.Session?.PlayerParty;
+            if (world == null || party == null || party.Count == 0)
+                return Failed("当前 PlayerParty 不可用。");
+
+            var members = new List<EntityId>(party.Members);
+            if (world.LocalMap.IsActive)
+                HostSnapshotLocalPlacementCaptureSync
+                    .FlushActiveSeparateSpaceCharacterPlacementsFromViews(bootstrap);
+            var incapacitated = 0;
+            for (var i = 0; i < members.Count; i++)
+            {
+                if (!world.Entities.TryGet(members[i], out var entity) || entity == null ||
+                    !entity.TryGet<LifecycleComponent>(out var life) || life == null ||
+                    life.IsDead || life.IsRemoved)
+                    continue;
+                if (life.IsIncapacitated ||
+                    CombatLifeStateService.TryEnterIncapacitated(world, entity))
+                    incapacitated++;
+            }
+
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter == null || encounter.Phase == CharacterEncounterPhase.Committed)
+                bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
+            var suffix = encounter != null && encounter.Phase != CharacterEncounterPhase.Committed
+                ? "；当前 Encounter 仍持有控制，正式结束战斗后才会接管。"
+                : "；外部控制接管检查已触发。";
+            return new CharacterCombatCheatResult(
+                incapacitated == members.Count,
+                (incapacitated == members.Count ? "成功：" : "失败：") +
+                "已通过正式 CombatLifeState API 置为弥留 " +
+                incapacitated + "/" + members.Count + suffix);
+        }
+
         static bool TryFindEscort(
             XianXia.Core.Simulation.SimulationWorld world,
             XianXia.Core.World.PlayerPartyRuntime party,

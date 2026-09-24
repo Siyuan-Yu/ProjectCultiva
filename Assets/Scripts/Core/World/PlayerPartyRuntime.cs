@@ -51,6 +51,17 @@ namespace XianXia.Core.World
         /// <summary>Only true when every current member is genuinely Dead/Removed.</summary>
         public bool IsAwaitingSuccession => _controlState == PlayerPartyControlState.AllMembersDead;
 
+        /// <summary>
+        /// True when ordinary in-Party Active replacement has no eligible member and control may
+        /// be handed to another player-faction character. This does not imply that the Party died.
+        /// </summary>
+        public bool NeedsExternalControlHandoff =>
+            _controlState == PlayerPartyControlState.TemporarilyUnavailable ||
+            _controlState == PlayerPartyControlState.AllMembersDead;
+
+        public bool HasLivingMembers =>
+            _controlState != PlayerPartyControlState.AllMembersDead && HasLivingMember(_world);
+
         public bool IsTemporarilyUnavailable =>
             _controlState == PlayerPartyControlState.TemporarilyUnavailable;
 
@@ -285,6 +296,21 @@ namespace XianXia.Core.World
                     return false;
             }
             return true;
+        }
+
+        bool HasLivingMember(SimulationWorld world)
+        {
+            var members = Members;
+            if (world == null)
+                return false;
+            for (var i = 0; i < members.Count; i++)
+            {
+                if (world.Entities.TryGet(members[i], out var entity) && entity != null &&
+                    entity.TryGet<LifecycleComponent>(out var life) && life != null &&
+                    !life.IsDead && !life.IsRemoved)
+                    return true;
+            }
+            return false;
         }
 
         public bool ValidateJoin(

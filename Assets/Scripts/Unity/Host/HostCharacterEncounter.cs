@@ -48,7 +48,7 @@ namespace XianXia.Unity.Host
         public bool ReadyToStartIsRestore => _startGate.IsRestore;
         public bool CanCancel => HasPending && _allowPendingCancel;
         /// <summary>Preparing/pending presentation is Host-owned before Core publishes a state.</summary>
-        public bool BlocksPlayerFactionSuccession =>
+        public bool BlocksExternalControlHandoff =>
             HasPending || _entryRoutine != null || _preparedField != null || _restoreState != null ||
             Phase == PresentationPhase.Pending ||
             Phase == PresentationPhase.Preparing ||
@@ -601,8 +601,8 @@ namespace XianXia.Unity.Host
             _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             _host.ContinuousOutdoorSurfaceRuntime.LeaveIndependentField(state);
             Phase = PresentationPhase.Report;
-            // A wiped party may only transfer authority after CommitAndReturn and after the
-            // independent field presentation has released the old battlefield.
+            // A party with no eligible controller may only transfer authority after
+            // CommitAndReturn and after the independent field has released the old battlefield.
             _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             return true;
         }

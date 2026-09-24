@@ -161,6 +161,7 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.LocalMapChanged:
                 case XianXia.Core.Events.EventType.WorldOpportunityNotice:
                 case XianXia.Core.Events.EventType.PlayerSuccessionResolved:
+                case XianXia.Core.Events.EventType.PlayerEmergencyControlTransferred:
                     return true;
                 default:
                     return false;

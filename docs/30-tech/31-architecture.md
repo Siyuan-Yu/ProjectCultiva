@@ -9,6 +9,8 @@
 > **Architecture Freeze v0.2＋ADR-0038。** Hex／Army 正式运行依赖退役与 021915 统一收尾已在 `9b32fe0` 封板。新功能仍需制作人授权；不得按 Legacy 关键词重开清理。
 > **2026-09-12 补丁：** Freeze 的定向修订由 ADR-0032～0034 管理。Continuous Surface 保存世界空间身份与连续位置；临时 Encounter 使用独立战术坐标，并在一次结算中恢复各自战前世界锚点、保留当前领域结果。SiteCore 行政覆盖、Encounter 实例和 WorldMap UI 都不得成为第二份位置真源。
 
+> **2026-09-24 Player Control Continuity Seal：** [ADR-0039](../40-process/43-decisions/ADR-0039-external-faction-control-handoff.md) 冻结 Party 内顺序接替、Emergency External Handoff 与 True-Death Succession。Snapshot 保持 v8；Squads、ControlledSquadId、PlayerParty runtime、PlayerPartyWorldMotion、CharacterWorldPresence 与 Separate Space state 已足够表达成功态和无候选等待态。
+
 ## 0. 文档分工
 
 | 文档 | 内容 |
@@ -65,7 +67,7 @@ XianXia.Tests/       针对 Core 的单元测试
 | Unity 版本 | 2022.3.6f1 | 已定，见 ADR-0001 |
 | 渲染管线 | Built-in | 已定，见 ADR-0001 |
 | UI 方案 | UGUI／UI Toolkit | 待定（ADR-0002） |
-| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v8 已实现 Content Progress 与动态 Quest Instance authority；见 257／258 |
+| 存档 | JSON Snapshot（`WorldSnapshot` + `JsonSnapshotSerializer`） | schema v8 已实现 Content Progress、动态 Quest Instance 与 External Control Handoff authority；成功态不重复 handoff，无候选态在 world shell 完整恢复后重试；见 257／258／259／260 |
 | 事件脚本化 | 纯配置表／轻量表达式 | 待定；依赖 `2E` |
 
 ## 3. 工程约定

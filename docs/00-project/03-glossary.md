@@ -203,6 +203,9 @@
 | 手动介入 | Manual Intervention | 玩家实际参与现场遭遇或按有限关系／守备规则介入 | 不由 `HexDistance ≤1` 或 FormalArmy 类型授予；见 23 |
 | 队内自动接替 | Active Replacement | 当前 Active 失能时按 Party 固定顺序切换到下一名可控成员 | 不按战力排序，不等同势力继承 |
 | 势力继承控制 | Faction Succession | 仅 Party 全员真正死亡后，自动选择玩家势力存活可控且战力最高者 | 在继承者原位置继续；空势力终局延期；见 2K §4 |
+| 外部势力控制转移 | External Faction Control Handoff | 当前 PlayerParty 无任何可控成员时，由玩家势力外部合法人物接管 | 统一候选规则；分 Emergency Takeover 与 Succession；见 ADR-0039 |
+| 紧急接管 | Emergency Takeover | Party 无可控成员但仍有生者时的外部控制转移 | 旧生者留在原地 Recovery Squad，不是死亡继承 |
+| 恢复小队 | Recovery Squad | Emergency Takeover 后承载旧 Party 存活失能成员的普通玩家势力 Squad | idle、不跟随、不传送、恢复后不自动抢回控制 |
 | 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 战略层瞬时；**不**额外推进 WorldTick；ADR-0023 |
 | 暂停即时 | RealTimeWithPause | 战术层时间可暂停下令 | 简称 RTwP；战略冻结时战术暂停仍可用 |
 | 遭遇准备窗口 | Encounter Preparation / BattleOffer | 新玩家实战在首击／首发弹道前的强制暂停确认；可合并适用建筑战争后果 | 不等于普通可关闭 AutoPause；敌方袭击成立后不能靠关闭免战 |

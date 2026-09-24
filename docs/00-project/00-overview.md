@@ -1,22 +1,22 @@
 # 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已封板 | 最后更新：2026-09-22
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已封板 | 最后更新：2026-09-24
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Implementation: Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control 与 Separate Space 正式主线已落地。CW-04～CW-10.5、MAP-01～MAP-04、SPACE-01、LEGACY-FINAL-A／B／C，以及正式运行对旧 Hex／Army 依赖的最终退役与 021915 统一收尾均已完成，并由制作人人工验收后 **Producer Accepted / Sealed**。正常产品不再编译旧 Hex 几何，Runtime Loader 拒绝旧 `formalArmy`／`hexWorld`；离线转换器只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot，`hexWorld` 须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。后续功能方向尚未批准。**
+**Design: Confirmed｜Implementation: Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、Separate Space 与 Player Control Continuity 正式主线已落地。SUCCESSION-01、CONTROL-HANDOFF-01／P1 及此前 CW、MAP、SPACE、LEGACY 封板范围均已完成人工验收并进入正式 Git 封板。正常产品不再编译旧 Hex 几何，Runtime Loader 拒绝旧 `formalArmy`／`hexWorld`；离线转换器只无损处理 FormalArmy 与 current authority 完整的 hybrid Snapshot，`hexWorld` 须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无样例时不猜。下一里程碑 DYNAMIC-DISCOVERY-01 仅为 Planned。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
 当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md)；最终 authority／compatibility 矩阵见 [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md)。[216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) 与 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md) 保留为迁移前历史对齐记录。
 
 本专项不表示整个游戏已完成或不存在潜在缺陷，也不要求历史文档、稳定 wire key 或离线转换器中的 `Hex`／`Army` 字符串清零。正常产品中的旧运行依赖已经退役；不得把新增 `Legacy*` runtime adapter 当作完成标准。
 
-**状态阅读纪律：** `Design Confirmed` 只表示制作人已确认规则；`Implemented` 表示当前代码已接通；`Producer Accepted` 必须有明确人工验收；`Committed / Sealed` 必须对应真实 Git 提交与封板授权；`Proposed / Not Implemented` 只是待讨论范围。当前封板提交是 `9b32fe0`。各系统的实际能力、持久化边界、验收／提交依据和待讨论项集中在 [247 当前系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22)，不要从旧路线图推断。
+**状态阅读纪律：** `Design Confirmed` 只表示制作人已确认规则；`Implemented` 表示当前代码已接通；`Producer Accepted` 必须有明确人工验收；`Committed / Sealed` 必须对应真实 Git 提交与封板授权；`Proposed / Not Implemented` 只是待讨论范围。封板提交以当前 Git history 与 [247 当前状态](../40-process/247-project-handoff-current-state-2026-09-18.md) 为准，不以旧文档中的单一历史 hash 推断。
 
-**下一步仅为 Proposal：** 优先讨论 Quest、Flags、ContentEvents、Chapters、ContentCounters、ContentDaily 的正式磁盘持久化，以及待选择事件弹窗打开时的保存策略；尚未授权实施。进度可靠保存后，再考虑用现有能力串接一段完整探索成长流程，而不是继续增加底层框架。
+**下一正式里程碑：** `DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation`，状态仅为 **Planned**，本轮未实施。其后方向依次为 Knowledge + delayed-event foundation、Full Trade、Physical Equipment + Crafting、Production / Logistics，NPC AI overall design & implementation 最后进行。
 
-**当前静态差异（不等于已授权任务）：** Separate Space session 尚未进入 JSON serializer wire；Snapshot restore 未重注册 Quest／Event／Chapter definitions；WorldMap Player／NPC Squad marker 仍为固定像素而确认规则要求战略图标随 zoom 投影缩放。详见 [247](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22)。
+**当前边界：** Snapshot schema v8 已覆盖 Content Progress、动态 Quest Instance 与 Player Control Handoff 所需 authority。未来功能范围仍以 [247](../40-process/247-project-handoff-current-state-2026-09-18.md) 和 roadmap 为准，不从历史静态差异自动启动实施。
 
 **Continuous Surface 地图进度：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 锁定 Surface Cell／Runtime Chunk／World Editor Cell 的职责。MAP-01～MAP-04 均已实施、人工验收并封板；正常 Gameplay authority 已切换到 Surface。当前正式产品程序集已物理移除 Core Hex 目录与 `SimulationWorld` 的 Hex 容器；旧 `formalArmy`／`hexWorld` 只在 Loader 边界被拒绝并指向离线转换流程，不存在正常 runtime 自动 migration。
 
@@ -161,7 +161,7 @@ v0.2 修补要点仍包括 RelationshipLedger 权威、WorldTick／ActionClock�
 
 ## 九、跨系统未决（摘录）
 
-飞行境界、炼气术法清单、突破事件细则、TemporaryProtection 事件模板库等仍见各系统文档。队内顺序接替和全队死亡继承原则已经确定；仅全员弥留安全出口接线与空势力终局（明确延期）仍需区分处理。
+飞行境界、炼气术法清单、突破事件细则、TemporaryProtection 事件模板库等仍见各系统文档。队内顺序接替、全员弥留 Emergency Takeover 与全队死亡 Succession 已按 ADR-0039 区分；空势力终局仍明确延期。
 
 ## 十、当前交付与未来范围
 

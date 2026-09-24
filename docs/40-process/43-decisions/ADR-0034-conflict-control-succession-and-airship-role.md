@@ -1,5 +1,7 @@
 # ADR-0034：人物／建筑冲突、控制继承与飞舟运输职责
 
+> **Superseded on 2026-09-24：** [ADR-0039](ADR-0039-external-faction-control-handoff.md) 替代 Decision #6 的旧规则：Party 无可控成员但仍有生者时，可由玩家势力外部合法人物执行 Emergency Takeover；这不是死亡继承，旧生者保留为 Recovery Squad。本页 Decision #6 以下保留为历史原文，不是当前产品规则。
+
 > **2026-09-13 部分替代：** [ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) §6 明确替代旧组织分层、自由战场裁切、第三队初始和范围外援军建议；本文保留历史决定及未冲突的单 Active、停表、政治／控制、真实战果与原锚点回归契约。
 
 > 状态：已采纳（设计已确认；实现待迁移／核查；制作人验收待完成）

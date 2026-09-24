@@ -11,70 +11,91 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    public enum PlayerFactionSuccessionStatus
+    public enum PlayerFactionControlHandoffStatus
     {
-        NotAwaitingSuccession = 0,
+        NotRequired = 0,
         DeferredByEncounter = 1,
         NoEligibleCandidate = 2,
         Resolved = 3,
         Failed = 4
     }
 
-    public readonly struct PlayerFactionSuccessionResult
+    public enum PlayerFactionControlHandoffKind
     {
-        public PlayerFactionSuccessionResult(
-            PlayerFactionSuccessionStatus status,
+        None = 0,
+        EmergencyTakeover = 1,
+        Succession = 2
+    }
+
+    public readonly struct PlayerFactionControlHandoffResult
+    {
+        public PlayerFactionControlHandoffResult(
+            PlayerFactionControlHandoffStatus status,
+            PlayerFactionControlHandoffKind kind,
             EntityId successorId,
             int combatPower,
             string surfaceId,
             WorldVec2 worldPosition,
             string siteId,
             string sourceSquadId,
+            string recoverySquadId,
             string error)
         {
             Status = status;
+            Kind = kind;
             SuccessorId = successorId;
             CombatPower = combatPower;
             SurfaceId = surfaceId ?? string.Empty;
             WorldPosition = worldPosition;
             SiteId = siteId ?? string.Empty;
             SourceSquadId = sourceSquadId ?? string.Empty;
+            RecoverySquadId = recoverySquadId ?? string.Empty;
             Error = error ?? string.Empty;
         }
 
-        public PlayerFactionSuccessionStatus Status { get; }
+        public PlayerFactionControlHandoffStatus Status { get; }
+        public PlayerFactionControlHandoffKind Kind { get; }
         public EntityId SuccessorId { get; }
         public int CombatPower { get; }
         public string SurfaceId { get; }
         public WorldVec2 WorldPosition { get; }
         public string SiteId { get; }
         public string SourceSquadId { get; }
+        public string RecoverySquadId { get; }
         public string Error { get; }
-        public bool IsResolved => Status == PlayerFactionSuccessionStatus.Resolved;
+        public bool IsResolved => Status == PlayerFactionControlHandoffStatus.Resolved;
     }
 
     /// <summary>
-    /// Core authority for choosing and installing a successor after a genuine PlayerParty wipe.
-    /// Ordinary in-party Active replacement remains owned by PlayerPartyRuntime and never enters
-    /// this service.
+    /// Core authority for choosing and installing an external player-faction controller after the
+    /// current PlayerParty has no eligible Active. Ordinary in-party replacement remains owned by
+    /// PlayerPartyRuntime and never enters this service.
     /// </summary>
-    public static class PlayerFactionSuccessionService
+    public static class PlayerFactionControlHandoffService
     {
-        public static PlayerFactionSuccessionResult TryResolve(
+        public static PlayerFactionControlHandoffResult TryResolve(
             SimulationWorld world,
             PlayerPartyRuntime party)
         {
-            if (world == null || party == null || !party.IsAwaitingSuccession)
-                return Status(PlayerFactionSuccessionStatus.NotAwaitingSuccession);
+            if (world == null || party == null || !party.NeedsExternalControlHandoff)
+                return Status(PlayerFactionControlHandoffStatus.NotRequired);
+            var kind = party.IsAwaitingSuccession
+                ? PlayerFactionControlHandoffKind.Succession
+                : PlayerFactionControlHandoffKind.EmergencyTakeover;
 
             var encounter = world.Strategic?.CharacterEncounter;
             if (encounter != null &&
                 (encounter.Phase == CharacterEncounterPhase.Preparing ||
                  encounter.Phase == CharacterEncounterPhase.Active ||
                  encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
-                return Status(PlayerFactionSuccessionStatus.DeferredByEncounter);
+                return Status(PlayerFactionControlHandoffStatus.DeferredByEncounter, kind);
             if (world.Strategic?.ContinuousManualCombat?.IsActive == true)
-                return Status(PlayerFactionSuccessionStatus.DeferredByEncounter);
+                return Status(PlayerFactionControlHandoffStatus.DeferredByEncounter, kind);
+            var oldMembers = party.Members;
+            for (var i = 0; i < oldMembers.Count; i++)
+                if (CharacterEncounterService.OwnsParticipantSpatialState(world, oldMembers[i]) ||
+                    ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, oldMembers[i], out _))
+                    return Status(PlayerFactionControlHandoffStatus.DeferredByEncounter, kind);
 
             var playerFactionId = world.Strategic?.PlayerFactionId ?? string.Empty;
             Candidate best = default;
@@ -92,26 +113,26 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (!hasBest)
-                return Status(PlayerFactionSuccessionStatus.NoEligibleCandidate);
+                return Status(PlayerFactionControlHandoffStatus.NoEligibleCandidate, kind);
 
             // Candidate presence is captured above, before any membership mutation. The helper
             // then retires the old squad and detaches only this character from its source squad.
-            var replaced = SquadMembershipService.ReplacePlayerSquadForSuccession(
-                world, party, best.Id);
+            var replaced = SquadMembershipService.ReplacePlayerSquadForExternalHandoff(
+                world, party, best.Id, kind, out var recoverySquadId);
             if (replaced.IsFailure)
-                return new PlayerFactionSuccessionResult(
-                    PlayerFactionSuccessionStatus.Failed, best.Id, best.Power,
+                return new PlayerFactionControlHandoffResult(
+                    PlayerFactionControlHandoffStatus.Failed, kind, best.Id, best.Power,
                     best.Presence.SurfaceId, best.Presence.WorldPosition,
-                    best.SiteId, best.SourceSquadId, replaced.Error.ToString());
+                    best.SiteId, best.SourceSquadId, recoverySquadId, replaced.Error.ToString());
 
             if (!party.TryBindControlledSquad(
                     SquadMembershipService.PlayerSquadId, best.Id, out var bindError))
-                return new PlayerFactionSuccessionResult(
-                    PlayerFactionSuccessionStatus.Failed, best.Id, best.Power,
+                return new PlayerFactionControlHandoffResult(
+                    PlayerFactionControlHandoffStatus.Failed, kind, best.Id, best.Power,
                     best.Presence.SurfaceId, best.Presence.WorldPosition,
-                    best.SiteId, best.SourceSquadId, bindError);
+                    best.SiteId, best.SourceSquadId, recoverySquadId, bindError);
 
-            SeparateSpaceTransitionService.ReleasePlayerControlAfterPartyWipe(world);
+            SeparateSpaceTransitionService.ReleasePlayerControlForExternalHandoff(world);
             world.PlayerPartyTravel.SetAtSurfacePosition(
                 best.Presence.SurfaceId, best.Presence.WorldPosition);
             world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(best.SiteId);
@@ -128,16 +149,22 @@ namespace XianXia.Core.World.Strategic
                               !string.IsNullOrWhiteSpace(successor.DisplayName)
                 ? successor.DisplayName
                 : "人物 " + best.Id.Value;
+            var eventType = kind == PlayerFactionControlHandoffKind.EmergencyTakeover
+                ? EventType.PlayerEmergencyControlTransferred
+                : EventType.PlayerSuccessionResolved;
+            var message = kind == PlayerFactionControlHandoffKind.EmergencyTakeover
+                ? "当前小队已失去行动能力，" + displayName + " 接管了主控。"
+                : displayName + " 接替了玩家势力主控。";
             world.Events.Publish(
-                EventType.PlayerSuccessionResolved,
+                eventType,
                 world.Tick,
                 target: best.Id,
-                payload: displayName + " 接替了玩家势力主控。");
+                payload: message);
 
-            return new PlayerFactionSuccessionResult(
-                PlayerFactionSuccessionStatus.Resolved, best.Id, best.Power,
+            return new PlayerFactionControlHandoffResult(
+                PlayerFactionControlHandoffStatus.Resolved, kind, best.Id, best.Power,
                 best.Presence.SurfaceId, best.Presence.WorldPosition,
-                best.SiteId, best.SourceSquadId, string.Empty);
+                best.SiteId, best.SourceSquadId, recoverySquadId, string.Empty);
         }
 
         static bool TryBuildCandidate(
@@ -188,10 +215,12 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        static PlayerFactionSuccessionResult Status(PlayerFactionSuccessionStatus status) =>
-            new PlayerFactionSuccessionResult(
-                status, EntityId.None, 0, string.Empty, default,
-                string.Empty, string.Empty, string.Empty);
+        static PlayerFactionControlHandoffResult Status(
+            PlayerFactionControlHandoffStatus status,
+            PlayerFactionControlHandoffKind kind = PlayerFactionControlHandoffKind.None) =>
+            new PlayerFactionControlHandoffResult(
+                status, kind, EntityId.None, 0, string.Empty, default,
+                string.Empty, string.Empty, string.Empty, string.Empty);
 
         static bool Finite(float value) =>
             !float.IsNaN(value) && !float.IsInfinity(value);
