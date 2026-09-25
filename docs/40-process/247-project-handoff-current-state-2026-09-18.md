@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+## SHOP-TRADE-01 当前交接（2026-09-25）
+
+当前 Snapshot v12；Shop/Market 与独立 Low/Mid/High 钱包已通过制作人人工验收并封板，旧 v1～v11 严格拒绝。按 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 新开局，黄村 `(5.14,11.10)` 找专用杂货铺掌柜；LevelTester 内容页可定位／设置钱包／重置店铺。下一 AUCTION-01 仅为 Planned / Not Implemented；Sect Contribution Exchange 保持独立 Future 渠道。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
@@ -79,7 +83,7 @@ LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；QUEST-INSTANCE-01、SUCCESSION-01、CONTROL-HANDOFF-01、DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均已 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v10；DELAYED-EVENT-01 已实施待验收，下一 SOCIAL-QUEST-01 为 Planned。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；SHOP-TRADE-01 及其前置已验收里程碑均为 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v12；下一 AUCTION-01 仅为 Planned / Not Implemented。
 
 ### DYNAMIC-DISCOVERY-01 当前实现（2026-09-24）
 

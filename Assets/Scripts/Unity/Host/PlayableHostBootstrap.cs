@@ -645,6 +645,7 @@ namespace XianXia.Unity.Host
             if (worldActivityPanel == null)
                 worldActivityPanel = GetComponent<HostWorldActivityPanel>() ??
                                      gameObject.AddComponent<HostWorldActivityPanel>();
+            (GetComponent<HostShopTradePanel>() ?? gameObject.AddComponent<HostShopTradePanel>()).Bind(this);
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
@@ -712,6 +713,7 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Clear();
             eventFeed.Clear();
             socialNotificationOverlay.Clear();
+            GetComponent<HostShopTradePanel>()?.Close();
             contentInterrupt.ClearSessionState();
             if (strategicInterrupt != null)
                 strategicInterrupt.ClearSessionState();

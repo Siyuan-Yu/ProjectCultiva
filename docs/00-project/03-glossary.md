@@ -420,3 +420,16 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 
 Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
 临时同行保留 Party/Squad presence、容量、转场与自动战斗；不可切 Active，不接受玩家手动战斗指令。可控性由永久 Character roster / 既有玩家势力管理身份派生，并排除临时绑定；UI 与后端共用判定，读档/自动切换也执行。此规则替代此前临时同行可切 Active 的描述。Snapshot v11 shape 和绑定生命周期不变。制作人主流程已验收；P1 与封板详情见 process 264。
+
+## SHOP-TRADE-01 术语
+
+状态：**Producer Accepted / Sealed（2026-09-25）**。
+
+- SpiritStoneWallet：Low/Mid/High 三档独立非负 long 钱包，不是背包物品。
+- TradePrice：单一 SpiritStoneGrade + 正 long Amount。
+- TradeCategory：物品正式收购分类，禁止按名称或 ID 推断。
+- ShopDefinition / ShopRuntime：静态商店规则 / ShopId 持久库存与资金。
+- TradeProvider：显式 CharacterDefinition → ShopId 世界入口；个人有钱包不代表可交易。
+- CommerceState：玩家共享、真实 EntityId 个人钱包与 ShopId 商店状态的容器。
+
+Commerce V1 仅允许通过明确配置的 Shop／Market／TradeProvider 直接交易；普通 NPC 拥有个人钱包不等于开放 NPC 交易。三档余额独立，不自动换币，禁止向上兑换。商店库存与资金有限且不自动补货；收购按显式类别，售出物品由市场抽象吸收。库存 authority 属于 ShopId，不属于掌柜 NPC。

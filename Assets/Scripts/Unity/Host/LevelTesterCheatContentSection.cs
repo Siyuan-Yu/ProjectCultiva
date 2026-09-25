@@ -35,6 +35,7 @@ namespace XianXia.Unity.Host
                 return y + lineH;
             }
 
+            y = DrawShop(bootstrap,x,y,width,body);
             RefreshDump(session, selection);
             y = DrawQuestSocial(session,selection,x,y,width,body);
             var schedules = session.World.ScheduledContentEvents;
@@ -113,6 +114,37 @@ namespace XianXia.Unity.Host
             GUI.TextArea(new Rect(x, y, width, dumpH), _dump);
             y += dumpH + 4f;
             return y;
+        }
+
+        float DrawShop(PlayableHostBootstrap host,float x,float y,float width,GUIStyle body)
+        {
+            const string shopId = "base:shop_qingshi_general";
+            var board = host.Session.World.Commerce;
+            GUI.Label(new Rect(x,y,width,20),"SHOP-TRADE-01 · 指定商店与三档钱包",body); y += 24;
+            if (GUI.Button(new Rect(x,y,width,26),"定位 SHOP-TRADE-01 验收商店"))
+            {
+                host.TryFocusContinuousWorldPosition("base:surface_main_wilderness_v1",new XianXia.Core.World.WorldVec2(5.14f,11.10f),out _sectionStatus);
+            }
+            y += 30;
+            if (GUI.Button(new Rect(x,y,width,26),"玩家标准钱包：10000 下品 / 5 中品 / 2 上品"))
+                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(10000,5,2);
+            y += 30;
+            if (GUI.Button(new Rect(x,y,width,26),"玩家仅中品：0 / 10 / 0（不能买下品商品）"))
+                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(0,10,0);
+            y += 30;
+            if (GUI.Button(new Rect(x,y,width,26),"玩家仅下品：5000 / 0 / 0（不能买中品商品）"))
+                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(5000,0,0);
+            y += 30;
+            if (board.Shops.TryGetValue(shopId,out var shop) && board.Definitions.TryGetValue(shopId,out var def))
+            {
+                if (GUI.Button(new Rect(x,y,width,26),"商店标准资金（保持库存）")) shop.Wallet = def.InitialWallet.Copy();
+                y += 30;
+                if (GUI.Button(new Rect(x,y,width,26),"商店下品不足：0 / 10 / 2")) shop.Wallet = new XianXia.Core.Inventory.SpiritStoneWallet(0,10,2);
+                y += 30;
+                if (GUI.Button(new Rect(x,y,width,26),"Reset Acceptance Shop：恢复初始库存与资金")) board.ResetShopForDebug(shopId);
+                y += 30;
+            }
+            return y + 8;
         }
 
         float DrawQuestSocial(PlayableHostSession session, HostSelectionController selection, float x,float y,float width,GUIStyle body)

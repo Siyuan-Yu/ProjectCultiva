@@ -4950,6 +4950,14 @@
           "sourceLocationId": "base:loc_site_chengzhen_start",
           "worldX": 17.432,
           "worldY": 10.38
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_qingshi_shopkeeper",
+          "definitionId": "base:character_qingshi_shopkeeper",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 5.14,
+          "worldY": 11.1
         }
       ],
       "sitePlaces": [

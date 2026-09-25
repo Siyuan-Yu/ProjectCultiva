@@ -44,6 +44,7 @@ namespace XianXia.Data.Content
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
             ValidateItems(registry, report);
+            ShopContent.Validate(registry, report);
             ValidateBuildings(registry, report);
             ValidateSpawnTables(registry, report);
             ValidateWorldOpportunities(registry, locations, producedFlags, consumedFlags, report);

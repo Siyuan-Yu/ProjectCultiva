@@ -49,7 +49,10 @@ namespace XianXia.Core.Simulation
         {
             Entities = entities ?? new EntityStore();
             Entities.CharacterCreated = entity =>
+            {
                 SquadMembershipService.EnsureSingletonForCharacter(this, entity);
+                Commerce.GetCharacterWallet(this, entity.Id);
+            };
             Events = events ?? new DomainEventQueue();
             Random = random ?? new DeterministicRandom(1);
             RegionId = regionId ?? new RegionId(1);
@@ -220,6 +223,7 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Shared party backpack (session-only; not in Snapshot v1).</summary>
         public PartyInventory Inventory { get; }
+        public CommerceState Commerce { get; set; } = new CommerceState();
 
         /// <summary>Static building definitions rehydrated from content; never Snapshot authority.</summary>
         public ConstructionCatalog ConstructionCatalog { get; }

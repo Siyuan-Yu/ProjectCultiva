@@ -1,4 +1,4 @@
-﻿{
+{
   "schemaVersion": 1,
   "definitions": [
     {
@@ -8,7 +8,15 @@
       "displayNameKey": "item.rough_wood",
       "nameKey": "item.rough_wood",
       "maxStack": 99,
-      "tags": ["resource", "wood"]
+      "tags": [
+        "resource",
+        "wood"
+      ],
+      "tradeCategory": "Material",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 50
+      }
     },
     {
       "id": "base:item_manual_jiang_lao_legacy",
@@ -18,7 +26,14 @@
       "nameKey": "item.manual_jiang_lao_legacy",
       "maxStack": 1,
       "teachesManualId": "base:cultivation_jiang_lao_legacy",
-      "tags": ["manual_tome"]
+      "tags": [
+        "manual_tome"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Mid",
+        "amount": 1
+      }
     },
     {
       "id": "base:item_manual_dongfu_secret",
@@ -28,7 +43,15 @@
       "nameKey": "item.manual_dongfu_secret",
       "maxStack": 1,
       "teachesManualId": "base:cultivation_dongfu_secret",
-      "tags": ["manual_tome", "cave"]
+      "tags": [
+        "manual_tome",
+        "cave"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "High",
+        "amount": 1
+      }
     },
     {
       "id": "base:item_art_liezhao_claw",
@@ -38,7 +61,10 @@
       "nameKey": "item.art_liezhao_claw",
       "maxStack": 1,
       "teachesArtId": "base:art_liezhao_claw",
-      "tags": ["art_tome", "cave"]
+      "tags": [
+        "art_tome",
+        "cave"
+      ]
     },
     {
       "id": "base:item_art_kaishan_fist",
@@ -48,7 +74,15 @@
       "nameKey": "item.art_kaishan_fist",
       "maxStack": 1,
       "teachesArtId": "base:art_kaishan_fist",
-      "tags": ["art_tome", "jiang_lao"]
+      "tags": [
+        "art_tome",
+        "jiang_lao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1200
+      }
     }
   ]
 }

@@ -23,6 +23,8 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
             RehydrateInventoryCatalog(world, registry);
+            var commerce = ShopContent.Bind(world, registry, true, openingScenario);
+            if (commerce.IsFailure) return commerce;
             var inventory = OpeningInventoryBootstrap.Apply(world, openingScenario);
             if (inventory.IsFailure) return inventory;
             var surfaceGround = RehydrateSurfaceGround(world, registry, openingScenario);
@@ -210,6 +212,7 @@ namespace XianXia.Data.Bootstrap
                 catalog.Register(
                     id, item.Name ?? id, item.MaxStack, item.Tags,
                     item.TeachesManualId, item.TeachesArtId);
+                if (catalog.TryGet(id, out var info)) { info.BaseTradePrice = item.BaseTradePrice; info.TradeCategory = item.TradeCategory; info.NotTradable = item.NotTradable; }
             }
 
             world.Inventory.SetSlotCapacity(PartyInventory.DefaultSlotCapacity);

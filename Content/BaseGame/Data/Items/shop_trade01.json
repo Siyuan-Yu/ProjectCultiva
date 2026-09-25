@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:shop_qingshi_general",
+      "type": "shop",
+      "displayName": "青石坊市·杂货铺",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 10
+        },
+        {
+          "itemId": "base:item_manual_jiang_lao_legacy",
+          "quantity": 6
+        },
+        {
+          "itemId": "base:item_manual_dongfu_secret",
+          "quantity": 1
+        },
+        {
+          "itemId": "base:item_art_kaishan_fist",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "base:character_qingshi_shopkeeper",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "青石坊市·杂货铺掌柜",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_qingshi_general"
+    }
+  ]
+}

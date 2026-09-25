@@ -13,8 +13,10 @@ namespace XianXia.Data.Serialization
             if (snapshot == null)
                 return Result.Fail<string>(ErrorCode.SnapshotInvalid, "Snapshot is null.");
 
+            if (snapshot.Commerce == null) return Result.Fail<string>(ErrorCode.SnapshotInvalid, "Commerce authority missing.");
             var root = new Dictionary<string, JsonValue>(System.StringComparer.Ordinal)
             {
+                ["commerce"] = CommerceJson.Write(snapshot.Commerce),
                 ["schemaVersion"] = JsonValue.FromNumber(snapshot.SchemaVersion),
                 ["snapshotId"] = U(snapshot.SnapshotId),
                 ["worldTick"] = U(snapshot.WorldTick),
@@ -77,7 +79,7 @@ namespace XianXia.Data.Serialization
                 var root = SimpleJson.Parse(json);
                 if (root.GetNumber("schemaVersion") != WorldSnapshot.CurrentSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "Schema v11 required; v1-v10 lack temporary Quest companion authority. Start a new game.");
+                        "Schema v12 required; v1-v11 lack shop and wallet authority. Start a new game.");
                 var snapshot = new WorldSnapshot
                 {
                     SchemaVersion = (int)root.GetNumber("schemaVersion"),
@@ -317,6 +319,7 @@ namespace XianXia.Data.Serialization
                 if (root.TryGetProperty("contentProgress", out var contentProgress) &&
                     contentProgress.Kind == JsonValueKind.Object)
                     snapshot.ContentProgress = ReadContentProgress(contentProgress);
+                snapshot.Commerce = CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"));
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)

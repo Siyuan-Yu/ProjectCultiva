@@ -8,7 +8,8 @@ namespace XianXia.Unity.Host
     public enum HostNpcArriveAction
     {
         Talk = 0,
-        Attack = 1
+        Attack = 1,
+        Trade = 2
     }
 
     /// <summary>Party member walks to an NPC then performs Talk or Attack.</summary>

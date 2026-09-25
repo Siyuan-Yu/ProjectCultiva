@@ -11,6 +11,9 @@ namespace XianXia.Data.Content
         public DefinitionId Id { get; set; }
         /// <summary>Author-facing display name (not full localization).</summary>
         public string Name { get; set; }
+        public XianXia.Core.Inventory.TradePrice BaseTradePrice { get; set; }
+        public XianXia.Core.Inventory.TradeCategory TradeCategory { get; set; }
+        public bool NotTradable { get; set; }
         public string DisplayNameKey { get; set; }
         public string NameKey { get; set; }
         public int MaxStack { get; set; } = 1;

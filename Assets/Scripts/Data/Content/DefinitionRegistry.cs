@@ -6,6 +6,9 @@ namespace XianXia.Data.Content
 {
     public sealed class DefinitionRegistry
     {
+        readonly Dictionary<DefinitionId, XianXia.Core.Inventory.ShopDefinition> shops = new Dictionary<DefinitionId, XianXia.Core.Inventory.ShopDefinition>();
+        public IReadOnlyDictionary<DefinitionId, XianXia.Core.Inventory.ShopDefinition> Shops => shops;
+        public Result RegisterShop(XianXia.Core.Inventory.ShopDefinition definition) => Register(shops, definition, DefinitionId.Parse(definition.Id).Value);
         public XianXia.Core.World.Strategic.WorldSpatialRules SpatialRules { get; private set; }
         public Result RegisterSpatialRules(XianXia.Core.World.Strategic.WorldSpatialRules rules)
         {
@@ -102,6 +105,7 @@ namespace XianXia.Data.Content
 
         public bool ContainsId(DefinitionId id) =>
             (SpatialRules != null && SpatialRules.Id == id.ToString()) ||
+            shops.ContainsKey(id) ||
             _characters.ContainsKey(id) ||
             _cultivations.ContainsKey(id) ||
             _combatArts.ContainsKey(id) ||

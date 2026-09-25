@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-09-25 — SHOP-TRADE-01 指定商店买卖与三档钱包
+
+- 制作人最终人工验收通过：指定 TradeProvider、普通 NPC gate、玩家共享与个人／商店独立钱包、三档同币支付、有限库存／资金、类别收购、市场吸收出售品、UI 事务及 Save／Load 全部确认正常。状态更新为 **Producer Accepted / Sealed**。
+- 玩家共享、真实 EntityId 个人、ShopId 商店钱包独立；无自动换币。商店销售库存与资金有限，出售由市场吸收，防止掌柜身份或 Active 切换导致余额重置。
+- 加入 UGUI 双栏买卖，复用 NPC 接近后互动；专用青石坊市掌柜及三档商品、LevelTester 钱包/库存控制已接通。
+- Snapshot 实查 v11→v12，旧版本严格拒绝；Restore 只绑定静态定义。金额使用十进制长整数字符串，拒绝负值/溢出。
+- Core/Data/Unity/Editor 离线编译 ALL_OK，BaseGame 正式 loader 校验通过；未启动 Unity/PlayMode/Runner、未编写或运行测试。详见 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)、[ADR-0042](43-decisions/ADR-0042-shop-wallet-authority-and-snapshot-v12.md)。
+- 封板轮只选择性提交 SHOP-TRADE-01 实现、Content、Snapshot/schema、LevelTester 与必要文档。下一 AUCTION-01 仅记录 Planned 规则，未实施；Sect Contribution Exchange 仍为独立 Future 渠道。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

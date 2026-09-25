@@ -1,5 +1,13 @@
 # 功法、斗技与装备
 
+## SHOP-TRADE-01 物品价格与背包边界（2026-09-25）
+
+状态：**Producer Accepted / Sealed**。
+
+`ItemDefinition.baseTradePrice={grade,amount}` 为单档正 long，grade 为 Low/Mid/High；`tradeCategory` 当前只使用 Material/Manual。无价格默认不可交易；`notTradable` 与 questBound/nonTransferable 限制优先。商店收购按显式类别，不按名字/ID 推断。
+
+灵石是钱包状态，不占背包槽位，也不进入 WorldSitePublicStock。出售仅移除 PartyInventory，绝不合并战略库存。买入必须完整容纳才提交。SHOP-TRADE-01 未重做秘籍使用、装备或 Crafting；详见 [265](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)。
+
 > 状态：设计方向已定，数值未展开 | 优先级：P0 | 最后更新：2026-07-30
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2H-manual-system-rules.md`、`22-realms-and-abilities.md`、`25-cultivation-and-breakthrough.md`、`2B-attributes-and-affinity.md`、`23-combat.md`

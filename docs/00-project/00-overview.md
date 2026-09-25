@@ -1,5 +1,9 @@
 # 修仙游戏策划案总览
 
+## SHOP-TRADE-01（2026-09-25）
+
+指定 Shop/Market、三档独立灵石钱包、正式交易面板与 Snapshot v12 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。当前条目优先于下方历史阶段记录；详见 [265](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)。下一阶段 AUCTION-01 仅为 Planned，尚未实施；Sect Contribution Exchange 保持独立 Future 渠道。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
@@ -24,7 +28,7 @@ Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控
 
 **状态阅读纪律：** `Design Confirmed` 只表示制作人已确认规则；`Implemented` 表示当前代码已接通；`Producer Accepted` 必须有明确人工验收；`Committed / Sealed` 必须对应真实 Git 提交与封板授权；`Proposed / Not Implemented` 只是待讨论范围。封板提交以当前 Git history 与 [247 当前状态](../40-process/247-project-handoff-current-state-2026-09-18.md) 为准，不以旧文档中的单一历史 hash 推断。
 
-**当前里程碑：** [DELAYED-EVENT-01](../40-process/263-delayed-event-01-content-event-scheduling-2026-09-25.md)，Implementation Complete / Producer Acceptance Pending。下一 SOCIAL-QUEST-01；之后 Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation 为 Future / Only if gameplay later proves it necessary。
+**当前里程碑：** [SHOP-TRADE-01](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 已 **Producer Accepted / Sealed**。下一阶段 AUCTION-01 为 Planned / Not Implemented；Sect Contribution Exchange 保持独立 Future 渠道。Equipment / Crafting、Production / Logistics、NPC AI / Strategic Autonomy 均未自动启动。
 
 **当前边界：** Snapshot schema v10 已覆盖 Content Progress、动态 Quest Instance、Player Control Handoff、动态机会物体与延迟 ContentEvent authority；v1～v9 严格拒绝。未来功能范围仍以 [247](../40-process/247-project-handoff-current-state-2026-09-18.md) 和 roadmap 为准，不从历史静态差异自动启动实施。
 

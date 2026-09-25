@@ -10,6 +10,7 @@ namespace XianXia.Data.Content
     {
         public DefinitionId Id { get; set; }
         public string Name { get; set; }
+        public string TradeProviderShopId { get; set; } = string.Empty;
         public string DisplayNameKey { get; set; }
         public string NameKey { get; set; }
         public Dictionary<string, int> BaseAttributes { get; set; } = new Dictionary<string, int>();

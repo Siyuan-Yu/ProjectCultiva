@@ -1,5 +1,11 @@
 # 路线图
 
+## SHOP-TRADE-01 最终封板（2026-09-25）
+
+**Producer Accepted / Sealed。** 指定 TradeProvider、PlayerParty 共用钱包、独立 Character／Shop 钱包、三档独立余额、有限库存／资金、类别收购、市场吸收出售品、UGUI 交易与 Snapshot v12 均已通过制作人人工验收。
+
+下一阶段：**AUCTION-01 — Auction House Consignment + Bidding V1（Planned / Not Implemented）**。已确认方向为抽象市场竞拍者、单档资金冻结与超价退款、寄拍 escrow、成交结算／流拍可领取、玩家起拍价、固定最小加价、固定持续时间及建议 5% 固定手续费；不自动换币。Sect Contribution Exchange 仍为独立 Future 商业渠道。详见 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)；Planned 不构成实施授权。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

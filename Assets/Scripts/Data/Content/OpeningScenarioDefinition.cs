@@ -34,6 +34,7 @@ namespace XianXia.Data.Content
     /// <summary>Content-driven opening／playable-day assembly (no Core rules).</summary>
     public sealed class OpeningScenarioDefinition
     {
+        public XianXia.Core.Inventory.SpiritStoneWallet StartingWallet { get; set; } = new XianXia.Core.Inventory.SpiritStoneWallet();
         public DefinitionId Id { get; set; }
         public string Name { get; set; }
         public string ScheduleId { get; set; }

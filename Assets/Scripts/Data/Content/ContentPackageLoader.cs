@@ -205,6 +205,9 @@ namespace XianXia.Data.Content
                     case "combatArt":
                         LoadCombatArt(item, parsed.Value, registry, report);
                         break;
+                    case "shop":
+                        ShopContent.Load(item, parsed.Value, registry, report);
+                        break;
                     case "item":
                         LoadItem(item, parsed.Value, registry, report);
                         break;
@@ -321,6 +324,7 @@ namespace XianXia.Data.Content
                 InitialRealmPlaceholder = item.GetString("initialRealmPlaceholder", string.Empty),
                 PlayerControllable = item.GetBool("playerControllable", false),
                 DefaultFactionId = item.GetString("defaultFactionId", string.Empty),
+                TradeProviderShopId = item.GetString("tradeProviderShopId", string.Empty),
                 DefaultFactionRole = item.GetString("defaultFactionRole", string.Empty)
             };
 
@@ -371,6 +375,8 @@ namespace XianXia.Data.Content
             if (report.Errors.Count > errorsBefore)
                 return;
 
+            if (item.TryGetProperty("tradeProviderShopId", out var providerNode) && providerNode.Kind != JsonValueKind.String)
+            { report.Add(ErrorCode.ContentLoadFailed, "tradeProviderShopId must be a ShopId string.", id.ToString()); return; }
             var reg = registry.RegisterCharacter(character);
             if (reg.IsFailure)
                 report.Add(reg.Error);
@@ -646,6 +652,7 @@ namespace XianXia.Data.Content
                 TeachesArtId = item.GetString("teachesArtId", string.Empty)
             };
 
+            ShopContent.ReadItem(item, itemDef, report);
             ReadTags(item, itemDef.Tags, report, id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
@@ -833,6 +840,7 @@ namespace XianXia.Data.Content
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
                 OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
                 OpeningSurfaceId = item.GetString("openingSurfaceId", string.Empty),
+                StartingWallet = ShopContent.ReadStartingWallet(item, report, id.ToString()),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
             if (item.TryGetProperty("startingInventory", out var inventoryNode))

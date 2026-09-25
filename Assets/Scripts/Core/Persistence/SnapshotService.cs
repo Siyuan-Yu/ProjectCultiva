@@ -359,6 +359,7 @@ namespace XianXia.Core.Persistence
             CaptureOutdoorStatefulObjects(world, snap);
             CaptureWorldOpportunities(world, snap);
             CaptureWorldActivities(world, snap);
+            snap.Commerce = world.Commerce.Capture();
             snap.ContentProgress = ContentProgressSnapshotHelper.Capture(world);
             return snap;
         }
@@ -533,11 +534,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV10)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV11)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v10 saves lack temporary Quest companion authority. Start a new game (schema v11 required).",
+                    "Schema v1-v11 saves lack shop and wallet authority. Start a new game (schema v12 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -980,6 +981,22 @@ namespace XianXia.Core.Persistence
             foreach (var key in snap.SuppressedCharacterContacts) world.Strategic.SuppressedCharacterContacts.Add(key);
             world.Strategic.CharacterEncounter = snap.CharacterEncounter;
             CharacterEncounterService.BindRuntime(world);
+            if (snap.Commerce == null || snap.Commerce.PlayerWallet == null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Commerce authority missing.");
+            foreach (var p in snap.Commerce.CharacterWallets)
+                if (p.Key.IsNone || p.Value == null || !world.Entities.TryGet(p.Key, out var owner) || (owner.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid character wallet owner.");
+            foreach (var owner in world.Entities.All)
+                if ((owner.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 && !snap.Commerce.CharacterWallets.ContainsKey(owner.Id))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Character wallet authority missing.", owner.Id.ToString());
+            foreach (var p in snap.Commerce.Shops)
+            {
+                if (string.IsNullOrWhiteSpace(p.Key) || p.Value == null || p.Value.Wallet == null)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid shop wallet.");
+                foreach (var entry in p.Value.Stock) if (string.IsNullOrWhiteSpace(entry.Key) || entry.Value < 0)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid shop stock.");
+            }
+            world.Commerce = snap.Commerce.Capture();
             var contentProgressRestore = ContentProgressSnapshotHelper.Restore(world, snap.ContentProgress);
             if (contentProgressRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(contentProgressRestore.Error);

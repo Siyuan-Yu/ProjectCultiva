@@ -22,6 +22,9 @@ namespace XianXia.Core.Inventory
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public int MaxStack { get; set; } = 99;
+        public TradePrice BaseTradePrice { get; set; }
+        public TradeCategory TradeCategory { get; set; }
+        public bool NotTradable { get; set; }
         /// <summary>非空则可用为功法秘籍。</summary>
         public string TeachesManualId { get; set; } = string.Empty;
         /// <summary>非空则可用为斗技秘本。</summary>
@@ -177,7 +180,7 @@ namespace XianXia.Core.Inventory
             {
                 var s = _slots[i];
                 if (!s.IsEmpty && string.Equals(s.ItemId, itemId, StringComparison.Ordinal))
-                    total += s.Count;
+                    total = (int)Math.Min(int.MaxValue, (long)total + s.Count);
             }
 
             return total;
@@ -194,9 +197,9 @@ namespace XianXia.Core.Inventory
             {
                 var slot = _slots[i];
                 if (slot.IsEmpty)
-                    capacity += maxStack;
+                    capacity = (int)Math.Min(int.MaxValue, (long)capacity + maxStack);
                 else if (string.Equals(slot.ItemId, itemId, StringComparison.Ordinal))
-                    capacity += Math.Max(0, maxStack - slot.Count);
+                    capacity = (int)Math.Min(int.MaxValue, (long)capacity + Math.Max(0, maxStack - slot.Count));
             }
             return capacity;
         }

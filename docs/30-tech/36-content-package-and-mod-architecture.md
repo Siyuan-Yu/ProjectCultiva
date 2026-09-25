@@ -1,5 +1,15 @@
 # ContentPackage 与 Mod Ready 架构
 
+## SHOP-TRADE-01 schema（2026-09-25）
+
+状态：**Producer Accepted / Sealed**。
+
+新增 `type:"shop"`，字段 `id/displayName/initialWallet/buybackMultiplier/acceptedTradeCategories/initialStock`。钱包 `{low,mid,high}`；价格 `{grade:"Low|Mid|High",amount:正整数}`；stock entry `{itemId,quantity:正int,salePriceOverride?:价格}`。默认 buybackMultiplier=0.5，非负 decimal；收购价 `max(1,floor(baseAmount*multiplier))`，保持币种，溢出拒绝。
+
+Item 增加 `baseTradePrice`、`tradeCategory:"Material|Manual"`、`notTradable`；有价格必须显式类别。Character 增加 `tradeProviderShopId`；Scenario 增加 `startingWallet`（缺省三档零）。个人钱包本轮在实体创建时分配零余额，不支持个人初始金额 authoring。
+
+V1 使用内容 JSON 编写上述字段；正式 loader 校验未知字段、币种、类别、价格、库存、重复项和引用，不新增 ShopEditor。数字形式限定精确整数区间 0～2^53-1；更大金额必须十进制字符串，上限 long.MaxValue。Snapshot v12 commerce 金额统一写字符串，避免现有 double JSON parser 丢精度。验收内容见 `Content/BaseGame/Data/Items/shop_trade01.json` 与 process 265。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

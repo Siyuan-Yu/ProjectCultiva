@@ -1,5 +1,11 @@
 # 世界与据点
 
+## SHOP-TRADE-01 世界交易入口（2026-09-25）
+
+仅明确绑定 `tradeProviderShopId` 的固定 NPC 提供“交易”；普通 NPC 有个人钱包不代表可交易。掌柜是入口，库存资金属于 ShopId；死亡/更换掌柜不会重置商店。V1 复用现有右键 NPC 接近/抵达动作，进入 UGUI 模态双栏面板。
+
+青石坊市·杂货铺位于黄村主 Surface `(5.14,11.10)`，专用掌柜独立于村内可招者和 SOCIAL-QUEST-01 NPC。Shop/Market 已 **Producer Accepted / Sealed**；AUCTION-01 仅为 Planned / Not Implemented，Sect Contribution Exchange 为独立 Future 渠道。
+
 > **2026-09-21 Final Seal：** MAP-01～04 均已验收封板。Final Continuous Surface、Composer/FineEditor、Surface WorldMap 与正常 Gameplay authority 已落地；下文 Region／Outdoor LocalMap／Hex／旧 WorldGraph 规则只按历史或明确 Legacy Compatibility 阅读。
 
 > **2026-09-24 动态机会物体 Seal：** WorldOpportunity 可在 Continuous Surface 保存稳定对象实例与精确坐标；Host 只在当前 loaded chunk 物化已可见对象，Chunk unload 仅销毁 View。V1 动态对象不阻挡导航，也不升级为 Building／WorldSite。制作人验收通过，状态 **Producer Accepted / Sealed**；见 [DYNAMIC-DISCOVERY-01](../40-process/261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。

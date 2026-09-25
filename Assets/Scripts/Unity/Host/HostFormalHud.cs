@@ -102,6 +102,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (bootstrap?.GetComponent<HostShopTradePanel>()?.IsOpen == true) return;
             if (Input.GetKeyDown(toggleKey))
                 visible = !visible;
 
@@ -128,6 +129,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (bootstrap?.GetComponent<HostShopTradePanel>()?.IsOpen == true) return;
             if (!visible)
                 return;
             var session = bootstrap != null ? bootstrap.Session : null;

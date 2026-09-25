@@ -1,5 +1,13 @@
 # 技术架构
 
+## SHOP-TRADE-01 经济状态与 Save/Load（2026-09-25）
+
+状态：**Producer Accepted / Sealed**。
+
+当前 Snapshot v12，严格拒绝 v1～v11。`SimulationWorld.Commerce` 持有 PlayerWallet、真实 EntityId 的 CharacterWallets、ShopId 的 Shops；Snapshot Capture 深拷贝，`CommerceJson` 序列化为独立 commerce 段。恢复验证币种/非负整数/重复键/实体身份，再绑定静态商店定义并验证库存键与数量。
+
+`ContentRuntimeBootstrap.Apply` 仅 NewGame 发放 Scenario startingWallet、Shop InitialStock/InitialWallet；`RuntimeContentShellBootstrap.Rehydrate` 只绑定定义、绝不补库存或发钱。金额全程 long，JSON 写十进制字符串。详见 [ADR-0042](../40-process/43-decisions/ADR-0042-shop-wallet-authority-and-snapshot-v12.md)。
+
 > **2026-09-21 Final Seal：** [ADR-0038](../40-process/43-decisions/ADR-0038-continuous-world-legacy-migration-final-seal.md) 冻结统一 Squad／PlayerParty、CharacterEncounter、Continuous Surface 与 Actual Administrative Control 的 runtime authority。旧 FormalArmy／ArmyStack／TerritoryRegion／StrategicEncounter runtime 已退休，只允许明确旧输入迁移；不得重建第二份 membership、位置或战斗 authority。
 
 > **2026-09-22 正式运行依赖退役：** `SimulationWorld` 无 HexWorld，Core Hex 目录已删除，正常产品程序集不再编译旧 Hex 几何或运行时迁移 API。Runtime Loader 明确拒绝 `formalArmy`／`hexWorld`。`LegacyRuntimeConverter` 只无损转换 FormalArmy 与 current authority 完整的 hybrid Snapshot；`hexWorld`／`openingHexWorldId` 只检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径且无样例时不猜。外部 JSON／Snapshot 旧 wire key、稳定 ID 规则与已移除枚举值留下的数值空洞只在检测和离线转换边界保留。

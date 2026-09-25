@@ -59,6 +59,14 @@
           "bindSchedule": true,
           "bindDailyTask": false,
           "recruitable": true
+        },
+        {
+          "definitionId": "base:character_qingshi_shopkeeper",
+          "entityKind": "npc",
+          "displayName": "青石坊市·杂货铺掌柜",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
         }
       ],
       "openingRelations": [
@@ -83,7 +91,12 @@
           "reasonTag": "opening_companion",
           "mutual": true
         }
-      ]
+      ],
+      "startingWallet": {
+        "low": 10000,
+        "mid": 5,
+        "high": 2
+      }
     },
     {
       "id": "base:scenario_chapter1_harness",
@@ -138,6 +151,14 @@
           "bindSchedule": true,
           "bindDailyTask": false,
           "recruitable": true
+        },
+        {
+          "definitionId": "base:character_qingshi_shopkeeper",
+          "entityKind": "npc",
+          "displayName": "青石坊市·杂货铺掌柜",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
         }
       ],
       "openingRelations": [
@@ -162,7 +183,12 @@
           "reasonTag": "opening_companion",
           "mutual": true
         }
-      ]
+      ],
+      "startingWallet": {
+        "low": 10000,
+        "mid": 5,
+        "high": 2
+      }
     },
     {
       "id": "base:scenario_ch01_reference",
@@ -446,6 +472,14 @@
             "z": 4.0
           },
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_qingshi_shopkeeper",
+          "entityKind": "npc",
+          "displayName": "青石坊市·杂货铺掌柜",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
         }
       ],
       "openingRelations": [
@@ -528,7 +562,12 @@
         "base:npc_squad_qingshi_acceptance_shuofeng_garrison",
         "base:npc_squad_qingshi_acceptance_shuofeng_reinforcement",
         "base:npc_squad_huangcun_labor_garrison"
-      ]
+      ],
+      "startingWallet": {
+        "low": 10000,
+        "mid": 5,
+        "high": 2
+      }
     }
   ]
 }

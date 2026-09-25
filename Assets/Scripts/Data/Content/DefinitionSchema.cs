@@ -18,14 +18,14 @@ namespace XianXia.Data.Content
             "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
             "hometown", "reputation", "goals", "desires",
             "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds",
-            "homeWorkAreaId", "defeatEncounterId", "defaultFactionId", "defaultFactionRole"
+            "tradeProviderShopId", "homeWorkAreaId", "defeatEncounterId", "defaultFactionId", "defaultFactionRole"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId",
             "openingWorldRegionId", "openingLocalPlaceSetId", "openingSurfaceId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
-            "initialNpcSquadIds", "strategicOpening", "startingInventory"
+            "initialNpcSquadIds", "strategicOpening", "startingInventory", "startingWallet"
         };
 
         public static readonly HashSet<string> NpcSquadFields = new HashSet<string>(StringComparer.Ordinal)
@@ -284,7 +284,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ItemFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "teachesArtId", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "teachesArtId", "tags", "baseTradePrice", "tradeCategory", "notTradable"
         };
 
         public static readonly HashSet<string> OpeningBondFields = new HashSet<string>(StringComparer.Ordinal)

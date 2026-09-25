@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 11;
+        public const int CurrentSchemaVersion = 12;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -25,6 +25,7 @@ namespace XianXia.Core.Persistence
         /// <summary>v9 lacks scheduled ContentEvent authority and original context deadlines.</summary>
         public const int LegacySchemaVersionV9 = 9;
         public const int LegacySchemaVersionV10 = 10;
+        public const int LegacySchemaVersionV11 = 11;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -78,6 +79,7 @@ namespace XianXia.Core.Persistence
         /// <summary>EVENT-02A authority introduced in v6; its wire shape remains unchanged in v8.</summary>
         public WorldActivityRuntimeSnapshotDto WorldActivityRuntime { get; set; }
         /// <summary>Required v8 authority for Quest instances and other Content Progress.</summary>
+        public XianXia.Core.Inventory.CommerceState Commerce { get; set; }
         public ContentProgressSnapshotDto ContentProgress { get; set; }
     }
 

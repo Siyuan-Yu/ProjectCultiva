@@ -1,5 +1,7 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0042：Shop 钱包 authority 与 Snapshot v12](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) — Producer Accepted / Sealed（2026-09-25）。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

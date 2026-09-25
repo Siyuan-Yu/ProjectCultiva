@@ -16,6 +16,8 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "RuntimeContentShellBootstrap args null.");
 
             ContentRuntimeBootstrap.RehydrateInventoryCatalog(world, registry);
+            var commerce = ShopContent.Bind(world, registry, false);
+            if (commerce.IsFailure) return commerce;
             var surfaceGround = ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
             if (surfaceGround.IsFailure)
                 return surfaceGround;
