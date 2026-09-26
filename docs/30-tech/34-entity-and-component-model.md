@@ -36,7 +36,7 @@
 
 | 类型 | 职责 |
 |---|---|
-| `MortalPopulation` / `SettlementPopulation` | 第四层：凡人／据点人口统计 |
+| `MortalPopulation` / `SettlementPopulation` | Legacy／派生摘要名称；不得作为凡人身份、劳动或存档 authority（ADR-0044） |
 | `ArmyGroup` | **仅**凡人／大规模非修士军队的群体数据（ADR-0008 收窄）；**不是**修士战略 Army |
 | `Squad`／`PlayerParty` | 正常活动人物唯一组织；PlayerParty 是玩家所控 Squad 与 Active 的控制投影 |
 
@@ -174,7 +174,7 @@ External Handoff 的 membership transaction 只把 successor 本人从来源 NPC
 
 ---
 
-## 6. 修士个体化与凡人聚合（2026-08-22 修订 · ADR-0024）
+## 6. 修士与凡人个体化（2026-09-27 修订 · ADR-0024／ADR-0044）
 
 与 `33` §4 / `27` 对齐：
 
@@ -183,9 +183,9 @@ External Handoff 的 membership transaction 只把 successor 本人从来源 NPC
 | 1 | 当前 PlayerParty 与镜头内关键修士 | 完整 Character；Hot LOD；玩家同一时刻只直接控制一个 Active |
 | 2 | 主管、商人、宗门人物、重要敌人等 | 完整 Character；Hot / Strategic LOD |
 | 3 | **所有其他修士** | **持久 Character**；Cold / Strategic LOD（**不是** `CultivatorPopulation` 匿名计数） |
-| 4 | 凡人群体 | `MortalPopulation` / `SettlementPopulation` 统计 |
+| 4 | **所有普通凡人** | **持久 Character**；需求／职业／势力／忠诚／位置为个体状态，离屏可使用低频 LOD |
 
-> **superseded：** 旧「第三层 = `CultivatorPopulation` 聚合、不模拟每人位置」见 ADR-0024。
+> **superseded：** 旧「第三层修士聚合」由 ADR-0024 取代；旧「第四层凡人聚合、关注后实体化并可归并」由 ADR-0044 取代。
 
 “约 30～50 名核心修士”表示可被玩家长期管理、培养和纳入 LOD 的角色规模方向，不表示可同时直接控制 30～50 人。
 
@@ -193,25 +193,18 @@ External Handoff 的 membership transaction 只把 successor 本人从来源 NPC
 
 - 用 `QiRefiningCount` 等匿名计数代表不存在的修士。
 - 离屏修士偷偷全员 LocalMap Actor／每帧 Update。
-- 第四层凡人偷偷创建数千个隐藏 `Character`（凡人仍用群体统计）。
+- 用匿名人口、劳动力或囚犯计数替代真实凡人 Character。
+- 为保持身份而要求离屏凡人全员 LocalMap Actor／每帧 Update；应使用 Character LOD。
 
-### 6.2 凡人实体化条件（群体 → Character）
+### 6.2 Character LOD 条件
 
-当**凡人**成员被以下任一关注时，升级为完整 Character：
-
-- 玩家关注／点选命名／招募
-- 发现灵根或进入修仙体系
-- 参与重要事件
-- 拥有关系网节点
-- 拥有独特物品或伤病／任务／历史事件
-
-**修士**一旦进入修仙体系即为持久 Character；仅 LOD 在 Cold / Strategic / Hot 间切换，**不归并**回匿名群体。
+凡人与修士从创建起都是持久 Character。玩家关注、进入镜头、参与事件、受伤、被俘或承担关系／任务会提高模拟细节；离屏可降低更新频率。LOD 转换不得更换 EntityId、清除个体状态或归并为匿名人口。
 
 ### 6.3 归并规则
 
 - **重要 Character** 拥有名字、关系、修炼进度、库存、伤病、任务或历史事件 → **不再归并**。
-- **凡人**临时实体：只有完全普通、未被关注、无独特状态才允许归并回 MortalPopulation。
-- **修士 Character：禁止归并为匿名计数。**
+- **凡人与修士 Character：均禁止归并为匿名计数。**
+- 人口、职业、劳动力与住房占用只能从当前 Character 状态派生。
 
 ## 7. 共享基础引用类型
 

@@ -1,8 +1,16 @@
 # 修仙游戏策划案总览
 
+## CIVILIAN-LIFE-01（2026-09-27）
+
+个体凡人、Satiety/Energy、势力职业、战后 Loyalty／Fleeing、Encounter 捕获、真实押送、PrisonerOnly 住房拘留与招募方向已冻结。状态 **Design Confirmed / Documentation Updated / Implementation Not Started**；见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。每个凡人是持久 Character；匿名人口只可作为派生统计，不再是人物或劳动力 authority。
+
+## AUCTION-01（2026-09-25）
+
+指定 AuctionHouse 的寄拍、单档竞价托管、抽象市场竞争、成交／流拍领取、5% 手续费、正式面板与 Snapshot v13 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。详见 [266](../40-process/266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)。Auction-02 与 Sect Contribution Exchange 仍为 Future。
+
 ## SHOP-TRADE-01（2026-09-25）
 
-指定 Shop/Market、三档独立灵石钱包、正式交易面板与 Snapshot v12 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。当前条目优先于下方历史阶段记录；详见 [265](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)。下一阶段 AUCTION-01 仅为 Planned，尚未实施；Sect Contribution Exchange 保持独立 Future 渠道。
+指定 Shop/Market、三档独立灵石钱包与正式交易面板已通过制作人人工验收，状态 **Producer Accepted / Sealed**；详见 [265](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)。其运行边界保持不变。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
@@ -11,7 +19,7 @@
 Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
 临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
 
-当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
+当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。该时点的“下一阶段 Full Trading”已经由 SHOP-TRADE-01 与 AUCTION-01 后续状态取代；现行下一套已完成产品设计收口的 NPC 方向为 CIVILIAN-LIFE-01，尚未实施。
 
 
 > 状态：概念框架 v0.9｜Architecture Freeze v0.2＋ADR-0038｜MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C 及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已封板 | 最后更新：2026-09-25
@@ -28,7 +36,7 @@ Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控
 
 **状态阅读纪律：** `Design Confirmed` 只表示制作人已确认规则；`Implemented` 表示当前代码已接通；`Producer Accepted` 必须有明确人工验收；`Committed / Sealed` 必须对应真实 Git 提交与封板授权；`Proposed / Not Implemented` 只是待讨论范围。封板提交以当前 Git history 与 [247 当前状态](../40-process/247-project-handoff-current-state-2026-09-18.md) 为准，不以旧文档中的单一历史 hash 推断。
 
-**当前里程碑：** [SHOP-TRADE-01](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 已 **Producer Accepted / Sealed**。下一阶段 AUCTION-01 为 Planned / Not Implemented；Sect Contribution Exchange 保持独立 Future 渠道。Equipment / Crafting、Production / Logistics、NPC AI / Strategic Autonomy 均未自动启动。
+**当前里程碑：** [SHOP-TRADE-01](../40-process/265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 与 [AUCTION-01](../40-process/266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md) 均为 **Producer Accepted / Sealed**；[CIVILIAN-LIFE-01](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md) 为 **Design Confirmed / Documentation Updated / Implementation Not Started**。下一实施主线为 CIVILIAN-LIFE-01；Auction-02、Sect Contribution Exchange、Equipment / Crafting、Production / Logistics 与 NPC Strategic Autonomy 均未自动启动。
 
 **当前边界：** Snapshot schema v10 已覆盖 Content Progress、动态 Quest Instance、Player Control Handoff、动态机会物体与延迟 ContentEvent authority；v1～v9 严格拒绝。未来功能范围仍以 [247](../40-process/247-project-handoff-current-state-2026-09-18.md) 和 roadmap 为准，不从历史静态差异自动启动实施。
 
@@ -74,7 +82,7 @@ v0.2 修补要点仍包括 RelationshipLedger 权威、WorldTick／ActionClock�
 | 2. 角色与领地供养 | 领地供养修炼，修炼推动扩张 | `26` |
 | 3. 江湖关系真后果 | 关系由 Ledger 事件累积 | `28`／`2E` |
 | 4. 修炼要准备 | 突破挑时辰地点资源 | `25` |
-| 5. 规模不增微操 | 四层模拟 | `27`／`34` |
+| 5. 规模不增微操 | 全体人物保持真实身份，以需求／职业管理与 LOD 控制操作量 | `27`／`34`／ADR-0044 |
 | 6. 力量越大因果越重 | 非简单正邪二分 | `29` |
 
 ## 四、三层玩法结构

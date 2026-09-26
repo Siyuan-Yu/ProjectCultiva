@@ -586,3 +586,11 @@ Quest 可选字符串 `questKind` 只接受 `general`（省略默认）与 `secr
 仅 Active secretRealm QuestInstance 派生 Priority=0「关于【任务名】」，不生成 Event 定义，不推断名称/tags/地点。邀请绑定 QuestInstanceId。
 验收：`base:quest_social01_cave`、`base:quest_social01_cave_b`、`base:quest_social01_general`，manual、可放弃，`exploredLocation:base:loc_cave_chamber` 完成。
 Snapshot v11 的 `contentProgress.questCompanions` 必备数组包含 `companionEntityId`（uint64 十进制字符串）、`questInstanceId`、`originalSquadId`、`state`（0 Active / 1 PendingDeparture）。Topics 不存档。
+
+## AUCTION-01：AuctionHouse Content 与 Snapshot v13
+
+`type="auctionHouse"` 定义字段：`id`、`displayName`、正整数 `durationDays`、0～100 的 `feePercent`、正整数 `marketReviewIntervalDays`、`minimumIncrements{low,mid,high}` 与 `initialListings[]`。每条初始拍品包含 `itemId`、正整数 `quantity`、`startingPrice{grade,amount}`；grade 必须与 Item `baseTradePrice` 档位一致。Character 只有显式配置有效 `auctionProviderHouseId` 才提供拍卖入口；`tradeProviderShopId` 不隐含拍卖能力。
+
+Snapshot v13 的 `commerce.auctionHouses[]` 保存 `auctionHouseId`、`nextListingSequence`、`nextClaimSequence`、`houseWallet`、`listings[]` 与 `claims[]`。Listing 保存稳定 identity、seller/bidder、item/quantity、单一 grade、起拍／当前价、player escrow、created/end/review tick 与 status；Claim 保存 WonItem／UnsoldItem、quantity、SourceListingId 与 created tick。UInt64 使用十进制字符串。v1～v12 严格拒绝；Restore 不重放 InitialListings、扣款、退款、寄拍移物、结算或 Claim。
+
+AUCTION-01 状态：**Producer Accepted / Sealed（2026-09-27）**。Future AUCTION-02 才可能扩展真实 NPC bidder、动态拍品与复杂市场行为。

@@ -4958,6 +4958,14 @@
           "sourceLocationId": "base:loc_ref_houses",
           "worldX": 5.14,
           "worldY": 11.1
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_qingshi_auction_attendant",
+          "definitionId": "base:character_qingshi_auction_attendant",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 5.3,
+          "worldY": 11.1
         }
       ],
       "sitePlaces": [

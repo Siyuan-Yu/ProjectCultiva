@@ -1,10 +1,14 @@
 # 世界与据点
 
+## AUCTION-01 世界入口（2026-09-25）
+
+仅显式 `auctionProviderHouseId` 的固定 NPC 提供“拍卖”，与 `tradeProviderShopId` 分离。青石坊市·拍卖行执事位于黄村主 Surface `(5.30,11.10)`；AuctionHouse runtime 属于 HouseId，不随执事生命周期重置。状态 **Producer Accepted / Sealed**；详见 process 266。
+
 ## SHOP-TRADE-01 世界交易入口（2026-09-25）
 
 仅明确绑定 `tradeProviderShopId` 的固定 NPC 提供“交易”；普通 NPC 有个人钱包不代表可交易。掌柜是入口，库存资金属于 ShopId；死亡/更换掌柜不会重置商店。V1 复用现有右键 NPC 接近/抵达动作，进入 UGUI 模态双栏面板。
 
-青石坊市·杂货铺位于黄村主 Surface `(5.14,11.10)`，专用掌柜独立于村内可招者和 SOCIAL-QUEST-01 NPC。Shop/Market 已 **Producer Accepted / Sealed**；AUCTION-01 仅为 Planned / Not Implemented，Sect Contribution Exchange 为独立 Future 渠道。
+青石坊市·杂货铺位于黄村主 Surface `(5.14,11.10)`，专用掌柜独立于村内可招者和 SOCIAL-QUEST-01 NPC。Shop/Market 已 **Producer Accepted / Sealed**；AUCTION-01 当前实现状态见本页上方，Sect Contribution Exchange 为独立 Future 渠道。
 
 > **2026-09-21 Final Seal：** MAP-01～04 均已验收封板。Final Continuous Surface、Composer/FineEditor、Surface WorldMap 与正常 Gameplay authority 已落地；下文 Region／Outdoor LocalMap／Hex／旧 WorldGraph 规则只按历史或明确 Legacy Compatibility 阅读。
 
@@ -151,13 +155,11 @@ World
 
 建筑占多格，拥有功能、容量、归属与状态。
 
-### 4.5 人口数据（凡人群体）
+### 4.5 人口数据（真实 Character + 派生统计）
 
-凡人采用**群体模拟**，不按人逐个存档。
+每个凡人都是持久 Character，住房占用、需求、职业、势力与战后状态逐人保存；人口与岗位数字只从人物状态派生。Residence 使用真实容量和人物分配，不允许用“一栋房屋容量 500、当前 420”的匿名人口替代实际居民。
 
-例如：一栋房屋容量 500 人，当前 420 人。
-
-详细规则见 `27-characters-and-population.md`。
+CIVILIAN-LIFE-01 当前仅完成设计冻结，尚未修改 Runtime／Snapshot；详细规则见 `27-characters-and-population.md`、[267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md) 与 ADR-0044。
 
 ### 4.6 NPC 数据
 

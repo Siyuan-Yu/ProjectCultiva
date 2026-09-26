@@ -9,7 +9,8 @@ namespace XianXia.Unity.Host
     {
         Talk = 0,
         Attack = 1,
-        Trade = 2
+        Trade = 2,
+        Auction = 3
     }
 
     /// <summary>Party member walks to an NPC then performs Talk or Attack.</summary>

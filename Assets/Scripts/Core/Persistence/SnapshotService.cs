@@ -60,6 +60,8 @@ namespace XianXia.Core.Persistence
             SimulationLoop loop,
             PlayerPartyRuntime playerParty = null)
         {
+            // Reconcile every due auction before its authoritative state is captured.
+            AuctionHouseService.ProcessDue(world);
             var random = world.Random.CaptureState();
             var snap = new WorldSnapshot
             {
@@ -534,11 +536,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV11)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV12)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v11 saves lack shop and wallet authority. Start a new game (schema v12 required).",
+                    "Schema v1-v12 saves lack current auction authority. Start a new game (schema v13 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -995,6 +997,36 @@ namespace XianXia.Core.Persistence
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid shop wallet.");
                 foreach (var entry in p.Value.Stock) if (string.IsNullOrWhiteSpace(entry.Key) || entry.Value < 0)
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid shop stock.");
+            }
+            foreach (var p in snap.Commerce.AuctionHouses)
+            {
+                if (string.IsNullOrWhiteSpace(p.Key) || p.Value == null || p.Value.HouseWallet == null || p.Value.NextListingSequence == 0 || p.Value.NextClaimSequence == 0)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid auction house authority.");
+                var listingIds = new HashSet<string>(StringComparer.Ordinal);
+                ulong maxListingSequence = 0;
+                foreach (var listingPair in p.Value.Listings)
+                {
+                    var listing = listingPair.Value;
+                    if (listing == null || listingPair.Key != listing.ListingId || listing.AuctionHouseId != p.Key || string.IsNullOrWhiteSpace(listing.ListingId) || !listingIds.Add(listing.ListingId) ||
+                        listing.Sequence == 0 || listing.Quantity <= 0 || !SpiritStoneWallet.ValidGrade(listing.Grade) || listing.StartingPriceAmount <= 0 ||
+                        listing.CurrentBidAmount < 0 || listing.PlayerEscrowAmount < 0 || listing.CreatedTick > listing.EndTick ||
+                        (listing.Status == AuctionListingStatus.Open && listing.CurrentBidderKind == AuctionBidderKind.Player && listing.PlayerEscrowAmount != listing.CurrentBidAmount) ||
+                        ((listing.Status != AuctionListingStatus.Open || listing.CurrentBidderKind != AuctionBidderKind.Player) && listing.PlayerEscrowAmount != 0))
+                        return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid auction listing authority.", listing?.ListingId);
+                    if (listing.Sequence > maxListingSequence) maxListingSequence = listing.Sequence;
+                }
+                var claimIds = new HashSet<string>(StringComparer.Ordinal);
+                ulong maxClaimSequence = 0;
+                foreach (var claimPair in p.Value.Claims)
+                {
+                    var claim = claimPair.Value;
+                    if (claim == null || claimPair.Key != claim.ClaimId || claim.AuctionHouseId != p.Key || string.IsNullOrWhiteSpace(claim.ClaimId) || !claimIds.Add(claim.ClaimId) ||
+                        claim.Sequence == 0 || claim.Quantity <= 0 || string.IsNullOrWhiteSpace(claim.ItemId) || string.IsNullOrWhiteSpace(claim.SourceListingId))
+                        return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid auction claim authority.", claim?.ClaimId);
+                    if (claim.Sequence > maxClaimSequence) maxClaimSequence = claim.Sequence;
+                }
+                if (p.Value.NextListingSequence <= maxListingSequence || p.Value.NextClaimSequence <= maxClaimSequence)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Auction sequence authority is not ahead of stored identities.", p.Key);
             }
             world.Commerce = snap.Commerce.Capture();
             var contentProgressRestore = ContentProgressSnapshotHelper.Restore(world, snap.ContentProgress);

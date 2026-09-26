@@ -208,6 +208,9 @@ namespace XianXia.Data.Content
                     case "shop":
                         ShopContent.Load(item, parsed.Value, registry, report);
                         break;
+                    case "auctionHouse":
+                        AuctionContent.Load(item, parsed.Value, registry, report);
+                        break;
                     case "item":
                         LoadItem(item, parsed.Value, registry, report);
                         break;
@@ -325,6 +328,7 @@ namespace XianXia.Data.Content
                 PlayerControllable = item.GetBool("playerControllable", false),
                 DefaultFactionId = item.GetString("defaultFactionId", string.Empty),
                 TradeProviderShopId = item.GetString("tradeProviderShopId", string.Empty),
+                AuctionProviderHouseId = item.GetString("auctionProviderHouseId", string.Empty),
                 DefaultFactionRole = item.GetString("defaultFactionRole", string.Empty)
             };
 

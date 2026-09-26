@@ -1,10 +1,14 @@
 # 技术架构
 
+## AUCTION-01 authority 与 Save/Load（2026-09-25）
+
+当前 Snapshot v13，严格拒绝 v1～v12。`CommerceState.AuctionHouses` 深拷贝并在 commerce JSON 中保存 HouseWallet、sequence、Listings、Claims；静态 definitions/providers 排除在快照外。New Game 初始化拍品；Restore 只重新绑定并验证，保留 escrow 与 settlement status。WorldTick 每 tick 驱动 review/settlement，Capture 前执行同一 reconciliation。AUCTION-01 已 **Producer Accepted / Sealed**；详见 [ADR-0043](../40-process/43-decisions/ADR-0043-auction-house-escrow-and-snapshot-v13.md)。
+
 ## SHOP-TRADE-01 经济状态与 Save/Load（2026-09-25）
 
 状态：**Producer Accepted / Sealed**。
 
-当前 Snapshot v12，严格拒绝 v1～v11。`SimulationWorld.Commerce` 持有 PlayerWallet、真实 EntityId 的 CharacterWallets、ShopId 的 Shops；Snapshot Capture 深拷贝，`CommerceJson` 序列化为独立 commerce 段。恢复验证币种/非负整数/重复键/实体身份，再绑定静态商店定义并验证库存键与数量。
+SHOP-TRADE-01 在 v12 引入的 `SimulationWorld.Commerce` 持有 PlayerWallet、真实 EntityId 的 CharacterWallets、ShopId 的 Shops；其 authority 继续由当前 v13 commerce 段保存。恢复验证币种/非负整数/重复键/实体身份，再绑定静态商店定义并验证库存键与数量。
 
 `ContentRuntimeBootstrap.Apply` 仅 NewGame 发放 Scenario startingWallet、Shop InitialStock/InitialWallet；`RuntimeContentShellBootstrap.Rehydrate` 只绑定定义、绝不补库存或发钱。金额全程 long，JSON 写十进制字符串。详见 [ADR-0042](../40-process/43-decisions/ADR-0042-shop-wallet-authority-and-snapshot-v12.md)。
 
@@ -68,7 +72,7 @@ XianXia.Tests/       针对 Core 的单元测试
 
 ### 1.6 实体分层（细节见 `33` §3）
 
-四层：可控修士全模拟／关键 NPC 全模拟／其他修士为持久真实 Character + LOD／凡人可统计聚合。
+人物统一为持久真实 Character：Active／关键人物使用高细节模拟，其他修士与凡人使用可解释的 LOD。人口、职业和劳动力可以统计展示，但统计不是身份、劳动或存档 authority。旧“凡人可匿名聚合”的方向由 ADR-0044 取代；实现尚未开始。
 
 ## 2. 待定项（工程选项，非玩法形状）
 

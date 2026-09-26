@@ -1,5 +1,11 @@
 # ContentPackage 与 Mod Ready 架构
 
+## AUCTION-01 schema（2026-09-25）
+
+状态：**Producer Accepted / Sealed（2026-09-27）**。
+
+新增 `type:"auctionHouse"`：`displayName/durationDays/feePercent/marketReviewIntervalDays/minimumIncrements{low,mid,high}/initialListings[]`；初始拍品为 `itemId/quantity/startingPrice{grade,amount}`，grade 必须等于 Item BaseTradePrice。Character 新增 `auctionProviderHouseId`。正式 loader 严格校验字段、引用、转移限制、档位与 ceiling 乘法溢出；验收内容在 `auction01.json`。Snapshot v13 的 Auction 数值继续使用十进制字符串保存 UInt64/Int64 精度。
+
 ## SHOP-TRADE-01 schema（2026-09-25）
 
 状态：**Producer Accepted / Sealed**。
@@ -8,7 +14,7 @@
 
 Item 增加 `baseTradePrice`、`tradeCategory:"Material|Manual"`、`notTradable`；有价格必须显式类别。Character 增加 `tradeProviderShopId`；Scenario 增加 `startingWallet`（缺省三档零）。个人钱包本轮在实体创建时分配零余额，不支持个人初始金额 authoring。
 
-V1 使用内容 JSON 编写上述字段；正式 loader 校验未知字段、币种、类别、价格、库存、重复项和引用，不新增 ShopEditor。数字形式限定精确整数区间 0～2^53-1；更大金额必须十进制字符串，上限 long.MaxValue。Snapshot v12 commerce 金额统一写字符串，避免现有 double JSON parser 丢精度。验收内容见 `Content/BaseGame/Data/Items/shop_trade01.json` 与 process 265。
+V1 使用内容 JSON 编写上述字段；正式 loader 校验未知字段、币种、类别、价格、库存、重复项和引用，不新增 ShopEditor。数字形式限定精确整数区间 0～2^53-1；更大金额必须十进制字符串，上限 long.MaxValue。该 v12 wire 规则继续由当前 v13 commerce 段使用，避免现有 double JSON parser 丢精度。验收内容见 `Content/BaseGame/Data/Items/shop_trade01.json` 与 process 265。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 

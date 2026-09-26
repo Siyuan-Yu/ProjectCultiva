@@ -1,5 +1,6 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0043：AuctionHouse 托管 authority 与 Snapshot v13](ADR-0043-auction-house-escrow-and-snapshot-v13.md) — Producer Accepted / Sealed（2026-09-27）。
 - [ADR-0042：Shop 钱包 authority 与 Snapshot v12](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) — Producer Accepted / Sealed（2026-09-25）。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
@@ -72,6 +73,10 @@ Temporary quest companion participates in party travel and combat, but is not a 
 | [0039](ADR-0039-external-faction-control-handoff.md) | PlayerParty 外部势力控制转移 | **已采纳；Producer Accepted / Sealed（2026-09-24）** | 全员弥留可由外部势力人物紧急接管；生者保留为 Recovery Squad；真正死亡继承语义保持；Committed 仅保留战报 |
 
 | [0040](ADR-0040-delayed-content-event-authority-and-snapshot-v10.md) | Delayed ContentEvent authority 与 Snapshot v10 | Design Confirmed / Implemented / Producer Acceptance Pending | 原实例上下文、绝对 Tick、事务回滚与一次消费；Knowledge 延期 |
+| [0041](ADR-0041-secret-realm-quest-companion-and-snapshot-v11.md) | 秘境任务临时同行与 Snapshot v11 | Producer Accepted / Sealed | 任务绑定同行生命周期、不可玩家管理、安全离队 |
+| [0042](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) | Shop 钱包 authority 与 Snapshot v12 | Producer Accepted / Sealed | 三档钱包、指定 TradeProvider、有限店铺状态 |
+| [0043](ADR-0043-auction-house-escrow-and-snapshot-v13.md) | AuctionHouse 托管 authority 与 Snapshot v13 | Producer Accepted / Sealed | 独立拍卖入口、双托管、确定性 Market、Claim |
+| [0044](ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) | 个体凡人、势力劳动、需求与俘虏方向 | Accepted as Design Direction / Implementation Not Started | 真实 Character、需求优先、单职业、战后逃亡、真实押送与住房拘留 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

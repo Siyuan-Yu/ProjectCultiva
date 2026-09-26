@@ -1,5 +1,28 @@
 # 开发日志
 
+## 2026-09-27 — SEAL AUCTION-01 / FREEZE CIVILIAN-LIFE-01 DESIGN
+
+- 制作人人工验收确认指定 AuctionProvider、同档 bid escrow、Market 超价完整退款、寄拍物品托管、禁止竞拍自己的 Listing、一次性成交／流拍、WonItem／UnsoldItem Claim、领取与 Save／Load exactly-once 均正常，SHOP-TRADE-01 无明显回归。
+- AUCTION-01 状态更新为 **Producer Accepted / Sealed**。V1 不再扩张；更丰富 bidder、真实 NPC bidder、动态拍品、竞价节奏与 Auction UX 留给 Future AUCTION-02／economy expansion。
+- CIVILIAN-LIFE-01 保持 **Design Confirmed / Documentation Updated / Implementation Not Started**；Process 267 与 ADR-0044 作为下一实施主线设计基线，本轮没有增加任何对应 C#／Content。
+- 最终静态验证：Core/Data/Unity/Unity.Editor 离线编译 `ALL_OK`，BaseGame 正式 Content loader/reference validation、Snapshot v13／provider／escrow／settlement／Claim／Shop isolation、JSON、`.meta`／GUID 与 `git diff --check` 通过；未启动 Unity、PlayMode 或 Runner，未运行自动测试。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 Design Freeze / Documentation Alignment
+
+- 制作人确认个体凡人、Satiety/Energy、势力职业、战后 Loyalty/Fleeing、正常 Encounter 捕获、真实押送、PrisonerOnly Residence 拘留与招募的 V1 产品方向。
+- 新增 [267](267-civilian-life-01-design-freeze-2026-09-27.md) 与 [ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)，并对齐 overview、vision、glossary、character/population、territory、time、combat、faction、world、architecture、roadmap 与 handoff。
+- 旧 `MortalPopulation`／岗位组从人物和劳动力 authority 降为历史／派生统计；所有凡人与修士都保留持久 Character identity，离屏性能方向为 LOD。
+- 该设计冻结轮只改文档；未修改 CIVILIAN-LIFE-01 代码、Content、Snapshot schema、Runtime 或 UI，未启动 Unity／PlayMode／Runner。AUCTION-01 当时仍待验收，当前状态已由上方 Final Seal 更新为 **Producer Accepted / Sealed**。
+- 状态：**Design Confirmed / Documentation Updated / Implementation Not Started**。
+
+## 2026-09-25 — AUCTION-01 拍卖行寄拍与竞价 V1
+
+- 新增独立 AuctionProvider/AuctionHouse runtime、稳定 Listing/Claim sequence、寄拍物品与竞价资金托管；不复用 ShopRuntime，不引入真实 NPC bidder/AI。
+- 抽象 Market 按基础价 bundle ceiling 每日 review；玩家被超价时同事务原档退款。到期稳定结算一次，玩家卖款扣除同档 floor 5% fee；竞得和流拍物进入持久 Claim。
+- 正式 UGUI 三页、黄村专用拍卖行执事 `(5.30,11.10)`、Low/Mid/High 初始拍品及 LevelTester 验收入口接通。
+- Snapshot v12→v13，旧 v1～v12 严格拒绝；New Game 初始化，Restore 不重放拍品、托管、退款、结算或 Claim。
+- Core/Data/Unity/Editor 离线编译与 BaseGame loader 通过；未启动 Unity/PlayMode/Runner，未新增或运行测试。该条记录实施完成时点；当前状态已由上方 Final Seal 更新为 **Producer Accepted / Sealed**。见 [266](266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)、[ADR-0043](43-decisions/ADR-0043-auction-house-escrow-and-snapshot-v13.md)。
+
 ## 2026-09-25 — SHOP-TRADE-01 指定商店买卖与三档钱包
 
 - 制作人最终人工验收通过：指定 TradeProvider、普通 NPC gate、玩家共享与个人／商店独立钱包、三档同币支付、有限库存／资金、类别收购、市场吸收出售品、UI 事务及 Save／Load 全部确认正常。状态更新为 **Producer Accepted / Sealed**。

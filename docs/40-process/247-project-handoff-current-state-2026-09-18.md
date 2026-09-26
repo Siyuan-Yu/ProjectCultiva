@@ -1,8 +1,24 @@
 # Project Handoff — Continuous World Current State
 
+## CIVILIAN-LIFE-01 当前交接（2026-09-27）
+
+**Design Confirmed / Documentation Updated / Implementation Not Started。Producer Acceptance: Not Applicable Yet。** 下一 NPC 方向不是先造通用 NPC AI 框架，而是按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 实现真实个体凡人、FactionMembership、Satiety/Energy、单一职业、通用劳动、Site 易主后的 Loyalty/Fleeing，以及 Encounter 捕获、真实押送、PrisonerOnly Residence 拘留和招募。
+
+### Current Resume Order
+
+先做上述现状审计并形成与现有 authority 兼容的最小实现切片，再进入 CIVILIAN-LIFE-01 代码实施；不得先造泛化 NPC AI framework，也不得顺带启动 Generic Knowledge、Equipment/Crafting、Production/Logistics 或 Strategic Autonomy。
+
+实施前必须先审计现有 NPC work／labor、粮田／药田、树木／木材、injury／dying／rescue、Encounter intent/result、housing、FactionMembership、玩家永久 roster 与 PlayerParty 边界、Snapshot，以及 Site control transfer。当前 Snapshot schema 保持不变，新增持久字段均为 Planned。住房保持现有可见表现，不引入 private presence／房屋黑箱。
+
+状态链：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Design Confirmed / Documentation Updated / Implementation Not Started**。
+
+## AUCTION-01 最终交接（2026-09-27）
+
+当前 Snapshot v13，v1～v12 严格拒绝。AUCTION-01 的独立 AuctionProvider/House、Listing 与双托管、抽象 Market review、结算/5% fee、Claims、正式 UGUI、验收内容和 Save/Load 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。黄村拍卖行执事在 `(5.30,11.10)`；LevelTester 内容页可定位、给钱包/物品、Reset 并查看 runtime。人工结果见 [266](266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)。Auction-02 与 Sect Contribution Exchange 未自动授权。
+
 ## SHOP-TRADE-01 当前交接（2026-09-25）
 
-当前 Snapshot v12；Shop/Market 与独立 Low/Mid/High 钱包已通过制作人人工验收并封板，旧 v1～v11 严格拒绝。按 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 新开局，黄村 `(5.14,11.10)` 找专用杂货铺掌柜；LevelTester 内容页可定位／设置钱包／重置店铺。下一 AUCTION-01 仅为 Planned / Not Implemented；Sect Contribution Exchange 保持独立 Future 渠道。
+Shop/Market 与独立 Low/Mid/High 钱包已通过制作人人工验收并封板。按 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md) 新开局，黄村 `(5.14,11.10)` 找专用杂货铺掌柜；其状态与 AuctionHouse 分离。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
@@ -83,7 +99,7 @@ LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。已封板基线保持不变；SHOP-TRADE-01 及其前置已验收里程碑均为 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v12；下一 AUCTION-01 仅为 Planned / Not Implemented。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v13；下一实施主线 CIVILIAN-LIFE-01 尚未开始实现。
 
 ### DYNAMIC-DISCOVERY-01 当前实现（2026-09-24）
 

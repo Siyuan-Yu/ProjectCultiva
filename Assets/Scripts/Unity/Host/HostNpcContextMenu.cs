@@ -5,6 +5,7 @@ using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
+using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
@@ -467,7 +468,8 @@ namespace XianXia.Unity.Host
             var hostile = HostNpcInteraction.IsHostileNpc(bootstrap?.Session, _targetNpc);
             var canAttack = CanInitiatePlayerHostileAction(_actor, _targetNpc);
             var canTrade = !hostile && bootstrap.Session.World.Commerce.TryGetProvider(bootstrap.Session.World, _targetNpc, out _);
-            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0);
+            var canAuction = !hostile && AuctionHouseService.TryGetProvider(bootstrap.Session.World.Commerce, bootstrap.Session.World, _targetNpc, out _);
+            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0);
             var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
@@ -492,6 +494,11 @@ namespace XianXia.Unity.Host
             if (canTrade)
             {
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "交易", _button)) BeginTrade();
+                y += itemH;
+            }
+            if (canAuction)
+            {
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "拍卖", _button)) BeginAuction();
                 y += itemH;
             }
             if (canAttack && GUI.Button(
@@ -800,6 +807,18 @@ namespace XianXia.Unity.Host
         public void OnNpcArriveTrade(EntityId actor, EntityId npc)
         {
             var panel = bootstrap.GetComponent<HostShopTradePanel>();
+            if (panel == null || !panel.TryOpen(actor,npc)) moveController?.ReleaseNpcForInteraction(npc);
+        }
+
+        void BeginAuction()
+        {
+            if (moveController != null && moveController.OrderActorToNpc(_actor, _targetNpc, HostNpcArriveAction.Auction))
+            { _interactionNpc = _targetNpc; ResumeTime(); }
+            CloseAll();
+        }
+        public void OnNpcArriveAuction(EntityId actor, EntityId npc)
+        {
+            var panel = bootstrap.GetComponent<HostAuctionPanel>();
             if (panel == null || !panel.TryOpen(actor,npc)) moveController?.ReleaseNpcForInteraction(npc);
         }
 
@@ -1216,6 +1235,7 @@ namespace XianXia.Unity.Host
             if (dialoguePresenter != null && dialoguePresenter.IsActive)
                 return;
             if (bootstrap.GetComponent<HostShopTradePanel>()?.IsOpen == true) return;
+            if (bootstrap.GetComponent<HostAuctionPanel>()?.IsOpen == true) return;
             if (bootstrap.Session.World.ContentEvents.HasActive)
                 return;
             ReleaseInteractionNpcNow();

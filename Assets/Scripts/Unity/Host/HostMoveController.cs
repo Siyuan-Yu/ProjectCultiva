@@ -920,6 +920,8 @@ namespace XianXia.Unity.Host
                 npcContextMenu.OnNpcArriveTalk(id, intent.NpcId);
             else if (intent.Action == HostNpcArriveAction.Trade)
                 npcContextMenu.OnNpcArriveTrade(id, intent.NpcId);
+            else if (intent.Action == HostNpcArriveAction.Auction)
+                npcContextMenu.OnNpcArriveAuction(id, intent.NpcId);
             else
                 npcContextMenu.OnNpcArriveAttack(id, intent.NpcId);
         }

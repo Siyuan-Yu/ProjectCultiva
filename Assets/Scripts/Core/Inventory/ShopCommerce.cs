@@ -69,9 +69,12 @@ namespace XianXia.Core.Inventory
         public SpiritStoneWallet PlayerWallet { get; set; } = new SpiritStoneWallet();
         public Dictionary<EntityId, SpiritStoneWallet> CharacterWallets { get; } = new Dictionary<EntityId, SpiritStoneWallet>();
         public Dictionary<string, ShopRuntime> Shops { get; } = new Dictionary<string, ShopRuntime>(StringComparer.Ordinal);
+        public Dictionary<string, AuctionHouseRuntime> AuctionHouses { get; } = new Dictionary<string, AuctionHouseRuntime>(StringComparer.Ordinal);
         // Static content, deliberately excluded from snapshots.
         public Dictionary<string, ShopDefinition> Definitions { get; } = new Dictionary<string, ShopDefinition>(StringComparer.Ordinal);
         public Dictionary<string, string> Providers { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+        public Dictionary<string, AuctionHouseDefinition> AuctionDefinitions { get; } = new Dictionary<string, AuctionHouseDefinition>(StringComparer.Ordinal);
+        public Dictionary<string, string> AuctionProviders { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
         public SpiritStoneWallet GetCharacterWallet(SimulationWorld world, EntityId id)
         {
             if (id.IsNone || !world.Entities.TryGet(id, out var entity) || (entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
@@ -96,6 +99,7 @@ namespace XianXia.Core.Inventory
             var copy = new CommerceState { PlayerWallet = PlayerWallet.Copy() };
             foreach (var p in CharacterWallets) copy.CharacterWallets.Add(p.Key, p.Value.Copy());
             foreach (var p in Shops) copy.Shops.Add(p.Key, p.Value.Copy());
+            foreach (var p in AuctionHouses) copy.AuctionHouses.Add(p.Key, p.Value.Copy());
             return copy;
         }
     }

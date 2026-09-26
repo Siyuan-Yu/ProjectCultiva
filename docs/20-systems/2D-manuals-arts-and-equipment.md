@@ -1,5 +1,9 @@
 # 功法、斗技与装备
 
+## AUCTION-01 物品托管边界（2026-09-25）
+
+状态：**Producer Accepted / Sealed**。寄拍仅从 PartyInventory 原子移除可交易且有 BaseTradePrice 的物品；grade 固定来自物品基础价，玩家只设置数量与整批起拍金额。竞得／流拍物先进入 Auction Claim，领取完整成功后才进入 PartyInventory。Auction 不读取 WorldSitePublicStock，不重做装备、Crafting 或物品使用。
+
 ## SHOP-TRADE-01 物品价格与背包边界（2026-09-25）
 
 状态：**Producer Accepted / Sealed**。

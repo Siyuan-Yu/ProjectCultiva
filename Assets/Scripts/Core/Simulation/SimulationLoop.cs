@@ -15,6 +15,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.Opportunity;
+using XianXia.Core.Inventory;
 
 namespace XianXia.Core.Simulation
 {
@@ -202,6 +203,7 @@ namespace XianXia.Core.Simulation
             CombatLifeStateService.TickCorpseDecay(_world);
             _worldOpportunityDriver.Tick(_world);
             _worldOpportunityDiscoveryService.Tick(_world);
+            AuctionHouseService.ProcessDue(_world);
             return Result.Success();
         }
 

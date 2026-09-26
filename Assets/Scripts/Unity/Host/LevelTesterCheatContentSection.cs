@@ -36,6 +36,7 @@ namespace XianXia.Unity.Host
             }
 
             y = DrawShop(bootstrap,x,y,width,body);
+            y = DrawAuction(bootstrap,x,y,width,body);
             RefreshDump(session, selection);
             y = DrawQuestSocial(session,selection,x,y,width,body);
             var schedules = session.World.ScheduledContentEvents;
@@ -145,6 +146,39 @@ namespace XianXia.Unity.Host
                 y += 30;
             }
             return y + 8;
+        }
+
+        float DrawAuction(PlayableHostBootstrap host,float x,float y,float width,GUIStyle body)
+        {
+            const string houseId="base:auction_house_qingshi";
+            var world=host.Session.World; var board=world.Commerce;
+            GUI.Label(new Rect(x,y,width,20),"AUCTION-01 · 寄拍、竞价托管与待领取",body);y+=24;
+            if(GUI.Button(new Rect(x,y,width,26),"定位 AUCTION-01 验收拍卖行"))
+                host.TryFocusContinuousWorldPosition("base:surface_main_wilderness_v1",new XianXia.Core.World.WorldVec2(5.3f,11.1f),out _sectionStatus);
+            y+=30;
+            if(GUI.Button(new Rect(x,y,width,26),"Auction 标准钱包：10000 下品 / 10 中品 / 5 上品")) board.PlayerWallet=new XianXia.Core.Inventory.SpiritStoneWallet(10000,10,5);
+            y+=30;
+            if(GUI.Button(new Rect(x,y,width,26),"给玩家验收寄拍物品（粗木 10 / 中品秘籍 1）"))
+            {
+                var wood=world.Inventory.TryAdd("base:item_rough_wood",10);var manual=world.Inventory.TryAdd("base:item_manual_jiang_lao_legacy",1);
+                _sectionStatus="已加入粗木 "+wood+"、中品秘籍 "+manual+"（受背包容量限制）。";
+            }
+            y+=30;
+            if(board.AuctionDefinitions.ContainsKey(houseId) && GUI.Button(new Rect(x,y,width,26),"Reset Acceptance Auction：恢复初始拍品"))
+                XianXia.Core.Inventory.AuctionHouseService.ResetForDebug(board,houseId,world.Tick.Value);
+            y+=30;
+            if(board.AuctionHouses.TryGetValue(houseId,out var house))
+            {
+                var text="Open Listings / Claims="+house.Claims.Count+" / HouseWallet "+house.HouseWallet.Low+"L "+house.HouseWallet.Mid+"M "+house.HouseWallet.High+"H\n";
+                foreach(var listing in house.Listings.Values) if(listing.Status==XianXia.Core.Inventory.AuctionListingStatus.Open)
+                {
+                    var remaining=listing.EndTick>world.Tick.Value?listing.EndTick-world.Tick.Value:0;
+                    text+=listing.ListingId+" | "+listing.ItemId+" | "+listing.CurrentBidAmount+" "+listing.Grade+" | "+listing.CurrentBidderKind+"\nEndTick="+listing.EndTick+" Remaining="+remaining+" Escrow="+listing.PlayerEscrowAmount+"\n";
+                }
+                foreach(var claim in house.Claims.Values) text+="Claim "+claim.ClaimId+" | "+claim.ClaimKind+" | "+claim.ItemId+" ×"+claim.Quantity+"\n";
+                var h=Mathf.Min(190f,body.CalcHeight(new GUIContent(text),width));GUI.TextArea(new Rect(x,y,width,h),text);y+=h+6;
+            }
+            return y+8;
         }
 
         float DrawQuestSocial(PlayableHostSession session, HostSelectionController selection, float x,float y,float width,GUIStyle body)

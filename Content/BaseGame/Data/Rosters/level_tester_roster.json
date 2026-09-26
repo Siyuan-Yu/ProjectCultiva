@@ -243,6 +243,14 @@
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false
+        },
+        {
+          "definitionId": "base:character_qingshi_auction_attendant",
+          "entityKind": "npc",
+          "displayName": "拍卖行执事",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
         }
       ]
     }

@@ -79,7 +79,7 @@ namespace XianXia.Data.Serialization
                 var root = SimpleJson.Parse(json);
                 if (root.GetNumber("schemaVersion") != WorldSnapshot.CurrentSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "Schema v12 required; v1-v11 lack shop and wallet authority. Start a new game.");
+                        "Schema v13 required; v1-v12 lack current auction authority. Start a new game.");
                 var snapshot = new WorldSnapshot
                 {
                     SchemaVersion = (int)root.GetNumber("schemaVersion"),
@@ -319,7 +319,10 @@ namespace XianXia.Data.Serialization
                 if (root.TryGetProperty("contentProgress", out var contentProgress) &&
                     contentProgress.Kind == JsonValueKind.Object)
                     snapshot.ContentProgress = ReadContentProgress(contentProgress);
-                snapshot.Commerce = CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"));
+                // Legacy schemas are rejected by SnapshotService before any old commerce shape is interpreted.
+                snapshot.Commerce = snapshot.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion
+                    ? CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"))
+                    : new XianXia.Core.Inventory.CommerceState();
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)

@@ -25,6 +25,8 @@ namespace XianXia.Data.Bootstrap
             RehydrateInventoryCatalog(world, registry);
             var commerce = ShopContent.Bind(world, registry, true, openingScenario);
             if (commerce.IsFailure) return commerce;
+            var auction = AuctionContent.Bind(world, registry, true);
+            if (auction.IsFailure) return auction;
             var inventory = OpeningInventoryBootstrap.Apply(world, openingScenario);
             if (inventory.IsFailure) return inventory;
             var surfaceGround = RehydrateSurfaceGround(world, registry, openingScenario);

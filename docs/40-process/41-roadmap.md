@@ -1,10 +1,20 @@
 # 路线图
 
+## CIVILIAN-LIFE-01 设计冻结（2026-09-27）
+
+**Design Confirmed / Documentation Updated / Implementation Not Started。** 每个凡人是持久真实 Character；V1 方向包含 Satiety/Energy、单一 Profession、通用搬运／救援／建设、Site 易主后的 Loyalty/Fleeing、正常 Encounter 捕获、真实押送、PrisonerOnly Residence 拘留与招募。完整范围见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。
+
+当前顺序：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 是下一实施主线，状态 **Design Confirmed / Documentation Updated / Implementation Not Started**。Generic Knowledge、Weapon/Equipment、Crafting/Alchemy、Workshop Production 与 Logistics 继续跳过／延期；NPC Strategic Autonomy 保持 Future，不以“通用 NPC AI 框架”作为 CIVILIAN-LIFE-01 前置。
+
+## AUCTION-01 最终封板（2026-09-27）
+
+**Producer Accepted / Sealed。** 独立 AuctionProvider／AuctionHouse authority、稳定 Listing、寄拍物品托管、单档竞价托管与超价退款、确定性抽象 Market bidder、5% 同档取整结算、Claim、正式 UGUI、验收内容与 Snapshot v13 已通过制作人人工验收；详见 [266](266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)／[ADR-0043](43-decisions/ADR-0043-auction-house-escrow-and-snapshot-v13.md)。Auction-02 与 Sect Contribution Exchange 仍为 Future / not automatically authorized。
+
 ## SHOP-TRADE-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed。** 指定 TradeProvider、PlayerParty 共用钱包、独立 Character／Shop 钱包、三档独立余额、有限库存／资金、类别收购、市场吸收出售品、UGUI 交易与 Snapshot v12 均已通过制作人人工验收。
 
-下一阶段：**AUCTION-01 — Auction House Consignment + Bidding V1（Planned / Not Implemented）**。已确认方向为抽象市场竞拍者、单档资金冻结与超价退款、寄拍 escrow、成交结算／流拍可领取、玩家起拍价、固定最小加价、固定持续时间及建议 5% 固定手续费；不自动换币。Sect Contribution Exchange 仍为独立 Future 商业渠道。详见 [265](265-shop-trade-01-designated-shop-and-wallet-v1-2026-09-25.md)；Planned 不构成实施授权。
+SHOP-TRADE-01 与 AUCTION-01 均保持封板。下一实施主线为 CIVILIAN-LIFE-01。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
@@ -13,7 +23,7 @@
 Temporary quest companion participates in party travel and combat, but is not a player-controllable character.
 临时同行跟随受控队伍、随队进入 Separate Space、通过 NPC AI 参战并占用容量；可以选中查看，不能成为 ActiveCharacter、不能接受玩家手动战斗命令或普通 Stop Follow。可控性从永久 Character roster / 既有玩家势力管理 authority 派生，首先排除 QuestCompanion binding；UI、手动命令后端、自动 Active 候选和恢复共用判定。成员、空间和自动战斗 authority 保留。
 
-当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。下一阶段 Full Trading（本轮不启动）；之后 Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。Knowledge / Rumor / Information Propagation：Future / Only if gameplay later requires it。
+当前 SOCIAL-QUEST-01：Producer Accepted / Sealed。该段原后续顺序已由页首现行路线取代；Knowledge / Rumor / Information Propagation 仍为 Future / Only if gameplay later requires it。
 
 
 > 2026-09-25 SOCIAL-QUEST-01 最终 P1：制作人主流程人工验收通过。临时同行仅参与移动/空间/战斗，不授予 Active 或玩家手动战斗控制；统一 authority、UI/backend guard、restore reconcile 已实施。Snapshot v11 不变；最终封板授权已由制作人给出。后续方向不自动开始。
@@ -69,13 +79,14 @@ Temporary quest companion participates in party travel and combat, but is not a 
 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
 - **前轮：** DELAYED-EVENT-01，Implementation Complete / Producer Acceptance Pending；见 [263](263-delayed-event-01-content-event-scheduling-2026-09-25.md)。
-- **当前：** SOCIAL-QUEST-01 — Secret-Realm Quest Social Topic + Temporary Quest Companion，Producer Accepted / Sealed；见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+- **最近封板：** SOCIAL-QUEST-01 — Secret-Realm Quest Social Topic + Temporary Quest Companion，Producer Accepted / Sealed；见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
+- **当前设计基线：** CIVILIAN-LIFE-01，Design Confirmed / Documentation Updated / Implementation Not Started；见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)。
 - **Knowledge / Rumor / Information Propagation：** Future / Only if gameplay later proves it necessary，非近期必做、非 Delayed Event 依赖。
 - **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
-- **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；不属于 Final Seal。
+- **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；CIVILIAN-LIFE-01 只完成设计冻结，不属于既有 Final Seal。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
-- **路线（当前已实施，后续 Planned）：** SOCIAL-QUEST-01 → Full Trading → Equipment / Crafting → Production / Logistics → NPC AI / Strategic Autonomy last。小游戏中途保存作为独立正确性待办，不并入本轮。
+- **路线（现行）：** SHOP-TRADE-01 与 AUCTION-01 已封板；CIVILIAN-LIFE-01 已完成设计冻结，是下一实施主线但尚未实现。Auction-02、Generic Knowledge、Equipment/Crafting、Production/Logistics 均不作为当前下一项；NPC Strategic Autonomy 仍为 Future。小游戏中途保存作为独立正确性待办。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 
@@ -312,7 +323,8 @@ Temporary quest companion participates in party travel and combat, but is not a 
 - [x] **DYNAMIC-DISCOVERY-01 — Dynamic WorldObject + Discovery Foundation**：2026-09-24 **Producer Accepted / Sealed**。
 - [x] **MAP-COORD-01 — WorldMap World Coordinate Readout**：2026-09-24 **Producer Accepted / Sealed**。
 - [ ] 前轮：**DELAYED-EVENT-01**（Implementation Complete / Producer Acceptance Pending）。
-- [ ] 当前：**SOCIAL-QUEST-01**（Producer Accepted / Sealed）。
+- [x] **SOCIAL-QUEST-01**（Producer Accepted / Sealed）。
+- [ ] 当前设计基线：**CIVILIAN-LIFE-01**（Design Confirmed / Documentation Updated / Implementation Not Started；Producer Acceptance: Not Applicable Yet）。
 - [ ] 下一阶段 3：Full trading。
 - [ ] 下一阶段 4：Equipment / crafting。
 - [ ] 下一阶段 5：Production / logistics。

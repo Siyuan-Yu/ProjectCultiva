@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 12;
+        public const int CurrentSchemaVersion = 13;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -26,6 +26,7 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV9 = 9;
         public const int LegacySchemaVersionV10 = 10;
         public const int LegacySchemaVersionV11 = 11;
+        public const int LegacySchemaVersionV12 = 12;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();

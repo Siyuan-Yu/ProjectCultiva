@@ -163,7 +163,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 空间锚点 | SpatialAnchor | 绑定空间虫洞端点的战略设施 | 悟道阶段可建设 |
 | 空间虫洞 | SpatialGate | 连接两个空间锚点的快速通道 | 有容量、维护成本，可被破坏 |
 | 核心修士 | CoreCultivator | 可逐个养成、装备和战术控制的修士角色 | 长期目标上限约 30–50 人 |
-| 凡人 | Mortal | 世界中的普通人口 | 普通凡人群体统计；关键凡人实体化 |
+| 凡人 | Mortal | 未进入修仙体系的真实、持久 Character | 仍可有 FactionMembership、需求、职业与 Loyalty；加入玩家势力不自动成为修士或 PlayerParty 成员 |
 | 重要凡人 | NamedMortal | 拥有姓名、关系、性格与故事的凡人 | 叙事锚点 |
 | 身世标签 | OriginTag | 角色的出身与经历标签 | 半固定背景要素之一 |
 | 性格标签 | TraitTag | 影响对话、NPC 反应与自动行为倾向 | 半固定背景要素之一 |
@@ -187,8 +187,8 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 格子 | Tile | 最小逻辑空间单位 | |
 | 区域出口 | RegionExit | Region 边缘／Route 端点 | |
 | 领地 | Territory | 玩家势力控制的一组据点及其人口、资源 | |
-| 群体模拟 | PopulationSim | 普通凡人以人口统计／岗位组模拟，不逐人存档 | 地图用代表性群体单位表现 |
-| 关键 NPC | KeyNpc | 实体化的重要凡人／功能角色 | 商人、村长、剧情人物等 |
+| 人口派生统计 | Derived Population Summary | 从真实 Character 状态汇总的人口、职业与劳动力读数 | 只用于 UI／战略摘要，不拥有或替代人物身份 |
+| 关键 NPC | KeyNpc | 需要更高细节行为／内容的真实 Character | 商人、村长、剧情人物等；“关键”改变模拟深度，不决定是否实体化 |
 | 小队 | Party | 由少量核心修士组成的行动或战斗编组 | **正式 RPG 编组见 PlayerParty（2K）** |
 | 玩家冒险队 | PlayerParty | 当前玩家本人所在少人数 RPG 队：1 Active + Followers；上限 6 | **≠ FormalArmy**；见 [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) |
 | 当前主控角色 | ActiveControlledCharacter | 任意时刻玩家唯一可直接即时控制的 Character | 对齐 DirectControl；切换仅限 Party 成员（Succession 例外） |
@@ -295,7 +295,15 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 势力定义 | FactionDefinition | 势力静态定义（ID、名、类型、视觉） | 不含运行时状态 |
 | 剧本势力 setup | ScenarioFactionSetup | 某 Scenario 开局势力状态种子 | 领地、资源、Army、外交 |
 | 势力运行时 | FactionState | 当前局内变化的势力状态 | 领土、资源、成员、Army、外交 |
-| 凡人群体 | MortalPopulation | 第四层凡人统计模拟 | 关注后才实体化 |
+| 凡人人口统计（旧） | MortalPopulation | 已被 ADR-0044 取代的匿名凡人／劳动力 authority | 新设计只允许从真实 Character 派生统计；不得用于归并或删除人物身份 |
+| 饱食 | Satiety | 凡人 V1 生存需求，建议 0–100 且越高越好 | 必须从可访问库存实际进食；阈值可调 |
+| 精力 | Energy | 凡人 V1 休息需求，建议 0–100 且越高越好 | 低于紧急阈值可原地慢速恢复；正常情况使用床位 |
+| 凡人职业 | Mortal Profession | 每名凡人最多一个专业生产职责 | Unassigned／Farmer／HerbFarmer／Logger／Medic；搬运救援与建设为通用工作 |
+| 势力忠诚 | Loyalty | Character 对当前 Faction 的 0–100 忠诚 | 不属于 Site、Relationship 或永久人格；换势力建立新值 |
+| 逃亡 | Fleeing | 人物以真实位置和移动离开当前 Site 的强制状态 | 成功后成为 Displaced，不删除或传送 |
+| 押送俘虏 | Captured / Escorted | 由真实 carrier 带离的同一 Character | 无合法 PrisonerOnly Residence 时不能抽象转为 Detained |
+| 拘留 | Detained | Character 已进入有容量的合法 PrisonerOnly Residence | 保留原 FactionId/Loyalty 和需求，不参加势力工作 |
+| 囚犯专用住宅 | PrisonerOnly Residence | 现有 Residence 的用途模式，使用真实容量 | 不是独立空间、匿名囚犯计数或住房黑箱 |
 | 势力归属 | FactionMembership | 角色与 Faction 的**成员关系**（`FactionId`） | 可变更；离开保留历史；**不是**另一套 Faction 实体 |
 | 势力职位 | FactionRole | 宗主／长老／执事／成员／客卿／俘虏／临时盟友等 | 预定义；≠控制权 |
 | 控制权 | ControlAuthority | 玩家可否直接控制／高层命令／纯 AI 等 | 动态权限 |
@@ -383,7 +391,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 「水」属性是否保留还是并入冰 | 待确定 |
 | 掌握程度六档的最终命名 | 待确定 |
 | 神识 / 灵魂力量 用哪个词 | 待确定，暂用神识 |
-| 凡人分层模拟的层级命名 | **2026-08-22 修订**：修士 = 真实 Character + LOD（ADR-0024）；凡人 = MortalPopulation 聚合 |
+| 凡人分层模拟的层级命名 | **2026-09-27 修订**：凡人与修士均为真实 Character；模拟频率与行为深度可 LOD，人口仅为派生统计（ADR-0044） |
 | 传统五行生克 | **明确不做**为核心规则 |
 | `[新增概念先登记在这里]` | 待定 |
 
@@ -433,3 +441,15 @@ Temporary quest companion participates in party travel and combat, but is not a 
 - CommerceState：玩家共享、真实 EntityId 个人钱包与 ShopId 商店状态的容器。
 
 Commerce V1 仅允许通过明确配置的 Shop／Market／TradeProvider 直接交易；普通 NPC 拥有个人钱包不等于开放 NPC 交易。三档余额独立，不自动换币，禁止向上兑换。商店库存与资金有限且不自动补货；收购按显式类别，售出物品由市场抽象吸收。库存 authority 属于 ShopId，不属于掌柜 NPC。
+
+## AUCTION-01 术语
+
+状态：**Producer Accepted / Sealed（2026-09-27）**。
+
+- AuctionProvider：显式 CharacterDefinition → AuctionHouseId 入口；与 TradeProvider 分离。
+- AuctionHouseRuntime：按 HouseId 保存钱包、Listing、Claim 与稳定 sequence 的持久 authority。
+- Listing：一批独立拍品及其单档价格、seller、bidder、escrow、WorldTick 期限与 settlement 状态。
+- Bid escrow：玩家成为最高竞拍者时从共享钱包扣除并由 Listing 保管的同档资金。
+- Item escrow：寄拍确认时从 PartyInventory 移入 Listing 的整批物品。
+- Market bidder：只执行固定 ceiling/review 规则的抽象竞拍者，不是真实 NPC 或 AI。
+- Auction Claim：WonItem 或 UnsoldItem 的持久待领取物；背包无法完整容纳时保留。

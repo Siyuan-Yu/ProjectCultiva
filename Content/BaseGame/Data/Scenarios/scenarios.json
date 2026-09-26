@@ -67,6 +67,14 @@
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false
+        },
+        {
+          "definitionId": "base:character_qingshi_auction_attendant",
+          "entityKind": "npc",
+          "displayName": "拍卖行执事",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
         }
       ],
       "openingRelations": [
@@ -156,6 +164,14 @@
           "definitionId": "base:character_qingshi_shopkeeper",
           "entityKind": "npc",
           "displayName": "青石坊市·杂货铺掌柜",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
+        },
+        {
+          "definitionId": "base:character_qingshi_auction_attendant",
+          "entityKind": "npc",
+          "displayName": "拍卖行执事",
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false
@@ -477,6 +493,14 @@
           "definitionId": "base:character_qingshi_shopkeeper",
           "entityKind": "npc",
           "displayName": "青石坊市·杂货铺掌柜",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false
+        },
+        {
+          "definitionId": "base:character_qingshi_auction_attendant",
+          "entityKind": "npc",
+          "displayName": "拍卖行执事",
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false
