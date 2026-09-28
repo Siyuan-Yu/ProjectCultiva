@@ -70,6 +70,7 @@ namespace XianXia.Data.Bootstrap
                 var membership = ApplyFactionMembership(entity, registry, scenario, entry);
                 if (membership.IsFailure)
                     return membership;
+                CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out _);
 
                 ApplyAiRole(world, entity, entry.AiRole);
                 // Profession jobs removed: WorkArea resolve is global. Keep optional legacy jobId.

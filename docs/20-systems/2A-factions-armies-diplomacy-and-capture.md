@@ -788,9 +788,11 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 手动攻城**结束战斗**时，仍存活的敌方守军**不能凭空消失、自动收编或清除仇恨**；本次防御结束后回其战前世界锚点并可在主世界后续退却。
 
-当前 Runtime 不在结算时随机把守军改成 Captured；每名参与者先按 [23 §12.1](23-combat.md) 回到自己的战前世界锚点并保留当前生命、伤势、死亡、消耗、关系和势力身份。CIVILIAN-LIFE-01 已冻结未来凡人捕获方向：只有显式 Capture/Subdue intent、战斗获胜且目标存活可捕获时，才进入真实 Character 押送；无合法 PrisonerOnly Residence 不能转为 Detained。该方向尚未实现，也不包含赎金。旧 `Captured／Escaped → RetreatingArmy` 概率提案继续作历史扩展。
+当前 Runtime 不在结算时随机把守军改成 Captured；每名参与者先按 [23 §12.1](23-combat.md) 回到自己的战前世界锚点并保留当前生命、伤势、死亡、消耗、关系和势力身份。CIVILIAN-LIFE-01 只有显式 Capture/Subdue 请求、战斗获胜且目标存活可捕获时，才进入真实 Character 押送；无合法 PrisonerOnly Residence 不能转为 Detained。该 V1 不包含赎金。旧 `Captured／Escaped → RetreatingArmy` 概率提案继续作历史扩展。
 
-战败 Site 的有归属凡人不自动改 Faction、加入玩家、删除或传送；未来实现按其对当前 Faction 的 Loyalty 决定留置／即时劝降或真实 Fleeing。完整设计见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)。
+战败 Site 的有归属凡人不自动改 Faction、加入玩家、删除或传送；正式 Site transfer 完成后按其对当前 Faction 的 Loyalty 决定 SurrenderWaiting 或真实 Fleeing，越过 Site 边界后保留身份成为 Displaced。完整实现见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)。
+
+Loyalty 是通用 Character→当前 Faction authority，不是凡人专属字段，也不是人物间 Relationship。人物更换 Faction 后旧值失效；无显式转移值时以人物 `initialLoyalty`（默认 50）初始化新势力值，CIVILIAN 招降明确写 50。无 FactionMembership 时 Loyalty 不适用。
 
 ---
 

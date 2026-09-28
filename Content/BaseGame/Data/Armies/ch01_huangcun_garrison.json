@@ -12,6 +12,21 @@
           "characterDefinitionId": "base:character_ch01_ref_supervisor",
           "leader": true,
           "reuseOpeningSpawn": true
+        },
+        {
+          "characterDefinitionId": "base:character_ch01_ref_guard_a",
+          "leader": false,
+          "reuseOpeningSpawn": true
+        },
+        {
+          "characterDefinitionId": "base:character_ch01_ref_guard_b",
+          "leader": false,
+          "reuseOpeningSpawn": true
+        },
+        {
+          "characterDefinitionId": "base:character_ch01_ref_guard_c",
+          "leader": false,
+          "reuseOpeningSpawn": true
         }
       ],
       "squadId": "squad:npc:huangcun_labor_garrison"

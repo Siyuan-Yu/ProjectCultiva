@@ -5,19 +5,22 @@
       "id": "base:resource_rough_wood",
       "type": "resource",
       "name": "粗木",
-      "nameKey": "resource.rough_wood"
+      "nameKey": "resource.rough_wood",
+      "tags": ["wood"]
     },
     {
       "id": "base:resource_spirit_herb",
       "type": "resource",
       "name": "灵药",
-      "nameKey": "resource.spirit_herb"
+      "nameKey": "resource.spirit_herb",
+      "tags": ["herb", "medicine"]
     },
     {
       "id": "base:resource_grain",
       "type": "resource",
       "name": "粗粮",
-      "nameKey": "resource.grain"
+      "nameKey": "resource.grain",
+      "tags": ["grain", "food"]
     },
     {
       "id": "base:resource_conceal_grass",

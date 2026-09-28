@@ -5042,7 +5042,7 @@
       "assetRef": null,
       "localSurfaceX": 39.30928571428573,
       "localSurfaceY": 51.03571428571429,
-      "widthCells": 3.0928571428571425,
+      "widthCells": 2.319642857142857,
       "heightCells": 1.25,
       "rotationQuarterTurns": 0,
       "metadata": {
@@ -5052,13 +5052,13 @@
         "label": "墙 1×n（挡路）",
         "legacyGeometryState": "exact",
         "legacyWorldHeight": "0.035",
-        "legacyWorldWidth": "0.0866",
+        "legacyWorldWidth": "0.06495",
         "legacyWorldX": "5.41266",
         "legacyWorldY": "11.005",
         "referenceMapPlacementId": "place_wall_040130496",
         "siteId": "base:site_huangcun",
         "sourceCellsH": "1",
-        "sourceCellsW": "4",
+        "sourceCellsW": "3",
         "sourceGridX": "50",
         "sourceGridY": "43"
       }

@@ -10,4 +10,13 @@ namespace XianXia.Core.Entities
         Dead = 4,
         Removed = 5
     }
+
+    public enum DeathConfirmationReason
+    {
+        Unknown = 0,
+        FinishingStrike = 1,
+        BleedOut = 2,
+        PrisonerExecution = 3,
+        Debug = 4
+    }
 }

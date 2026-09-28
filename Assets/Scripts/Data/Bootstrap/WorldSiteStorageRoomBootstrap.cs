@@ -26,8 +26,8 @@ namespace XianXia.Data.Bootstrap
                     if (placement == null || !string.Equals(placement.Kind,
                             OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal)) continue;
                     var registered = Register(world, placement.StableId, placement.SiteId, surface.SurfaceId,
-                        placement.Label, placement.WorldX + placement.WorldWidth * .5f,
-                        placement.WorldY + placement.WorldHeight * .5f);
+                        placement.Label, placement.WorldX, placement.WorldY,
+                        placement.WorldWidth, placement.WorldHeight);
                     if (registered.IsFailure) return registered;
                 }
             }
@@ -37,21 +37,25 @@ namespace XianXia.Data.Bootstrap
                 if (!string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
                         StringComparison.Ordinal)) continue;
                 var registered = Register(world, asset.StableAssetId, asset.BoundWorldSiteId, asset.SurfaceId,
-                    "储藏室", asset.WorldX + asset.WorldWidth * .5f, asset.WorldY + asset.WorldHeight * .5f);
+                    "储藏室", asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight);
                 if (registered.IsFailure) return registered;
             }
             return Result.Success();
         }
 
         static Result Register(SimulationWorld world, string roomId, string siteId, string surfaceId,
-            string displayName, float worldX, float worldY)
+            string displayName, float footprintWorldX, float footprintWorldY,
+            float worldWidth, float worldHeight)
         {
             if (string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(siteId) ||
                 !world.Strategic.Sites.TryGet(siteId, out _) ||
                 !world.SiteStorageRooms.TryRegister(new WorldSiteStorageRoomState {
                     StorageRoomId = roomId, SiteId = siteId, SurfaceId = surfaceId,
                     DisplayName = string.IsNullOrWhiteSpace(displayName) ? "储藏室" : displayName,
-                    WorldX = worldX, WorldY = worldY
+                    WorldX = footprintWorldX + worldWidth * .5f,
+                    WorldY = footprintWorldY + worldHeight * .5f,
+                    FootprintWorldX = footprintWorldX, FootprintWorldY = footprintWorldY,
+                    WorldWidth = worldWidth, WorldHeight = worldHeight
                 }))
                 return Result.Failure(ErrorCode.ContentLoadFailed,
                     "Storage room binding is invalid or duplicated.", roomId ?? string.Empty);

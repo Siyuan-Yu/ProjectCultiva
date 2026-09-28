@@ -1,5 +1,6 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 
@@ -81,7 +82,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (world.Strategic.Squads.TryGetForCharacter(characterId, out var squad) &&
-                SquadWorldMotionService.OwnsCharacter(world, characterId) &&
+                IsSquadPresenceOwner(world, characterId) &&
                 world.Strategic.SquadWorldMotions.TryGet(squad.SquadId, out var squadMotion) &&
                 SquadWorldMotionService.IsActiveNpcSquadAuthority(world, squad, squadMotion))
             {
@@ -133,6 +134,17 @@ namespace XianXia.Core.World.Strategic
                 if (members[i] == characterId)
                     return true;
             return false;
+        }
+
+        static bool IsSquadPresenceOwner(SimulationWorld world, EntityId characterId)
+        {
+            if (!world.Civilians.TryGet(characterId, out var civilian))
+                return SquadWorldMotionService.OwnsCharacter(world, characterId);
+            if (civilian.Disposition == CivilianDisposition.CapturedEscorted)
+                return false;
+            var owner = MortalCivilianMovementAuthority.Resolve(world, characterId, civilian);
+            return owner == CivilianMovementOwner.ActiveSquadTravel ||
+                   owner == CivilianMovementOwner.StaticSquad;
         }
 
         static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

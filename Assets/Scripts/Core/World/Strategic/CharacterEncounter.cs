@@ -5,6 +5,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 
@@ -302,6 +303,7 @@ namespace XianXia.Core.World.Strategic
             }
             state.Phase = CharacterEncounterPhase.Active;
             world.Strategic.CharacterEncounter = state;
+            MortalCivilianService.InterruptTransportsForEncounter(world, state);
             BindRuntime(world);
             return Result.Success();
         }
@@ -531,10 +533,19 @@ namespace XianXia.Core.World.Strategic
         }
 
         public static void Advance(SimulationWorld world, float seconds, Func<EncounterCandidate, bool> preparePlacement = null)
+            => Advance(world, seconds, seconds, preparePlacement);
+
+        public static void Advance(
+            SimulationWorld world,
+            float tacticalSeconds,
+            float realSeconds,
+            Func<EncounterCandidate, bool> preparePlacement = null)
         {
             var state = world.Strategic.CharacterEncounter;
-            if (state == null || state.Phase != CharacterEncounterPhase.Active || !Finite(seconds) || seconds <= 0f) return;
-            AdvanceTacticalTime(world, state, seconds);
+            if (state == null || state.Phase != CharacterEncounterPhase.Active ||
+                !Finite(tacticalSeconds) || tacticalSeconds <= 0f ||
+                !Finite(realSeconds) || realSeconds < 0f) return;
+            AdvanceTacticalTime(world, state, tacticalSeconds, realSeconds);
             AdvanceCandidates(world, state, preparePlacement);
             var friendly = false; var enemy = false;
             foreach (var p in state.Participants)
@@ -560,26 +571,33 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Post-battle tactical time while the player remains on the frozen field.
         /// Strategic ticks, candidates, schedules, travel and production are intentionally absent.</summary>
         public static void AdvanceReadyToEnd(SimulationWorld world, float seconds)
+            => AdvanceReadyToEnd(world, seconds, seconds);
+
+        public static void AdvanceReadyToEnd(SimulationWorld world, float tacticalSeconds, float realSeconds)
         {
             var state = world?.Strategic?.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.ReadyToEnd ||
-                !Finite(seconds) || seconds <= 0f)
+                !Finite(tacticalSeconds) || tacticalSeconds <= 0f ||
+                !Finite(realSeconds) || realSeconds < 0f)
                 return;
-            AdvanceTacticalTime(world, state, seconds);
+            AdvanceTacticalTime(world, state, tacticalSeconds, realSeconds);
             foreach (var participant in state.Participants)
-                participant.Cooldown = Math.Max(0, participant.Cooldown - seconds);
+                participant.Cooldown = Math.Max(0, participant.Cooldown - tacticalSeconds);
         }
 
         static void AdvanceTacticalTime(
             SimulationWorld world,
             CharacterEncounterState state,
-            float seconds)
+            float tacticalSeconds,
+            float realSeconds)
         {
-            state.ElapsedSeconds += seconds;
-            state.DecayAccumulator += seconds;
+            state.ElapsedSeconds += tacticalSeconds;
+            // BleedOutRealSeconds and corpse lifetime are real-time promises. Tactical speed
+            // accelerates movement/cooldowns, but never makes a downed character die 20x faster.
+            state.DecayAccumulator += realSeconds;
             foreach (var participant in state.Participants)
                 for (var i = 0; i < participant.ArtCooldowns.Length; i++)
-                    participant.ArtCooldowns[i] = Math.Max(0, participant.ArtCooldowns[i] - seconds);
+                    participant.ArtCooldowns[i] = Math.Max(0, participant.ArtCooldowns[i] - tacticalSeconds);
             while (state.DecayAccumulator >= 1f)
             {
                 state.DecayAccumulator -= 1f;
@@ -596,6 +614,7 @@ namespace XianXia.Core.World.Strategic
             var report = ManualBattleReportBuilder.CaptureFinal(world, settlement.Draft, state.PlayerWon, "");
             if (!settlement.Commit(report)) return Fail("Encounter report was already committed.");
             RestoreAnchors(world, state);
+            XianXia.Core.Npc.MortalCivilianService.ResolvePendingCaptureAfterEncounter(world, state);
             foreach (var a in state.Participants)
                 foreach (var b in state.Participants)
                     if (a.Enemy != b.Enemy)

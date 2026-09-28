@@ -125,6 +125,8 @@ Resident Character 是否响应或跨区行动取决于职责、动机、发现�
 
 - 修改居民时间表与岗位分配。
 - 在人员管理中为真实凡人 Character 单选 Farmer／HerbFarmer／Logger／Medic 等 V1 职业；所有有行动能力者可搬运／救援与建设。采矿、练兵、探索和情报不属于 CIVILIAN-LIFE-01 V1 职业。
+
+> **实施状态（2026-09-27）：** 玩家势力凡人已在 Faction/外交详情的人事区按真实 FactionMembership 派生展示，可单选 Unassigned/Farmer/HerbFarmer/Logger/Medic；不会因此自动加入 PlayerParty。住房检视在具备 ManageHousing 权限时可切 Normal/PrisonerOnly，并复用原 Capacity。
 - 修建洞府、生产建筑、灵气建筑、防御设施、仓储与学校。
 - 从学校人才候选中收弟子或任命管事（见 `27`）。
 - 委任修士坐镇、修行、探索、处理事务或带队出征。

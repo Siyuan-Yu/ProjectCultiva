@@ -9,6 +9,9 @@ namespace XianXia.Core.Social
     {
         public string FactionId { get; set; } = string.Empty;
 
+        /// <summary>Definition seed for a newly acquired faction; not current Loyalty authority.</summary>
+        public int InitialLoyalty { get; set; } = CharacterFactionLoyaltyService.DefaultLoyalty;
+
         public FactionRoleKind Role { get; set; } = FactionRoleKind.None;
 
         public bool IsAffiliated =>

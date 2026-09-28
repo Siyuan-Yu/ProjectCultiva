@@ -25,5 +25,7 @@ namespace XianXia.Core.Bootstrap
         public List<string> Desires { get; set; } = new List<string>();
         /// <summary>击倒时写入 encounter:{id}；空则无。</summary>
         public string DefeatEncounterId { get; set; } = string.Empty;
+        public int InitialLoyalty { get; set; } = 50;
+        public string InitialMortalProfession { get; set; } = "Unassigned";
     }
 }

@@ -26,22 +26,40 @@ namespace XianXia.Unity.Host
             var result = WorldSiteCoreWarfareService.Resolve(world, siteId, out var target);
             if (result.IsSuccess) result = WorldSiteCoreWarfareService.Validate(world, attacker, target);
             if (result.IsFailure) { Feedback(host, result.Error.Message); return; }
-            var defender = WorldSiteDefenseCharacterQuery.ResolveAssaultDefender(world, target);
+            var defenders = WorldSiteDefenseCharacterQuery.CollectEligibleAssaultDefenderSquads(world, target);
+            var defender = defenders.Count > 0 ? defenders[0] : EntityId.None;
             var state = world.Strategic.CharacterEncounter;
             if (state != null)
             {
                 var previous = state.Participants.Count;
                 var oldObjective = state.Objective;
                 result = WorldSiteCoreWarfareService.BindObjective(world, attacker, target);
-                if (result.IsSuccess && !defender.IsNone)
-                    result = CharacterEncounterService.TryJoinObjectiveDefenderSquad(world, defender, surface.PrepareInterventionPlacement);
+                if (result.IsSuccess)
+                    for (var i = 0; i < defenders.Count && result.IsSuccess; i++)
+                        result = CharacterEncounterService.TryJoinObjectiveDefenderSquad(
+                            world, defenders[i], surface.PrepareInterventionPlacement);
                 if (result.IsFailure) { state.Objective = oldObjective; Feedback(host, result.Error.Message); return; }
                 if (state.Participants.Count != previous) surface.PresentJoinedParticipants(previous);
                 ContinueAssault(host, siteId);
             }
             else if (!defender.IsNone)
                 host.GetComponent<HostCharacterEncounter>().RequestWorldSiteAssault(attacker, defender, siteId,
-                    () => ContinueAssault(host, siteId));
+                    () =>
+                    {
+                        var activeTarget = WorldSiteCoreWarfareService.Resolve(world, siteId, out var currentTarget);
+                        if (activeTarget.IsFailure) { Feedback(host, activeTarget.Error.Message); return; }
+                        var additional = WorldSiteDefenseCharacterQuery.CollectEligibleAssaultDefenderSquads(world, currentTarget);
+                        var previous = world.Strategic.CharacterEncounter?.Participants.Count ?? 0;
+                        for (var i = 0; i < additional.Count; i++)
+                        {
+                            var joined = CharacterEncounterService.TryJoinObjectiveDefenderSquad(
+                                world, additional[i], surface.PrepareInterventionPlacement);
+                            if (joined.IsFailure) { Feedback(host, joined.Error.Message); return; }
+                        }
+                        if ((world.Strategic.CharacterEncounter?.Participants.Count ?? 0) != previous)
+                            surface.PresentJoinedParticipants(previous);
+                        ContinueAssault(host, siteId);
+                    });
             else ContinueAssault(host, siteId);
         }
 

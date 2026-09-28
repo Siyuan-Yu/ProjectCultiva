@@ -1,6 +1,12 @@
 # 角色、修士与凡人人口
 
-> **2026-09-27 CIVILIAN-LIFE-01 修订：** 普通凡人现确认为持久真实 Character；匿名 `MortalPopulation`／岗位组不再是人物或劳动 authority。下文旧“四层”历史框架中凡人聚合、关注后实体化与归并方向均由 [ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 取代。当前状态为 **Design Confirmed / Documentation Updated / Implementation Not Started**；完整设计见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)。
+> **2026-09-27 CIVILIAN-LIFE-01 修订：** 普通凡人现确认为持久真实 Character；匿名 `MortalPopulation`／岗位组不再是人物或劳动 authority。下文旧“四层”历史框架中凡人聚合、关注后实体化与归并方向均由 [ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 取代。当前状态为 **Implementation Complete / Producer Acceptance Pending**；完整实现记录见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)。
+
+> **P1 物理取食与工作管理：** 普通自由凡人必须到当前合法 Site 的启用 StorageRoom 取 food，到达时才从 SitePublicStock 扣除；囚犯照料与 PlayerParty 供给保持既有规则。职业工区按当前 Site、实际所属势力和 tag 共同筛选。正式 HUD“工作”面板显示当前 Site 凡人的真实 Activity 与独立 Schedule Phase，并只允许玩家势力永久可管理、Normal 的凡人修改职业。
+
+> **P1 个体移动 authority：** Battle、SeparateSpace、PlayerParty、真实活动中的 NPC squad 战略路线及多成员 FollowLeader follower 优先；只有静态位置的 singleton resident squad 不得压住 managed mortal 的 FetchFood、返家、伐木、救援、搬运、建设或逃亡。Core、Host path consumer 与 squad presenter 共用同一 resolver。StorageRoom 的进食目标来自 derived footprint 最近外侧访问点，而非可能阻挡的建筑中心。Schedule Phase 只决定 Needs 满足后是否工作，不拥有人物移动。
+
+> **P1 食宿闭环：** FetchFood 只有在合法食物来源、StorageRoom、访问权限和现存 food 均成立时才发出移动；失败以明确阶段和有界重试表示，到达后再次校验并原子扣粮。返家只是 `TravelingToResidence`，不恢复 Energy；真实到达后才进入 `SleepingAtResidence`。极低 Energy 可越过失败的取食重试直接 `SleepingOnGround`。Host 对已替换 intent 取消旧路径，人物菜单只阻止玩家输入，不冻结自治 NPC；正常 civilian local movement 的实际位置持续回写 Character WorldPresence。
 
 > 状态：四层模拟与现行 PlayerParty／Squad 生命周期已冻结；队内接替、Emergency Handoff 与 True-Death Succession 已实现、人工验收并封板 | 优先级：P0 | 最后更新：2026-09-24
 > 上级：`docs/00-project/00-overview.md`
@@ -94,7 +100,7 @@
 
 有归属凡人接受所属势力工作；无归属凡人仍进行基本生活，但不接受势力排程。玩家势力凡人进入可管理名册方向，不等于自动加入 PlayerParty 或成为 ActiveCharacter。
 
-V1 专业职业单选为 Unassigned、Farmer、HerbFarmer、Logger、Medic。所有有行动能力的凡人均可执行搬运／救援与建设；Medic 才执行专业治疗。需要优先于普通工作，食物必须来自可访问库存，Energy 极低时允许原地紧急睡眠。
+V1 专业职业单选为 Unassigned、Farmer、HerbFarmer、Logger、Medic。所有有行动能力的凡人均可执行搬运／救援与建设；Medic 才执行专业治疗。需要优先于普通工作，食物必须来自可访问库存。取食失败不会逐 tick 重建无效路径；来源、权限、设施或库存变化会立即允许重试，否则使用短暂 WorldTick 退避。Energy 极低时可直接原地紧急睡眠；返住所途中不算睡眠，也不恢复 Energy。
 
 附近人物使用高细节行为，离屏未来可降频；LOD 只能降低模拟成本，不能消除 Character identity。住房继续显示真实人物并使用真实容量。
 
@@ -141,6 +147,8 @@ V1 专业职业单选为 Unassigned、Farmer、HerbFarmer、Logger、Medic。所
 刷新频率、每批人数、弟子容量与管事上限**待确定**；避免把凡人人口做成纯抽卡池。
 
 ## 9. 凡人军事边界
+
+Character 对当前势力的忠诚由 `CharacterFactionLoyaltyLedger` 单独保存（CharacterId + FactionId，0–100），与凡人的 Satiety、Energy、Profession 无关。所有有正式 FactionMembership 的人物，包括修士和永久玩家人物，都有当前势力 Loyalty；无势力人物不适用。`initialLoyalty` 省略时为 50；换势力不得沿用旧势力数值。占领、拘留和招募只是在 CIVILIAN-LIFE-01 中首先使用它的玩法。
 
 凡人 V1 主要是居民与劳动者，不建立数百／数千人的 RTS 凡人大军。未来可讨论真实 Character 的 guard／militia duty；大型战争如何摘要结算另行设计，不能以匿名军队倒推删除凡人身份。
 

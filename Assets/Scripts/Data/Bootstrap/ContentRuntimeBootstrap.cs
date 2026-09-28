@@ -203,6 +203,7 @@ namespace XianXia.Data.Bootstrap
                 var r = kv.Value;
                 var id = r.Id.ToString();
                 var tags = new List<string> { "resource" };
+                if (r.Tags != null) tags.AddRange(r.Tags);
                 AppendHeuristicTags(id, tags);
                 catalog.Register(id, r.Name ?? id, 99, tags);
             }

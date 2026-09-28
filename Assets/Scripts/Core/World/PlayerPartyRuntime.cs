@@ -4,6 +4,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
@@ -351,10 +352,23 @@ namespace XianXia.Core.World
                 return false;
             }
 
-            if (!IsInRoster(roster, candidate))
+            var recruitedMortal = world != null && world.Entities.TryGet(candidate, out var recruit) &&
+                                  MortalCivilianQuery.IsPlayerFactionManageable(world, recruit);
+            if (!IsInRoster(roster, candidate) && !recruitedMortal)
             {
                 error = "Not a manageable character.";
                 return false;
+            }
+
+            if (recruitedMortal)
+            {
+                if (!CanPlayerControlCharacter(world, candidate) ||
+                    !world.Civilians.TryGet(candidate, out var civilian) ||
+                    civilian.Disposition != CivilianDisposition.Normal)
+                { error = "Recruited mortal is not available for party management."; return false; }
+                if (world.Strategic.Squads.TryGetForCharacter(candidate, out var currentSquad) &&
+                    currentSquad.MemberCharacterIds.Count != 1)
+                { error = "Mortal belongs to another active squad."; return false; }
             }
 
             return ValidateMemberJoin(world, candidate, out error);

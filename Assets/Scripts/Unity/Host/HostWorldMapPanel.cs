@@ -708,7 +708,7 @@ namespace XianXia.Unity.Host
                 _characterPanel.Draw(rect, world, bootstrap.Session.CharacterIds,
                     bootstrap.Session.PlayerParty, EntityLabel, FocusCameraOnSquad, FocusCameraOnNode,
                     FocusCameraOnWorldPosition);
-            if (_factionPanel.IsOpen) _factionPanel.Draw(rect, world);
+            if (_factionPanel.IsOpen) _factionPanel.Draw(rect, world, bootstrap.PlayerPartyController);
         }
 
         void EnsurePanels()

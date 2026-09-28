@@ -60,6 +60,7 @@ namespace XianXia.Core.Simulation
             OrderQueues = new Dictionary<EntityId, OrderQueue>();
             ActiveActions = new Dictionary<ActionId, IAction>();
             Relationships = new RelationshipLedger();
+            FactionLoyalties = new CharacterFactionLoyaltyLedger();
             SocialBonds = new SocialBondBoard();
             LocalPlaces = new LocalPlaceBoard();
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
@@ -80,6 +81,8 @@ namespace XianXia.Core.Simulation
             WorkAreaOccupancy = new WorkAreaOccupancyBoard();
             ControlCores = new ControlCoreBoard();
             HousingAssignments = new HousingAssignmentBoard();
+            Civilians = new MortalCivilianBoard();
+            CivilianConstructionJobs = new CivilianConstructionJobBoard();
             SettlementAuthority = new SettlementAuthorityBoard();
             InventoryCatalog = new InventoryCatalog();
             Inventory = new PartyInventory(InventoryCatalog, PartyInventory.DefaultSlotCapacity);
@@ -119,6 +122,8 @@ namespace XianXia.Core.Simulation
 
         /// <summary>角色定向态度的唯一 Runtime authority；事件流已由 Snapshot 持久化。</summary>
         public RelationshipLedger Relationships { get; }
+
+        public CharacterFactionLoyaltyLedger FactionLoyalties { get; }
 
         /// <summary>角色关系事实的 Runtime authority；与五维态度严格分离。</summary>
         public SocialBondBoard SocialBonds { get; }
@@ -199,6 +204,10 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Housing area ownership; session-only; not in Snapshot v1.</summary>
         public HousingAssignmentBoard HousingAssignments { get; }
+
+        /// <summary>CIVILIAN-LIFE-01 mortal needs, work and captivity authority.</summary>
+        public MortalCivilianBoard Civilians { get; }
+        public CivilianConstructionJobBoard CivilianConstructionJobs { get; }
 
         /// <summary>Privileges from captured control cores; session-only.</summary>
         public SettlementAuthorityBoard SettlementAuthority { get; }

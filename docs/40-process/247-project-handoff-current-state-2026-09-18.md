@@ -2,19 +2,27 @@
 
 ## CIVILIAN-LIFE-01 当前交接（2026-09-27）
 
-**Design Confirmed / Documentation Updated / Implementation Not Started。Producer Acceptance: Not Applicable Yet。** 下一 NPC 方向不是先造通用 NPC AI 框架，而是按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 实现真实个体凡人、FactionMembership、Satiety/Energy、单一职业、通用劳动、Site 易主后的 Loyalty/Fleeing，以及 Encounter 捕获、真实押送、PrisonerOnly Residence 拘留和招募。
+**Implementation Complete / Producer Acceptance Pending。** 已按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 接入真实个体凡人、Needs、Work/OffDuty、职业、人事、占领与俘虏招募；最终缺口已以真实 Character 搬运、Site 内资源托运及正式建筑／势力旗拆除工单接通。静态编译通过，运行效果待制作人人工验收。
+
+P1 忠诚修正：Runtime Loyalty 已从 MortalCivilianState 移至通用 `CharacterFactionLoyaltyLedger`，凡当前有 FactionMembership 的 Character 均按 CharacterId + 当前 FactionId 持有值；无势力显示“—”。人物概况、人事页、LevelTester、占领／拘留／招募共用该 authority。Snapshot 仍为未封板 v14，新增独立 loyalty entries，缺少新字段的 interim v14 拒绝；制作人尚未完成整轮验收。
+
+P1 物理取食／正式工作 UI：普通自由凡人现在到当前合法 Site 的启用 StorageRoom 取 food，到达时才原子扣 SitePublicStock，再进入 Eat；无设施／无粮／不可达留下诊断。Detained 与 PlayerParty 原供给不变。正式 HUD“工作”面板按当前查看 Site 列人，活动显示统一读取 MortalCivilianState，职业命令仍由 SetProfession 权限守卫；专业工区仅允许当前 Site、同 owner/faction、tag 匹配目标。Snapshot v14 不变，取食任务读档重评估。
+
+MovementIntent Host bridge P1：managed mortal 离开 FarmerWork／HerbFarmerWork 时，同帧释放旧 NPC-schedule farm worker 后由 HostNpcScheduleMover 消费新 intent；专用释放只取消农田表现 path，不清 Core intent，且 managed mortal 不再回退残留 WorkAction/Schedule。Core、Host mover 与 squad presenter 共用 `MortalCivilianMovementAuthority`：静态 singleton resident squad 让位于 civilian local movement，真实战略路线、多成员 FollowLeader follower、PlayerParty、Encounter 与 SeparateSpace 继续优先。StorageRoom runtime 从 authored／constructed footprint 解析最近外围 access point，再经小范围 walk-grid snap；Core 以 HostArrived 完成 pickup。Schedule 只决定 Needs 满足后的工作阶段，不是 movement owner；Snapshot v14 不变。
+
+P1 食宿最终闭环：FetchFood 现有明确等待寻路／行走／失败／到达／进食阶段，来源、权限、设施或无粮失败保留原因并有界重试；Energy 极低时优先就地睡眠。返家与真实睡眠分离，行走期间不恢复 Energy，只有同一住所的 HostArrived 才开始床上睡眠。MovementIntent revision 会使 Host 取消被 Core 替换的旧 civilian path；暂停仍冻结世界，人物菜单只屏蔽玩家输入。civilian local 实际移动持续提交 Character WorldPresence，不再由静态 resident squad 覆盖。荒村 guard housing 门洞 source/baked 同步缩短一格，离线 walk-grid 复算确认 guard、储藏室、外部入口与住房连通。LevelTester 增加四个“准备食宿 A/B/C/D”入口与 path/tick/pause 全链诊断；Snapshot 保持 v14，仅补足睡眠阶段持久化，Food Fetch 行程仍读档重评估。
 
 ### Current Resume Order
 
-先做上述现状审计并形成与现有 authority 兼容的最小实现切片，再进入 CIVILIAN-LIFE-01 代码实施；不得先造泛化 NPC AI framework，也不得顺带启动 Generic Knowledge、Equipment/Crafting、Production/Logistics 或 Strategic Autonomy。
+§89 第 8／9 项的实现入口已补齐：LevelTester 可准备阿石搬运阿青、阿土治疗，以及当前 Site 木材／工人；建设仍由正式 UI 落点。当前没有正式 Repair 玩法；普通建筑拆除也未开放。不得扩张为泛化 NPC AI framework，也不得顺带启动 Generic Knowledge、Equipment/Crafting、Production/Logistics 或 Strategic Autonomy。
 
-实施前必须先审计现有 NPC work／labor、粮田／药田、树木／木材、injury／dying／rescue、Encounter intent/result、housing、FactionMembership、玩家永久 roster 与 PlayerParty 边界、Snapshot，以及 Site control transfer。当前 Snapshot schema 保持不变，新增持久字段均为 Planned。住房保持现有可见表现，不引入 private presence／房屋黑箱。
+实现复用现有 NPC movement/work、LocationLabor、Site PublicStock、injury/recovery、CharacterEncounter、housing、FactionMembership、玩家永久 roster 与 PlayerParty 边界，以及正式 Site transfer。当前 Snapshot schema v14；住房保持现有可见表现，不引入 private presence／房屋黑箱。
 
-状态链：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Design Confirmed / Documentation Updated / Implementation Not Started**。
+状态链：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Implementation Complete / Producer Acceptance Pending**。
 
 ## AUCTION-01 最终交接（2026-09-27）
 
-当前 Snapshot v13，v1～v12 严格拒绝。AUCTION-01 的独立 AuctionProvider/House、Listing 与双托管、抽象 Market review、结算/5% fee、Claims、正式 UGUI、验收内容和 Save/Load 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。黄村拍卖行执事在 `(5.30,11.10)`；LevelTester 内容页可定位、给钱包/物品、Reset 并查看 runtime。人工结果见 [266](266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)。Auction-02 与 Sect Contribution Exchange 未自动授权。
+当前 Snapshot v14，v1～v13 严格拒绝。AUCTION-01 的独立 AuctionProvider/House、Listing 与双托管、抽象 Market review、结算/5% fee、Claims、正式 UGUI、验收内容和 Save/Load 已通过制作人人工验收，状态 **Producer Accepted / Sealed**。黄村拍卖行执事在 `(5.30,11.10)`；LevelTester 内容页可定位、给钱包/物品、Reset 并查看 runtime。人工结果见 [266](266-auction-01-auction-house-consignment-and-bidding-v1-2026-09-25.md)。Auction-02 与 Sect Contribution Exchange 未自动授权。
 
 ## SHOP-TRADE-01 当前交接（2026-09-25）
 
@@ -99,7 +107,7 @@ LevelTester 反引号开发工具 →“战斗”提供 SUCCESSION-01 A/B 候选
 
 ### 项目与阶段
 
-PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v13；下一实施主线 CIVILIAN-LIFE-01 尚未开始实现。
+PJCultiva／XianXia 是一款以**具体角色的修仙成长**为核心，结合同行小队、连续探索、人物关系、实时暂停战斗和领地经营的单机 2D RPG。SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**。当前 Snapshot schema 为 v14；CIVILIAN-LIFE-01 为 **Implementation Complete / Producer Acceptance Pending**，人工验收入口见本页顶部。
 
 ### DYNAMIC-DISCOVERY-01 当前实现（2026-09-24）
 
@@ -1083,6 +1091,8 @@ F) 以上完成前不得封板。
 状态以 docs/40-process 的 Producer Acceptance 为准。实质改动更新 docs/40-process/42-devlog.md，重大决定写 ADR，术语走
 docs/00-project/03-glossary.md；不要修改已封板的历史文档（240/242/243/244）。Core/Data 禁止 UnityEngine；随机用 IRandomSource；
 WorldTick 是唯一世界时间轴；RelationshipLedger 是唯一关系真源；Dead ≠ Removed。
+
+【CIVILIAN-LIFE-01 P1 当前实现补充（2026-09-28）】人物命令已统一为物理 approach：Attack/Capture 追逐移动目标并在到达后才触发 Encounter/capture request，Recruit 到达后进行 5 秒非缩放轻交互，Release/Execute 同样要求近距。Flee 已改走 MovementIntent 与 Host CompositeWalkGrid，持久保存来源 Site/出口序号并在失败时轮换；StorageRoom 有 8 个访问槽并在 A* 失败后轮换。有效世界命令解除 ManualPaused，ModalHardPaused 不受影响。第一发致命伤只进入 Incapacitated，死亡确认记录原因，Encounter 生命倒计时使用非缩放现实时间。荒村 `place_wall_040130496` 缩短一格恢复巡卫住房门洞，正式数据离线连通扫描通过。状态：**Implementation Complete / Producer Acceptance Pending**；需制作人人工验收，未提交。
 
 【历史建议，已完成，禁止执行】SPACE-01 hardening、MAP-04 consumer audit 与物理清理、LEGACY-FINAL-A/B/C 均已验收封板。
 

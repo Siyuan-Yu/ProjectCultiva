@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 13;
+        public const int CurrentSchemaVersion = 14;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -27,6 +27,7 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV10 = 10;
         public const int LegacySchemaVersionV11 = 11;
         public const int LegacySchemaVersionV12 = 12;
+        public const int LegacySchemaVersionV13 = 13;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -46,6 +47,8 @@ namespace XianXia.Core.Persistence
         public ulong NextActionId { get; set; }
         public ulong NextModifierId { get; set; }
         public List<EntitySnapshotDto> Entities { get; set; } = new List<EntitySnapshotDto>();
+        public List<CharacterFactionLoyaltySnapshotDto> CharacterFactionLoyalties { get; set; } =
+            new List<CharacterFactionLoyaltySnapshotDto>();
         public List<ActiveActionSnapshotDto> ActiveActions { get; set; } = new List<ActiveActionSnapshotDto>();
         public List<OrderSnapshotDto> Orders { get; set; } = new List<OrderSnapshotDto>();
         public List<ScheduleDefinitionSnapshotDto> Schedules { get; set; } = new List<ScheduleDefinitionSnapshotDto>();
@@ -53,6 +56,9 @@ namespace XianXia.Core.Persistence
         public List<ManualSnapshotDto> Manuals { get; set; } = new List<ManualSnapshotDto>();
         public int ObservationDiscoverChancePercent { get; set; } = 100;
         public StrategicSnapshotDto Strategic { get; set; } = new StrategicSnapshotDto();
+        public List<CivilianResidenceUsageSnapshotDto> CivilianResidenceUsages { get; set; } = new List<CivilianResidenceUsageSnapshotDto>();
+        public long NextCivilianConstructionJobSequence { get; set; } = 1;
+        public List<CivilianConstructionJobSnapshotDto> CivilianConstructionJobs { get; set; } = new List<CivilianConstructionJobSnapshotDto>();
 
         /// <summary>Party 共享背包 Runtime 真源（v6 optional；旧档缺省＝空背包）。</summary>
         public List<PartyInventorySlotSnapshotDto> PartyInventorySlots { get; set; } =
@@ -826,6 +832,8 @@ namespace XianXia.Core.Persistence
         public string FactionId { get; set; } = string.Empty;
         /// <summary><see cref="XianXia.Core.Social.FactionRoleKind"/> 整型。</summary>
         public int FactionRole { get; set; }
+        /// <summary>Definition seed used only when a new faction Loyalty is established.</summary>
+        public int InitialLoyalty { get; set; } = 50;
 
         /// <summary>CombatVitals 当前生命；旧档缺省时 Restore 不灌满（PoolsInitialized=false 仅在无 vitals 字段时）。</summary>
         public bool HasCombatVitals { get; set; }
@@ -846,6 +854,67 @@ namespace XianXia.Core.Persistence
 
         /// <summary>PersonalityProfile tags（若运行中可变）。旧档缺省＝空。</summary>
         public List<string> PersonalityTags { get; set; } = new List<string>();
+
+        public bool HasMortalCivilian { get; set; }
+        public int MortalSatiety { get; set; }
+        public int MortalEnergy { get; set; }
+        public int MortalProfession { get; set; }
+        public int MortalActivity { get; set; }
+        public int CivilianDisposition { get; set; }
+        public string MortalResidenceWorkAreaId { get; set; } = string.Empty;
+        public string MortalCurrentSiteId { get; set; } = string.Empty;
+        public ulong MortalLastUpdateTick { get; set; }
+        public ulong MortalSleepStartedTick { get; set; }
+        public int MortalSleepPhase { get; set; }
+        public ulong MortalFleeStartedTick { get; set; }
+        public bool MortalHasFleeTarget { get; set; }
+        public float MortalFleeTargetX { get; set; }
+        public float MortalFleeTargetY { get; set; }
+        public string MortalFleeSourceSiteId { get; set; } = string.Empty;
+        public int MortalFleeCandidateIndex { get; set; }
+        public int MortalFleeAttemptCount { get; set; }
+        public ulong MortalCarrierId { get; set; }
+        public string MortalDetainedResidenceWorkAreaId { get; set; } = string.Empty;
+        public ulong MortalCareDayIndex { get; set; }
+        public bool MortalAteToday { get; set; }
+        public bool MortalSleptToday { get; set; }
+        public ulong MortalLastWorkOutputTick { get; set; }
+        public ulong MortalPendingCaptureCarrierId { get; set; }
+    }
+
+    public sealed class CharacterFactionLoyaltySnapshotDto
+    {
+        public ulong CharacterEntityId { get; set; }
+        public string FactionId { get; set; } = string.Empty;
+        public int Loyalty { get; set; }
+    }
+
+    public sealed class CivilianConstructionJobSnapshotDto
+    {
+        public string JobId { get; set; } = string.Empty;
+        public string BuildingId { get; set; } = string.Empty;
+        public string DemolitionFlagId { get; set; } = string.Empty;
+        public string SiteId { get; set; } = string.Empty;
+        public string FactionId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public int LaborProgress { get; set; }
+        public ulong LastLaborTick { get; set; }
+        public ulong CarrierId { get; set; }
+        public string PayloadItemId { get; set; } = string.Empty;
+        public int PayloadCount { get; set; }
+        public List<ConstructionMaterialSnapshotDto> Required { get; set; } = new List<ConstructionMaterialSnapshotDto>();
+        public List<ConstructionMaterialSnapshotDto> Delivered { get; set; } = new List<ConstructionMaterialSnapshotDto>();
+    }
+
+    public sealed class ConstructionMaterialSnapshotDto
+    { public string ItemId { get; set; } = string.Empty; public int Count { get; set; } }
+
+    public sealed class CivilianResidenceUsageSnapshotDto
+    {
+        public string WorkAreaId { get; set; } = string.Empty;
+        public int Usage { get; set; }
     }
 
     public sealed class PartyInventorySlotSnapshotDto

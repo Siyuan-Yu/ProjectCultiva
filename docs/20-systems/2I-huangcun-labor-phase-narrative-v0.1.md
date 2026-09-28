@@ -1,5 +1,7 @@
 # 荒村杂役阶段叙事设计 v0.1
 
+> **CIVILIAN-LIFE-01 实现映射（2026-09-27）：** 荒村凡人劳动现由真实 Character 的 Profession 与 `MortalActivityEvaluator` 决定。Farmer/HerbFarmer 复用 WorkArea、MovementIntent 与现有逐格农作，Logger 复用现有树木破坏/产出结算，产物进入 Site PublicStock；通用 tagged work 复用 LocationLabor 进度。饥饿、睡眠、救援和强制战后状态优先于普通劳动。该实现状态为 **Implementation Complete / Producer Acceptance Pending**，不改变本文件的叙事草案状态。
+
 > 状态：**Draft / v0.1 / 待人工审核**  
 > 类型：阶段叙事框架（Content／Narrative）——**非线性；非章节脚本**  
 > 优先级：P0  

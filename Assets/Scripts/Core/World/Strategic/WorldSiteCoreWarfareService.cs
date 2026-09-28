@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -36,6 +37,13 @@ namespace XianXia.Core.World.Strategic
 
     public static class WorldSiteDefenseCharacterQuery
     {
+        sealed class DefenderSquadCandidate
+        {
+            public string SquadId;
+            public EntityId Representative;
+            public double DistanceSquared;
+        }
+
         public static bool IsDefenderSide(SimulationWorld world, string faction, string attacker, string owner)
         {
             foreach (var war in world.Strategic.Wars.EnumerateActive())
@@ -83,14 +91,69 @@ namespace XianXia.Core.World.Strategic
 
         public static EntityId ResolveAssaultDefender(SimulationWorld world, WorldSiteCoreTarget target)
         {
-            var state = world.Strategic.CharacterEncounter;
-            if (state != null)
-                foreach (var p in state.Participants)
-                    if (p.Enemy && CharacterEncounterService.IsLiving(world, p.CharacterId) &&
-                        world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) &&
-                        entity.TryGet<FactionMembershipComponent>(out var faction) && faction.FactionId == target.OwnerFactionId)
-                        return EntityId.None;
-            return FindNearest(world, target, world.Strategic.PlayerFactionId, unjoinedOnly: state != null);
+            var defenders = CollectEligibleAssaultDefenderSquads(world, target);
+            return defenders.Count > 0 ? defenders[0] : EntityId.None;
+        }
+
+        /// <summary>
+        /// Returns one stable representative per living defender squad currently inside the source Site
+        /// (or the frozen encounter field). The squad remains the combat roster authority.
+        /// </summary>
+        public static IReadOnlyList<EntityId> CollectEligibleAssaultDefenderSquads(
+            SimulationWorld world, WorldSiteCoreTarget target)
+        {
+            var result = new List<EntityId>();
+            if (world?.Strategic?.Squads == null ||
+                !world.Strategic.Sites.TryGet(target.SiteId, out var site) || site == null)
+                return result;
+
+            var encounter = world.Strategic.CharacterEncounter;
+            var candidates = new List<DefenderSquadCandidate>();
+            foreach (var squadPair in world.Strategic.Squads.Squads)
+            {
+                var squad = squadPair.Value;
+                if (squad == null || string.IsNullOrEmpty(squad.SquadId) ||
+                    squad.SquadId.StartsWith("squad:character:", StringComparison.Ordinal) ||
+                    encounter?.Participants.Exists(p => p.SquadId == squad.SquadId) == true)
+                    continue;
+
+                var representative = EntityId.None;
+                var nearest = double.PositiveInfinity;
+                for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
+                {
+                    var raw = squad.MemberCharacterIds[i];
+                    var id = new EntityId(raw);
+                    if (!world.Entities.TryGet(id, out var entity) || !CombatLifeStateService.CanFight(entity) ||
+                        !entity.TryGet<FactionMembershipComponent>(out var faction) || !faction.IsAffiliated ||
+                        !IsDefenderSide(world, faction.FactionId, world.Strategic.PlayerFactionId, target.OwnerFactionId) ||
+                        !ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                            world, id, target.SurfaceId, out var point, out _, out _, out _) ||
+                        !WorldSiteCoreCoverageResolver.Contains(site, target.SurfaceId, point.X, point.Y) ||
+                        (encounter != null && !encounter.Contains(point.X, point.Y)))
+                        continue;
+
+                    var dx = (double)point.X - target.WorldX;
+                    var dy = (double)point.Y - target.WorldY;
+                    var distance = dx * dx + dy * dy;
+                    if (distance < nearest || (distance == nearest && (representative.IsNone || raw < representative.Value)))
+                    {
+                        representative = id;
+                        nearest = distance;
+                    }
+                }
+
+                if (!representative.IsNone)
+                    candidates.Add(new DefenderSquadCandidate
+                    { SquadId = squad.SquadId, Representative = representative, DistanceSquared = nearest });
+            }
+
+            candidates.Sort((a, b) =>
+            {
+                var distance = a.DistanceSquared.CompareTo(b.DistanceSquared);
+                return distance != 0 ? distance : string.CompareOrdinal(a.SquadId, b.SquadId);
+            });
+            for (var i = 0; i < candidates.Count; i++) result.Add(candidates[i].Representative);
+            return result;
         }
     }
 

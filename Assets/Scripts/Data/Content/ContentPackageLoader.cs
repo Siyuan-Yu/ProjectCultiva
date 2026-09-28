@@ -329,7 +329,9 @@ namespace XianXia.Data.Content
                 DefaultFactionId = item.GetString("defaultFactionId", string.Empty),
                 TradeProviderShopId = item.GetString("tradeProviderShopId", string.Empty),
                 AuctionProviderHouseId = item.GetString("auctionProviderHouseId", string.Empty),
-                DefaultFactionRole = item.GetString("defaultFactionRole", string.Empty)
+                DefaultFactionRole = item.GetString("defaultFactionRole", string.Empty),
+                InitialLoyalty = (int)item.GetNumber("initialLoyalty", 50),
+                InitialMortalProfession = item.GetString("initialMortalProfession", "Unassigned")
             };
 
             if (item.TryGetProperty("baseAttributes", out var attrs))
@@ -376,6 +378,10 @@ namespace XianXia.Data.Content
             if (item.TryGetProperty("reputation", out var repNode) && repNode.Kind == JsonValueKind.Number)
                 character.Reputation = (int)repNode.Number;
             character.DefeatEncounterId = item.GetString("defeatEncounterId", string.Empty) ?? string.Empty;
+            if (character.InitialLoyalty < 0 || character.InitialLoyalty > 100)
+                report.Add(ErrorCode.InvalidArgument, "initialLoyalty must be 0..100.", id.ToString());
+            if (!System.Enum.TryParse<XianXia.Core.Npc.MortalProfession>(character.InitialMortalProfession, true, out _))
+                report.Add(ErrorCode.InvalidArgument, "Unknown initialMortalProfession.", id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
 
@@ -1324,6 +1330,7 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 NameKey = item.GetString("nameKey", string.Empty)
             };
+            ReadTags(item, resource.Tags, report, id.ToString());
             var reg = registry.RegisterResource(resource);
             if (reg.IsFailure)
                 report.Add(reg.Error);

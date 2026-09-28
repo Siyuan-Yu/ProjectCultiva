@@ -1,5 +1,7 @@
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Npc;
+using XianXia.Core.Construction;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -21,7 +23,10 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
                 return Result.Failure(ErrorCode.NotFound, "WorldSite not found.", siteId);
 
+            var oldFactionId = site.OwnerFactionId ?? string.Empty;
             WorldSiteOwnershipService.SetOwner(world, siteId, newFactionId);
+            MortalCivilianService.OnSiteTransferred(world, siteId, oldFactionId, newFactionId);
+            CivilianConstructionJobService.CancelInvalidJobs(world);
             return Result.Success();
         }
     }

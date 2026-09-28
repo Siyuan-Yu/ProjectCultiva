@@ -37,6 +37,18 @@ namespace XianXia.Core.Construction
                 ? PlayerStrategicResourceService.GetAvailableCount(world, itemId)
                 : world?.Inventory?.GetCount(itemId) ?? 0;
 
+        public static bool CanUseCivilianSiteMaterials(SimulationWorld world, BuildingConstructionSpec spec)
+        {
+            if (world == null || spec == null || spec.PlacementKind == ConstructionPlacementKind.FactionFlag ||
+                !PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out var site) ||
+                !CivilianConstructionJobService.HasAvailableWorker(world, site.SiteId, world.Strategic.PlayerFactionId))
+                return false;
+            foreach (var cost in SumCosts(spec.Costs))
+                if (WorldSitePublicStockService.GetCount(world, site.SiteId, cost.ItemId) < cost.Count)
+                    return false;
+            return true;
+        }
+
         public static Result TryConstructFactionFlagSite(
             SimulationWorld world,
             string buildingId,
@@ -97,10 +109,130 @@ namespace XianXia.Core.Construction
             => TryConstructOutdoorAsset(world, buildingId, actingFactionId, surfaceId, worldX, worldY,
                 ConstructionPlacementKind.StorageRoom, "储藏室", "storage", false, out assetId);
 
+        public static Result TryQueueCivilianOutdoorConstruction(
+            SimulationWorld world, string buildingId, string actingFactionId,
+            string surfaceId, float worldX, float worldY, out string jobId)
+        {
+            jobId = string.Empty;
+            if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) || spec == null ||
+                !spec.UnlockedByDefault || spec.CreatesWorldSite ||
+                spec.PlacementKind == ConstructionPlacementKind.FactionFlag ||
+                !world.SurfaceSpatial.TryGet(surfaceId, out var metric) ||
+                world.LocalMap.IsInInterior || world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
+                return Result.Failure(ErrorCode.InvalidOperation, "当前建筑不能创建凡人建设工单。");
+            var cx = worldX + spec.FootprintCellsW * metric.CellSize * .5f;
+            var cy = worldY + spec.FootprintCellsH * metric.CellSize * .5f;
+            if (!WorldSiteAdministrativeControlResolver.TryResolve(world, surfaceId, cx, cy, out var site, out _) ||
+                site == null || site.OwnerFactionId != actingFactionId || !site.HasContinuousCore)
+                return Result.Failure(ErrorCode.InvalidOperation, "工地必须位于己方据点内。");
+            var candidate = new OutdoorConstructedAssetState {
+                StableAssetId = world.OutdoorConstructedAssets.NextIdForKind(spec.OutdoorKind),
+                BuildingId = buildingId, Kind = spec.OutdoorKind, SurfaceId = surfaceId,
+                WorldX = worldX, WorldY = worldY,
+                WorldWidth = spec.FootprintCellsW * metric.CellSize,
+                WorldHeight = spec.FootprintCellsH * metric.CellSize,
+                CellsW = spec.FootprintCellsW, CellsH = spec.FootprintCellsH,
+                BoundLocationId = "location:civilian:preview:" + world.CivilianConstructionJobs.NextId,
+                BoundWorldSiteId = spec.PlacementKind == ConstructionPlacementKind.StorageRoom ? site.SiteId : string.Empty
+            };
+            var allowed = OutdoorFactionConstructionAuthorizationService.Validate(world, actingFactionId, candidate);
+            if (allowed.IsFailure) return allowed;
+            foreach (var existing in world.OutdoorConstructedAssets.Assets.Values)
+                if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate))
+                    return Result.Failure(ErrorCode.InvalidOperation, "工地与已有建筑重叠。");
+            foreach (var pending in world.CivilianConstructionJobs.Jobs.Values)
+                if (pending.SurfaceId == surfaceId &&
+                    Math.Abs(pending.WorldX - worldX) < candidate.WorldWidth &&
+                    Math.Abs(pending.WorldY - worldY) < candidate.WorldHeight)
+                    return Result.Failure(ErrorCode.InvalidOperation, "工地与待建工单重叠。");
+            var job = new CivilianConstructionJob {
+                JobId = world.CivilianConstructionJobs.NextId, BuildingId = buildingId,
+                SiteId = site.SiteId, FactionId = actingFactionId, SurfaceId = surfaceId,
+                WorldX = worldX, WorldY = worldY
+            };
+            foreach (var cost in SumCosts(spec.Costs))
+            {
+                var reservedAtSource = 0;
+                foreach (var pending in world.CivilianConstructionJobs.Jobs.Values)
+                {
+                    if (pending.SiteId != site.SiteId) continue;
+                    for (var i = 0; i < pending.Required.Count; i++)
+                    {
+                        if (pending.Required[i].ItemId != cost.ItemId) continue;
+                        pending.Delivered.TryGetValue(cost.ItemId, out var delivered);
+                        reservedAtSource += Math.Max(0, pending.Required[i].Count - delivered -
+                            (pending.PayloadItemId == cost.ItemId ? pending.PayloadCount : 0));
+                    }
+                }
+                if (WorldSitePublicStockService.GetCount(world, site.SiteId, cost.ItemId) - reservedAtSource < cost.Count)
+                    return Result.Failure(ErrorCode.InvalidOperation, "本据点公共库存材料不足。", cost.ItemId);
+                job.Required.Add(cost);
+            }
+            if (!world.CivilianConstructionJobs.TryRegister(job))
+                return Result.Failure(ErrorCode.InvalidOperation, "建设工单注册失败。");
+            jobId = job.JobId;
+            return Result.Success();
+        }
+
+        public static Result TryQueueCivilianFlagDismantle(
+            SimulationWorld world, string factionId, string flagId, out string jobId)
+        {
+            jobId = string.Empty;
+            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(flagId ?? string.Empty, out var flag) ||
+                flag == null || flag.FactionId != factionId || !flag.HasWorldPosition ||
+                string.IsNullOrEmpty(flag.SiteId) ||
+                !world.Strategic.Sites.TryGet(flag.SiteId, out var site) || site.OwnerFactionId != factionId)
+                return Result.Failure(ErrorCode.InvalidOperation, "势力旗不满足凡人拆除工单条件。");
+            foreach (var pending in world.CivilianConstructionJobs.Jobs.Values)
+                if (pending.DemolitionFlagId == flagId)
+                    return Result.Failure(ErrorCode.InvalidOperation, "该势力旗已有拆除工单。");
+            var job = new CivilianConstructionJob {
+                JobId = world.CivilianConstructionJobs.NextId,
+                BuildingId = FactionControlPostBuildingId, DemolitionFlagId = flagId,
+                SiteId = flag.SiteId, FactionId = factionId, SurfaceId = flag.SurfaceId,
+                WorldX = flag.WorldX, WorldY = flag.WorldY
+            };
+            if (!world.CivilianConstructionJobs.TryRegister(job))
+                return Result.Failure(ErrorCode.InvalidOperation, "拆除工单注册失败。");
+            jobId = job.JobId;
+            return Result.Success();
+        }
+
+        public static Result TryCompleteCivilianJob(SimulationWorld world, CivilianConstructionJob job, out string assetId)
+        {
+            assetId = string.Empty;
+            if (world == null || job == null || !world.CivilianConstructionJobs.TryGet(job.JobId, out var current) ||
+                !ReferenceEquals(current, job) || !job.MaterialsDelivered ||
+                job.LaborProgress < CivilianConstructionJobService.RequiredLabor ||
+                !world.ConstructionCatalog.TryGet(job.BuildingId, out var spec) ||
+                !world.Strategic.Sites.TryGet(job.SiteId, out var site) || site.OwnerFactionId != job.FactionId)
+                return Result.Failure(ErrorCode.InvalidOperation, "建设工单或预付材料无效。");
+            var costs = SumCosts(spec.Costs);
+            if (costs.Count != job.Required.Count)
+                return Result.Failure(ErrorCode.InvalidOperation, "建设工单材料与当前建筑定义不一致。");
+            for (var i = 0; i < costs.Count; i++)
+            {
+                var matched = false;
+                for (var j = 0; j < job.Required.Count; j++)
+                    if (job.Required[j].ItemId == costs[i].ItemId &&
+                        job.Required[j].Count == costs[i].Count) { matched = true; break; }
+                if (!matched) return Result.Failure(ErrorCode.InvalidOperation, "建设工单材料与当前建筑定义不一致。");
+            }
+            var kind = spec.PlacementKind;
+            return TryConstructOutdoorAsset(world, job.BuildingId, job.FactionId, job.SurfaceId,
+                job.WorldX, job.WorldY, kind,
+                kind == ConstructionPlacementKind.RecoverySpot ? "恢复处" :
+                kind == ConstructionPlacementKind.StorageRoom ? "储藏室" : "农田",
+                kind == ConstructionPlacementKind.RecoverySpot ? "recovery" :
+                kind == ConstructionPlacementKind.StorageRoom ? "storage" : "farm",
+                kind == ConstructionPlacementKind.FarmField, out assetId, materialsPrepaid: true);
+        }
+
         static Result TryConstructOutdoorAsset(
             SimulationWorld world, string buildingId, string actingFactionId,
             string surfaceId, float worldX, float worldY, ConstructionPlacementKind placementKind,
-            string displayName, string idKind, bool createsAdministrativeAnchors, out string assetId)
+            string displayName, string idKind, bool createsAdministrativeAnchors, out string assetId,
+            bool materialsPrepaid = false)
         {
             assetId = string.Empty;
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) ||
@@ -114,7 +246,7 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.InvalidArgument, displayName + "建筑定义无效或未解锁。");
             if (world.LocalMap.IsInInterior || world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
                 return Result.Failure(ErrorCode.InvalidOperation, "当前空间或战斗阶段不允许建造" + displayName + "。");
-            if (!HasRequiredMaterials(world, spec, out _))
+            if (!materialsPrepaid && !HasRequiredMaterials(world, spec, out _))
                 return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。");
             if (!world.SurfaceSpatial.TryGet(surfaceId, out var metric) || world.OutdoorConstructedAssets.NextSequence >= long.MaxValue - 1)
                 return Result.Failure(ErrorCode.InvalidArgument, "Surface 或资产序列无效。");
@@ -150,7 +282,8 @@ namespace XianXia.Core.Construction
             foreach (var anchor in anchors)
                 if (world.OutdoorAdministrativeAssetAnchors.TryGet(anchor.StableAssetId, out _))
                     return Result.Failure(ErrorCode.InvalidOperation, "室外建筑身份已存在。");
-            if (!TrySpendMaterials(world, spec, out var removed))
+            var removed = new List<MaterialWithdrawal>();
+            if (!materialsPrepaid && !TrySpendMaterials(world, spec, out removed))
                 return Result.Failure(ErrorCode.InvalidOperation, "材料扣除失败，已回滚。");
             if (!world.OutdoorConstructedAssets.TryRegister(asset))
             { RestoreRemoved(world, removed); return Result.Failure(ErrorCode.InvalidOperation, displayName + "注册失败，已回滚。"); }
@@ -161,7 +294,11 @@ namespace XianXia.Core.Construction
                     SurfaceId = asset.SurfaceId,
                     DisplayName = displayName,
                     WorldX = asset.WorldX + asset.WorldWidth * .5f,
-                    WorldY = asset.WorldY + asset.WorldHeight * .5f
+                    WorldY = asset.WorldY + asset.WorldHeight * .5f,
+                    FootprintWorldX = asset.WorldX,
+                    FootprintWorldY = asset.WorldY,
+                    WorldWidth = asset.WorldWidth,
+                    WorldHeight = asset.WorldHeight
                 }))
             {
                 world.OutdoorConstructedAssets.Remove(asset.StableAssetId);
@@ -216,6 +353,9 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.NotFound, "势力控制建筑不存在。");
             if (!string.Equals(flag.FactionId, playerFactionId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "只能拆除己方势力控制建筑。");
+            foreach (var pending in world.CivilianConstructionJobs.Jobs.Values)
+                if (pending.SiteId == flag.SiteId && pending.DemolitionFlagId != flagId)
+                    return Result.Failure(ErrorCode.InvalidOperation, "据点仍有未完成建设工单，先完成建设再拆除势力旗。");
 
             refunds = CalculateDismantleRefunds(spec);
             if (!CanAddRefundsWithoutMutation(world, refunds))

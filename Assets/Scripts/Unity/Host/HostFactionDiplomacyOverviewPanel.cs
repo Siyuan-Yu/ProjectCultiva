@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Npc;
+using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
 {
@@ -11,6 +13,7 @@ namespace XianXia.Unity.Host
     {
         readonly List<string> _factionIds = new List<string>(16);
         readonly List<string> _vassalIds = new List<string>(8);
+        readonly List<XianXia.Core.Entities.Entity> _personnel = new List<XianXia.Core.Entities.Entity>(32);
         readonly GUIStyle _body;
         readonly GUIStyle _title;
 
@@ -18,6 +21,8 @@ namespace XianXia.Unity.Host
         string _selectedFactionId = string.Empty;
         Vector2 _listScroll;
         Vector2 _detailScroll;
+        HostPlayerPartyController _partyController;
+        string _personnelStatus = string.Empty;
 
         public HostFactionDiplomacyOverviewPanel(GUIStyle body, GUIStyle title)
         {
@@ -39,8 +44,9 @@ namespace XianXia.Unity.Host
             _selectedFactionId = string.Empty;
         }
 
-        public void Draw(Rect panelRect, SimulationWorld world)
+        public void Draw(Rect panelRect, SimulationWorld world, HostPlayerPartyController partyController)
         {
+            _partyController = partyController;
             if (!_open || world == null)
                 return;
 
@@ -136,8 +142,18 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(_selectedFactionId))
                 return;
 
+            _personnel.Clear();
+            var showingPlayerPersonnel = string.Equals(
+                _selectedFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal);
+            if (showingPlayerPersonnel)
+            {
+                foreach (var entity in world.Entities.All)
+                    if (MortalCivilianQuery.IsPlayerFactionManageable(world, entity)) _personnel.Add(entity);
+                _personnel.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
+            }
             var viewport = new Rect(detailRect.x, detailRect.y + 24f, detailRect.width, detailRect.height - 24f);
-            var contentHeight = Mathf.Max(viewport.height, 220f + _factionIds.Count * 26f);
+            var contentHeight = Mathf.Max(viewport.height,
+                180f + _factionIds.Count * 26f + (showingPlayerPersonnel ? 60f + _personnel.Count * 94f : 0f));
             _detailScroll = GUI.BeginScrollView(
                 viewport,
                 _detailScroll,
@@ -175,6 +191,42 @@ namespace XianXia.Unity.Host
                     24f);
             }
 
+            if (showingPlayerPersonnel)
+            {
+                y += 8f;
+                y = DrawLine(viewport.width, y, "凡人人事", _title, 24f);
+                y = DrawLine(viewport.width, y, _personnelStatus, _body, 22f);
+                for (var i = 0; i < _personnel.Count; i++)
+                {
+                    var entity = _personnel[i];
+                    var state = MortalCivilianService.Ensure(world, entity);
+                    var name = string.IsNullOrWhiteSpace(entity.DisplayName) ? entity.Id.ToString() : entity.DisplayName;
+                    var role = entity.TryGet<FactionMembershipComponent>(out var membership) ? membership.Role.ToString() : "None";
+                    y = DrawLine(viewport.width, y,
+                        name + " · 凡人 · " + role + " · " + state.Profession + " · " + state.Activity +
+                        "\n饱食 " + state.Satiety + "  精力 " + state.Energy + "  忠诚 " +
+                        (CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out var loyalty) ? loyalty.ToString() : "—"),
+                        _body, 40f);
+                    var buttonWidth = Mathf.Max(54f, (viewport.width - 24f) / 5f);
+                    foreach (MortalProfession profession in Enum.GetValues(typeof(MortalProfession)))
+                    {
+                        if (GUI.Button(new Rect((int)profession * buttonWidth, y, buttonWidth - 3f, 22f), ProfessionLabel(profession)))
+                            MortalCivilianService.SetProfession(world, entity.Id, profession);
+                    }
+                    y += 26f;
+                    var inParty = world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true;
+                    if (GUI.Button(new Rect(0f, y, viewport.width - 24f, 22f),
+                            inParty ? "已在当前小队" : "加入当前小队"))
+                    {
+                        if (inParty) _personnelStatus = "该凡人已在当前小队。";
+                        else if (_partyController == null) _personnelStatus = "当前小队控制器不可用。";
+                        else _personnelStatus = _partyController.TryFollowActive(entity.Id, out var error)
+                            ? name + " 已加入当前小队。" : error;
+                    }
+                    y += 28f;
+                }
+            }
+
             GUI.EndScrollView();
         }
 
@@ -208,6 +260,18 @@ namespace XianXia.Unity.Host
                     return "附庸";
                 default:
                     return "普通";
+            }
+        }
+
+        static string ProfessionLabel(MortalProfession profession)
+        {
+            switch (profession)
+            {
+                case MortalProfession.Farmer: return "农夫";
+                case MortalProfession.HerbFarmer: return "药农";
+                case MortalProfession.Logger: return "伐木";
+                case MortalProfession.Medic: return "医者";
+                default: return "未分配";
             }
         }
     }

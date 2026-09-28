@@ -18,7 +18,8 @@ namespace XianXia.Data.Content
             "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
             "hometown", "reputation", "goals", "desires",
             "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds",
-            "tradeProviderShopId", "auctionProviderHouseId", "homeWorkAreaId", "defeatEncounterId", "defaultFactionId", "defaultFactionRole"
+            "tradeProviderShopId", "auctionProviderHouseId", "homeWorkAreaId", "defeatEncounterId", "defaultFactionId", "defaultFactionRole",
+            "initialLoyalty", "initialMortalProfession"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)

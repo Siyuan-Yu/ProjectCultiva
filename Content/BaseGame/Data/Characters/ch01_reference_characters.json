@@ -296,6 +296,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿石",
+      "initialMortalProfession": "Unassigned",
       "baseAttributes": {
         "MaxHp": 90,
         "Physique": 9,
@@ -369,6 +370,8 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿土",
+      "initialLoyalty": 60,
+      "initialMortalProfession": "Farmer",
       "baseAttributes": {
         "MaxHp": 92,
         "Physique": 9,
@@ -442,6 +445,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿禾",
+      "initialMortalProfession": "Farmer",
       "baseAttributes": {
         "MaxHp": 88,
         "Physique": 8,
@@ -515,6 +519,8 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿青",
+      "initialLoyalty": 10,
+      "initialMortalProfession": "Unassigned",
       "baseAttributes": {
         "MaxHp": 95,
         "Physique": 9,
@@ -588,6 +594,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿兰",
+      "initialMortalProfession": "HerbFarmer",
       "baseAttributes": {
         "MaxHp": 93,
         "Physique": 9,
@@ -661,6 +668,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿杏",
+      "initialMortalProfession": "Medic",
       "baseAttributes": {
         "MaxHp": 91,
         "Physique": 9,
@@ -734,6 +742,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿木",
+      "initialMortalProfession": "Logger",
       "baseAttributes": {
         "MaxHp": 100,
         "Physique": 10,
@@ -807,6 +816,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿柴",
+      "initialMortalProfession": "Logger",
       "baseAttributes": {
         "MaxHp": 98,
         "Physique": 9,
@@ -880,6 +890,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿枝",
+      "initialMortalProfession": "Logger",
       "baseAttributes": {
         "MaxHp": 96,
         "Physique": 9,

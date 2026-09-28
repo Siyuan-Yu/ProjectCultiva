@@ -593,4 +593,11 @@ Snapshot v11 的 `contentProgress.questCompanions` 必备数组包含 `companion
 
 Snapshot v13 的 `commerce.auctionHouses[]` 保存 `auctionHouseId`、`nextListingSequence`、`nextClaimSequence`、`houseWallet`、`listings[]` 与 `claims[]`。Listing 保存稳定 identity、seller/bidder、item/quantity、单一 grade、起拍／当前价、player escrow、created/end/review tick 与 status；Claim 保存 WonItem／UnsoldItem、quantity、SourceListingId 与 created tick。UInt64 使用十进制字符串。v1～v12 严格拒绝；Restore 不重放 InitialListings、扣款、退款、寄拍移物、结算或 Claim。
 
+## CIVILIAN-LIFE-01：Character / Resource 与 Snapshot v14
+
+- `character.initialLoyalty`：所有 Character 对起始 Faction 的忠诚种子，可选整数 0–100，省略为 50；Faction=None 时不生成有效 Loyalty，后续无显式值的势力转移使用该种子。
+- `character.initialMortalProfession`：可选 `Unassigned|Farmer|HerbFarmer|Logger|Medic`，省略为 `Unassigned`；运行后以 Character 的 civilian state 为 authority。
+- `resource.tags[]`：进入 InventoryCatalog 的显式分类；凡人食物必须含 `food`，不得按显示名判断。
+- Snapshot v14 在 Entity DTO 保存 Satiety/Energy/Profession/Activity/Disposition、Faction Membership 与 `initialLoyalty` 种子、Residence/CurrentSite、睡眠、逃亡目标与起始 tick、Carrier、Detained Residence、照料事实、最后更新时间和 pending capture carrier；顶层 `characterFactionLoyalties[]` 保存 CharacterEntityId/FactionId/Loyalty，另保存 Residence usage。Restore 严格验证 loyalty 唯一、范围及与当前 membership 一致；v1～v13 和缺少该 authority 的 interim v14 严格拒绝。
+
 AUCTION-01 状态：**Producer Accepted / Sealed（2026-09-27）**。Future AUCTION-02 才可能扩展真实 NPC bidder、动态拍品与复杂市场行为。

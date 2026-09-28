@@ -91,6 +91,9 @@ namespace XianXia.Core.Entities
             return component;
         }
 
+        public bool RemoveComponent<T>() where T : class, IComponent =>
+            _components.Remove(typeof(T));
+
         public IEnumerable<IComponent> Components => _components.Values;
     }
 }

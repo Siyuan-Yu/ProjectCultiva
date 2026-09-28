@@ -141,7 +141,7 @@ namespace XianXia.Unity.Host
                     continue;
                 if (life.IsIncapacitated &&
                     CombatLifeStateService.TryConfirmDeath(
-                        world, EntityId.None, entity, out var confirmed) && confirmed)
+                        world, EntityId.None, entity, DeathConfirmationReason.Debug, out var confirmed) && confirmed)
                     killed++;
                 else if (life.IsDead || life.IsRemoved)
                     killed++;

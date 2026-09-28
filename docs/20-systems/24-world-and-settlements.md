@@ -159,7 +159,7 @@ World
 
 每个凡人都是持久 Character，住房占用、需求、职业、势力与战后状态逐人保存；人口与岗位数字只从人物状态派生。Residence 使用真实容量和人物分配，不允许用“一栋房屋容量 500、当前 420”的匿名人口替代实际居民。
 
-CIVILIAN-LIFE-01 当前仅完成设计冻结，尚未修改 Runtime／Snapshot；详细规则见 `27-characters-and-population.md`、[267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md) 与 ADR-0044。
+CIVILIAN-LIFE-01 已完成 Runtime、UI、Content 与 Snapshot v14 接线，状态 **Implementation Complete / Producer Acceptance Pending**；详细规则见 `27-characters-and-population.md`、[267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md) 与 ADR-0044。
 
 ### 4.6 NPC 数据
 

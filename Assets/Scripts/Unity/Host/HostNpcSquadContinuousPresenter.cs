@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -46,6 +47,9 @@ namespace XianXia.Unity.Host
                     if (world.Strategic.PlayerPartyContext?.IsMember(id) == true ||
                         !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id) ||
                         ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) ||
+                        (world.Civilians.TryGet(id, out var civilian) &&
+                         (civilian.Disposition == CivilianDisposition.CapturedEscorted ||
+                          MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, id, civilian))) ||
                         !runtime.TryResolveSquadMemberPresentationPosition(squad, pair.Value, slot, null, out var presentation) ||
                         !_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null) continue;
                     view.transform.position = presentation;

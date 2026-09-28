@@ -163,7 +163,8 @@ namespace XianXia.Core.Combat
 
             if (defender.TryGet<LifecycleComponent>(out var defLife) && defLife.IsIncapacitated)
             {
-                if (CombatLifeStateService.TryConfirmDeath(world, attackerId, defender, out defenderDefeated))
+                if (CombatLifeStateService.TryConfirmDeath(
+                        world, attackerId, defender, DeathConfirmationReason.FinishingStrike, out defenderDefeated))
                     damageApplied = Math.Max(1, damageOverride >= 0 ? damageOverride : 1);
                 return Result.Success();
             }

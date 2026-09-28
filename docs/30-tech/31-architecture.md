@@ -2,7 +2,7 @@
 
 ## AUCTION-01 authority 与 Save/Load（2026-09-25）
 
-当前 Snapshot v13，严格拒绝 v1～v12。`CommerceState.AuctionHouses` 深拷贝并在 commerce JSON 中保存 HouseWallet、sequence、Listings、Claims；静态 definitions/providers 排除在快照外。New Game 初始化拍品；Restore 只重新绑定并验证，保留 escrow 与 settlement status。WorldTick 每 tick 驱动 review/settlement，Capture 前执行同一 reconciliation。AUCTION-01 已 **Producer Accepted / Sealed**；详见 [ADR-0043](../40-process/43-decisions/ADR-0043-auction-house-escrow-and-snapshot-v13.md)。
+当前 Snapshot v14，严格拒绝 v1～v13。`CommerceState.AuctionHouses` 继续保存 HouseWallet、sequence、Listings、Claims；新增每个真实凡人的 needs/profession/loyalty/disposition/escape/escort/detention/care authority 与 Residence usage。Restore 校验 0–100 数值、enum 与 Entity 引用，不重放 CharacterDefinition 初值。AUCTION-01 已 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Implementation Complete / Producer Acceptance Pending**。
 
 ## SHOP-TRADE-01 经济状态与 Save/Load（2026-09-25）
 
@@ -111,6 +111,8 @@ XianXia.Tests/       针对 Core 的单元测试
 - 旧 wire key、数值空洞与历史 DTO 可用于明确拒绝和离线识别；不得为它们重新增加 runtime enum 成员、Hex 几何依赖或 compatibility adapter。
 
 ## 7. 当前 Snapshot 与内容状态边界
+
+- Snapshot v14 的势力忠诚 authority 是顶层 `characterFactionLoyalties[]`（CharacterEntityId、FactionId、Loyalty）；`MortalCivilianBoard` 仅存凡人需求、职业及处境。Entity DTO 的 `initialLoyalty` 只是定义种子。Restore 要求每个当前有势力的 Character 恰有一条势力匹配的忠诚记录；未封板 interim v14 缺字段时拒绝，不升级 schema v15。
 
 - 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
 - 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity（含动态对象稳定身份、精确坐标与发现状态）与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。

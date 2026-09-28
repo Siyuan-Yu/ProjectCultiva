@@ -1,5 +1,67 @@
 # 开发日志
 
+## 2026-09-28 — CIVILIAN-LIFE-01 P1 人物接近、逃亡与需求移动收尾
+
+- 右键 Talk/Trade/Auction/Attack/Recruit/Capture/Release/Execute 统一接入 person approach。Attack/Capture 使用带冷却的移动目标 pursuit；主控到达范围后才重新校验并进入 Encounter 或写 capture request。Recruit 到达后执行 5 秒非缩放、可取消的轻交互。
+- ManualPaused 仍接收有效世界命令并由成功命令解除；ModalHardPaused 保持硬门禁。Flee 保存来源 Site，使用八个确定性出口和正式 MovementIntent/Host A* 移动，失败轮换出口，真实越界后才 Displaced；buffer 修正为 3 个 Surface 导航格。
+- StorageRoom 增加八个 footprint-derived access slots，食物移动按 EntityId 分散并在 Host path failure 后轮换。返家失败沿用 Ground Sleep fallback。LevelTester diagnostics 增加 person action、招募剩余、storage/flee 路径和生命状态；新增 Supervisor Life 恢复入口。
+- 生命周期禁止同一伤害从 Alive 直接进入 Dead，新增 death confirmation reason 与 transition diagnostics。CharacterEncounter 将战术时间和非缩放生命倒计时分离，修复 20x 下弥留/尸体秒数被加速。
+- 荒村 `place_wall_040130496` 由 4 格缩为 3 格以恢复巡卫住房门洞；基于正式 geography、site placement 和 center-raster blocker 的离线扫描确认居民至储藏室、住房至外部/田地/伐木区及 8 个逃亡出口连通。
+- Core、Data、Unity、Unity Editor、Assembly-CSharp、Assembly-CSharp-Editor 离线编译通过；未启动 Unity、PlayMode、Runner，未运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 P1 食宿动作闭环、失败处理与地图可达性
+
+- 依据当前仓库、制作人提供的问题代码事实及 `Content.zip` 定位四个根因：无粮 `FetchFood` 没有稳定失败态、返家途中已按床上睡眠结算、Core 替换 intent 后 Host 旧路径仍可继续、`BlockWorldInteraction` 把自治移动与玩家输入一起冻结；荒村 guard housing 门洞的 authored/baked 墙体还实际封闭 walk grid。
+- Food Fetch 增加显式阶段、条件变化/8 tick 有界重试、抵达后二次校验与单次原子扣粮；极低 Energy 优先就地睡眠。睡眠拆分返家、床上睡眠和就地睡眠，只有真实抵达才恢复 Energy；v14 追加睡眠阶段字段而不升级 schema，Food Fetch 仍按正式状态读档重评估。
+- MovementIntent 增加 revision 与 Host path request/accept/failure feedback；Host 对取消或替换的 civilian intent 终止旧路径。暂停语义不变，人物菜单只屏蔽玩家输入；civilian local 移动的实际位置写回 WorldPresence，静态 resident squad 不再覆盖，PlayerParty／Encounter／SeparateSpace／真实 squad 路线保持优先。
+- 荒村 `place_wall_040130496` 在 source blueprint 与 baked surface 同步由 4 cells 缩至 3 cells。离线 walk-grid 复算确认 `(246,443)` 解除阻挡，3 名 guard 到 StorageRoom 从不可达变为 39/42/43 格，外部到 guard housing 从不可达变为 21 格，farmer 与普通住房原路径保持。
+- LevelTester 新增 `准备食宿 A：有粮取食`、`准备食宿 B：正常回床`、`准备食宿 C：紧急睡眠`、`准备食宿 D：无粮且极低精力`，并补实际位置、阶段、intent revision、Host path、grid、WorldTick 与 pause 诊断。全程序集离线编译 `ALL_OK`；JSON、静态引用和 `git diff --check` 见最终交付。未启动 Unity／PlayMode／Runner，未运行或新增测试，状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 P1 Physical Food Fetch Final Fix
+
+- 查明第二个运行阻断：singleton resident NPC 的静态 `SquadWorldMotion` 因 `HasPosition` 被 Core、Host 与 squad presenter 同时视为持续 owner，导致 FetchFood intent 无人消费或人物每 tick 被写回 anchor。新增统一 `MortalCivilianMovementAuthority`，只让真实活动战略路线和多成员 FollowLeader follower 压过 civilian local movement；PlayerParty、Encounter、SeparateSpace 边界保持。
+- `HostNpcScheduleMover` 与 `HostNpcSquadContinuousPresenter` 共用该 resolver；静态 squad 不再挡住或覆盖 managed mortal。建设工人选择同步使用同一规则。StorageRoom derived runtime 保存 authored／constructed footprint，FetchFood 固定解析最近外围访问点后交给既有 walk-grid 小范围 snap，到达时才扣 SitePublicStock。
+- LevelTester 增加 movement owner、Squad motion 与 FoodFetch center／access 全链诊断。Core／Data／Unity／Editor 离线编译 `ALL_OK`；未启动 Unity／PlayMode／Runner，未运行自动测试。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 P1 Managed Mortal MovementIntent Host Bridge
+
+- 修正 managed mortal 已进入 FetchFood 但被旧 `HostFarmFieldLabor.IsFarming` gate 静默跳过的问题。HostNpcScheduleMover 现在同帧释放 stale NPC-schedule farm ownership，再继续消费当前 Core MovementIntent。
+- 新增只释放农田 reservation／表现 path／worker 的接口，不清 Core intent；HostFarmFieldLabor 对 managed mortal 禁止回退残留 WorkAction／Schedule。当时仍以 StorageRoom center 经 `SnapGoalToWalkable` 求目标；本页上一条 Final Fix 已用 footprint 外围 access point 取代该中心目标。Core pickup 继续以 exact intent 的 HostArrived 为准。
+- LevelTester 增加 MovementIntent 与 Host ownership 诊断。全程序集离线编译 `ALL_OK`；未启动 Unity／PlayMode／Runner，未运行自动测试。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 P1 Physical Food Fetch / Formal Work UI
+
+- 普通自由凡人饥饿从远程扣粮改为 `FetchFood → StorageRoom → arrival-time atomic SitePublicStock removal → Eat`；无储藏室、无粮、无权限或不可达时保持饥饿并输出诊断。Detained 与 PlayerParty 原供给分支保持。
+- 正式 HUD 增加常驻“工作”入口与当前 Site 人员面板，统一显示职业、真实 Activity、Schedule Phase、Needs、Faction Loyalty 和管理理由；职业写入仍只经 `MortalCivilianService.SetProfession`。紧凑卡和头顶状态改读 civilian Activity。
+- 职业目标限定当前 Site、Site owner/faction 与 tag；樵夫先路由本地林区。荒村为阿石／阿青、阿土／阿禾、阿兰、阿杏、阿木／阿柴／阿枝分别配置 Unassigned、Farmer、HerbFarmer、Medic、Logger。
+- Snapshot v14 不变，取食行程为可重评估瞬态。全程序集离线编译 `ALL_OK`，未启动 Unity／PlayMode／Runner，未运行自动测试。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 P1 Character Faction Loyalty
+
+- Loyalty 原只在 MortalCivilianState，现改为 CharacterId + 当前 FactionId 的 `CharacterFactionLoyaltyLedger`；所有有势力 Character 适用，无势力不生成有效值。`initialLoyalty` 由 CharacterDefinition 传入成员种子，New Game／动态 NPC squad bootstrap 建立记录；势力改变时旧值失效，CIVILIAN 招降明确设新势力 50。
+- 占领分流、拘留日结、招募阈值、人事 UI、人物概况与 LevelTester 改读单一 authority。Snapshot v14 顶层保存忠诚条目，Entity DTO 不再保存 MortalLoyalty；Restore 验证唯一性、范围和 Membership 一致，拒绝缺字段的未封板 interim v14。阿青 10／阿土 60 的 Content 保持原样。
+- Core／Data／Unity／Editor 离线编译和静态检查通过；未启动 Unity／PlayMode／Runner，未运行自动测试。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 Final Gap Closure
+
+- Rescue 从原地恢复改为真实 Character 搬运：同 Site 同势力伤员预订、Host 寻路接触、WorldPresence 随搬运者移动、恢复处／SiteCore 安全点放下；死亡、Encounter 与需求打断安全放下。非 Medic 负责救援，Medic 才在安全点调用正式弥留恢复。
+- 正式建筑 UI 在己方 Site 有待命凡人和本地公共材料时创建建设工单。Haul 从 Site PublicStock 扣材至工单 transport payload，送达后转 delivered escrow；工人贡献劳动，再由 ConstructionService 复用原授权、几何与建筑注册路径完成，不重复扣材。现有势力旗拆除可由工人劳动后调用原 `TryDismantleFactionFlag`；当前无正式 Repair 或普通建筑拆除 authority。
+- Snapshot v14 增加建设工单、送材／托运／进度；Rescue 搬运关系为可重评估瞬态，两个 Character 的 WorldPresence 始终是真源。LevelTester 加入 Rescue 与 Site 建设材料／待命工人入口。离线 C# 编译 `ALL_OK`，`git diff --check` 无错误；未启动 Unity、PlayMode、Runner 或自动测试。状态更新为 **Implementation Complete / Producer Acceptance Pending**，仍须制作人人工验收。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 §86–91 补充与状态纠正
+
+- 增加统一 Work/OffDuty faction schedule（08:00–18:00 为集中可调默认值）、OffDuty 返家/Idle；紧急需求与 Rescue 高于排程。确定性食物路径补齐无势力合法住所 food-only、永久 PlayerParty 凡人优先己方 Site PublicStock 后 PartyInventory、囚犯只用拘留 Site PublicStock。
+- 人事面板增加“加入当前小队”；PlayerParty join 对招募凡人复用永久可管理、生命、容量、共处、战斗锁与独立 squad 检查，入队后允许切换 Active。LevelTester 增加 Faction、需求、日程、处置、居所、押送、永久可管理与入队状态诊断。
+- 对照制作人 §89 完成门槛，发现 Rescue 仍是原地恢复、Haul/Construction 只有 LocationLabor 数值而无真实事务和验收目标。前条日志的 Implementation Complete 判定被本条纠正为 **Implementation Incomplete / Producer Acceptance Pending**；未启动 Unity/PlayMode/Runner，未运行自动测试，离线 C# compile `ALL_OK`。
+
+## 2026-09-27 — CIVILIAN-LIFE-01 Implementation
+
+- 新增 `MortalCivilianBoard`／`MortalActivityEvaluator`，以真实 Character EntityId 保存并驱动 Satiety、Energy、Loyalty、Profession、Activity 与单一 CivilianDisposition；普通 NPC schedule 对已接管凡人让权。
+- 正式 Site 易主事务触发旧势力凡人分流：阿青 Loyalty 10 → SurrenderWaiting；阿土 Loyalty 60 → staggered Fleeing/Displaced。右键招降、释放、Capture Encounter、押送、PrisonerOnly Residence、Detained、照料日结与正式死亡处决已接线；Faction 人事 UI 可单选职业，招降不自动加入 PlayerParty。
+- 食物使用显式 `food` tag 并原子消耗 Site PublicStock。Farmer/HerbFarmer/Logger 使用现有 WorkArea、MovementIntent、LocationLabor 与公共库存产物；Medic/Rescue 使用现有 Combat life/recovery authority。
+- Snapshot 升至 v14，保存民生、工作、逃亡、押送、拘留、每日照料与 Residence usage，v1-v13 严格拒绝。BaseGame 设置阿青 10/Unassigned、阿土 60/Farmer；LevelTester 增加定位、粮食、需求、拘留忠诚、Reset 与诊断入口。
+- 全程序集 offline compile `ALL_OK`；编译后的 `ContentPackageLoader.Load(Content/BaseGame)` 与引用校验实际通过（36 Characters／4 Resources／18 WorkAreas／1 Surface），阿青/阿土初值与 grain `food` tag 读取正确；未启动 Unity、PlayMode 或 Runner，未运行或新增测试。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-27 — SEAL AUCTION-01 / FREEZE CIVILIAN-LIFE-01 DESIGN
 
 - 制作人人工验收确认指定 AuctionProvider、同档 bid escrow、Market 超价完整退款、寄拍物品托管、禁止竞拍自己的 Listing、一次性成交／流拍、WonItem／UnsoldItem Claim、领取与 Save／Load exactly-once 均正常，SHOP-TRADE-01 无明显回归。
@@ -5411,3 +5473,11 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 新增 `PlayerSuccessionResolved` transient toast、明确无候选 HUD 文案，以及 LevelTester 战斗页的 A/B 候选准备与正式生命周期全灭入口。
 - Snapshot 继续为 v8；成功态由既有 PlayerParty/Squad/Motion/Presence 字段完整表达，AwaitingSuccession 在 content/world shell 完成后重试。
 - `tools/offline-compile.ps1` 全程序集 `ALL_OK`；按仓库 `AGENTS.md` 禁令未新增或运行自动测试，未启动 Unity／PlayMode／batchmode。改动未暂存、未提交、未推送。
+
+## 2026-09-28 — CIVILIAN-LIFE-01 P1 逃亡速度与据点守军战斗闭环（待制作人验收）
+
+- `MovementIntent` 增加 transient per-move 速度倍率；凡人逃亡使用正常 Local movement 的 `0.2`，其它移动默认 `1.0`，Host 在路径完成、取消、替换与 presentation reset 时清理倍率。
+- 据点战内右键敌对 participant 直接切换 `CharacterEncounter` tactical target，不再创建会被 encounter spatial authority 正确拒绝的 world approach；建筑 Objective 保留，现有 core assault 在人物 target 生效时停止。
+- 荒村正式驻军 squad 补入巡卫甲／乙／丙；据点战按 Site／frozen field、阵营、生命与正式非 singleton squad 稳定去重收集守军，并将额外 squad 加入同一 Objective encounter。
+- 头顶、紧凑 HUD 与人物详情共用 activity resolver：生命状态优先，其次 active encounter／Separate Space 本地战斗，再到凡人活动、Action、Schedule 与 idle。LevelTester 增加移动倍率、Host 实际速度和 Site Encounter roster／TargetId 诊断。
+- Core／Data／Unity／Unity.Editor 离线编译通过；`git diff --check` 无 whitespace error。未启动 Unity、PlayMode 或 Runner，未新增或运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。

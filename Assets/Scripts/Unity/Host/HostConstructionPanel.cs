@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Construction;
 using XianXia.Core.Results;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -158,6 +159,9 @@ namespace XianXia.Unity.Host
                 {
                     var cost = spec.Costs[c];
                     var have = ConstructionService.GetAvailableMaterialCount(world, cost.ItemId);
+                    if (ConstructionService.CanUseCivilianSiteMaterials(world, spec) &&
+                        XianXia.Core.Inventory.PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out var laborSite))
+                        have = Mathf.Max(have, WorldSitePublicStockService.GetCount(world, laborSite.SiteId, cost.ItemId));
                     GUI.Label(new Rect(card.x + 12f, materialY, card.width - 150f, 20f),
                         world.InventoryCatalog.GetName(cost.ItemId) + "  " + have + " / " + cost.Count +
                         (have >= cost.Count ? "  ✓" : "  ✕"), _small);
@@ -167,7 +171,8 @@ namespace XianXia.Unity.Host
                     GUI.Label(new Rect(card.x + 12f, card.yMax - 42f, card.width - 140f, 22f),
                     "拆除返还：" + Mathf.FloorToInt(spec.DismantleRefundRate * 100f) + "%", _small);
 
-                var canBuild = ConstructionService.HasRequiredMaterials(world, spec, out _);
+                var canBuild = ConstructionService.HasRequiredMaterials(world, spec, out _) ||
+                               ConstructionService.CanUseCivilianSiteMaterials(world, spec);
                 GUI.enabled = canBuild;
                 if (GUI.Button(new Rect(card.xMax - 116f, card.yMax - 48f, 100f, 34f),
                         canBuild ? "建造" : "材料不足"))

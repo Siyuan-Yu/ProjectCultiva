@@ -5,6 +5,7 @@ using System.Linq;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
@@ -14,6 +15,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Inventory;
 using XianXia.Core.Labor;
+using XianXia.Core.Npc;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
@@ -62,6 +64,7 @@ namespace XianXia.Core.Persistence
         {
             // Reconcile every due auction before its authoritative state is captured.
             AuctionHouseService.ProcessDue(world);
+            CharacterFactionLoyaltyService.EnsureAll(world);
             var random = world.Random.CaptureState();
             var snap = new WorldSnapshot
             {
@@ -213,6 +216,7 @@ namespace XianXia.Core.Persistence
                 {
                     dto.FactionId = factionMem.FactionId ?? string.Empty;
                     dto.FactionRole = (int)factionMem.Role;
+                    dto.InitialLoyalty = factionMem.InitialLoyalty;
                 }
 
                 if (entity.TryGet<CombatVitalsComponent>(out var vitals) && vitals != null)
@@ -244,8 +248,39 @@ namespace XianXia.Core.Persistence
                         dto.PersonalityTags.Add(tag);
                 }
 
+                if (world.Civilians.TryGet(entity.Id, out var civilian))
+                {
+                    dto.HasMortalCivilian = true;
+                    dto.MortalSatiety = civilian.Satiety; dto.MortalEnergy = civilian.Energy;
+                    dto.MortalProfession = (int)civilian.Profession; dto.MortalActivity = (int)civilian.Activity;
+                    dto.CivilianDisposition = (int)civilian.Disposition;
+                    dto.MortalResidenceWorkAreaId = civilian.ResidenceWorkAreaId; dto.MortalCurrentSiteId = civilian.CurrentSiteId;
+                    dto.MortalLastUpdateTick = civilian.LastUpdateTick; dto.MortalSleepStartedTick = civilian.SleepStartedTick;
+                    dto.MortalSleepPhase = (int)civilian.SleepPhase;
+                    dto.MortalFleeStartedTick = civilian.FleeStartedTick; dto.MortalHasFleeTarget = civilian.HasFleeTarget;
+                    dto.MortalFleeTargetX = civilian.FleeTargetX; dto.MortalFleeTargetY = civilian.FleeTargetY;
+                    dto.MortalFleeSourceSiteId = civilian.FleeSourceSiteId;
+                    dto.MortalFleeCandidateIndex = civilian.FleeCandidateIndex;
+                    dto.MortalFleeAttemptCount = civilian.FleeAttemptCount;
+                    dto.MortalCarrierId = civilian.CarrierId.Value;
+                    dto.MortalDetainedResidenceWorkAreaId = civilian.DetainedResidenceWorkAreaId;
+                    dto.MortalCareDayIndex = civilian.CareDayIndex; dto.MortalAteToday = civilian.AteToday; dto.MortalSleptToday = civilian.SleptToday;
+                    dto.MortalLastWorkOutputTick = civilian.LastWorkOutputTick;
+                    dto.MortalPendingCaptureCarrierId = civilian.PendingCaptureCarrierId.Value;
+                }
+
                 snap.Entities.Add(dto);
             }
+
+            foreach (var entry in world.FactionLoyalties.Entries)
+                snap.CharacterFactionLoyalties.Add(new CharacterFactionLoyaltySnapshotDto {
+                    CharacterEntityId = entry.CharacterId.Value,
+                    FactionId = entry.FactionId,
+                    Loyalty = entry.Loyalty
+                });
+
+            foreach (var usage in world.Civilians.ResidenceUsages)
+                snap.CivilianResidenceUsages.Add(new CivilianResidenceUsageSnapshotDto { WorkAreaId = usage.Key, Usage = (int)usage.Value });
 
             foreach (var kv in world.Schedules)
             {
@@ -359,6 +394,7 @@ namespace XianXia.Core.Persistence
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
             CaptureOutdoorStatefulObjects(world, snap);
+            CaptureCivilianConstructionJobs(world, snap);
             CaptureWorldOpportunities(world, snap);
             CaptureWorldActivities(world, snap);
             snap.Commerce = world.Commerce.Capture();
@@ -503,6 +539,29 @@ namespace XianXia.Core.Persistence
                 { StableCellId = kv.Key, CropId = kv.Value.CropId, CropStage = kv.Value.CropStage, Growth = kv.Value.Growth });
         }
 
+        static void CaptureCivilianConstructionJobs(SimulationWorld world, WorldSnapshot snap)
+        {
+            snap.NextCivilianConstructionJobSequence = world.CivilianConstructionJobs.NextSequence;
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+            {
+                var dto = new CivilianConstructionJobSnapshotDto {
+                    JobId = job.JobId, BuildingId = job.BuildingId,
+                    DemolitionFlagId = job.DemolitionFlagId, SiteId = job.SiteId,
+                    FactionId = job.FactionId, SurfaceId = job.SurfaceId,
+                    WorldX = job.WorldX, WorldY = job.WorldY,
+                    LaborProgress = job.LaborProgress, LastLaborTick = job.LastLaborTick,
+                    CarrierId = job.CarrierId.Value, PayloadItemId = job.PayloadItemId,
+                    PayloadCount = job.PayloadCount
+                };
+                for (var i = 0; i < job.Required.Count; i++)
+                    dto.Required.Add(new ConstructionMaterialSnapshotDto {
+                        ItemId = job.Required[i].ItemId, Count = job.Required[i].Count });
+                foreach (var row in job.Delivered)
+                    dto.Delivered.Add(new ConstructionMaterialSnapshotDto { ItemId = row.Key, Count = row.Value });
+                snap.CivilianConstructionJobs.Add(dto);
+            }
+        }
+
         static void CaptureSocialBonds(SimulationWorld world, WorldSnapshot snap)
         {
             if (world?.SocialBonds == null || snap == null)
@@ -536,11 +595,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV12)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV13)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v12 saves lack current auction authority. Start a new game (schema v13 required).",
+                    "Schema v1-v13 saves lack current civilian-life authority. Start a new game (schema v14 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -550,6 +609,9 @@ namespace XianXia.Core.Persistence
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotInvalid,
                     "Snapshot entity authority is missing.");
+            var snapshotEntityIds = new HashSet<ulong>(snap.Entities.Where(x => x != null).Select(x => x.Id));
+            if (snapshotEntityIds.Count != snap.Entities.Count)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot contains duplicate or null entity identity.");
             for (var i = 0; i < snap.Entities.Count; i++)
             {
                 var entity = snap.Entities[i];
@@ -558,7 +620,68 @@ namespace XianXia.Core.Persistence
                         ErrorCode.SnapshotInvalid,
                         "Snapshot lacks current EntityLocation authority and requires offline conversion.",
                         "EntityIndex=" + i + " EntityId=" + (entity?.Id ?? 0UL));
+                if (entity.HasMortalCivilian &&
+                    (entity.MortalSatiety < 0 || entity.MortalSatiety > 100 ||
+                     entity.MortalEnergy < 0 || entity.MortalEnergy > 100 ||
+                     !Enum.IsDefined(typeof(MortalProfession), entity.MortalProfession) ||
+                     !Enum.IsDefined(typeof(MortalActivity), entity.MortalActivity) ||
+                     !Enum.IsDefined(typeof(CivilianSleepPhase), entity.MortalSleepPhase) ||
+                     !Enum.IsDefined(typeof(CivilianDisposition), entity.CivilianDisposition) ||
+                     entity.MortalCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalCarrierId) ||
+                     entity.MortalPendingCaptureCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalPendingCaptureCarrierId) ||
+                     entity.CivilianDisposition == (int)CivilianDisposition.CapturedEscorted && entity.MortalCarrierId == 0 ||
+                     entity.CivilianDisposition == (int)CivilianDisposition.Detained && string.IsNullOrWhiteSpace(entity.MortalDetainedResidenceWorkAreaId) ||
+                     entity.CivilianDisposition == (int)CivilianDisposition.Fleeing &&
+                         (!entity.MortalHasFleeTarget || string.IsNullOrWhiteSpace(entity.MortalFleeSourceSiteId) ||
+                          entity.MortalFleeCandidateIndex < 0 || entity.MortalFleeCandidateIndex >= 8 || entity.MortalFleeAttemptCount < 0 ||
+                          float.IsNaN(entity.MortalFleeTargetX) || float.IsInfinity(entity.MortalFleeTargetX) ||
+                          float.IsNaN(entity.MortalFleeTargetY) || float.IsInfinity(entity.MortalFleeTargetY))))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Invalid CIVILIAN-LIFE-01 entity state.", "EntityId=" + entity.Id);
             }
+            if (snap.CharacterFactionLoyalties == null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                    "Character faction loyalty authority is missing.");
+            var loyaltyByCharacter = new Dictionary<ulong, CharacterFactionLoyaltySnapshotDto>();
+            foreach (var loyalty in snap.CharacterFactionLoyalties)
+            {
+                if (loyalty == null || loyalty.CharacterEntityId == 0 ||
+                    !snapshotEntityIds.Contains(loyalty.CharacterEntityId) ||
+                    string.IsNullOrWhiteSpace(loyalty.FactionId) || loyalty.Loyalty < 0 || loyalty.Loyalty > 100 ||
+                    loyaltyByCharacter.ContainsKey(loyalty.CharacterEntityId))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Invalid or duplicate character faction loyalty entry.");
+                loyaltyByCharacter.Add(loyalty.CharacterEntityId, loyalty);
+            }
+            foreach (var entity in snap.Entities)
+            {
+                if (entity.InitialLoyalty < 0 || entity.InitialLoyalty > 100 ||
+                    !Enum.IsDefined(typeof(FactionRoleKind), entity.FactionRole))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Invalid character faction seed or role.", "EntityId=" + entity.Id);
+                var affiliated = !string.IsNullOrWhiteSpace(entity.FactionId) &&
+                    entity.FactionRole != (int)FactionRoleKind.None;
+                if (affiliated != loyaltyByCharacter.TryGetValue(entity.Id, out var loyalty) ||
+                    affiliated && !string.Equals(loyalty.FactionId, entity.FactionId, StringComparison.Ordinal))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Character faction loyalty does not match current membership.", "EntityId=" + entity.Id);
+            }
+            if (snap.CivilianResidenceUsages == null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Civilian residence usage authority is missing.");
+            var residenceUsageIds = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < snap.CivilianResidenceUsages.Count; i++)
+                if (snap.CivilianResidenceUsages[i] == null || string.IsNullOrWhiteSpace(snap.CivilianResidenceUsages[i].WorkAreaId) ||
+                    !Enum.IsDefined(typeof(ResidenceUsage), snap.CivilianResidenceUsages[i].Usage) ||
+                    !residenceUsageIds.Add(snap.CivilianResidenceUsages[i].WorkAreaId))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid civilian residence usage.");
+            var prisonerResidences = new HashSet<string>(snap.CivilianResidenceUsages
+                .Where(x => x != null && x.Usage == (int)ResidenceUsage.PrisonerOnly)
+                .Select(x => x.WorkAreaId), StringComparer.Ordinal);
+            foreach (var entity in snap.Entities)
+                if (entity.HasMortalCivilian && entity.CivilianDisposition == (int)CivilianDisposition.Detained &&
+                    !prisonerResidences.Contains(entity.MortalDetainedResidenceWorkAreaId))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Detained civilian lacks PrisonerOnly residence authority.", "EntityId=" + entity.Id);
 
             if (!string.IsNullOrEmpty(expectedPackageVersion) &&
                 !string.Equals(snap.EnabledPackageVersion, expectedPackageVersion, StringComparison.Ordinal))
@@ -773,7 +896,7 @@ namespace XianXia.Core.Persistence
                 entity.AddComponent(known);
                 entity.AddComponent(new PersonalConcealmentRiskComponent { Value = e.PersonalConcealmentRisk });
 
-                var faction = new FactionMembershipComponent();
+                var faction = new FactionMembershipComponent { InitialLoyalty = e.InitialLoyalty };
                 if (!string.IsNullOrEmpty(e.FactionId))
                     faction.Assign(e.FactionId, (FactionRoleKind)e.FactionRole);
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -835,7 +958,44 @@ namespace XianXia.Core.Persistence
 
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
+                if (e.HasMortalCivilian)
+                {
+                    var civilian = world.Civilians.GetOrCreate(entity.Id);
+                    civilian.Satiety = e.MortalSatiety; civilian.Energy = e.MortalEnergy;
+                    civilian.Profession = (MortalProfession)e.MortalProfession; civilian.Activity = (MortalActivity)e.MortalActivity;
+                    civilian.Disposition = (CivilianDisposition)e.CivilianDisposition;
+                    civilian.ResidenceWorkAreaId = e.MortalResidenceWorkAreaId ?? string.Empty;
+                    civilian.CurrentSiteId = e.MortalCurrentSiteId ?? string.Empty;
+                    civilian.LastUpdateTick = e.MortalLastUpdateTick; civilian.SleepStartedTick = e.MortalSleepStartedTick;
+                    civilian.SleepPhase = (CivilianSleepPhase)e.MortalSleepPhase;
+                    civilian.FleeStartedTick = e.MortalFleeStartedTick; civilian.HasFleeTarget = e.MortalHasFleeTarget;
+                    civilian.FleeTargetX = e.MortalFleeTargetX; civilian.FleeTargetY = e.MortalFleeTargetY;
+                    civilian.FleeSourceSiteId = e.MortalFleeSourceSiteId ?? string.Empty;
+                    civilian.FleeCandidateIndex = e.MortalFleeCandidateIndex;
+                    civilian.FleeAttemptCount = e.MortalFleeAttemptCount;
+                    civilian.CarrierId = new EntityId(e.MortalCarrierId);
+                    civilian.DetainedResidenceWorkAreaId = e.MortalDetainedResidenceWorkAreaId ?? string.Empty;
+                    civilian.CareDayIndex = e.MortalCareDayIndex; civilian.AteToday = e.MortalAteToday; civilian.SleptToday = e.MortalSleptToday;
+                    civilian.LastWorkOutputTick = e.MortalLastWorkOutputTick;
+                    civilian.PendingCaptureCarrierId = new EntityId(e.MortalPendingCaptureCarrierId);
+                    civilian.Clamp();
+                }
             }
+
+            foreach (var loyalty in snap.CharacterFactionLoyalties)
+                world.FactionLoyalties.Restore(new CharacterFactionLoyaltyEntry {
+                    CharacterId = new EntityId(loyalty.CharacterEntityId),
+                    FactionId = loyalty.FactionId,
+                    Loyalty = loyalty.Loyalty
+                });
+
+            if (snap.CivilianResidenceUsages != null)
+                for (var i = 0; i < snap.CivilianResidenceUsages.Count; i++)
+                {
+                    var usage = snap.CivilianResidenceUsages[i];
+                    if (usage != null && !string.IsNullOrWhiteSpace(usage.WorkAreaId))
+                        world.Civilians.SetResidenceUsage(usage.WorkAreaId, (ResidenceUsage)usage.Usage);
+                }
 
             foreach (var a in snap.ActiveActions)
             {
@@ -970,6 +1130,8 @@ namespace XianXia.Core.Persistence
                 WorldLootPickupService.RestoreTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
+            var jobRestore = RestoreCivilianConstructionJobs(world, snap);
+            if (jobRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(jobRestore.Error);
             RestoreOutdoorStatefulObjects(world, snap);
             var bondRestore = RestoreSocialBonds(world, snap);
             if (bondRestore.IsFailure)
@@ -1270,6 +1432,76 @@ namespace XianXia.Core.Persistence
             }
             return world.OutdoorConstructedAssets.RestoreSequence(snap.NextOutdoorConstructedAssetSequence)
                 ? Result.Success() : Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime constructed asset sequence.");
+        }
+
+        static Result RestoreCivilianConstructionJobs(SimulationWorld world, WorldSnapshot snap)
+        {
+            world.CivilianConstructionJobs.Clear();
+            if (snap.CivilianConstructionJobs == null || snap.NextCivilianConstructionJobSequence < 1)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Civilian construction job authority is invalid.");
+            foreach (var dto in snap.CivilianConstructionJobs)
+            {
+                if (dto == null || string.IsNullOrWhiteSpace(dto.JobId) ||
+                    !dto.JobId.StartsWith("civilian:construction:", StringComparison.Ordinal) ||
+                    !long.TryParse(dto.JobId.Substring("civilian:construction:".Length),
+                        NumberStyles.None, CultureInfo.InvariantCulture, out var jobNumber) ||
+                    jobNumber < 1 || jobNumber >= snap.NextCivilianConstructionJobSequence ||
+                    string.IsNullOrWhiteSpace(dto.BuildingId) || string.IsNullOrWhiteSpace(dto.SiteId) ||
+                    string.IsNullOrWhiteSpace(dto.FactionId) || string.IsNullOrWhiteSpace(dto.SurfaceId) ||
+                    !world.Strategic.Sites.TryGet(dto.SiteId, out _) ||
+                    !string.IsNullOrEmpty(dto.DemolitionFlagId) &&
+                        !world.Strategic.FactionFlags.Flags.ContainsKey(dto.DemolitionFlagId) ||
+                    dto.LaborProgress < 0 || dto.LaborProgress >= CivilianConstructionJobService.RequiredLabor ||
+                    dto.Required == null || dto.Delivered == null || dto.PayloadCount < 0 ||
+                    float.IsNaN(dto.WorldX) || float.IsInfinity(dto.WorldX) ||
+                    float.IsNaN(dto.WorldY) || float.IsInfinity(dto.WorldY) ||
+                    dto.CarrierId != 0 && !world.Entities.TryGet(new EntityId(dto.CarrierId), out _) ||
+                    (dto.CarrierId == 0) != (dto.PayloadCount == 0) ||
+                    (dto.PayloadCount > 0 && string.IsNullOrWhiteSpace(dto.PayloadItemId)))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Civilian construction job invalid.", dto?.JobId);
+                var job = new CivilianConstructionJob {
+                    JobId = dto.JobId, BuildingId = dto.BuildingId,
+                    DemolitionFlagId = dto.DemolitionFlagId ?? string.Empty, SiteId = dto.SiteId,
+                    FactionId = dto.FactionId, SurfaceId = dto.SurfaceId,
+                    WorldX = dto.WorldX, WorldY = dto.WorldY, LaborProgress = dto.LaborProgress,
+                    LastLaborTick = dto.LastLaborTick, CarrierId = new EntityId(dto.CarrierId),
+                    PayloadItemId = dto.PayloadItemId ?? string.Empty, PayloadCount = dto.PayloadCount
+                };
+                foreach (var row in dto.Required)
+                {
+                    if (row == null || string.IsNullOrWhiteSpace(row.ItemId) || row.Count <= 0)
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Construction cost invalid.");
+                    job.Required.Add(new ConstructionMaterialCost { ItemId = row.ItemId, Count = row.Count });
+                }
+                foreach (var row in dto.Delivered)
+                {
+                    if (row == null || string.IsNullOrWhiteSpace(row.ItemId) || row.Count < 0 ||
+                        job.Delivered.ContainsKey(row.ItemId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Construction delivery invalid.");
+                    job.Delivered.Add(row.ItemId, row.Count);
+                }
+                foreach (var delivered in job.Delivered)
+                {
+                    var required = 0;
+                    foreach (var cost in job.Required)
+                        if (cost.ItemId == delivered.Key) required += cost.Count;
+                    if (required == 0 || delivered.Value > required)
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Construction delivery exceeds required materials.");
+                }
+                if (job.PayloadCount > 0)
+                {
+                    var required = 0;
+                    foreach (var cost in job.Required)
+                        if (cost.ItemId == job.PayloadItemId) required += cost.Count;
+                    job.Delivered.TryGetValue(job.PayloadItemId, out var delivered);
+                    if (required == 0 || delivered + job.PayloadCount > required)
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Construction payload exceeds required materials.");
+                }
+                if (!world.CivilianConstructionJobs.Restore(job))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate construction job.", dto.JobId);
+            }
+            world.CivilianConstructionJobs.RestoreSequence(snap.NextCivilianConstructionJobSequence);
+            return Result.Success();
         }
 
         static void RestoreOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)

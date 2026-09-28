@@ -1,6 +1,8 @@
 using UnityEngine;
 using XianXia.Core.Actions;
+using XianXia.Core.Combat;
 using XianXia.Core.Entities;
+using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 
 namespace XianXia.Unity.Host
@@ -33,97 +35,27 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!session.World.Entities.TryGet(view.EntityId, out var entity))
                     continue;
+                var specialActivity = string.Empty;
                 if (bootstrap.BreakthroughRitual != null &&
                     bootstrap.BreakthroughRitual.IsChannelingSubject(view.EntityId))
-                {
-                    view.SetActivityText("冲击瓶颈");
-                    continue;
-                }
-
-                if (bootstrap.SkillStudyRitual != null &&
+                    specialActivity = "冲击瓶颈";
+                else if (bootstrap.SkillStudyRitual != null &&
                     bootstrap.SkillStudyRitual.IsChannelingSubject(view.EntityId))
-                {
-                    view.SetActivityText("参悟中");
-                    continue;
-                }
-
-                if (bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(view.EntityId))
-                {
-                    view.SetActivityText("移动中");
-                    continue;
-                }
+                    specialActivity = "参悟中";
 
                 // 田区农作自管头顶字，勿盖成「发呆中」
                 var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-                if (farm != null && farm.IsFarming(view.EntityId))
+                var melee = bootstrap.GetComponent<HostNpcMeleeAssault>();
+                var resolved = HostCharacterActivityPresentation.Resolve(session, entity,
+                    inLocalCombat: melee != null && melee.IsInFight(view.EntityId),
+                    isMoving: bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(view.EntityId),
+                    specialActivity: specialActivity,
+                    emptyWhenIdle: true);
+                if (farm != null && farm.IsFarming(view.EntityId) &&
+                    resolved != "交战中" && !CombatLifeStateService.IsDown(entity))
                     continue;
-
-                view.SetActivityText(ResolveLabel(session, entity));
+                view.SetActivityText(resolved);
             }
-        }
-
-        static string ResolveLabel(PlayableHostSession session, Entity entity)
-        {
-            if (entity.TryGet<ActionStateComponent>(out var actionState) &&
-                actionState.HasActiveAction &&
-                session.World.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action))
-            {
-                if (action is MoveAction)
-                    return "移动中";
-                if (action is WorkAction work)
-                {
-                    switch (work.Activity)
-                    {
-                        case ScheduleActivity.Rest:
-                        case ScheduleActivity.Eat:
-                            return "休息中";
-                        case ScheduleActivity.Patrol:
-                        case ScheduleActivity.Inspect:
-                            return "巡查中";
-                        case ScheduleActivity.Cultivate:
-                            return "修炼中";
-                        case ScheduleActivity.Idle:
-                            return "发呆中";
-                        default:
-                            return "工作中";
-                    }
-                }
-                if (action is LaborAction)
-                    return "工作中";
-                if (action is CultivateAction)
-                    return "修炼中";
-                if (action is RestAction)
-                    return "休息中";
-                if (action is ObserveAction)
-                    return "观察中";
-                if (action is WaitAction)
-                    return "发呆中";
-                return "行动中";
-            }
-
-            // 己方不跟课表自动走：空闲时不要用课表块冒充「巡视中／工作中」。
-            if ((entity.Tags & EntityTag.Character) != 0)
-                return string.Empty;
-
-            if (entity.TryGet<ScheduleComponent>(out var sched) &&
-                !string.IsNullOrEmpty(sched.DefinitionId) &&
-                session.World.TryGetSchedule(sched.DefinitionId, out var def) &&
-                def.TryResolve(session.World.Tick, out var block))
-            {
-                switch (block.Activity)
-                {
-                    case ScheduleActivity.Labor: return "工作中";
-                    case ScheduleActivity.Rest: return "休息中";
-                    case ScheduleActivity.Eat: return "吃饭中";
-                    case ScheduleActivity.Cultivate: return "修炼中";
-                    case ScheduleActivity.Explore: return "探索中";
-                    case ScheduleActivity.Patrol: return "巡视中";
-                    case ScheduleActivity.Inspect: return "检查中";
-                    case ScheduleActivity.Idle: return "发呆中";
-                }
-            }
-
-            return string.Empty;
         }
     }
 }

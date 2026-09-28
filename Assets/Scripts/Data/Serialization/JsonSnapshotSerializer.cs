@@ -33,6 +33,10 @@ namespace XianXia.Data.Serialization
                 ["nextActionId"] = U(snapshot.NextActionId),
                 ["nextModifierId"] = U(snapshot.NextModifierId),
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
+                ["characterFactionLoyalties"] = JsonValue.FromArray(SerializeCharacterFactionLoyalties(snapshot.CharacterFactionLoyalties)),
+                ["civilianResidenceUsages"] = JsonValue.FromArray(SerializeCivilianResidenceUsages(snapshot.CivilianResidenceUsages)),
+                ["nextCivilianConstructionJobSequence"] = JsonValue.FromString(snapshot.NextCivilianConstructionJobSequence.ToString(CultureInfo.InvariantCulture)),
+                ["civilianConstructionJobs"] = JsonValue.FromArray(SerializeCivilianConstructionJobs(snapshot.CivilianConstructionJobs)),
                 ["activeActions"] = JsonValue.FromArray(SerializeActions(snapshot.ActiveActions)),
                 ["orders"] = JsonValue.FromArray(SerializeOrders(snapshot.Orders)),
                 ["schedules"] = JsonValue.FromArray(SerializeSchedules(snapshot.Schedules)),
@@ -79,7 +83,7 @@ namespace XianXia.Data.Serialization
                 var root = SimpleJson.Parse(json);
                 if (root.GetNumber("schemaVersion") != WorldSnapshot.CurrentSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "Schema v13 required; v1-v12 lack current auction authority. Start a new game.");
+                        "Schema v14 required; v1-v13 lack current civilian-life authority. Start a new game.");
                 var snapshot = new WorldSnapshot
                 {
                     SchemaVersion = (int)root.GetNumber("schemaVersion"),
@@ -103,6 +107,34 @@ namespace XianXia.Data.Serialization
                 {
                     foreach (var e in entities.Array)
                         snapshot.Entities.Add(ReadEntity(e));
+                }
+                if (!root.TryGetProperty("characterFactionLoyalties", out var factionLoyalties) ||
+                    factionLoyalties.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("Snapshot v14 characterFactionLoyalties authority is required.");
+                foreach (var value in factionLoyalties.Array)
+                {
+                    if (value.Kind != JsonValueKind.Object ||
+                        !value.TryGetProperty("characterEntityId", out _) ||
+                        !value.TryGetProperty("factionId", out _) ||
+                        !value.TryGetProperty("loyalty", out _))
+                        throw new System.FormatException("Invalid character faction loyalty entry.");
+                    snapshot.CharacterFactionLoyalties.Add(new CharacterFactionLoyaltySnapshotDto {
+                        CharacterEntityId = ReadU(value, "characterEntityId"),
+                        FactionId = value.GetString("factionId", string.Empty),
+                        Loyalty = (int)value.GetNumber("loyalty")
+                    });
+                }
+                if (!root.TryGetProperty("civilianResidenceUsages", out var residenceUsages) ||
+                    residenceUsages.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("Snapshot v14 civilianResidenceUsages authority is required.");
+                foreach (var usage in residenceUsages.Array)
+                {
+                    if (usage.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid civilian residence usage.");
+                    snapshot.CivilianResidenceUsages.Add(new CivilianResidenceUsageSnapshotDto
+                    {
+                        WorkAreaId = usage.GetString("workAreaId", string.Empty),
+                        Usage = (int)usage.GetNumber("usage")
+                    });
                 }
 
                 if (root.TryGetProperty("activeActions", out var actions) && actions.Kind == JsonValueKind.Array)
@@ -212,6 +244,46 @@ namespace XianXia.Data.Serialization
                             FromEntityId = ReadU(bond, "fromEntityId"),
                             ToEntityId = ReadU(bond, "toEntityId")
                         });
+                    }
+                }
+
+                if (root.TryGetProperty("civilianConstructionJobs", out var civilianJobs))
+                {
+                    if (civilianJobs.Kind != JsonValueKind.Array ||
+                        !root.TryGetProperty("nextCivilianConstructionJobSequence", out var jobSequence) ||
+                        jobSequence.Kind != JsonValueKind.String ||
+                        !long.TryParse(jobSequence.String, NumberStyles.None, CultureInfo.InvariantCulture,
+                            out var nextJob) || nextJob < 1)
+                        throw new System.FormatException("Invalid civilian construction job authority.");
+                    snapshot.NextCivilianConstructionJobSequence = nextJob;
+                    foreach (var node in civilianJobs.Array)
+                    {
+                        if (node.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid civilian construction job.");
+                        var job = new CivilianConstructionJobSnapshotDto {
+                            JobId = node.GetString("jobId", string.Empty),
+                            BuildingId = node.GetString("buildingId", string.Empty),
+                            DemolitionFlagId = node.GetString("demolitionFlagId", string.Empty),
+                            SiteId = node.GetString("siteId", string.Empty),
+                            FactionId = node.GetString("factionId", string.Empty),
+                            SurfaceId = node.GetString("surfaceId", string.Empty),
+                            WorldX = (float)node.GetNumber("worldX"),
+                            WorldY = (float)node.GetNumber("worldY"),
+                            LaborProgress = (int)node.GetNumber("laborProgress"),
+                            LastLaborTick = ReadU(node, "lastLaborTick"),
+                            CarrierId = ReadU(node, "carrierId"),
+                            PayloadItemId = node.GetString("payloadItemId", string.Empty),
+                            PayloadCount = (int)node.GetNumber("payloadCount")
+                        };
+                        if (!node.TryGetProperty("required", out var required) || required.Kind != JsonValueKind.Array ||
+                            !node.TryGetProperty("delivered", out var delivered) || delivered.Kind != JsonValueKind.Array)
+                            throw new System.FormatException("Civilian construction material lists missing.");
+                        foreach (var row in required.Array)
+                            job.Required.Add(new ConstructionMaterialSnapshotDto {
+                                ItemId = row.GetString("itemId", string.Empty), Count = (int)row.GetNumber("count") });
+                        foreach (var row in delivered.Array)
+                            job.Delivered.Add(new ConstructionMaterialSnapshotDto {
+                                ItemId = row.GetString("itemId", string.Empty), Count = (int)row.GetNumber("count") });
+                        snapshot.CivilianConstructionJobs.Add(job);
                     }
                 }
 
@@ -631,6 +703,19 @@ namespace XianXia.Data.Serialization
             return runtime;
         }
 
+        static List<JsonValue> SerializeCharacterFactionLoyalties(List<CharacterFactionLoyaltySnapshotDto> entries)
+        {
+            var result = new List<JsonValue>();
+            if (entries == null) return result;
+            foreach (var entry in entries)
+                result.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>(System.StringComparer.Ordinal) {
+                    ["characterEntityId"] = U(entry.CharacterEntityId),
+                    ["factionId"] = JsonValue.FromString(entry.FactionId ?? string.Empty),
+                    ["loyalty"] = JsonValue.FromNumber(entry.Loyalty)
+                }));
+            return result;
+        }
+
         static List<JsonValue> SerializeEntities(List<EntitySnapshotDto> entities)
         {
             var list = new List<JsonValue>();
@@ -712,6 +797,7 @@ namespace XianXia.Data.Serialization
                     ["presentationOverrideZ"] = JsonValue.FromNumber(e.PresentationOverrideZ),
                     ["factionId"] = JsonValue.FromString(e.FactionId ?? string.Empty),
                     ["factionRole"] = JsonValue.FromNumber(e.FactionRole),
+                    ["initialLoyalty"] = JsonValue.FromNumber(e.InitialLoyalty),
                     ["hasCombatVitals"] = JsonValue.FromBool(e.HasCombatVitals),
                     ["currentHp"] = JsonValue.FromNumber(e.CurrentHp),
                     ["currentSpiritPower"] = JsonValue.FromNumber(e.CurrentSpiritPower),
@@ -722,6 +808,31 @@ namespace XianXia.Data.Serialization
                     ["hasResponsibleAttacker"] = JsonValue.FromBool(e.HasResponsibleAttacker),
                     ["responsibleAttackerEntityId"] = U(e.ResponsibleAttackerEntityId),
                     ["personalityTags"] = JsonValue.FromArray(SerializeStringList(e.PersonalityTags))
+                    ,["hasMortalCivilian"] = JsonValue.FromBool(e.HasMortalCivilian)
+                    ,["mortalSatiety"] = JsonValue.FromNumber(e.MortalSatiety)
+                    ,["mortalEnergy"] = JsonValue.FromNumber(e.MortalEnergy)
+                    ,["mortalProfession"] = JsonValue.FromNumber(e.MortalProfession)
+                    ,["mortalActivity"] = JsonValue.FromNumber(e.MortalActivity)
+                    ,["civilianDisposition"] = JsonValue.FromNumber(e.CivilianDisposition)
+                    ,["mortalResidenceWorkAreaId"] = JsonValue.FromString(e.MortalResidenceWorkAreaId ?? string.Empty)
+                    ,["mortalCurrentSiteId"] = JsonValue.FromString(e.MortalCurrentSiteId ?? string.Empty)
+                    ,["mortalLastUpdateTick"] = U(e.MortalLastUpdateTick)
+                    ,["mortalSleepStartedTick"] = U(e.MortalSleepStartedTick)
+                    ,["mortalSleepPhase"] = JsonValue.FromNumber(e.MortalSleepPhase)
+                    ,["mortalFleeStartedTick"] = U(e.MortalFleeStartedTick)
+                    ,["mortalHasFleeTarget"] = JsonValue.FromBool(e.MortalHasFleeTarget)
+                    ,["mortalFleeTargetX"] = JsonValue.FromNumber(e.MortalFleeTargetX)
+                    ,["mortalFleeTargetY"] = JsonValue.FromNumber(e.MortalFleeTargetY)
+                    ,["mortalFleeSourceSiteId"] = JsonValue.FromString(e.MortalFleeSourceSiteId ?? string.Empty)
+                    ,["mortalFleeCandidateIndex"] = JsonValue.FromNumber(e.MortalFleeCandidateIndex)
+                    ,["mortalFleeAttemptCount"] = JsonValue.FromNumber(e.MortalFleeAttemptCount)
+                    ,["mortalCarrierId"] = U(e.MortalCarrierId)
+                    ,["mortalDetainedResidenceWorkAreaId"] = JsonValue.FromString(e.MortalDetainedResidenceWorkAreaId ?? string.Empty)
+                    ,["mortalCareDayIndex"] = U(e.MortalCareDayIndex)
+                    ,["mortalAteToday"] = JsonValue.FromBool(e.MortalAteToday)
+                    ,["mortalSleptToday"] = JsonValue.FromBool(e.MortalSleptToday)
+                    ,["mortalLastWorkOutputTick"] = U(e.MortalLastWorkOutputTick)
+                    ,["mortalPendingCaptureCarrierId"] = U(e.MortalPendingCaptureCarrierId)
                 }));
             }
             return list;
@@ -744,6 +855,64 @@ namespace XianXia.Data.Serialization
                 }));
             }
 
+            return list;
+        }
+
+        static List<JsonValue> SerializeCivilianResidenceUsages(List<CivilianResidenceUsageSnapshotDto> usages)
+        {
+            var list = new List<JsonValue>();
+            if (usages == null) return list;
+            for (var i = 0; i < usages.Count; i++)
+            {
+                var usage = usages[i];
+                if (usage == null || string.IsNullOrWhiteSpace(usage.WorkAreaId)) continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["workAreaId"] = JsonValue.FromString(usage.WorkAreaId),
+                    ["usage"] = JsonValue.FromNumber(usage.Usage)
+                }));
+            }
+            return list;
+        }
+
+        static List<JsonValue> SerializeCivilianConstructionJobs(List<CivilianConstructionJobSnapshotDto> jobs)
+        {
+            var list = new List<JsonValue>();
+            if (jobs == null) return list;
+            foreach (var job in jobs)
+            {
+                if (job == null) continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                    ["jobId"] = JsonValue.FromString(job.JobId ?? string.Empty),
+                    ["buildingId"] = JsonValue.FromString(job.BuildingId ?? string.Empty),
+                    ["demolitionFlagId"] = JsonValue.FromString(job.DemolitionFlagId ?? string.Empty),
+                    ["siteId"] = JsonValue.FromString(job.SiteId ?? string.Empty),
+                    ["factionId"] = JsonValue.FromString(job.FactionId ?? string.Empty),
+                    ["surfaceId"] = JsonValue.FromString(job.SurfaceId ?? string.Empty),
+                    ["worldX"] = JsonValue.FromNumber(job.WorldX),
+                    ["worldY"] = JsonValue.FromNumber(job.WorldY),
+                    ["laborProgress"] = JsonValue.FromNumber(job.LaborProgress),
+                    ["lastLaborTick"] = U(job.LastLaborTick),
+                    ["carrierId"] = U(job.CarrierId),
+                    ["payloadItemId"] = JsonValue.FromString(job.PayloadItemId ?? string.Empty),
+                    ["payloadCount"] = JsonValue.FromNumber(job.PayloadCount),
+                    ["required"] = JsonValue.FromArray(SerializeConstructionMaterials(job.Required)),
+                    ["delivered"] = JsonValue.FromArray(SerializeConstructionMaterials(job.Delivered))
+                }));
+            }
+            return list;
+        }
+
+        static List<JsonValue> SerializeConstructionMaterials(List<ConstructionMaterialSnapshotDto> materials)
+        {
+            var list = new List<JsonValue>();
+            if (materials == null) return list;
+            foreach (var row in materials)
+                if (row != null)
+                    list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                        ["itemId"] = JsonValue.FromString(row.ItemId ?? string.Empty),
+                        ["count"] = JsonValue.FromNumber(row.Count)
+                    }));
             return list;
         }
 
@@ -1047,6 +1216,7 @@ namespace XianXia.Data.Serialization
                 PresentationOverrideZ = (float)e.GetNumber("presentationOverrideZ"),
                 FactionId = e.GetString("factionId", string.Empty),
                 FactionRole = (int)e.GetNumber("factionRole"),
+                InitialLoyalty = (int)e.GetNumber("initialLoyalty"),
                 HasCombatVitals = e.TryGetProperty("hasCombatVitals", out var hcv) &&
                                   hcv.Kind == JsonValueKind.Boolean &&
                                   hcv.Bool,
@@ -1063,6 +1233,31 @@ namespace XianXia.Data.Serialization
                 HasResponsibleAttacker = e.TryGetProperty("hasResponsibleAttacker", out var hra) &&
                                          hra.Kind == JsonValueKind.Boolean && hra.Bool,
                 ResponsibleAttackerEntityId = ReadU(e, "responsibleAttackerEntityId")
+                ,HasMortalCivilian = e.TryGetProperty("hasMortalCivilian", out var hmc) && hmc.Kind == JsonValueKind.Boolean && hmc.Bool
+                ,MortalSatiety = (int)e.GetNumber("mortalSatiety")
+                ,MortalEnergy = (int)e.GetNumber("mortalEnergy")
+                ,MortalProfession = (int)e.GetNumber("mortalProfession")
+                ,MortalActivity = (int)e.GetNumber("mortalActivity")
+                ,CivilianDisposition = (int)e.GetNumber("civilianDisposition")
+                ,MortalResidenceWorkAreaId = e.GetString("mortalResidenceWorkAreaId", string.Empty)
+                ,MortalCurrentSiteId = e.GetString("mortalCurrentSiteId", string.Empty)
+                ,MortalLastUpdateTick = ReadU(e, "mortalLastUpdateTick")
+                ,MortalSleepStartedTick = ReadU(e, "mortalSleepStartedTick")
+                ,MortalSleepPhase = (int)e.GetNumber("mortalSleepPhase")
+                ,MortalFleeStartedTick = ReadU(e, "mortalFleeStartedTick")
+                ,MortalHasFleeTarget = e.TryGetProperty("mortalHasFleeTarget", out var mhft) && mhft.Kind == JsonValueKind.Boolean && mhft.Bool
+                ,MortalFleeTargetX = (float)e.GetNumber("mortalFleeTargetX")
+                ,MortalFleeTargetY = (float)e.GetNumber("mortalFleeTargetY")
+                ,MortalFleeSourceSiteId = e.GetString("mortalFleeSourceSiteId", string.Empty)
+                ,MortalFleeCandidateIndex = (int)e.GetNumber("mortalFleeCandidateIndex")
+                ,MortalFleeAttemptCount = (int)e.GetNumber("mortalFleeAttemptCount")
+                ,MortalCarrierId = ReadU(e, "mortalCarrierId")
+                ,MortalDetainedResidenceWorkAreaId = e.GetString("mortalDetainedResidenceWorkAreaId", string.Empty)
+                ,MortalCareDayIndex = ReadU(e, "mortalCareDayIndex")
+                ,MortalAteToday = e.TryGetProperty("mortalAteToday", out var mat) && mat.Kind == JsonValueKind.Boolean && mat.Bool
+                ,MortalSleptToday = e.TryGetProperty("mortalSleptToday", out var mst) && mst.Kind == JsonValueKind.Boolean && mst.Bool
+                ,MortalLastWorkOutputTick = ReadU(e, "mortalLastWorkOutputTick")
+                ,MortalPendingCaptureCarrierId = ReadU(e, "mortalPendingCaptureCarrierId")
             };
 
             if (e.TryGetProperty("knownSiteIds", out var known) && known.Kind == JsonValueKind.Array)

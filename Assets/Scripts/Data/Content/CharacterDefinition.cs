@@ -47,6 +47,10 @@ namespace XianXia.Data.Content
         /// <summary>默认势力身份（FactionRoleKind 文本）；DefaultFactionId 非空时必须有非 None 值。</summary>
         public string DefaultFactionRole { get; set; } = string.Empty;
 
+        /// <summary>Character loyalty seed for the starting faction (and later faction changes without an explicit value).</summary>
+        public int InitialLoyalty { get; set; } = 50;
+        public string InitialMortalProfession { get; set; } = "Unassigned";
+
         /// <summary>Merged content tags applied to PersonalityProfile on spawn.</summary>
         public IEnumerable<string> EnumerateProfileTags()
         {

@@ -23,6 +23,8 @@ namespace XianXia.Unity.Host
         OutdoorConstructedAssetState _candidate;
         ConstructionPlacementKind _placementKind;
         string _displayName = "农田";
+        int _lastAssetCount = -1;
+        int _lastFlagCount = -1;
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
         void OnDisable() => CancelPlacement();
@@ -78,6 +80,17 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            var activeWorld = _bootstrap?.Session?.World;
+            if (activeWorld != null && activeWorld.OutdoorConstructedAssets.Assets.Count != _lastAssetCount)
+            {
+                _lastAssetCount = activeWorld.OutdoorConstructedAssets.Assets.Count;
+                _bootstrap.ContinuousOutdoorSurfaceRuntime?.RefreshRuntimeConstructedPlacementsForLoadedChunks();
+            }
+            if (activeWorld != null && activeWorld.Strategic.FactionFlags.Flags.Count != _lastFlagCount)
+            {
+                _lastFlagCount = activeWorld.Strategic.FactionFlags.Flags.Count;
+                _bootstrap.RefreshFactionFlagWalkGrid();
+            }
             if (_releaseInputFrame >= 0 && Time.frameCount > _releaseInputFrame)
             { HostInputGate.Release(InputOwner); _releaseInputFrame = -1; }
             if (!_placing) return;
@@ -96,7 +109,17 @@ namespace XianXia.Unity.Host
             // Recompute both geometry and authority at confirmation time.
             if (!Prepare(point, out _candidate, out _status)) { _legal = false; return; }
             Result result;
-            if (_placementKind == ConstructionPlacementKind.RecoverySpot)
+            var cx = _candidate.WorldX + _candidate.WorldWidth * .5f;
+            var cy = _candidate.WorldY + _candidate.WorldHeight * .5f;
+            var queueForCivilian = WorldSiteAdministrativeControlResolver.TryResolve(
+                _world, _candidate.SurfaceId, cx, cy, out var constructionSite, out _) &&
+                constructionSite != null && CivilianConstructionJobService.HasAvailableWorker(
+                    _world, constructionSite.SiteId, _world.Strategic.PlayerFactionId) &&
+                HasLocalConstructionMaterials(_world, constructionSite.SiteId, _spec);
+            if (queueForCivilian)
+                result = ConstructionService.TryQueueCivilianOutdoorConstruction(_world, _spec.BuildingId,
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
+            else if (_placementKind == ConstructionPlacementKind.RecoverySpot)
                 result = ConstructionService.TryConstructRecoverySpot(_world, _spec.BuildingId,
                     _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
             else if (_placementKind == ConstructionPlacementKind.StorageRoom)
@@ -106,8 +129,35 @@ namespace XianXia.Unity.Host
                 result = ConstructionService.TryConstructFarmField(_world, _spec.BuildingId,
                     _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
             if (result.IsFailure) { _status = result.Error.Message; _legal = false; return; }
-            _bootstrap.ContinuousOutdoorSurfaceRuntime.RefreshRuntimeConstructedPlacementsForLoadedChunks();
+            if (!queueForCivilian)
+                _bootstrap.ContinuousOutdoorSurfaceRuntime.RefreshRuntimeConstructedPlacementsForLoadedChunks();
             FinishInputGesture();
+        }
+
+        void DrawCivilianJobMarkers()
+        {
+            var world = _bootstrap?.Session?.World;
+            var surface = _bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            var camera = Camera.main;
+            if (world == null || surface == null || !surface.IsActive || camera == null) return;
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+            {
+                if (job.SurfaceId != surface.ActiveSurfaceId) continue;
+                surface.Mapper.WorldToPresentation(job.WorldX, job.WorldY, out var px, out var py);
+                var screen = camera.WorldToScreenPoint(new Vector3(px, py, HostPresentationSpace.EntityZ));
+                if (screen.z < 0f) continue;
+                GUI.Label(new Rect(screen.x - 55f, Screen.height - screen.y - 34f, 150f, 28f),
+                    "建设中 " + job.LaborProgress + "/" + CivilianConstructionJobService.RequiredLabor);
+            }
+        }
+
+        static bool HasLocalConstructionMaterials(XianXia.Core.Simulation.SimulationWorld world,
+            string siteId, BuildingConstructionSpec spec)
+        {
+            foreach (var cost in spec.Costs)
+                if (WorldSitePublicStockService.GetCount(world, siteId, cost.ItemId) < cost.Count)
+                    return false;
+            return true;
         }
 
         bool Prepare(Vector3 point, out OutdoorConstructedAssetState candidate, out string reason)
@@ -147,7 +197,8 @@ namespace XianXia.Unity.Host
             var permission = OutdoorFactionConstructionAuthorizationService.Validate(
                 _world, _world.Strategic.PlayerFactionId, candidate);
             if (permission.IsFailure) { reason = permission.Error.Message; return false; }
-            if (!ConstructionService.HasRequiredMaterials(_world, _spec, out _))
+            if (!ConstructionService.HasRequiredMaterials(_world, _spec, out _) &&
+                !ConstructionService.CanUseCivilianSiteMaterials(_world, _spec))
             { reason = "建造材料不足。"; return false; }
             if (!continuous.TryGetCompositeWalkGrid(out var grid))
             { reason = "超出当前已加载区域。"; return false; }
@@ -215,6 +266,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            DrawCivilianJobMarkers();
             if (!_placing) return;
             var rect = new Rect(Screen.width - 350f, Screen.height - 150f, 338f, 136f);
             HostUiHitTest.Block(rect);

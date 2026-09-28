@@ -5,9 +5,11 @@ using XianXia.Core.Combat;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
+using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Navigation;
+using XianXia.Core.Npc;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
@@ -50,10 +52,12 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, string> _pendingArriveLocation = new Dictionary<ulong, string>();
         readonly Dictionary<ulong, System.Action> _pendingArriveActions = new Dictionary<ulong, System.Action>();
         readonly Dictionary<ulong, HostNpcArriveIntent> _pendingNpcIntent = new Dictionary<ulong, HostNpcArriveIntent>();
+        readonly List<ulong> _pendingNpcIntentKeys = new List<ulong>(8);
         readonly HashSet<ulong> _interactionHeldNpcs = new HashSet<ulong>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly HashSet<ulong> _playerPartyPathMoveIds = new HashSet<ulong>();
         readonly Dictionary<ulong, string> _pathLocalMapIds = new Dictionary<ulong, string>();
+        readonly Dictionary<ulong, float> _moveSpeedMultiplierByEntity = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, HostMoveCompletionPolicy> _completionPolicies =
             new Dictionary<ulong, HostMoveCompletionPolicy>();
         readonly List<float> _pathScratch = new List<float>(64);
@@ -67,6 +71,9 @@ namespace XianXia.Unity.Host
         readonly List<EntityView> _separationCandidates = new List<EntityView>(32);
         int _separationBucketFrame = -1;
         float _idleSeparationNextAt;
+
+        const float PursuitRepathDistance = .75f;
+        const float PursuitRepathCooldown = .55f;
 
         WalkGrid _walkGrid;
         string _boundLocalMapId = string.Empty;
@@ -140,6 +147,7 @@ namespace XianXia.Unity.Host
             _movingIds.Clear();
             _playerPartyPathMoveIds.Clear();
             _pathLocalMapIds.Clear();
+            _moveSpeedMultiplierByEntity.Clear();
             _completionPolicies.Clear();
             _playerPartyPathMoveSerial = 0;
             PurgeOrphanedMoveTargets();
@@ -287,7 +295,9 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
                 return;
-            if (HostInputGate.BlockWorldInteraction)
+            // Modal pause owns all input. Manual pause still listens for one legal player world
+            // command; the successful command clears ManualPaused before movement advances.
+            if (bootstrap.Session.ModalHardPaused)
                 return;
             var characterEncounter = bootstrap.Session.World.Strategic.CharacterEncounter;
             if (characterEncounter != null &&
@@ -298,22 +308,25 @@ namespace XianXia.Unity.Host
                 return;
             if (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt)
                 return;
-            if (npcContextMenu != null && npcContextMenu.IsOpen)
-                return;
+            var blockPlayerInput = HostInputGate.BlockWorldInteraction ||
+                                   npcContextMenu != null && npcContextMenu.IsOpen;
             if (worldCamera == null)
                 worldCamera = Camera.main;
-            if (worldCamera == null || selectionController == null || viewSpawner == null)
+            if (viewSpawner == null)
                 return;
 
             var workMode = bootstrap.WorkTargetMode;
             if (workMode != null && workMode.IsActive)
             {
+                if (bootstrap.Session.IsPaused)
+                    return;
                 TickMoves();
                 TickIdleCrowdSpacing();
                 return;
             }
 
-            if (Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.LeftAlt))
+            if (!blockPlayerInput && worldCamera != null && selectionController != null &&
+                Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.LeftAlt))
             {
                 if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                     return;
@@ -329,6 +342,9 @@ namespace XianXia.Unity.Host
                     IssueMoveToMouse();
             }
 
+            if (bootstrap.Session.IsPaused)
+                return;
+            TickPendingNpcApproaches();
             TickMoves();
             TickIdleCrowdSpacing();
         }
@@ -374,34 +390,31 @@ namespace XianXia.Unity.Host
                 !viewSpawner.Registry.TryGet(npc, out var npcView) || npcView == null)
                 return false;
 
+            npcContextMenu?.CancelRecruitInteractionForActor(actor);
+            var policy = action == HostNpcArriveAction.Attack || action == HostNpcArriveAction.Capture
+                ? HostNpcApproachPolicy.Pursuit : HostNpcApproachPolicy.Cooperative;
+            var requiredRange = ResolveNpcRequiredRange(actor, action);
             var target = npcView.transform.position;
             if (viewSpawner.Registry.TryGet(actor, out var actorView) && actorView != null)
             {
                 var delta = actorView.transform.position - target;
                 delta.z = 0f;
                 // 停在交战距离内侧；开斗气纱衣时用远程半径，避免白走贴
-                var engage = HostNpcInteraction.DefaultMeleeEngageRange;
-                if (action == HostNpcArriveAction.Attack &&
-                    bootstrap?.Session?.World != null &&
-                    bootstrap.Session.World.Entities.TryGet(actor, out var actorEnt))
-                {
-                    engage = new SpiritVeilService().ResolveEngageRange(actorEnt);
-                }
-
-                var stopShort = engage * 0.55f;
+                var stopShort = requiredRange * 0.55f;
                 if (delta.sqrMagnitude > 0.01f)
                     target += delta.normalized * stopShort;
             }
 
             target.z = HostPresentationSpace.EntityZ;
-            HoldNpcForInteraction(npc);
+            if (policy == HostNpcApproachPolicy.Cooperative)
+                HoldNpcForInteraction(npc);
             if (!OrderEntityToWorldPoint(actor, target, null, issueStop: true))
             {
-                ReleaseNpcForInteraction(npc);
+                if (policy == HostNpcApproachPolicy.Cooperative) ReleaseNpcForInteraction(npc);
                 return false;
             }
 
-            return RegisterPendingNpcIntent(actor, npc, action);
+            return RegisterPendingNpcIntent(actor, npc, action, policy, requiredRange, npcView.transform.position);
         }
 
         public bool IsNpcHeldForInteraction(EntityId npc) =>
@@ -464,12 +477,111 @@ namespace XianXia.Unity.Host
         /// <summary>进出洞府等瞬切前：清掉表现层走位，避Location 被错误吸附/summary>
         public void CancelPresentationMovementPublic(EntityId id) => CancelPresentationMovement(id);
 
-        bool RegisterPendingNpcIntent(EntityId actor, EntityId npc, HostNpcArriveAction action)
+        bool RegisterPendingNpcIntent(
+            EntityId actor, EntityId npc, HostNpcArriveAction action,
+            HostNpcApproachPolicy policy, float requiredRange, Vector3 targetPosition)
         {
             if (actor.IsNone)
                 return false;
-            _pendingNpcIntent[actor.Value] = new HostNpcArriveIntent(npc, action);
+            _pendingNpcIntent[actor.Value] = new HostNpcArriveIntent(
+                actor, npc, action, policy, requiredRange, targetPosition);
             return true;
+        }
+
+        float ResolveNpcRequiredRange(EntityId actor, HostNpcArriveAction action)
+        {
+            if (action == HostNpcArriveAction.Attack && bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(actor, out var actorEntity))
+                return Mathf.Max(.8f, new SpiritVeilService().ResolveEngageRange(actorEntity));
+            return HostNpcInteraction.DefaultMeleeEngageRange;
+        }
+
+        void TickPendingNpcApproaches()
+        {
+            if (_pendingNpcIntent.Count == 0) return;
+            _pendingNpcIntentKeys.Clear();
+            foreach (var pair in _pendingNpcIntent) _pendingNpcIntentKeys.Add(pair.Key);
+            for (var i = 0; i < _pendingNpcIntentKeys.Count; i++)
+            {
+                var actorId = new EntityId(_pendingNpcIntentKeys[i]);
+                if (!_pendingNpcIntent.TryGetValue(actorId.Value, out var intent)) continue;
+                if (!TryResolveApproachViews(intent, out var actorView, out var targetView))
+                { CancelPendingNpcIntent(actorId); continue; }
+                var distance = Vector2.Distance(actorView.transform.position, targetView.transform.position);
+                if (distance <= intent.RequiredRange)
+                {
+                    CancelPresentationMovement(actorId);
+                    ApplyPendingNpcIntent(actorId);
+                    continue;
+                }
+                if (intent.Policy != HostNpcApproachPolicy.Pursuit) continue;
+                var targetPosition = targetView.transform.position;
+                targetPosition.z = HostPresentationSpace.EntityZ;
+                var moved = Vector2.Distance(targetPosition, intent.LastTargetPosition);
+                var needsRetry = intent.RepathState == "RepathFailed" ||
+                                 intent.RepathState == "AwaitingMovingTargetRepath";
+                if ((!needsRetry && moved < PursuitRepathDistance) ||
+                    Time.unscaledTime < intent.LastRepathTime + PursuitRepathCooldown)
+                    continue;
+                var delta = actorView.transform.position - targetPosition;
+                delta.z = 0f;
+                if (delta.sqrMagnitude > .01f)
+                    targetPosition += delta.normalized * (intent.RequiredRange * .55f);
+                intent.LastTargetPosition = targetView.transform.position;
+                intent.LastRepathTime = Time.unscaledTime;
+                if (OrderEntityToWorldPoint(actorId, targetPosition, null, issueStop: false,
+                        preserveNpcIntent: true))
+                    intent.RepathState = "RepathAccepted";
+                else
+                    intent.RepathState = "RepathFailed";
+            }
+        }
+
+        bool TryResolveApproachViews(
+            HostNpcArriveIntent intent, out EntityView actorView, out EntityView targetView)
+        {
+            actorView = targetView = null;
+            var world = bootstrap?.Session?.World;
+            if (intent == null || world == null || viewSpawner == null ||
+                !world.Entities.TryGet(intent.ActorId, out var actor) || !CombatLifeStateService.CanFight(actor) ||
+                !world.Entities.TryGet(intent.NpcId, out var target) ||
+                !target.TryGet<LifecycleComponent>(out var targetLife) || targetLife.IsDead || targetLife.IsRemoved ||
+                !viewSpawner.Registry.TryGet(intent.ActorId, out actorView) || actorView == null ||
+                !viewSpawner.Registry.TryGet(intent.NpcId, out targetView) || targetView == null)
+                return false;
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, intent.ActorId) ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, intent.NpcId))
+                return false;
+            var actorInSpace = SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, intent.ActorId);
+            var targetInSpace = SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, intent.NpcId);
+            return actorInSpace == targetInSpace;
+        }
+
+        void CancelPendingNpcIntent(EntityId actor)
+        {
+            if (actor.IsNone || !_pendingNpcIntent.TryGetValue(actor.Value, out var intent)) return;
+            _pendingNpcIntent.Remove(actor.Value);
+            CancelPresentationMovement(actor);
+            if (intent.Policy == HostNpcApproachPolicy.Cooperative)
+                ReleaseNpcForInteraction(intent.NpcId);
+        }
+
+        public string DescribePendingPersonAction()
+        {
+            foreach (var pair in _pendingNpcIntent)
+            {
+                var intent = pair.Value;
+                var distance = -1f;
+                if (viewSpawner != null && viewSpawner.Registry.TryGet(intent.ActorId, out var actor) && actor != null &&
+                    viewSpawner.Registry.TryGet(intent.NpcId, out var target) && target != null)
+                    distance = Vector2.Distance(actor.transform.position, target.transform.position);
+                return "Actor=" + intent.ActorId + " Target=" + intent.NpcId +
+                       " Action=" + intent.Action + " Policy=" + intent.Policy +
+                       " Distance=" + distance.ToString("0.###") +
+                       " RequiredRange=" + intent.RequiredRange.ToString("0.###") +
+                       " Repath=" + intent.RepathState;
+            }
+            return "None";
         }
 
         public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
@@ -486,7 +598,9 @@ namespace XianXia.Unity.Host
             bool issueStop,
             string arriveLocationId = null,
             HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby,
-            bool exactGoal = false)
+            bool exactGoal = false,
+            bool preserveNpcIntent = false,
+            float speedMultiplier = 1f)
         {
             if (id.IsNone || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
@@ -513,11 +627,18 @@ namespace XianXia.Unity.Host
                 StopOne(id);
 
             ClearPath(id);
-            ClearPending(id);
+            if (preserveNpcIntent)
+            {
+                _pendingOnArrive.Remove(id.Value);
+                _pendingArriveLocation.Remove(id.Value);
+                _pendingArriveActions.Remove(id.Value);
+            }
+            else ClearPending(id);
             var path = new List<Vector3>(_wpScratch.Count);
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
             _pathIndex[id.Value] = 0;
+            _moveSpeedMultiplierByEntity[id.Value] = SanitizeSpeedMultiplier(speedMultiplier);
             _completionPolicies[id.Value] = completionPolicy;
             if (!string.IsNullOrEmpty(_boundLocalMapId))
                 _pathLocalMapIds[id.Value] = _boundLocalMapId;
@@ -546,7 +667,7 @@ namespace XianXia.Unity.Host
             if (active.IsNone)
                 return false;
 
-            ResumeTime();
+            npcContextMenu?.CancelRecruitInteractionForActor(active);
             if (commandBridge != null)
                 commandBridge.IssueOne(active, PlayerCommandKind.Stop, 0);
             else
@@ -829,7 +950,9 @@ namespace XianXia.Unity.Host
 
                 var pos = view.transform.position;
                 var sep = ComputeSeparation(view, pos);
-                var desired = Vector3.MoveTowards(pos, target, moveSpeed * dt);
+                var multiplier = _moveSpeedMultiplierByEntity.TryGetValue(view.EntityId.Value, out var configured)
+                    ? configured : 1f;
+                var desired = Vector3.MoveTowards(pos, target, moveSpeed * multiplier * dt);
                 var next = desired + ClampSeparationDelta(sep * (separationStrength * dt), dt);
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
@@ -912,6 +1035,14 @@ namespace XianXia.Unity.Host
         {
             if (!_pendingNpcIntent.TryGetValue(id.Value, out var intent))
                 return;
+            if (!TryResolveApproachViews(intent, out var actorView, out var targetView))
+            { CancelPendingNpcIntent(id); return; }
+            if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > intent.RequiredRange)
+            {
+                intent.RepathState = "AwaitingMovingTargetRepath";
+                intent.LastRepathTime = 0f;
+                return;
+            }
             _pendingNpcIntent.Remove(id.Value);
             StopOne(id);
             if (npcContextMenu == null)
@@ -922,8 +1053,16 @@ namespace XianXia.Unity.Host
                 npcContextMenu.OnNpcArriveTrade(id, intent.NpcId);
             else if (intent.Action == HostNpcArriveAction.Auction)
                 npcContextMenu.OnNpcArriveAuction(id, intent.NpcId);
-            else
+            else if (intent.Action == HostNpcArriveAction.Attack)
                 npcContextMenu.OnNpcArriveAttack(id, intent.NpcId);
+            else if (intent.Action == HostNpcArriveAction.Capture)
+                npcContextMenu.OnNpcArriveCapture(id, intent.NpcId);
+            else if (intent.Action == HostNpcArriveAction.Recruit)
+                npcContextMenu.OnNpcArriveRecruit(id, intent.NpcId);
+            else if (intent.Action == HostNpcArriveAction.Release)
+                npcContextMenu.OnNpcArriveRelease(id, intent.NpcId);
+            else if (intent.Action == HostNpcArriveAction.Execute)
+                npcContextMenu.OnNpcArriveExecute(id, intent.NpcId);
         }
 
         void SnapOntoWalkableIfNeeded(EntityView view)
@@ -1075,6 +1214,14 @@ namespace XianXia.Unity.Host
         {
             if (view == null || bootstrap?.ContinuousOutdoorSurfaceRuntime == null)
                 return;
+            var world = bootstrap.Session?.World;
+            if (world != null && world.Civilians.TryGet(view.EntityId, out var civilian) &&
+                MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, view.EntityId, civilian))
+            {
+                bootstrap.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(
+                    view.EntityId, view.transform.position);
+                return;
+            }
             bootstrap.ContinuousOutdoorSurfaceRuntime.TryCaptureIndependentParticipantPosition(
                 view.EntityId, view.transform.position);
         }
@@ -1332,8 +1479,9 @@ namespace XianXia.Unity.Host
         void ResumeTime()
         {
             if (bootstrap?.Session != null &&
+                !bootstrap.Session.ModalHardPaused &&
                 !bootstrap.Session.World.ContentEvents.HasActive)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ManualPaused = false;
         }
 
         void StopOne(EntityId id)
@@ -1387,7 +1535,17 @@ namespace XianXia.Unity.Host
             _paths.Remove(id.Value);
             _pathIndex.Remove(id.Value);
             _pathLocalMapIds.Remove(id.Value);
+            _moveSpeedMultiplierByEntity.Remove(id.Value);
         }
+
+        public float GetMoveSpeedMultiplier(EntityId id) =>
+            !id.IsNone && _moveSpeedMultiplierByEntity.TryGetValue(id.Value, out var multiplier)
+                ? multiplier : 1f;
+
+        public float GetEffectiveMoveSpeed(EntityId id) => moveSpeed * GetMoveSpeedMultiplier(id);
+
+        static float SanitizeSpeedMultiplier(float value) =>
+            float.IsNaN(value) || float.IsInfinity(value) || value <= 0f ? 1f : value;
 
         Vector3 FormationOffset(int index, int count)
         {

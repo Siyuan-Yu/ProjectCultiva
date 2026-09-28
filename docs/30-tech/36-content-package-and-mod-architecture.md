@@ -6,6 +6,10 @@
 
 新增 `type:"auctionHouse"`：`displayName/durationDays/feePercent/marketReviewIntervalDays/minimumIncrements{low,mid,high}/initialListings[]`；初始拍品为 `itemId/quantity/startingPrice{grade,amount}`，grade 必须等于 Item BaseTradePrice。Character 新增 `auctionProviderHouseId`。正式 loader 严格校验字段、引用、转移限制、档位与 ceiling 乘法溢出；验收内容在 `auction01.json`。Snapshot v13 的 Auction 数值继续使用十进制字符串保存 UInt64/Int64 精度。
 
+## CIVILIAN-LIFE-01 Content（2026-09-27）
+
+Character 可配置对初始 Faction 的 `initialLoyalty` 种子（0–100，默认 50）与凡人专用 `initialMortalProfession`（严格 enum）。前者适用于所有有势力 Character，后者只适用于凡人；Snapshot Restore 读取已保存种子和独立忠诚 ledger，不重放 Content。Resource 的 `tags` 进入 InventoryCatalog；凡人进食只识别显式 `food` tag。当前验收值为阿青 10/Unassigned、阿土 60/Farmer。
+
 ## SHOP-TRADE-01 schema（2026-09-25）
 
 状态：**Producer Accepted / Sealed**。

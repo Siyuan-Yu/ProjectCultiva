@@ -10,20 +10,43 @@ namespace XianXia.Unity.Host
         Talk = 0,
         Attack = 1,
         Trade = 2,
-        Auction = 3
+        Auction = 3,
+        Recruit = 4,
+        Capture = 5,
+        Release = 6,
+        Execute = 7
     }
 
-    /// <summary>Party member walks to an NPC then performs Talk or Attack.</summary>
-    public readonly struct HostNpcArriveIntent
+    public enum HostNpcApproachPolicy
     {
-        public HostNpcArriveIntent(EntityId npcId, HostNpcArriveAction action)
+        Cooperative = 0,
+        Pursuit = 1
+    }
+
+    /// <summary>Transient person-to-person approach/pursuit; never persisted.</summary>
+    public sealed class HostNpcArriveIntent
+    {
+        public HostNpcArriveIntent(
+            EntityId actorId, EntityId npcId, HostNpcArriveAction action,
+            HostNpcApproachPolicy policy, float requiredRange, Vector3 targetPosition)
         {
+            ActorId = actorId;
             NpcId = npcId;
             Action = action;
+            Policy = policy;
+            RequiredRange = requiredRange;
+            LastTargetPosition = targetPosition;
+            LastRepathTime = Time.unscaledTime;
         }
 
+        public EntityId ActorId { get; }
         public EntityId NpcId { get; }
         public HostNpcArriveAction Action { get; }
+        public HostNpcApproachPolicy Policy { get; }
+        public float RequiredRange { get; }
+        public Vector3 LastTargetPosition { get; set; }
+        public float LastRepathTime { get; set; }
+        public string RepathState { get; set; } = "InitialPath";
     }
 
     public static class HostNpcPicker

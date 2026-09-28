@@ -168,8 +168,12 @@ namespace XianXia.Core.Combat
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = 0;
 
+            var previous = life.State;
             life.State = LifecycleState.Incapacitated;
             life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
+            life.IncapacitatedAtTick = world.Tick.Value;
+            life.LastDeathConfirmationReason = DeathConfirmationReason.Unknown;
+            life.RecordTransition(previous, LifecycleState.Incapacitated, "Damage");
             AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
             if (!responsibleAttackerId.IsNone)
             {
@@ -223,6 +227,7 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Alive;
             life.ClearBleedOut();
+            life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Alive, "Recovery");
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = Math.Max(1, restoreHp);
@@ -237,22 +242,24 @@ namespace XianXia.Core.Combat
             EntityId attackerId,
             Entity target,
             out bool confirmed)
+            => TryConfirmDeath(world, attackerId, target, DeathConfirmationReason.Unknown, out confirmed);
+
+        public static bool TryConfirmDeath(
+            SimulationWorld world,
+            EntityId attackerId,
+            Entity target,
+            DeathConfirmationReason reason,
+            out bool confirmed)
         {
             confirmed = false;
             if (world == null || target == null || !target.TryGet<LifecycleComponent>(out var life))
                 return false;
             if (life.IsDead || life.IsRemoved)
                 return false;
-            if (!life.IsIncapacitated && life.State != LifecycleState.Alive)
+            // First lethal hit is always Alive -> Incapacitated. Death confirmation is a
+            // separate operation and can never collapse the same strike into Alive -> Dead.
+            if (!life.IsIncapacitated)
                 return false;
-
-            // 允许对仍 Alive 但 0 血的边界情况补刀
-            if (life.State == LifecycleState.Alive)
-            {
-                CombatDamageRules.EnsureVitals(target);
-                if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp > 0)
-                    return false;
-            }
 
             CaptureSquadWorldMotionHandoff(world, target.Id);
 
@@ -263,6 +270,8 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Dead;
             life.ClearBleedOut();
+            life.LastDeathConfirmationReason = reason;
+            life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Dead, reason.ToString());
             AutonomousActionContinuationService.CancelInvalid(world, target.Id);
             EnsureCorpse(world, target);
 
@@ -346,7 +355,7 @@ namespace XianXia.Core.Combat
             }
 
             for (var i = 0; i < bleedOut.Count; i++)
-                TryConfirmDeath(world, EntityId.None, bleedOut[i], out _);
+                TryConfirmDeath(world, EntityId.None, bleedOut[i], DeathConfirmationReason.BleedOut, out _);
 
             for (var i = 0; i < rotAway.Count; i++)
                 FinalizeRemoval(world, rotAway[i]);
@@ -363,7 +372,7 @@ namespace XianXia.Core.Combat
                 if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
                 {
                     if (life.BleedOutAfterTick <= world.Tick.Value + 1)
-                        TryConfirmDeath(world, EntityId.None, entity, out _);
+                        TryConfirmDeath(world, EntityId.None, entity, DeathConfirmationReason.BleedOut, out _);
                     else life.BleedOutAfterTick--;
                 }
                 else if (life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))

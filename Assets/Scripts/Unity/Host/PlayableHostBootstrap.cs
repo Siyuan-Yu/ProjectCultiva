@@ -68,6 +68,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostWorldActivityPanel worldActivityPanel;
         [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostConstructionPanel constructionPanel;
+        [SerializeField] HostMortalWorkPanel mortalWorkPanel;
         [SerializeField] HostWorldMapPanel worldMapPanel;
         [SerializeField] HostManualLearnPrompt manualLearnPrompt;
         [SerializeField] HostCombatArtLearnPrompt combatArtLearnPrompt;
@@ -145,6 +146,8 @@ namespace XianXia.Unity.Host
         public HostInventoryPanel InventoryPanel => inventoryPanel;
 
         public HostConstructionPanel ConstructionPanel => constructionPanel;
+
+        public HostMortalWorkPanel MortalWorkPanel => mortalWorkPanel;
 
         public HostWorldMapPanel WorldMapPanel => worldMapPanel;
 
@@ -653,6 +656,9 @@ namespace XianXia.Unity.Host
             if (constructionPanel == null)
                 constructionPanel = GetComponent<HostConstructionPanel>() ??
                                     gameObject.AddComponent<HostConstructionPanel>();
+            if (mortalWorkPanel == null)
+                mortalWorkPanel = GetComponent<HostMortalWorkPanel>() ??
+                                  gameObject.AddComponent<HostMortalWorkPanel>();
             if (worldMapPanel == null)
                 worldMapPanel = GetComponent<HostWorldMapPanel>() ??
                                gameObject.AddComponent<HostWorldMapPanel>();
@@ -731,6 +737,8 @@ namespace XianXia.Unity.Host
                 inventoryPanel.ClearSessionState();
             if (constructionPanel != null)
                 constructionPanel.ClearSessionState();
+            if (mortalWorkPanel != null)
+                mortalWorkPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
             if (manualLearnPrompt != null)
@@ -940,6 +948,7 @@ namespace XianXia.Unity.Host
             worldActivityPanel?.Bind(this);
             inventoryPanel.Bind(this);
             constructionPanel.Bind(this);
+            mortalWorkPanel.Bind(this);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Bind(this);
             if (worldMapPanel != null)
@@ -1225,6 +1234,8 @@ namespace XianXia.Unity.Host
                 inventoryPanel.ClearSessionState();
             if (constructionPanel != null)
                 constructionPanel.ClearSessionState();
+            if (mortalWorkPanel != null)
+                mortalWorkPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
             if (worldActivityPanel != null)

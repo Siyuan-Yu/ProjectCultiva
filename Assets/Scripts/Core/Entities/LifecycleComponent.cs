@@ -14,6 +14,12 @@ namespace XianXia.Core.Entities
         /// </summary>
         public ulong BleedOutAfterTick { get; set; }
 
+        public ulong IncapacitatedAtTick { get; set; }
+        public LifecycleState LastTransitionFrom { get; set; } = LifecycleState.Alive;
+        public LifecycleState LastTransitionTo { get; set; } = LifecycleState.Alive;
+        public string LastLifeTransitionReason { get; set; } = string.Empty;
+        public DeathConfirmationReason LastDeathConfirmationReason { get; set; }
+
         public bool IsDead => State == LifecycleState.Dead;
 
         public bool IsRemoved => State == LifecycleState.Removed;
@@ -21,5 +27,12 @@ namespace XianXia.Core.Entities
         public bool IsIncapacitated => State == LifecycleState.Incapacitated;
 
         public void ClearBleedOut() => BleedOutAfterTick = 0;
+
+        public void RecordTransition(LifecycleState from, LifecycleState to, string reason)
+        {
+            LastTransitionFrom = from;
+            LastTransitionTo = to;
+            LastLifeTransitionReason = reason ?? string.Empty;
+        }
     }
 }

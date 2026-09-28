@@ -66,6 +66,7 @@ namespace XianXia.Data.Bootstrap
                     if (spawned.IsFailure) return Result.Failure(spawned.Error);
                     entity = spawned.Value;
                     entity.Get<FactionMembershipComponent>().Assign(definition.FactionId, FactionRoleKind.Member);
+                    CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out _);
                 }
                 members.Add(entity.Id);
                 if (source.Leader) leader = entity.Id;

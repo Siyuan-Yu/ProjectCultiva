@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.Social;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 using XianXia.Core.Simulation;
@@ -37,7 +39,8 @@ namespace XianXia.Unity.Host
     {
         static readonly IReadOnlyList<string> EmptyTags = Array.Empty<string>();
 
-        public static bool TryBuild(PlayableHostSession session, EntityId entityId, out HostCharacterPresentation info)
+        public static bool TryBuild(PlayableHostSession session, EntityId entityId,
+            out HostCharacterPresentation info, bool inLocalCombat = false)
         {
             info = null;
             if (session?.World == null || entityId.IsNone ||
@@ -77,7 +80,8 @@ namespace XianXia.Unity.Host
                 FactionRole = factionRole,
                 Location = location,
                 Schedule = schedule,
-                Activity = ResolveActivity(session, entity),
+                Activity = HostCharacterActivityPresentation.Resolve(session, entity,
+                    inLocalCombat: inLocalCombat),
                 PersonalityTags = definition?.PersonalityTags ?? EmptyTags,
                 BackgroundTags = definition?.BackgroundTags ?? EmptyTags,
                 TalentTags = definition?.TalentTags ?? EmptyTags
@@ -131,19 +135,62 @@ namespace XianXia.Unity.Host
             return "未知";
         }
 
-        static string ResolveActivity(PlayableHostSession session, Entity entity)
+        static string DescribeSite(SimulationWorld world, string siteId)
         {
-            if (!entity.TryGet<ActionStateComponent>(out var state) || !state.HasActiveAction ||
-                !session.World.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
-                return "待命";
-            if (action is MoveAction) return "移动中";
-            if (action is WorkAction work) return ActivityDisplay(work.Activity) + "中";
-            if (action is LaborAction) return "工作中";
-            if (action is CultivateAction) return "修炼中";
-            if (action is RestAction) return "休息中";
-            if (action is RecoveryAction) return "恢复中";
-            if (action is ObserveAction) return "观察中";
-            return "行动中";
+            if (world?.Strategic?.Sites != null && world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
+                return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            return siteId ?? string.Empty;
+        }
+    }
+
+    /// <summary>All character status surfaces share this priority order.</summary>
+    public static class HostCharacterActivityPresentation
+    {
+        public static string Resolve(PlayableHostSession session, Entity entity,
+            bool inLocalCombat = false, bool isMoving = false, string specialActivity = null,
+            bool emptyWhenIdle = false)
+        {
+            if (session?.World == null || entity == null) return emptyWhenIdle ? string.Empty : "待命";
+            var world = session.World;
+            var life = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
+            if (!string.IsNullOrEmpty(life)) return life;
+
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd) &&
+                encounter.Find(entity.Id.Value) != null && CombatLifeStateService.CanFight(entity))
+                return "交战中";
+            if (inLocalCombat && SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, entity.Id))
+                return "交战中";
+
+            if (!string.IsNullOrEmpty(specialActivity)) return specialActivity;
+            if (world.Civilians.TryGet(entity.Id, out var civilian))
+                return HostMortalActivityPresentation.Describe(civilian);
+            if (isMoving) return "移动中";
+
+            if (entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
+                world.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
+            {
+                if (action is MoveAction) return "移动中";
+                if (action is WorkAction work) return ActivityDisplay(work.Activity) + "中";
+                if (action is LaborAction) return "工作中";
+                if (action is CultivateAction) return "修炼中";
+                if (action is RestAction) return "休息中";
+                if (action is RecoveryAction) return "恢复中";
+                if (action is ObserveAction) return "观察中";
+                if (action is WaitAction) return "发呆中";
+                return "行动中";
+            }
+
+            // Player-managed characters do not pretend to execute an NPC schedule while idle.
+            if (!PlayerPartyRuntime.CanPlayerControlCharacter(world, entity.Id) &&
+                entity.TryGet<ScheduleComponent>(out var schedule) &&
+                !string.IsNullOrEmpty(schedule.DefinitionId) &&
+                world.TryGetSchedule(schedule.DefinitionId, out var definition) &&
+                definition.TryResolve(world.Tick, out var block))
+                return ActivityDisplay(block.Activity) + "中";
+            return emptyWhenIdle ? string.Empty : "待命";
         }
 
         static string ActivityDisplay(ScheduleActivity activity)
@@ -157,16 +204,9 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Explore: return "探索";
                 case ScheduleActivity.Patrol: return "巡视";
                 case ScheduleActivity.Inspect: return "检查";
-                case ScheduleActivity.Idle: return "待命";
+                case ScheduleActivity.Idle: return "发呆";
                 default: return "待命";
             }
-        }
-
-        static string DescribeSite(SimulationWorld world, string siteId)
-        {
-            if (world?.Strategic?.Sites != null && world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
-                return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            return siteId ?? string.Empty;
         }
     }
 

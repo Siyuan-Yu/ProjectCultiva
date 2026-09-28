@@ -120,6 +120,29 @@ namespace XianXia.Unity.Host
             }
         }
 
+        /// <summary>
+        /// Releases only the legacy/NPC-schedule farm worker ownership. The current Core
+        /// MovementIntent belongs to MortalCivilianService and must survive this handoff.
+        /// </summary>
+        public bool StopNpcScheduleFarmOwnershipOnly(EntityId id)
+        {
+            var removed = false;
+            for (var i = _workers.Count - 1; i >= 0; i--)
+            {
+                var worker = _workers[i];
+                if (worker.Id != id || !worker.FromNpcSchedule)
+                    continue;
+                ReleaseReserve(worker);
+                moveController?.CancelPresentationMovementPublic(worker.Id);
+                ClearActivity(worker.Id);
+                _workers.RemoveAt(i);
+                removed = true;
+            }
+            if (removed)
+                _npcRetryAt.Remove(id.Value);
+            return removed;
+        }
+
         public void StopAll()
         {
             for (var i = 0; i < _workers.Count; i++)
@@ -293,14 +316,7 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                for (var i = 0; i < _workers.Count; i++)
-                {
-                    if (_workers[i].Id == id && _workers[i].FromNpcSchedule)
-                    {
-                        Stop(id);
-                        break;
-                    }
-                }
+                StopNpcScheduleFarmOwnershipOnly(id);
             }
         }
 
@@ -312,6 +328,27 @@ namespace XianXia.Unity.Host
             locationId = null;
             if (world == null || entity == null)
                 return false;
+            if (XianXia.Core.Npc.MortalCivilianQuery.IsManagedCivilian(world, entity))
+            {
+                if (world.Civilians.TryGet(entity.Id, out var civilian) &&
+                    (civilian.Activity == XianXia.Core.Npc.MortalActivity.FarmerWork ||
+                     civilian.Activity == XianXia.Core.Npc.MortalActivity.HerbFarmerWork) &&
+                    entity.TryGet<XianXia.Core.Npc.MovementIntentComponent>(out var civilianIntent) &&
+                    civilianIntent.Active &&
+                    world.TryGetWorkArea(civilianIntent.TargetWorkAreaId, out var civilianArea) &&
+                    HostFarmFieldRules.IsFarmTaggedWorkArea(civilianArea) &&
+                    ((civilian.Activity == XianXia.Core.Npc.MortalActivity.FarmerWork &&
+                      XianXia.Core.Npc.MortalActivityEvaluator.HasTag(civilianArea, "grain")) ||
+                     (civilian.Activity == XianXia.Core.Npc.MortalActivity.HerbFarmerWork &&
+                      XianXia.Core.Npc.MortalActivityEvaluator.HasTag(civilianArea, "herb"))) &&
+                    HostFarmFieldRegistry.HasField(civilianArea.LocationId))
+                {
+                    locationId = civilianArea.LocationId;
+                    return true;
+                }
+                // Managed mortals never fall through to legacy WorkAction/Schedule ownership.
+                return false;
+            }
             if (!entity.TryGet<ActionStateComponent>(out var actionState) ||
                 !actionState.HasActiveAction)
                 return false;

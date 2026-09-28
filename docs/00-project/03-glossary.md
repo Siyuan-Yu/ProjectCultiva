@@ -299,7 +299,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 饱食 | Satiety | 凡人 V1 生存需求，建议 0–100 且越高越好 | 必须从可访问库存实际进食；阈值可调 |
 | 精力 | Energy | 凡人 V1 休息需求，建议 0–100 且越高越好 | 低于紧急阈值可原地慢速恢复；正常情况使用床位 |
 | 凡人职业 | Mortal Profession | 每名凡人最多一个专业生产职责 | Unassigned／Farmer／HerbFarmer／Logger／Medic；搬运救援与建设为通用工作 |
-| 势力忠诚 | Loyalty | Character 对当前 Faction 的 0–100 忠诚 | 不属于 Site、Relationship 或永久人格；换势力建立新值 |
+| 势力忠诚 | Loyalty | 所有有 FactionMembership 的 Character 对当前 Faction 的 0–100 忠诚 | CharacterId + FactionId 为唯一运行时 authority；无势力不适用；不属于 Site、Relationship 或永久人格，换势力建立新值 |
 | 逃亡 | Fleeing | 人物以真实位置和移动离开当前 Site 的强制状态 | 成功后成为 Displaced，不删除或传送 |
 | 押送俘虏 | Captured / Escorted | 由真实 carrier 带离的同一 Character | 无合法 PrisonerOnly Residence 时不能抽象转为 Detained |
 | 拘留 | Detained | Character 已进入有容量的合法 PrisonerOnly Residence | 保留原 FactionId/Loyalty 和需求，不参加势力工作 |
@@ -377,6 +377,19 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 管事 | Steward | 负责凡人治理的任命角色 | 不要求修炼天赋；与开局“管事弟子”不同，此处指玩家任命的治理职 |
 | 掩护 | Cover | 指派角色引开靠近同伴的 NPC | 降低被保护者的怀疑度积累 |
 | 秘密灵地 | HiddenQiSite | 营地外灵气浓度显著更高的地点 | 前期偷偷修炼的核心目标 |
+
+## CIVILIAN-LIFE-01 术语
+
+状态：**Implementation Complete / Producer Acceptance Pending（2026-09-27）**。
+
+| 术语 | 正式含义 |
+|---|---|
+| MortalCivilianBoard | 以真实 Character EntityId 保存凡人需求、忠诚、职业、活动与战后状态的 Runtime authority |
+| Loyalty | Character 对当前 Faction 的 0–100 忠诚；独立于人物间 RelationshipLedger |
+| MortalProfession | 单选 Unassigned/Farmer/HerbFarmer/Logger/Medic |
+| CivilianDisposition | Normal/SurrenderWaiting/Fleeing/Displaced/CapturedEscorted/Detained 的单一状态 |
+| PrisonerOnly | 普通 Residence 的囚犯专用用途；继续复用原住房 capacity |
+| Proper Care | Detained 在一个 World Day 内实际进食且在合法 Residence 睡眠；满足时日结 Loyalty -5 |
 
 ## 待定名词
 

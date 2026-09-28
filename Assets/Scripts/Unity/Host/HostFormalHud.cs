@@ -18,6 +18,7 @@ using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -33,7 +34,7 @@ namespace XianXia.Unity.Host
         const float OpsLegendH = 40f;
         /// <summary>顶栏 + 操作提示条占用高度（其它 IMGUI 面板应让位）。</summary>
         public const float HeaderReservedHeight = TopH + OpsLegendH + 4f;
-        const float BottomH = 228f;
+        const float BottomH = 272f;
         const float RailW = 260f;
         const float Pad = 8f;
         const float PanelW = 560f;
@@ -41,6 +42,7 @@ namespace XianXia.Unity.Host
         const float UnitTabStripW = 36f;
         const float CombatArtRailW = 58f;
         const float CombatArtRailGap = 4f;
+        const float PrisonPlacementRange = 4f;
 
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -486,15 +488,20 @@ namespace XianXia.Unity.Host
             var cap = bag.SlotCapacity;
             var res = "背包 " + used + "/" + cap + "   " + (network ? "战略物资" : "随身物资") +
                       "  木 " + wood + "  粮 " + grain + "  药 " + herb + "  敛息草 " + grass;
-            GUI.Label(new Rect(Screen.width - RailW - 850f, 4f, 604f, 18f), res, _body);
-            if (GUI.Button(new Rect(Screen.width - RailW - 234f, 6f, 70f, 28f), "地图"))
+            GUI.Label(new Rect(Screen.width - RailW - 926f, 4f, 604f, 18f), res, _body);
+            if (GUI.Button(new Rect(Screen.width - RailW - 310f, 6f, 70f, 28f), "地图"))
             {
                 var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
                 map?.Toggle();
             }
-            if (GUI.Button(new Rect(Screen.width - RailW - 158f, 6f, 70f, 28f), "建筑"))
+            if (GUI.Button(new Rect(Screen.width - RailW - 234f, 6f, 70f, 28f), "建筑"))
             {
                 var panel = bootstrap != null ? bootstrap.ConstructionPanel : null;
+                panel?.Toggle();
+            }
+            if (GUI.Button(new Rect(Screen.width - RailW - 158f, 6f, 70f, 28f), "工作"))
+            {
+                var panel = bootstrap != null ? bootstrap.MortalWorkPanel : null;
                 panel?.Toggle();
             }
             if (GUI.Button(new Rect(Screen.width - RailW - 82f, 6f, 70f, 28f), "背包"))
@@ -719,9 +726,9 @@ namespace XianXia.Unity.Host
                 return;
 
             var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
-            DrawInspectShell(130f, "住房 · " + title, () =>
+            DrawInspectShell(202f, "住房 · " + title, () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 130f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 202f);
                 var ownerName = "（未指定）";
                 if (session.World.HousingAssignments.TryGetOwner(areaId, out var ownerId) &&
                     session.World.Entities.TryGet(ownerId, out var ownerEnt))
@@ -736,9 +743,51 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 36f), "入住：" + residents, _body);
                 GUI.Label(
                     new Rect(r.x + 10f, r.y + 96f, r.width - 20f, 24f),
-                    "只读况栏 · 改归属另开管理入口",
+                    "用途：" + session.World.Civilians.GetResidenceUsage(areaId),
                     _body);
+                if (HousingAssignmentService.CanManageHousing(session.World) &&
+                    GUI.Button(new Rect(r.x + 10f, r.y + 122f, r.width - 20f, 26f),
+                        session.World.Civilians.GetResidenceUsage(areaId) == ResidenceUsage.Normal ? "设为囚室" : "恢复普通住房"))
+                {
+                    var next = session.World.Civilians.GetResidenceUsage(areaId) == ResidenceUsage.Normal
+                        ? ResidenceUsage.PrisonerOnly : ResidenceUsage.Normal;
+                    var result = MortalCivilianService.SetResidenceUsage(session.World, areaId, next);
+                    if (result.IsFailure) Debug.LogWarning("[Civilian] " + result.Error.Message);
+                }
+                if (session.World.Civilians.GetResidenceUsage(areaId) == ResidenceUsage.PrisonerOnly &&
+                    TryFindEscortedCaptiveAtResidence(session, area, out var captiveId) &&
+                    GUI.Button(new Rect(r.x + 10f, r.y + 154f, r.width - 20f, 26f), "安置押送俘虏"))
+                {
+                    var result = MortalCivilianService.Detain(session.World, captiveId, areaId);
+                    if (result.IsFailure) Debug.LogWarning("[Civilian] " + result.Error.Message);
+                }
             });
+        }
+
+        bool TryFindEscortedCaptiveAtResidence(
+            PlayableHostSession session,
+            WorkAreaDefinition area,
+            out EntityId captiveId)
+        {
+            captiveId = EntityId.None;
+            if (session?.World == null || area == null || bootstrap?.ViewSpawner == null ||
+                !HostZoneQuery.TryGetLocationCenter(session.World, area.LocationId, out var baseCenter))
+                return false;
+            var center = baseCenter + new Vector3(area.OffsetX, area.OffsetZ, 0f);
+            foreach (var pair in session.World.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state == null || state.Disposition != CivilianDisposition.CapturedEscorted ||
+                    state.CarrierId.IsNone || session.World.Strategic.PlayerPartyContext?.IsMember(state.CarrierId) != true ||
+                    !bootstrap.ViewSpawner.Registry.TryGet(state.CarrierId, out var carrierView) || carrierView == null)
+                    continue;
+                if (Vector2.Distance(HostPresentationSpace.ToPresentation(carrierView.transform.position),
+                        HostPresentationSpace.ToPresentation(center)) > PrisonPlacementRange)
+                    continue;
+                captiveId = state.EntityId;
+                return true;
+            }
+            return false;
         }
 
         void DrawInspectWorkArea(PlayableHostSession session, string areaId)
@@ -1101,21 +1150,11 @@ namespace XianXia.Unity.Host
                 realm,
                 _parchmentTitle);
 
-            var headerExtra = 0f;
-            if (isPartyMember && !isActive)
-            {
-                GUI.Label(
-                    new Rect(main.x + 14f, main.y + 30f + headerExtra, main.width - 24f, 18f),
-                    "仅主控角色接受移动／战斗指令",
-                    _small);
-                headerExtra += 16f;
-            }
-
             var overviewArea = new Rect(
                 main.x + 14f,
-                main.y + 40f + headerExtra,
+                main.y + 40f,
                 main.width - 28f,
-                main.height - 68f - headerExtra);
+                main.height - 68f);
             DrawOverviewBars(session, focus, entity, cult, overviewArea);
             GUI.Label(
                 new Rect(main.x + 14f, main.yMax - 22f, main.width - 28f, 18f),
@@ -1338,102 +1377,84 @@ namespace XianXia.Unity.Host
             var rightW = area.width * 0.48f;
             var y = area.y;
 
-            var lifeStamp = CombatLifeStateService.FormatLifeStateWithCountdown(session?.World, entity);
-            if (!string.IsNullOrEmpty(lifeStamp))
-            {
-                var hint = lifeStamp;
-                if (CombatLifeStateService.TryGetLifeStateCountdown(
-                        session?.World, entity, out var cdLabel, out var cdSec))
-                {
-                    if (cdLabel == "弥留")
-                        hint = lifeStamp + "（" + cdSec + "s 后转阵亡）";
-                    else if (cdLabel == "尸体")
-                        hint = lifeStamp + "（" + cdSec + "s 后腐烂）";
-                }
-
-                GUI.Label(new Rect(area.x, y, area.width, 20f), "状态：" + hint, _parchmentBody);
-                y += 22f;
-            }
-
-            if (entity.TryGet<AttributesComponent>(out var attrs))
+            var hasAttributes = entity.TryGet<AttributesComponent>(out var attrs);
+            var maxHp = hasAttributes ? Mathf.Max(1, attrs.GetFinal(AttributeId.MaxHp)) : 1;
+            var curHp = maxHp;
+            if (hasAttributes)
             {
                 CombatDamageRules.EnsureVitals(entity);
-                var maxHp = Mathf.Max(1, attrs.GetFinal(AttributeId.MaxHp));
-                var curHp = maxHp;
                 if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                     curHp = Mathf.Clamp(vitals.CurrentHp, 0, maxHp);
-                DrawStatBar(area.x, y, leftW, "生命", curHp, maxHp, BarOrange);
-                y += 22f;
-                var phy = attrs.GetFinal(AttributeId.Physique);
-                DrawStatBar(area.x, y, leftW, "体魄", phy, Mathf.Max(50, phy), BarOrange);
-                y += 22f;
-                var sta = attrs.GetFinal(AttributeId.Stamina);
-                DrawStatBar(area.x, y, leftW, "耐力", sta, Mathf.Max(100, sta), BarOrange);
-                y += 22f;
-                var sense = attrs.GetFinal(AttributeId.SpiritSense);
-                DrawStatBar(area.x, y, leftW, "神识", sense, Mathf.Max(100, sense), BarViolet);
-                y += 22f;
-                var mind = attrs.GetFinal(AttributeId.MindState);
-                DrawStatBar(area.x, y, leftW, "心境", mind, Mathf.Max(100, mind), BarBlue);
             }
-            else
-            {
-                GUI.Label(new Rect(area.x, y, leftW, 22f), "无属性数据", _parchmentBody);
-                y += 22f;
-            }
+            DrawOptionalStatBar(area.x, y, leftW, "生命", hasAttributes, curHp, maxHp, BarOrange);
+            y += 22f;
+
+            var physique = hasAttributes ? attrs.GetFinal(AttributeId.Physique) : 0;
+            DrawOptionalStatBar(area.x, y, leftW, "体魄", hasAttributes,
+                physique, Mathf.Max(50, physique), BarOrange);
+            y += 22f;
+            var stamina = hasAttributes ? attrs.GetFinal(AttributeId.Stamina) : 0;
+            DrawOptionalStatBar(area.x, y, leftW, "耐力", hasAttributes,
+                stamina, Mathf.Max(100, stamina), BarOrange);
+            y += 22f;
+            var spiritSense = hasAttributes ? attrs.GetFinal(AttributeId.SpiritSense) : 0;
+            DrawOptionalStatBar(area.x, y, leftW, "神识", hasAttributes,
+                spiritSense, Mathf.Max(100, spiritSense), BarViolet);
+            y += 22f;
+            var mindState = hasAttributes ? attrs.GetFinal(AttributeId.MindState) : 0;
+            DrawOptionalStatBar(area.x, y, leftW, "心境", hasAttributes,
+                mindState, Mathf.Max(100, mindState), BarBlue);
+            y += 22f;
+
+            var hasMortalNeeds = session.World.Civilians.TryGet(focus, out var mortalNeeds);
+            DrawOptionalStatBar(area.x, y, leftW, "饱食", hasMortalNeeds,
+                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Satiety, 0, 100) : 0, 100, BarOrange);
+            y += 22f;
+            DrawOptionalStatBar(area.x, y, leftW, "精力", hasMortalNeeds,
+                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Energy, 0, 100) : 0, 100, BarBlue);
 
             var ry = area.y;
-            if (cult != null)
-            {
-                var req = Mathf.Max(1, cult.BreakthroughProgressRequired > 0
-                    ? cult.BreakthroughProgressRequired
-                    : 100);
-                DrawStatBar(rightX, ry, rightW, "修为", cult.Progress, req, BarBlue);
-                ry += 22f;
-                if (entity.TryGet<AttributesComponent>(out var attrs2))
-                {
-                    CombatDamageRules.EnsureVitals(entity);
-                    var maxSp = Mathf.Max(0, attrs2.GetFinal(AttributeId.SpiritPower));
-                    var curSp = maxSp;
-                    if (entity.TryGet<CombatVitalsComponent>(out var vitals2))
-                        curSp = Mathf.Clamp(vitals2.CurrentSpiritPower, 0, Mathf.Max(1, maxSp));
-                    if (cult.Realm >= RealmStage.QiRefining && maxSp > 0)
-                    {
-                        DrawStatBar(rightX, ry, rightW, "灵力护盾", curSp, Mathf.Max(1, maxSp), BarTeal);
-                        ry += 22f;
-                    }
-                    else
-                    {
-                        DrawStatBar(rightX, ry, rightW, "灵力", maxSp, Mathf.Max(100, maxSp), BarTeal);
-                        ry += 22f;
-                    }
+            var hasCultivation = cult != null;
+            var requiredProgress = hasCultivation
+                ? Mathf.Max(1, cult.BreakthroughProgressRequired > 0 ? cult.BreakthroughProgressRequired : 100)
+                : 1;
+            DrawOptionalStatBar(rightX, ry, rightW, "修为", hasCultivation,
+                hasCultivation ? cult.Progress : 0, requiredProgress, BarBlue);
+            ry += 22f;
 
-                    if (cult.Realm >= RealmStage.Foundation)
-                    {
-                        var veilOn = SpiritVeilService.IsActive(entity);
-                        GUI.Label(
-                            new Rect(rightX, ry, rightW, 18f),
-                            veilOn
-                                ? "斗气纱衣　已展开（普攻远程 " +
-                                  SpiritVeilRules.FoundationRangedEngageRange.ToString("0") +
-                                  "）· F2 收起"
-                                : "斗气纱衣　未展开 · F2 召唤（耗灵力 " +
-                                  SpiritVeilRules.FoundationActivateSpiritCost + "）",
-                            _parchmentBody);
-                        ry += 20f;
-                    }
-                }
+            var maxSpirit = hasAttributes ? Mathf.Max(0, attrs.GetFinal(AttributeId.SpiritPower)) : 0;
+            var currentSpirit = maxSpirit;
+            if (hasAttributes && entity.TryGet<CombatVitalsComponent>(out var spiritVitals))
+                currentSpirit = Mathf.Clamp(spiritVitals.CurrentSpiritPower, 0, Mathf.Max(1, maxSpirit));
+            var hasSpirit = hasCultivation && hasAttributes;
+            var spiritShield = hasSpirit && cult.Realm >= RealmStage.QiRefining && maxSpirit > 0;
+            DrawOptionalStatBar(rightX, ry, rightW, spiritShield ? "灵力护盾" : "灵力", hasSpirit,
+                spiritShield ? currentSpirit : maxSpirit,
+                spiritShield ? Mathf.Max(1, maxSpirit) : Mathf.Max(100, maxSpirit), BarTeal);
+            ry += 22f;
 
-                GUI.Label(
-                    new Rect(rightX, ry, rightW, 20f),
-                    "修炼速 每5游戏分+" + CultivationProgressRules.BaseProgressPerTick +
-                    " · 功法 " + ManualShortName(cult, session.World),
-                    _parchmentBody);
-                ry += 22f;
-            }
+            GUI.Label(new Rect(rightX, ry, rightW, 20f),
+                hasCultivation
+                    ? "修炼：每5游戏分+" + CultivationProgressRules.BaseProgressPerTick +
+                      " · 功法 " + ManualShortName(cult, session.World)
+                    : "修炼：—",
+                _parchmentBody);
+            ry += 22f;
 
-            var factsY = area.y + 112f;
-            HostCharacterPresentationResolver.TryBuild(session, focus, out var presentation);
+            var veilText = "斗气纱衣：—";
+            if (hasCultivation && cult.Realm >= RealmStage.Foundation)
+                veilText = SpiritVeilService.IsActive(entity)
+                    ? "斗气纱衣：已展开 · F2 收起"
+                    : "斗气纱衣：未展开 · F2 召唤（耗灵力 " +
+                      SpiritVeilRules.FoundationActivateSpiritCost + "）";
+            GUI.Label(new Rect(rightX, ry, rightW, 20f), veilText, _parchmentBody);
+
+            var factsY = area.y + 154f;
+            HostCharacterPresentationResolver.TryBuild(session, focus, out var presentation,
+                bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(focus) == true);
+            var loyalty = CharacterFactionLoyaltyService.TryGetLoyalty(session.World, focus, out var loyaltyValue)
+                ? loyaltyValue.ToString()
+                : "—";
             GUI.Label(
                 new Rect(area.x, factsY, area.width, 18f),
                 "地点：" + (presentation?.Location ?? "未知"),
@@ -1441,18 +1462,21 @@ namespace XianXia.Unity.Host
             GUI.Label(
                 new Rect(area.x, factsY + 20f, area.width, 18f),
                 "势力：" + (presentation?.FactionName ?? "无") +
-                " · 身份：" + (presentation?.FactionRole ?? "无"),
+                " · 身份：" + (presentation?.FactionRole ?? "无") +
+                " · 忠诚：" + loyalty,
                 _parchmentBody);
         }
 
-        void DrawStatBar(float x, float y, float w, string label, int cur, int max, Color fill)
+        void DrawOptionalStatBar(
+            float x, float y, float w, string label, bool hasValue, int cur, int max, Color fill)
         {
             GUI.Label(new Rect(x, y, 56f, 20f), label, _parchmentBody);
             var bar = new Rect(x + 58f, y + 4f, Mathf.Max(40f, w - 62f), 14f);
             Fill(bar, new Color(0.55f, 0.48f, 0.38f, 0.55f));
-            var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
+            var pct = hasValue && max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
             var inner = new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f);
-            Fill(inner, fill);
+            if (hasValue)
+                Fill(inner, fill);
             DrawFrame(bar, Ink);
             var valueStyle = new GUIStyle(_parchmentBody)
             {
@@ -1460,7 +1484,7 @@ namespace XianXia.Unity.Host
                 fontSize = 11
             };
             HostImguiStyles.LockTextColor(valueStyle, Ink);
-            GUI.Label(bar, cur + "/" + max, valueStyle);
+            GUI.Label(bar, hasValue ? cur + "/" + max : "—", valueStyle);
         }
 
         static string ManualShortName(CultivationComponent cult, SimulationWorld world)

@@ -54,6 +54,7 @@ namespace XianXia.Core.Social
             }
 
             targetMem.Assign(recruiterMem.FactionId, FactionRoleKind.Member);
+            CharacterFactionLoyaltyService.TryGetLoyalty(world, target, out _);
 
             var bond = _relationships.Record(
                 world,
@@ -88,6 +89,7 @@ namespace XianXia.Core.Social
 
             var leftFaction = mem.FactionId;
             mem.ClearMembership();
+            CharacterFactionLoyaltyService.TryGetLoyalty(world, subject, out _);
 
             world.Events.Publish(
                 EventType.FactionMembershipChanged,

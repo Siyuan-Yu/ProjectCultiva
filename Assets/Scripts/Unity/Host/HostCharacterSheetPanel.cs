@@ -209,7 +209,8 @@ namespace XianXia.Unity.Host
                 GUI.Label(portrait, string.IsNullOrEmpty(name) ? "人" : name.Substring(0, 1),
                     new GUIStyle(_title) { alignment = TextAnchor.MiddleCenter, fontSize = 58 });
 
-            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info);
+            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info,
+                bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(entity.Id) == true);
             var realm = entity.TryGet<CultivationComponent>(out var cultivation)
                 ? RealmDisplay.Format(cultivation.Realm, cultivation.MinorStage) : "凡俗";
             var life = CombatLifeStateService.FormatLifeStateWithCountdown(bootstrap.Session.World, entity);
@@ -246,7 +247,8 @@ namespace XianXia.Unity.Host
         {
             var canvas = new Rect(0f, 0f, rect.width - 18f, 730f);
             _attributesScroll = GUI.BeginScrollView(rect, _attributesScroll, canvas);
-            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info);
+            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info,
+                bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(entity.Id) == true);
             var active = bootstrap.Session.PlayerParty?.ActiveCharacterId ?? EntityId.None;
             var leftW = active.IsNone || active == entity.Id ? canvas.width : canvas.width * 0.61f;
             DrawOverviewCard(new Rect(0f, 0f, leftW - 8f, 170f), entity, info);
@@ -274,8 +276,10 @@ namespace XianXia.Unity.Host
             var realm = entity.TryGet<CultivationComponent>(out var c) ? RealmDisplay.Format(c.Realm, c.MinorStage) : "凡俗";
             var life = CombatLifeStateService.FormatLifeStateWithCountdown(bootstrap.Session.World, entity);
             if (string.IsNullOrEmpty(life)) life = "正常";
+            var loyalty = CharacterFactionLoyaltyService.TryGetLoyalty(bootstrap.Session.World, entity.Id, out var value)
+                ? value.ToString() : "—";
             var text = "势力：" + (info?.FactionName ?? "无") + "\n身份：" + (info?.FactionRole ?? "无") +
-                       "\n境界：" + realm + "\n当前位置：" + (info?.Location ?? "未知") +
+                       "\n忠诚：" + loyalty + "\n境界：" + realm + "\n当前位置：" + (info?.Location ?? "未知") +
                        "\n当前状态：" + (info?.Activity ?? "待命") + "\n日程：" + (info?.Schedule ?? "无");
             GUI.Label(new Rect(rect.x + 14f, rect.y + 38f, rect.width - 28f, rect.height - 46f), text, _body);
         }
@@ -359,7 +363,8 @@ namespace XianXia.Unity.Host
         void DrawBiography(Rect rect, Entity entity)
         {
             DrawCard(rect, "人物小传");
-            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info);
+            HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info,
+                bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(entity.Id) == true);
             var hometown = string.Empty;
             IReadOnlyList<string> goals = null, desires = null;
             if (entity.TryGet<CharacterBioComponent>(out var bio)) { hometown = bio.Hometown; goals = bio.Goals; desires = bio.Desires; }

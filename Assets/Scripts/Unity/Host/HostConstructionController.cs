@@ -17,7 +17,8 @@ namespace XianXia.Unity.Host
                 return Result.Failure(ErrorCode.NotFound, "建筑定义不存在。", buildingId);
             if (!spec.UnlockedByDefault)
                 return Result.Failure(ErrorCode.InvalidOperation, "此建筑尚未解锁。");
-            if (!ConstructionService.HasRequiredMaterials(world, spec, out _))
+            if (!ConstructionService.HasRequiredMaterials(world, spec, out _) &&
+                !ConstructionService.CanUseCivilianSiteMaterials(world, spec))
                 return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。");
 
             switch (spec.PlacementKind)

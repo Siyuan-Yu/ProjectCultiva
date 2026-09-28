@@ -5,6 +5,7 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.Results;
 using XianXia.Core.World.Strategic;
@@ -335,6 +336,7 @@ namespace XianXia.Unity.Host
         {
             if (!CanCancel) return;
             var cancelledSiteAssault = !string.IsNullOrEmpty(_assaultSiteId);
+            MortalCivilianService.CancelCaptureRequest(_host.Session.World, _pendingAttacker, _pendingTarget);
             Debug.Log("[CharacterEncounter] cancel phase=" + Phase);
             if (_entryRoutine != null) StopCoroutine(_entryRoutine);
             _entryRoutine = null;
@@ -440,7 +442,7 @@ namespace XianXia.Unity.Host
                 if (!_host.ContinuousOutdoorSurfaceRuntime.MaintainIndependentEncounterViews())
                     return;
                 var readyDeltaTime = _host.PresentationDeltaTime;
-                CharacterEncounterService.AdvanceReadyToEnd(world, readyDeltaTime);
+                CharacterEncounterService.AdvanceReadyToEnd(world, readyDeltaTime, Time.unscaledDeltaTime);
                 TickReadyToEndManualAttack(world, state);
                 _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
                 _host.DispatchDrainedEvents();
@@ -498,7 +500,9 @@ namespace XianXia.Unity.Host
                         RefreshDefeatedParticipant(target);
                 }
                 var previousCount = state.Participants.Count;
-                CharacterEncounterService.Advance(world, dt, _host.ContinuousOutdoorSurfaceRuntime.PrepareInterventionPlacement);
+                CharacterEncounterService.Advance(
+                    world, dt, Time.unscaledDeltaTime,
+                    _host.ContinuousOutdoorSurfaceRuntime.PrepareInterventionPlacement);
                 if (state.Participants.Count != previousCount)
                     _host.ContinuousOutdoorSurfaceRuntime.PresentJoinedParticipants(previousCount);
                 _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
@@ -585,6 +589,7 @@ namespace XianXia.Unity.Host
 
         public void CancelPreparation()
         {
+            MortalCivilianService.CancelCaptureRequest(_host?.Session?.World, _pendingAttacker, _pendingTarget);
             if (_entryRoutine != null) StopCoroutine(_entryRoutine);
             _host?.ContinuousOutdoorSurfaceRuntime?.CancelPreparedIndependentField();
             _host?.Session?.ReleaseModalPause(PauseOwner);

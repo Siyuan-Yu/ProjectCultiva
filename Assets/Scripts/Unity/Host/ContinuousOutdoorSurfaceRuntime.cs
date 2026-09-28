@@ -8,6 +8,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Navigation;
+using XianXia.Core.Npc;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -350,16 +351,23 @@ namespace XianXia.Unity.Host
             return count;
         }
 
-        bool IsPersonalPositionCaptureOwner(SimulationWorld world, EntityId id) =>
-            world != null && !id.IsNone &&
-            ((_bootstrap?.Session?.PlayerParty ?? world.Strategic?.PlayerPartyContext)?.IsMember(id) != true) &&
-            !SquadWorldMotionService.OwnsCharacter(world, id) &&
-            !world.BackgroundCharacterTravel.IsTraveling(id) &&
-            !SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id) &&
-            (world.Strategic.ContinuousManualCombat == null ||
-             !world.Strategic.ContinuousManualCombat.Contains(id)) &&
-            !ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) &&
-            world.Strategic.CharacterEncounter?.Find(id.Value) == null;
+        bool IsPersonalPositionCaptureOwner(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone ||
+                ((_bootstrap?.Session?.PlayerParty ?? world.Strategic?.PlayerPartyContext)?.IsMember(id) == true) ||
+                world.BackgroundCharacterTravel.IsTraveling(id) ||
+                SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, id) ||
+                world.Strategic.ContinuousManualCombat != null &&
+                world.Strategic.ContinuousManualCombat.Contains(id) ||
+                ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) ||
+                world.Strategic.CharacterEncounter?.Find(id.Value) != null)
+                return false;
+
+            if (world.Civilians.TryGet(id, out var civilian))
+                return civilian.Disposition != CivilianDisposition.CapturedEscorted &&
+                       MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, id, civilian);
+            return !SquadWorldMotionService.OwnsCharacter(world, id);
+        }
 
         string DescribeNpcSquadNearField(OutdoorWorldSurfaceDefinition surface)
         {

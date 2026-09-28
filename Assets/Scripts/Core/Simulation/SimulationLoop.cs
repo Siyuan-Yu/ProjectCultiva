@@ -151,6 +151,8 @@ namespace XianXia.Core.Simulation
             _world.Tick = _world.Tick.Add(1);
             OutdoorFarmGrowthService.Advance(_world);
             ProcessDayBoundary(previous, _world.Tick);
+            CharacterFactionLoyaltyService.EnsureAll(_world);
+            MortalCivilianService.Tick(_world);
             _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
 

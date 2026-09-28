@@ -44,6 +44,8 @@ namespace XianXia.Unity.Host
         readonly List<PathRequest> _orderedPathRequests = new List<PathRequest>(64);
         readonly HashSet<ulong> _deferredPathRequestIds = new HashSet<ulong>();
         readonly HashSet<string> _pathUnavailableReported = new HashSet<string>(System.StringComparer.Ordinal);
+        readonly Dictionary<ulong, uint> _issuedIntentRevision = new Dictionary<ulong, uint>();
+        object _trackedWorld;
 
         /// <summary>本帧真正执行的 NPC A* 请求数（性能诊断）。</summary>
         public int NpcPathRequestsThisFrame { get; private set; }
@@ -65,16 +67,18 @@ namespace XianXia.Unity.Host
 
         readonly struct PathRequest
         {
-            public PathRequest(XianXia.Core.Domain.Ids.EntityId entity, string targetKey, bool targetChanged)
+            public PathRequest(XianXia.Core.Domain.Ids.EntityId entity, string targetKey, bool targetChanged, uint revision)
             {
                 Entity = entity;
                 TargetKey = targetKey;
                 TargetChanged = targetChanged;
+                Revision = revision;
             }
 
             public XianXia.Core.Domain.Ids.EntityId Entity { get; }
             public string TargetKey { get; }
             public bool TargetChanged { get; }
+            public uint Revision { get; }
         }
 
         public void Bind(PlayableHostBootstrap host, HostMoveController move, EntityViewSpawner spawner)
@@ -94,6 +98,12 @@ namespace XianXia.Unity.Host
             _deferredPathRequestIds.Add(npc.Value);
         }
 
+        public bool TryGetResolvedPresentationTarget(EntityId entityId, out Vector3 target)
+        {
+            target = default;
+            return !entityId.IsNone && _resolvedCenter.TryGetValue(entityId.Value, out target);
+        }
+
         void Update()
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
@@ -106,6 +116,12 @@ namespace XianXia.Unity.Host
                 return;
 
             var session = bootstrap.Session;
+            if (!ReferenceEquals(_trackedWorld, session.World))
+            {
+                _trackedWorld = session.World;
+                ClearTrackingCaches();
+            }
+            SyncCarriedCharacters(session.World);
             var grid = moveController.WalkGrid;
             // Path computation 是 CPU presentation work，不是 Simulation progress：repath／stuck
             // 窗口用 real-time（unscaled），绝不除以 game speed（20x 会把冷却压到 0.15s）。
@@ -120,6 +136,7 @@ namespace XianXia.Unity.Host
             TickCounterWindow(now);
             _pathRequests.Clear();
             _orderedPathRequests.Clear();
+            var farmLabor = bootstrap.GetComponent<HostFarmFieldLabor>();
 
             foreach (var entity in session.World.Entities.All)
             {
@@ -127,19 +144,44 @@ namespace XianXia.Unity.Host
                     continue;
                 if ((entity.Tags & EntityTag.Npc) == 0)
                     continue;
+                entity.TryGet<MovementIntentComponent>(out var intent);
+                ReconcileIssuedIntent(entity.Id, intent);
                 if (!LocalMapVisibility.IsEntityVisible(session.World, entity.Id))
                     continue;
                 // 弥留／尸体不跑日程寻路
                 if (!CombatLifeStateService.CanFight(entity))
                     continue;
-                // Moving NPC Squad members are driven by group motion/presentation. During battle
-                // the participant materializer owns them instead; Schedule owns neither.
-                if (ActualBattleParticipantQuery.TryFind(
-                        session.World.Strategic.Participants, entity.Id, out _))
+                MortalCivilianState civilian = null;
+                var managedMortal = MortalCivilianQuery.IsManagedCivilian(session.World, entity) &&
+                                    session.World.Civilians.TryGet(entity.Id, out civilian);
+                var civilianFarmActivity = managedMortal &&
+                    (civilian.Activity == MortalActivity.FarmerWork ||
+                     civilian.Activity == MortalActivity.HerbFarmerWork);
+                // Farm presentation owns managed mortals only while their current civilian
+                // activity is farm work. Release stale farm ownership synchronously so this
+                // frame can consume the new MovementIntent; never clear that Core intent here.
+                if (managedMortal && !civilianFarmActivity && farmLabor != null &&
+                    farmLabor.IsFarming(entity.Id))
+                    farmLabor.StopNpcScheduleFarmOwnershipOnly(entity.Id);
+                // Core and Host share one managed-mortal owner decision. A stationary singleton
+                // squad is placement context and must not swallow civilian MovementIntent.
+                if (managedMortal)
+                {
+                    if (!MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(
+                            session.World, entity.Id, civilian))
+                        continue;
+                }
+                else
+                {
+                    // Non-civilian encounter and squad ownership retains the existing gate.
+                    if (ActualBattleParticipantQuery.TryFind(
+                            session.World.Strategic.Participants, entity.Id, out _) ||
+                        SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id))
+                        continue;
+                }
+                if (farmLabor != null && farmLabor.IsFarming(entity.Id))
                     continue;
-                if (SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id))
-                    continue;
-                if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
+                if (intent == null || !intent.Active)
                     continue;
                 if (!viewSpawner.Registry.TryGet(entity.Id, out var view) || view == null)
                     continue;
@@ -206,7 +248,7 @@ namespace XianXia.Unity.Host
 
                 if (targetChanged)
                     _lastTargetKey[id] = targetKey;
-                _pathRequests.Add(new PathRequest(entity.Id, targetKey, targetChanged));
+                _pathRequests.Add(new PathRequest(entity.Id, targetKey, targetChanged, intent.Revision));
             }
 
             // 上一帧被 budget 推迟的请求优先（防饥饿）；其余下一帧继续。
@@ -242,7 +284,8 @@ namespace XianXia.Unity.Host
             if (!viewSpawner.Registry.TryGet(request.Entity, out var view) || view == null)
                 return;
             if (!world.Entities.TryGet(request.Entity, out var entity) ||
-                !entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
+                !entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active ||
+                intent.Revision != request.Revision)
                 return;
             if (!_resolvedCenter.TryGetValue(id, out var center))
                 return;
@@ -254,7 +297,8 @@ namespace XianXia.Unity.Host
 
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             var accepted = moveController.OrderEntityToWorldPoint(
-                request.Entity, center, null, issueStop: false);
+                request.Entity, center, null, issueStop: false,
+                speedMultiplier: intent.SpeedMultiplier);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
             LastNpcPathBuildMs = elapsedMs;
@@ -265,12 +309,13 @@ namespace XianXia.Unity.Host
             _gridRevisionAtPath[id] = gridRevision;
             if (!accepted)
             {
-                intent.MarkRetryablePathUnavailable();
+                intent.MarkRetryablePathUnavailable("WalkGrid 未找到从当前起点到目标访问点的连通路径");
                 ReportPathUnavailableOnce(entity, intent, request.TargetKey, view.transform.position, center);
                 return;
             }
 
             intent.MarkPathRequested();
+            _issuedIntentRevision[id] = intent.Revision;
             _lastProgressAt[id] = now;
             _lastPos[id] = view.transform.position;
         }
@@ -339,8 +384,71 @@ namespace XianXia.Unity.Host
         }
 
         static string BuildTargetKey(MovementIntentComponent intent) =>
+            (intent.HasWorldTarget ? intent.TargetSurfaceId + "@" +
+             intent.TargetWorldX.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "," +
+             intent.TargetWorldY.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : string.Empty) + "|" +
             (intent.TargetWorkAreaId ?? string.Empty) + "|" +
             (intent.TargetLocationId ?? string.Empty) + "|" + intent.SlotIndex;
+
+        void SyncCarriedCharacters(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (surface == null || !surface.IsActive || viewSpawner?.Registry == null) return;
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (!state.RescueCarrying || state.RescueTargetId.IsNone ||
+                    !viewSpawner.Registry.TryGet(pair.Key, out var carrier) || carrier == null ||
+                    !viewSpawner.Registry.TryGet(state.RescueTargetId, out var target) || target == null) continue;
+                target.transform.position = carrier.transform.position + new Vector3(-.28f, -.16f, 0f);
+                surface.Mapper.PresentationToWorld(carrier.transform.position.x,
+                    carrier.transform.position.y, out var wx, out var wy);
+                world.WorldPresence.SetAtWorldPosition(state.RescueTargetId,
+                    new XianXia.Core.World.WorldVec2(wx, wy), surface.ActiveSurfaceId);
+            }
+        }
+
+        void ReconcileIssuedIntent(EntityId entityId, MovementIntentComponent intent)
+        {
+            if (entityId.IsNone || !_issuedIntentRevision.TryGetValue(entityId.Value, out var issued)) return;
+            if (intent != null && intent.Active && intent.Revision == issued) return;
+            CancelCivilianIntent(entityId);
+        }
+
+        /// <summary>Cancels only a path previously accepted for a civilian MovementIntent.</summary>
+        public void CancelCivilianIntent(EntityId entityId)
+        {
+            if (entityId.IsNone) return;
+            if (_issuedIntentRevision.Remove(entityId.Value))
+                moveController?.CancelPresentationMovementPublic(entityId);
+            ClearTracking(entityId.Value);
+        }
+
+        void ClearTracking(ulong id)
+        {
+            _lastTargetKey.Remove(id);
+            _resolvedCenter.Remove(id);
+            _resolvedSpotGeneration.Remove(id);
+            _gridRevisionAtPath.Remove(id);
+            _nextRepathAt.Remove(id);
+            _lastPos.Remove(id);
+            _lastProgressAt.Remove(id);
+            _deferredPathRequestIds.Remove(id);
+        }
+
+        void ClearTrackingCaches()
+        {
+            _issuedIntentRevision.Clear();
+            _lastTargetKey.Clear();
+            _resolvedCenter.Clear();
+            _resolvedSpotGeneration.Clear();
+            _gridRevisionAtPath.Clear();
+            _nextRepathAt.Clear();
+            _lastPos.Clear();
+            _lastProgressAt.Clear();
+            _deferredPathRequestIds.Clear();
+            _pathUnavailableReported.Clear();
+        }
 
         public static bool TryMarkArrivedWithinRadius(
             MovementIntentComponent intent, Vector3 current, Vector3 target, float radius)
@@ -383,7 +491,7 @@ namespace XianXia.Unity.Host
             return new Vector3(wx, wy, HostPresentationSpace.EntityZ);
         }
 
-        static bool TryResolveWorldTarget(
+        bool TryResolveWorldTarget(
             XianXia.Core.Simulation.SimulationWorld world,
             MovementIntentComponent intent,
             out Vector3 worldCenter)
@@ -391,6 +499,16 @@ namespace XianXia.Unity.Host
             worldCenter = default;
             if (world == null || intent == null)
                 return false;
+            if (intent.HasWorldTarget)
+            {
+                var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+                if (surface == null || !surface.IsActive ||
+                    !string.Equals(surface.ActiveSurfaceId, intent.TargetSurfaceId, System.StringComparison.Ordinal))
+                    return false;
+                surface.Mapper.WorldToPresentation(intent.TargetWorldX, intent.TargetWorldY, out var px, out var py);
+                worldCenter = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                return true;
+            }
 
             float ox = 0f, oz = 0f;
             string locationId = intent.TargetLocationId;

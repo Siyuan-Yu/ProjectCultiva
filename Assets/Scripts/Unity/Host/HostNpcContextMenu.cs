@@ -50,6 +50,10 @@ namespace XianXia.Unity.Host
         const string AggressionPauseOwner = "SiteCoreAggressionConfirmation";
         Vector2 _menuScreen;
         Rect _menuGuiRect;
+        EntityId _recruitActor = EntityId.None;
+        EntityId _recruitTarget = EntityId.None;
+        float _recruitRemaining;
+        const float RecruitInteractionSeconds = 5f;
 
         Texture2D _px;
         GUIStyle _label;
@@ -99,6 +103,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            CancelRecruitInteraction();
             ReleaseInteractionNpcNow();
             CloseAll();
         }
@@ -123,6 +128,9 @@ namespace XianXia.Unity.Host
             if (HostNpcPicker.TryPickAtMouse(worldCamera, spawner, out var npc, out _) &&
                 !selectionController.IsPartyUnit(npc))
             {
+                if (bootstrap.Session.World.Civilians.TryGet(npc, out var captured) &&
+                    captured.Disposition == CivilianDisposition.CapturedEscorted)
+                    return false;
                 _actor = actor;
                 _targetNpc = npc;
                 _targetControlCoreWorkAreaId = string.Empty;
@@ -208,6 +216,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            TickRecruitInteraction();
             if (_phase == Phase.Closed)
             {
                 TryReleaseInteractionNpc();
@@ -469,7 +478,15 @@ namespace XianXia.Unity.Host
             var canAttack = CanInitiatePlayerHostileAction(_actor, _targetNpc);
             var canTrade = !hostile && bootstrap.Session.World.Commerce.TryGetProvider(bootstrap.Session.World, _targetNpc, out _);
             var canAuction = !hostile && AuctionHouseService.TryGetProvider(bootstrap.Session.World.Commerce, bootstrap.Session.World, _targetNpc, out _);
-            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0);
+            MortalCivilianState civilian = null;
+            bootstrap.Session.World.Civilians.TryGet(_targetNpc, out civilian);
+            var civilianActions = civilian != null && civilian.Disposition != CivilianDisposition.Normal && civilian.Disposition != CivilianDisposition.Displaced;
+            var extraRows = civilian == null ? 0 :
+                civilian.Disposition == CivilianDisposition.SurrenderWaiting ? 2 :
+                civilian.Disposition == CivilianDisposition.Fleeing ? 2 :
+                civilian.Disposition == CivilianDisposition.CapturedEscorted ? 0 :
+                civilian.Disposition == CivilianDisposition.Detained ? 3 : 0;
+            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows;
             var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
@@ -484,7 +501,7 @@ namespace XianXia.Unity.Host
                 hostile ? _targetLabel + "（敌对）" : _targetLabel,
                 _label);
             var y = guiY + 30f;
-            if (!hostile)
+            if (!hostile && !civilianActions)
             {
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "对话", _button))
                     BeginTalk();
@@ -501,18 +518,68 @@ namespace XianXia.Unity.Host
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "拍卖", _button)) BeginAuction();
                 y += itemH;
             }
+            if (civilian != null)
+            {
+                if ((civilian.Disposition == CivilianDisposition.SurrenderWaiting ||
+                     civilian.Disposition == CivilianDisposition.Detained))
+                {
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "招募", _button))
+                        BeginPersonApproach(HostNpcArriveAction.Recruit);
+                    y += itemH;
+                }
+                if (civilian.Disposition == CivilianDisposition.Fleeing)
+                {
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "制服并俘获…", _button)) BeginCapture();
+                    y += itemH;
+                }
+                if (civilian.Disposition == CivilianDisposition.Detained)
+                {
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "处决", _button))
+                        BeginPersonApproach(HostNpcArriveAction.Execute);
+                    y += itemH;
+                }
+                if (civilian.Disposition == CivilianDisposition.SurrenderWaiting ||
+                    civilian.Disposition == CivilianDisposition.Fleeing ||
+                    civilian.Disposition == CivilianDisposition.Detained)
+                {
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "释放", _button))
+                        BeginPersonApproach(HostNpcArriveAction.Release);
+                    y += itemH;
+                }
+            }
             if (canAttack && GUI.Button(
                     new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
                     hostile ? "攻击" : "攻击…",
                     _button))
             {
-                // 点击 Attack 立即按 Character 目标分类，不等移动完成后再决定 Encounter。
-                var consumed = TryHandlePlayerHostileAction(_actor, _targetNpc, null);
-                if (!consumed)
-                    BeginAttack();
+                BeginAttack();
             }
 
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginCapture()
+        {
+            BeginPersonApproach(HostNpcArriveAction.Capture);
+        }
+
+        void BeginPersonApproach(HostNpcArriveAction action)
+        {
+            var actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
+            var target = _targetNpc;
+            if (moveController == null || actor.IsNone || target.IsNone ||
+                !moveController.OrderActorToNpc(actor, target, action))
+            { CloseAll(); return; }
+            if (action != HostNpcArriveAction.Attack && action != HostNpcArriveAction.Capture)
+                _interactionNpc = target;
+            ResumeTime();
+            CloseAll();
+        }
+
+        void RunCivilianCommand(XianXia.Core.Results.Result result)
+        {
+            if (result.IsFailure) Debug.LogWarning("[Civilian] " + result.Error.Message);
+            CloseAll();
         }
 
         void DrawFactionFlagMenu()
@@ -684,9 +751,13 @@ namespace XianXia.Unity.Host
             var btnY = box.yMax - 44f;
             if (GUI.Button(new Rect(box.x + 14f, btnY, btnW, 32f), "确认拆除", _button))
             {
-                var result = ConstructionService.TryDismantleFactionFlag(
-                    world, ConstructionService.FactionControlPostBuildingId,
-                    world.Strategic.PlayerFactionId, flag.FlagId, out _);
+                var result = !string.IsNullOrEmpty(flag.SiteId) &&
+                    CivilianConstructionJobService.HasAvailableWorker(world, flag.SiteId, world.Strategic.PlayerFactionId)
+                    ? ConstructionService.TryQueueCivilianFlagDismantle(
+                        world, world.Strategic.PlayerFactionId, flag.FlagId, out _)
+                    : ConstructionService.TryDismantleFactionFlag(
+                        world, ConstructionService.FactionControlPostBuildingId,
+                        world.Strategic.PlayerFactionId, flag.FlagId, out _);
                 if (result.IsFailure)
                     _dismantleStatus = result.Error.Message;
                 else
@@ -880,76 +951,39 @@ namespace XianXia.Unity.Host
 
         void BeginAttack()
         {
-            if (_targetNpc.IsNone)
-            {
-                CloseAll();
-                return;
-            }
-
+            var actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
             var npc = _targetNpc;
-            CollectSelectedPartyAttackers(_scratchAttackers);
-            var characterEncounter = bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
-            if (characterEncounter != null &&
-                characterEncounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+            var world = bootstrap?.Session?.World;
+            var encounter = world?.Strategic?.CharacterEncounter;
+            if (!actor.IsNone && !npc.IsNone && encounter != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd) &&
+                encounter.Opposing(actor.Value, npc.Value) &&
+                CanInitiatePlayerHostileAction(actor, npc))
             {
-                _scratchAttackers.Clear();
-                var active = bootstrap.Session.PlayerParty.ActiveCharacterId;
-                if (!active.IsNone && characterEncounter.Find(active.Value) != null)
-                    _scratchAttackers.Add(active);
+                ReleaseInteractionNpcNow(npc);
+                bootstrap.GetComponent<HostCharacterEncounter>()?.SetTarget(actor, npc);
+                ResumeTime();
+                CloseAll();
+                return;
             }
-            if (_scratchAttackers.Count == 0 && !_actor.IsNone &&
-                (characterEncounter == null ||
-                 characterEncounter.Phase != CharacterEncounterPhase.ReadyToEnd))
-                _scratchAttackers.Add(_actor);
-            if (_scratchAttackers.Count == 0)
+            if (actor.IsNone || npc.IsNone || !CanInitiatePlayerHostileAction(actor, npc))
             {
                 CloseAll();
                 return;
             }
-
             var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
-            var any = false;
-            for (var i = 0; i < _scratchAttackers.Count; i++)
+            var accepted = false;
+            if (melee != null && melee.IsWithinMeleeRange(actor, npc))
             {
-                var actor = _scratchAttackers[i];
-                if (actor.IsNone)
-                    continue;
-
-                if (melee != null && melee.IsWithinMeleeRange(actor, npc))
-                {
-                    OnNpcArriveAttack(actor, npc);
-                    any = true;
-                    continue;
-                }
-
-                if (moveController == null)
-                    continue;
-                if (moveController.OrderActorToNpc(actor, npc, HostNpcArriveAction.Attack))
-                {
-                    _interactionNpc = npc;
-                    any = true;
-                }
+                OnNpcArriveAttack(actor, npc);
+                accepted = true;
             }
-
-            if (any)
+            else if (moveController != null)
+                accepted = moveController.OrderActorToNpc(actor, npc, HostNpcArriveAction.Attack);
+            if (accepted)
                 ResumeTime();
             CloseAll();
-        }
-
-        readonly List<EntityId> _scratchAttackers = new List<EntityId>(4);
-
-        void CollectSelectedPartyAttackers(List<EntityId> into)
-        {
-            into.Clear();
-            if (selectionController == null)
-                return;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (!selectionController.IsPartyUnit(id))
-                    continue;
-                into.Add(id);
-            }
         }
 
         public void OnNpcArriveTalk(EntityId actor, EntityId npc)
@@ -1130,15 +1164,155 @@ namespace XianXia.Unity.Host
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)
         {
             if (bootstrap?.Session?.World == null || actor.IsNone || npc.IsNone) return;
-            ReleaseInteractionNpcNow(npc);
-            var world = bootstrap.Session.World;
-            if (SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, actor, npc))
-            {
+            if (!TryHandlePlayerHostileAction(actor, npc, null))
                 BeginMelee(actor, npc);
+        }
+
+        public void OnNpcArriveCapture(EntityId actor, EntityId npc)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || actor.IsNone || npc.IsNone ||
+                !world.Entities.TryGet(actor, out var actorEntity) || !CombatLifeStateService.CanFight(actorEntity) ||
+                !world.Entities.TryGet(npc, out var targetEntity) || !CombatLifeStateService.CanBeAttacked(targetEntity) ||
+                !world.Civilians.TryGet(npc, out var civilian) ||
+                civilian.Disposition != CivilianDisposition.Fleeing)
+                return;
+            var requested = MortalCivilianService.RequestCapture(world, actor, npc);
+            if (requested.IsFailure)
+            {
+                Debug.LogWarning("[Civilian] " + requested.Error.Message);
                 return;
             }
+            var encounterHost = bootstrap.GetComponent<HostCharacterEncounter>();
+            if (encounterHost == null)
+            {
+                MortalCivilianService.CancelCaptureRequest(world, actor, npc);
+                Debug.LogWarning("[Civilian] HostCharacterEncounter missing; capture request cancelled.");
+                return;
+            }
+            encounterHost.Request(actor, npc, automatic: false);
+            if (!encounterHost.HasPending && world.Strategic.CharacterEncounter == null)
+            {
+                MortalCivilianService.CancelCaptureRequest(world, actor, npc);
+                Debug.LogWarning("[Civilian] Capture encounter was not accepted; capture request cancelled.");
+                return;
+            }
+            ResumeTime();
+        }
 
-            bootstrap.GetComponent<HostCharacterEncounter>()?.Request(actor, npc, automatic: true);
+        public void OnNpcArriveRecruit(EntityId actor, EntityId npc)
+        {
+            CancelRecruitInteraction();
+            if (!CanContinueRecruitInteraction(actor, npc))
+            {
+                ReleaseInteractionNpcNow(npc);
+                return;
+            }
+            _recruitActor = actor;
+            _recruitTarget = npc;
+            _recruitRemaining = RecruitInteractionSeconds;
+            SetRecruitActivityText("……");
+        }
+
+        public void OnNpcArriveRelease(EntityId actor, EntityId npc)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world != null && IsWithinPersonInteractionRange(actor, npc))
+                RunCivilianCommand(MortalCivilianService.Release(world, npc));
+            ReleaseInteractionNpcNow(npc);
+        }
+
+        public void OnNpcArriveExecute(EntityId actor, EntityId npc)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world != null && IsWithinPersonInteractionRange(actor, npc))
+                RunCivilianCommand(MortalCivilianService.Execute(world, actor, npc));
+            ReleaseInteractionNpcNow(npc);
+        }
+
+        public void CancelRecruitInteractionForActor(EntityId actor)
+        {
+            if (!_recruitActor.IsNone && _recruitActor == actor)
+                CancelRecruitInteraction();
+        }
+
+        public string DescribeRecruitInteraction() => _recruitActor.IsNone
+            ? "None"
+            : "Actor=" + _recruitActor + " Target=" + _recruitTarget +
+              " RemainingRealSeconds=" + Mathf.Max(0f, _recruitRemaining).ToString("0.00");
+
+        void TickRecruitInteraction()
+        {
+            if (_recruitActor.IsNone) return;
+            var session = bootstrap?.Session;
+            if (session == null || !session.IsInitialized || session.ModalHardPaused ||
+                !CanContinueRecruitInteraction(_recruitActor, _recruitTarget))
+            {
+                CancelRecruitInteraction();
+                return;
+            }
+            if (session.ManualPaused) return;
+            _recruitRemaining -= Time.unscaledDeltaTime;
+            if (_recruitRemaining > 0f) return;
+            var actor = _recruitActor;
+            var target = _recruitTarget;
+            ClearRecruitActivityText();
+            _recruitActor = EntityId.None;
+            _recruitTarget = EntityId.None;
+            _recruitRemaining = 0f;
+            RunCivilianCommand(MortalCivilianService.Recruit(session.World, actor, target));
+            ReleaseInteractionNpcNow(target);
+        }
+
+        bool CanContinueRecruitInteraction(EntityId actor, EntityId target)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || actor.IsNone || target.IsNone ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, actor) ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, target) ||
+                !world.Entities.TryGet(actor, out var actorEntity) || !CombatLifeStateService.CanFight(actorEntity) ||
+                !world.Entities.TryGet(target, out var targetEntity) || !CombatLifeStateService.CanFight(targetEntity) ||
+                !world.Civilians.TryGet(target, out var state) ||
+                state.Disposition != CivilianDisposition.SurrenderWaiting &&
+                state.Disposition != CivilianDisposition.Detained)
+                return false;
+            return IsWithinPersonInteractionRange(actor, target);
+        }
+
+        bool IsWithinPersonInteractionRange(EntityId actor, EntityId target)
+        {
+            var registry = bootstrap?.ViewSpawner?.Registry;
+            return registry != null && registry.TryGet(actor, out var actorView) && actorView != null &&
+                   registry.TryGet(target, out var targetView) && targetView != null &&
+                   Vector2.Distance(actorView.transform.position, targetView.transform.position) <=
+                   HostNpcInteraction.DefaultMeleeEngageRange;
+        }
+
+        void SetRecruitActivityText(string text)
+        {
+            var registry = bootstrap?.ViewSpawner?.Registry;
+            if (registry == null) return;
+            if (registry.TryGet(_recruitActor, out var actor) && actor != null) actor.SetActivityText(text);
+            if (registry.TryGet(_recruitTarget, out var target) && target != null) target.SetActivityText(text);
+        }
+
+        void ClearRecruitActivityText()
+        {
+            var registry = bootstrap?.ViewSpawner?.Registry;
+            if (registry == null) return;
+            if (registry.TryGet(_recruitActor, out var actor) && actor != null) actor.SetActivityText(string.Empty);
+            if (registry.TryGet(_recruitTarget, out var target) && target != null) target.SetActivityText(string.Empty);
+        }
+
+        void CancelRecruitInteraction()
+        {
+            if (_recruitActor.IsNone) return;
+            var target = _recruitTarget;
+            ClearRecruitActivityText();
+            _recruitActor = EntityId.None;
+            _recruitTarget = EntityId.None;
+            _recruitRemaining = 0f;
+            ReleaseInteractionNpcNow(target);
         }
 
         void BeginMelee(EntityId actor, EntityId npc)
@@ -1170,11 +1344,13 @@ namespace XianXia.Unity.Host
         {
             var session = bootstrap?.Session;
             var encounter = session?.World?.Strategic?.CharacterEncounter;
-            if (encounter != null && encounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+            if (encounter != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
             {
-                var active = session.PlayerParty.ActiveCharacterId;
-                return !active.IsNone && encounter.Opposing(active.Value, target.Value) &&
-                       session.World.Entities.TryGet(active, out var activeEntity) &&
+                return !actor.IsNone && session.PlayerParty.IsPlayerControllableMember(actor) &&
+                       encounter.Opposing(actor.Value, target.Value) &&
+                       session.World.Entities.TryGet(actor, out var activeEntity) &&
                        CombatLifeStateService.CanFight(activeEntity) &&
                        session.World.Entities.TryGet(target, out var targetEntity) &&
                        CombatLifeStateService.CanBeAttacked(targetEntity);
@@ -1220,6 +1396,7 @@ namespace XianXia.Unity.Host
 
         void OnDisable()
         {
+            CancelRecruitInteraction();
             bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);
             if (_holdingDismantlePause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);
@@ -1231,6 +1408,8 @@ namespace XianXia.Unity.Host
             if (_interactionNpc.IsNone || moveController == null || bootstrap?.Session == null)
                 return;
             if (moveController.IsApproachingNpc(_interactionNpc))
+                return;
+            if (_interactionNpc == _recruitTarget)
                 return;
             if (dialoguePresenter != null && dialoguePresenter.IsActive)
                 return;
@@ -1267,9 +1446,10 @@ namespace XianXia.Unity.Host
         void ResumeTime()
         {
             if (bootstrap?.Session != null &&
+                !bootstrap.Session.ModalHardPaused &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&
                 (dialoguePresenter == null || !dialoguePresenter.IsActive))
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ManualPaused = false;
         }
 
         string ResolveDisplayName(EntityId id)

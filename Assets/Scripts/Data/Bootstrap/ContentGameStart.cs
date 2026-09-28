@@ -156,6 +156,8 @@ namespace XianXia.Data.Bootstrap
                 DefinitionId = def.Id,
                 Name = name,
                 InitialRealmPlaceholder = def.InitialRealmPlaceholder ?? string.Empty,
+                InitialLoyalty = def.InitialLoyalty,
+                InitialMortalProfession = def.InitialMortalProfession ?? "Unassigned",
                 EntityKind = entityKindNpc ? SpawnEntityKind.Npc : SpawnEntityKind.Character
             };
 

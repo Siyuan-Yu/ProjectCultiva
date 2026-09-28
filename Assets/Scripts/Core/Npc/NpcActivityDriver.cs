@@ -26,6 +26,11 @@ namespace XianXia.Core.Npc
 
             foreach (var entity in world.Entities.All)
             {
+                if (MortalCivilianQuery.IsManagedCivilian(world, entity))
+                {
+                    loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                    continue;
+                }
                 if (World.Strategic.SquadCommandService.OwnsIndividualSchedule(world, entity.Id))
                 {
                     loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);

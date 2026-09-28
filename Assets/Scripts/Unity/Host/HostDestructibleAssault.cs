@@ -6,6 +6,8 @@ using XianXia.Core.Combat;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Npc;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -22,6 +24,7 @@ namespace XianXia.Unity.Host
             public float Cooldown;
             public float NextRepath;
             public bool FromPartyFollow;
+            public bool FromCivilianWork;
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -87,7 +90,7 @@ namespace XianXia.Unity.Host
             return null;
         }
 
-        public void Begin(EntityId attacker, HostMapDestructible target, bool fromPartyFollow = false)
+        public void Begin(EntityId attacker, HostMapDestructible target, bool fromPartyFollow = false, bool fromCivilianWork = false)
         {
             if (attacker.IsNone || target == null || target.IsDestroyed)
                 return;
@@ -102,7 +105,8 @@ namespace XianXia.Unity.Host
                 _sessions[i].Cooldown = 0f;
                 _sessions[i].NextRepath = 0f;
                 _sessions[i].FromPartyFollow = fromPartyFollow || _sessions[i].FromPartyFollow;
-                if (!fromPartyFollow)
+                _sessions[i].FromCivilianWork = fromCivilianWork || _sessions[i].FromCivilianWork;
+                if (!fromPartyFollow && !fromCivilianWork)
                     bootstrap?.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
                 return;
             }
@@ -113,10 +117,11 @@ namespace XianXia.Unity.Host
                 Target = target,
                 Cooldown = 0f,
                 NextRepath = 0f,
-                FromPartyFollow = fromPartyFollow
+                FromPartyFollow = fromPartyFollow,
+                FromCivilianWork = fromCivilianWork
             });
 
-            if (!fromPartyFollow)
+            if (!fromPartyFollow && !fromCivilianWork)
                 bootstrap?.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
         }
 
@@ -143,9 +148,13 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
-            if (_sessions.Count == 0 || bootstrap?.Session?.World == null)
+            if (bootstrap?.Session?.World == null)
                 return;
             if (bootstrap.Session.IsPaused)
+                return;
+
+            SyncCivilianLoggers();
+            if (_sessions.Count == 0)
                 return;
 
             // TickSession may destroy a target and remove every session sharing it.
@@ -220,12 +229,27 @@ namespace XianXia.Unity.Host
                 .NotifyOutdoorDestructibleStateChanged(target.PlacementId);
 
             var wood = 0;
+            var civilianLogging = false;
             if (isTree && expectedYield > 0)
-                wood = GrantRoughWood(world, expectedYield);
+            {
+                if (world.Civilians.TryGet(attacker, out var civilian) && civilian.Activity == MortalActivity.Logging &&
+                    !string.IsNullOrEmpty(civilian.CurrentSiteId))
+                {
+                    civilianLogging = true;
+                    var deposited = WorldSitePublicStockService.TryAdd(world, civilian.CurrentSiteId,
+                        MortalCivilianService.WoodResourceId, expectedYield, attacker);
+                    wood = deposited.IsSuccess ? expectedYield : 0;
+                    if (deposited.IsSuccess) civilian.LastWorkOutputTick = world.Tick.Value;
+                }
+                else wood = GrantRoughWood(world, expectedYield);
+            }
 
             string msg;
             if (isTree)
             {
+                if (civilianLogging)
+                    msg = wood > 0 ? "伐倒 · 公库粗木 ×" + wood : "伐倒 · 公库无法接收粗木";
+                else
                 if (wood <= 0 && expectedYield > 0)
                     msg = "伐倒 · 背包已满，粗木未入包";
                 else if (wood < expectedYield && expectedYield > 0)
@@ -234,22 +258,73 @@ namespace XianXia.Unity.Host
                     msg = "伐倒 · 获粗木 ×" + wood;
                 else
                     msg = "伐倒 · 无木材产量（kind=" + kind + "）";
-                Debug.Log(
-                    "[Host] 砍树结算 kind=" + kind +
-                    " yield=" + expectedYield +
-                    " added=" + wood +
-                    " bagWood=" + world.Inventory.GetCount(HostMapDestructible.RoughWoodItemId));
+                Debug.Log("[Host] 砍树结算 kind=" + kind + " yield=" + expectedYield +
+                          " added=" + wood + " destination=" + (civilianLogging ? "SitePublicStock" : "PartyInventory"));
             }
             else
                 msg = "摧毁";
 
             Toast(attacker, msg, new Color(0.55f, 1f, 0.55f));
-            if (!session.FromPartyFollow)
+            if (!session.FromPartyFollow && !session.FromCivilianWork)
                 bootstrap.GetComponent<HostHousingAreaSelection>()?.Clear();
             bootstrap.DispatchDrainedEvents();
             // 当前目标的全部攻击会话在此批量移除；Update 遍历稳定快照并跳过已移除项。
-            RemoveSessionsOnTarget(target, clearInspect: !session.FromPartyFollow);
+            RemoveSessionsOnTarget(target, clearInspect: !session.FromPartyFollow && !session.FromCivilianWork);
             return true;
+        }
+
+        void SyncCivilianLoggers()
+        {
+            var world = bootstrap.Session.World;
+            foreach (var entity in world.Entities.All)
+            {
+                if (!world.Civilians.TryGet(entity.Id, out var civilian) || civilian.Activity != MortalActivity.Logging ||
+                    !AutonomousActionContinuationService.CanContinue(world, entity.Id)) continue;
+                if (IsAttacker(entity.Id)) continue;
+                if (!viewSpawner.Registry.TryGet(entity.Id, out var view) || view == null) continue;
+                HostMapDestructible nearest = null;
+                var best = 30f * 30f;
+                var trees = HostMapObjectRegistry.AllDestructibles;
+                for (var i = 0; i < trees.Count; i++)
+                {
+                    var tree = trees[i];
+                    if (tree == null || tree.IsDestroyed || !tree.IsTree) continue;
+                    if (!IsCivilianLoggingTargetAuthorized(world, entity, civilian, tree)) continue;
+                    var delta = tree.transform.position - view.transform.position;
+                    var distance = delta.x * delta.x + delta.y * delta.y;
+                    if (distance >= best) continue;
+                    best = distance; nearest = tree;
+                }
+                if (nearest != null) Begin(entity.Id, nearest, fromCivilianWork: true);
+            }
+            for (var i = _sessions.Count - 1; i >= 0; i--)
+            {
+                var session = _sessions[i];
+                if (!session.FromCivilianWork) continue;
+                if (world.Civilians.TryGet(session.Attacker, out var civilian) &&
+                    civilian.Activity == MortalActivity.Logging) continue;
+                _sessions.RemoveAt(i);
+            }
+        }
+
+        bool IsCivilianLoggingTargetAuthorized(
+            XianXia.Core.Simulation.SimulationWorld world,
+            Entity logger,
+            MortalCivilianState civilian,
+            HostMapDestructible tree)
+        {
+            if (world == null || logger == null || civilian == null || tree == null ||
+                string.IsNullOrEmpty(civilian.CurrentSiteId) ||
+                !logger.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) ||
+                !membership.IsAffiliated || !world.Strategic.Sites.TryGet(civilian.CurrentSiteId, out var site) ||
+                !string.Equals(site.OwnerFactionId, membership.FactionId, System.StringComparison.Ordinal))
+                return false;
+            var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (continuous == null || !continuous.IsActive ||
+                !continuous.PresentationToWorld(tree.transform.position.x, tree.transform.position.y, out var wx, out var wy) ||
+                !WorldSitePhysicalRegionQuery.TryResolve(world, new XianXia.Core.World.WorldVec2(wx, wy), out var targetSite))
+                return false;
+            return string.Equals(targetSite.SiteId, civilian.CurrentSiteId, System.StringComparison.Ordinal);
         }
 
         void RemoveSessionsOnTarget(HostMapDestructible target, bool clearInspect)
