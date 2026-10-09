@@ -161,6 +161,8 @@ World
 
 CIVILIAN-LIFE-01 已完成 Runtime、UI、Content 与 Snapshot v14 接线，状态 **Implementation Complete / Producer Acceptance Pending**；详细规则见 `27-characters-and-population.md`、[267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md) 与 ADR-0044。
 
+P1 的住房分类以 `home` tag 或非空 `residentTags[]` 为准，不能再由 Rest／Eat 活动推断。荒村另有 `base:workarea_huangcun_prison` 专用囚室：它虽复用 Residence 容量与真实 Detained Character，但用途在 New Game 固定为 `PrisonerOnly`，读档恢复 Snapshot authority，不能由普通住房分配或管理 UI 改回 Normal。`base:workarea_huangcun_medical`（`base:loc_ref_huangcun_medical`）是非住房、非阻挡的 Rescue destination，只负责伤员投送与物理在场显示。
+
 ### 4.6 NPC 数据
 
 关键 NPC **实体化**，包括：商人、村长、重要人物、剧情人物。
@@ -221,6 +223,8 @@ CIVILIAN-LIFE-01 已完成 Runtime、UI、Content 与 Snapshot v14 接线，状�
 具体约束强度**待确定**，详见 `22-realms-and-abilities.md` 的悟道能力。战略空间网络归悟道还是羽化，或两者分层，仍**待确定**。
 
 ## 9. 未决问题
+
+荒村 `recoverySpot` 是可独立使用的物理救援交付点，是否位于 medical WorkArea 只影响优先级与设施统计；`prisonDropOff` 是 PrisonerOnly 囚室的非阻挡世界交接点。两类对象均以 source blueprint 与 baked Continuous Surface 的 stable identity／exact WorldPosition 为准，交付必须走正式导航与后端距离校验。
 
 - [x] 世界结构：大陆 → 城市区域 → 格子地图。
 - [x] 规模目标：3 大陆、每大陆约 10 个城市区域；城市区域约 10 屏，大陆约 100 屏。

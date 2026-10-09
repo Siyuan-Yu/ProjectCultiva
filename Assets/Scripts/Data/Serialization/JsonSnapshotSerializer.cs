@@ -52,6 +52,7 @@ namespace XianXia.Data.Serialization
                 ["socialBonds"] = JsonValue.FromArray(SerializeSocialBonds(snapshot.SocialBonds)),
                 ["nextOutdoorConstructedAssetSequence"] = JsonValue.FromString(snapshot.NextOutdoorConstructedAssetSequence.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 ["outdoorConstructedAssets"] = JsonValue.FromArray(SerializeConstructedAssets(snapshot.OutdoorConstructedAssets)),
+                ["recoverySpotPlacements"] = JsonValue.FromArray(SerializeRecoverySpotPlacements(snapshot.RecoverySpotPlacements)),
                 ["outdoorDestructibles"] = JsonValue.FromArray(
                     SerializeOutdoorDestructibles(snapshot.OutdoorDestructibles)),
                 ["outdoorFarmPlots"] = JsonValue.FromArray(
@@ -136,7 +137,6 @@ namespace XianXia.Data.Serialization
                         Usage = (int)usage.GetNumber("usage")
                     });
                 }
-
                 if (root.TryGetProperty("activeActions", out var actions) && actions.Kind == JsonValueKind.Array)
                 {
                     foreach (var a in actions.Array)
@@ -329,6 +329,19 @@ namespace XianXia.Data.Serialization
                 }
                 else if (root.TryGetProperty("nextOutdoorConstructedAssetSequence", out _))
                     throw new System.FormatException("Constructed asset sequence without list.");
+
+                if (!root.TryGetProperty("recoverySpotPlacements", out var recoveryPlacements) ||
+                    recoveryPlacements.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("Recovery spot placement list missing.");
+                foreach (var node in recoveryPlacements.Array)
+                {
+                    if (node.Kind != JsonValueKind.Object ||
+                        !node.TryGetProperty("recoverySpotId", out var spotId) || spotId.Kind != JsonValueKind.String)
+                        throw new System.FormatException("Invalid recovery spot placement.");
+                    snapshot.RecoverySpotPlacements.Add(new RecoverySpotPlacementSnapshotDto {
+                        RecoverySpotId = spotId.String,
+                        InjuredCharacterId = ReadU(node, "injuredCharacterId") });
+                }
 
                 // Additive v6 optional fields: older saves omit both arrays and therefore retain
                 // the WorldSnapshot defaults (empty collections).
@@ -824,6 +837,8 @@ namespace XianXia.Data.Serialization
                     ,["mortalFleeTargetX"] = JsonValue.FromNumber(e.MortalFleeTargetX)
                     ,["mortalFleeTargetY"] = JsonValue.FromNumber(e.MortalFleeTargetY)
                     ,["mortalFleeSourceSiteId"] = JsonValue.FromString(e.MortalFleeSourceSiteId ?? string.Empty)
+                    ,["mortalRefugeTargetSiteId"] = JsonValue.FromString(e.MortalRefugeTargetSiteId ?? string.Empty)
+                    ,["mortalBackgroundNeedsLastProcessedTick"] = U(e.MortalBackgroundNeedsLastProcessedTick)
                     ,["mortalFleeCandidateIndex"] = JsonValue.FromNumber(e.MortalFleeCandidateIndex)
                     ,["mortalFleeAttemptCount"] = JsonValue.FromNumber(e.MortalFleeAttemptCount)
                     ,["mortalCarrierId"] = U(e.MortalCarrierId)
@@ -954,6 +969,17 @@ namespace XianXia.Data.Serialization
                     ["cellsH"] = JsonValue.FromNumber(a.CellsH),
                     ["boundLocationId"] = JsonValue.FromString(a.BoundLocationId),
                     ["boundWorldSiteId"] = JsonValue.FromString(a.BoundWorldSiteId ?? string.Empty) }));
+            return list;
+        }
+
+        static List<JsonValue> SerializeRecoverySpotPlacements(List<RecoverySpotPlacementSnapshotDto> placements)
+        {
+            var list = new List<JsonValue>();
+            if (placements == null) return list;
+            foreach (var p in placements)
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                    ["recoverySpotId"] = JsonValue.FromString(p.RecoverySpotId ?? string.Empty),
+                    ["injuredCharacterId"] = JsonValue.FromString(p.InjuredCharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)) }));
             return list;
         }
 
@@ -1249,6 +1275,8 @@ namespace XianXia.Data.Serialization
                 ,MortalFleeTargetX = (float)e.GetNumber("mortalFleeTargetX")
                 ,MortalFleeTargetY = (float)e.GetNumber("mortalFleeTargetY")
                 ,MortalFleeSourceSiteId = e.GetString("mortalFleeSourceSiteId", string.Empty)
+                ,MortalRefugeTargetSiteId = e.GetString("mortalRefugeTargetSiteId", string.Empty)
+                ,MortalBackgroundNeedsLastProcessedTick = ReadU(e, "mortalBackgroundNeedsLastProcessedTick")
                 ,MortalFleeCandidateIndex = (int)e.GetNumber("mortalFleeCandidateIndex")
                 ,MortalFleeAttemptCount = (int)e.GetNumber("mortalFleeAttemptCount")
                 ,MortalCarrierId = ReadU(e, "mortalCarrierId")
@@ -1555,6 +1583,7 @@ namespace XianXia.Data.Serialization
                         ["squadId"] = JsonValue.FromString(s.SquadId ?? string.Empty),
                         ["displayName"] = JsonValue.FromString(s.DisplayName ?? string.Empty),
                         ["factionId"] = JsonValue.FromString(s.FactionId ?? string.Empty),
+                        ["defendedSiteId"] = JsonValue.FromString(s.DefendedSiteId ?? string.Empty),
                         ["leaderCharacterId"] = U(s.LeaderCharacterId),
                         // Stable wire key retained without sourcing retired runtime identity.
                         ["legacyArmyId"] = JsonValue.FromString(string.Empty),
@@ -2026,6 +2055,7 @@ namespace XianXia.Data.Serialization
                         SquadId = node.GetString("squadId", string.Empty),
                         DisplayName = node.GetString("displayName", string.Empty),
                         FactionId = node.GetString("factionId", string.Empty),
+                        DefendedSiteId = node.GetString("defendedSiteId", string.Empty),
                         LeaderCharacterId = ReadU(node, "leaderCharacterId"),
                         LegacyArmyId = node.GetString("legacyArmyId", string.Empty),
                         CommandKind = node.TryGetProperty("commandKind", out var ck) ? (int)ck.Number : 0,

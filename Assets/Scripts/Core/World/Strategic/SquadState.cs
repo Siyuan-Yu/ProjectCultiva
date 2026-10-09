@@ -25,6 +25,7 @@ namespace XianXia.Core.World.Strategic
         public string SquadId { get; internal set; } = string.Empty;
         public string DisplayName { get; internal set; } = string.Empty;
         public string FactionId { get; internal set; } = string.Empty;
+        public string DefendedSiteId { get; internal set; } = string.Empty;
         public EntityId LeaderCharacterId { get; internal set; }
         public SquadCommandKind CommandKind { get; internal set; }
         public ulong CommandRevision { get; internal set; }
@@ -91,7 +92,8 @@ namespace XianXia.Core.World.Strategic
         public static Result<SquadState> Create(
             SimulationWorld world, string squadId, IReadOnlyList<EntityId> members,
             EntityId leader, SquadCommandKind command = SquadCommandKind.None,
-            bool importingSnapshot = false, string displayName = "", string factionId = "")
+            bool importingSnapshot = false, string displayName = "", string factionId = "",
+            string defendedSiteId = "")
         {
             if (world?.Strategic?.Squads == null || string.IsNullOrWhiteSpace(squadId) || members == null || members.Count == 0)
                 return Result.Fail<SquadState>(ErrorCode.InvalidArgument, "Squad requires world, identity and members.");
@@ -119,7 +121,8 @@ namespace XianXia.Core.World.Strategic
             var squad = new SquadState {
                 SquadId = squadId, LeaderCharacterId = leader,
                 CommandKind = command,
-                DisplayName = displayName ?? string.Empty, FactionId = factionId ?? string.Empty
+                DisplayName = displayName ?? string.Empty, FactionId = factionId ?? string.Empty,
+                DefendedSiteId = defendedSiteId ?? string.Empty
             };
             squad.Replace(values);
             var replaced = new List<SquadState>();

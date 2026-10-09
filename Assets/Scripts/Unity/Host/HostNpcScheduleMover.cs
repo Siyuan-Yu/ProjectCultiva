@@ -104,6 +104,20 @@ namespace XianXia.Unity.Host
             return !entityId.IsNone && _resolvedCenter.TryGetValue(entityId.Value, out target);
         }
 
+        public float ResolveArrivalRadiusPresentation(MovementIntentComponent intent)
+        {
+            if (intent == null || !intent.HasWorldTarget || intent.ArrivalRadiusWorld <= 0f)
+                return Mathf.Max(0f, arriveRadius);
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (surface == null || !surface.IsActive ||
+                !string.Equals(surface.ActiveSurfaceId, intent.TargetSurfaceId, System.StringComparison.Ordinal))
+                return Mathf.Max(0f, arriveRadius);
+            surface.Mapper.WorldToPresentation(intent.TargetWorldX, intent.TargetWorldY, out var x0, out var y0);
+            surface.Mapper.WorldToPresentation(intent.TargetWorldX + intent.ArrivalRadiusWorld,
+                intent.TargetWorldY, out var x1, out var y1);
+            return Mathf.Max(.01f, Vector2.Distance(new Vector2(x0, y0), new Vector2(x1, y1)));
+        }
+
         void Update()
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
@@ -216,12 +230,23 @@ namespace XianXia.Unity.Host
                         continue;
                     }
 
-                    _resolvedCenter[id] = SnapGoalToWalkable(grid, rawCenter, goalSnapCells);
+                    if (intent.ArrivalRadiusWorld > 0f && grid != null &&
+                        (!grid.TryWorldToCell(rawCenter.x, rawCenter.y, out var exactX, out var exactY) ||
+                         !grid.IsWalkable(exactX, exactY)))
+                    {
+                        intent.MarkRetryablePathUnavailable("正式交付目标格不可走，不能执行精确到达");
+                        _resolvedCenter[id] = rawCenter;
+                        _resolvedSpotGeneration[id] = spotGeneration;
+                        continue;
+                    }
+                    _resolvedCenter[id] = intent.ArrivalRadiusWorld > 0f
+                        ? rawCenter : SnapGoalToWalkable(grid, rawCenter, goalSnapCells);
                     _resolvedSpotGeneration[id] = spotGeneration;
                 }
 
                 var center = _resolvedCenter[id];
-                if (TryMarkArrivedWithinRadius(intent, pos, center, arriveRadius))
+                if (TryMarkArrivedWithinRadius(intent, pos, center,
+                        ResolveArrivalRadiusPresentation(intent)))
                 {
                     bootstrap.ContinuousOutdoorSurfaceRuntime?.TryCaptureAtSiteAnchor(
                         entity.Id, view.transform.position);
@@ -230,6 +255,16 @@ namespace XianXia.Unity.Host
                     _resolvedSpotGeneration.Remove(id);
                     _gridRevisionAtPath.Remove(id);
                     _nextRepathAt[id] = 0f;
+                    continue;
+                }
+
+                if (intent.ArrivalRadiusWorld > 0f && intent.HostPathAccepted && !isMoving &&
+                    _issuedIntentRevision.TryGetValue(id, out var issuedRevision) &&
+                    issuedRevision == intent.Revision)
+                {
+                    intent.MarkRetryablePathUnavailable(
+                        "Host 已完成精确路径，但最终站位仍在 Core 交付半径之外");
+                    ReportPathUnavailableOnce(entity, intent, targetKey, pos, center);
                     continue;
                 }
 
@@ -298,6 +333,7 @@ namespace XianXia.Unity.Host
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             var accepted = moveController.OrderEntityToWorldPoint(
                 request.Entity, center, null, issueStop: false,
+                exactGoal: intent.ArrivalRadiusWorld > 0f,
                 speedMultiplier: intent.SpeedMultiplier);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
@@ -309,7 +345,16 @@ namespace XianXia.Unity.Host
             _gridRevisionAtPath[id] = gridRevision;
             if (!accepted)
             {
-                intent.MarkRetryablePathUnavailable("WalkGrid 未找到从当前起点到目标访问点的连通路径");
+                DescribeGridPoint(moveController != null ? moveController.WalkGrid : null,
+                    view.transform.position, out var sourceInGrid, out var sourceWalkable);
+                DescribeGridPoint(moveController != null ? moveController.WalkGrid : null,
+                    center, out var targetInGrid, out var targetWalkable);
+                var reason = !sourceInGrid || !sourceWalkable
+                    ? "起点不在可走导航格"
+                    : !targetInGrid || !targetWalkable
+                        ? "目标不在可走导航格"
+                        : "WalkGrid 起点与目标路径不连通";
+                intent.MarkRetryablePathUnavailable(reason);
                 ReportPathUnavailableOnce(entity, intent, request.TargetKey, view.transform.position, center);
                 return;
             }
@@ -387,6 +432,8 @@ namespace XianXia.Unity.Host
             (intent.HasWorldTarget ? intent.TargetSurfaceId + "@" +
              intent.TargetWorldX.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "," +
              intent.TargetWorldY.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : string.Empty) + "|" +
+            (intent.DestinationKey ?? string.Empty) + "|" +
+            intent.ArrivalRadiusWorld.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "|" +
             (intent.TargetWorkAreaId ?? string.Empty) + "|" +
             (intent.TargetLocationId ?? string.Empty) + "|" + intent.SlotIndex;
 
@@ -397,13 +444,16 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.Civilians.All)
             {
                 var state = pair.Value;
-                if (!state.RescueCarrying || state.RescueTargetId.IsNone ||
-                    !viewSpawner.Registry.TryGet(pair.Key, out var carrier) || carrier == null ||
-                    !viewSpawner.Registry.TryGet(state.RescueTargetId, out var target) || target == null) continue;
+                var targetId = state.RescueCarrying ? state.RescueTargetId :
+                    state.Disposition == CivilianDisposition.CapturedEscorted ? pair.Key : EntityId.None;
+                var carrierId = state.RescueCarrying ? pair.Key : state.CarrierId;
+                if (targetId.IsNone || carrierId.IsNone ||
+                    !viewSpawner.Registry.TryGet(carrierId, out var carrier) || carrier == null ||
+                    !viewSpawner.Registry.TryGet(targetId, out var target) || target == null) continue;
                 target.transform.position = carrier.transform.position + new Vector3(-.28f, -.16f, 0f);
                 surface.Mapper.PresentationToWorld(carrier.transform.position.x,
                     carrier.transform.position.y, out var wx, out var wy);
-                world.WorldPresence.SetAtWorldPosition(state.RescueTargetId,
+                world.WorldPresence.SetAtWorldPosition(targetId,
                     new XianXia.Core.World.WorldVec2(wx, wy), surface.ActiveSurfaceId);
             }
         }

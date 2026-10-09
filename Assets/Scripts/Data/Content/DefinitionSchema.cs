@@ -31,7 +31,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> NpcSquadFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "squadId", "name", "factionId", "assemblySiteId",
+            "id", "type", "squadId", "name", "factionId", "assemblySiteId", "defendedSiteId",
             "initialSurfacePosition", "initialSurfaceDeployment", "members"
         };
         public static readonly HashSet<string> NpcSquadInitialSurfacePositionFields = new HashSet<string>(StringComparer.Ordinal)

@@ -1123,7 +1123,8 @@ namespace XianXia.Data.Content
                 SquadId = item.GetString("squadId", string.Empty),
                 Name = item.GetString("name", string.Empty),
                 FactionId = item.GetString("factionId", string.Empty),
-                AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
+                AssemblySiteId = item.GetString("assemblySiteId", string.Empty),
+                DefendedSiteId = item.GetString("defendedSiteId", string.Empty)
             };
             if (item.TryGetProperty("initialSurfacePosition", out var surfaceNode))
             {

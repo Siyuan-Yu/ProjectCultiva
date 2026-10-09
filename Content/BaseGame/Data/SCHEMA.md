@@ -100,6 +100,10 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 `formalArmy` 与 `hexWorld` 是已退役的历史输入标记：Runtime Loader 命中即拒绝，不属于支持列表。`LegacyRuntimeConverter` 只无损转换 FormalArmy；`hexWorld`／`openingHexWorldId` 会被检测并拒绝，须走现有 WorldComposer／SurfaceAuthoring Legacy migration 路径，无迁移样例时不得猜测。
 
+### npcSquad
+
+`assemblySiteId` 只表示 Squad 的开局集结／出生 Site；可选 `defendedSiteId` 独立声明该 Squad 负责防守的 WorldSite。`defendedSiteId` 非空时必须引用真实 Site，且开局 Site owner faction 必须与 Squad `factionId` 相同。一个 Squad 最多绑定一个防守 Site；一个 Site 可以有多个显式守军 Squad。未配置 defense binding 的巡逻队、商队或普通 NPC Squad 即使位于 Site 内，也不会成为 Site Core assault defender。
+
 > **Definition ≠ runtime progress：** `quest`／`contentEvent`／`chapter` JSON 是静态规则；当前运行进度由 Snapshot v8 `contentProgress` 保存。人物委托的 `QuestInstanceId`、真实发布者与交付状态只由 Runtime 创建，不写回 Content。
 
 ## retired input = hexWorld（仅离线转换参考）
@@ -443,7 +447,7 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 | `locationId` | 必填，绑定已有 Location |
 | `allowedActivities[]` | 允许的 ScheduleActivity 名（含 `Idle` 发呆） |
 | `capacity` | 同时可站软点位数（默认 4）；满则换工区／降优先级／发呆 |
-| `residentTags[]` | 住房准入（mortal／guard／supervisor）；空＝不限；**仅**约束 Rest／Eat／Idle。主管住房与凡人／巡卫房同属此类 |
+| `residentTags[]` | 住房准入（mortal／guard／supervisor／prisoner）。WorkArea 仅在含 `home` tag 或此数组非空时属于住房；Rest／Eat 活动本身不构成住房。`dedicatedPrison` 的用途固定为 PrisonerOnly，不能普通分配或改回 Normal |
 | `isControlCore` | **主管府／控制核心**（不是住房）；可攻击、耐久归零后需站立占领 |
 | `maxDurability` | 控制核心耐久（样例主管府 100） |
 | `defense` | 控制核心防御（每次受击减免，至少仍扣 1） |
@@ -598,6 +602,7 @@ Snapshot v13 的 `commerce.auctionHouses[]` 保存 `auctionHouseId`、`nextListi
 - `character.initialLoyalty`：所有 Character 对起始 Faction 的忠诚种子，可选整数 0–100，省略为 50；Faction=None 时不生成有效 Loyalty，后续无显式值的势力转移使用该种子。
 - `character.initialMortalProfession`：可选 `Unassigned|Farmer|HerbFarmer|Logger|Medic`，省略为 `Unassigned`；运行后以 Character 的 civilian state 为 authority。
 - `resource.tags[]`：进入 InventoryCatalog 的显式分类；凡人食物必须含 `food`，不得按显示名判断。
-- Snapshot v14 在 Entity DTO 保存 Satiety/Energy/Profession/Activity/Disposition、Faction Membership 与 `initialLoyalty` 种子、Residence/CurrentSite、睡眠、逃亡目标与起始 tick、Carrier、Detained Residence、照料事实、最后更新时间和 pending capture carrier；顶层 `characterFactionLoyalties[]` 保存 CharacterEntityId/FactionId/Loyalty，另保存 Residence usage。Restore 严格验证 loyalty 唯一、范围及与当前 membership 一致；v1～v13 和缺少该 authority 的 interim v14 严格拒绝。
+- Snapshot v14 在 Entity DTO 保存 Satiety/Energy/Profession/Activity/Disposition、Faction Membership 与 `initialLoyalty` 种子、Residence/CurrentSite、睡眠、逃亡目标与起始 tick、Carrier、Detained Residence、照料事实、最后更新时间和 pending capture carrier；顶层 `characterFactionLoyalties[]` 保存 CharacterEntityId/FactionId/Loyalty，`recoverySpotPlacements[]` 保存 RecoverySpotId/InjuredCharacterId，另保存 Residence usage。Restore 严格验证 loyalty 唯一、范围及与当前 membership 一致，并验证恢复点、弥留人物和实际 WorldPresence；v1～v13 和缺少该 authority 的 interim v14 严格拒绝。
+- 医疗点是静态 `medical`／`recovery` WorkArea，不新增 Snapshot authority。伤员送达状态由既有 Character `WorldPresence` 与 Lifecycle／CombatVitals 派生；瞬时 Rescue carry 在 Load 后重新求值。
 
 AUCTION-01 状态：**Producer Accepted / Sealed（2026-09-27）**。Future AUCTION-02 才可能扩展真实 NPC bidder、动态拍品与复杂市场行为。

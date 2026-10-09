@@ -323,6 +323,7 @@ namespace XianXia.Core.Persistence
                     SquadId = squad.SquadId,
                     DisplayName = squad.DisplayName,
                     FactionId = squad.FactionId,
+                    DefendedSiteId = squad.DefendedSiteId,
                     LeaderCharacterId = squad.LeaderCharacterId.Value,
                     LegacyArmyId = string.Empty,
                     CommandKind = (int)(isControlledSquad
@@ -641,7 +642,8 @@ namespace XianXia.Core.Persistence
                     var created = SquadMembershipService.Create(world, item.SquadId, members,
                         new EntityId(item.LeaderCharacterId),
                         restoredCommand,
-                        importingSnapshot: true, displayName: item.DisplayName, factionId: item.FactionId);
+                        importingSnapshot: true, displayName: item.DisplayName, factionId: item.FactionId,
+                        defendedSiteId: item.DefendedSiteId);
                     if (created.IsFailure) return Result.Failure(created.Error);
                     created.Value.CommandRevision = item.CommandRevision;
                     created.Value.CommandTargetCharacterId = isControlledSquad
@@ -1106,6 +1108,8 @@ namespace XianXia.Core.Persistence
                     squad.MemberCharacterIds == null || squad.MemberCharacterIds.Count == 0 ||
                     !squad.MemberCharacterIds.Contains(squad.LeaderCharacterId) ||
                     (squad.CommandTargetCharacterId != 0 && !squad.MemberCharacterIds.Contains(squad.CommandTargetCharacterId)) ||
+                    (!string.IsNullOrEmpty(squad.DefendedSiteId) &&
+                     !world.Strategic.Sites.TryGet(squad.DefendedSiteId, out _)) ||
                     !Enum.IsDefined(typeof(SquadCommandKind), squad.CommandKind))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid authoritative squad identity, leader or command.");
                 byId.Add(squad.SquadId, squad);

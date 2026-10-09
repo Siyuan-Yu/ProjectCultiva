@@ -65,6 +65,7 @@ namespace XianXia.Core.Persistence
             // Reconcile every due auction before its authoritative state is captured.
             AuctionHouseService.ProcessDue(world);
             CharacterFactionLoyaltyService.EnsureAll(world);
+            XianXia.Core.Npc.MortalCivilianService.ValidateRecoverySpotPlacements(world);
             var random = world.Random.CaptureState();
             var snap = new WorldSnapshot
             {
@@ -260,6 +261,8 @@ namespace XianXia.Core.Persistence
                     dto.MortalFleeStartedTick = civilian.FleeStartedTick; dto.MortalHasFleeTarget = civilian.HasFleeTarget;
                     dto.MortalFleeTargetX = civilian.FleeTargetX; dto.MortalFleeTargetY = civilian.FleeTargetY;
                     dto.MortalFleeSourceSiteId = civilian.FleeSourceSiteId;
+                    dto.MortalRefugeTargetSiteId = civilian.RefugeTargetSiteId;
+                    dto.MortalBackgroundNeedsLastProcessedTick = civilian.BackgroundNeedsLastProcessedTick;
                     dto.MortalFleeCandidateIndex = civilian.FleeCandidateIndex;
                     dto.MortalFleeAttemptCount = civilian.FleeAttemptCount;
                     dto.MortalCarrierId = civilian.CarrierId.Value;
@@ -531,6 +534,9 @@ namespace XianXia.Core.Persistence
                     CellsH = asset.CellsH,
                     BoundLocationId = asset.BoundLocationId,
                     BoundWorldSiteId = asset.BoundWorldSiteId });
+            foreach (var placement in world.RecoverySpotDeliveries.Placements)
+                snap.RecoverySpotPlacements.Add(new RecoverySpotPlacementSnapshotDto {
+                    RecoverySpotId = placement.Key, InjuredCharacterId = placement.Value.Value });
             foreach (var kv in world.OutdoorStatefulObjects.Destructibles)
                 snap.OutdoorDestructibles.Add(new OutdoorDestructibleSnapshotDto
                 { StableId = kv.Key, CurrentHp = kv.Value.Hp, Destroyed = kv.Value.Destroyed });
@@ -629,13 +635,17 @@ namespace XianXia.Core.Persistence
                      !Enum.IsDefined(typeof(CivilianDisposition), entity.CivilianDisposition) ||
                      entity.MortalCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalCarrierId) ||
                      entity.MortalPendingCaptureCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalPendingCaptureCarrierId) ||
-                     entity.CivilianDisposition == (int)CivilianDisposition.CapturedEscorted && entity.MortalCarrierId == 0 ||
                      entity.CivilianDisposition == (int)CivilianDisposition.Detained && string.IsNullOrWhiteSpace(entity.MortalDetainedResidenceWorkAreaId) ||
                      entity.CivilianDisposition == (int)CivilianDisposition.Fleeing &&
                          (!entity.MortalHasFleeTarget || string.IsNullOrWhiteSpace(entity.MortalFleeSourceSiteId) ||
                           entity.MortalFleeCandidateIndex < 0 || entity.MortalFleeCandidateIndex >= 8 || entity.MortalFleeAttemptCount < 0 ||
                           float.IsNaN(entity.MortalFleeTargetX) || float.IsInfinity(entity.MortalFleeTargetX) ||
-                          float.IsNaN(entity.MortalFleeTargetY) || float.IsInfinity(entity.MortalFleeTargetY))))
+                          float.IsNaN(entity.MortalFleeTargetY) || float.IsInfinity(entity.MortalFleeTargetY)) ||
+                     entity.CivilianDisposition == (int)CivilianDisposition.Displaced &&
+                         (!string.IsNullOrEmpty(entity.MortalRefugeTargetSiteId) &&
+                          string.Equals(entity.MortalRefugeTargetSiteId, entity.MortalFleeSourceSiteId,
+                              StringComparison.Ordinal) ||
+                          entity.MortalBackgroundNeedsLastProcessedTick > snap.WorldTick)))
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
                         "Invalid CIVILIAN-LIFE-01 entity state.", "EntityId=" + entity.Id);
             }
@@ -682,7 +692,6 @@ namespace XianXia.Core.Persistence
                     !prisonerResidences.Contains(entity.MortalDetainedResidenceWorkAreaId))
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
                         "Detained civilian lacks PrisonerOnly residence authority.", "EntityId=" + entity.Id);
-
             if (!string.IsNullOrEmpty(expectedPackageVersion) &&
                 !string.Equals(snap.EnabledPackageVersion, expectedPackageVersion, StringComparison.Ordinal))
             {
@@ -971,6 +980,8 @@ namespace XianXia.Core.Persistence
                     civilian.FleeStartedTick = e.MortalFleeStartedTick; civilian.HasFleeTarget = e.MortalHasFleeTarget;
                     civilian.FleeTargetX = e.MortalFleeTargetX; civilian.FleeTargetY = e.MortalFleeTargetY;
                     civilian.FleeSourceSiteId = e.MortalFleeSourceSiteId ?? string.Empty;
+                    civilian.RefugeTargetSiteId = e.MortalRefugeTargetSiteId ?? string.Empty;
+                    civilian.BackgroundNeedsLastProcessedTick = e.MortalBackgroundNeedsLastProcessedTick;
                     civilian.FleeCandidateIndex = e.MortalFleeCandidateIndex;
                     civilian.FleeAttemptCount = e.MortalFleeAttemptCount;
                     civilian.CarrierId = new EntityId(e.MortalCarrierId);
@@ -1130,6 +1141,12 @@ namespace XianXia.Core.Persistence
                 WorldLootPickupService.RestoreTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
+            var recoveryRestore = RestoreRecoverySpotPlacements(world, snap);
+            if (recoveryRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(recoveryRestore.Error);
+            var recoveryPhysical = XianXia.Core.Npc.MortalCivilianService
+                .ValidateRecoverySpotPlacements(world, true);
+            if (recoveryPhysical.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(recoveryPhysical.Error);
             var jobRestore = RestoreCivilianConstructionJobs(world, snap);
             if (jobRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(jobRestore.Error);
             RestoreOutdoorStatefulObjects(world, snap);
@@ -1432,6 +1449,25 @@ namespace XianXia.Core.Persistence
             }
             return world.OutdoorConstructedAssets.RestoreSequence(snap.NextOutdoorConstructedAssetSequence)
                 ? Result.Success() : Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime constructed asset sequence.");
+        }
+
+        static Result RestoreRecoverySpotPlacements(SimulationWorld world, WorldSnapshot snap)
+        {
+            world.RecoverySpotDeliveries.Clear();
+            if (snap.RecoverySpotPlacements == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Recovery spot placement list is null.");
+            foreach (var dto in snap.RecoverySpotPlacements)
+            {
+                var injured = new EntityId(dto?.InjuredCharacterId ?? 0UL);
+                if (dto == null || injured.IsNone || !world.Entities.TryGet(injured, out var entity) ||
+                    !entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) || !life.IsIncapacitated ||
+                    !world.OutdoorConstructedAssets.Assets.TryGetValue(dto.RecoverySpotId, out var spot) ||
+                    spot.Kind != XianXia.Core.Construction.OutdoorConstructedAssetSemantics.RecoverySpotKind ||
+                    !world.RecoverySpotDeliveries.TryRestore(dto.RecoverySpotId, injured))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Invalid or duplicate recovery spot placement.", dto?.RecoverySpotId ?? string.Empty);
+            }
+            return Result.Success();
         }
 
         static Result RestoreCivilianConstructionJobs(SimulationWorld world, WorldSnapshot snap)

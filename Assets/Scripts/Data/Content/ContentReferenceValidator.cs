@@ -53,6 +53,7 @@ namespace XianXia.Data.Content
             ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
             ValidateOutdoorControlCores(registry, report);
             ValidateOutdoorStorageRooms(registry, report);
+            ValidateCivilianFacilities(registry, report);
             ValidateFactionFlagSiteCores(registry, report);
             ValidateWorldSiteEconomies(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
@@ -208,6 +209,48 @@ namespace XianXia.Data.Content
                             "Outdoor storageRoom physical footprint must remain within authored Surface coverage.", context);
                 }
             }
+        }
+
+        static void ValidateCivilianFacilities(DefinitionRegistry registry, ValidationReport report)
+        {
+            var places = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SitePlaces == null || surface.AcceptanceOnly) continue;
+                for (var i = 0; i < surface.SitePlaces.Count; i++)
+                    if (!string.IsNullOrWhiteSpace(surface.SitePlaces[i]?.LocationId))
+                        places.Add(surface.SitePlaces[i].LocationId);
+            }
+            foreach (var pair in registry.WorkAreas)
+            {
+                var area = pair.Value;
+                if (area == null) continue;
+                if (HasTag(area.Tags, "dedicatedPrison"))
+                {
+                    if (!HasTag(area.Tags, "home") || !HasTag(area.Tags, "rest") ||
+                        !HasTag(area.Tags, "prison") || !HasTag(area.ResidentTags, "prisoner") ||
+                        area.Capacity <= 0 || !HasTag(area.AllowedActivities, "Rest"))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Dedicated prison requires home/rest/prison tags, prisoner residents, Rest, and positive capacity.",
+                            pair.Key.ToString());
+                }
+                if (!HasTag(area.Tags, "medical")) continue;
+                if (string.IsNullOrWhiteSpace(area.LocationId) || !places.Contains(area.LocationId) ||
+                    !HasTag(area.Tags, "recovery") || HasTag(area.Tags, "home") ||
+                    area.ResidentTags != null && area.ResidentTags.Count > 0)
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Medical rescue area requires a baked location, recovery tag, and must not be housing.",
+                        pair.Key.ToString());
+            }
+        }
+
+        static bool HasTag(IReadOnlyList<string> values, string expected)
+        {
+            if (values == null) return false;
+            for (var i = 0; i < values.Count; i++)
+                if (string.Equals(values[i], expected, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
 
         static void ValidateFactionFlagSiteCores(DefinitionRegistry registry, ValidationReport report)
@@ -927,6 +970,36 @@ namespace XianXia.Data.Content
                 var ctx = def.Id.ToString();
                 if (!squadIds.Add(def.SquadId)) report.Add(ErrorCode.DuplicateDefinitionId, "Duplicate npcSquad.squadId.", ctx);
                 RequireFaction(registry, def.FactionId, ctx + ".factionId", report, false);
+                if (!string.IsNullOrEmpty(def.DefendedSiteId))
+                {
+                    var foundDefenseSite = false;
+                    var openingOwnerFactionId = string.Empty;
+                    foreach (var surfacePair in registry.OutdoorSurfaces)
+                    {
+                        var regions = surfacePair.Value?.SiteRegions;
+                        if (regions == null) continue;
+                        for (var regionIndex = 0; regionIndex < regions.Count; regionIndex++)
+                        {
+                            var region = regions[regionIndex];
+                            if (region == null || !string.Equals(
+                                    region.SiteId, def.DefendedSiteId, StringComparison.Ordinal)) continue;
+                            if (foundDefenseSite)
+                            {
+                                report.Add(ErrorCode.InvalidArgument,
+                                    "npcSquad.defendedSiteId must resolve to one WorldSite.", ctx);
+                                continue;
+                            }
+                            foundDefenseSite = true;
+                            openingOwnerFactionId = region.OwnerFactionId ?? string.Empty;
+                        }
+                    }
+                    if (!foundDefenseSite)
+                        report.Add(ErrorCode.NotFound, "npcSquad.defendedSiteId WorldSite missing.",
+                            ctx + ":" + def.DefendedSiteId);
+                    else if (!string.Equals(def.FactionId, openingOwnerFactionId, StringComparison.Ordinal))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "npcSquad faction does not match defended Site opening owner.", ctx);
+                }
                 if (def.Members == null || def.Members.Count == 0) report.Add(ErrorCode.MissingRequiredField, "npcSquad.members empty.", ctx);
                 else for (var i = 0; i < def.Members.Count; i++)
                     RequireDef(registry, def.Members[i].CharacterDefinitionId, "character", ctx + ".members[" + i + "].characterDefinitionId", report);
@@ -1249,6 +1322,7 @@ namespace XianXia.Data.Content
             string.Equals(kind, "housing", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "workArea", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "recoverySpot", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "prisonDropOff", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "storageRoom", StringComparison.OrdinalIgnoreCase);
 
         void ValidateChapters(

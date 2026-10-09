@@ -113,6 +113,7 @@ XianXia.Tests/       针对 Core 的单元测试
 ## 7. 当前 Snapshot 与内容状态边界
 
 - Snapshot v14 的势力忠诚 authority 是顶层 `characterFactionLoyalties[]`（CharacterEntityId、FactionId、Loyalty）；`MortalCivilianBoard` 仅存凡人需求、职业及处境。Entity DTO 的 `initialLoyalty` 只是定义种子。Restore 要求每个当前有势力的 Character 恰有一条势力匹配的忠诚记录；未封板 interim v14 缺字段时拒绝，不升级 schema v15。
+- Snapshot v14 不增加 Hospital admission。静态／运行时 `recoverySpot` 投影为稳定物理资产，顶层 `recoverySpotPlacements[]` 保存单点单伤员送达关系；Restore 校验点位、弥留人物和精确 WorldPresence。短期 Rescue carry 不持久化，Load 后安全取消并重新求值。CapturedEscorted、Detained 与 Residence usage 继续使用既有 v14 authority；Detain 以绑定囚室的 `prisonDropOff` 为后端距离基准。
 
 - 磁盘 authority 是 `WorldSnapshot` 经 `SnapshotService`／`JsonSnapshotSerializer` 的 capture／restore 链；某个 Board 仅有 `CaptureRuntime`／`RestoreRuntime` 或事务 memento，不代表它已经进入磁盘 Snapshot。
 - 当前已接线实体、空间、PlayerParty／Squad、CharacterEncounter、Separate Space、背包、关系、随机、WorldOpportunity／WorldActivity（含动态对象稳定身份、精确坐标与发现状态）与洞府 taken-loot 等既有字段；完整清单以 [247 系统现状总表](../40-process/247-project-handoff-current-state-2026-09-18.md#当前系统现状总表2026-09-22) 和 serializer 实际 wire 为准。

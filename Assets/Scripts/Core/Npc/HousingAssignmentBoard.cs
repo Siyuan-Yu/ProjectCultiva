@@ -62,8 +62,18 @@ namespace XianXia.Core.Npc
                 }
             }
 
-            return Allows(area, ScheduleActivity.Rest) || Allows(area, ScheduleActivity.Eat);
+            return false;
         }
+
+        public static bool HasTag(WorkAreaDefinition area, string tag)
+        {
+            if (area?.Tags == null || string.IsNullOrEmpty(tag)) return false;
+            for (var i = 0; i < area.Tags.Count; i++)
+                if (string.Equals(area.Tags[i], tag, System.StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        public static bool IsDedicatedPrison(WorkAreaDefinition area) => HasTag(area, "dedicatedPrison");
 
         static bool Allows(WorkAreaDefinition area, ScheduleActivity activity)
         {
@@ -91,7 +101,7 @@ namespace XianXia.Core.Npc
                     string.IsNullOrWhiteSpace(tendency.HomeWorkAreaId))
                     continue;
                 if (!world.TryGetWorkArea(tendency.HomeWorkAreaId, out var area) ||
-                    !IsHousingArea(area))
+                    !IsHousingArea(area) || IsDedicatedPrison(area))
                     continue;
                 // First binder wins as displayed owner; later still keep HomeWorkAreaId.
                 if (!world.HousingAssignments.TryGetOwner(tendency.HomeWorkAreaId, out _))
@@ -195,6 +205,8 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.NotFound, "Housing work area missing.");
             if (!IsHousingArea(area))
                 return Result.Failure(ErrorCode.InvalidOperation, "Not a housing area.");
+            if (IsDedicatedPrison(area))
+                return Result.Failure(ErrorCode.InvalidOperation, "Dedicated prison cannot be assigned as ordinary housing.");
             if (!CanManageHousing(world))
                 return Result.Failure(ErrorCode.InvalidOperation, "Need settlement management permission.");
             if (!IsPlayerCampMember(world, partyIds, newOwner))

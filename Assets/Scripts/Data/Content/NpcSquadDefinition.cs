@@ -11,6 +11,7 @@ namespace XianXia.Data.Content
         public string Name { get; set; } = string.Empty;
         public string FactionId { get; set; } = string.Empty;
         public string AssemblySiteId { get; set; } = string.Empty;
+        public string DefendedSiteId { get; set; } = string.Empty;
         public NpcSquadInitialSurfacePositionDefinition InitialSurfacePosition { get; set; }
         public NpcSquadInitialSurfaceDeploymentDefinition InitialSurfaceDeployment { get; set; }
         public List<NpcSquadMemberDefinition> Members { get; set; } = new List<NpcSquadMemberDefinition>();

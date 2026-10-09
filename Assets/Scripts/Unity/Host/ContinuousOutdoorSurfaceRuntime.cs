@@ -1134,7 +1134,7 @@ namespace XianXia.Unity.Host
             if (assets == null) return;
             foreach (var asset in assets.Assets.Values)
             {
-                if (asset.SurfaceId != _surfaceId) continue;
+                if (asset.SurfaceId != _surfaceId || IsAuthoredPlacement(asset.StableAssetId)) continue;
                 var placement = new OutdoorSurfacePlacementDefinition {
                     StableId = asset.StableAssetId, SiteId = asset.BoundWorldSiteId, Kind = asset.Kind,
                     WorldX = asset.WorldX, WorldY = asset.WorldY,
@@ -1156,6 +1156,15 @@ namespace XianXia.Unity.Host
                     new List<OutdoorSurfacePlacementDefinition> { placement }, _mapper, chunk);
                 _materializedSitePlacementOwners.Add(owner);
             }
+        }
+
+        bool IsAuthoredPlacement(string stableId)
+        {
+            if (string.IsNullOrWhiteSpace(stableId) || !TryResolveSurface(out var surface) ||
+                surface.SitePlacements == null) return false;
+            for (var i = 0; i < surface.SitePlacements.Count; i++)
+                if (string.Equals(surface.SitePlacements[i]?.StableId, stableId, StringComparison.Ordinal)) return true;
+            return false;
         }
 
         bool PlacementTouchesChunk(OutdoorSurfacePlacementDefinition p, SurfaceChunkCoord chunk)

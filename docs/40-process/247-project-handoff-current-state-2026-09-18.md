@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+## CIVILIAN-LIFE-01 P1 医疗搬运点与囚犯实际送达（2026-09-30）
+
+荒村已增加 `base:workarea_huangcun_medical` 医疗点与容量 4、固定 PrisonerOnly 的 `base:workarea_huangcun_prison` 专用囚室。医疗点只接收所有正常可工作 PlayerFaction 凡人实际搬来的同势力弥留 Character；送达后不自动治疗，不存在 MedicalWard、床位、收治、出院或医疗 Snapshot。CapturedEscorted 由发起捕获的玩家主控真实押送，carrier 与 prisoner 实际进入囚室范围后 Core 才允许 Detain；两类运输中断均在 carrier 最后合法位置安全放下。Snapshot 保持 v14；正式 HUD 与 LevelTester 已接线。状态：**Implementation Complete / Producer Acceptance Pending**。未启动 Unity／PlayMode／Runner，未运行自动测试；静态编译不等同制作人验收。
+
 ## CIVILIAN-LIFE-01 当前交接（2026-09-27）
 
 **Implementation Complete / Producer Acceptance Pending。** 已按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 接入真实个体凡人、Needs、Work/OffDuty、职业、人事、占领与俘虏招募；最终缺口已以真实 Character 搬运、Site 内资源托运及正式建筑／势力旗拆除工单接通。静态编译通过，运行效果待制作人人工验收。
@@ -11,6 +15,10 @@ P1 物理取食／正式工作 UI：普通自由凡人现在到当前合法 Site
 MovementIntent Host bridge P1：managed mortal 离开 FarmerWork／HerbFarmerWork 时，同帧释放旧 NPC-schedule farm worker 后由 HostNpcScheduleMover 消费新 intent；专用释放只取消农田表现 path，不清 Core intent，且 managed mortal 不再回退残留 WorkAction/Schedule。Core、Host mover 与 squad presenter 共用 `MortalCivilianMovementAuthority`：静态 singleton resident squad 让位于 civilian local movement，真实战略路线、多成员 FollowLeader follower、PlayerParty、Encounter 与 SeparateSpace 继续优先。StorageRoom runtime 从 authored／constructed footprint 解析最近外围 access point，再经小范围 walk-grid snap；Core 以 HostArrived 完成 pickup。Schedule 只决定 Needs 满足后的工作阶段，不是 movement owner；Snapshot v14 不变。
 
 P1 食宿最终闭环：FetchFood 现有明确等待寻路／行走／失败／到达／进食阶段，来源、权限、设施或无粮失败保留原因并有界重试；Energy 极低时优先就地睡眠。返家与真实睡眠分离，行走期间不恢复 Energy，只有同一住所的 HostArrived 才开始床上睡眠。MovementIntent revision 会使 Host 取消被 Core 替换的旧 civilian path；暂停仍冻结世界，人物菜单只屏蔽玩家输入。civilian local 实际移动持续提交 Character WorldPresence，不再由静态 resident squad 覆盖。荒村 guard housing 门洞 source/baked 同步缩短一格，离线 walk-grid 复算确认 guard、储藏室、外部入口与住房连通。LevelTester 增加四个“准备食宿 A/B/C/D”入口与 path/tick/pause 全链诊断；Snapshot 保持 v14，仅补足睡眠阶段持久化，Food Fetch 行程仍读档重评估。
+
+P1 显式驻军／失所者交接：Site assault 只读取 `SquadState.DefendedSiteId`，不再按同阵营与现场位置推断。荒村主管单人 Squad 显式绑定荒村；巡卫甲／乙／丙改为无绑定的独立 patrol squad，普通攻击仍会按三人 roster 进入 CharacterEncounter。Displaced 清除旧 Site 工作／居住／取食和瞬时行动；materialized 时留在现场 idle／基础 Needs，离屏后以 bucket 批量推进 Needs，并复用 BackgroundCharacterTravel 前往同 Surface 最近可达的己方 active Site。无目标时保留原位，到达后仍为 Displaced。Snapshot v14 保存 defense binding、refuge target、needs 结算 tick 及既有 background route；LevelTester 可直接查看两条 authority。
+
+P1 恢复点／囚犯交接：Rescue 只向同 Site／Surface 的空闲 `recoverySpot` 送达，医疗区内两点优先、区外第三点仍有效；点位预订与单点单伤员 authority 防止竞争，送达不治疗。精确 RecoverySpot movement intent 携带 stable destination key 与 Core radius，Host 使用同一换算半径和 exact A*，换点会取消旧 revision/path。v14 顶层持久化恢复点送达关系。`base:site_huangcun:prison_dropoff` 位于囚室南侧内部入口；右键专门显示安置／查看囚室，carrier 实际寻路后才可通过共用 `CanDetain/Detain` 安置。
 
 ### Current Resume Order
 
@@ -1092,7 +1100,7 @@ F) 以上完成前不得封板。
 docs/00-project/03-glossary.md；不要修改已封板的历史文档（240/242/243/244）。Core/Data 禁止 UnityEngine；随机用 IRandomSource；
 WorldTick 是唯一世界时间轴；RelationshipLedger 是唯一关系真源；Dead ≠ Removed。
 
-【CIVILIAN-LIFE-01 P1 当前实现补充（2026-09-28）】人物命令已统一为物理 approach：Attack/Capture 追逐移动目标并在到达后才触发 Encounter/capture request，Recruit 到达后进行 5 秒非缩放轻交互，Release/Execute 同样要求近距。Flee 已改走 MovementIntent 与 Host CompositeWalkGrid，持久保存来源 Site/出口序号并在失败时轮换；StorageRoom 有 8 个访问槽并在 A* 失败后轮换。有效世界命令解除 ManualPaused，ModalHardPaused 不受影响。第一发致命伤只进入 Incapacitated，死亡确认记录原因，Encounter 生命倒计时使用非缩放现实时间。荒村 `place_wall_040130496` 缩短一格恢复巡卫住房门洞，正式数据离线连通扫描通过。状态：**Implementation Complete / Producer Acceptance Pending**；需制作人人工验收，未提交。
+【CIVILIAN-LIFE-01 P1 当前实现补充（2026-09-28）】人物命令已统一为物理 approach：Attack/Capture 追逐移动目标并在到达后才触发 Encounter/capture request，Recruit 到达后进行 5 秒非缩放轻交互，Release/Execute 同样要求近距。Flee 已改走 MovementIntent 与 Host CompositeWalkGrid，持久保存来源 Site/出口序号并在失败时轮换；StorageRoom 有 8 个访问槽并在 A* 失败后轮换。有效世界命令解除 ManualPaused，ModalHardPaused 不受影响。第一发致命伤只进入 Incapacitated，死亡确认记录原因，Encounter 生命倒计时使用非缩放现实时间。荒村 `place_wall_040130496` 缩短一格恢复巡卫住房门洞。Site defense 改为 `DefendedSiteId` 显式绑定：主管单人驻军守荒村，巡卫三人属于无绑定 patrol squad。Displaced 近场保持真实人物 idle／基础 Needs，离屏复用 BackgroundCharacterTravel 与低频 Needs 数据推进，且不再有失守 Site 公粮权限。状态：**Implementation Complete / Producer Acceptance Pending**；需制作人人工验收，未提交。
 
 【历史建议，已完成，禁止执行】SPACE-01 hardening、MAP-04 consumer audit 与物理清理、LEGACY-FINAL-A/B/C 均已验收封板。
 

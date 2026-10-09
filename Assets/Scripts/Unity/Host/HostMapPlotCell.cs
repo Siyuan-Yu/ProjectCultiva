@@ -51,6 +51,10 @@ namespace XianXia.Unity.Host
             interactKind == HostInteractSpotKind.Recovery ||
             string.Equals(kind, "recoverySpot", System.StringComparison.OrdinalIgnoreCase);
 
+        public bool IsPrisonDropOff =>
+            interactKind == HostInteractSpotKind.PrisonDropOff ||
+            string.Equals(kind, "prisonDropOff", System.StringComparison.OrdinalIgnoreCase);
+
         public bool IsStorageRoom =>
             interactKind == HostInteractSpotKind.Storage ||
             string.Equals(kind, "storageRoom", System.StringComparison.OrdinalIgnoreCase);
@@ -256,6 +260,7 @@ namespace XianXia.Unity.Host
                 case "herbField": return "药田格";
                 case "grainField": return "农田格";
                 case "recoveryspot": return "恢复处";
+                case "prisondropoff": return "囚犯交接点";
                 case "storageroom": return "储藏室";
                 case "loot": return "地上物";
                 case "cushion": return "蒲团";

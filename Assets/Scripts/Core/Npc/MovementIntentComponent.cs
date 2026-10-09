@@ -23,6 +23,10 @@ namespace XianXia.Core.Npc
         public string TargetSurfaceId { get; private set; } = string.Empty;
         public float TargetWorldX { get; private set; }
         public float TargetWorldY { get; private set; }
+        /// <summary>Stable identity for exact world targets whose coordinates may be close.</summary>
+        public string DestinationKey { get; private set; } = string.Empty;
+        /// <summary>Core-authoritative world-space arrival radius; zero uses the Host's generic policy.</summary>
+        public float ArrivalRadiusWorld { get; private set; }
         public float SpeedMultiplier { get; private set; } = 1f;
         public uint Revision { get; private set; }
         public MovementHostPathState HostPathState { get; private set; }
@@ -47,6 +51,8 @@ namespace XianXia.Core.Npc
             Revision++;
             Active = true;
             HasWorldTarget = false;
+            DestinationKey = string.Empty;
+            ArrivalRadiusWorld = 0f;
             TargetLocationId = locationId ?? string.Empty;
             TargetWorkAreaId = workAreaId ?? string.Empty;
             SlotIndex = slotIndex;
@@ -57,7 +63,8 @@ namespace XianXia.Core.Npc
             HostPathFailureReason = string.Empty;
         }
 
-        public void BeginWorldPoint(string surfaceId, float worldX, float worldY, float speedMultiplier = 1f)
+        public void BeginWorldPoint(string surfaceId, float worldX, float worldY, float speedMultiplier = 1f,
+            string destinationKey = "", float arrivalRadiusWorld = 0f)
         {
             Revision++;
             Active = true;
@@ -67,6 +74,8 @@ namespace XianXia.Core.Npc
             TargetSurfaceId = surfaceId ?? string.Empty;
             TargetWorldX = worldX;
             TargetWorldY = worldY;
+            DestinationKey = destinationKey ?? string.Empty;
+            ArrivalRadiusWorld = SanitizeArrivalRadius(arrivalRadiusWorld);
             SpeedMultiplier = SanitizeSpeedMultiplier(speedMultiplier);
             HostPathState = MovementHostPathState.Pending;
             HostPathRequested = false;
@@ -112,6 +121,8 @@ namespace XianXia.Core.Npc
             TargetSurfaceId = string.Empty;
             TargetLocationId = string.Empty;
             TargetWorkAreaId = string.Empty;
+            DestinationKey = string.Empty;
+            ArrivalRadiusWorld = 0f;
             SlotIndex = -1;
             SpeedMultiplier = 1f;
             HostPathState = MovementHostPathState.Pending;
@@ -122,5 +133,8 @@ namespace XianXia.Core.Npc
 
         static float SanitizeSpeedMultiplier(float value) =>
             float.IsNaN(value) || float.IsInfinity(value) || value <= 0f ? 1f : value;
+
+        static float SanitizeArrivalRadius(float value) =>
+            float.IsNaN(value) || float.IsInfinity(value) || value < 0f ? 0f : value;
     }
 }

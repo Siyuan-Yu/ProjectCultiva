@@ -113,7 +113,7 @@ namespace XianXia.Core.World.Strategic
             {
                 var squad = squadPair.Value;
                 if (squad == null || string.IsNullOrEmpty(squad.SquadId) ||
-                    squad.SquadId.StartsWith("squad:character:", StringComparison.Ordinal) ||
+                    !string.Equals(squad.DefendedSiteId, target.SiteId, StringComparison.Ordinal) ||
                     encounter?.Participants.Exists(p => p.SquadId == squad.SquadId) == true)
                     continue;
 

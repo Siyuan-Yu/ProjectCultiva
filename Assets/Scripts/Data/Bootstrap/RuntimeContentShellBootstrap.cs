@@ -23,6 +23,9 @@ namespace XianXia.Data.Bootstrap
             var surfaceGround = ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
             if (surfaceGround.IsFailure)
                 return surfaceGround;
+            var transportPoints = AuthoredTransportPointBootstrap.ValidateRestored(world, registry);
+            if (transportPoints.IsFailure)
+                return transportPoints;
             var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
             if (assetAnchors.IsFailure)
                 return assetAnchors;

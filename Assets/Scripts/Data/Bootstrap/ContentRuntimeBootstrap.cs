@@ -31,6 +31,8 @@ namespace XianXia.Data.Bootstrap
             if (inventory.IsFailure) return inventory;
             var surfaceGround = RehydrateSurfaceGround(world, registry, openingScenario);
             if (surfaceGround.IsFailure) return surfaceGround;
+            var transportPoints = AuthoredTransportPointBootstrap.ApplyNewGame(world, registry);
+            if (transportPoints.IsFailure) return transportPoints;
             var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
             if (assetAnchors.IsFailure)
                 return assetAnchors;

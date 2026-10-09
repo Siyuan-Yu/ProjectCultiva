@@ -4672,6 +4672,60 @@
           "chunkY": 8
         },
         {
+          "stableId": "base:site_huangcun:zone_medical",
+          "siteId": "base:site_huangcun",
+          "worldX": 5.131200000000001,
+          "worldY": 11.004999999999997,
+          "worldWidth": 0.19485,
+          "worldHeight": 0.14,
+          "kind": "zoneHousing",
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_huangcun_medical",
+          "label": "荒村医疗点",
+          "sourceGridX": 37,
+          "sourceGridY": 43,
+          "sourceCellsW": 9,
+          "sourceCellsH": 4,
+          "chunkX": 4,
+          "chunkY": 8
+        },
+        {
+          "stableId": "base:site_huangcun:zone_prison",
+          "siteId": "base:site_huangcun",
+          "worldX": 5.152850000000001,
+          "worldY": 11.179999999999998,
+          "worldWidth": 0.1732,
+          "worldHeight": 0.21,
+          "kind": "zoneHousing",
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_huangcun_prison",
+          "label": "荒村囚室",
+          "sourceGridX": 38,
+          "sourceGridY": 48,
+          "sourceCellsW": 8,
+          "sourceCellsH": 6,
+          "chunkX": 4,
+          "chunkY": 8
+        },
+        {
+          "stableId": "base:site_huangcun:prison_dropoff",
+          "siteId": "base:site_huangcun",
+          "worldX": 5.2178,
+          "worldY": 11.18,
+          "worldWidth": 0.0433,
+          "worldHeight": 0.07,
+          "kind": "prisonDropOff",
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_huangcun_prison",
+          "label": "囚犯交接点",
+          "sourceGridX": 41,
+          "sourceGridY": 48,
+          "sourceCellsW": 2,
+          "sourceCellsH": 2,
+          "chunkX": 4,
+          "chunkY": 8
+        },
+        {
           "stableId": "base:site_huangcun:recovery_spot_1",
           "siteId": "base:site_huangcun",
           "worldX": 5.152850000000001,
@@ -4680,6 +4734,7 @@
           "worldHeight": 0.07,
           "kind": "recoverySpot",
           "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_huangcun_medical",
           "label": "荒村恢复处·西",
           "sourceGridX": 38,
           "sourceGridY": 44,
@@ -4697,6 +4752,7 @@
           "worldHeight": 0.07,
           "kind": "recoverySpot",
           "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_huangcun_medical",
           "label": "荒村恢复处·中",
           "sourceGridX": 43,
           "sourceGridY": 44,
@@ -5176,6 +5232,49 @@
             "Patrol",
             "Explore",
             "Labor"
+          ]
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "locationId": "base:loc_ref_huangcun_medical",
+          "worldX": 5.228625,
+          "worldY": 11.075,
+          "name": "荒村医疗点",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_houses",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_road_hub"
+          ],
+          "tags": [
+            "medical",
+            "recovery",
+            "rest"
+          ],
+          "allowedActivities": [
+            "Rest"
+          ]
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "locationId": "base:loc_ref_huangcun_prison",
+          "worldX": 5.23945,
+          "worldY": 11.285,
+          "name": "荒村囚室",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_huangcun_medical",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_road_hub"
+          ],
+          "tags": [
+            "home",
+            "rest",
+            "prison",
+            "dedicatedPrison"
+          ],
+          "allowedActivities": [
+            "Rest"
           ]
         },
         {

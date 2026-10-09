@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Persistence;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Settlement;
@@ -64,6 +65,8 @@ namespace XianXia.Unity.Host
             if (surfaceSites.IsFailure)
                 return Result.Failure(ErrorCode.ContentLoadFailed,
                     "Surface Site snapshot shell rehydrate failed.", surfaceSites.Error.ToString());
+            var recoveryPlacements = MortalCivilianService.ValidateRecoverySpotPlacements(world, true);
+            if (recoveryPlacements.IsFailure) return recoveryPlacements;
 
             var partyTravel = StrategicSnapshotHelper.FinalizePlayerPartyTravelAfterContentShell(
                 world, politicalSnapshot.PlayerPartyTravel);
@@ -124,6 +127,9 @@ namespace XianXia.Unity.Host
                 var political = StrategicSnapshotHelper.RestorePoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;
+                var residenceUsages = XianXia.Core.Npc.MortalCivilianService.ValidateContentResidenceUsages(world);
+                if (residenceUsages.IsFailure)
+                    return residenceUsages;
                 // StorageRoom registry is derived presentation/economy wiring, but it needs the
                 // complete authored/runtime WorldSite shell restored above. It must not run in
                 // RuntimeContentShellBootstrap, where a snapshot world has no Site identities yet.

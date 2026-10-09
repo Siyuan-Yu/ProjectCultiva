@@ -7,15 +7,26 @@
       "name": "荒村驻军",
       "factionId": "base:sect_huangcun_labor",
       "assemblySiteId": "base:site_huangcun",
+      "defendedSiteId": "base:site_huangcun",
       "members": [
         {
           "characterDefinitionId": "base:character_ch01_ref_supervisor",
           "leader": true,
           "reuseOpeningSpawn": true
-        },
+        }
+      ],
+      "squadId": "squad:npc:huangcun_labor_garrison"
+    },
+    {
+      "id": "base:npc_squad_huangcun_patrol",
+      "type": "npcSquad",
+      "name": "荒村巡卫小队",
+      "factionId": "base:sect_huangcun_labor",
+      "assemblySiteId": "base:site_huangcun",
+      "members": [
         {
           "characterDefinitionId": "base:character_ch01_ref_guard_a",
-          "leader": false,
+          "leader": true,
           "reuseOpeningSpawn": true
         },
         {
@@ -29,7 +40,7 @@
           "reuseOpeningSpawn": true
         }
       ],
-      "squadId": "squad:npc:huangcun_labor_garrison"
+      "squadId": "squad:npc:huangcun_patrol"
     }
   ]
 }

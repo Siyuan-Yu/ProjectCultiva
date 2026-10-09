@@ -375,9 +375,10 @@ namespace XianXia.Unity.Host
         public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
 
         /// <summary>单人寻路；抵达后调用 onArrive（用于入洞等）/summary>
-        public bool OrderEntityToWorldPointPublic(EntityId id, Vector3 point, System.Action onArrive)
+        public bool OrderEntityToWorldPointPublic(EntityId id, Vector3 point, System.Action onArrive,
+            bool exactGoal = false)
         {
-            if (!OrderEntityToWorldPoint(id, point, null, issueStop: true))
+            if (!OrderEntityToWorldPoint(id, point, null, issueStop: true, exactGoal: exactGoal))
                 return false;
             if (onArrive != null)
                 _pendingArriveActions[id.Value] = onArrive;

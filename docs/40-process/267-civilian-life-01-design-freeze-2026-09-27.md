@@ -40,7 +40,7 @@ Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作�
 
 - `MortalCivilianBoard` 以真实 `EntityId` 保存 Satiety、Energy、Profession、Activity、Disposition、居所、逃亡目标、押送者、囚室与每日照料事实；`MortalActivityEvaluator` 是需求与工作的单一优先级入口。旧版将 Loyalty 存在该 Board 的描述已由 P1 取代。
 - `CharacterFactionLoyaltyLedger` 以真实 Character EntityId 与当前 FactionId 保存唯一 Loyalty（0–100）；凡人、修士、NPC、永久玩家人物及有正式势力归属的 Temporary Quest Companion 均遵循同一规则。无势力人物不适用，人物概况固定显示“忠诚：—”。`initialLoyalty` 是人物对初始势力的配置种子，省略为 50；切换势力时旧值失效，明确招降写新势力 50，其它转移使用配置种子。
-- WorldTick 驱动饥饿、睡眠、进食、专业劳动、真实伤员搬运、治疗、逃亡、押送与拘留。食物只识别 `food` tag；农夫、药农连接现有逐格农作，伐木工连接现有树木破坏结算，产物写入 Site 公共库存。通用 Haul/Construction 已改为 Site PublicStock → 工单 transport payload → 工地材料与正式 ConstructionService 完成，不再以 LocationLabor 数值冒充建设。
+- WorldTick 驱动饥饿、睡眠、进食、专业劳动、真实伤员搬运、逃亡、押送与拘留。食物只识别 `food` tag；农夫、药农连接现有逐格农作，伐木工连接现有树木破坏结算，产物写入 Site 公共库存。通用 Haul/Construction 已改为 Site PublicStock → 工单 transport payload → 工地材料与正式 ConstructionService 完成，不再以 LocationLabor 数值冒充建设。
 - `WorldSiteTerritoryTransferService` 在真实易主事务完成后触发旧势力凡人的投降或逃亡；不改 FactionMembership。阿青初始 Loyalty 10，阿土 60，阿土初始 Farmer。
 - 右键交互提供投降招募/释放、逃亡捕获、拘留招募/释放/处决；CapturedEscorted 不开放普通 NPC 菜单，押送者靠近 PrisonerOnly 住房后从住房检视执行“安置押送俘虏”。捕获复用 CharacterEncounter，正式结算胜利且目标仍可捕获后才进入 CapturedEscorted。
 - Residence 支持 Normal/PrisonerOnly，复用住房 Capacity；Faction/外交面板的玩家势力详情提供凡人人事列表与单选 Profession。
@@ -105,7 +105,7 @@ Site 完整易主后，旧势力有归属凡人不会自动换阵营、加入玩
 
 - `Loyalty < 15`：留在原地但不自动加入。玩家右键可选择招募／劝降（立即成功）、攻击／杀死（正常 Encounter）或释放（进入 Fleeing）。
 - `Loyalty >= 15`：进入 Fleeing，缓慢逃离。开始时间错开，选择不同合法可行方向，大体远离 SiteCore；不得整齐列队或随机撞墙。
-- 逃离成功：人物越过正式 Site 物理／控制范围和一小段可调 buffer，成为 `EscapedFromSite/Displaced`。清除该 Site 的工作与居住绑定，不再计入居民／劳动力，但保留 EntityId、FactionId、Loyalty、位置和 displaced 事实。跨 Site 难民 AI 属于 Future。
+- 逃离成功：人物越过正式 Site 物理／控制范围和一小段可调 buffer，成为 `EscapedFromSite/Displaced`。清除该 Site 的工作、居住、取食、睡眠移动、建设托运和救援绑定，不再计入居民／劳动力，但保留 EntityId、FactionId、Loyalty、Profession 身份、Needs、WorldPosition 和 displaced 事实。仍在 materialized neighborhood 内时保持真实 Character，就地 idle／基础 Needs，不发起长距离避难寻路；离屏后复用 BackgroundCharacterTravel，前往同 Surface 最近可达、仍由本 Faction 控制的 active Site。没有合法目标时保持当前位置与 Displaced；到达后仍不自动分配 Residence／workforce。
 - 本规则只覆盖战败势力的有归属凡人；无归属居民的战后行为不在 V1 扩展。
 
 ## Player Civilian Interaction 与 Capture Encounter
@@ -116,7 +116,7 @@ Site 完整易主后，旧势力有归属凡人不会自动换阵营、加入玩
 
 ## Escorted Captive、Prisoner Housing 与 Detention
 
-被捕者仍是同一 Character。当前主动发起者成为 carrier／escort；被押送者不能自行移动、工作、被玩家控制或参与玩家劳动，Core 每 tick 将其既有 WorldPresence 同步到 carrier。carrier 失效时按 PlayerParty 稳定顺序选择可行动替代者；无人可接替时保持原地 CapturedEscorted，不删除人物。
+被捕者仍是同一 Character。当前主动发起者成为 carrier／escort；被押送者不能自行移动、工作、被玩家控制或参与玩家劳动，Core 与 Host 将其 WorldPresence／EntityView 同步到真实 carrier。carrier 死亡、移除、进入不兼容 Encounter 或运输取消时，目标安全留在 carrier 最后合法位置并清除 carrier binding；不自动换人或瞬移到囚室。
 
 没有合法监牢时，不能把人物抽象为“已拘留”；其状态保持 `Captured/Escorted`。普通 Residence 增加 `Normal/PrisonerOnly`（或与现有架构等价）的用途，复用真实住房容量，不创建第四套空间或匿名囚犯计数。只有实际带到有容量的合法 `PrisonerOnly` Residence 后才成为 `Detained`。
 
@@ -135,15 +135,15 @@ Detained Character 保留原 `FactionId` 与 Loyalty，有 Satiety/Energy，需�
 
 ## Persistence Requirements — Implemented in Snapshot v14
 
-Snapshot v14 的 Entity DTO 持久保存个体需求、Profession、当前 Faction、`initialLoyalty` 种子、Fleeing／Displaced、Captured／Escort、Residence 用途、Detention 照料事实、睡眠阶段、逃亡目标/起始 tick、押送者与最后更新时间；顶层 `characterFactionLoyalties[]` 独立保存当前 CharacterId/FactionId/Loyalty。Restore 验证唯一性、范围及与人物当前 Membership 一致，不重新应用 CharacterDefinition 初值；v1-v13 与缺少新 authority 的未封板 interim v14 均拒绝。返家途中保存为 travel phase 且不产生睡眠恢复；Food Fetch 的 path/target/重试上下文仍为瞬时状态，读档重新求值。
+Snapshot v14 的 Entity DTO 持久保存个体需求、Profession、当前 Faction、`initialLoyalty` 种子、Fleeing／Displaced、`RefugeTargetSiteId`、离屏 Needs 结算 tick、Captured／Escort、Residence 用途、Detention 照料事实、睡眠阶段、逃亡目标/起始 tick、押送者与最后更新时间；Squad DTO 持久保存唯一的可选 `DefendedSiteId`，既有 BackgroundCharacterTravel DTO 保存避难旅行本身；顶层 `characterFactionLoyalties[]` 独立保存当前 CharacterId/FactionId/Loyalty。Restore 验证唯一性、范围及与人物当前 Membership 一致，不重新应用 CharacterDefinition 初值，也不从 Content 再覆盖已恢复的 Squad defense authority；v1-v13 与缺少新 authority 的未封板 interim v14 均拒绝。返家途中保存为 travel phase 且不产生睡眠恢复；Food Fetch 的 path/target/重试上下文仍为瞬时状态，读档重新求值。
 
 ## Performance Direction
 
-V1 继续使用当前 WorldTick 与 Host streaming/presentation 行为，没有新增完整离屏 LOD。后续可降低离屏更新频率或以可解释的活动进度结算，但身份始终是 Character，不可折回匿名人口。
+V1 继续使用当前 WorldTick 与 Host streaming/presentation 行为，没有新增完整通用离屏 LOD。仅 Displaced 在离开 materialized neighborhood 后进入既有 BackgroundSimulationScheduler bucket：停止本地 MovementIntent、取食、睡眠寻路、职业、救援和建设，只按 elapsed WorldTick 批量降低 Satiety/Energy，并由 BackgroundCharacterTravel 持有空间移动 authority。身份始终是同一 Character，不折回匿名人口。
 
 ## Explicit Non-Goals
 
-Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷刑、劝降小游戏、性格／概率劝降、跨 Site 难民 AI、自动投奔、Miner、Generic Gatherer、Cook、Cleaning、Hunting、Crafting profession、武器生产、装备 AI、修士日常 AI、战略势力 AI、自动战争、巨型凡人军队、住房黑箱／private presence、完整 LOD 重写。
+Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷刑、劝降小游戏、性格／概率劝降、难民自动安置／自动转籍、Miner、Generic Gatherer、Cook、Cleaning、Hunting、Crafting profession、武器生产、装备 AI、修士日常 AI、战略势力 AI、自动战争、巨型凡人军队、住房黑箱／private presence、完整 LOD 重写。
 
 凡人主要是居民和劳动者；未来可讨论 guard／militia duty，但不把数百或数千凡人变成 RTS 大军。
 
@@ -157,16 +157,27 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 
 ## Rescue / Haul / Construction Realization
 
-- Rescue 使用 `Rescuer EntityId + Target EntityId + destination identity` 的短暂搬运预订；Host `MovementIntent` 向真实伤员位置导航，接触后伤员保持同一 Character 与生命／势力状态，WorldPresence 随搬运者移动，最后放至同势力 Site 内现有 recovery spot，缺省退至 SiteCore 安全点。搬运中目标不自主行动，也不进入 PlayerParty。非 Medic 可搬运；弥留恢复只由 Medic 在安全点调用既有 `CombatLifeStateService`。搬运者死亡、战斗入场、需求打断或目的地失效时在搬运者当前位置安全放下。Rescue reservation 防止多个工人重复领取同一伤员。
+- Rescue 使用 `Rescuer EntityId + Target EntityId + RecoverySpotId` 搬运预订；Host `MovementIntent` 向真实伤员与具体恢复点导航，接触后伤员保持同一 Character 与生命／势力状态，WorldPresence 随搬运者移动，最后只在正式 recovery spot 物理位置放下。医疗 WorkArea 中心和 SiteCore 不再是 fallback 或完成判据。每个恢复点同时最多放置一名伤员；同一 Site／Surface 内优先医疗区绑定点，满位后继续选择区外恢复点，无空位或路径失败则不完成。搬运中目标不自主行动，也不进入 PlayerParty；送达不恢复 HP。搬运者死亡、战斗入场、需求打断或目的地失效时在搬运者当前位置安全放下并释放预订。
 - 玩家仍由正式建筑 UI 选择农田／恢复处／储藏室落点。当当前己方 Site 有合法未入队 Unassigned 凡人和本地公共库存材料时，放置命令进入 `ConstructionService.TryQueueCivilianOutdoorConstruction`；否则沿用原即时建造。V1 工单只处理当前 Site 内短距离搬运，不创建 NPC 个人背包或跨 Site 物流。工人先到 SiteCore 公共库存取材，`WorldSitePublicStockService.TryRemove` 扣一次，材料进入工单的单人 transport payload；抵达工地后转入 delivered escrow。满足材料后工人贡献 12 tick 劳动，`ConstructionService.TryCompleteCivilianJob` 复用原有授权／重叠检查／正式建筑注册，并明确跳过第二次材料扣除。可见工地标记与 LevelTester 诊断显示进度和载荷。
 - 正式势力旗 `TryDismantleFactionFlag` 已有拆除事务；有可用凡人时原确认按钮改发拆除工单，工人到场、贡献劳动后仍调用该事务；无可用工人时沿用原即时拆除。当前产品没有可复用的正式 Repair gameplay authority，V1 不虚构修理进度或第二套建筑系统；普通农田／恢复处／储藏室也没有正式拆除事务，仍属未来建筑扩展。
-- Rescue 运输预订为可安全重建的瞬态状态：Snapshot 保存两个真实 Character 的最新 WorldPresence，不保存隐藏 carried 身份；Load 后重新评估。建设工单、材料 delivered escrow、单人 transport payload／carrier 与 labor progress 存入 Snapshot v14；Restore 校验，不重扣材料、不重加进度。Site 易主撤销工单并退还可返库存；遇到战斗或工人失效时退还未交付载荷。
+- Rescue 运输预订为可安全重建的瞬态状态；正式 `RecoverySpotId → InjuredCharacterId` 送达关系写入 Snapshot v14，Restore 同时校验恢复点、人物弥留状态与精确物理位置，已安置伤员不会读档后再次领取。建设工单、材料 delivered escrow、单人 transport payload／carrier 与 labor progress 同样存入 v14；Restore 不重扣材料、不重加进度。Site 易主撤销工单并退还可返库存；遇到战斗或工人失效时退还未交付载荷。
 
 ## Current Status
 
 **Implementation Complete / Producer Acceptance Pending。**
 
-LevelTester Content 页新增“准备 Rescue：阿石搬阿青，阿土治疗”和“准备建设：当前己方 Site 木材 20 / 阿石待命”。制作人可观察非 Medic 到伤员、搬运、放下、Medic 治疗；建设须经正式建设 UI 发起，再观察公共库存扣材、工人托运、工地劳动与真实建筑出现。静态 C# 编译已通过；尚未启动 Unity、PlayMode 或 Runner，亦未运行自动测试，运行结果必须由制作人人工验收。AUCTION-01 保持 **Producer Accepted / Sealed**。
+## P1 Medical Rescue Area / Prisoner Delivery Area V1
+
+- 荒村正式增加 `base:workarea_huangcun_medical`（`base:loc_ref_huangcun_medical`，tags `medical`／`recovery`）与 `base:workarea_huangcun_prison`（`base:loc_ref_huangcun_prison`，容量 4）。两者均为 source blueprint 与 baked surface 的非阻挡可达区域。医疗点不是住房；专用囚室以最小 `home`／`residentTags` 兼容复用 Residence，New Game 固定 `PrisonerOnly`，Restore 使用既有 Snapshot residence usage。
+- Rescue 是所有正常可工作的 PlayerFaction 凡人的基础任务，不看 Profession。V1 只选择同 PlayerFaction、同 Site 的 `Incapacitated` Character；荒村三个 `recoverySpot` 均为正式目的地，其中 `recovery_spot_1/2` 绑定医疗区并优先，`recovery_spot_3` 位于区外且在前两点占用／预订后继续可用。救援者经 MovementIntent／Host／WalkGrid 实际接近、搬起、移动到点位中心并放下；每点一人，送达后只清除 carry，不恢复 HP／Lifecycle。
+- 当前没有 Medic 自动治疗、远程回血、MedicalWard admission、出院或医疗 AI。医疗点正式 UI 由恢复点 authority 显示区内“恢复点：2”及已放置伤员；普通位于医疗区但未在正式恢复点的人物不算送达。
+- CapturedEscorted 的第一版 carrier 是发起捕获的玩家主控 Character。`base:site_huangcun:prison_dropoff` 位于囚室南侧内部入口，且不与医疗区重叠；右键菜单专门分流为“安置俘虏／查看囚室”，绝不进入人物对话。选择安置后主控真实精确寻路，到达合法交互距离再重新校验并调用 `Detain`。Core `Detain/CanDetain` 共用 carrier、绑定、玩家控制 Site、PrisonerOnly 容量及 carrier／captive 对交接点的距离校验，成功后才转为 Detained，并在囚室合法位置解除押送。
+- Rescue 的正式世界目标携带稳定 `RecoverySpotId` 与 Core delivery radius。Host 对这类目标不使用通用 2.5 presentation-unit 到达半径或目标 snap，而是把同一 world-space radius 换算到 presentation space，并要求 exact goal cell；若 A* 终点不可走或路径完成后仍在交付半径外，显式返回 path failure。恢复点身份变化会增加 MovementIntent revision、取消旧路径并重建 A*，不再被旧 `0.2` 世界单位坐标容差吞掉。
+- carrier 死亡、移除、进入不兼容 Encounter 或运输取消时，Rescue／Prison transport 均在 carrier 当前合法位置安全放下目标并清除 carry binding；不会丢人物、保持隐形 carried 状态或远程完成送达。Snapshot 保持 v14；短期 Rescue transport 读档重新求值，正式恢复点送达关系、CapturedEscorted／Detained／Residence usage 持久保存。
+- LevelTester 提供“定位 荒村医疗点”“准备医疗搬运验收”“定位 荒村囚室”“准备囚犯搬运验收”。准备入口只把人物放在区域外并建立合法前置状态，不直接完成投送、治疗或拘留。
+- Core／Data／Unity／Editor 离线编译与 source/baked parity、地图连通、meta/GUID、`git diff --check` 进行静态复核；未启动 Unity、PlayMode 或 Runner，未运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+本轮两处设施均为 BaseGame 预置内容；未来玩家自行建造医院／监狱、治疗系统、狱卒 AI 与自动押运不在本 P1 范围。
 
 ## P1 Character Approach / Need Movement Realization
 
@@ -176,3 +187,9 @@ LevelTester Content 页新增“准备 Rescue：阿石搬阿青，阿土治疗�
 - StorageRoom 从 footprint 派生八个访问槽。人物按 EntityId 分散起始槽，Host A* 失败后清除缓存并轮换，不再永久重试纯几何最近侧；返家路径明确失败时转为 Ground Sleep。
 - 有效玩家世界命令可以解除 ManualPaused；ModalHardPaused 仍阻止命令。第一发致命伤只允许 Alive → Incapacitated；Dead 只能由 FinishingStrike、BleedOut、PrisonerExecution 或 Debug 等显式 death confirmation reason 产生。CharacterEncounter 的生命倒计时使用 `Time.unscaledDeltaTime`，不随 20x 战术速度缩短。
 - 荒村巡卫住房南墙 `place_wall_040130496` 从 4 格缩短为 3 格，恢复真实门洞；`place_wall_040134006` 保持 4 格。按正式 Surface geography、site placements 和 blocker center-raster 规则的离线连通检查确认：9 名 acceptance mortal 起点均可到 8 个储藏室槽，普通/巡卫/主管住房可出入，住房可到粮田、药田、伐木区，Site interior 可到 8 个逃亡出口。
+
+## P1 Explicit Site Garrison / Displaced Background Realization
+
+- Site Garrison 是 `NpcSquadDefinition.defendedSiteId → SquadState.DefendedSiteId` 的显式单一绑定；`assemblySiteId` 只表示集结／出生位置。WorldSite assault 只收集 `DefendedSiteId == target.SiteId` 且继续满足阵营、生命、空间和去重条件的 Squad，不再把恰好站在 Site 内的同阵营巡逻队、商队或普通 NPC Squad 推断为守军。
+- 荒村的 `base:npc_squad_huangcun_labor_garrison` 仅含杂役主管，并显式守卫 `base:site_huangcun`；巡卫甲／乙／丙属于独立 `base:npc_squad_huangcun_patrol`，没有 defense binding。普通攻击任一巡卫仍由 CharacterEncounter 收入目标当前 Squad 的三人 roster；攻击 Site Core 只自动收入主管驻军。
+- Displaced 不再获得 Site PublicStock 特权，只有人物当前 FactionId 与当前 Site OwnerFactionId 相同才可用粮。近场 materialized 人物保持真实、可互动并只做 idle／基础 Needs；离屏后按 bucket 批量推进 Needs，并复用 BackgroundCharacterTravel 前往同 Surface 最近可达的己方 active Site。旅行过程中即使重新 materialize，background route 仍持有移动 authority直到到达或显式取消；没有己方 Site 时保留原位置 background idle。

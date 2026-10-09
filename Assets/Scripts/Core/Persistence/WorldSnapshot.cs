@@ -77,6 +77,7 @@ namespace XianXia.Core.Persistence
             new List<SocialBondSnapshotDto>();
         public long NextOutdoorConstructedAssetSequence { get; set; } = 1;
         public List<OutdoorConstructedAssetSnapshotDto> OutdoorConstructedAssets { get; set; } = new List<OutdoorConstructedAssetSnapshotDto>();
+        public List<RecoverySpotPlacementSnapshotDto> RecoverySpotPlacements { get; set; } = new List<RecoverySpotPlacementSnapshotDto>();
         public List<OutdoorDestructibleSnapshotDto> OutdoorDestructibles { get; set; } =
             new List<OutdoorDestructibleSnapshotDto>();
         public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
@@ -225,6 +226,12 @@ namespace XianXia.Core.Persistence
         public int CellsH { get; set; }
         public string BoundLocationId { get; set; } = string.Empty;
         public string BoundWorldSiteId { get; set; } = string.Empty;
+    }
+
+    public sealed class RecoverySpotPlacementSnapshotDto
+    {
+        public string RecoverySpotId { get; set; } = string.Empty;
+        public ulong InjuredCharacterId { get; set; }
     }
 
     public sealed class OutdoorDestructibleSnapshotDto
@@ -595,6 +602,7 @@ namespace XianXia.Core.Persistence
         public string SquadId { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string FactionId { get; set; } = string.Empty;
+        public string DefendedSiteId { get; set; } = string.Empty;
         public ulong LeaderCharacterId { get; set; }
         public string LegacyArmyId { get; set; } = string.Empty;
         public int CommandKind { get; set; }
@@ -871,6 +879,8 @@ namespace XianXia.Core.Persistence
         public float MortalFleeTargetX { get; set; }
         public float MortalFleeTargetY { get; set; }
         public string MortalFleeSourceSiteId { get; set; } = string.Empty;
+        public string MortalRefugeTargetSiteId { get; set; } = string.Empty;
+        public ulong MortalBackgroundNeedsLastProcessedTick { get; set; }
         public int MortalFleeCandidateIndex { get; set; }
         public int MortalFleeAttemptCount { get; set; }
         public ulong MortalCarrierId { get; set; }

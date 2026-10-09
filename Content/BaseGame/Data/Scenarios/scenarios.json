@@ -585,7 +585,8 @@
         "base:npc_squad_bandit_casualty_test",
         "base:npc_squad_qingshi_acceptance_shuofeng_garrison",
         "base:npc_squad_qingshi_acceptance_shuofeng_reinforcement",
-        "base:npc_squad_huangcun_labor_garrison"
+        "base:npc_squad_huangcun_labor_garrison",
+        "base:npc_squad_huangcun_patrol"
       ],
       "startingWallet": {
         "low": 10000,

@@ -104,6 +104,10 @@ V1 专业职业单选为 Unassigned、Farmer、HerbFarmer、Logger、Medic。所
 
 附近人物使用高细节行为，离屏未来可降频；LOD 只能降低模拟成本，不能消除 Character identity。住房继续显示真实人物并使用真实容量。
 
+荒村医疗点是 `medical`／`recovery` WorkArea，负责组织设施而不是 Rescue destination。Rescue 是所有正常可工作的 PlayerFaction 凡人的基础任务，不受 Profession 限制；V1 目标为同 PlayerFaction 的 `Incapacitated` Character。救援者实际接近、建立 carry、通过 MovementIntent／Host／WalkGrid 搬运，并只在同 Site／Surface 的空闲正式 `recoverySpot` 放下。医疗区内点位优先，满位后允许区外点位；每点一人且预订期间不可重复领取。
+
+送达恢复点不改变 Lifecycle 或 HP，也不建立 MedicalWard、治疗、收治或出院 authority。医疗点 UI 只统计绑定区内的正式恢复点和其持久送达关系；碰巧位于医疗区域不算安置，没有空闲恢复点时救援不会假装完成。Snapshot v14 保存 `RecoverySpotId → InjuredCharacterId`，恢复时校验实际位置。
+
 ## 8. 学校与人才系统
 
 凡人不做单人全模拟，但建筑／据点内会生成**少量关键人才**。

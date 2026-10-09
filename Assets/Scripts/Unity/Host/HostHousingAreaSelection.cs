@@ -77,7 +77,8 @@ namespace XianXia.Unity.Host
                 if (_inspect.Kind == WorldObjectInspectKind.Housing ||
                     _inspect.Kind == WorldObjectInspectKind.WorkArea ||
                     _inspect.Kind == WorldObjectInspectKind.Plot ||
-                    _inspect.Kind == WorldObjectInspectKind.RecoverySpot)
+                    _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
+                    _inspect.Kind == WorldObjectInspectKind.PrisonDropOff)
                     _inspect.Clear();
             }
 
@@ -87,7 +88,8 @@ namespace XianXia.Unity.Host
 
             if ((_inspect.Kind == WorldObjectInspectKind.Plot ||
                  _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
-                 _inspect.Kind == WorldObjectInspectKind.StorageRoom) && _inspect.Plot == null)
+                 _inspect.Kind == WorldObjectInspectKind.StorageRoom ||
+                 _inspect.Kind == WorldObjectInspectKind.PrisonDropOff) && _inspect.Plot == null)
                 _inspect.Clear();
         }
 
@@ -109,7 +111,28 @@ namespace XianXia.Unity.Host
             }
 
             if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, worldPoint, out var target))
+            {
                 _inspect.Set(target);
+                if (target.Kind == WorldObjectTargetKind.PrisonDropOff && target.Plot != null)
+                {
+                    var active = bootstrap.Session.PlayerParty?.ActiveCharacterId ?? XianXia.Core.Domain.Ids.EntityId.None;
+                    var prisonId = string.Empty;
+                    foreach (var area in bootstrap.Session.World.WorkAreas)
+                        if (area.Value != null && XianXia.Core.Npc.HousingAssignmentService.IsDedicatedPrison(area.Value) &&
+                            string.Equals(area.Value.LocationId, target.Plot.LocationId, System.StringComparison.Ordinal))
+                        { prisonId = area.Key; break; }
+                    foreach (var pair in bootstrap.Session.World.Civilians.All)
+                        if (pair.Value != null && pair.Value.Disposition == XianXia.Core.Npc.CivilianDisposition.CapturedEscorted &&
+                            pair.Value.CarrierId == active &&
+                            XianXia.Core.Npc.MortalCivilianService.CanDetain(bootstrap.Session.World,
+                                pair.Key, prisonId).IsFailure)
+                        {
+                            bootstrap.MoveController?.OrderEntityToWorldPointPublic(active,
+                                target.Plot.transform.position, null, exactGoal: true);
+                            break;
+                        }
+                }
+            }
             else Clear();
         }
 

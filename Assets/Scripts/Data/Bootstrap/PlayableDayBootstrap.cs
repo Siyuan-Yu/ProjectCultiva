@@ -214,6 +214,7 @@ namespace XianXia.Data.Bootstrap
                 return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
 
             HousingAssignmentService.SeedFromHomeBindings(world);
+            MortalCivilianService.SeedContentResidenceUsages(world);
 
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup, spawnEntries);
             if (recruitableId.IsNone)

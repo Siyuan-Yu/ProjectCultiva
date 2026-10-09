@@ -73,6 +73,8 @@ namespace XianXia.Unity.Host
             _targetDestructible != null && !_targetDestructible.IsDestroyed;
         bool IsRecoverySpotTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.RecoverySpot &&
                                      _worldObjectTarget.Plot != null;
+        bool IsPrisonDropOffTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.PrisonDropOff &&
+                                      _worldObjectTarget.Plot != null;
         bool IsReadOnlyWorldObjectTarget =>
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea ||
@@ -247,6 +249,8 @@ namespace XianXia.Unity.Host
                         DrawDestructibleMenu();
                     else if (IsRecoverySpotTarget)
                         DrawRecoverySpotMenu();
+                    else if (IsPrisonDropOffTarget)
+                        DrawPrisonDropOffMenu();
                     else if (_worldObjectTarget.Kind == WorldObjectTargetKind.FarmPlot)
                         DrawFarmPlotMenu();
                     else if (IsReadOnlyWorldObjectTarget)
@@ -380,6 +384,92 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "休息恢复", _button))
                 BeginRecoverySpot();
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawPrisonDropOffMenu()
+        {
+            const float w = 190f;
+            const float itemH = 30f;
+            var hasCaptive = TryFindEscortedCaptive(_actor, out _);
+            var h = itemH * (hasCaptive ? 2f : 1f) + 34f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(x, y, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "囚犯交接点", _label);
+            var actionY = y + 30f;
+            if (hasCaptive && GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "安置俘虏", _button))
+                BeginPrisonDropOff();
+            if (hasCaptive) actionY += itemH;
+            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "查看囚室", _button))
+                ShowBoundPrison();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        bool TryResolveBoundPrison(out WorkAreaDefinition prison)
+        {
+            prison = null;
+            var world = bootstrap?.Session?.World;
+            var locationId = _worldObjectTarget.Plot?.LocationId ?? string.Empty;
+            if (world == null || string.IsNullOrWhiteSpace(locationId)) return false;
+            foreach (var pair in world.WorkAreas)
+                if (pair.Value != null && HousingAssignmentService.IsDedicatedPrison(pair.Value) &&
+                    string.Equals(pair.Value.LocationId, locationId, System.StringComparison.Ordinal))
+                { prison = pair.Value; return true; }
+            return false;
+        }
+
+        bool TryFindEscortedCaptive(EntityId carrierId, out EntityId captiveId)
+        {
+            captiveId = EntityId.None;
+            var world = bootstrap?.Session?.World;
+            if (world == null || carrierId.IsNone) return false;
+            foreach (var pair in world.Civilians.All)
+                if (pair.Value != null && pair.Value.Disposition == CivilianDisposition.CapturedEscorted &&
+                    pair.Value.CarrierId == carrierId &&
+                    (captiveId.IsNone || pair.Key.Value < captiveId.Value)) captiveId = pair.Key;
+            return !captiveId.IsNone;
+        }
+
+        void ShowBoundPrison()
+        {
+            if (TryResolveBoundPrison(out var prison))
+                bootstrap?.GetComponent<HostHousingAreaSelection>()?.Inspect.SetHousing(prison.Id);
+            CloseAll();
+        }
+
+        void BeginPrisonDropOff()
+        {
+            var actor = _actor;
+            var plot = _worldObjectTarget.Plot;
+            if (!TryResolveBoundPrison(out var prison) || plot == null ||
+                !TryFindEscortedCaptive(actor, out var captive))
+            { CloseAll(); return; }
+            var prisonId = prison.Id;
+            var destination = plot.transform.position;
+            CloseAll();
+            if (MortalCivilianService.CanDetain(bootstrap.Session.World, captive, prisonId).IsSuccess)
+            { CompletePrisonDropOff(actor, captive, prisonId); return; }
+            if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
+                    () => CompletePrisonDropOff(actor, captive, prisonId), exactGoal: true))
+                Debug.LogWarning("[Civilian] 无法前往囚犯交接点。", this);
+        }
+
+        void CompletePrisonDropOff(EntityId actor, EntityId captive, string prisonId)
+        {
+            if (bootstrap?.Session?.World == null ||
+                !bootstrap.Session.World.Civilians.TryGet(captive, out var state) || state.CarrierId != actor)
+                return;
+            var validation = MortalCivilianService.CanDetain(bootstrap.Session.World, captive, prisonId);
+            if (validation.IsFailure)
+            {
+                Debug.LogWarning("[Civilian] 囚犯交接失败：" + validation.Error.Message, this);
+                return;
+            }
+            var result = MortalCivilianService.Detain(bootstrap.Session.World, captive, prisonId);
+            if (result.IsFailure) Debug.LogWarning("[Civilian] 囚犯交接失败：" + result.Error.Message, this);
         }
 
         void BeginRecoverySpot()

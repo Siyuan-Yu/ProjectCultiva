@@ -1,5 +1,34 @@
 # 开发日志
 
+## 2026-10-08 — CIVILIAN-LIFE-01 P1 囚犯交接与 Rescue 精确到达修复
+
+- 修复 `PrisonDropOff` 已被 Picker 识别但未进入右键菜单专用分支、最终落入普通 `DrawContextMenu/BeginTalk` 的问题。右键现在只提供“安置俘虏”和“查看囚室”；安置令 carrier 精确寻路，抵达后重新调用共用 `CanDetain/Detain`，禁止远程完成。
+- `base:site_huangcun:prison_dropoff` 保持 StableId／囚室绑定，位置从医疗区边缘移到囚室南侧内部入口：footprint `(5.21780,11.18000)–(5.26110,11.25000)`，与医疗区最大 Y=11.145 不重叠，点位格与外部主路连通且非阻挡。
+- Rescue 的 MovementIntent 新增 session-only stable destination key 与 world arrival radius。Host 对正式交付目标使用相同半径的 presentation 换算、exact goal 和 blocked/out-of-radius 明确失败；RecoverySpotId 改变必然增加 revision 并重建路径。路径失败会保留 carried Character、释放失败点预订并尝试其它恢复点。
+- CompositeWalkGrid 静态复算确认验收起点、住房内伤员、三个恢复点和新交接点均 walkable；救援者到伤员、伤员位置到三个恢复点、外部主路到交接点均完整连通，不改住房墙体。Core／Data／Unity／Editor 离线编译通过；未启动 Unity、PlayMode 或 Runner，未运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-08 — CIVILIAN-LIFE-01 P1 恢复点送达与囚犯交接点
+
+- Rescue destination 从 medical WorkArea center 改为同 Site／Surface 的正式 `recoverySpot`。荒村区内 `recovery_spot_1/2` 优先，区外 `recovery_spot_3` 仍有效；单点单伤员，搬运预订排除竞争，真实 HostArrived 且进入点位小范围后才放下，不再回退 SiteCore 或医疗区中心。
+- Snapshot v14 增加 `RecoverySpotId → InjuredCharacterId` 正式送达关系，Restore 校验点位、弥留人物和物理位置，避免读档重复搬运。医疗区 UI 显示两个区内恢复点及正式放置人数，普通位于区域内不算送达。
+- source blueprint 与 baked surface 同步增加非阻挡 `base:site_huangcun:prison_dropoff`。地图点击使当前 carrier 真实前往；抵达后出现“安置俘虏”。囚室面板与交接点共用 `CanDetain/Detain`，Core 同时校验 carrier、captive、Site、容量和交接点距离，禁止远程安置。
+- LevelTester 补 RecoverySpot occupancy/reservation/delivery 与 prison drop-off/proximity/legality 诊断。Core／Data／Unity／Editor 离线编译通过；JSON、source/baked parity、WalkGrid、meta/GUID 与 `git diff --check` 静态复核，不启动 Unity、PlayMode 或 Runner，不运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-30 — CIVILIAN-LIFE-01 P1 医疗搬运点与囚犯实际送达
+
+- 制作人将上一轮临时医舍收窄为两个 transport destination：荒村医疗点只负责同 PlayerFaction 弥留人物的真实搬运与放下；专用囚室只在 carrier 与 captive 实际进入区域后完成 Detain。
+- 撤回 MedicalWardBoard、病床绑定、admission／discharge、Medic 自动治疗和 `medicalWardAdmissions[]`。Snapshot 保持 v14；医疗点当前伤员由正式 WorldPresence 派生。
+- Rescue 继续高于 Profession 分支，Farmer／HerbFarmer／Logger／Medic／Unassigned 均可执行。CapturedEscorted 由发起捕获的玩家主控押送，Host 同步真实 EntityView；carrier 失效或进入不兼容 Encounter 时在最后合法位置安全放下，不自动换人。
+- Core Detain 增加 carrier／captive／囚室物理范围校验；source blueprint 与 baked surface 同步使用 `base:workarea_huangcun_medical`／`base:loc_ref_huangcun_medical` 和既有 dedicated prison。正式 HUD 与四个 LevelTester 定位／准备入口已接线。Core、Data、Unity、Editor 离线编译通过；未启动 Unity、PlayMode 或 Runner，未运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-09-28 — CIVILIAN-LIFE-01 P1 显式驻军与 Displaced 近场／离屏模拟
+
+- `NpcSquadDefinition` 增加独立 `defendedSiteId` 并投影为持久 `SquadState.DefendedSiteId`；Site assault 只收集显式绑定目标 Site 的合法 Squad，不再按同阵营、非 singleton 和现场位置推断驻军。荒村主管恢复为单人显式驻军，巡卫甲／乙／丙组成无 defense binding 的独立 patrol squad；普通 CharacterEncounter 仍按目标当前 Squad 收入三人。
+- Displaced 清除旧 Site 的居住、取食、睡眠移动、建设托运与救援瞬时 authority，且不再因状态获得 PublicStock 权限。materialized 时保留真实 Character、互动和基础 Needs，就地 idle；离屏后停止本地工作／寻路，按 BackgroundSimulationScheduler bucket 以 elapsed WorldTick 批量推进 Satiety/Energy。
+- 离屏 Displaced 复用既有 BackgroundCharacterTravel，按同 Faction、active、同 Surface、排除逃离来源筛选 Site，按直线距离稳定排序后依次尝试正式 route。无合法目标时保留原位置；抵达后仍为 Displaced，不自动加入 Residence 或 workforce；活动中的 background route 即使进入 loaded neighborhood 也继续拥有空间 authority。
+- Snapshot schema 保持 v14，新增 Squad defense binding、Displaced refuge target 与 background needs tick；既有 BackgroundCharacterTravel persistence 继续保存路线。Content validator 校验 defense Site 引用及 opening owner faction；LevelTester 增加 explicit defender 与 Displaced handoff/food diagnostics。
+- Core、Data、Unity、Unity.Editor 离线编译通过；静态 Content／调用链、Snapshot v14、GUID/meta 与 `git diff --check` 复核完成。未启动 Unity、PlayMode 或 Runner，未新增或运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-09-28 — CIVILIAN-LIFE-01 P1 人物接近、逃亡与需求移动收尾
 
 - 右键 Talk/Trade/Auction/Attack/Recruit/Capture/Release/Execute 统一接入 person approach。Attack/Capture 使用带冷却的移动目标 pursuit；主控到达范围后才重新校验并进入 Encounter 或写 capture request。Recruit 到达后执行 5 秒非缩放、可取消的轻交互。
@@ -5478,6 +5507,6 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 
 - `MovementIntent` 增加 transient per-move 速度倍率；凡人逃亡使用正常 Local movement 的 `0.2`，其它移动默认 `1.0`，Host 在路径完成、取消、替换与 presentation reset 时清理倍率。
 - 据点战内右键敌对 participant 直接切换 `CharacterEncounter` tactical target，不再创建会被 encounter spatial authority 正确拒绝的 world approach；建筑 Objective 保留，现有 core assault 在人物 target 生效时停止。
-- 荒村正式驻军 squad 补入巡卫甲／乙／丙；据点战按 Site／frozen field、阵营、生命与正式非 singleton squad 稳定去重收集守军，并将额外 squad 加入同一 Objective encounter。
+- 该轮曾把巡卫甲／乙／丙补入荒村驻军，并按 Site／阵营／位置推断非 singleton 守军；此未验收方案已由上方“显式驻军”实现取代，巡卫现为独立普通 patrol squad，只有主管 Squad 显式守卫荒村。
 - 头顶、紧凑 HUD 与人物详情共用 activity resolver：生命状态优先，其次 active encounter／Separate Space 本地战斗，再到凡人活动、Action、Schedule 与 idle。LevelTester 增加移动倍率、Host 实际速度和 Site Encounter roster／TargetId 诊断。
 - Core／Data／Unity／Unity.Editor 离线编译通过；`git diff --check` 无 whitespace error。未启动 Unity、PlayMode 或 Runner，未新增或运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。

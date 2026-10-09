@@ -134,6 +134,8 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.72f, 0.66f, 0.28f)),
             new("recoverySpot", Cushion, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Recovery,
                 new UnityEngine.Color(0.18f, 0.78f, 0.78f)),
+            new("prisonDropOff", Cushion, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.PrisonDropOff,
+                new UnityEngine.Color(0.68f, 0.42f, 0.22f)),
             new("storageRoom", StorageRoom, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Storage,
                 new UnityEngine.Color(0.62f, 0.48f, 0.28f)),
             new("road", Road, StampMode.PerCell, RoadFootprint, RoadFootprint, false, null,

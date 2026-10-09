@@ -25,11 +25,13 @@ namespace XianXia.Core.Construction
     public static class OutdoorConstructedAssetSemantics
     {
         public const string RecoverySpotKind = "recoverySpot";
+        public const string PrisonDropOffKind = "prisonDropOff";
         public const string StorageRoomKind = "storageRoom";
 
         public static bool IsSupportedRuntimeKind(string kind) =>
             string.Equals(kind, "grainField", StringComparison.Ordinal) ||
             string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal) ||
+            string.Equals(kind, PrisonDropOffKind, StringComparison.Ordinal) ||
             string.Equals(kind, StorageRoomKind, StringComparison.Ordinal);
     }
 
@@ -78,7 +80,9 @@ namespace XianXia.Core.Construction
         public IEnumerable<OutdoorAdministrativeAssetAnchor> CellAnchors() => AdministrativeCellAnchors();
 
         public bool IsValid => !string.IsNullOrWhiteSpace(StableAssetId) && !string.IsNullOrWhiteSpace(BuildingId) &&
-            !string.IsNullOrWhiteSpace(SurfaceId) && !string.IsNullOrWhiteSpace(BoundLocationId) &&
+            !string.IsNullOrWhiteSpace(SurfaceId) &&
+            (!string.IsNullOrWhiteSpace(BoundLocationId) ||
+             string.Equals(Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)) &&
             OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(Kind) &&
             (!string.Equals(Kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
              !string.IsNullOrWhiteSpace(BoundWorldSiteId)) && CellsW > 0 && CellsH > 0 &&
@@ -110,7 +114,11 @@ namespace XianXia.Core.Construction
         {
             if (asset == null || !asset.IsValid || _assets.ContainsKey(asset.StableAssetId)) return false;
             foreach (var existing in _assets.Values)
-                if (existing.BoundLocationId == asset.BoundLocationId || Overlaps(existing, asset)) return false;
+                if ((!string.IsNullOrWhiteSpace(asset.BoundLocationId) &&
+                     existing.BoundLocationId == asset.BoundLocationId &&
+                     !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal) &&
+                     !string.Equals(existing.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)) ||
+                    Overlaps(existing, asset)) return false;
             _assets.Add(asset.StableAssetId, asset);
             return true;
         }
@@ -127,7 +135,12 @@ namespace XianXia.Core.Construction
                 var prefix = id.StartsWith(farmPrefix, StringComparison.Ordinal) ? farmPrefix :
                     id.StartsWith(recoveryPrefix, StringComparison.Ordinal) ? recoveryPrefix :
                     id.StartsWith(storagePrefix, StringComparison.Ordinal) ? storagePrefix : string.Empty;
-                if (prefix.Length == 0 ||
+                if (prefix.Length == 0)
+                {
+                    if (id.StartsWith("base:site_", StringComparison.Ordinal)) continue;
+                    return false;
+                }
+                if (
                     !long.TryParse(id.Substring(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var n) ||
                     n < 1 || n >= sequence) return false;
             }

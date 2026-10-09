@@ -538,7 +538,8 @@ namespace XianXia.Unity.Host
             if (partyFocus &&
                 inspect.Kind != WorldObjectInspectKind.ControlCore &&
                 inspect.Kind != WorldObjectInspectKind.Destructible &&
-                inspect.Kind != WorldObjectInspectKind.StorageRoom)
+                inspect.Kind != WorldObjectInspectKind.StorageRoom &&
+                inspect.Kind != WorldObjectInspectKind.PrisonDropOff)
                 return;
 
             switch (inspect.Kind)
@@ -560,6 +561,9 @@ namespace XianXia.Unity.Host
                     break;
                 case WorldObjectInspectKind.StorageRoom:
                     DrawInspectStorageRoom(session, inspect.Plot);
+                    break;
+                case WorldObjectInspectKind.PrisonDropOff:
+                    DrawInspectPrisonDropOff(session, inspect.Plot);
                     break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);
@@ -726,6 +730,11 @@ namespace XianXia.Unity.Host
                 return;
 
             var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
+            if (HousingAssignmentService.IsDedicatedPrison(area))
+            {
+                DrawInspectPrison(session, area, title);
+                return;
+            }
             DrawInspectShell(202f, "住房 · " + title, () =>
             {
                 var r = new Rect(Pad, TopH + 42f, 320f, 202f);
@@ -764,30 +773,92 @@ namespace XianXia.Unity.Host
             });
         }
 
+        void DrawInspectPrison(PlayableHostSession session, WorkAreaDefinition area, string title)
+        {
+            DrawInspectShell(202f, "囚室 · " + title, () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 202f);
+                var detainees = new List<EntityId>();
+                foreach (var pair in session.World.Civilians.All)
+                    if (pair.Value != null && pair.Value.Disposition == CivilianDisposition.Detained &&
+                        string.Equals(pair.Value.DetainedResidenceWorkAreaId, area.Id, System.StringComparison.Ordinal))
+                        detainees.Add(pair.Key);
+                detainees.Sort((a, b) => a.Value.CompareTo(b.Value));
+                var names = detainees.Count == 0 ? "—" : FormatEntityNames(session, detainees);
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 20f), "用途：囚室（固定）", _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 20f),
+                    "容量：" + detainees.Count + " / " + area.Capacity, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 80f, r.width - 20f, 60f), "关押：" + names, _body);
+                if (TryFindEscortedCaptiveAtResidence(session, area, out var captiveId) &&
+                    GUI.Button(new Rect(r.x + 10f, r.y + 154f, r.width - 20f, 26f), "安置押送俘虏"))
+                {
+                    var result = MortalCivilianService.Detain(session.World, captiveId, area.Id);
+                    if (result.IsFailure) Debug.LogWarning("[Civilian] " + result.Error.Message);
+                }
+            });
+        }
+
         bool TryFindEscortedCaptiveAtResidence(
             PlayableHostSession session,
             WorkAreaDefinition area,
             out EntityId captiveId)
         {
             captiveId = EntityId.None;
-            if (session?.World == null || area == null || bootstrap?.ViewSpawner == null ||
-                !HostZoneQuery.TryGetLocationCenter(session.World, area.LocationId, out var baseCenter))
-                return false;
-            var center = baseCenter + new Vector3(area.OffsetX, area.OffsetZ, 0f);
+            if (session?.World == null || area == null) return false;
             foreach (var pair in session.World.Civilians.All)
             {
                 var state = pair.Value;
                 if (state == null || state.Disposition != CivilianDisposition.CapturedEscorted ||
-                    state.CarrierId.IsNone || session.World.Strategic.PlayerPartyContext?.IsMember(state.CarrierId) != true ||
-                    !bootstrap.ViewSpawner.Registry.TryGet(state.CarrierId, out var carrierView) || carrierView == null)
+                    state.CarrierId.IsNone || session.World.Strategic.PlayerPartyContext?.IsMember(state.CarrierId) != true)
                     continue;
-                if (Vector2.Distance(HostPresentationSpace.ToPresentation(carrierView.transform.position),
-                        HostPresentationSpace.ToPresentation(center)) > PrisonPlacementRange)
-                    continue;
+                if (MortalCivilianService.CanDetain(session.World, state.EntityId, area.Id).IsFailure) continue;
                 captiveId = state.EntityId;
                 return true;
             }
             return false;
+        }
+
+        void DrawInspectPrisonDropOff(PlayableHostSession session, HostMapPlotCell plot)
+        {
+            if (session?.World == null || plot == null || string.IsNullOrWhiteSpace(plot.LocationId)) return;
+            WorkAreaDefinition prison = null;
+            foreach (var pair in session.World.WorkAreas)
+                if (pair.Value != null && HousingAssignmentService.IsDedicatedPrison(pair.Value) &&
+                    string.Equals(pair.Value.LocationId, plot.LocationId, System.StringComparison.Ordinal))
+                { prison = pair.Value; break; }
+            if (prison == null) return;
+            MortalCivilianState escorted = null;
+            foreach (var pair in session.World.Civilians.All)
+                if (pair.Value != null && pair.Value.Disposition == CivilianDisposition.CapturedEscorted &&
+                    !pair.Value.CarrierId.IsNone && session.World.Strategic.PlayerPartyContext?.IsMember(pair.Value.CarrierId) == true)
+                { escorted = pair.Value; break; }
+            DrawInspectShell(188f, "囚犯交接点", () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 188f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 22f),
+                    "所属囚室：" + (string.IsNullOrWhiteSpace(prison.Name) ? prison.Id : prison.Name), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 62f, r.width - 20f, 42f), escorted == null
+                    ? "当前押送：—\n状态：需要主控押送俘虏到达此处"
+                    : "当前俘虏：" + FormatEntityName(session, escorted.EntityId) +
+                      "\n押送者：" + FormatEntityName(session, escorted.CarrierId), _body);
+                if (escorted == null) return;
+                var canDetain = MortalCivilianService.CanDetain(session.World, escorted.EntityId, prison.Id);
+                if (canDetain.IsSuccess)
+                {
+                    if (GUI.Button(new Rect(r.x + 10f, r.y + 126f, r.width - 20f, 28f), "安置俘虏"))
+                    {
+                        var result = MortalCivilianService.Detain(session.World, escorted.EntityId, prison.Id);
+                        if (result.IsFailure) Debug.LogWarning("[Civilian] " + result.Error.Message);
+                    }
+                    return;
+                }
+                GUI.Label(new Rect(r.x + 10f, r.y + 106f, r.width - 20f, 20f), "状态：尚未到达交接距离", _body);
+                var active = session.PlayerParty?.ActiveCharacterId ?? EntityId.None;
+                if (active == escorted.CarrierId && bootstrap?.MoveController != null &&
+                    GUI.Button(new Rect(r.x + 10f, r.y + 132f, r.width - 20f, 28f), "前往交接点"))
+                    bootstrap.MoveController.OrderEntityToWorldPointPublic(active, plot.transform.position, null,
+                        exactGoal: true);
+            });
         }
 
         void DrawInspectWorkArea(PlayableHostSession session, string areaId)
@@ -797,6 +868,11 @@ namespace XianXia.Unity.Host
                 return;
 
             var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
+            if (MortalActivityEvaluator.HasTag(area, "medical"))
+            {
+                DrawInspectMedicalArea(session, area, title);
+                return;
+            }
             DrawInspectShell(120f, "工区 · " + title, () =>
             {
                 var r = new Rect(Pad, TopH + 42f, 320f, 120f);
@@ -810,6 +886,28 @@ namespace XianXia.Unity.Host
                     "容量 " + area.Capacity + " · 地点 " + ShortId(area.LocationId), _body);
                 GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 20f), "标签：" + tags, _body);
                 GUI.Label(new Rect(r.x + 10f, r.y + 80f, r.width - 20f, 28f), "活动：" + acts, _body);
+            });
+        }
+
+        void DrawInspectMedicalArea(PlayableHostSession session, WorkAreaDefinition area, string title)
+        {
+            var injured = new List<EntityId>();
+            var recoverySpotCount = 0;
+            foreach (var asset in session.World.OutdoorConstructedAssets.Assets.Values)
+            {
+                if (asset.Kind != XianXia.Core.Construction.OutdoorConstructedAssetSemantics.RecoverySpotKind ||
+                    !string.Equals(asset.BoundLocationId, area.LocationId, System.StringComparison.Ordinal)) continue;
+                recoverySpotCount++;
+                if (session.World.RecoverySpotDeliveries.TryGetInjured(asset.StableAssetId, out var injuredId))
+                    injured.Add(injuredId);
+            }
+            injured.Sort((a, b) => a.Value.CompareTo(b.Value));
+            DrawInspectShell(150f, "医疗点 · " + title, () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 150f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 80f),
+                    "恢复点：" + recoverySpotCount + "\n已放置伤员：" + injured.Count +
+                    (injured.Count == 0 ? string.Empty : " · " + FormatEntityNames(session, injured)), _body);
             });
         }
 
@@ -921,6 +1019,10 @@ namespace XianXia.Unity.Host
 
             return sb.ToString();
         }
+
+        static string FormatEntityName(PlayableHostSession session, EntityId id) =>
+            session?.World != null && session.World.Entities.TryGet(id, out var entity)
+                ? HousingAssignmentService.EntityDisplayName(entity) : "?";
 
         static int ResolvePartyExposure(PlayableHostSession session)
         {
