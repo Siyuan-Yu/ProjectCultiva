@@ -5510,3 +5510,13 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 该轮曾把巡卫甲／乙／丙补入荒村驻军，并按 Site／阵营／位置推断非 singleton 守军；此未验收方案已由上方“显式驻军”实现取代，巡卫现为独立普通 patrol squad，只有主管 Squad 显式守卫荒村。
 - 头顶、紧凑 HUD 与人物详情共用 activity resolver：生命状态优先，其次 active encounter／Separate Space 本地战斗，再到凡人活动、Action、Schedule 与 idle。LevelTester 增加移动倍率、Host 实际速度和 Site Encounter roster／TargetId 诊断。
 - Core／Data／Unity／Unity.Editor 离线编译通过；`git diff --check` 无 whitespace error。未启动 Unity、PlayMode 或 Runner，未新增或运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-10 — LevelTester 工具整理与输入隔离（待制作人验收）
+
+- `HostUiHitTest` 增加 owner-scoped 持久浮窗矩形和仅保留当前帧的关闭点击退休矩形；普通 HUD 的 `BeginFrame/EndFrame` 不再覆盖 LevelTester 浮窗。CameraRig、WorldMap、Selection、右键命令及放置模式继续共用同一命中查询，跨入浮窗时终止当前 pan/selection 手势。
+- `HostLevelTesterCheatPanel` 收拢为“当前验收／人物与资源／世界与内容／存档与会话／诊断”五页签，独立滚动、名称/别名/说明/里程碑搜索、固定 Entity/Site/package/schema 上下文和最近操作结果；CIVILIAN A–G 卡片不自动标记人工通过。
+- 文本框焦点使用具名 `HostInputGate` owner，只阻断世界键盘/相机/交互，不暂停 Tick；隐藏、禁用、销毁和 world/session 更换时释放 gate 并清旧目标、Dump 与结果。技术诊断改为按需展开并限频刷新。
+- Core 时间工具明确改名为“推进至次日零点〔仅 Core 数据〕”，显示当前/目标/实际小时，拒绝 Modal/transition 期间步进，并提示逐帧行为只能用正常 1x/2x/5x/20x；WorkArea/伤员定位改走 `TryFocusContinuousWorldPosition`，使用明确 WorkAreaId/单一 EntityId，不直接改 Camera transform。
+- CIVILIAN 全局 Reset、医疗清绑定/恢复点占用和囚室准备增加二次确认与取消零副作用说明。医疗准备保持 RescueTarget 为空、由 AI 发现且只搬运不治疗；囚室准备只制造 CapturedEscorted 并明确跳过俘虏战、不直接 Detain。
+- [267](267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10) 新增唯一当前状态表；复核记录 A 囚犯食宿早退与 B 两套日程仍存在，C 缺失交接点已被最新显式 `prisonDropOff` 取代。本轮未改三项业务逻辑。
+- 离线编译 `XianXia.Core`、`XianXia.Data`、`XianXia.Unity`、`XianXia.Unity.Editor`、`Assembly-CSharp`、`Assembly-CSharp-Editor` 全部 `OK`。未启动 Unity／PlayMode／Runner，未新增或运行自动测试。状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**；CIVILIAN-LIFE-01 仍待最终人工验收。

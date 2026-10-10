@@ -40,9 +40,16 @@ namespace XianXia.Unity.Host
 
             if (HostInputGate.BlockWorldCamera)
             {
+                _panning = false;
                 ApplyTransform();
                 return;
             }
+
+            var pointerBlocked = HostUiHitTest.ContainsScreenPoint(Input.mousePosition);
+            // Crossing into a floating window terminates this gesture. Leaving it while the
+            // button is still held does not silently restart pan; a fresh button-down is required.
+            if (pointerBlocked)
+                _panning = false;
 
             if (enableKeyboardPan)
             {
@@ -64,11 +71,11 @@ namespace XianXia.Unity.Host
                     _focus += pan.normalized * (panSpeed * Time.unscaledDeltaTime);
             }
 
-            if (enableMiddleMousePan)
+            if (enableMiddleMousePan && !pointerBlocked)
                 HandleMiddlePan();
 
             var scroll = Input.mouseScrollDelta.y;
-            if (Mathf.Abs(scroll) > 0.01f)
+            if (!pointerBlocked && Mathf.Abs(scroll) > 0.01f)
                 orthographicSize = Mathf.Clamp(orthographicSize - scroll * zoomSpeed, minSize, maxSize);
 
             ApplyTransform();

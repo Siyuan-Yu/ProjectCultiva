@@ -577,7 +577,9 @@ namespace XianXia.Unity.Host
             var guiPoint = e.mousePosition + mapRect.position;
             if (HostUiHitTest.ContainsCurrentGuiPoint(guiPoint))
             {
-                if (e.type == EventType.MouseUp && e.button == 2) _panning = false;
+                if (_panning && (e.type == EventType.MouseDrag ||
+                                 (e.type == EventType.MouseUp && e.button == 2)))
+                    _panning = false;
                 return;
             }
             if (e.type == EventType.ScrollWheel)

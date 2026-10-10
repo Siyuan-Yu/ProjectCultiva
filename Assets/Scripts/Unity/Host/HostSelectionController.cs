@@ -91,6 +91,11 @@ namespace XianXia.Unity.Host
             if (_pointerDown && Input.GetMouseButton(0))
             {
                 _currentScreen = Input.mousePosition;
+                if (HostUiHitTest.ContainsScreenPoint(_currentScreen))
+                {
+                    CancelGesture();
+                    return;
+                }
                 if (!_dragging &&
                     Vector2.Distance(_pressScreen, _currentScreen) >= dragThresholdPixels)
                 {
@@ -102,7 +107,7 @@ namespace XianXia.Unity.Host
             {
                 _currentScreen = Input.mousePosition;
                 // 松手仍在 HUD 上：不点选／不清空（避免点指令钮把角色面板关掉）
-                if (!_dragging && HostUiHitTest.ContainsScreenPoint(_currentScreen))
+                if (HostUiHitTest.ContainsScreenPoint(_currentScreen))
                 {
                     CancelGesture();
                     return;

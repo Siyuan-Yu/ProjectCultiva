@@ -169,7 +169,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+            if (Input.GetKeyDown(KeyCode.Escape) ||
+                (Input.GetMouseButtonDown(1) && !HostUiHitTest.ContainsScreenPoint(Input.mousePosition)))
             {
                 SetArmed(ArmKind.None);
                 return;

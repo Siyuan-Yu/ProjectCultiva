@@ -94,7 +94,8 @@ namespace XianXia.Unity.Host
             if (_releaseInputFrame >= 0 && Time.frameCount > _releaseInputFrame)
             { HostInputGate.Release(InputOwner); _releaseInputFrame = -1; }
             if (!_placing) return;
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+            if (Input.GetKeyDown(KeyCode.Escape) ||
+                (Input.GetMouseButtonDown(1) && !HostUiHitTest.ContainsScreenPoint(Input.mousePosition)))
             { FinishInputGesture(); return; }
             if (_world != _bootstrap?.Session?.World ||
                 _bootstrap.ConstructionPanel?.IsOpen == true || _bootstrap.WorldMapPanel?.IsOpen == true ||

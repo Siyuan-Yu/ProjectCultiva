@@ -2,7 +2,7 @@
 
 ## CIVILIAN-LIFE-01（2026-09-27）
 
-个体凡人、Satiety/Energy、势力职业、战后 Loyalty／Fleeing、Encounter 捕获、真实押送、PrisonerOnly 住房拘留与招募方向已冻结。状态 **Design Confirmed / Documentation Updated / Implementation Not Started**；见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。每个凡人是持久 Character；匿名人口只可作为派生统计，不再是人物或劳动力 authority。
+个体凡人、Satiety/Energy、势力职业、战后 Loyalty／Fleeing、Encounter 捕获、真实押送、PrisonerOnly 住房拘留与招募方向已冻结并完成实现，状态 **Implementation Complete / Producer Acceptance Pending**；唯一当前功能与验收状态表见 [267 · 当前功能与验收状态表](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10)，架构方向见 [ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。每个凡人是持久 Character；匿名人口只可作为派生统计，不再是人物或劳动力 authority。
 
 ## AUCTION-01（2026-09-25）
 

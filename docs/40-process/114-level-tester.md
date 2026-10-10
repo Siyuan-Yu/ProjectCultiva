@@ -1,10 +1,10 @@
 # 114 · Level Tester（逻辑关卡试玩台）
 
-> 状态：**可用**｜日期：2026-08-27（Cheat Tools 统一整理）  
+> 状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**｜日期：2026-10-10
 > 场景：`Assets/Scenes/LevelTester.unity`  
 > 入口：`PlayableHostBootstrap` + `LevelTesterHud`  
 > 菜单：`XianXia/Level Tester/…`  
-> 实现索引：[168-level-tester-cheat-tools-consolidation-2026-08-27.md](168-level-tester-cheat-tools-consolidation-2026-08-27.md)
+> 实现索引：[168-level-tester-cheat-tools-consolidation-2026-08-27.md](168-level-tester-cheat-tools-consolidation-2026-08-27.md)；CIVILIAN 唯一当前状态表见 [267](267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10)
 
 ---
 
@@ -70,20 +70,23 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 - 键盘 **`` ` ``**（BackQuote）
 - 或 `LevelTesterHud` 顶栏 **「Cheat Tools」** 按钮
 
-**顶层页签（Tab）：**
+**顶层页签（Tab，2026-10-10）：**
 
 | Tab | 能力 |
 |-----|------|
-| Time | Step 1 Tick、Advance N Ticks、Advance 1 Day、Speed 1/2/5/20x |
-| Background | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态 |
-| FormalArmy | Create（含明确 Leader）、Select Army、Disband、Travel、Incap、Sync Casualties |
-| Content | Set/Clear Flag、Force Event、Dump Content State |
-| Diplomacy | Declare War、Alliance、Vassalage（选 Faction） |
-| Snapshot | Save/Load Snapshot、**Reset LevelTester Session**（二次确认） |
-| Battle | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
-| Diagnostics | Hex Separation 等纯视觉 Debug（如有） |
+| 当前验收 | CIVILIAN A–G 卡片：食宿、工作/建设、占领/追击、医疗搬运、囚室交接、照料/招降、存读档；卡片只导航/说明，不自动判定通过 |
+| 人物与资源 | 原 Battle：队伍数值、弥留、NPC Squad、SUCCESSION / CONTROL-HANDOFF |
+| 世界与内容 | 原 Background + Diplomacy + Content：后台旅行、外交、Shop、Auction、Social Quest、延迟事件、动态发现、CIVILIAN 准备与按需诊断 |
+| 存档与会话 | 原 Snapshot：Save/Load、全会话 Reset（二次确认） |
+| 诊断 | 原 Time + Diagnostics：Core Tick/次日零点、正常帧速度、authority/性能诊断 |
 
-打开面板后通过页签切换系统；仅单个页签内容超出高度时使用页内 ScrollView。
+打开面板后通过五个页签切换；每页保存独立滚动位置。顶部固定显示选中人物/EntityId、ActiveCharacter、Site/owner、场景、数据包、Snapshot schema 与最近操作结果。搜索匹配操作名称、别名、说明和里程碑。没有唯一选中人物时，选中人物操作禁用且不回退到 Active。
+
+旧操作迁移：`Time → 诊断`；`Background / Content / Diplomacy → 世界与内容`；`Snapshot → 存档与会话`；`Battle → 人物与资源`；`Diagnostics → 诊断`。仍有用的 Shop、Auction、Social、Delayed Event、Dynamic Discovery 等历史回归入口继续保留。
+
+浮窗使用 `HostUiHitTest` owner-scoped 持久矩形；作弊窗口内的滚轮、中键、右键与选择不会穿透到近景或 WorldMap，窗口外维持原行为。工具本身不暂停世界；只有文本输入获得焦点时临时阻断世界键盘/相机/交互，失焦、隐藏、禁用或销毁时释放。正式 Modal 优先级不变。
+
+时间工具中的跳时正式名称为“推进至次日零点〔仅 Core 数据〕”，显示当前/目标/实际游戏小时。该入口不能证明逐帧 Host 移动；食宿、搬运、押送、追击等使用 1x/2x/5x/20x 正常帧循环。定位统一调用 Host/CameraRig 正式入口，不传送人物或修改业务状态。
 
 Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Gameplay UI，不为各系统单独占用 F-Key。
 
@@ -123,6 +126,7 @@ Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Ga
 
 | 日期 | 说明 |
 |------|------|
+| 2026-10-10 | 五页签整理、当前验收卡片、搜索/固定上下文与结果、浮窗输入隔离、Core 时间与正式定位修正；待制作人人工验收 |
 | 2026-08-27 | 统一 `HostLevelTesterCheatPanel`；移除分散 Debug Panel 与旧 Development Hotkey |
 | 2026-08-13 | 地图真源改 Content/BaseGame/Data |
 | 2026-08-13 | 初版：选图／覆盖 JSON／场景菜单／顶栏 |

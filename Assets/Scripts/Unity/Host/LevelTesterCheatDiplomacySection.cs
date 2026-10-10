@@ -18,6 +18,13 @@ namespace XianXia.Unity.Host
 
         public string SectionStatus => _sectionStatus;
 
+        public void ResetSessionState()
+        {
+            _factions.Clear();
+            _factionAIndex = _factionBIndex = _overlordIndex = _vassalIndex = 0;
+            _sectionStatus = string.Empty;
+        }
+
         public float Draw(
             PlayableHostBootstrap bootstrap,
             float x,

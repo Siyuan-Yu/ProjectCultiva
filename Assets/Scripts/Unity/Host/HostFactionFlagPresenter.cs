@@ -97,7 +97,8 @@ namespace XianXia.Unity.Host
 
         void UpdatePlacementPreview()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+            if (Input.GetKeyDown(KeyCode.Escape) ||
+                (Input.GetMouseButtonDown(1) && !HostUiHitTest.ContainsScreenPoint(Input.mousePosition)))
             {
                 CancelPlacement();
                 return;

@@ -37,6 +37,16 @@ namespace XianXia.Unity.Host
 
         public string SectionStatus => _sectionStatus;
 
+        public void ResetSessionState()
+        {
+            _characters.Clear();
+            _sites.Clear();
+            _selectedCharacterId = EntityId.None;
+            _selectedCharacterIndex = _selectedSiteIndex = 0;
+            _characterMenuOpen = _siteMenuOpen = false;
+            _sectionStatus = _eligibilityReason = string.Empty;
+        }
+
         public float Draw(
             PlayableHostBootstrap bootstrap,
             float x,
@@ -252,7 +262,7 @@ namespace XianXia.Unity.Host
                 _characters.Add(new CharacterEntry
                 {
                     Id = entity.Id,
-                    DropdownLabel = name + " / " + authority,
+                    DropdownLabel = name + " / EntityId=" + entity.Id.Value + " / " + authority,
                 });
             }
 
@@ -270,7 +280,8 @@ namespace XianXia.Unity.Host
                 _sites.Add(new SiteEntry
                 {
                     SiteId = site.SiteId,
-                    DisplayName = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName,
+                    DisplayName = (string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName) +
+                                  " / " + site.SiteId,
                 });
             }
 
@@ -359,7 +370,7 @@ namespace XianXia.Unity.Host
             if (world.Strategic.Sites.TryGet(siteId, out var site) &&
                 site != null &&
                 !string.IsNullOrEmpty(site.DisplayName))
-                return site.DisplayName;
+                return site.DisplayName + "〔" + siteId + "〕";
             return siteId;
         }
 

@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+## LevelTester 工具整理与输入隔离（2026-10-10）
+
+五页签、owner-scoped 浮窗遮挡、Camera/WorldMap/Selection/世界命令共用命中、文本焦点门禁、固定目标/结果、Core 时间标识、正式 CameraRig 定位和 Reset 二次确认已实现。状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**。CIVILIAN-LIFE-01 仍为 **Implementation Complete / Producer Acceptance Pending**；唯一当前功能与验收状态表及三项业务缺口复核见 [267](267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10)，本页不复制矩阵。
+
 ## CIVILIAN-LIFE-01 P1 医疗搬运点与囚犯实际送达（2026-09-30）
 
 荒村已增加 `base:workarea_huangcun_medical` 医疗点与容量 4、固定 PrisonerOnly 的 `base:workarea_huangcun_prison` 专用囚室。医疗点只接收所有正常可工作 PlayerFaction 凡人实际搬来的同势力弥留 Character；送达后不自动治疗，不存在 MedicalWard、床位、收治、出院或医疗 Snapshot。CapturedEscorted 由发起捕获的玩家主控真实押送，carrier 与 prisoner 实际进入囚室范围后 Core 才允许 Detain；两类运输中断均在 carrier 最后合法位置安全放下。Snapshot 保持 v14；正式 HUD 与 LevelTester 已接线。状态：**Implementation Complete / Producer Acceptance Pending**。未启动 Unity／PlayMode／Runner，未运行自动测试；静态编译不等同制作人验收。

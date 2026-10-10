@@ -166,6 +166,35 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 
 **Implementation Complete / Producer Acceptance Pending。**
 
+### 当前功能与验收状态表（唯一维护点，2026-10-10）
+
+> 本表是 CIVILIAN-LIFE-01 当前功能与人工验收状态的唯一清单。`114`、`247`、总览与 Devlog 只链接本节，不复制第二份状态矩阵。工具准备成功、离线编译通过均不等于制作人人工验收通过。
+
+| 能力名称 | 当前代码入口 | 正式 UI / 玩家入口 | Content 前置 | 制作人已确认范围 | 仍待验收分支 | 已知阻塞 | 下一步动作 |
+|---|---|---|---|---|---|---|---|
+| 食宿与 Needs | `MortalCivilianService.Tick` / `ApplyActivity` | 自动生活；正式速度栏 | StorageRoom、Site PublicStock、Normal Residence | 规则与实现范围已确认 | 有粮取食、回床、紧急地睡、无粮低精力、Save/Load | Detained 受缺口 A 影响 | LevelTester A 卡按 1x/2x/5x/20x 人工验收 |
+| 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 同 Site/owner 的专业 WorkArea | 单选职业、通用救援/建设范围已确认 | Farmer/HerbFarmer/Logger、职业切换与存档 | 课表显示/执行受缺口 B 影响；Medic 治疗延期 | 用正式工作面板逐项人工验收 |
+| 建设与搬运 | `CivilianConstructionJobService`、`ConstructionService` | 正式建设 UI | 己方 Site、公共木材、合法工人 | 工具只准备人物/材料，正式 UI 发起 | 取材、搬运、施工、读档续作 | Repair 与普通建筑拆除明确延期 | B 卡准备后从正式建设 UI 落点 |
+| 占领、驻军与追击 | `WorldSiteTerritoryTransferService`、`SquadState.DefendedSiteId`、Flee MovementIntent | SiteCore 战争、人物右键交互 | 主管显式驻军；巡卫独立 patrol squad | 显式驻军、0.2 逃亡、真实追击、Displaced 范围已确认 | 全链与 Save/Load | 无工具阻塞；业务仍待人工确认 | C 卡观察实际名单、速度、位置与身份 |
+| 医疗搬运 | `MortalCivilianService` Rescue、`RecoverySpotDeliveries` | 自动发现与真实搬运 | 同势力弥留者、空闲 recoverySpot | 只搬到具体恢复点并放下 | 自动发现、搬起、送达/占用、中断、Save/Load | 自动治疗、入院、出院、Medic 治疗均明确延期 | D 卡二次确认准备；不得用预填 RescueTarget 冒充发现 |
+| 囚犯押送与交接 | `RequestCapture` / `CanDetain` / `Detain` | 正式 Capture Encounter、囚犯交接点 | CapturedEscorted、真实 Carrier、PrisonerOnly、显式 `prisonDropOff` | 真实押送、到点后安置范围已确认 | 运输中断、容量、Save/Load | 旧“缺少 PrisonDropOff”在最新 Content 中已消失 | E 卡强制准备只验押送/交接；俘虏战另走正式流程 |
+| 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低 Loyalty | Proper Care 与招降权限规则已确认 | 食宿、照料日、忠诚下降、招降后权限/入队 | 缺口 A 当前阻断 Detained 食宿闭环 | 下一轮先修 A，再执行 F 卡人工验收 |
+| CIVILIAN Snapshot v14 | `SnapshotService` / `HostLevelTesterSnapshotOps` | LevelTester“存档与会话” | 各分支已建立真实运行状态 | schema v14 与持久字段范围已确认 | 工作、送达、押送、关押、Fleeing/Displaced | 无工具自动验收；每条需人工对照 | G 卡逐状态保存/读取并核 EntityId/owner/target |
+| 历史回归：SHOP/AUCTION/SOCIAL/DYNAMIC | 各已封板 service / Host panel | 各正式 UI | BaseGame 对应对象 | **历史已封板（Producer Accepted / Sealed）** | 本轮不重开 | 无 | 仅在“世界与内容”保留折叠/滚动入口 |
+| LevelTester 工具整理与输入隔离 | `HostLevelTesterCheatPanel`、`HostUiHitTest`、Camera/Map/Selection/Command consumers | `` ` `` / 顶栏作弊工具 | LevelTester Scene | 需求范围已确认 | 滚轮、拖动、文本焦点、五页签、结果反馈、Reset/时间/定位 | 等待制作人人工验收 | **Implementation Complete / Producer Acceptance Pending** |
+
+状态词解释：历史已封板＝已有明确 Producer Acceptance；已实现待验收＝代码完成但没有人工结论；部分路径已人工通过必须有单独证据才可写；已确认缺陷见下表；明确延期不纳入当前通过条件；旧设想若被后续决定取代只保留 Historical / Superseded 标记。
+
+### 已确认业务缺口（本轮只记录，不实施）
+
+| 缺口 | 当前文件 / 函数 | 对玩家操作的影响 | 复核结论 | 建议下一轮 |
+|---|---|---|---|---|
+| A. 囚犯食宿早退 | `Assets/Scripts/Core/Npc/MortalCivilianSystem.cs`，`MortalCivilianService.Tick` 约 468–524 行；`life.State != Alive` 在 `ApplyActivity` 前 `continue` | Detained 的 Lifecycle 为 Captured 时虽然先衰减 Needs/结算旧日照料，但不会进入 Detained 取食/睡眠活动，因此无法自然形成新的 Proper Care 日 | **仍存在，已确认缺陷** | 单独业务轮决定 Captured+Detained 的合法 Tick 分支；不得把 Captured 改 Alive 伪装通过 |
+| B. 两套日程 | `HostFormalHud.DrawEditableSchedulePanel` / `BuildScheduleText` 与 `HostCharacterPresentation` 读取 `ScheduleComponent`；`MortalActivityEvaluator` / `ApplyActivity` 读取固定 `FactionMortalSchedule.Current` | 右栏可查看/编辑的旧课表不会改变凡人实际 08:00–18:00 Work/OffDuty；UI 反馈与运行行为不一致 | **仍存在，已确认缺陷** | 单独设计/实施轮统一 authority 或明确拆分 UI；本轮不改需求优先级与日程 |
+| C. 普通住房转囚室后缺交接点 | `MortalCivilianService.TryResolvePrisonDropOff` / `ValidateDetain`；`Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json` 的 `base:site_huangcun:prison_dropoff` | 旧版本会因没有显式点而无法安置；当前荒村 PrisonerOnly 囚室已有绑定 `base:loc_ref_huangcun_prison` 的 `prisonDropOff` | **最新仓库已不存在**（保留显式交接要求） | 不改回住房中心 fallback；继续人工验收到点距离、容量和存读档 |
+
+旧“架构冻结不编码”与“不切独立战斗”等提案均为 **Historical / Superseded**；现行实现与验收规则以本页、ADR-0044、当前 CharacterEncounter / Continuous Surface 代码和 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 为准，不删除历史记录，也不把代码改回旧方案。
+
 ## P1 Medical Rescue Area / Prisoner Delivery Area V1
 
 - 荒村正式增加 `base:workarea_huangcun_medical`（`base:loc_ref_huangcun_medical`，tags `medical`／`recovery`）与 `base:workarea_huangcun_prison`（`base:loc_ref_huangcun_prison`，容量 4）。两者均为 source blueprint 与 baked surface 的非阻挡可达区域。医疗点不是住房；专用囚室以最小 `home`／`residentTags` 兼容复用 Residence，New Game 固定 `PrisonerOnly`，Restore 使用既有 Snapshot residence usage。
