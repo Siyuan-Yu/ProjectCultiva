@@ -1168,12 +1168,15 @@ namespace XianXia.Core.Npc
                     string.Equals(key, excludedSpotId, StringComparison.Ordinal) ||
                     (!world.RecoverySpotDeliveries.TryGetInjured(key, out var placed) ? false : placed != injured) ||
                     IsRecoverySpotReserved(world, key, rescuer.Id)) continue;
+                if ((!asset.ReservedCharacterId.IsNone && asset.ReservedCharacterId != injured) ||
+                    (!asset.OccupantCharacterId.IsNone && asset.OccupantCharacterId != injured)) continue;
                 var center = new WorldVec2(asset.WorldX + asset.WorldWidth * .5f,
                     asset.WorldY + asset.WorldHeight * .5f);
                 if (!WorldSitePhysicalRegionQuery.TryResolve(world, center, out var recoverySite) ||
                     recoverySite.SiteId != siteId ||
                     !world.SurfaceGround.TryGet(surfaceId, out var navigation) ||
                     !navigation.Contains(center.X, center.Y)) continue;
+                asset.ReservedCharacterId = injured;
                 destinationId = asset.StableAssetId; destination = center;
                 deliveryRange = world.SurfaceSpatial.TryGet(surfaceId, out var metric) && metric != null
                     ? metric.CellSize * .75f : Math.Min(asset.WorldWidth, asset.WorldHeight) * .5f;
@@ -1218,6 +1221,7 @@ namespace XianXia.Core.Npc
                 (failedDelivery.HostPathState == MovementHostPathState.PermanentFailure ||
                  failedDelivery.HostPathState == MovementHostPathState.RetryablePathUnavailable))
             {
+                RoomBedFacilityService.Release(world, target.Id);
                 state.RescueRejectedDestinationId = destinationId;
                 state.RescueDestinationId = string.Empty;
                 failedDelivery.Clear();
@@ -1240,12 +1244,14 @@ namespace XianXia.Core.Npc
 
         static void DropRescue(SimulationWorld world, Entity rescuer, MortalCivilianState state)
         {
+            var rescued = state.RescueTargetId;
             if (state.RescueCarrying && !state.RescueTargetId.IsNone &&
                 CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var presence) && presence.HasWorldPosition)
                 world.WorldPresence.SetAtWorldPosition(state.RescueTargetId, presence.WorldPosition, presence.SurfaceId);
             state.RescueTargetId = EntityId.None; state.RescueCarrying = false;
             state.RescueDestinationId = string.Empty;
             state.RescueRejectedDestinationId = string.Empty;
+            RoomBedFacilityService.Release(world, rescued);
         }
 
         public static Result ValidateRecoverySpotPlacements(SimulationWorld world, bool rejectInvalid = false)
@@ -1452,6 +1458,7 @@ namespace XianXia.Core.Npc
             state.Profession = MortalProfession.Unassigned;
             state.Disposition = CivilianDisposition.Normal; state.CarrierId = EntityId.None;
             state.DetainedResidenceWorkAreaId = string.Empty; state.PendingCaptureCarrierId = EntityId.None;
+            RoomBedFacilityService.Release(world, target);
             return Result.Success();
         }
 
@@ -1461,6 +1468,7 @@ namespace XianXia.Core.Npc
             if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured) life.State = LifecycleState.Alive;
             state.DetainedResidenceWorkAreaId = string.Empty; state.CarrierId = EntityId.None;
             state.Disposition = CivilianDisposition.Fleeing;
+            RoomBedFacilityService.Release(world, target);
             var site = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
             BeginFlee(world, entity, state, site);
             return Result.Success();
@@ -1590,8 +1598,7 @@ namespace XianXia.Core.Npc
             if (area != null && MortalCivilianQuery.TryResolveWorkAreaWorldCenter(world, detentionSiteId, area,
                     out var detentionSurface, out var prisonCenter, out _) && detentionSurface == prisonSurface)
                 detentionPosition = prisonCenter;
-            else if (RoomBedFacilityService.TryReserve(world, target, RoomUsage.Prison, out var prisonBed) &&
-                     prisonBed.ParentRoomId == residenceId)
+            else if (RoomBedFacilityService.TryReserveInRoom(world, residenceId, target, out var prisonBed))
             {
                 detentionPosition = new WorldVec2(prisonBed.WorldX + prisonBed.WorldWidth * .5f,
                     prisonBed.WorldY + prisonBed.WorldHeight * .5f);
@@ -1710,6 +1717,7 @@ namespace XianXia.Core.Npc
                     world, actor, entity, DeathConfirmationReason.PrisonerExecution, out var confirmed) || !confirmed)
                 return Invalid("Formal death authority rejected execution.");
             state.DetainedResidenceWorkAreaId = string.Empty; state.CarrierId = EntityId.None;
+            RoomBedFacilityService.Release(world, target);
             return Result.Success();
         }
 

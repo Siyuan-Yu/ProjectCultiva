@@ -40,6 +40,8 @@ namespace XianXia.Data.Content
         public bool BlocksMovement { get; set; }
         public string BoundLocationId { get; set; }
         public string Label { get; set; }
+        /// <summary>Optional authored/runtime structure durability. Zero keeps the legacy kind default.</summary>
+        public int StructureDurability { get; set; }
         /// <summary>kind=loot 时：拾取进背包的 item id。</summary>
         public string LootItemId { get; set; }
 

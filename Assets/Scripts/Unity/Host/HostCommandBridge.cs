@@ -490,6 +490,18 @@ namespace XianXia.Unity.Host
             return 1;
         }
 
+        public int IssueBedRest(EntityId subject, string bedId, ulong durationTicks = BedRestAction.DefaultDurationTicks)
+        {
+            _lastSuccessCount = _lastFailureCount = 0;
+            if (_session == null || !_session.IsInitialized || subject.IsNone || string.IsNullOrWhiteSpace(bedId))
+            { _lastFailureCount = 1; _lastStatus = "床上休息参数无效。"; return 0; }
+            _session.Loop.StopSubject(subject);
+            var result = _session.Port.Submit(new PlayerCommandRequest(subject, PlayerCommandKind.RestAtBed,
+                durationTicks, EntityId.None, bedId));
+            if (result.IsFailure) { _lastFailureCount = 1; _lastStatus = FormatError(result); return 0; }
+            _lastSuccessCount = 1; _lastStatus = "开始床上休息"; return 1;
+        }
+
         bool IssueSocialAs(EntityId actor, PlayerCommandKind kind)
         {
             _lastSuccessCount = 0;

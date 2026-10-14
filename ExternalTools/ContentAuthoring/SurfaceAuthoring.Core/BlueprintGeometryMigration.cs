@@ -16,7 +16,20 @@ public static class BlueprintGeometryMigration
         foreach (var item in blueprint.ObjectPlacements)
         {
             if (!TryLegacyRect(item, out var legacy) || item.Metadata.TryGetValue("legacyGeometryState", out var state) && state == "edited") continue;
-            if (state == "exact") continue;
+            if (state == "exact")
+            {
+                // Rehydrate exact legacy rectangles on every load. JSON decimal round-trips from
+                // older authoring builds can otherwise leave a nominally exact item a few microns
+                // away from its immutable compatibility rectangle and correctly block publishing.
+                var exactOriginX = binding.OriginWorldX + placement.SurfaceCellX * binding.SurfaceCellWorldSize;
+                var exactOriginY = binding.OriginWorldY + placement.SurfaceCellY * binding.SurfaceCellWorldSize;
+                item.LocalSurfaceX = (legacy.X - exactOriginX) / binding.SurfaceCellWorldSize;
+                item.LocalSurfaceY = (legacy.Y - exactOriginY) / binding.SurfaceCellWorldSize;
+                item.WidthCells = legacy.Width / binding.SurfaceCellWorldSize;
+                item.HeightCells = legacy.Height / binding.SurfaceCellWorldSize;
+                restored++;
+                continue;
+            }
 
             var envelope = ImportedEnvelope(legacy, placement, binding);
             if (!Matches(item, envelope))

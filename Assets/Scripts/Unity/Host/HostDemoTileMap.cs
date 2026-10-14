@@ -305,6 +305,7 @@ namespace XianXia.Unity.Host
             {
                 Id = source.StableId, Kind = source.Kind, BlocksMovement = source.BlocksMovement,
                 BoundLocationId = source.BoundLocationId, Label = source.Label,
+                StructureDurability = source.StructureDurability,
                 LootItemId = source.LootItemId, SpawnTableId = source.SpawnTableId,
                 SpawnCount = source.SpawnCount
             };
@@ -821,7 +822,9 @@ namespace XianXia.Unity.Host
                 instanceId,
                 kind,
                 p?.Label,
-                HostMapDestructible.DefaultMaxHp(kind),
+                p != null && p.StructureDurability > 0
+                    ? p.StructureDurability
+                    : HostMapDestructible.DefaultMaxHp(kind),
                 yield);
             if (HostWorldObjectPickGeometry.TryGetInteractionBounds(go, out var interactionBounds))
                 d.ConfigureInteractionBounds(interactionBounds);

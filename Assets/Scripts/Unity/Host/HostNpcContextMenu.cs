@@ -54,6 +54,8 @@ namespace XianXia.Unity.Host
         EntityId _recruitTarget = EntityId.None;
         float _recruitRemaining;
         const float RecruitInteractionSeconds = 5f;
+        string _pendingRoomUsageId = string.Empty;
+        RoomUsage _pendingRoomUsage;
 
         Texture2D _px;
         GUIStyle _label;
@@ -467,8 +469,18 @@ namespace XianXia.Unity.Host
 
         void SetRoomUsage(string roomId, RoomUsage usage)
         {
-            var result = RoomBedFacilityService.SetRoomUsage(bootstrap?.Session?.World, roomId, usage);
+            var world = bootstrap?.Session?.World;
+            var confirmed = string.Equals(_pendingRoomUsageId, roomId, System.StringComparison.Ordinal) &&
+                            _pendingRoomUsage == usage;
+            if (!confirmed && RoomBedFacilityService.HasDormantAssignments(world, roomId))
+            {
+                _pendingRoomUsageId = roomId; _pendingRoomUsage = usage;
+                Debug.LogWarning("[Room] 再次选择同一用途以确认解除房内长期床位分配。", this);
+                return;
+            }
+            var result = RoomBedFacilityService.SetRoomUsage(world, roomId, usage, confirmed);
             if (result.IsFailure) Debug.LogWarning("[Room] " + result.Error.Message, this);
+            _pendingRoomUsageId = string.Empty;
             CloseAll();
         }
 
@@ -559,9 +571,15 @@ namespace XianXia.Unity.Host
             var plot = _worldObjectTarget.Plot;
             var stableId = plot != null ? plot.StableCellId : string.Empty;
             var destination = plot != null ? plot.transform.position : Vector3.zero;
+            var world = bootstrap?.Session?.World;
+            if (world != null && world.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var bed) &&
+                RoomBedGeometry.IsBed(bed) && bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(
+                    RoomBedFacilityService.AccessPoint(bed), out var bedAccess))
+                destination = bedAccess;
             var message = string.Empty;
             CloseAll();
-            if (actor.IsNone || string.IsNullOrWhiteSpace(stableId) || !CanBeginRecovery(actor, out message))
+            if (actor.IsNone || string.IsNullOrWhiteSpace(stableId) || !CanBeginRest(actor, stableId, out message))
             {
                 ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处不可用。" : message, false);
                 return;
@@ -580,13 +598,16 @@ namespace XianXia.Unity.Host
         void CompleteRecoverySpotApproach(EntityId actor, string stableId)
         {
             var message = string.Empty;
-            if (!TryFindRestSpot(stableId, out _) || !CanBeginRecovery(actor, out message))
+            if (!TryFindRestSpot(stableId, out _) || !CanBeginRest(actor, stableId, out message))
             {
                 ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处已不可用。" : message, false);
                 return;
             }
-            var issued = bootstrap.CommandBridge != null &&
-                         bootstrap.CommandBridge.IssueRecovery(actor, stableId) > 0;
+            var isBed = bootstrap.Session.World.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var asset) &&
+                        RoomBedGeometry.IsBed(asset);
+            var issued = bootstrap.CommandBridge != null && (isBed
+                ? bootstrap.CommandBridge.IssueBedRest(actor, stableId) > 0
+                : bootstrap.CommandBridge.IssueRecovery(actor, stableId) > 0);
             if (!issued)
             {
                 ShowRecoveryFeedback(actor, bootstrap.CommandBridge?.LastStatus ?? "恢复指令失败。", false);
@@ -594,10 +615,10 @@ namespace XianXia.Unity.Host
             }
             if (bootstrap.Session.ManualPaused && !bootstrap.Session.ModalHardPaused)
                 bootstrap.Session.ManualPaused = false;
-            ShowRecoveryFeedback(actor, "开始恢复（30分钟）", true);
+            ShowRecoveryFeedback(actor, isBed ? "开始床上休息" : "开始恢复（30分钟）", true);
         }
 
-        bool CanBeginRecovery(EntityId actor, out string message)
+        bool CanBeginRest(EntityId actor, string stableId, out string message)
         {
             message = string.Empty;
             var world = bootstrap?.Session?.World;
@@ -611,6 +632,14 @@ namespace XianXia.Unity.Host
             {
                 message = "恢复角色不存在。";
                 return false;
+            }
+            if (world.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var bed) && RoomBedGeometry.IsBed(bed))
+            {
+                if (!RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential))
+                { message = "此床不是普通休息床。"; return false; }
+                if (!bed.OccupantCharacterId.IsNone && bed.OccupantCharacterId != actor)
+                { message = "床位已被占用。"; return false; }
+                return true;
             }
             var can = CombatRecoveryService.CanRecover(entity);
             if (can.IsFailure) message = can.Error.Message;

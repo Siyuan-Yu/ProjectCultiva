@@ -188,7 +188,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> SurfaceFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
         { "flagId", "factionId", "worldX", "worldY", "establishedOrder", "createsWorldSite", "siteDisplayName", "siteType", "coreLevel" };
         public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)
-        { "stableId", "siteId", "chunkX", "chunkY", "worldX", "worldY", "worldWidth", "worldHeight", "sourceGridX", "sourceGridY", "sourceCellsW", "sourceCellsH", "kind", "blocksMovement", "boundLocationId", "label", "lootItemId", "spawnTableId", "spawnCount" };
+        { "stableId", "siteId", "chunkX", "chunkY", "worldX", "worldY", "worldWidth", "worldHeight", "sourceGridX", "sourceGridY", "sourceCellsW", "sourceCellsH", "kind", "blocksMovement", "boundLocationId", "label", "lootItemId", "spawnTableId", "spawnCount", "buildingId", "quarterTurns", "parentRoomId", "roomUsage", "initialAssigneeSpawnKey", "structureDurability" };
         public static readonly HashSet<string> WorldSitePlaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "locationId", "name", "worldX", "worldY", "kind", "adjacentIds",

@@ -38,6 +38,7 @@ namespace XianXia.Core.Input
         /// <summary>勘查洞口（TargetLocationId＝入口地点）。</summary>
         SurveyEntrance = 19,
         /// <summary>在指定恢复处完成定时恢复（TargetLocationId＝恢复处稳定 ID）。</summary>
-        Recover = 20
+        Recover = 20,
+        RestAtBed = 21
     }
 }

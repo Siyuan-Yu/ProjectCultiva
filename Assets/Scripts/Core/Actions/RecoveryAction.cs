@@ -1,5 +1,4 @@
 using XianXia.Core.Combat;
-using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -41,11 +40,6 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionCannotStart, "战斗或时间冻结期间不能恢复。");
             if (!world.Entities.TryGet(Subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "恢复角色不存在。");
-            if (world.OutdoorConstructedAssets.Assets.TryGetValue(RecoverySpotId, out var restAsset) &&
-                RoomBedGeometry.IsBed(restAsset) &&
-                (!RoomBedFacilityService.BedHasUsage(world, restAsset, RoomUsage.Residential) ||
-                 (!restAsset.OccupantCharacterId.IsNone && restAsset.OccupantCharacterId != Subject)))
-                return Result.Failure(ErrorCode.ActionCannotStart, "此床当前不可用于普通休息。");
             return CombatRecoveryService.CanRecover(entity);
         }
 
@@ -53,9 +47,6 @@ namespace XianXia.Core.Actions
         {
             var can = CanStart(world);
             if (can.IsFailure) return can;
-            if (world.OutdoorConstructedAssets.Assets.TryGetValue(RecoverySpotId, out var bed) &&
-                RoomBedGeometry.IsBed(bed) && !RoomBedFacilityService.TryOccupy(world, RecoverySpotId, Subject))
-                return Result.Failure(ErrorCode.ActionCannotStart, "床位已被占用。");
             Status = ActionStatus.Running;
             return Result.Success();
         }
@@ -72,7 +63,6 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.EntityNotFound, "恢复角色不存在。");
             }
             var restored = CombatRecoveryService.RestoreToMaximum(entity);
-            RoomBedFacilityService.Release(world, Subject);
             Status = restored.IsSuccess ? ActionStatus.Completed : ActionStatus.Failed;
             return restored;
         }

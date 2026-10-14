@@ -1141,6 +1141,7 @@ namespace XianXia.Unity.Host
                     WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight,
                     SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
                     BoundLocationId = asset.BoundLocationId,
+                    StructureDurability = asset.StructureDurability,
                     BlocksMovement = string.Equals(asset.Kind,
                         OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
                         string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal) ||
@@ -1244,6 +1245,9 @@ namespace XianXia.Unity.Host
             {
                 var p = surface.SitePlacements[i];
                 if (p == null || !p.BlocksMovement || !PlacementTouchesChunk(p, coord)) continue;
+                // Authored construction assets are projected by the same runtime authority as
+                // player-built assets below. In particular, a room blocks only its perimeter.
+                if (OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(p.Kind)) continue;
                 if (OutdoorStatefulPlacementResolver.IsPerCellDestructible(p))
                 {
                     var cellsW = Mathf.Max(1, p.SourceCellsW);

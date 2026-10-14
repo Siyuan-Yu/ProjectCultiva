@@ -28,6 +28,8 @@ namespace XianXia.Data.Bootstrap
 
             var presence = OpeningSpawnWorldPresenceApplier.Apply(world, registry, scenario, lookup, spawnEntries);
             if (presence.IsFailure) return presence;
+            var bedAssignments = AuthoredTransportPointBootstrap.ApplyInitialBedAssignments(world);
+            if (bedAssignments.IsFailure) return bedAssignments;
 
             var entries = spawnEntries ?? scenario.Spawns;
             if (entries == null) return Result.Failure(ErrorCode.ContentLoadFailed, "Opening spawns missing.");

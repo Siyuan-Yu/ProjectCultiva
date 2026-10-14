@@ -1134,6 +1134,15 @@ WorldTick 是唯一世界时间轴；RelationshipLedger 是唯一关系真源；
 
 ---
 
+# 22.1 ROOM-01 current handoff（2026-10-14）
+
+状态：**A／B／C Implementation Complete / Producer Acceptance Pending**。
+
+- 正式建设已增加六个房间模板、独立 2×4 床和木／石墙段；房间一次工单产生地面、外墙和南侧门洞，建房不送床。新增结构必须由合法凡人完成搬运／施工，不使用无工人瞬建回退。
+- `RoomBedFacilityService` 是新住房容量、用途、长期分配、临时预约和实际占用真源。凡人睡眠、玩家 `BedRestAction`、医疗搬运、Prison 门口交接与 Detained 床位均已接入；旧 WorkArea 只保留兼容语义，不再提供虚构床容量。
+- 荒村作者源与正式 runtime 已发布为 22 房／27 床，20 个开局人物按 SpawnKey 各绑定一间住宅和一张床；主管为 16×24 中级石房，医疗房 3 床、牢房 4 床。FineEditor 保存并同步父子移动／旋转／复制／删除关系。
+- Snapshot 当前为 v15；v14 及更旧开发档明确拒绝。全程序集 offline compile `ALL_OK`，ContentAuthoring solution 0 warning／0 error；未启动 Unity，未运行自动测试或人工游玩。最短人工路线以制作人 ROOM-01 指令的 12 项 LevelTester 清单为准。
+
 # 23. FINAL-SEAL Consolidated Acceptance Closure（2026-09-21）
 
 状态：上一轮 **Producer Accepted / Sealed**；后续 Legacy-only 最小静态尾项已完成，保持未提交。

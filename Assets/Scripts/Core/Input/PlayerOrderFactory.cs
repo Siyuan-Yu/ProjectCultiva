@@ -61,6 +61,12 @@ namespace XianXia.Core.Input
                         waitTicks: request.DurationTicks,
                         targetRef: request.TargetLocationId));
 
+                case PlayerCommandKind.RestAtBed:
+                    if (string.IsNullOrWhiteSpace(request.TargetLocationId))
+                        return Result.Fail<Order>(ErrorCode.InvalidArgument, "Bed id required.");
+                    return Result.Ok(new Order(id, request.Subject, OrderType.RestAtBed, OrderSource.Player,
+                        waitTicks: request.DurationTicks, targetRef: request.TargetLocationId));
+
                 default:
                     return Result.Fail<Order>(ErrorCode.InvalidArgument, "Unknown PlayerCommandKind.", request.Kind.ToString());
             }

@@ -79,6 +79,11 @@ namespace XianXia.Core.Orders
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Recovery duration and TargetRef required.");
                     return Result.Ok<IAction>(new RecoveryAction(
                         actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
+                case OrderType.RestAtBed:
+                    if (order.WaitTicks == 0 || string.IsNullOrWhiteSpace(order.TargetRef))
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Bed rest duration and BedId required.");
+                    return Result.Ok<IAction>(new BedRestAction(
+                        actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
 
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");

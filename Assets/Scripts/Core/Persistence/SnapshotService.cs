@@ -342,6 +342,11 @@ namespace XianXia.Core.Persistence
                     kind = "Recover";
                     targetRef = recovery.RecoverySpotId;
                 }
+                else if (action is BedRestAction bedRest)
+                {
+                    kind = "BedRest";
+                    targetRef = bedRest.BedId;
+                }
                 else if (action is ObserveAction) kind = "Observe";
                 else if (action is MoveAction move)
                 {
@@ -1070,6 +1075,17 @@ namespace XianXia.Core.Persistence
                         a.TargetRef ?? string.Empty);
                     recovery.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[recovery.Id] = recovery;
+                }
+                else if (a.Kind == "BedRest")
+                {
+                    var bedRest = new BedRestAction(new ActionId(a.Id), new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId), a.TotalTicks, a.TargetRef ?? string.Empty);
+                    bedRest.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[bedRest.Id] = bedRest;
+                    if ((ActionStatus)a.Status == ActionStatus.Running &&
+                        !RoomBedFacilityService.TryOccupy(world, a.TargetRef ?? string.Empty, new EntityId(a.SubjectId)))
+                        return Result.Fail<(SimulationWorld world, SimulationLoop loop)>(
+                            ErrorCode.SnapshotInvalid, "Bed rest occupancy could not be restored.");
                 }
                 else if (a.Kind == "Observe")
                 {

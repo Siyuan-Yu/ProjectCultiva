@@ -87,6 +87,12 @@ namespace XianXia.Data.Content
         public string LootItemId { get; set; }
         public string SpawnTableId { get; set; }
         public int SpawnCount { get; set; }
+        public string BuildingId { get; set; }
+        public int QuarterTurns { get; set; }
+        public string ParentRoomId { get; set; }
+        public string RoomUsage { get; set; }
+        public string InitialAssigneeSpawnKey { get; set; }
+        public int StructureDurability { get; set; }
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -99,6 +100,7 @@ namespace XianXia.Core.Simulation
         public void CancelOrdersFromSource(EntityId subject, OrderSource source)
         {
             _world.GetOrCreateOrderQueue(subject).RemoveWhere(order => order.Source == source);
+            RoomBedFacilityService.Release(_world, subject);
             if (_world.Entities.TryGet(subject, out var entity) &&
                 entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
                 state.ActiveOrderSource == source && _world.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
@@ -114,6 +116,7 @@ namespace XianXia.Core.Simulation
                 return Result.Failure(ErrorCode.EntityNotFound, "Stop subject missing.");
 
             _world.GetOrCreateOrderQueue(subject).Clear();
+            RoomBedFacilityService.Release(_world, subject);
 
             if (entity.TryGet<ActionStateComponent>(out var actionState) &&
                 actionState.HasActiveAction &&

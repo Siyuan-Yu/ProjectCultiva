@@ -2339,6 +2339,12 @@ namespace XianXia.Data.Content
                         BoundLocationId = node.GetString("boundLocationId", string.Empty), Label = node.GetString("label", string.Empty),
                         LootItemId = node.GetString("lootItemId", string.Empty), SpawnTableId = node.GetString("spawnTableId", string.Empty),
                         SpawnCount = ReadInt(node, "spawnCount", 0)
+                        ,BuildingId = node.GetString("buildingId", string.Empty)
+                        ,QuarterTurns = ReadInt(node, "quarterTurns", 0)
+                        ,ParentRoomId = node.GetString("parentRoomId", string.Empty)
+                        ,RoomUsage = node.GetString("roomUsage", string.Empty)
+                        ,InitialAssigneeSpawnKey = node.GetString("initialAssigneeSpawnKey", string.Empty)
+                        ,StructureDurability = ReadInt(node, "structureDurability", 0)
                     });
                 }
             if (item.TryGetProperty("sitePlaces", out var sitePlaces) && sitePlaces.Kind == JsonValueKind.Array)

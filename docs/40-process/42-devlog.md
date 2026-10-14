@@ -1,5 +1,12 @@
 # 开发日志
 
+## 2026-10-14 — ROOM-01 C：荒村作者源、发布与存读档收口（待制作人验收）
+
+- `FineEditor` 与 `SurfaceAuthoring.Core` 正式读写房间模板、用途、父房间、初始住户 SpawnKey、旋转和耐久；复制房间重映射子家具稳定 ID，移动、旋转、删除父房间同步子床。旧精确几何每次加载均从 immutable legacy rectangle 重新水合，兼容发布保护保持启用。
+- 荒村作者源扩展为 22 间房、27 张床：20 间住宅各一床（19 间普通木房、主管一间中级石房），另有中级木质医疗房 3 床、牢房 4 床。20 个开局住户按 SpawnKey 绑定真实 EntityId；旧恢复点和独立囚室交接物只保留装饰，不再承担床位 authority。
+- 作者源已通过正式 `CompatibilityPublisher` 发布到 `main_wilderness_surface_v1.json`。New Game authored 与玩家建造共用 `OutdoorConstructedAssetState`／查询服务；初始分床在 opening identity 建立后 seed 一次，Restore 不覆盖玩家状态。普通床休息使用独立 `BedRestAction`，不再借用战斗池 `RecoveryAction`。
+- Snapshot 保持 ROOM-01 A 已升级的 v15，保存房间、床、用途、几何、长期分配、预约／占用和工单事实，v14 及更旧开发档明确拒绝。全程序集离线编译 `ALL_OK`，ContentAuthoring solution 0 warning／0 error；未启动 Unity／PlayMode／Runner，未运行或新增自动测试。状态：**C Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-14 — ROOM-01 B：房间用途与真实床位使用（待制作人验收）
 
 - 新增房间统一用途 `Residential / Medical / Prison`，用途只存于房间，房内床实时继承；房间右键可正式切换用途，囚室有实际占用者时禁止直接改回其它用途。

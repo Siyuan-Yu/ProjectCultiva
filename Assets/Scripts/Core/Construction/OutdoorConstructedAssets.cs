@@ -241,17 +241,32 @@ namespace XianXia.Core.Construction
     /// <summary>Room-level usage and bed assignment/reservation/occupancy authority.</summary>
     public static class RoomBedFacilityService
     {
-        public static Result SetRoomUsage(SimulationWorld world, string roomId, RoomUsage usage)
+        public static Result SetRoomUsage(SimulationWorld world, string roomId, RoomUsage usage,
+            bool clearDormantAssignments = false)
         {
             if (world == null || !world.OutdoorConstructedAssets.Assets.TryGetValue(roomId ?? string.Empty, out var room) ||
                 !RoomBedGeometry.IsRoom(room))
                 return Result.Failure(ErrorCode.NotFound, "房间不存在。", roomId);
-            if (room.RoomUsage == RoomUsage.Prison && usage != RoomUsage.Prison)
-                foreach (var bed in BedsInRoom(world, roomId))
-                    if (!bed.OccupantCharacterId.IsNone)
-                        return Result.Failure(ErrorCode.InvalidOperation, "请先释放或转移房内囚犯。");
+            var assigned = false;
+            foreach (var bed in BedsInRoom(world, roomId))
+            {
+                if (!bed.OccupantCharacterId.IsNone || !bed.ReservedCharacterId.IsNone)
+                    return Result.Failure(ErrorCode.InvalidOperation, "请先结束房内床位的占用或预留。");
+                assigned |= !bed.AssignedCharacterId.IsNone;
+            }
+            if (assigned && !clearDormantAssignments)
+                return Result.Failure(ErrorCode.InvalidOperation, "房内存在长期床位分配；请确认解除分配后再切换用途。");
+            if (assigned)
+                foreach (var bed in BedsInRoom(world, roomId)) bed.AssignedCharacterId = EntityId.None;
             room.RoomUsage = usage;
             return Result.Success();
+        }
+
+        public static bool HasDormantAssignments(SimulationWorld world, string roomId)
+        {
+            foreach (var bed in BedsInRoom(world, roomId))
+                if (!bed.AssignedCharacterId.IsNone) return true;
+            return false;
         }
 
         public static Result AssignBed(SimulationWorld world, string bedId, EntityId characterId)
@@ -260,6 +275,13 @@ namespace XianXia.Core.Construction
                 !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId ?? string.Empty, out var bed) ||
                 !RoomBedGeometry.IsBed(bed))
                 return Result.Failure(ErrorCode.InvalidArgument, "床位或人物无效。");
+            var siteId = bed.BoundWorldSiteId;
+            if (string.IsNullOrWhiteSpace(siteId) && !string.IsNullOrWhiteSpace(bed.ParentRoomId) &&
+                world.OutdoorConstructedAssets.Assets.TryGetValue(bed.ParentRoomId, out var room))
+                siteId = room.BoundWorldSiteId;
+            if (string.IsNullOrWhiteSpace(siteId) || !world.Strategic.Sites.TryGet(siteId, out var site) ||
+                !string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "只能管理玩家控制地点内的床位。");
             foreach (var other in Beds(world))
                 if (other.AssignedCharacterId == characterId && other.StableAssetId != bed.StableAssetId)
                     other.AssignedCharacterId = EntityId.None;
@@ -290,6 +312,23 @@ namespace XianXia.Core.Construction
             out OutdoorConstructedAssetState bed)
         {
             if (!TryFindBed(world, characterId, usage, out bed)) return false;
+            bed.ReservedCharacterId = characterId;
+            return true;
+        }
+
+        public static bool TryReserveInRoom(SimulationWorld world, string roomId, EntityId characterId,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            if (world == null || characterId.IsNone) return false;
+            foreach (var candidate in BedsInRoom(world, roomId))
+            {
+                if ((!candidate.OccupantCharacterId.IsNone && candidate.OccupantCharacterId != characterId) ||
+                    (!candidate.ReservedCharacterId.IsNone && candidate.ReservedCharacterId != characterId)) continue;
+                bed = candidate;
+                if (candidate.AssignedCharacterId == characterId) break;
+            }
+            if (bed == null) return false;
             bed.ReservedCharacterId = characterId;
             return true;
         }

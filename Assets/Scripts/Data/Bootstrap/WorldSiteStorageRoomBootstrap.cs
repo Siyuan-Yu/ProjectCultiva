@@ -16,22 +16,9 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "Storage room bootstrap args null.");
             world.SiteStorageRooms.Clear();
 
-            foreach (var pair in registry.OutdoorSurfaces)
-            {
-                var surface = pair.Value;
-                if (surface == null || surface.AcceptanceOnly || surface.SitePlacements == null) continue;
-                for (var i = 0; i < surface.SitePlacements.Count; i++)
-                {
-                    var placement = surface.SitePlacements[i];
-                    if (placement == null || !string.Equals(placement.Kind,
-                            OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal)) continue;
-                    var registered = Register(world, placement.StableId, placement.SiteId, surface.SurfaceId,
-                        placement.Label, placement.WorldX, placement.WorldY,
-                        placement.WorldWidth, placement.WorldHeight);
-                    if (registered.IsFailure) return registered;
-                }
-            }
-
+            // Authored and player-built rooms are already normalized onto the same physical board.
+            // Derive this compatibility lookup once from that authority to avoid double-registering
+            // authored storage rooms.
             foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
             {
                 if (!string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
