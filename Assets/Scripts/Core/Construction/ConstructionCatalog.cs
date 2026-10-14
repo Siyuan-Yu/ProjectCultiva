@@ -8,7 +8,10 @@ namespace XianXia.Core.Construction
         FactionFlag = 0,
         FarmField = 1,
         RecoverySpot = 2,
-        StorageRoom = 3
+        StorageRoom = 3,
+        Room = 4,
+        Bed = 5,
+        WallSegment = 6
     }
 
     public sealed class ConstructionMaterialCost
@@ -27,6 +30,12 @@ namespace XianXia.Core.Construction
         public string OutdoorKind { get; set; } = string.Empty;
         public int FootprintCellsW { get; set; }
         public int FootprintCellsH { get; set; }
+        public int ConstructionLabor { get; set; } = 12;
+        public string RoomTier { get; set; } = string.Empty;
+        public string MaterialKind { get; set; } = string.Empty;
+        public string DefaultRoomUsage { get; set; } = string.Empty;
+        public int DoorWidthCells { get; set; }
+        public int StructureDurability { get; set; }
         public bool CreatesWorldSite { get; set; }
         public string CreatedSiteName { get; set; } = string.Empty;
         public string CreatedSiteType { get; set; } = string.Empty;

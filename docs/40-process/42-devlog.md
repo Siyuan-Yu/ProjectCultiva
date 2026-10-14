@@ -1,5 +1,12 @@
 # 开发日志
 
+## 2026-10-14 — ROOM-01 A：整栋房间与独立家具建设（待制作人验收）
+
+- 建设目录新增普通／中型／高级木石房六个模板、2×4 独立床以及木石自由墙段；房间外轮廓固定为 8×12、16×24、32×48，支持 `R` 旋转。成本、工时和耐久为本轮首轮暂定值，荒村公库补入人工验收用粗木／粗石。
+- `OutdoorConstructedAssetState` 成为房间、床与墙段的稳定物理身份：记录旋转、父房间、用途、床的分配／预约／实际占用、初始 SpawnKey 与耐久。床可在房间可用内区嵌套，床床、房房及非法跨墙重叠仍拒绝；房间与床不自动互相生成。
+- 新房间、床和墙段必须进入凡人搬运／施工工单，不再走无工人的即时建造回退；工单保存自身工时、旋转和父房间。Host 投影房间地面、四周一格墙与南侧两格门洞，导航只阻挡墙体和家具实际占地。
+- Snapshot 升至 v15 并保存上述物理／工单字段，v14 及更旧开发档明确拒绝。离线全程序集编译 `ALL_OK`；未启动 Unity／PlayMode／Runner，未运行或新增自动测试。状态：**A Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-14 — CharacterEncounter 存活 NPC Squad 返场修复（待制作人验收）
 
 - 修复 `RestoreAnchors` 对仍由原有效 `SquadWorldMotion` 管理的存活 NPC 直接跳过、导致其持久 `WorldPresence` 残留 `InEncounter + TacticalX/Y` 并在普通 Continuous Surface 被隐藏的问题。正常 `CommitAndReturn` 与进入中止 `AbortEntry` 现在共用同一恢复分支，从当前合法小队 authority 派生 Surface、精确位置及 Site 上下文；不修改小队位置、路线、命令、成员关系、HP 或战斗结果。

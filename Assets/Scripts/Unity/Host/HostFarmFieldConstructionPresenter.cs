@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         string _displayName = "农田";
         int _lastAssetCount = -1;
         int _lastFlagCount = -1;
+        int _quarterTurns;
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
         void OnDisable() => CancelPlacement();
@@ -39,6 +40,13 @@ namespace XianXia.Unity.Host
         public Result BeginStoragePlacement(string buildingId)
             => BeginOutdoorPlacement(buildingId, ConstructionPlacementKind.StorageRoom, "储藏室");
 
+        public Result BeginRoomFurniturePlacement(string buildingId, ConstructionPlacementKind kind)
+        {
+            var label = kind == ConstructionPlacementKind.Room ? "房间" :
+                kind == ConstructionPlacementKind.Bed ? "床" : "墙段";
+            return BeginOutdoorPlacement(buildingId, kind, label);
+        }
+
         Result BeginOutdoorPlacement(string buildingId, ConstructionPlacementKind placementKind, string displayName)
         {
             var world = _bootstrap?.Session?.World;
@@ -51,6 +59,7 @@ namespace XianXia.Unity.Host
             _spec = spec;
             _placementKind = placementKind;
             _displayName = displayName;
+            _quarterTurns = 0;
             _placing = true;
             _beganFrame = Time.frameCount;
             _status = "移动鼠标选择位置；左键建造，Esc／右键取消。";
@@ -97,6 +106,7 @@ namespace XianXia.Unity.Host
             if (Input.GetKeyDown(KeyCode.Escape) ||
                 (Input.GetMouseButtonDown(1) && !HostUiHitTest.ContainsScreenPoint(Input.mousePosition)))
             { FinishInputGesture(); return; }
+            if (Input.GetKeyDown(KeyCode.R)) _quarterTurns = (_quarterTurns + 1) % 4;
             if (_world != _bootstrap?.Session?.World ||
                 _bootstrap.ConstructionPanel?.IsOpen == true || _bootstrap.WorldMapPanel?.IsOpen == true ||
                 _bootstrap.InventoryPanel?.IsOpen == true || _world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
@@ -117,9 +127,15 @@ namespace XianXia.Unity.Host
                 constructionSite != null && CivilianConstructionJobService.HasAvailableWorker(
                     _world, constructionSite.SiteId, _world.Strategic.PlayerFactionId) &&
                 HasLocalConstructionMaterials(_world, constructionSite.SiteId, _spec);
-            if (queueForCivilian)
+            var mustUseCivilian = _placementKind == ConstructionPlacementKind.Room ||
+                _placementKind == ConstructionPlacementKind.Bed ||
+                _placementKind == ConstructionPlacementKind.WallSegment;
+            if (mustUseCivilian && !queueForCivilian)
+                result = Result.Failure(ErrorCode.InvalidOperation, "房间、床和墙段必须由有材料的凡人建设工单完成。");
+            else if (queueForCivilian)
                 result = ConstructionService.TryQueueCivilianOutdoorConstruction(_world, _spec.BuildingId,
-                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _,
+                    _candidate.QuarterTurns, _candidate.ParentRoomId);
             else if (_placementKind == ConstructionPlacementKind.RecoverySpot)
                 result = ConstructionService.TryConstructRecoverySpot(_world, _spec.BuildingId,
                     _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
@@ -148,7 +164,7 @@ namespace XianXia.Unity.Host
                 var screen = camera.WorldToScreenPoint(new Vector3(px, py, HostPresentationSpace.EntityZ));
                 if (screen.z < 0f) continue;
                 GUI.Label(new Rect(screen.x - 55f, Screen.height - screen.y - 34f, 150f, 28f),
-                    "建设中 " + job.LaborProgress + "/" + CivilianConstructionJobService.RequiredLabor);
+                    "建设中 " + job.LaborProgress + "/" + job.RequiredLabor);
             }
         }
 
@@ -171,14 +187,16 @@ namespace XianXia.Unity.Host
                 _world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None) return false;
             if (!_world.SurfaceSpatial.TryGet(continuous.ActiveSurfaceId, out var metric)) return false;
             continuous.Mapper.PresentationToWorld(point.x, point.y, out var wx, out var wy);
-            var x = metric.OriginWorldX + (float)Math.Floor((wx - metric.OriginWorldX) / metric.CellSize - _spec.FootprintCellsW * .5f + .5f) * metric.CellSize;
-            var y = metric.OriginWorldY + (float)Math.Floor((wy - metric.OriginWorldY) / metric.CellSize - _spec.FootprintCellsH * .5f + .5f) * metric.CellSize;
+            var cellsW = _quarterTurns % 2 == 0 ? _spec.FootprintCellsW : _spec.FootprintCellsH;
+            var cellsH = _quarterTurns % 2 == 0 ? _spec.FootprintCellsH : _spec.FootprintCellsW;
+            var x = metric.OriginWorldX + (float)Math.Floor((wx - metric.OriginWorldX) / metric.CellSize - cellsW * .5f + .5f) * metric.CellSize;
+            var y = metric.OriginWorldY + (float)Math.Floor((wy - metric.OriginWorldY) / metric.CellSize - cellsH * .5f + .5f) * metric.CellSize;
             candidate = new OutdoorConstructedAssetState {
                 StableAssetId = _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind), BuildingId = _spec.BuildingId,
                 Kind = _spec.OutdoorKind, SurfaceId = continuous.ActiveSurfaceId,
-                WorldX = x, WorldY = y, WorldWidth = _spec.FootprintCellsW * metric.CellSize,
-                WorldHeight = _spec.FootprintCellsH * metric.CellSize,
-                CellsW = _spec.FootprintCellsW, CellsH = _spec.FootprintCellsH,
+                WorldX = x, WorldY = y, WorldWidth = cellsW * metric.CellSize,
+                WorldHeight = cellsH * metric.CellSize,
+                CellsW = cellsW, CellsH = cellsH, QuarterTurns = _quarterTurns,
                 BoundLocationId = "location:runtime:" +
                     (_placementKind == ConstructionPlacementKind.RecoverySpot ? "recovery:" :
                      _placementKind == ConstructionPlacementKind.StorageRoom ? "storage:" : "farm:") +
@@ -187,6 +205,12 @@ namespace XianXia.Unity.Host
                 // Persisted StorageRoom assets are still required by Core to have a real Site binding.
                 BoundWorldSiteId = string.Empty
             };
+            if (_placementKind == ConstructionPlacementKind.Bed)
+            {
+                foreach (var asset in _world.OutdoorConstructedAssets.Assets.Values)
+                    if (RoomBedGeometry.IsRoom(asset) && RoomBedGeometry.FitsUsableInterior(asset, candidate))
+                    { candidate.ParentRoomId = asset.StableAssetId; candidate.RoomUsage = asset.RoomUsage; break; }
+            }
             if (_placementKind == ConstructionPlacementKind.StorageRoom)
             {
                 var storageSite = WorldSiteStorageRoomPlacementService.ResolveSiteForFootprint(
@@ -198,6 +222,8 @@ namespace XianXia.Unity.Host
             var permission = OutdoorFactionConstructionAuthorizationService.Validate(
                 _world, _world.Strategic.PlayerFactionId, candidate);
             if (permission.IsFailure) { reason = permission.Error.Message; return false; }
+            var roomGeometry = RoomBedGeometry.ValidatePlacement(_world.OutdoorConstructedAssets, candidate);
+            if (roomGeometry.IsFailure) { reason = roomGeometry.Error.Message; return false; }
             if (!ConstructionService.HasRequiredMaterials(_world, _spec, out _) &&
                 !ConstructionService.CanUseCivilianSiteMaterials(_world, _spec))
             { reason = "建造材料不足。"; return false; }
@@ -226,9 +252,6 @@ namespace XianXia.Unity.Host
             foreach (var obj in HostMapObjectRegistry.AllDestructibles)
                 if (obj != null && !obj.IsDestroyed && Overlaps(rect, obj.gameObject))
                 { reason = "此处有树木、墙或控制核心。"; return false; }
-            foreach (var existing in _world.OutdoorConstructedAssets.Assets.Values)
-                if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate))
-                { reason = "此处已有室外建筑或世界对象。"; return false; }
             // Flag footprints also contribute to the composite grid above.
             reason = "此处可以建造" + _displayName + "。";
             return true;
@@ -271,8 +294,8 @@ namespace XianXia.Unity.Host
             if (!_placing) return;
             var rect = new Rect(Screen.width - 350f, Screen.height - 150f, 338f, 136f);
             HostUiHitTest.Block(rect);
-            GUI.Box(rect, _displayName + " · " + _spec.FootprintCellsW + " × " + _spec.FootprintCellsH);
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 28f, rect.width - 24f, 38f), "左键建造　Esc／右键取消");
+            GUI.Box(rect, _displayName + " · " + _candidate?.CellsW + " × " + _candidate?.CellsH);
+            GUI.Label(new Rect(rect.x + 12f, rect.y + 28f, rect.width - 24f, 38f), "左键建造　R 旋转　Esc／右键取消");
             GUI.color = _legal ? Color.green : new Color(1f, .45f, .4f);
             GUI.Label(new Rect(rect.x + 12f, rect.y + 65f, rect.width - 24f, 60f), (_legal ? "✓ " : "✕ ") + _status);
             GUI.color = Color.white;

@@ -54,6 +54,8 @@ namespace XianXia.Unity.Host
                 case "controlCore":
                 case "factionControlPost":
                 case "storageRoom":
+                case "bed":
+                case "wallSegment":
                     return true;
                 default:
                     return false;
@@ -138,6 +140,12 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.68f, 0.42f, 0.22f)),
             new("storageRoom", StorageRoom, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Storage,
                 new UnityEngine.Color(0.62f, 0.48f, 0.28f)),
+            new("room", House, StampMode.SingleCentered, 8, 12, false, null,
+                new UnityEngine.Color(0.58f, 0.45f, 0.30f, 0.28f)),
+            new("bed", Cushion, StampMode.SingleCentered, 2, 4, false, null,
+                new UnityEngine.Color(0.62f, 0.36f, 0.22f)),
+            new("wallSegment", Wall, StampMode.PerCell, 1, 4, false, null,
+                new UnityEngine.Color(0.35f, 0.35f, 0.38f)),
             new("road", Road, StampMode.PerCell, RoadFootprint, RoadFootprint, false, null,
                 new UnityEngine.Color(0.55f, 0.45f, 0.32f)),
             new("wall", Wall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,

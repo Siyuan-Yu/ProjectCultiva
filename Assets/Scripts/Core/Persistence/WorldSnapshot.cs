@@ -5,7 +5,7 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 14;
+        public const int CurrentSchemaVersion = 15;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -28,6 +28,7 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV11 = 11;
         public const int LegacySchemaVersionV12 = 12;
         public const int LegacySchemaVersionV13 = 13;
+        public const int LegacySchemaVersionV14 = 14;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
@@ -226,6 +227,14 @@ namespace XianXia.Core.Persistence
         public int CellsH { get; set; }
         public string BoundLocationId { get; set; } = string.Empty;
         public string BoundWorldSiteId { get; set; } = string.Empty;
+        public int QuarterTurns { get; set; }
+        public string ParentRoomId { get; set; } = string.Empty;
+        public int RoomUsage { get; set; }
+        public ulong AssignedCharacterId { get; set; }
+        public ulong ReservedCharacterId { get; set; }
+        public ulong OccupantCharacterId { get; set; }
+        public string InitialAssigneeSpawnKey { get; set; } = string.Empty;
+        public int StructureDurability { get; set; }
     }
 
     public sealed class RecoverySpotPlacementSnapshotDto
@@ -909,6 +918,9 @@ namespace XianXia.Core.Persistence
         public string SurfaceId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        public int QuarterTurns { get; set; }
+        public string ParentRoomId { get; set; } = string.Empty;
+        public int RequiredLabor { get; set; } = 12;
         public int LaborProgress { get; set; }
         public ulong LastLaborTick { get; set; }
         public ulong CarrierId { get; set; }

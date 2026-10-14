@@ -236,6 +236,9 @@ namespace XianXia.Data.Bootstrap
                     definition.PlacementKind == "farmField" ? ConstructionPlacementKind.FarmField :
                     definition.PlacementKind == "recoverySpot" ? ConstructionPlacementKind.RecoverySpot :
                     definition.PlacementKind == "storageRoom" ? ConstructionPlacementKind.StorageRoom :
+                    definition.PlacementKind == "room" ? ConstructionPlacementKind.Room :
+                    definition.PlacementKind == "bed" ? ConstructionPlacementKind.Bed :
+                    definition.PlacementKind == "wallSegment" ? ConstructionPlacementKind.WallSegment :
                     throw new System.InvalidOperationException("Unknown construction placementKind: " + definition.PlacementKind);
                 var spec = new BuildingConstructionSpec
                 {
@@ -247,6 +250,12 @@ namespace XianXia.Data.Bootstrap
                     OutdoorKind = definition.OutdoorKind,
                     FootprintCellsW = definition.FootprintCellsW,
                     FootprintCellsH = definition.FootprintCellsH,
+                    ConstructionLabor = definition.ConstructionLabor,
+                    RoomTier = definition.RoomTier,
+                    MaterialKind = definition.MaterialKind,
+                    DefaultRoomUsage = definition.DefaultRoomUsage,
+                    DoorWidthCells = definition.DoorWidthCells,
+                    StructureDurability = definition.StructureDurability,
                     CreatesWorldSite = definition.CreatesWorldSite,
                     CreatedSiteName = definition.CreatedSiteName ?? string.Empty,
                     CreatedSiteType = definition.CreatedSiteType ?? string.Empty,

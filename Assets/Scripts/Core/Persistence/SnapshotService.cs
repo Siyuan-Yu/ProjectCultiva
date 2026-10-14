@@ -533,7 +533,15 @@ namespace XianXia.Core.Persistence
                     CellsW = asset.CellsW,
                     CellsH = asset.CellsH,
                     BoundLocationId = asset.BoundLocationId,
-                    BoundWorldSiteId = asset.BoundWorldSiteId });
+                    BoundWorldSiteId = asset.BoundWorldSiteId,
+                    QuarterTurns = asset.QuarterTurns,
+                    ParentRoomId = asset.ParentRoomId,
+                    RoomUsage = (int)asset.RoomUsage,
+                    AssignedCharacterId = asset.AssignedCharacterId.Value,
+                    ReservedCharacterId = asset.ReservedCharacterId.Value,
+                    OccupantCharacterId = asset.OccupantCharacterId.Value,
+                    InitialAssigneeSpawnKey = asset.InitialAssigneeSpawnKey,
+                    StructureDurability = asset.StructureDurability });
             foreach (var placement in world.RecoverySpotDeliveries.Placements)
                 snap.RecoverySpotPlacements.Add(new RecoverySpotPlacementSnapshotDto {
                     RecoverySpotId = placement.Key, InjuredCharacterId = placement.Value.Value });
@@ -555,6 +563,8 @@ namespace XianXia.Core.Persistence
                     DemolitionFlagId = job.DemolitionFlagId, SiteId = job.SiteId,
                     FactionId = job.FactionId, SurfaceId = job.SurfaceId,
                     WorldX = job.WorldX, WorldY = job.WorldY,
+                    QuarterTurns = job.QuarterTurns, ParentRoomId = job.ParentRoomId,
+                    RequiredLabor = job.RequiredLabor,
                     LaborProgress = job.LaborProgress, LastLaborTick = job.LastLaborTick,
                     CarrierId = job.CarrierId.Value, PayloadItemId = job.PayloadItemId,
                     PayloadCount = job.PayloadCount
@@ -601,11 +611,11 @@ namespace XianXia.Core.Persistence
             if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion >= WorldSnapshot.LegacySchemaVersion &&
-                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV13)
+                snap.SchemaVersion <= WorldSnapshot.LegacySchemaVersionV14)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v13 saves lack current civilian-life authority. Start a new game (schema v14 required).",
+                    "Schema v1-v14 saves lack ROOM-01 room/bed authority. Start a new game (schema v15 required).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -1436,7 +1446,17 @@ namespace XianXia.Core.Persistence
                     CellsW = dto.CellsW,
                     CellsH = dto.CellsH,
                     BoundLocationId = dto.BoundLocationId,
-                    BoundWorldSiteId = dto.BoundWorldSiteId };
+                    BoundWorldSiteId = dto.BoundWorldSiteId,
+                    QuarterTurns = dto.QuarterTurns,
+                    ParentRoomId = dto.ParentRoomId ?? string.Empty,
+                    RoomUsage = (RoomUsage)dto.RoomUsage,
+                    AssignedCharacterId = new EntityId(dto.AssignedCharacterId),
+                    ReservedCharacterId = new EntityId(dto.ReservedCharacterId),
+                    OccupantCharacterId = new EntityId(dto.OccupantCharacterId),
+                    InitialAssigneeSpawnKey = dto.InitialAssigneeSpawnKey ?? string.Empty,
+                    StructureDurability = dto.StructureDurability };
+                if (!Enum.IsDefined(typeof(RoomUsage), dto.RoomUsage))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime room usage is invalid.", dto.StableAssetId);
                 if (string.Equals(asset.Kind,
                         XianXia.Core.Construction.OutdoorConstructedAssetSemantics.StorageRoomKind,
                         StringComparison.Ordinal) &&
@@ -1487,7 +1507,7 @@ namespace XianXia.Core.Persistence
                     !world.Strategic.Sites.TryGet(dto.SiteId, out _) ||
                     !string.IsNullOrEmpty(dto.DemolitionFlagId) &&
                         !world.Strategic.FactionFlags.Flags.ContainsKey(dto.DemolitionFlagId) ||
-                    dto.LaborProgress < 0 || dto.LaborProgress >= CivilianConstructionJobService.RequiredLabor ||
+                    dto.RequiredLabor <= 0 || dto.LaborProgress < 0 || dto.LaborProgress >= dto.RequiredLabor ||
                     dto.Required == null || dto.Delivered == null || dto.PayloadCount < 0 ||
                     float.IsNaN(dto.WorldX) || float.IsInfinity(dto.WorldX) ||
                     float.IsNaN(dto.WorldY) || float.IsInfinity(dto.WorldY) ||
@@ -1500,6 +1520,8 @@ namespace XianXia.Core.Persistence
                     DemolitionFlagId = dto.DemolitionFlagId ?? string.Empty, SiteId = dto.SiteId,
                     FactionId = dto.FactionId, SurfaceId = dto.SurfaceId,
                     WorldX = dto.WorldX, WorldY = dto.WorldY, LaborProgress = dto.LaborProgress,
+                    QuarterTurns = dto.QuarterTurns, ParentRoomId = dto.ParentRoomId ?? string.Empty,
+                    RequiredLabor = dto.RequiredLabor,
                     LastLaborTick = dto.LastLaborTick, CarrierId = new EntityId(dto.CarrierId),
                     PayloadItemId = dto.PayloadItemId ?? string.Empty, PayloadCount = dto.PayloadCount
                 };

@@ -297,7 +297,9 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "description", "unlockedByDefault", "placementKind",
             "createsWorldSite", "createdSiteName", "createdSiteType", "initialSiteLevel",
-            "dismantleRefundRate", "costs", "outdoorKind", "footprintCellsW", "footprintCellsH"
+            "dismantleRefundRate", "costs", "outdoorKind", "footprintCellsW", "footprintCellsH",
+            "constructionLabor", "roomTier", "materialKind", "defaultRoomUsage",
+            "doorWidthCells", "structureDurability"
         };
 
         public static readonly HashSet<string> BuildingCostFields = new HashSet<string>(StringComparer.Ordinal)

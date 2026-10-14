@@ -111,7 +111,8 @@ namespace XianXia.Core.Construction
 
         public static Result TryQueueCivilianOutdoorConstruction(
             SimulationWorld world, string buildingId, string actingFactionId,
-            string surfaceId, float worldX, float worldY, out string jobId)
+            string surfaceId, float worldX, float worldY, out string jobId,
+            int quarterTurns = 0, string parentRoomId = "")
         {
             jobId = string.Empty;
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) || spec == null ||
@@ -120,8 +121,11 @@ namespace XianXia.Core.Construction
                 !world.SurfaceSpatial.TryGet(surfaceId, out var metric) ||
                 world.LocalMap.IsInInterior || world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
                 return Result.Failure(ErrorCode.InvalidOperation, "当前建筑不能创建凡人建设工单。");
-            var cx = worldX + spec.FootprintCellsW * metric.CellSize * .5f;
-            var cy = worldY + spec.FootprintCellsH * metric.CellSize * .5f;
+            quarterTurns = ((quarterTurns % 4) + 4) % 4;
+            var cellsW = quarterTurns % 2 == 0 ? spec.FootprintCellsW : spec.FootprintCellsH;
+            var cellsH = quarterTurns % 2 == 0 ? spec.FootprintCellsH : spec.FootprintCellsW;
+            var cx = worldX + cellsW * metric.CellSize * .5f;
+            var cy = worldY + cellsH * metric.CellSize * .5f;
             if (!WorldSiteAdministrativeControlResolver.TryResolve(world, surfaceId, cx, cy, out var site, out _) ||
                 site == null || site.OwnerFactionId != actingFactionId || !site.HasContinuousCore)
                 return Result.Failure(ErrorCode.InvalidOperation, "工地必须位于己方据点内。");
@@ -129,17 +133,19 @@ namespace XianXia.Core.Construction
                 StableAssetId = world.OutdoorConstructedAssets.NextIdForKind(spec.OutdoorKind),
                 BuildingId = buildingId, Kind = spec.OutdoorKind, SurfaceId = surfaceId,
                 WorldX = worldX, WorldY = worldY,
-                WorldWidth = spec.FootprintCellsW * metric.CellSize,
-                WorldHeight = spec.FootprintCellsH * metric.CellSize,
-                CellsW = spec.FootprintCellsW, CellsH = spec.FootprintCellsH,
+                WorldWidth = cellsW * metric.CellSize,
+                WorldHeight = cellsH * metric.CellSize,
+                CellsW = cellsW, CellsH = cellsH, QuarterTurns = quarterTurns,
+                ParentRoomId = parentRoomId ?? string.Empty,
+                RoomUsage = ParseRoomUsage(spec.DefaultRoomUsage),
+                StructureDurability = spec.StructureDurability,
                 BoundLocationId = "location:civilian:preview:" + world.CivilianConstructionJobs.NextId,
                 BoundWorldSiteId = spec.PlacementKind == ConstructionPlacementKind.StorageRoom ? site.SiteId : string.Empty
             };
             var allowed = OutdoorFactionConstructionAuthorizationService.Validate(world, actingFactionId, candidate);
             if (allowed.IsFailure) return allowed;
-            foreach (var existing in world.OutdoorConstructedAssets.Assets.Values)
-                if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate))
-                    return Result.Failure(ErrorCode.InvalidOperation, "工地与已有建筑重叠。");
+            var geometry = RoomBedGeometry.ValidatePlacement(world.OutdoorConstructedAssets, candidate);
+            if (geometry.IsFailure) return geometry;
             foreach (var pending in world.CivilianConstructionJobs.Jobs.Values)
                 if (pending.SurfaceId == surfaceId &&
                     Math.Abs(pending.WorldX - worldX) < candidate.WorldWidth &&
@@ -148,7 +154,8 @@ namespace XianXia.Core.Construction
             var job = new CivilianConstructionJob {
                 JobId = world.CivilianConstructionJobs.NextId, BuildingId = buildingId,
                 SiteId = site.SiteId, FactionId = actingFactionId, SurfaceId = surfaceId,
-                WorldX = worldX, WorldY = worldY
+                WorldX = worldX, WorldY = worldY, QuarterTurns = quarterTurns,
+                ParentRoomId = parentRoomId ?? string.Empty, RequiredLabor = spec.ConstructionLabor
             };
             foreach (var cost in SumCosts(spec.Costs))
             {
@@ -203,8 +210,8 @@ namespace XianXia.Core.Construction
             assetId = string.Empty;
             if (world == null || job == null || !world.CivilianConstructionJobs.TryGet(job.JobId, out var current) ||
                 !ReferenceEquals(current, job) || !job.MaterialsDelivered ||
-                job.LaborProgress < CivilianConstructionJobService.RequiredLabor ||
                 !world.ConstructionCatalog.TryGet(job.BuildingId, out var spec) ||
+                job.RequiredLabor != spec.ConstructionLabor || job.LaborProgress < job.RequiredLabor ||
                 !world.Strategic.Sites.TryGet(job.SiteId, out var site) || site.OwnerFactionId != job.FactionId)
                 return Result.Failure(ErrorCode.InvalidOperation, "建设工单或预付材料无效。");
             var costs = SumCosts(spec.Costs);
@@ -222,17 +229,24 @@ namespace XianXia.Core.Construction
             return TryConstructOutdoorAsset(world, job.BuildingId, job.FactionId, job.SurfaceId,
                 job.WorldX, job.WorldY, kind,
                 kind == ConstructionPlacementKind.RecoverySpot ? "恢复处" :
-                kind == ConstructionPlacementKind.StorageRoom ? "储藏室" : "农田",
+                kind == ConstructionPlacementKind.StorageRoom ? "储藏室" :
+                kind == ConstructionPlacementKind.Room ? "房间" :
+                kind == ConstructionPlacementKind.Bed ? "床" :
+                kind == ConstructionPlacementKind.WallSegment ? "墙段" : "农田",
                 kind == ConstructionPlacementKind.RecoverySpot ? "recovery" :
-                kind == ConstructionPlacementKind.StorageRoom ? "storage" : "farm",
-                kind == ConstructionPlacementKind.FarmField, out assetId, materialsPrepaid: true);
+                kind == ConstructionPlacementKind.StorageRoom ? "storage" :
+                kind == ConstructionPlacementKind.Room ? "room" :
+                kind == ConstructionPlacementKind.Bed ? "bed" :
+                kind == ConstructionPlacementKind.WallSegment ? "wall" : "farm",
+                kind == ConstructionPlacementKind.FarmField, out assetId, materialsPrepaid: true,
+                quarterTurns: job.QuarterTurns, parentRoomId: job.ParentRoomId);
         }
 
         static Result TryConstructOutdoorAsset(
             SimulationWorld world, string buildingId, string actingFactionId,
             string surfaceId, float worldX, float worldY, ConstructionPlacementKind placementKind,
             string displayName, string idKind, bool createsAdministrativeAnchors, out string assetId,
-            bool materialsPrepaid = false)
+            bool materialsPrepaid = false, int quarterTurns = 0, string parentRoomId = "")
         {
             assetId = string.Empty;
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) ||
@@ -257,20 +271,25 @@ namespace XianXia.Core.Construction
                     worldX, worldY, spec.FootprintCellsW, spec.FootprintCellsH, metric.CellSize, out boundSiteId);
                 if (storageSite.IsFailure) return storageSite;
             }
+            quarterTurns = ((quarterTurns % 4) + 4) % 4;
+            var cellsW = quarterTurns % 2 == 0 ? spec.FootprintCellsW : spec.FootprintCellsH;
+            var cellsH = quarterTurns % 2 == 0 ? spec.FootprintCellsH : spec.FootprintCellsW;
             var nextId = world.OutdoorConstructedAssets.NextIdForKind(spec.OutdoorKind);
             var asset = new OutdoorConstructedAssetState {
                 StableAssetId = nextId, BuildingId = buildingId,
                 Kind = spec.OutdoorKind, SurfaceId = surfaceId, WorldX = worldX, WorldY = worldY,
-                WorldWidth = spec.FootprintCellsW * metric.CellSize, WorldHeight = spec.FootprintCellsH * metric.CellSize,
-                CellsW = spec.FootprintCellsW, CellsH = spec.FootprintCellsH,
+                WorldWidth = cellsW * metric.CellSize, WorldHeight = cellsH * metric.CellSize,
+                CellsW = cellsW, CellsH = cellsH, QuarterTurns = quarterTurns,
+                ParentRoomId = parentRoomId ?? string.Empty,
+                RoomUsage = ParseRoomUsage(spec.DefaultRoomUsage),
+                StructureDurability = spec.StructureDurability,
                 BoundLocationId = "location:runtime:" + idKind + ":" + nextId,
                 BoundWorldSiteId = boundSiteId
             };
             var allowed = OutdoorFactionConstructionAuthorizationService.Validate(world, actingFactionId, asset);
             if (allowed.IsFailure) return allowed;
-            foreach (var existing in world.OutdoorConstructedAssets.Assets.Values)
-                if (OutdoorConstructedAssetBoard.Overlaps(existing, asset))
-                    return Result.Failure(ErrorCode.InvalidOperation, "此处已有室外建筑或世界对象。");
+            var roomGeometry = RoomBedGeometry.ValidatePlacement(world.OutdoorConstructedAssets, asset);
+            if (roomGeometry.IsFailure) return roomGeometry;
             if (createsAdministrativeAnchors)
                 foreach (var anchor in world.OutdoorAdministrativeAssetAnchors.Anchors.Values)
                     if (anchor.SurfaceId == surfaceId && anchor.WorldX > worldX && anchor.WorldX < worldX + asset.WorldWidth &&
@@ -321,6 +340,12 @@ namespace XianXia.Core.Construction
             world.OutdoorConstructedAssets.AdvanceSequence();
             assetId = asset.StableAssetId;
             return Result.Success();
+        }
+
+        static RoomUsage ParseRoomUsage(string value)
+        {
+            return Enum.TryParse(value ?? string.Empty, true, out RoomUsage usage)
+                ? usage : RoomUsage.Residential;
         }
 
         public static List<ConstructionMaterialCost> CalculateDismantleRefunds(BuildingConstructionSpec spec)

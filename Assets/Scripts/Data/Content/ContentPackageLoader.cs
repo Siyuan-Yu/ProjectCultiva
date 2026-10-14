@@ -716,9 +716,19 @@ namespace XianXia.Data.Content
                 PlacementKind = placementKind,
                 OutdoorKind = item.GetString("outdoorKind", string.Empty),
                 FootprintCellsW = ReadPositiveInt(item, "footprintCellsW", report, id.ToString(),
-                    placementKind == "farmField" || placementKind == "recoverySpot" || placementKind == "storageRoom"),
+                    placementKind == "farmField" || placementKind == "recoverySpot" || placementKind == "storageRoom" ||
+                    placementKind == "room" || placementKind == "bed" || placementKind == "wallSegment"),
                 FootprintCellsH = ReadPositiveInt(item, "footprintCellsH", report, id.ToString(),
-                    placementKind == "farmField" || placementKind == "recoverySpot" || placementKind == "storageRoom"),
+                    placementKind == "farmField" || placementKind == "recoverySpot" || placementKind == "storageRoom" ||
+                    placementKind == "room" || placementKind == "bed" || placementKind == "wallSegment"),
+                ConstructionLabor = item.TryGetProperty("constructionLabor", out _)
+                    ? ReadPositiveInt(item, "constructionLabor", report, id.ToString(), true)
+                    : 12,
+                RoomTier = item.GetString("roomTier", string.Empty),
+                MaterialKind = item.GetString("materialKind", string.Empty),
+                DefaultRoomUsage = item.GetString("defaultRoomUsage", string.Empty),
+                DoorWidthCells = ReadPositiveInt(item, "doorWidthCells", report, id.ToString(), false),
+                StructureDurability = ReadPositiveInt(item, "structureDurability", report, id.ToString(), false),
                 CreatesWorldSite = item.GetBool("createsWorldSite", false),
                 CreatedSiteName = item.GetString("createdSiteName", string.Empty),
                 CreatedSiteType = item.GetString("createdSiteType", string.Empty),

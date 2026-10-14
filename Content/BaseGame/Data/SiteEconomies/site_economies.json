@@ -6,7 +6,8 @@
       "type": "worldSiteEconomy",
       "siteId": "base:site_huangcun",
       "initialPublicStock": [
-        { "resourceId": "base:resource_rough_wood", "amount": 10 },
+        { "resourceId": "base:resource_rough_wood", "amount": 500 },
+        { "resourceId": "base:resource_rough_stone", "amount": 500 },
         { "resourceId": "base:resource_spirit_herb", "amount": 2 },
         { "resourceId": "base:resource_grain", "amount": 0 },
         { "resourceId": "base:resource_conceal_grass", "amount": 3 }

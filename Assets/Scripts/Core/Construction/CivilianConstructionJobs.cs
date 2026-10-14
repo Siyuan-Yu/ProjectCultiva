@@ -22,6 +22,9 @@ namespace XianXia.Core.Construction
         public string SurfaceId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        public int QuarterTurns { get; set; }
+        public string ParentRoomId { get; set; } = string.Empty;
+        public int RequiredLabor { get; set; } = 12;
         public int LaborProgress { get; set; }
         public ulong LastLaborTick { get; set; }
         public EntityId CarrierId { get; set; }
@@ -200,13 +203,13 @@ namespace XianXia.Core.Construction
             if (!Arrived(world, worker, workPoint) || job.LastLaborTick == world.Tick.Value) return;
             job.LastLaborTick = world.Tick.Value;
             job.LaborProgress++;
-            if (job.LaborProgress < RequiredLabor) return;
+            if (job.LaborProgress < job.RequiredLabor) return;
             var completed = string.IsNullOrEmpty(job.DemolitionFlagId)
                 ? ConstructionService.TryCompleteCivilianJob(world, job, out _)
                 : ConstructionService.TryDismantleFactionFlag(world, job.BuildingId,
                     job.FactionId, job.DemolitionFlagId, out _);
             if (completed.IsSuccess) world.CivilianConstructionJobs.Remove(job.JobId);
-            else { job.LaborProgress = RequiredLabor - 1; job.LastError = completed.Error.Message; }
+            else { job.LaborProgress = Math.Max(0, job.RequiredLabor - 1); job.LastError = completed.Error.Message; }
         }
 
         static void Move(Entity worker, string surfaceId, WorldVec2 point)

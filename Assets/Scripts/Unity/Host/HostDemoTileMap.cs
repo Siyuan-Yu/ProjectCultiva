@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Construction;
 using XianXia.Core.Exploration;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
@@ -322,7 +323,47 @@ namespace XianXia.Unity.Host
 
             var stateful = OutdoorStatefulObjectSemantics.IsStatefulKind(source.Kind);
             var perCell = UsesPerCellIdentity(source, info);
-            if (!stateful && info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
+            if (string.Equals(source.Kind, OutdoorConstructedAssetSemantics.RoomKind,
+                    System.StringComparison.Ordinal))
+            {
+                var cellW = width / source.SourceCellsW;
+                var cellH = height / source.SourceCellsH;
+                var doorLeft = (source.SourceCellsW - 2) / 2;
+                mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
+                var ix0 = Mathf.Max(source.WorldX, chunkWorldX);
+                var iy0 = Mathf.Max(source.WorldY, chunkWorldY);
+                var ix1 = Mathf.Min(source.WorldX + source.WorldWidth, chunkWorldX + mapper.ChunkWidth);
+                var iy1 = Mathf.Min(source.WorldY + source.WorldHeight, chunkWorldY + mapper.ChunkHeight);
+                if (ix1 > ix0 && iy1 > iy0)
+                {
+                    mapper.WorldToPresentation(ix0, iy0, out var fl, out var fb);
+                    mapper.WorldToPresentation(ix1, iy1, out var fr, out var ft);
+                    PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                        id + ":floor:" + ownerChunk.X + ":" + ownerChunk.Y,
+                        Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), info.FallbackColor);
+                    actual++;
+                }
+                for (var gy = 0; gy < source.SourceCellsH; gy++)
+                for (var gx = 0; gx < source.SourceCellsW; gx++)
+                {
+                    var perimeter = gx == 0 || gy == 0 || gx == source.SourceCellsW - 1 ||
+                                    gy == source.SourceCellsH - 1;
+                    if (!perimeter || gy == 0 && gx >= doorLeft && gx < doorLeft + 2) continue;
+                    var cx = minX + (gx + .5f) * cellW;
+                    var cy = minY + (gy + .5f) * cellH;
+                    mapper.PresentationToWorld(cx, cy, out var wallWorldX, out var wallWorldY);
+                    if (mapper.WorldToChunk(wallWorldX, wallWorldY) != ownerChunk) continue;
+                    var wallId = OutdoorStatefulObjectId.ForCell(id + ":wall", gx, gy);
+                    if (OutdoorStatefulPlacementResolver.IsDestroyed(
+                            _session?.World?.OutdoorStatefulObjects, wallId)) continue;
+                    var wall = PlacePrefab("wall", MapKindCatalog.Wall, cx, cy, wallId, cellW, cellH,
+                        new Color(.35f, .35f, .38f), sortingOrder: -5);
+                    AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
+                    actual++;
+                }
+                expectedForOwner = actual;
+            }
+            else if (!stateful && info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
             {
                 mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
                 var ix0 = Mathf.Max(source.WorldX, chunkWorldX);

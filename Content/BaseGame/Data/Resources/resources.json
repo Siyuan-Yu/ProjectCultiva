@@ -9,6 +9,13 @@
       "tags": ["wood"]
     },
     {
+      "id": "base:resource_rough_stone",
+      "type": "resource",
+      "name": "粗石",
+      "nameKey": "resource.rough_stone",
+      "tags": ["stone"]
+    },
+    {
       "id": "base:resource_spirit_herb",
       "type": "resource",
       "name": "灵药",

@@ -1142,7 +1142,10 @@ namespace XianXia.Unity.Host
                     SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
                     BoundLocationId = asset.BoundLocationId,
                     BlocksMovement = string.Equals(asset.Kind,
-                        OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal),
+                        OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
+                        string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal) ||
+                        string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) ||
+                        string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.WallSegmentKind, StringComparison.Ordinal),
                     Label = world.ConstructionCatalog.TryGet(asset.BuildingId, out var spec)
                         ? spec.DisplayName
                         : string.Equals(asset.Kind, "recoverySpot", StringComparison.Ordinal) ? "恢复处" :
@@ -1273,15 +1276,32 @@ namespace XianXia.Unity.Host
             var runtimeAssets = _bootstrap.Session.World.OutdoorConstructedAssets;
             foreach (var asset in runtimeAssets.Assets.Values)
             {
-                if (!string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
-                        StringComparison.Ordinal) || !string.Equals(asset.SurfaceId, _surfaceId, StringComparison.Ordinal))
+                if (!string.Equals(asset.SurfaceId, _surfaceId, StringComparison.Ordinal) ||
+                    !(string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
+                      string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal) ||
+                      string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) ||
+                      string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.WallSegmentKind, StringComparison.Ordinal)))
                     continue;
                 var placement = new OutdoorSurfacePlacementDefinition {
                     WorldX = asset.WorldX, WorldY = asset.WorldY,
                     WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight
                 };
                 if (!PlacementTouchesChunk(placement, coord)) continue;
-                RasterBlocker(grid, originX, originY, cell,
+                if (string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal))
+                {
+                    var cw = asset.WorldWidth / asset.CellsW;
+                    var ch = asset.WorldHeight / asset.CellsH;
+                    var doorLeft = (asset.CellsW - 2) / 2;
+                    for (var gy = 0; gy < asset.CellsH; gy++)
+                    for (var gx = 0; gx < asset.CellsW; gx++)
+                    {
+                        var perimeter = gx == 0 || gy == 0 || gx == asset.CellsW - 1 || gy == asset.CellsH - 1;
+                        if (!perimeter || gy == 0 && gx >= doorLeft && gx < doorLeft + 2) continue;
+                        RasterBlocker(grid, originX, originY, cell,
+                            asset.WorldX + gx * cw, asset.WorldY + gy * ch, cw, ch);
+                    }
+                }
+                else RasterBlocker(grid, originX, originY, cell,
                     asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight);
                 any = true;
             }

@@ -40,6 +40,12 @@ namespace XianXia.Unity.Host
                     var storagePresenter = _bootstrap.GetComponent<HostFarmFieldConstructionPresenter>();
                     return storagePresenter != null ? storagePresenter.BeginStoragePlacement(buildingId) :
                         Result.Failure(ErrorCode.InvalidOperation, "储藏室放置器未就绪。");
+                case ConstructionPlacementKind.Room:
+                case ConstructionPlacementKind.Bed:
+                case ConstructionPlacementKind.WallSegment:
+                    var roomPresenter = _bootstrap.GetComponent<HostFarmFieldConstructionPresenter>();
+                    return roomPresenter != null ? roomPresenter.BeginRoomFurniturePlacement(buildingId, spec.PlacementKind) :
+                        Result.Failure(ErrorCode.InvalidOperation, "房间家具放置器未就绪。");
                 default:
                     return Result.Failure(ErrorCode.InvalidOperation, "未知建筑放置类型。", buildingId);
             }

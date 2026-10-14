@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -27,12 +28,25 @@ namespace XianXia.Core.Construction
         public const string RecoverySpotKind = "recoverySpot";
         public const string PrisonDropOffKind = "prisonDropOff";
         public const string StorageRoomKind = "storageRoom";
+        public const string RoomKind = "room";
+        public const string BedKind = "bed";
+        public const string WallSegmentKind = "wallSegment";
 
         public static bool IsSupportedRuntimeKind(string kind) =>
             string.Equals(kind, "grainField", StringComparison.Ordinal) ||
             string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal) ||
             string.Equals(kind, PrisonDropOffKind, StringComparison.Ordinal) ||
-            string.Equals(kind, StorageRoomKind, StringComparison.Ordinal);
+            string.Equals(kind, StorageRoomKind, StringComparison.Ordinal) ||
+            string.Equals(kind, RoomKind, StringComparison.Ordinal) ||
+            string.Equals(kind, BedKind, StringComparison.Ordinal) ||
+            string.Equals(kind, WallSegmentKind, StringComparison.Ordinal);
+    }
+
+    public enum RoomUsage
+    {
+        Residential = 0,
+        Medical = 1,
+        Prison = 2
     }
 
     /// <summary>Persistent physical placement. WorldX/Y are the lower-left corner; no manager is stored.</summary>
@@ -51,6 +65,14 @@ namespace XianXia.Core.Construction
         public string BoundLocationId { get; set; } = string.Empty;
         /// <summary>Stable Site identity for facilities whose meaning belongs to one WorldSite.</summary>
         public string BoundWorldSiteId { get; set; } = string.Empty;
+        public int QuarterTurns { get; set; }
+        public string ParentRoomId { get; set; } = string.Empty;
+        public RoomUsage RoomUsage { get; set; }
+        public EntityId AssignedCharacterId { get; set; }
+        public EntityId ReservedCharacterId { get; set; }
+        public EntityId OccupantCharacterId { get; set; }
+        public string InitialAssigneeSpawnKey { get; set; } = string.Empty;
+        public int StructureDurability { get; set; }
 
         public IEnumerable<OutdoorConstructedAssetCell> EnumerateGridCells()
         {
@@ -85,7 +107,8 @@ namespace XianXia.Core.Construction
              string.Equals(Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)) &&
             OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(Kind) &&
             (!string.Equals(Kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
-             !string.IsNullOrWhiteSpace(BoundWorldSiteId)) && CellsW > 0 && CellsH > 0 &&
+             !string.IsNullOrWhiteSpace(BoundWorldSiteId)) &&
+            QuarterTurns >= 0 && QuarterTurns < 4 && CellsW > 0 && CellsH > 0 &&
             (long)CellsW * CellsH <= int.MaxValue && Finite(WorldX) && Finite(WorldY) &&
             Finite(WorldWidth) && Finite(WorldHeight) && WorldWidth > 0 && WorldHeight > 0 &&
             Finite(WorldX + WorldWidth) && Finite(WorldY + WorldHeight);
@@ -106,7 +129,13 @@ namespace XianXia.Core.Construction
                 ? "asset:runtime:recovery:"
                 : string.Equals(kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal)
                     ? "asset:runtime:storage:"
-                    : "asset:runtime:farm:";
+                    : string.Equals(kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal)
+                        ? "asset:runtime:room:"
+                        : string.Equals(kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal)
+                            ? "asset:runtime:bed:"
+                            : string.Equals(kind, OutdoorConstructedAssetSemantics.WallSegmentKind, StringComparison.Ordinal)
+                                ? "asset:runtime:wall:"
+                                : "asset:runtime:farm:";
             return prefix + NextSequence.ToString(CultureInfo.InvariantCulture);
         }
         public void Clear() { _assets.Clear(); NextSequence = 1; }
@@ -116,9 +145,11 @@ namespace XianXia.Core.Construction
             foreach (var existing in _assets.Values)
                 if ((!string.IsNullOrWhiteSpace(asset.BoundLocationId) &&
                      existing.BoundLocationId == asset.BoundLocationId &&
+                     !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) &&
+                     !string.Equals(existing.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) &&
                      !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal) &&
                      !string.Equals(existing.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)) ||
-                    Overlaps(existing, asset)) return false;
+                    (Overlaps(existing, asset) && !RoomBedGeometry.IsAllowedNestedPair(existing, asset))) return false;
             _assets.Add(asset.StableAssetId, asset);
             return true;
         }
@@ -132,9 +163,15 @@ namespace XianXia.Core.Construction
                 const string farmPrefix = "asset:runtime:farm:";
                 const string recoveryPrefix = "asset:runtime:recovery:";
                 const string storagePrefix = "asset:runtime:storage:";
+                const string roomPrefix = "asset:runtime:room:";
+                const string bedPrefix = "asset:runtime:bed:";
+                const string wallPrefix = "asset:runtime:wall:";
                 var prefix = id.StartsWith(farmPrefix, StringComparison.Ordinal) ? farmPrefix :
                     id.StartsWith(recoveryPrefix, StringComparison.Ordinal) ? recoveryPrefix :
-                    id.StartsWith(storagePrefix, StringComparison.Ordinal) ? storagePrefix : string.Empty;
+                    id.StartsWith(storagePrefix, StringComparison.Ordinal) ? storagePrefix :
+                    id.StartsWith(roomPrefix, StringComparison.Ordinal) ? roomPrefix :
+                    id.StartsWith(bedPrefix, StringComparison.Ordinal) ? bedPrefix :
+                    id.StartsWith(wallPrefix, StringComparison.Ordinal) ? wallPrefix : string.Empty;
                 if (prefix.Length == 0)
                 {
                     if (id.StartsWith("base:site_", StringComparison.Ordinal)) continue;
@@ -153,6 +190,50 @@ namespace XianXia.Core.Construction
             return a.SurfaceId == b.SurfaceId && a.WorldX < b.WorldX + b.WorldWidth - epsilon &&
                 b.WorldX < a.WorldX + a.WorldWidth - epsilon && a.WorldY < b.WorldY + b.WorldHeight - epsilon &&
                 b.WorldY < a.WorldY + a.WorldHeight - epsilon;
+        }
+    }
+
+    public static class RoomBedGeometry
+    {
+        public static bool IsRoom(OutdoorConstructedAssetState asset) => asset != null &&
+            string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal);
+
+        public static bool IsBed(OutdoorConstructedAssetState asset) => asset != null &&
+            string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal);
+
+        public static bool IsAllowedNestedPair(OutdoorConstructedAssetState a, OutdoorConstructedAssetState b)
+        {
+            var room = IsRoom(a) ? a : IsRoom(b) ? b : null;
+            var bed = IsBed(a) ? a : IsBed(b) ? b : null;
+            return room != null && bed != null && bed.ParentRoomId == room.StableAssetId && FitsUsableInterior(room, bed);
+        }
+
+        public static bool FitsUsableInterior(OutdoorConstructedAssetState room, OutdoorConstructedAssetState bed)
+        {
+            if (!IsRoom(room) || !IsBed(bed) || room.SurfaceId != bed.SurfaceId || room.CellsW < 3 || room.CellsH < 3)
+                return false;
+            var cellX = room.WorldWidth / room.CellsW;
+            var cellY = room.WorldHeight / room.CellsH;
+            var epsilon = Math.Min(cellX, cellY) * .001f;
+            return bed.WorldX >= room.WorldX + cellX - epsilon &&
+                bed.WorldY >= room.WorldY + cellY - epsilon &&
+                bed.WorldX + bed.WorldWidth <= room.WorldX + room.WorldWidth - cellX + epsilon &&
+                bed.WorldY + bed.WorldHeight <= room.WorldY + room.WorldHeight - cellY + epsilon;
+        }
+
+        public static Result ValidatePlacement(OutdoorConstructedAssetBoard board, OutdoorConstructedAssetState candidate)
+        {
+            if (board == null || candidate == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "房间或家具位置无效。");
+            if (IsBed(candidate) && !string.IsNullOrEmpty(candidate.ParentRoomId))
+            {
+                if (!board.Assets.TryGetValue(candidate.ParentRoomId, out var room) || !FitsUsableInterior(room, candidate))
+                    return Result.Failure(ErrorCode.InvalidOperation, "床必须完整位于指定房间的可用内区。");
+            }
+            foreach (var existing in board.Assets.Values)
+                if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate) && !IsAllowedNestedPair(existing, candidate))
+                    return Result.Failure(ErrorCode.InvalidOperation, "位置与已有房间或家具重叠。");
+            return Result.Success();
         }
     }
 
