@@ -338,9 +338,12 @@ namespace XianXia.Unity.Host
                 {
                     mapper.WorldToPresentation(ix0, iy0, out var fl, out var fb);
                     mapper.WorldToPresentation(ix1, iy1, out var fr, out var ft);
-                    PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                    var floor = PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
                         id + ":floor:" + ownerChunk.X + ":" + ownerChunk.Y,
                         Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), info.FallbackColor);
+                    if (info.InteractKind.HasValue)
+                        AttachPlot(floor, metadata, info, source.SourceGridX, source.SourceGridY,
+                            (fl + fr) * .5f, (fb + ft) * .5f, id, lootSpotId);
                     actual++;
                 }
                 for (var gy = 0; gy < source.SourceCellsH; gy++)

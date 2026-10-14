@@ -73,6 +73,10 @@ namespace XianXia.Unity.Host
             _targetDestructible != null && !_targetDestructible.IsDestroyed;
         bool IsRecoverySpotTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.RecoverySpot &&
                                      _worldObjectTarget.Plot != null;
+        bool IsBedTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Bed &&
+                            _worldObjectTarget.Plot != null;
+        bool IsRoomTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Room &&
+                             _worldObjectTarget.Plot != null;
         bool IsPrisonDropOffTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.PrisonDropOff &&
                                       _worldObjectTarget.Plot != null;
         bool IsReadOnlyWorldObjectTarget =>
@@ -247,10 +251,14 @@ namespace XianXia.Unity.Host
                         DrawFactionFlagMenu();
                     else if (IsDestructibleTarget)
                         DrawDestructibleMenu();
+                    else if (IsBedTarget)
+                        DrawBedMenu();
                     else if (IsRecoverySpotTarget)
                         DrawRecoverySpotMenu();
                     else if (IsPrisonDropOffTarget)
                         DrawPrisonDropOffMenu();
+                    else if (IsRoomTarget)
+                        DrawRoomMenu();
                     else if (_worldObjectTarget.Kind == WorldObjectTargetKind.FarmPlot)
                         DrawFarmPlotMenu();
                     else if (IsReadOnlyWorldObjectTarget)
@@ -376,7 +384,7 @@ namespace XianXia.Unity.Host
             HostUiHitTest.Block(_menuGuiRect);
             Fill(_menuGuiRect, Panel);
             DrawFrame(_menuGuiRect, Border);
-            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "恢复处", _label);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), IsBedTarget ? "床" : "恢复处", _label);
             if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "查看详情", _button))
                 ShowWorldObjectDetails();
             var actionY = y + 60f;
@@ -406,6 +414,79 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "查看囚室", _button))
                 ShowBoundPrison();
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawBedMenu()
+        {
+            const float w = 200f;
+            const float itemH = 30f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 128f);
+            _menuGuiRect = new Rect(x, y, w, 124f);
+            HostUiHitTest.Block(_menuGuiRect); Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
+            var bedId = _worldObjectTarget.Plot?.StableCellId ?? string.Empty;
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "床", _label);
+            if (GUI.Button(new Rect(x + 8f, y + 32f, w - 16f, itemH - 4f), "分配给当前人物", _button))
+            {
+                var assigned = RoomBedFacilityService.AssignBed(bootstrap?.Session?.World, bedId, _actor);
+                if (assigned.IsFailure) Debug.LogWarning("[Bed] " + assigned.Error.Message, this);
+                CloseAll(); return;
+            }
+            if (GUI.Button(new Rect(x + 8f, y + 62f, w - 16f, itemH - 4f), "休息恢复", _button))
+                BeginRecoverySpot();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawRoomMenu()
+        {
+            const float w = 220f;
+            const float itemH = 30f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 188f);
+            _menuGuiRect = new Rect(x, y, w, 184f);
+            HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
+            var world = bootstrap?.Session?.World;
+            var roomId = _worldObjectTarget.Plot?.StableCellId ?? string.Empty;
+            OutdoorConstructedAssetState room = null;
+            world?.OutdoorConstructedAssets.Assets.TryGetValue(roomId, out room);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f),
+                "房间用途：" + (room != null ? room.RoomUsage.ToString() : "?"), _label);
+            var yy = y + 32f;
+            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为住宅", _button)) SetRoomUsage(roomId, RoomUsage.Residential);
+            yy += itemH;
+            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为医疗", _button)) SetRoomUsage(roomId, RoomUsage.Medical);
+            yy += itemH;
+            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为囚室", _button)) SetRoomUsage(roomId, RoomUsage.Prison);
+            yy += itemH;
+            if (room != null && room.RoomUsage == RoomUsage.Prison && TryFindEscortedCaptive(_actor, out _) &&
+                GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "安置俘虏", _button))
+                BeginPrisonRoom(roomId);
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void SetRoomUsage(string roomId, RoomUsage usage)
+        {
+            var result = RoomBedFacilityService.SetRoomUsage(bootstrap?.Session?.World, roomId, usage);
+            if (result.IsFailure) Debug.LogWarning("[Room] " + result.Error.Message, this);
+            CloseAll();
+        }
+
+        void BeginPrisonRoom(string roomId)
+        {
+            var actor = _actor;
+            if (!TryFindEscortedCaptive(actor, out var captive) ||
+                !MortalCivilianService.TryResolvePrisonDropOff(bootstrap.Session.World, roomId,
+                    out var room, out var door, out _))
+            { CloseAll(); return; }
+            bootstrap.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(door.X, door.Y, out var px, out var py);
+            var destination = HostPresentationSpace.FromPresentation(px, py);
+            CloseAll();
+            if (MortalCivilianService.CanDetain(bootstrap.Session.World, captive, roomId).IsSuccess)
+            { CompletePrisonDropOff(actor, captive, roomId); return; }
+            if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
+                    () => CompletePrisonDropOff(actor, captive, roomId), exactGoal: true))
+                Debug.LogWarning("[Civilian] 无法前往囚室门口。", this);
         }
 
         bool TryResolveBoundPrison(out WorkAreaDefinition prison)
@@ -499,7 +580,7 @@ namespace XianXia.Unity.Host
         void CompleteRecoverySpotApproach(EntityId actor, string stableId)
         {
             var message = string.Empty;
-            if (!TryFindRecoverySpot(stableId, out _) || !CanBeginRecovery(actor, out message))
+            if (!TryFindRestSpot(stableId, out _) || !CanBeginRecovery(actor, out message))
             {
                 ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处已不可用。" : message, false);
                 return;
@@ -536,12 +617,12 @@ namespace XianXia.Unity.Host
             return can.IsSuccess;
         }
 
-        static bool TryFindRecoverySpot(string stableId, out HostMapPlotCell plot)
+        static bool TryFindRestSpot(string stableId, out HostMapPlotCell plot)
         {
             plot = null;
             var plots = HostMapObjectRegistry.AllPlots;
             for (var i = 0; i < plots.Count; i++)
-                if (plots[i] != null && plots[i].IsRecoverySpot &&
+                if (plots[i] != null && (plots[i].IsRecoverySpot || plots[i].IsBed) &&
                     string.Equals(plots[i].StableCellId, stableId, System.StringComparison.Ordinal))
                 {
                     plot = plots[i];

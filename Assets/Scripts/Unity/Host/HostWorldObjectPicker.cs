@@ -13,7 +13,7 @@ namespace XianXia.Unity.Host
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
         Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8,
-        OpportunityObject = 9, PrisonDropOff = 10
+        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12
     }
 
     public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
@@ -59,6 +59,8 @@ namespace XianXia.Unity.Host
                     case WorldObjectTargetKind.StorageRoom: return "storageRoom";
                     case WorldObjectTargetKind.OpportunityObject: return "opportunityObject";
                     case WorldObjectTargetKind.PrisonDropOff: return "prisonDropOff";
+                    case WorldObjectTargetKind.Bed: return "bed";
+                    case WorldObjectTargetKind.Room: return "room";
                     default: return string.Empty;
                 }
             }
@@ -66,7 +68,8 @@ namespace XianXia.Unity.Host
         public string StableObjectId =>
             Kind == WorldObjectTargetKind.FactionFlag ? FactionFlagId :
             Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot ||
-            Kind == WorldObjectTargetKind.StorageRoom || Kind == WorldObjectTargetKind.PrisonDropOff
+            Kind == WorldObjectTargetKind.StorageRoom || Kind == WorldObjectTargetKind.PrisonDropOff ||
+            Kind == WorldObjectTargetKind.Bed || Kind == WorldObjectTargetKind.Room
                 ? Plot != null ? Plot.StableCellId : string.Empty :
             Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
             Kind == WorldObjectTargetKind.OpportunityObject ? OpportunityObject?.WorldObjectInstanceId ?? string.Empty :
@@ -149,6 +152,20 @@ namespace XianXia.Unity.Host
             if (HostMapObjectRegistry.TryPickPlot(point, out var plot) && plot.IsRecoverySpot)
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.RecoverySpot, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.IsBed)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Bed, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.IsRoom)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Room, plot: plot,
                     displayLabel: plot.KindDisplayName());
                 return true;
             }

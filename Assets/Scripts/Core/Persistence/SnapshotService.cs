@@ -1482,7 +1482,7 @@ namespace XianXia.Core.Persistence
                 if (dto == null || injured.IsNone || !world.Entities.TryGet(injured, out var entity) ||
                     !entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) || !life.IsIncapacitated ||
                     !world.OutdoorConstructedAssets.Assets.TryGetValue(dto.RecoverySpotId, out var spot) ||
-                    spot.Kind != XianXia.Core.Construction.OutdoorConstructedAssetSemantics.RecoverySpotKind ||
+                    !(RoomBedGeometry.IsBed(spot) && RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical)) ||
                     !world.RecoverySpotDeliveries.TryRestore(dto.RecoverySpotId, injured))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid or duplicate recovery spot placement.", dto?.RecoverySpotId ?? string.Empty);

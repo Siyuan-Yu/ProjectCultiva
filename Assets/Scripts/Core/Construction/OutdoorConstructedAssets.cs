@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Construction
@@ -234,6 +235,110 @@ namespace XianXia.Core.Construction
                 if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate) && !IsAllowedNestedPair(existing, candidate))
                     return Result.Failure(ErrorCode.InvalidOperation, "位置与已有房间或家具重叠。");
             return Result.Success();
+        }
+    }
+
+    /// <summary>Room-level usage and bed assignment/reservation/occupancy authority.</summary>
+    public static class RoomBedFacilityService
+    {
+        public static Result SetRoomUsage(SimulationWorld world, string roomId, RoomUsage usage)
+        {
+            if (world == null || !world.OutdoorConstructedAssets.Assets.TryGetValue(roomId ?? string.Empty, out var room) ||
+                !RoomBedGeometry.IsRoom(room))
+                return Result.Failure(ErrorCode.NotFound, "房间不存在。", roomId);
+            if (room.RoomUsage == RoomUsage.Prison && usage != RoomUsage.Prison)
+                foreach (var bed in BedsInRoom(world, roomId))
+                    if (!bed.OccupantCharacterId.IsNone)
+                        return Result.Failure(ErrorCode.InvalidOperation, "请先释放或转移房内囚犯。");
+            room.RoomUsage = usage;
+            return Result.Success();
+        }
+
+        public static Result AssignBed(SimulationWorld world, string bedId, EntityId characterId)
+        {
+            if (world == null || characterId.IsNone || !world.Entities.TryGet(characterId, out _) ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId ?? string.Empty, out var bed) ||
+                !RoomBedGeometry.IsBed(bed))
+                return Result.Failure(ErrorCode.InvalidArgument, "床位或人物无效。");
+            foreach (var other in Beds(world))
+                if (other.AssignedCharacterId == characterId && other.StableAssetId != bed.StableAssetId)
+                    other.AssignedCharacterId = EntityId.None;
+            bed.AssignedCharacterId = characterId;
+            return Result.Success();
+        }
+
+        public static bool HasAvailableBed(SimulationWorld world, EntityId characterId, RoomUsage usage) =>
+            TryFindBed(world, characterId, usage, out _);
+
+        public static bool TryFindBed(SimulationWorld world, EntityId characterId, RoomUsage usage,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            if (world == null || characterId.IsNone) return false;
+            foreach (var candidate in Beds(world))
+            {
+                if (!BedHasUsage(world, candidate, usage) ||
+                    (!candidate.OccupantCharacterId.IsNone && candidate.OccupantCharacterId != characterId) ||
+                    (!candidate.ReservedCharacterId.IsNone && candidate.ReservedCharacterId != characterId)) continue;
+                if (candidate.AssignedCharacterId == characterId) { bed = candidate; return true; }
+                if (bed == null && candidate.AssignedCharacterId.IsNone) bed = candidate;
+            }
+            return bed != null;
+        }
+
+        public static bool TryReserve(SimulationWorld world, EntityId characterId, RoomUsage usage,
+            out OutdoorConstructedAssetState bed)
+        {
+            if (!TryFindBed(world, characterId, usage, out bed)) return false;
+            bed.ReservedCharacterId = characterId;
+            return true;
+        }
+
+        public static bool TryOccupy(SimulationWorld world, string bedId, EntityId characterId)
+        {
+            if (world == null || characterId.IsNone ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId ?? string.Empty, out var bed) ||
+                !RoomBedGeometry.IsBed(bed) ||
+                (!bed.ReservedCharacterId.IsNone && bed.ReservedCharacterId != characterId) ||
+                (!bed.OccupantCharacterId.IsNone && bed.OccupantCharacterId != characterId)) return false;
+            bed.ReservedCharacterId = characterId;
+            bed.OccupantCharacterId = characterId;
+            return true;
+        }
+
+        public static void Release(SimulationWorld world, EntityId characterId)
+        {
+            if (world == null || characterId.IsNone) return;
+            foreach (var bed in Beds(world))
+            {
+                if (bed.ReservedCharacterId == characterId) bed.ReservedCharacterId = EntityId.None;
+                if (bed.OccupantCharacterId == characterId) bed.OccupantCharacterId = EntityId.None;
+            }
+        }
+
+        public static WorldVec2 AccessPoint(OutdoorConstructedAssetState bed)
+        {
+            return new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY - Math.Max(.1f, bed.WorldHeight / bed.CellsH * .5f));
+        }
+
+        public static bool BedHasUsage(SimulationWorld world, OutdoorConstructedAssetState bed, RoomUsage usage)
+        {
+            if (!RoomBedGeometry.IsBed(bed)) return false;
+            if (string.IsNullOrEmpty(bed.ParentRoomId)) return usage == RoomUsage.Residential;
+            return world.OutdoorConstructedAssets.Assets.TryGetValue(bed.ParentRoomId, out var room) &&
+                   RoomBedGeometry.IsRoom(room) && room.RoomUsage == usage;
+        }
+
+        public static IEnumerable<OutdoorConstructedAssetState> BedsInRoom(SimulationWorld world, string roomId)
+        {
+            foreach (var bed in Beds(world)) if (bed.ParentRoomId == roomId) yield return bed;
+        }
+
+        static IEnumerable<OutdoorConstructedAssetState> Beds(SimulationWorld world)
+        {
+            if (world == null) yield break;
+            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+                if (RoomBedGeometry.IsBed(asset)) yield return asset;
         }
     }
 
