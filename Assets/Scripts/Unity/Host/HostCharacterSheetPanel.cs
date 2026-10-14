@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -222,6 +223,23 @@ namespace XianXia.Unity.Host
             DrawRailRow(rail, ref y, "身份", info?.FactionRole ?? "无");
             DrawRailRow(rail, ref y, "境界", realm);
             DrawRailRow(rail, ref y, "当前位置", info?.Location ?? "未知");
+            DrawRailRow(rail, ref y, "住房", FormatHousing(entity.Id));
+        }
+
+        string FormatHousing(EntityId characterId)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || !RoomBedFacilityService.TryGetAssignedBed(world, characterId, out var bed))
+                return "住所：无；床位：无";
+            var person = world.Entities.TryGet(characterId, out var entity)
+                ? HousingAssignmentService.EntityDisplayName(entity) : characterId.ToString();
+            var roomName = "无";
+            if (world.OutdoorConstructedAssets.Assets.TryGetValue(bed.ParentRoomId, out var room))
+                roomName = world.ConstructionCatalog.TryGet(room.BuildingId, out var roomSpec)
+                    ? person + "的" + roomSpec.DisplayName : room.StableAssetId;
+            var bedName = world.ConstructionCatalog.TryGet(bed.BuildingId, out var bedSpec)
+                ? person + "的" + bedSpec.DisplayName : bed.StableAssetId;
+            return "住所：" + roomName + "；床位：" + bedName;
         }
 
         void DrawRailRow(Rect rail, ref float y, string label, string value)

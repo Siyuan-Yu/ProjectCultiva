@@ -78,7 +78,9 @@ namespace XianXia.Unity.Host
                     _inspect.Kind == WorldObjectInspectKind.WorkArea ||
                     _inspect.Kind == WorldObjectInspectKind.Plot ||
                     _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
-                    _inspect.Kind == WorldObjectInspectKind.PrisonDropOff)
+                    _inspect.Kind == WorldObjectInspectKind.PrisonDropOff ||
+                    _inspect.Kind == WorldObjectInspectKind.Room ||
+                    _inspect.Kind == WorldObjectInspectKind.Bed)
                     _inspect.Clear();
             }
 
@@ -89,7 +91,9 @@ namespace XianXia.Unity.Host
             if ((_inspect.Kind == WorldObjectInspectKind.Plot ||
                  _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
                  _inspect.Kind == WorldObjectInspectKind.StorageRoom ||
-                 _inspect.Kind == WorldObjectInspectKind.PrisonDropOff) && _inspect.Plot == null)
+                 _inspect.Kind == WorldObjectInspectKind.PrisonDropOff ||
+                 _inspect.Kind == WorldObjectInspectKind.Room ||
+                 _inspect.Kind == WorldObjectInspectKind.Bed) && _inspect.Plot == null)
                 _inspect.Clear();
         }
 
@@ -168,6 +172,15 @@ namespace XianXia.Unity.Host
             if (_inspect.Kind == WorldObjectInspectKind.Plot && _inspect.Plot != null)
             {
                 Gizmos.color = new Color(0.85f, 0.75f, 0.25f, 0.9f);
+                Gizmos.DrawWireSphere(_inspect.Plot.transform.position, 0.9f);
+                return;
+            }
+
+            if ((_inspect.Kind == WorldObjectInspectKind.Room || _inspect.Kind == WorldObjectInspectKind.Bed) &&
+                _inspect.Plot != null)
+            {
+                Gizmos.color = _inspect.Kind == WorldObjectInspectKind.Room
+                    ? new Color(0.35f, 0.75f, 1f, 0.9f) : new Color(0.75f, 0.55f, 1f, 0.9f);
                 Gizmos.DrawWireSphere(_inspect.Plot.transform.position, 0.9f);
                 return;
             }

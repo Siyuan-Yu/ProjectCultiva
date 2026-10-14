@@ -420,23 +420,39 @@ namespace XianXia.Unity.Host
 
         void DrawBedMenu()
         {
-            const float w = 200f;
+            const float w = 240f;
             const float itemH = 30f;
             var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
-            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 128f);
-            _menuGuiRect = new Rect(x, y, w, 124f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 170f);
+            _menuGuiRect = new Rect(x, y, w, 166f);
             HostUiHitTest.Block(_menuGuiRect); Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
             var bedId = _worldObjectTarget.Plot?.StableCellId ?? string.Empty;
-            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "床", _label);
-            if (GUI.Button(new Rect(x + 8f, y + 32f, w - 16f, itemH - 4f), "分配给当前人物", _button))
+            var world = bootstrap?.Session?.World;
+            OutdoorConstructedAssetState bed = null;
+            world?.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out bed);
+            var assignedName = bed == null || bed.AssignedCharacterId.IsNone ? "无人" : EntityName(world, bed.AssignedCharacterId);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "床 · 已分配：" + assignedName, _label);
+            var manageReason = "床位不存在。";
+            var canManage = bed != null && RoomBedFacilityService.CanManageBed(world, bed, out manageReason);
+            GUI.enabled = canManage;
+            if (GUI.Button(new Rect(x + 8f, y + 36f, w - 16f, itemH - 4f), "分配给当前人物", _button))
             {
-                var assigned = RoomBedFacilityService.AssignBed(bootstrap?.Session?.World, bedId, _actor);
+                var assigned = RoomBedFacilityService.AssignBed(world, bedId, _actor);
                 if (assigned.IsFailure) Debug.LogWarning("[Bed] " + assigned.Error.Message, this);
                 CloseAll(); return;
             }
-            if (GUI.Button(new Rect(x + 8f, y + 62f, w - 16f, itemH - 4f), "休息恢复", _button))
+            GUI.enabled = true;
+            if (!canManage)
+                GUI.Label(new Rect(x + 10f, y + 66f, w - 20f, 24f), manageReason, _label);
+            if (GUI.Button(new Rect(x + 8f, y + 96f, w - 16f, itemH - 4f), "休息恢复", _button))
                 BeginRecoverySpot();
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        static string EntityName(SimulationWorld world, EntityId id)
+        {
+            return world != null && world.Entities.TryGet(id, out var entity)
+                ? HousingAssignmentService.EntityDisplayName(entity) : id.ToString();
         }
 
         void DrawRoomMenu()
@@ -455,6 +471,9 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f),
                 "房间用途：" + (room != null ? room.RoomUsage.ToString() : "?"), _label);
             var yy = y + 32f;
+            var permissionReason = "房间不存在。";
+            var canManage = room != null && RoomBedFacilityService.CanManageRoom(world, room, out permissionReason);
+            GUI.enabled = canManage;
             if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为住宅", _button)) SetRoomUsage(roomId, RoomUsage.Residential);
             yy += itemH;
             if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为医疗", _button)) SetRoomUsage(roomId, RoomUsage.Medical);
@@ -464,6 +483,9 @@ namespace XianXia.Unity.Host
             if (room != null && room.RoomUsage == RoomUsage.Prison && TryFindEscortedCaptive(_actor, out _) &&
                 GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "安置俘虏", _button))
                 BeginPrisonRoom(roomId);
+            GUI.enabled = true;
+            if (!canManage)
+                GUI.Label(new Rect(x + 8f, y + 156f, w - 16f, 22f), permissionReason, _label);
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -480,6 +502,7 @@ namespace XianXia.Unity.Host
             }
             var result = RoomBedFacilityService.SetRoomUsage(world, roomId, usage, confirmed);
             if (result.IsFailure) Debug.LogWarning("[Room] " + result.Error.Message, this);
+            else HostBedVisualStyle.RefreshRoom(world, roomId);
             _pendingRoomUsageId = string.Empty;
             CloseAll();
         }
@@ -574,8 +597,8 @@ namespace XianXia.Unity.Host
             var world = bootstrap?.Session?.World;
             if (world != null && world.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var bed) &&
                 RoomBedGeometry.IsBed(bed) && bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
-                bootstrap.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(
-                    RoomBedFacilityService.AccessPoint(bed), out var bedAccess))
+                RoomBedFacilityService.TryResolveAccessPoint(world, bed, out var access) &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(access, out var bedAccess))
                 destination = bedAccess;
             var message = string.Empty;
             CloseAll();
@@ -588,7 +611,7 @@ namespace XianXia.Unity.Host
                 view != null && Vector3.Distance(view.transform.position, destination) > 1.5f)
             {
                 if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
-                        () => CompleteRecoverySpotApproach(actor, stableId)))
+                        () => CompleteRecoverySpotApproach(actor, stableId), exactGoal: true))
                     ShowRecoveryFeedback(actor, "无法前往恢复处。", false);
                 return;
             }
@@ -637,9 +660,7 @@ namespace XianXia.Unity.Host
             {
                 if (!RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential))
                 { message = "此床不是普通休息床。"; return false; }
-                if (!bed.OccupantCharacterId.IsNone && bed.OccupantCharacterId != actor)
-                { message = "床位已被占用。"; return false; }
-                return true;
+                return RoomBedFacilityService.CanUseBed(world, bed, actor, out message);
             }
             var can = CombatRecoveryService.CanRecover(entity);
             if (can.IsFailure) message = can.Error.Message;

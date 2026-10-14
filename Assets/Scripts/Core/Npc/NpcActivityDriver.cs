@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -89,6 +90,10 @@ namespace XianXia.Core.Npc
             if (duration == 0)
                 return;
 
+            if ((choice.Activity == ScheduleActivity.Rest || choice.Activity == ScheduleActivity.Idle) &&
+                TryDriveAssignedHome(world, loop, entity, queue, choice.Activity, duration))
+                return;
+
             if (!TryResolveWithFallback(world, entity, choice.Activity, duration, out var resolved))
                 return;
 
@@ -139,6 +144,44 @@ namespace XianXia.Core.Npc
                 activity: resolved.Activity,
                 slotIndex: resolved.SlotIndex);
             loop.EnqueueOrder(order);
+        }
+
+        static bool TryDriveAssignedHome(
+            SimulationWorld world,
+            SimulationLoop loop,
+            Entity entity,
+            OrderQueue queue,
+            ScheduleActivity activity,
+            ulong duration)
+        {
+            if (!RoomBedFacilityService.TryGetAssignedHome(world, entity.Id, out var bed, out _, out var access))
+                return false;
+            if (!RoomBedFacilityService.CanUseBed(world, bed, entity.Id, out _))
+                return true; // an invalid assigned bed is reported by the shared query; never fall back to another home
+
+            if (!RoomBedFacilityService.IsAtAccessPoint(world, bed, entity.Id))
+            {
+                queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
+                if (!entity.TryGet<MovementIntentComponent>(out var intent))
+                { intent = new MovementIntentComponent(); entity.AddComponent(intent); }
+                var radius = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
+                    ? metric.CellSize * .75f : 0f;
+                var key = "schedule-home-bed:" + bed.StableAssetId;
+                if (!intent.Active || !intent.HasWorldTarget || intent.TargetSurfaceId != bed.SurfaceId ||
+                    intent.DestinationKey != key)
+                    intent.BeginWorldPoint(bed.SurfaceId, access.X, access.Y,
+                        destinationKey: key, arrivalRadiusWorld: radius);
+                return true;
+            }
+
+            if (entity.TryGet<MovementIntentComponent>(out var arrivedIntent)) arrivedIntent.Clear();
+            var type = activity == ScheduleActivity.Rest ? OrderType.RestAtBed : OrderType.Wait;
+            var target = activity == ScheduleActivity.Rest ? bed.StableAssetId : string.Empty;
+            if (queue.HasMatching(OrderSource.Schedule, type, target)) return true;
+            queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
+            loop.EnqueueOrder(new Order(loop.AllocateOrderId(), entity.Id, type, OrderSource.Schedule,
+                waitTicks: duration == 0 ? 1UL : duration, targetRef: target, activity: activity));
+            return true;
         }
 
         bool TryResolveWithFallback(

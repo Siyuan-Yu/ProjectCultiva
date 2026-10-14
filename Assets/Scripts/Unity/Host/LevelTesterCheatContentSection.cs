@@ -59,8 +59,8 @@ namespace XianXia.Unity.Host
                 case "focus.grain-field": y = DrawFocusTool(host, "base:workarea_labor_yard", x, y, width, body); break;
                 case "focus.herb-field": y = DrawFocusTool(host, "base:workarea_herb_field", x, y, width, body); break;
                 case "focus.woodcut": y = DrawFocusTool(host, "base:workarea_forest_woodcut", x, y, width, body); break;
-                case "focus.medical": y = DrawFocusTool(host, "base:workarea_huangcun_medical", x, y, width, body); break;
-                case "focus.prison": y = DrawFocusTool(host, "base:workarea_huangcun_prison", x, y, width, body); break;
+                case "focus.medical": y = DrawFocusAsset(host, "base:site_huangcun:room_medical", x, y, width, body); break;
+                case "focus.prison": y = DrawFocusAsset(host, "base:site_huangcun:room_prison", x, y, width, body); break;
                 case "focus.injured": y = DrawActionTool("定位唯一选中的伤员", () => FocusInjured(host, selection), x, y, width, body); break;
                 case "focus.shop": y = DrawFixedFocusTool(host, "base:shop_qingshi_general", 5.14f, 11.10f, x, y, width, body); break;
                 case "focus.auction": y = DrawFixedFocusTool(host, "base:auction_house_qingshi", 5.3f, 11.1f, x, y, width, body); break;
@@ -205,6 +205,18 @@ namespace XianXia.Unity.Host
         float DrawFocusTool(PlayableHostBootstrap host, string workAreaId,
             float x, float y, float width, GUIStyle body) =>
             DrawActionTool("定位 " + workAreaId, () => FocusWorkArea(host, workAreaId), x, y, width, body);
+
+        float DrawFocusAsset(PlayableHostBootstrap host, string assetId,
+            float x, float y, float width, GUIStyle body) =>
+            DrawActionTool("定位 " + assetId, () =>
+            {
+                if (!host.Session.World.OutdoorConstructedAssets.Assets.TryGetValue(assetId, out var asset))
+                { _sectionStatus = "失败：房间运行态不存在。"; return; }
+                var point = new WorldVec2(asset.WorldX + asset.WorldWidth * .5f,
+                    asset.WorldY + asset.WorldHeight * .5f);
+                var ok = host.TryFocusContinuousWorldPosition(asset.SurfaceId, point, out var reason);
+                _sectionStatus = ok ? "成功：已定位房间；未传送或修改状态。" : "失败：" + reason;
+            }, x, y, width, body);
 
         float DrawFixedFocusTool(PlayableHostBootstrap host, string targetId, float worldX, float worldY,
             float x, float y, float width, GUIStyle body)
@@ -403,13 +415,14 @@ namespace XianXia.Unity.Host
             float x, float y, float width, GUIStyle body)
         {
             var sb = new System.Text.StringBuilder();
-            var hasDropOff = MortalCivilianService.TryResolvePrisonDropOff(world, "base:workarea_huangcun_prison", out var point, out _, out _);
+            const string prisonId = "base:site_huangcun:room_prison";
+            var hasDropOff = MortalCivilianService.TryResolvePrisonDropOff(world, prisonId, out var point, out _, out _);
             sb.AppendLine("DropOffId=" + (hasDropOff ? point.StableAssetId : "—"));
             foreach (var pair in world.Civilians.All)
             {
                 var state = pair.Value;
                 if (state == null || (state.Disposition != CivilianDisposition.CapturedEscorted && state.Disposition != CivilianDisposition.Detained)) continue;
-                var can = MortalCivilianService.CanDetain(world, state.EntityId, "base:workarea_huangcun_prison");
+                var can = MortalCivilianService.CanDetain(world, state.EntityId, prisonId);
                 sb.AppendLine("Captive=" + state.EntityId + " State=" + state.Disposition + " Carrier=" + state.CarrierId +
                               " DetainLegal=" + can.IsSuccess + " Reason=" + (can.IsSuccess ? "OK" : can.Error.Message));
             }
@@ -562,8 +575,8 @@ namespace XianXia.Unity.Host
                 if (entity.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals) &&
                     entity.TryGet<XianXia.Core.Entities.AttributesComponent>(out var attributes))
                     vitals.CurrentHp = System.Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp));
-                state.ResidenceWorkAreaId = "base:workarea_houses";
-                if (entity.TryGet<ActivityTendencyComponent>(out var tendency)) tendency.HomeWorkAreaId = state.ResidenceWorkAreaId;
+                state.ResidenceWorkAreaId = string.Empty;
+                if (entity.TryGet<ActivityTendencyComponent>(out var tendency)) tendency.HomeWorkAreaId = string.Empty;
                 if (id == "base:character_ch01_ref_mortal_b")
                     XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, entity.Id, 10);
                 else

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Exploration;
@@ -10,6 +11,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostMapGraybox : MonoBehaviour
     {
+        const string HideMapLabelTag = "hideMapLabel";
         [SerializeField] Transform mapRoot;
         [SerializeField] float tileWorldSize = 1f;
         [SerializeField] int patchRadius = 3;
@@ -44,6 +46,8 @@ namespace XianXia.Unity.Host
             }
 
             var locations = session.World.LocalPlaces.Locations;
+            var continuousPlaces = session.World.ContinuousOutdoorMaterialization.PlacesByLocationId;
+            var labeledLocationIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var kv in locations)
             {
                 // 洞府内室等只属于洞内图：地表不画标签（MapEditor 里也不会出现）
@@ -51,6 +55,10 @@ namespace XianXia.Unity.Host
                     continue;
                 if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
                     !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, kv.Value))
+                    continue;
+                if (!session.World.LocalMap.IsInInterior && continuousPlaces.ContainsKey(kv.Key))
+                    continue;
+                if (ShouldHideMapLabel(kv.Value) || !labeledLocationIds.Add(kv.Key))
                     continue;
                 BuildZoneLabel(kv.Value);
             }
@@ -62,16 +70,26 @@ namespace XianXia.Unity.Host
                 _built.Add(marker);
             }
 
-            foreach (var kv in session.World.ContinuousOutdoorMaterialization.PlacesByLocationId)
+            foreach (var kv in continuousPlaces)
             {
                 var loc = kv.Value;
                 if (loc == null || (OpportunityEntranceRules.IsHiddenEntrance(loc) &&
                     !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, loc))) continue;
+                if (ShouldHideMapLabel(loc) || !labeledLocationIds.Add(kv.Key)) continue;
                 BuildZoneLabel(loc);
                 var marker = new GameObject("ContinuousSiteMarker_" + kv.Key);
                 marker.transform.SetParent(mapRoot, false);
                 _built.Add(marker);
             }
+        }
+
+        static bool ShouldHideMapLabel(WorldLocationState loc)
+        {
+            if (loc?.Tags == null) return false;
+            for (var i = 0; i < loc.Tags.Count; i++)
+                if (string.Equals(loc.Tags[i], HideMapLabelTag, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
         }
 
         public void Clear() => ClearOverlaysOnly();

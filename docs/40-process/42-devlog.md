@@ -1,11 +1,26 @@
 # 开发日志
 
+## 2026-10-14 — 荒村旧标签、议政厅锚点与床用途配色（待制作人验收）
+
+- 从荒村作者蓝图删除旧测试集合点，并由正式 `CompatibilityPublisher` 同步清除 runtime placement、`base:loc_ref_party_rally` 地点及全部邻接引用；原“调度·三人集合”任务保持 ID、前置、奖励与完成标记，目的地改为 `base:loc_ref_labor_yard`。三个旧住房地点保留剧情／日程语义，以 `hideMapLabel` tag 仅取消过时地图文字。
+- 发布器现从带 `boundLocationId` 的有效荒村 placement 中派生地点中心、名称、类型与 tags；议政厅地点锚点与唯一 `controlCore` 建筑中心统一为 `(6.105485, 11.215)`。Host 标签优先采用 Continuous materialized place 并按 LocationId 去重；核心点击仍使用建筑足迹，接近／攻占仍使用建筑外可达点。
+- 床实例不再复用蓝绿色蒲团贴图作为最终床身，而使用中性程序化床身并从 `Bed.ParentRoomId → Room.RoomUsage` 派生颜色：Residential 保持原紫色、Prison 为 `#8B5A3C`、Medical 为 `#A0A0A0`，合法室外床按普通床显示。成功切换房间用途后仅刷新该房间现有床实例；失败不改色，重建／读档／区域重载仍由真实状态重新解析。
+- 全程序集 offline compile `ALL_OK`；ContentAuthoring solution 0 error（保留 MapEditor 既有 4 warning）；静态核对集合点对象／地点／邻接引用均为 0，议政厅 placement 中心与地点坐标一致，22 房／27 床／20 个唯一 opening SpawnKey 未改变。按仓库规则未启动 Unity／PlayMode／Runner，未运行或新增自动测试，未做视觉或人工游玩。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-14 — ROOM-02 住房接线、旧住宅清理与镜头范围（待制作人验收）
+
+- 房间模板缩为普通 4×6／中级 8×12／高级 16×24，床缩为 1×2；成本、工时、耐久、独立墙段与世界比例不变。`RoomBedGeometry` 现按真实网格枚举房间净内区床边格，建床无合法使用格时拒绝；自动睡眠、玩家休息和医疗搬运共用该入口，到达后才占用，搬运者站床边而伤员落床中心。
+- `AssignedCharacterId` 保持长期住房真源；New Game 在 opening identity 建立且作者 Room／Bed 资产注册完成后执行 20 个 SpawnKey 绑定，校验唯一、住宅用途与实际 identity，并清除旧 `HomeWorkAreaId`／`ResidenceWorkAreaId` 驱动。受管凡人下班、自动睡眠及允许自主 Rest／Idle 的旧日程接入分配房间；找床限制同 Surface／Site，专属床不可被他人占用，指定床失效不再跨世界静默兜底。
+- 荒村作者源清除三组旧住宅、旧医疗／囚室、四个遗留设施、15 段旧墙及五个旧 WorkArea 引用；22 房／27 床紧凑迁回原住宅区域，20 张住宅床映射不变。作者源经正式 `CompatibilityPublisher` 发布到 runtime；FineEditor 与制作源验证器同步新尺寸。
+- Room／Bed 已接入左键检视，人物面板显示运行时住所／床位，床右键显示长期分配与权限原因。Snapshot v15 restore 继续校验作者身份与几何，但不再把可变 `RoomUsage` 当作 immutable。LevelTester 实际相机上限由 22 明确改为 44，组件默认值与场景生成工具同步，开局缩放不变。
+- 全程序集 offline compile `ALL_OK`；ContentAuthoring solution 0 error（保留 MapEditor 既有 4 warning）；作者源／runtime 静态核对为 22 房、27 床、20 个唯一 opening SpawnKey，旧对象／旧引用为 0。按仓库规则未启动 Unity／PlayMode／Runner，未运行或新增自动测试，未做视觉或人工游玩。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-14 — ROOM-01 C：荒村作者源、发布与存读档收口（待制作人验收）
 
 - `FineEditor` 与 `SurfaceAuthoring.Core` 正式读写房间模板、用途、父房间、初始住户 SpawnKey、旋转和耐久；复制房间重映射子家具稳定 ID，移动、旋转、删除父房间同步子床。旧精确几何每次加载均从 immutable legacy rectangle 重新水合，兼容发布保护保持启用。
 - 启动修正：作者源归一化只接管 recovery/drop-off、storage、room、bed、wall 等物理资产；旧 authored grainField 继续由 Surface placement 持有，不再被批量注册到建设资产板，避免同一农田地点的旧地块触发重复／重叠拒绝。玩家新建农田仍使用原 ConstructionService 与资产板路径。
 - 荒村作者源扩展为 22 间房、27 张床：20 间住宅各一床（19 间普通木房、主管一间中级石房），另有中级木质医疗房 3 床、牢房 4 床。20 个开局住户按 SpawnKey 绑定真实 EntityId；旧恢复点和独立囚室交接物只保留装饰，不再承担床位 authority。
-- 作者源已通过正式 `CompatibilityPublisher` 发布到 `main_wilderness_surface_v1.json`。New Game authored 与玩家建造共用 `OutdoorConstructedAssetState`／查询服务；初始分床在 opening identity 建立后 seed 一次，Restore 不覆盖玩家状态。普通床休息使用独立 `BedRestAction`，不再借用战斗池 `RecoveryAction`。
+- 作者源已通过正式 `CompatibilityPublisher` 发布到 `main_wilderness_surface_v1.json`。New Game authored 与玩家建造共用 `OutdoorConstructedAssetState`／查询服务；初始分床在 opening identity 建立且作者 Room／Bed 资产注册完成后 seed 一次，Restore 不覆盖玩家状态。普通床休息使用独立 `BedRestAction`，不再借用战斗池 `RecoveryAction`。
 - Snapshot 保持 ROOM-01 A 已升级的 v15，保存房间、床、用途、几何、长期分配、预约／占用和工单事实，v14 及更旧开发档明确拒绝。全程序集离线编译 `ALL_OK`，ContentAuthoring solution 0 warning／0 error；未启动 Unity／PlayMode／Runner，未运行或新增自动测试。状态：**C Implementation Complete / Producer Acceptance Pending**。
 
 ## 2026-10-14 — ROOM-01 B：房间用途与真实床位使用（待制作人验收）

@@ -170,7 +170,13 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 
 ROOM-01 已实现并保持 **Producer Acceptance Pending**：旧 `WorkArea.Capacity`／`ResidenceUsage` 住房路径不再是新房间容量真源；`RoomBedFacilityService` 以真实 Room／Bed 维护长期分配、运输预留和实际占用。凡人睡眠、玩家床上休息、医疗搬运和囚犯关押均消费同一床位 authority；用途切换对占用／预留 fail-closed，静态长期分配需二次确认解除。医疗床只负责送达和占位，不治疗或复活。
 
-荒村作者源现为 22 房／27 床／20 个 SpawnKey 住宅绑定，并已发布到正式 Continuous Surface runtime。New Game 在 opening identity 建立后 seed 一次，Snapshot v15 保存动态事实，Restore 不按名字重新分床。旧恢复点／独立囚室交接点已退出功能 authority；Prison 房南门派生正式交接锚点。本文下方 P1 recoverySpot／dedicated prison 描述保留为历史实现记录，当前行为以本节和代码为准。
+荒村作者源现为 22 房／27 床／20 个 SpawnKey 住宅绑定，并已发布到正式 Continuous Surface runtime。New Game 在 opening identity 建立且作者 Room／Bed 资产注册完成后 seed 一次，Snapshot v15 保存动态事实，Restore 不按名字重新分床。旧恢复点／独立囚室交接点已退出功能 authority；Prison 房南门派生正式交接锚点。本文下方 P1 recoverySpot／dedicated prison 描述保留为历史实现记录，当前行为以本节和代码为准。
+
+### ROOM-02 implementation update（2026-10-14）
+
+房间／床正式尺寸已收为 4×6、8×12、16×24 与 1×2；床边点按真实网格从房间净内区解析。长期分配床同时成为下班返家、自动睡眠、允许自主休息的旧日程和住房 UI 的统一查询真源；使用门禁限制人物与床同 Surface／Site，专属床不能被其他人物占用。旧 `HomeWorkAreaId`／`ResidenceWorkAreaId` 不再驱动这 20 名住户。
+
+荒村三组旧住房、旧医疗／囚室、四个遗留设施、15 段旧墙及五个住房 WorkArea 已从 Content 删除，新 22 房／27 床紧凑迁回原区域并由正式作者发布链生成 runtime。状态仍为 **Implementation Complete / Producer Acceptance Pending**；未启动 Unity 或执行人工验收。
 
 ### 当前功能与验收状态表（唯一维护点，2026-10-10）
 

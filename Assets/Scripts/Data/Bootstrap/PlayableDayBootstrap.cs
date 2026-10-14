@@ -174,6 +174,12 @@ namespace XianXia.Data.Bootstrap
             if (content.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(content.Error);
 
+            // Initial bed bindings need both opening spawn identities and the authored
+            // room/bed assets registered by ContentRuntimeBootstrap.
+            var bedAssignments = AuthoredTransportPointBootstrap.ApplyInitialBedAssignments(world);
+            if (bedAssignments.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(bedAssignments.Error);
+
             var economy = WorldSiteEconomyBootstrap.ApplyNewGame(world, registry);
             if (economy.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(economy.Error);

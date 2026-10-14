@@ -14,7 +14,7 @@ namespace XianXia.Unity.Host
         [SerializeField] float panSpeed = 12f;
         [SerializeField] float zoomSpeed = 2f;
         [SerializeField] float minSize = 6f;
-        [SerializeField] float maxSize = 22f;
+        [SerializeField] float maxSize = 44f;
         [SerializeField] bool enableKeyboardPan = true;
         [SerializeField] bool enableMiddleMousePan = true;
 

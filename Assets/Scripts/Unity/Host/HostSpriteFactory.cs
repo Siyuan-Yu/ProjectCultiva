@@ -12,6 +12,7 @@ namespace XianXia.Unity.Host
         static Sprite _tile;
         static Sprite _ring;
         static Sprite _missingPrefab;
+        static Sprite _bed;
         static Sprite _meleeSlash;
         static Sprite _rangedBolt;
 
@@ -76,6 +77,30 @@ namespace XianXia.Unity.Host
             if (fromRes != null)
                 return _missingPrefab = fromRes;
             return _missingPrefab = MakeCheckerboardSprite(32, 32, "HostMissingPrefab");
+        }
+
+        /// <summary>Neutral bed body; each runtime instance is colored from its parent room usage.</summary>
+        public static Sprite BedSprite()
+        {
+            if (_bed != null)
+                return _bed;
+            var tex = new Texture2D(32, 32, TextureFormat.RGBA32, false)
+            {
+                name = "HostBed",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var edge = new Color(0.18f, 0.14f, 0.12f, 1f);
+            var pillow = new Color(0.78f, 0.78f, 0.76f, 1f);
+            for (var y = 0; y < 32; y++)
+            for (var x = 0; x < 32; x++)
+            {
+                var border = x < 2 || y < 2 || x >= 30 || y >= 30;
+                var head = y >= 23 && x >= 5 && x < 27;
+                tex.SetPixel(x, y, border ? edge : head ? pillow : Color.white);
+            }
+            tex.Apply(false, true);
+            return _bed = Sprite.Create(tex, new Rect(0, 0, 32, 32), new Vector2(.5f, .5f), 32f);
         }
 
         /// <summary>White fill + dark outline so tinted units stay readable on grass／dirt.</summary>

@@ -88,7 +88,7 @@ namespace XianXia.Unity.EditorTools
                 var rigSo = new SerializedObject(hostGo.GetComponent<PlayableHostCameraRig>());
                 rigSo.FindProperty("targetCamera").objectReferenceValue = cam;
                 if (rigSo.FindProperty("maxSize") != null)
-                    rigSo.FindProperty("maxSize").floatValue = 48f;
+                    rigSo.FindProperty("maxSize").floatValue = 44f;
                 if (rigSo.FindProperty("orthographicSize") != null)
                     rigSo.FindProperty("orthographicSize").floatValue = 18f;
                 rigSo.ApplyModifiedPropertiesWithoutUndo();

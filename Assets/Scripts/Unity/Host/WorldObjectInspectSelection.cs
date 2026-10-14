@@ -11,7 +11,9 @@ namespace XianXia.Unity.Host
         FactionFlag = 6,
         RecoverySpot = 7,
         StorageRoom = 8,
-        PrisonDropOff = 9
+        PrisonDropOff = 9,
+        Room = 10,
+        Bed = 11
     }
 
     /// <summary>左键点空后的世界物检视目标（只读况栏；无指令球）。</summary>
@@ -20,6 +22,7 @@ namespace XianXia.Unity.Host
         public WorldObjectInspectKind Kind { get; private set; }
         public string WorkAreaId { get; private set; } = string.Empty;
         public string FactionFlagId { get; private set; } = string.Empty;
+        public string AssetId { get; private set; } = string.Empty;
         public HostMapPlotCell Plot { get; private set; }
         public HostMapDestructible Destructible { get; private set; }
 
@@ -30,6 +33,7 @@ namespace XianXia.Unity.Host
             Kind = WorldObjectInspectKind.None;
             WorkAreaId = string.Empty;
             FactionFlagId = string.Empty;
+            AssetId = string.Empty;
             Plot = null;
             Destructible = null;
         }
@@ -88,6 +92,24 @@ namespace XianXia.Unity.Host
             Plot = plot;
         }
 
+        public void SetRoom(HostMapPlotCell plot)
+        {
+            Clear();
+            if (plot == null) return;
+            Kind = WorldObjectInspectKind.Room;
+            Plot = plot;
+            AssetId = plot.StableCellId ?? string.Empty;
+        }
+
+        public void SetBed(HostMapPlotCell plot)
+        {
+            Clear();
+            if (plot == null) return;
+            Kind = WorldObjectInspectKind.Bed;
+            Plot = plot;
+            AssetId = plot.StableCellId ?? string.Empty;
+        }
+
         public void SetDestructible(HostMapDestructible d)
         {
             Clear();
@@ -115,6 +137,8 @@ namespace XianXia.Unity.Host
                 case WorldObjectTargetKind.RecoverySpot: SetRecoverySpot(target.Plot); break;
                 case WorldObjectTargetKind.StorageRoom: SetStorageRoom(target.Plot); break;
                 case WorldObjectTargetKind.PrisonDropOff: SetPrisonDropOff(target.Plot); break;
+                case WorldObjectTargetKind.Room: SetRoom(target.Plot); break;
+                case WorldObjectTargetKind.Bed: SetBed(target.Plot); break;
                 case WorldObjectTargetKind.Destructible: SetDestructible(target.Destructible); break;
                 case WorldObjectTargetKind.Housing: SetHousing(target.WorkAreaId); break;
                 case WorldObjectTargetKind.WorkArea: SetWorkArea(target.WorkAreaId); break;

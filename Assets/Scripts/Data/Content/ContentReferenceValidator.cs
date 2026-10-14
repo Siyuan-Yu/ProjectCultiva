@@ -824,9 +824,9 @@ namespace XianXia.Data.Content
                         "Invalid storageRoom kind, 3x3 dimensions, createsWorldSite or dismantle refund.", building.Id.ToString());
                 if (building.PlacementKind == "room" &&
                     (building.CreatesWorldSite || building.OutdoorKind != "room" ||
+                     (building.FootprintCellsW != 4 || building.FootprintCellsH != 6) &&
                      (building.FootprintCellsW != 8 || building.FootprintCellsH != 12) &&
-                     (building.FootprintCellsW != 16 || building.FootprintCellsH != 24) &&
-                     (building.FootprintCellsW != 32 || building.FootprintCellsH != 48) ||
+                     (building.FootprintCellsW != 16 || building.FootprintCellsH != 24) ||
                      building.DoorWidthCells != 2 || building.ConstructionLabor <= 0 ||
                      building.StructureDurability <= 0 ||
                      (building.MaterialKind != "wood" && building.MaterialKind != "stone") ||
@@ -836,9 +836,9 @@ namespace XianXia.Data.Content
                         "Invalid room dimensions, material, tier, door, labor or durability.", building.Id.ToString());
                 if (building.PlacementKind == "bed" &&
                     (building.CreatesWorldSite || building.OutdoorKind != "bed" ||
-                     building.FootprintCellsW != 2 || building.FootprintCellsH != 4 ||
+                     building.FootprintCellsW != 1 || building.FootprintCellsH != 2 ||
                      building.ConstructionLabor <= 0))
-                    report.Add(ErrorCode.InvalidArgument, "Invalid bed kind, 2x4 dimensions or labor.", building.Id.ToString());
+                    report.Add(ErrorCode.InvalidArgument, "Invalid bed kind, 1x2 dimensions or labor.", building.Id.ToString());
                 if (building.PlacementKind == "wallSegment" &&
                     (building.CreatesWorldSite || building.OutdoorKind != "wallSegment" ||
                      building.FootprintCellsW != 1 || building.FootprintCellsH < 2 ||

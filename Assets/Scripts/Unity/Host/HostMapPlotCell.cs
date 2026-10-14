@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Construction;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 
@@ -284,5 +285,44 @@ namespace XianXia.Unity.Host
                 string.IsNullOrEmpty(label) ? kind : label,
                 lootSpotId,
                 lootItemId);
+    }
+
+    /// <summary>Presentation-only bed appearance derived from parent Room.RoomUsage.</summary>
+    public static class HostBedVisualStyle
+    {
+        public static readonly Color Residential = new Color(0.55f, 0.42f, 0.72f, 1f);
+        public static readonly Color Prison = new Color(0x8b / 255f, 0x5a / 255f, 0x3c / 255f, 1f);
+        public static readonly Color Medical = new Color(0xa0 / 255f, 0xa0 / 255f, 0xa0 / 255f, 1f);
+
+        public static void Apply(GameObject target, SimulationWorld world, string bedId)
+        {
+            if (target == null || world == null || string.IsNullOrEmpty(bedId) ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
+                !RoomBedGeometry.IsBed(bed))
+                return;
+            var color = RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ? Prison :
+                RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ? Medical : Residential;
+            var renderers = target.GetComponentsInChildren<SpriteRenderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null) continue;
+                renderers[i].sprite = HostSpriteFactory.BedSprite();
+                renderers[i].color = color;
+            }
+        }
+
+        public static void RefreshRoom(SimulationWorld world, string roomId)
+        {
+            if (world == null || string.IsNullOrEmpty(roomId)) return;
+            var plots = HostMapObjectRegistry.AllPlots;
+            for (var i = 0; i < plots.Count; i++)
+            {
+                var plot = plots[i];
+                if (plot == null || !plot.IsBed ||
+                    !world.OutdoorConstructedAssets.Assets.TryGetValue(plot.StableCellId, out var bed) ||
+                    !string.Equals(bed.ParentRoomId, roomId, System.StringComparison.Ordinal)) continue;
+                Apply(plot.gameObject, world, plot.StableCellId);
+            }
+        }
     }
 }

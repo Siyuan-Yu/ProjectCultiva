@@ -215471,7 +215471,7 @@ MonoBehaviour:
   panSpeed: 12
   zoomSpeed: 2
   minSize: 6
-  maxSize: 22
+  maxSize: 44
   enableKeyboardPan: 1
   enableMiddleMousePan: 1
 --- !u!114 &1052075885

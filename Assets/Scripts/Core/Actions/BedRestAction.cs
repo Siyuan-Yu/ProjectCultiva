@@ -28,6 +28,10 @@ namespace XianXia.Core.Actions
                 !RoomBedGeometry.IsBed(bed) ||
                 !RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential))
                 return Result.Failure(ErrorCode.ActionCannotStart, "需要一张合法的普通休息床。");
+            if (!RoomBedFacilityService.CanUseBed(world, bed, Subject, out var reason))
+                return Result.Failure(ErrorCode.ActionCannotStart, reason);
+            if (!RoomBedFacilityService.IsAtAccessPoint(world, bed, Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart, "需要先到达床边合法使用格。");
             return Result.Success();
         }
         public Result Start(SimulationWorld world)
@@ -41,7 +45,8 @@ namespace XianXia.Core.Actions
         {
             if (Status != ActionStatus.Running) return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
             if (!world.OutdoorConstructedAssets.Assets.TryGetValue(BedId, out var bed) ||
-                !RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential) || bed.OccupantCharacterId != Subject)
+                !RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential) ||
+                bed.OccupantCharacterId != Subject || !RoomBedFacilityService.IsAtAccessPoint(world, bed, Subject))
             { Status = ActionStatus.Failed; RoomBedFacilityService.Release(world, Subject); return Result.Failure(ErrorCode.InvalidOperation, "床位已失效。"); }
             Clock = Clock.Consume(1); if (!Clock.IsComplete) return Result.Success();
             if (world.Civilians.TryGet(Subject, out var civilian))

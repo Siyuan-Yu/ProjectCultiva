@@ -84,8 +84,8 @@
     {
       "id": "base:quest_ch01_ref_gather_wood",
       "type": "quest",
-      "name": "调度·三人集合",
-      "description": "【手动接取】完成上一环后可接。把主角／同伴甲／乙都派到集合点（地图 rallyPoint，地点 base:loc_ref_party_rally）。",
+      "name": "调度·三人返回农田工区",
+      "description": "【手动接取】完成上一环后可接。让主角／同伴甲／乙一同返回农田工区（地点 base:loc_ref_labor_yard）。",
       "autoOffer": false,
       "abandonable": false,
       "deadlineDays": 1,
@@ -98,17 +98,17 @@
       "completeConditions": [
         {
           "kind": "characterAtLocation",
-          "id": "base:loc_ref_party_rally",
+          "id": "base:loc_ref_labor_yard",
           "characterId": "base:character_protagonist"
         },
         {
           "kind": "characterAtLocation",
-          "id": "base:loc_ref_party_rally",
+          "id": "base:loc_ref_labor_yard",
           "characterId": "base:character_companion_a"
         },
         {
           "kind": "characterAtLocation",
-          "id": "base:loc_ref_party_rally",
+          "id": "base:loc_ref_labor_yard",
           "characterId": "base:character_companion_b"
         }
       ],

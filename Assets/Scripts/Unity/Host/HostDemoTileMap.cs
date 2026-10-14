@@ -1067,6 +1067,9 @@ namespace XianXia.Unity.Host
                 out var usedMissingVisual);
             if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
+            if (!usedMissingVisual && string.Equals(kind, OutdoorConstructedAssetSemantics.BedKind,
+                    System.StringComparison.Ordinal))
+                HostBedVisualStyle.Apply(go, _session?.World, name);
             TrackBuilt(go);
             return go;
         }

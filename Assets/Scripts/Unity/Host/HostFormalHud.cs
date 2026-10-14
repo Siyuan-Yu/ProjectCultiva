@@ -5,6 +5,7 @@ using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Concealment;
+using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -565,6 +566,12 @@ namespace XianXia.Unity.Host
                 case WorldObjectInspectKind.PrisonDropOff:
                     DrawInspectPrisonDropOff(session, inspect.Plot);
                     break;
+                case WorldObjectInspectKind.Room:
+                    DrawInspectRoom(session, inspect.Plot);
+                    break;
+                case WorldObjectInspectKind.Bed:
+                    DrawInspectBed(session, inspect.Plot);
+                    break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);
                     break;
@@ -772,6 +779,81 @@ namespace XianXia.Unity.Host
                 }
             });
         }
+
+        void DrawInspectRoom(PlayableHostSession session, HostMapPlotCell plot)
+        {
+            var roomId = plot?.StableCellId ?? string.Empty;
+            if (session?.World == null || !session.World.OutdoorConstructedAssets.Assets.TryGetValue(roomId, out var room) ||
+                !RoomBedGeometry.IsRoom(room)) return;
+            session.World.ConstructionCatalog.TryGet(room.BuildingId, out var spec);
+            var bedCount = 0;
+            var assignments = new List<string>();
+            var active = new List<string>();
+            foreach (var bed in RoomBedFacilityService.BedsInRoom(session.World, roomId))
+            {
+                bedCount++;
+                if (!bed.AssignedCharacterId.IsNone)
+                    assignments.Add(FormatEntityName(session, bed.AssignedCharacterId));
+                if (!bed.OccupantCharacterId.IsNone)
+                    active.Add(FormatEntityName(session, bed.OccupantCharacterId));
+                else if (!bed.ReservedCharacterId.IsNone)
+                    active.Add(FormatEntityName(session, bed.ReservedCharacterId) + "（预约）");
+            }
+            var title = !string.IsNullOrWhiteSpace(plot.Label) ? plot.Label : spec?.DisplayName ?? room.StableAssetId;
+            DrawInspectShell(218f, "房间 · " + title, () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 218f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 22f),
+                    "等级：" + (spec?.RoomTier ?? "—") + "　材料：" + (spec?.MaterialKind ?? "—"), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 22f),
+                    "用途：" + RoomUsageName(room.RoomUsage) + "　床位：" + bedCount, _body);
+                var label = room.RoomUsage == RoomUsage.Residential ? "分配住户：" :
+                    room.RoomUsage == RoomUsage.Medical ? "医疗使用：" : "关押使用：";
+                var values = room.RoomUsage == RoomUsage.Residential ? assignments : active;
+                GUI.Label(new Rect(r.x + 10f, r.y + 92f, r.width - 20f, 92f),
+                    label + (values.Count == 0 ? "无人" : string.Join("、", values)), _body);
+            });
+        }
+
+        void DrawInspectBed(PlayableHostSession session, HostMapPlotCell plot)
+        {
+            var bedId = plot?.StableCellId ?? string.Empty;
+            if (session?.World == null || !session.World.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
+                !RoomBedGeometry.IsBed(bed)) return;
+            var roomName = "无独立房间";
+            var usage = RoomUsage.Residential;
+            if (session.World.OutdoorConstructedAssets.Assets.TryGetValue(bed.ParentRoomId, out var room) &&
+                RoomBedGeometry.IsRoom(room))
+            {
+                usage = room.RoomUsage;
+                roomName = session.World.ConstructionCatalog.TryGet(room.BuildingId, out var spec)
+                    ? spec.DisplayName : room.StableAssetId;
+            }
+            var bedLabel = !string.IsNullOrWhiteSpace(plot.Label) ? plot.Label : WorldObjectBedLabel(session, bed);
+            DrawInspectShell(218f, "床位 · " + bedLabel, () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 218f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 22f), "所属房间：" + roomName, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 22f), "用途：" + RoomUsageName(usage), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 92f, r.width - 20f, 22f),
+                    "已分配：" + (bed.AssignedCharacterId.IsNone ? "无人" : FormatEntityName(session, bed.AssignedCharacterId)), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 22f),
+                    "预约者：" + (bed.ReservedCharacterId.IsNone ? "无人" : FormatEntityName(session, bed.ReservedCharacterId)), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 22f),
+                    "使用者：" + (bed.OccupantCharacterId.IsNone ? "无人" : FormatEntityName(session, bed.OccupantCharacterId)), _body);
+            });
+        }
+
+        static string WorldObjectBedLabel(PlayableHostSession session, OutdoorConstructedAssetState bed)
+        {
+            if (!bed.AssignedCharacterId.IsNone)
+                return FormatEntityName(session, bed.AssignedCharacterId) + "的床";
+            return session.World.ConstructionCatalog.TryGet(bed.BuildingId, out var spec)
+                ? spec.DisplayName : bed.StableAssetId;
+        }
+
+        static string RoomUsageName(RoomUsage usage) =>
+            usage == RoomUsage.Medical ? "医疗" : usage == RoomUsage.Prison ? "牢房" : "住宅";
 
         void DrawInspectPrison(PlayableHostSession session, WorkAreaDefinition area, string title)
         {

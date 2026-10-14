@@ -422,8 +422,7 @@ namespace XianXia.Core.Npc
             if (created)
             {
                 state.LastUpdateTick = world.Tick.Value;
-                if (entity.TryGet<ActivityTendencyComponent>(out var tendency))
-                    state.ResidenceWorkAreaId = tendency.HomeWorkAreaId ?? string.Empty;
+                state.ResidenceWorkAreaId = string.Empty;
                 state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
             }
             return state;
@@ -697,9 +696,13 @@ namespace XianXia.Core.Npc
                 case MortalActivity.Idle:
                     if (FactionMortalSchedule.Current(world.Tick) == FactionMortalSchedulePhase.OffDuty &&
                         entity.TryGet<FactionMembershipComponent>(out var idleFaction) && idleFaction.IsAffiliated &&
-                        !string.IsNullOrEmpty(state.ResidenceWorkAreaId) &&
-                        world.Civilians.GetResidenceUsage(state.ResidenceWorkAreaId) == ResidenceUsage.Normal)
-                        MoveToArea(world, entity, state.ResidenceWorkAreaId);
+                        RoomBedFacilityService.TryGetAssignedHome(world, entity.Id, out var homeBed, out _, out var homePoint))
+                    {
+                        var radius = world.SurfaceSpatial.TryGet(homeBed.SurfaceId, out var metric) && metric != null
+                            ? metric.CellSize * .75f : 0f;
+                        MoveToWorldPoint(entity, homeBed.SurfaceId, homePoint,
+                            destinationKey: "home-bed:" + homeBed.StableAssetId, arrivalRadiusWorld: radius);
+                    }
                     else if (entity.TryGet<MovementIntentComponent>(out var idleIntent)) idleIntent.Clear();
                     break;
                 case MortalActivity.Eat:
@@ -767,12 +770,19 @@ namespace XianXia.Core.Npc
                 return;
             }
 
-            var target = RoomBedFacilityService.AccessPoint(bed);
+            if (!RoomBedFacilityService.TryResolveAccessPoint(world, bed, out var target))
+            {
+                StartGroundSleep(world, entity, state);
+                return;
+            }
+            var arrivalRadius = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
+                ? metric.CellSize * .75f : 0f;
             if (!entity.TryGet<MovementIntentComponent>(out var intent))
             { intent = new MovementIntentComponent(); entity.AddComponent(intent); }
             if (!intent.Active || !intent.HasWorldTarget || intent.TargetSurfaceId != bed.SurfaceId ||
                 Math.Abs(intent.TargetWorldX - target.X) > .1f || Math.Abs(intent.TargetWorldY - target.Y) > .1f)
-                intent.BeginWorldPoint(bed.SurfaceId, target.X, target.Y);
+                intent.BeginWorldPoint(bed.SurfaceId, target.X, target.Y,
+                    destinationKey: "sleep-bed:" + bed.StableAssetId, arrivalRadiusWorld: arrivalRadius);
             state.SleepPhase = CivilianSleepPhase.TravelingToResidence;
             state.SleepStartedTick = 0;
             if (intent.HostPathState == MovementHostPathState.RetryablePathUnavailable ||
@@ -781,7 +791,7 @@ namespace XianXia.Core.Npc
                 StartGroundSleep(world, entity, state);
                 return;
             }
-            if (!intent.HostArrived)
+            if (!intent.HostArrived || !RoomBedFacilityService.IsAtAccessPoint(world, bed, entity.Id))
                 return;
             intent.Clear();
             if (!RoomBedFacilityService.TryOccupy(world, bed.StableAssetId, entity.Id))
@@ -1172,12 +1182,13 @@ namespace XianXia.Core.Npc
                     (!asset.OccupantCharacterId.IsNone && asset.OccupantCharacterId != injured)) continue;
                 var center = new WorldVec2(asset.WorldX + asset.WorldWidth * .5f,
                     asset.WorldY + asset.WorldHeight * .5f);
-                if (!WorldSitePhysicalRegionQuery.TryResolve(world, center, out var recoverySite) ||
+                if (!RoomBedFacilityService.TryResolveAccessPoint(world, asset, out var access) ||
+                    !WorldSitePhysicalRegionQuery.TryResolve(world, center, out var recoverySite) ||
                     recoverySite.SiteId != siteId ||
                     !world.SurfaceGround.TryGet(surfaceId, out var navigation) ||
-                    !navigation.Contains(center.X, center.Y)) continue;
+                    !navigation.Contains(access.X, access.Y)) continue;
                 asset.ReservedCharacterId = injured;
-                destinationId = asset.StableAssetId; destination = center;
+                destinationId = asset.StableAssetId; destination = access;
                 deliveryRange = world.SurfaceSpatial.TryGet(surfaceId, out var metric) && metric != null
                     ? metric.CellSize * .75f : Math.Min(asset.WorldWidth, asset.WorldHeight) * .5f;
                 return true;
@@ -1234,8 +1245,13 @@ namespace XianXia.Core.Npc
                 { DropRescue(world, rescuer, state); return; }
                 if (world.OutdoorConstructedAssets.Assets.TryGetValue(destinationId, out var medicalBed) &&
                     RoomBedGeometry.IsBed(medicalBed))
-                { medicalBed.ReservedCharacterId = target.Id; medicalBed.OccupantCharacterId = target.Id; }
-                world.WorldPresence.SetAtWorldPosition(target.Id, destination, surfaceId);
+                {
+                    medicalBed.ReservedCharacterId = target.Id; medicalBed.OccupantCharacterId = target.Id;
+                    world.WorldPresence.SetAtWorldPosition(target.Id,
+                        new WorldVec2(medicalBed.WorldX + medicalBed.WorldWidth * .5f,
+                            medicalBed.WorldY + medicalBed.WorldHeight * .5f), surfaceId);
+                }
+                else world.WorldPresence.SetAtWorldPosition(target.Id, destination, surfaceId);
                 delivery.Clear(); state.RescueTargetId = EntityId.None;
                 state.RescueCarrying = false; state.RescueDestinationId = string.Empty;
                 state.RescueRejectedDestinationId = string.Empty;
