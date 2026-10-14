@@ -178,7 +178,11 @@ namespace XianXia.Unity.Host
             Fill(rect, Parchment);
             DrawFrame(rect);
             GUI.Label(new Rect(rect.x + 16f, rect.y + 10f, rect.width - 100f, 28f), "World Activity History", _title);
-            if (GUI.Button(new Rect(rect.xMax - 84f, rect.y + 9f, 68f, 24f), "关闭")) _historyOpen = false;
+            if (GUI.Button(new Rect(rect.xMax - 84f, rect.y + 9f, 68f, 24f), "关闭"))
+            {
+                _historyOpen = false;
+                return;
+            }
             var view = new Rect(0f, 0f, rect.width - 42f, Mathf.Max(rect.height - 54f, _history.Count * 54f));
             _historyScroll = GUI.BeginScrollView(new Rect(rect.x + 12f, rect.y + 42f, rect.width - 24f, rect.height - 52f), _historyScroll, view);
             var y = 0f;

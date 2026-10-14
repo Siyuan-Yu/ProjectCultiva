@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Construction;
 using XianXia.Core.Content;
@@ -18,12 +19,8 @@ namespace XianXia.Unity.Host
         string _dump = string.Empty;
         string _sectionStatus = string.Empty;
         string _pendingConfirmation = string.Empty;
-        readonly bool[] _acceptanceDiagnosticExpanded = new bool[7];
-        bool _technicalDiagnosticsExpanded;
-        string _civilianDiagnosticCache = string.Empty;
-        float _nextCivilianDiagnosticRefreshAt;
-        ulong _lastDiagnosticWorldTick = ulong.MaxValue;
-        float _lastDiagnosticTickChangeAt;
+        readonly Dictionary<string, string> _toolStatuses = new Dictionary<string, string>();
+        string _statusToolId = string.Empty;
 
         public string SectionStatus => _sectionStatus;
 
@@ -32,997 +29,575 @@ namespace XianXia.Unity.Host
             _dump = string.Empty;
             _sectionStatus = string.Empty;
             _pendingConfirmation = string.Empty;
-            _lastDiagnosticWorldTick = ulong.MaxValue;
-            _lastDiagnosticTickChangeAt = 0f;
-            _technicalDiagnosticsExpanded = false;
-            _civilianDiagnosticCache = string.Empty;
-            _nextCivilianDiagnosticRefreshAt = 0f;
-            for (var i = 0; i < _acceptanceDiagnosticExpanded.Length; i++)
-                _acceptanceDiagnosticExpanded[i] = false;
+            _toolStatuses.Clear();
+            _statusToolId = string.Empty;
         }
 
-        public float Draw(
-            PlayableHostBootstrap bootstrap,
-            HostSelectionController selection,
-            float x,
-            float y,
-            float width,
-            GUIStyle body)
+        public void CancelPendingConfirmation() => _pendingConfirmation = string.Empty;
+
+        public float DrawTool(string toolId, PlayableHostBootstrap host, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
         {
-            var lineH = 18f;
-            GUI.Label(new Rect(x, y, width, lineH), "内容", body);
-            y += lineH + 4f;
-
-            var session = bootstrap?.Session;
-            if (session == null || !session.IsInitialized)
+            ActivateToolStatus(toolId);
+            var session = host?.Session;
+            var world = session?.World;
+            if (world == null || !session.IsInitialized)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
-                return y + lineH;
+                GUI.Label(new Rect(x, y, width, 22f), "会话未就绪。", body);
+                return y + 24f;
             }
 
-            y = DrawShop(bootstrap,x,y,width,body);
-            y = DrawAuction(bootstrap,x,y,width,body);
-            y = DrawCivilian(bootstrap, selection, x, y, width, body);
-            y = DrawQuestSocial(session,selection,x,y,width,body);
-            var schedules = session.World.ScheduledContentEvents;
-            GUI.Label(new Rect(x, y, width, lineH), "Scheduled Content Events · pending " + schedules.Pending.Count +
-                " · 已履约 " + session.World.ContentCounters.Get("acceptance:delayed_event_presented"), body);
-            y += lineH;
-            foreach (var item in schedules.OrderedPending())
+            switch (toolId)
             {
-                var remaining = item.ExecuteTick > session.World.Tick.Value ? item.ExecuteTick - session.World.Tick.Value : 0;
-                var info = item.InstanceId + " / " + item.EventId + "\nExecuteTick=" + item.ExecuteTick +
-                    " remaining=" + remaining + " ticks / " + ((double)remaining / XianXia.Core.Domain.Time.WorldTick.TicksPerDay).ToString("0.###") +
-                    " days\nActor=" + item.ActorEntityId + " Target=" + item.TargetEntityId + " Issuer=" + item.IssuerEntityId +
-                    "\nOpportunity=" + item.OpportunityInstanceId + " Key=" + item.TargetKey;
-                var height = body.CalcHeight(new GUIContent(info), width);
-                GUI.Label(new Rect(x, y, width, height), info, body); y += height + 4f;
+                case "civilian.satiety": y = DrawCivilianNeedTool(world, selection, true, x, y, width, body); break;
+                case "civilian.energy": y = DrawCivilianNeedTool(world, selection, false, x, y, width, body); break;
+                case "civilian.detained-loyalty": y = DrawDetainedLoyaltyTool(world, selection, x, y, width, body); break;
+                case "civilian.grain-add": y = DrawGrainTool(world, true, x, y, width, body); break;
+                case "civilian.grain-clear": y = DrawGrainTool(world, false, x, y, width, body); break;
+                case "civilian.reset": y = DrawConfirmedTool(toolId, "影响全部救援绑定、恢复点占用、建设工单、凡人状态、荒村 owner、粮食及验收人物 Faction。", () => ExecuteCivilianReset(host), x, y, width, body); break;
+                case "focus.huangcun": y = DrawFocusHuangcun(host, x, y, width, body); break;
+                case "focus.grain-field": y = DrawFocusTool(host, "base:workarea_labor_yard", x, y, width, body); break;
+                case "focus.herb-field": y = DrawFocusTool(host, "base:workarea_herb_field", x, y, width, body); break;
+                case "focus.woodcut": y = DrawFocusTool(host, "base:workarea_forest_woodcut", x, y, width, body); break;
+                case "focus.medical": y = DrawFocusTool(host, "base:workarea_huangcun_medical", x, y, width, body); break;
+                case "focus.prison": y = DrawFocusTool(host, "base:workarea_huangcun_prison", x, y, width, body); break;
+                case "focus.injured": y = DrawActionTool("定位唯一选中的伤员", () => FocusInjured(host, selection), x, y, width, body); break;
+                case "focus.shop": y = DrawFixedFocusTool(host, "base:shop_qingshi_general", 5.14f, 11.10f, x, y, width, body); break;
+                case "focus.auction": y = DrawFixedFocusTool(host, "base:auction_house_qingshi", 5.3f, 11.1f, x, y, width, body); break;
+                case "commerce.player-wallet": y = DrawPlayerWalletTool(world, x, y, width, body); break;
+                case "commerce.shop-wallet": y = DrawShopWalletTool(world, x, y, width, body); break;
+                case "commerce.shop-reset": y = DrawActionTool("恢复商店初始库存与资金", () => { world.Commerce.ResetShopForDebug("base:shop_qingshi_general"); _sectionStatus = "成功：验收商店已重置。"; }, x, y, width, body); break;
+                case "commerce.auction-items": y = DrawAuctionItemsTool(world, x, y, width, body); break;
+                case "commerce.auction-wallet": y = DrawActionTool("设置 10000 下品 / 10 中品 / 5 上品", () => { world.Commerce.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(10000, 10, 5); _sectionStatus = "成功：拍卖验收钱包已设置。"; }, x, y, width, body); break;
+                case "commerce.auction-reset": y = DrawActionTool("恢复拍卖行初始拍品", () => { XianXia.Core.Inventory.AuctionHouseService.ResetForDebug(world.Commerce, "base:auction_house_qingshi", world.Tick.Value); _sectionStatus = "成功：验收拍卖行已重置。"; }, x, y, width, body); break;
+                case "quest.secret-a": y = DrawQuestTool(session, "base:quest_social01_cave", x, y, width, body); break;
+                case "quest.secret-b": y = DrawQuestTool(session, "base:quest_social01_cave_b", x, y, width, body); break;
+                case "quest.general": y = DrawQuestTool(session, "base:quest_social01_general", x, y, width, body); break;
+                case "social.relation": y = DrawRelationshipTool(session, selection, x, y, width, body); break;
+                case "content.flag": y = DrawFlagTool(session, selection, x, y, width, body); break;
+                case "content.force-event": y = DrawForceEventTool(session, selection, x, y, width, body); break;
+                case "content.merchants": y = DrawActionTool("生成两个同模板临时行商实例", () => SpawnMerchants(session), x, y, width, body); break;
+                case "content.hidden-stele": y = DrawActionTool("生成 Hidden 石碑", () => SpawnDynamic(session, "base:world_opportunity_dynamic_hidden_stele"), x, y, width, body); break;
+                case "content.notice-package": y = DrawActionTool("生成 PublicNotice 包裹", () => SpawnDynamic(session, "base:world_opportunity_dynamic_public_package"), x, y, width, body); break;
+                case "content.visible-herb": y = DrawActionTool("生成 WorldVisible 灵草", () => SpawnDynamic(session, "base:world_opportunity_dynamic_visible_herb"), x, y, width, body); break;
+                case "content.clear-dynamic": y = DrawActionTool("清理本组动态机会物体", () => ClearDynamic(session), x, y, width, body); break;
+                case "diagnostic.movement": y = DrawMovementDiagnostic(world, host, selection, x, y, width, body); break;
+                case "diagnostic.character": y = DrawCharacterDiagnostic(world, host, selection, x, y, width, body); break;
+                case "diagnostic.needs": y = DrawNeedsDiagnostic(world, selection, x, y, width, body); break;
+                case "diagnostic.rescue": y = DrawRescueDiagnostic(world, selection, x, y, width, body); break;
+                case "diagnostic.prison": y = DrawPrisonDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.construction": y = DrawConstructionDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.encounter": y = DrawEncounterDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.shop": y = DrawShopDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.auction": y = DrawAuctionDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.quest": y = DrawQuestDiagnostic(session, selection, x, y, width, body); break;
+                case "diagnostic.diplomacy": y = DrawDiplomacyDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.delayed-events": y = DrawDelayedEventDiagnostic(world, x, y, width, body); break;
+                case "diagnostic.content": y = DrawContentDiagnostic(session, selection, x, y, width, body); break;
             }
-            if (!string.IsNullOrEmpty(schedules.LastDiagnostic))
-            {
-                var height = body.CalcHeight(new GUIContent(schedules.LastDiagnostic), width);
-                GUI.Label(new Rect(x, y, width, height), schedules.LastDiagnostic, body); y += height + 4f;
-            }
-
-            GUI.Label(new Rect(x, y, 40f, lineH), "标记");
-            GUI.SetNextControlName("LevelTester.Flag");
-            _flagInput = GUI.TextField(new Rect(x + 44f, y, width - 200f, 22f), _flagInput);
-            if (GUI.Button(new Rect(x + width - 148f, y, 68f, 22f), "设置"))
-                RunFlag(session, selection, true);
-            if (GUI.Button(new Rect(x + width - 74f, y, 68f, 22f), "清除"))
-                RunFlag(session, selection, false);
-            y += 26f;
-
-            GUI.Label(new Rect(x, y, 40f, lineH), "事件");
-            GUI.SetNextControlName("LevelTester.Event");
-            _eventInput = GUI.TextField(new Rect(x + 44f, y, width - 100f, 22f), _eventInput);
-            if (GUI.Button(new Rect(x + width - 90f, y, 88f, 22f), "强制呈现"))
-                ForceEvent(session, selection);
-            y += 26f;
-
-            if (GUI.Button(new Rect(x, y, width, 24f), "QUEST-INSTANCE-01：生成两名同模板临时行商"))
-            {
-                var result = WorldOpportunityDriver.SpawnAcceptanceInstances(
-                    session.World, "base:world_opportunity_event02_temporary_merchant", 2, out var summary);
-                _sectionStatus = result.IsSuccess ? "已生成：" + summary : "失败：" + result.Error;
-            }
-            y += 28f;
-
-            GUI.Label(new Rect(x, y, width, lineH), "DYNAMIC-DISCOVERY-01", body); y += lineH + 2f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "生成 Hidden 石碑"))
-                SpawnDynamic(session, "base:world_opportunity_dynamic_hidden_stele");
-            y += 27f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "生成 PublicNotice 包裹"))
-                SpawnDynamic(session, "base:world_opportunity_dynamic_public_package");
-            y += 27f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "生成 WorldVisible 灵草"))
-                SpawnDynamic(session, "base:world_opportunity_dynamic_visible_herb");
-            y += 27f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "清理 DYNAMIC-DISCOVERY-01 验收物体"))
-            {
-                var count = WorldOpportunityDriver.ClearAcceptanceInstances(session.World,
-                    "base:world_opportunity_dynamic_hidden_stele",
-                    "base:world_opportunity_dynamic_public_package",
-                    "base:world_opportunity_dynamic_visible_herb");
-                _sectionStatus = "已清理 " + count + " 个动态机会物体。";
-            }
-            y += 28f;
-
-            if (GUI.Button(new Rect(x, y, 100f, 24f), "刷新 Dump"))
-                RefreshDump(session, selection);
-            y += 28f;
-
-            if (!string.IsNullOrEmpty(_sectionStatus))
-            {
-                GUI.Label(new Rect(x, y, width, lineH * 2f), _sectionStatus, body);
-                y += lineH * 2f;
-            }
-
-            var dumpH = Mathf.Min(120f, body.CalcHeight(new GUIContent(_dump), width));
-            GUI.TextArea(new Rect(x, y, width, dumpH), _dump);
-            y += dumpH + 4f;
+            _toolStatuses[toolId] = _sectionStatus ?? string.Empty;
             return y;
         }
 
-        float DrawShop(PlayableHostBootstrap host,float x,float y,float width,GUIStyle body)
+        void ActivateToolStatus(string toolId)
         {
-            const string shopId = "base:shop_qingshi_general";
-            var board = host.Session.World.Commerce;
-            GUI.Label(new Rect(x,y,width,20),"SHOP-TRADE-01 · 指定商店与三档钱包",body); y += 24;
-            if (GUI.Button(new Rect(x,y,width,26),"定位 SHOP-TRADE-01 验收商店"))
-            {
-                var ok = host.TryFocusContinuousWorldPosition("base:surface_main_wilderness_v1",new XianXia.Core.World.WorldVec2(5.14f,11.10f),out var reason);
-                _sectionStatus = ok ? "成功：已定位明确商店 " + shopId + "；未传送或修改状态。" : "失败：" + reason;
-            }
-            y += 30;
-            if (GUI.Button(new Rect(x,y,width,26),"玩家标准钱包：10000 下品 / 5 中品 / 2 上品"))
-            {
-                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(10000,5,2);
-                _sectionStatus = "成功：实际目标=玩家钱包；已设 10000 下品 / 5 中品 / 2 上品。";
-            }
-            y += 30;
-            if (GUI.Button(new Rect(x,y,width,26),"玩家仅中品：0 / 10 / 0（不能买下品商品）"))
-            {
-                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(0,10,0);
-                _sectionStatus = "成功：实际目标=玩家钱包；已设 0 下品 / 10 中品 / 0 上品。";
-            }
-            y += 30;
-            if (GUI.Button(new Rect(x,y,width,26),"玩家仅下品：5000 / 0 / 0（不能买中品商品）"))
-            {
-                board.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(5000,0,0);
-                _sectionStatus = "成功：实际目标=玩家钱包；已设 5000 下品 / 0 中品 / 0 上品。";
-            }
-            y += 30;
-            if (board.Shops.TryGetValue(shopId,out var shop) && board.Definitions.TryGetValue(shopId,out var def))
-            {
-                if (GUI.Button(new Rect(x,y,width,26),"商店标准资金（保持库存）"))
-                { shop.Wallet = def.InitialWallet.Copy(); _sectionStatus = "成功：实际目标=" + shopId + "；恢复标准资金，库存未改。"; }
-                y += 30;
-                if (GUI.Button(new Rect(x,y,width,26),"商店下品不足：0 / 10 / 2"))
-                { shop.Wallet = new XianXia.Core.Inventory.SpiritStoneWallet(0,10,2); _sectionStatus = "成功：实际目标=" + shopId + "；资金设为 0/10/2。"; }
-                y += 30;
-                if (GUI.Button(new Rect(x,y,width,26),"Reset Acceptance Shop：恢复初始库存与资金"))
-                { board.ResetShopForDebug(shopId); _sectionStatus = "成功：实际目标=" + shopId + "；已恢复初始库存与资金。"; }
-                y += 30;
-            }
-            return y + 8;
+            if (string.Equals(_statusToolId, toolId, System.StringComparison.Ordinal)) return;
+            if (!string.IsNullOrEmpty(_statusToolId)) _toolStatuses[_statusToolId] = _sectionStatus ?? string.Empty;
+            _statusToolId = toolId ?? string.Empty;
+            _sectionStatus = _toolStatuses.TryGetValue(_statusToolId, out var status) ? status : string.Empty;
         }
 
-        float DrawAuction(PlayableHostBootstrap host,float x,float y,float width,GUIStyle body)
+        float DrawCivilianNeedTool(XianXia.Core.Simulation.SimulationWorld world,
+            HostSelectionController selection, bool satiety, float x, float y, float width, GUIStyle body)
         {
-            const string houseId="base:auction_house_qingshi";
-            var world=host.Session.World; var board=world.Commerce;
-            GUI.Label(new Rect(x,y,width,20),"AUCTION-01 · 寄拍、竞价托管与待领取",body);y+=24;
-            if(GUI.Button(new Rect(x,y,width,26),"定位 AUCTION-01 验收拍卖行"))
-            {
-                var ok=host.TryFocusContinuousWorldPosition("base:surface_main_wilderness_v1",new XianXia.Core.World.WorldVec2(5.3f,11.1f),out var reason);
-                _sectionStatus=ok?"成功：已定位明确拍卖行 "+houseId+"；未传送或修改状态。":"失败："+reason;
-            }
-            y+=30;
-            if(GUI.Button(new Rect(x,y,width,26),"Auction 标准钱包：10000 下品 / 10 中品 / 5 上品"))
-            { board.PlayerWallet=new XianXia.Core.Inventory.SpiritStoneWallet(10000,10,5); _sectionStatus="成功：实际目标=玩家钱包；Auction 标准钱包已设置。"; }
-            y+=30;
-            if(GUI.Button(new Rect(x,y,width,26),"给玩家验收寄拍物品（粗木 10 / 中品秘籍 1）"))
-            {
-                var wood=world.Inventory.TryAdd("base:item_rough_wood",10);var manual=world.Inventory.TryAdd("base:item_manual_jiang_lao_legacy",1);
-                _sectionStatus="已加入粗木 "+wood+"、中品秘籍 "+manual+"（受背包容量限制）。";
-            }
-            y+=30;
-            if(board.AuctionDefinitions.ContainsKey(houseId) && GUI.Button(new Rect(x,y,width,26),"Reset Acceptance Auction：恢复初始拍品"))
-            { XianXia.Core.Inventory.AuctionHouseService.ResetForDebug(board,houseId,world.Tick.Value); _sectionStatus="成功：实际目标="+houseId+"；已恢复初始拍品。"; }
-            y+=30;
-            if(board.AuctionHouses.TryGetValue(houseId,out var house))
-            {
-                var text="Open Listings / Claims="+house.Claims.Count+" / HouseWallet "+house.HouseWallet.Low+"L "+house.HouseWallet.Mid+"M "+house.HouseWallet.High+"H\n";
-                foreach(var listing in house.Listings.Values) if(listing.Status==XianXia.Core.Inventory.AuctionListingStatus.Open)
-                {
-                    var remaining=listing.EndTick>world.Tick.Value?listing.EndTick-world.Tick.Value:0;
-                    text+=listing.ListingId+" | "+listing.ItemId+" | "+listing.CurrentBidAmount+" "+listing.Grade+" | "+listing.CurrentBidderKind+"\nEndTick="+listing.EndTick+" Remaining="+remaining+" Escrow="+listing.PlayerEscrowAmount+"\n";
-                }
-                foreach(var claim in house.Claims.Values) text+="Claim "+claim.ClaimId+" | "+claim.ClaimKind+" | "+claim.ItemId+" ×"+claim.Quantity+"\n";
-                var h=Mathf.Min(190f,body.CalcHeight(new GUIContent(text),width));GUI.TextArea(new Rect(x,y,width,h),text);y+=h+6;
-            }
-            return y+8;
-        }
-
-        float DrawCivilian(PlayableHostBootstrap host, HostSelectionController selection, float x, float y, float width, GUIStyle body)
-        {
-            var world = host.Session.World;
-            GUI.Label(new Rect(x, y, width, 20f), "CIVILIAN-LIFE-01 · 凡人民生 / 占领 / 俘虏", body); y += 24f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "定位 CIVILIAN-LIFE-01 荒村"))
-            {
-                world.Strategic.Sites.TryGet("base:site_huangcun", out var found);
-                if (found != null && found.HasContinuousCore)
-                {
-                    var ok = host.TryFocusContinuousWorldPosition(found.CoreSurfaceId,
-                        new XianXia.Core.World.WorldVec2(found.CoreWorldX, found.CoreWorldY), out var reason);
-                    _sectionStatus = ok ? "成功：已定位 Site " + found.SiteId + "；未传送或修改状态。" : "失败：" + reason;
-                }
-                else _sectionStatus = "未找到荒村 Continuous Site。";
-            }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width / 3f - 3f, 24f), "定位粮田")) FocusWorkArea(host, "base:workarea_labor_yard");
-            if (GUI.Button(new Rect(x + width / 3f, y, width / 3f - 3f, 24f), "定位药田")) FocusWorkArea(host, "base:workarea_herb_field");
-            if (GUI.Button(new Rect(x + width * 2f / 3f, y, width / 3f, 24f), "定位伐木区")) FocusWorkArea(host, "base:workarea_forest_woodcut");
+            var valid = TrySelectedCivilian(world, selection, out var state);
+            GUI.Label(new Rect(x, y, width, 22f), valid
+                ? "目标 EntityId=" + selection.State.SelectedIds[0].Value + "　当前" + (satiety ? "饱食=" + state.Satiety : "精力=" + state.Energy)
+                : "目标：请唯一选中一名已有正式 MortalCivilianState 的凡人。", body);
             y += 28f;
-            if (GUI.Button(new Rect(x, y, width / 2f - 2f, 24f), "定位 荒村囚室")) FocusWorkArea(host, "base:workarea_huangcun_prison");
-            if (GUI.Button(new Rect(x + width / 2f + 2f, y, width / 2f - 2f, 24f), "定位 荒村医疗点")) FocusWorkArea(host, "base:workarea_huangcun_medical");
-            y += 28f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "定位所选伤员（明确 EntityId）")) FocusInjured(host, selection);
-            y += 28f;
-            if (GUI.Button(new Rect(x, y, width, 26f),
-                    _pendingConfirmation == "medical"
-                        ? "确认准备医疗搬运（清救援绑定/恢复点占用）"
-                        : "准备医疗搬运验收…"))
+            GUI.enabled = valid;
+            if (satiety)
             {
-                if (_pendingConfirmation == "medical")
-                { _pendingConfirmation = string.Empty; PrepareCivilianRescue(host); }
-                else
-                {
-                    _pendingConfirmation = "medical";
-                    _sectionStatus = "等待确认：将清除全世界救援绑定和恢复点占用，并调整阿石/阿青前置；尚未修改。";
-                }
-            }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f),
-                    _pendingConfirmation == "prison"
-                        ? "确认准备押送/交接（会释放该囚室既有 Detained）"
-                        : "准备囚犯押送/交接验收…"))
-            {
-                if (_pendingConfirmation == "prison")
-                { _pendingConfirmation = string.Empty; PrepareDedicatedPrison(host); }
-                else
-                {
-                    _pendingConfirmation = "prison";
-                    _sectionStatus = "等待确认：将释放荒村囚室既有 Detained、修改荒村 owner 和阿土/Carrier 前置；仅验押送/交接，未验俘虏战；尚未修改。";
-                }
-            }
-            y += 30f;
-            if ((_pendingConfirmation == "medical" || _pendingConfirmation == "prison") &&
-                GUI.Button(new Rect(x, y, width, 24f), "取消准备（不做任何修改）"))
-            {
-                _pendingConfirmation = string.Empty;
-                _sectionStatus = "已取消：未修改任何状态。";
-            }
-            if (_pendingConfirmation == "medical" || _pendingConfirmation == "prison") y += 28f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备建设：当前己方 Site 木材 20 / 阿石待命"))
-                PrepareCivilianConstruction(host);
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "公共库存：加入验收粗粮 20"))
-            {
-                var siteId = ResolveAcceptanceSite(world);
-                var result = WorldSitePublicStockService.TryAdd(world, siteId, MortalCivilianService.GrainResourceId, 20);
-                _sectionStatus = result.IsSuccess ? "已加入粗粮 20。" : result.Error.ToString();
-            }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "公共库存：清空验收粗粮"))
-            {
-                var siteId = ResolveAcceptanceSite(world);
-                var amount = WorldSitePublicStockService.GetCount(world, siteId, MortalCivilianService.GrainResourceId);
-                var result = WorldSitePublicStockService.TryRemove(world, siteId, MortalCivilianService.GrainResourceId, amount);
-                _sectionStatus = result.IsSuccess ? "粗粮已清空。" : result.Error.ToString();
-            }
-            y += 30f;
-            GUI.enabled = selection?.State != null && selection.State.Count == 1;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中凡人：饱食正常 80"))
-            {
-                if (TrySelectedCivilian(world, selection, out var state)) { state.Satiety = 80; _sectionStatus = "饱食已设为 80。"; }
-                else _sectionStatus = "请选中一名凡人 NPC。";
-            }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中凡人：饱食低 10"))
-            { if (TrySelectedCivilian(world, selection, out var state)) { state.Satiety = 10; _sectionStatus = "饱食已设为 10。"; } else _sectionStatus = "请选中一名凡人 NPC。"; }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中凡人：精力正常 80"))
-            { if (TrySelectedCivilian(world, selection, out var state)) { state.Energy = 80; _sectionStatus = "精力已设为 80。"; } else _sectionStatus = "请选中一名凡人 NPC。"; }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中凡人：精力需要睡眠 30"))
-            { if (TrySelectedCivilian(world, selection, out var state)) { state.Energy = 30; _sectionStatus = "精力已设为 30。"; } else _sectionStatus = "请选中一名凡人 NPC。"; }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中凡人：精力 5（紧急地面睡眠）"))
-            { if (TrySelectedCivilian(world, selection, out var state)) { state.Energy = 5; _sectionStatus = "精力已设为 5。"; } else _sectionStatus = "请选中一名凡人 NPC。"; }
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备食宿 A：有粮取食"))
-                PrepareCivilianNeedsAcceptance(host, selection, "A");
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备食宿 B：正常回床"))
-                PrepareCivilianNeedsAcceptance(host, selection, "B");
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备食宿 C：紧急睡眠"))
-                PrepareCivilianNeedsAcceptance(host, selection, "C");
-            y += 30f;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备食宿 D：无粮且极低精力"))
-                PrepareCivilianNeedsAcceptance(host, selection, "D");
-            y += 30f;
-            GUI.enabled = true;
-            if (GUI.Button(new Rect(x, y, width, 26f), "准备 Supervisor Life：主管满血存活"))
-                PrepareSupervisorLife(host);
-            y += 30f;
-            GUI.enabled = selection?.State != null && selection.State.Count == 1;
-            if (GUI.Button(new Rect(x, y, width, 26f), "选中被关押凡人：忠诚 10"))
-            {
-                if (TrySelectedCivilian(world, selection, out var state) && state.Disposition == CivilianDisposition.Detained)
-                {
-                    XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, selection.State.SelectedIds[0], 10);
-                    _sectionStatus = "被关押凡人忠诚已设为 10。";
-                }
-                else _sectionStatus = "请选中 Detained 凡人。";
-            }
-            y += 30f;
-            GUI.enabled = true;
-            GUI.Label(new Rect(x, y, width, 36f),
-                "全局 Reset 影响：全部救援绑定／恢复点占用／建设工单／凡人状态，并重置荒村 owner、粮食及验收人物 Faction。请先保存测试槽。",
-                body);
-            y += 38f;
-            if (GUI.Button(new Rect(x, y, width, 26f),
-                    _pendingConfirmation == "civilian-reset"
-                        ? "再次点击确认：执行全局 CIVILIAN Reset"
-                        : "全局 Reset CIVILIAN-LIFE-01…"))
-            {
-                if (_pendingConfirmation != "civilian-reset")
-                {
-                    _pendingConfirmation = "civilian-reset";
-                    _sectionStatus = "等待确认：尚未修改任何状态。再次点击才执行全局 Reset。";
-                }
-                else
-                {
-                _pendingConfirmation = string.Empty;
-                MortalCivilianService.CancelAllRescues(world);
-                world.RecoverySpotDeliveries.Clear();
-                XianXia.Core.Construction.CivilianConstructionJobService.CancelAllJobs(world);
-                world.Civilians.Clear();
-                var scheduleMover = host.GetComponent<HostNpcScheduleMover>();
-                var farmLabor = host.GetComponent<HostFarmFieldLabor>();
-                foreach (var entity in world.Entities.All)
-                {
-                    var state = MortalCivilianService.Ensure(world, entity);
-                    if (state == null) continue;
-                    if (host.Session.Registry.TryGetCharacter(entity.DefinitionId, out var definition))
-                    {
-                        if (System.Enum.TryParse(definition.InitialMortalProfession, true, out MortalProfession initialProfession))
-                            state.Profession = initialProfession;
-                        state.ResidenceWorkAreaId = definition.HomeWorkAreaId ?? string.Empty;
-                        if (entity.TryGet<ActivityTendencyComponent>(out var definitionTendency))
-                            definitionTendency.HomeWorkAreaId = state.ResidenceWorkAreaId;
-                    }
-                    else
-                        state.ResidenceWorkAreaId = entity.TryGet<ActivityTendencyComponent>(out var initialTendency)
-                            ? initialTendency.HomeWorkAreaId ?? string.Empty : string.Empty;
-                    MortalCivilianService.ResetTransientNeedsActivity(entity, state);
-                    scheduleMover?.CancelCivilianIntent(entity.Id);
-                    host.MoveController?.CancelPresentationMovementPublic(entity.Id);
-                    if (farmLabor?.IsFarming(entity.Id) == true)
-                        farmLabor.StopNpcScheduleFarmOwnershipOnly(entity.Id);
-                    var acceptance = entity.DefinitionId.ToString() == "base:character_ch01_ref_mortal_b" ||
-                                     entity.DefinitionId.ToString() == "base:character_ch01_ref_farmer_b";
-                    if (!acceptance) continue;
-                    if (entity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership))
-                        membership.Assign("base:sect_huangcun_labor", XianXia.Core.Social.FactionRoleKind.LaborDisciple);
-                    if (entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
-                    { life.State = XianXia.Core.Entities.LifecycleState.Alive; life.ClearBleedOut(); }
-                    XianXia.Core.Combat.CombatDamageRules.EnsureVitals(entity);
-                    if (entity.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals) &&
-                        entity.TryGet<XianXia.Core.Entities.AttributesComponent>(out var attributes))
-                        vitals.CurrentHp = System.Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp));
-                    state.ResidenceWorkAreaId = "base:workarea_houses";
-                    if (entity.TryGet<ActivityTendencyComponent>(out var tendency))
-                        tendency.HomeWorkAreaId = state.ResidenceWorkAreaId;
-                    if (entity.DefinitionId.ToString() == "base:character_ch01_ref_mortal_b")
-                        XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, entity.Id, 10);
-                    if (entity.DefinitionId.ToString() == "base:character_ch01_ref_farmer_b")
-                    {
-                        XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, entity.Id, 60);
-                        state.Profession = MortalProfession.Farmer;
-                    }
-                }
-                if (world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun))
-                {
-                    WorldSiteOwnershipService.SetOwner(world, huangcun.SiteId, "base:sect_huangcun_labor");
-                    var grain = WorldSitePublicStockService.GetCount(world, huangcun.SiteId, MortalCivilianService.GrainResourceId);
-                    if (grain > 0) WorldSitePublicStockService.TryRemove(world, huangcun.SiteId, MortalCivilianService.GrainResourceId, grain);
-                    WorldSitePublicStockService.TryAdd(world, huangcun.SiteId, MortalCivilianService.GrainResourceId, 20);
-                    var offset = -0.25f;
-                    foreach (var entity in world.Entities.All)
-                    {
-                        var id = entity.DefinitionId.ToString();
-                        if (id != "base:character_ch01_ref_mortal_b" && id != "base:character_ch01_ref_farmer_b") continue;
-                        world.WorldPresence.SetAtWorldPosition(entity.Id,
-                            new XianXia.Core.World.WorldVec2(huangcun.CoreWorldX + offset, huangcun.CoreWorldY - 0.35f),
-                            huangcun.CoreSurfaceId);
-                        if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(entity.Id, out var resetView) &&
-                            resetView != null && host.ContinuousOutdoorSurfaceRuntime != null)
-                        {
-                            host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(
-                                huangcun.CoreWorldX + offset, huangcun.CoreWorldY - .35f, out var resetX, out var resetY);
-                            resetView.transform.position = new Vector3(resetX, resetY, HostPresentationSpace.EntityZ);
-                            host.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(entity.Id, resetView.transform.position);
-                        }
-                        offset += 0.5f;
-                        if (world.Civilians.TryGet(entity.Id, out var restored))
-                            restored.CurrentSiteId = huangcun.SiteId;
-                    }
-                }
-                _sectionStatus = "民生状态已重置；阿青忠诚 10，阿土忠诚 60 / Farmer。";
-                }
-            }
-            y += 30f;
-            if (_pendingConfirmation == "civilian-reset")
-            {
-                if (GUI.Button(new Rect(x, y, width, 24f), "取消全局 Reset（不做任何修改）"))
-                {
-                    _pendingConfirmation = string.Empty;
-                    _sectionStatus = "已取消：未修改任何状态。";
-                }
-                y += 28f;
-            }
-            if (GUI.Button(new Rect(x, y, width * .68f, 24f),
-                    _technicalDiagnosticsExpanded ? "收起 CIVILIAN 技术诊断" : "展开 CIVILIAN 技术诊断（只读）"))
-                _technicalDiagnosticsExpanded = !_technicalDiagnosticsExpanded;
-            if (_technicalDiagnosticsExpanded &&
-                GUI.Button(new Rect(x + width * .70f, y, width * .30f, 24f), "立即刷新"))
-                _nextCivilianDiagnosticRefreshAt = 0f;
-            y += 28f;
-            if (!_technicalDiagnosticsExpanded)
-                return y;
-
-            if (Time.unscaledTime >= _nextCivilianDiagnosticRefreshAt || string.IsNullOrEmpty(_civilianDiagnosticCache))
-            {
-            var selected = selection != null && selection.State.Count == 1 ? selection.State.SelectedIds[0] : EntityId.None;
-            var diagnostic = "Selected=" + selected;
-            if (world.Entities.TryGet(selected, out var selectedCharacter))
-            {
-                var factionId = selectedCharacter.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) &&
-                    membership.IsAffiliated ? membership.FactionId : "None";
-                diagnostic += "\nFactionId=" + factionId + " Loyalty=" +
-                    (XianXia.Core.Social.CharacterFactionLoyaltyService.TryGetLoyalty(world, selected, out var loyalty)
-                        ? loyalty.ToString() : "—");
-                if (selectedCharacter.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
-                {
-                    var hp = selectedCharacter.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals)
-                        ? vitals.CurrentHp.ToString() : "—";
-                    var countdown = XianXia.Core.Combat.CombatLifeStateService.TryGetLifeStateCountdown(
-                        world, selectedCharacter, out _, out var remaining) ? remaining.ToString() : "—";
-                    diagnostic += "\nLife: State=" + life.State + " HP=" + hp +
-                                  " BleedOutRemaining=" + countdown +
-                                  " IncapacitatedAtTick=" + life.IncapacitatedAtTick +
-                                  " LastTransition=" + life.LastTransitionFrom + "->" + life.LastTransitionTo +
-                                  " TransitionReason=" + life.LastLifeTransitionReason +
-                                  " DeathConfirmationReason=" + life.LastDeathConfirmationReason;
-                }
-            }
-            diagnostic += "\nPendingPersonAction: " +
-                          (host.MoveController != null ? host.MoveController.DescribePendingPersonAction() : "MoverMissing") +
-                          "\nRecruitInteraction: " +
-                          (host.GetComponent<HostNpcContextMenu>() != null
-                              ? host.GetComponent<HostNpcContextMenu>().DescribeRecruitInteraction()
-                              : "MenuMissing");
-            if (world.Civilians.TryGet(selected, out var civilian))
-            {
-                world.Entities.TryGet(selected, out var selectedEntity);
-                MovementIntentComponent movementIntent = null;
-                var hasMovementIntent = selectedEntity != null &&
-                    selectedEntity.TryGet<MovementIntentComponent>(out movementIntent);
-                var farmLabor = host.GetComponent<HostFarmFieldLabor>();
-                var moveController = host.MoveController;
-                var movementOwner = MortalCivilianMovementAuthority.Resolve(world, selected, civilian);
-                var hasSquad = world.Strategic.Squads.TryGetForCharacter(selected, out var selectedSquad) &&
-                               selectedSquad != null;
-                SquadWorldMotionState squadMotion = null;
-                var hasSquadMotion = hasSquad &&
-                    world.Strategic.SquadWorldMotions.TryGet(selectedSquad.SquadId, out squadMotion) &&
-                    squadMotion != null;
-                var currentSiteOwner = world.Strategic.Sites.TryGet(civilian.CurrentSiteId, out var currentCivilianSite) &&
-                                       currentCivilianSite != null
-                    ? currentCivilianSite.OwnerFactionId : "—";
-                var characterFaction = selectedEntity != null &&
-                                       selectedEntity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var selectedFaction) &&
-                                       selectedFaction.IsAffiliated
-                    ? selectedFaction.FactionId : "—";
-                var backgroundTraveling = world.BackgroundCharacterTravel.IsTraveling(selected);
-                var backgroundDestination = backgroundTraveling &&
-                    world.BackgroundCharacterTravel.TryGet(selected, out var backgroundMotion)
-                    ? backgroundMotion.DestinationSiteId : "—";
-                var storageCenter = "—";
-                var storageSurface = "—";
-                if (world.SiteStorageRooms.TryGet(civilian.FoodFetchStorageRoomId, out var storageRoom))
-                {
-                    storageCenter = "(" + storageRoom.WorldX.ToString("0.###") + "," +
-                                    storageRoom.WorldY.ToString("0.###") + ")";
-                    storageSurface = storageRoom.SurfaceId;
-                }
-                var storageAccess = civilian.HasFoodFetchAccessPoint
-                    ? "(" + civilian.FoodFetchAccessWorldX.ToString("0.###") + "," +
-                      civilian.FoodFetchAccessWorldY.ToString("0.###") + ")"
-                    : "—";
-                var corePosition = "—";
-                if (CharacterWorldPresenceQuery.TryResolve(world, selected, out var presence) && presence.HasWorldPosition)
-                    corePosition = presence.SurfaceId + "@(" + presence.WorldPosition.X.ToString("0.###") + "," +
-                                   presence.WorldPosition.Y.ToString("0.###") + ")";
-                var actualPosition = "—";
-                EntityView selectedView = null;
-                if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(selected, out selectedView) && selectedView != null)
-                {
-                    if (host.ContinuousOutdoorSurfaceRuntime != null && host.ContinuousOutdoorSurfaceRuntime.IsActive)
-                    {
-                        host.ContinuousOutdoorSurfaceRuntime.Mapper.PresentationToWorld(
-                            selectedView.transform.position.x, selectedView.transform.position.y, out var actualX, out var actualY);
-                        actualPosition = host.ContinuousOutdoorSurfaceRuntime.ActiveSurfaceId + "@(" +
-                                         actualX.ToString("0.###") + "," + actualY.ToString("0.###") + ")";
-                    }
-                    else actualPosition = "Presentation(" + selectedView.transform.position.x.ToString("0.###") + "," +
-                                          selectedView.transform.position.y.ToString("0.###") + ")";
-                }
-                DescribeIntentGrid(host, world, selected, movementIntent, selectedView,
-                    out var sourceGrid, out var targetGrid);
-                var scheduleMover = host.GetComponent<HostNpcScheduleMover>();
-                var resolvedTarget = "—";
-                var remainingCells = "—";
-                var hostArrivalRadius = "—";
-                var coreDeliveryRadius = hasMovementIntent && movementIntent.ArrivalRadiusWorld > 0f
-                    ? movementIntent.ArrivalRadiusWorld.ToString("0.####") : "—";
-                if (scheduleMover != null && scheduleMover.TryGetResolvedPresentationTarget(selected, out var hostTarget))
-                {
-                    resolvedTarget = "(" + hostTarget.x.ToString("0.###") + "," + hostTarget.y.ToString("0.###") + ")";
-                    var grid = moveController?.WalkGrid;
-                    if (selectedView != null && grid != null)
-                        remainingCells = (Vector2.Distance(selectedView.transform.position, hostTarget) /
-                                          grid.CellSize).ToString("0.##");
-                }
-                if (scheduleMover != null && hasMovementIntent)
-                    hostArrivalRadius = scheduleMover.ResolveArrivalRadiusPresentation(movementIntent).ToString("0.###");
-                var prisonDistance = "—";
-                var detainReason = "—";
-                if (civilian.Disposition == CivilianDisposition.CapturedEscorted &&
-                    MortalCivilianService.TryResolvePrisonDropOff(world, "base:workarea_huangcun_prison",
-                        out _, out var diagnosticDropOffCenter, out _) &&
-                    CharacterWorldPresenceQuery.TryResolve(world, civilian.CarrierId, out var carrierPresence) &&
-                    carrierPresence.HasWorldPosition)
-                {
-                    var dx = carrierPresence.WorldPosition.X - diagnosticDropOffCenter.X;
-                    var dy = carrierPresence.WorldPosition.Y - diagnosticDropOffCenter.Y;
-                    var distance = (float)System.Math.Sqrt(dx * dx + dy * dy);
-                    var cellSize = world.SurfaceSpatial.TryGet(carrierPresence.SurfaceId, out var metric) && metric != null
-                        ? metric.CellSize : 1f;
-                    prisonDistance = (distance / cellSize).ToString("0.##") + " cells";
-                    var canDetainDiagnostic = MortalCivilianService.CanDetain(world, civilian.EntityId,
-                        "base:workarea_huangcun_prison");
-                    detainReason = canDetainDiagnostic.IsSuccess ? "OK" : canDetainDiagnostic.Error.Message;
-                }
-                if (_lastDiagnosticWorldTick != world.Tick.Value)
-                {
-                    _lastDiagnosticWorldTick = world.Tick.Value;
-                    _lastDiagnosticTickChangeAt = Time.unscaledTime;
-                }
-                var tickAdvancing = !host.Session.IsPaused && Time.unscaledTime - _lastDiagnosticTickChangeAt < 2f;
-                var firstGate = DescribeMovementGate(host, selected, civilian, movementIntent, farmLabor, moveController);
-                var targetKey = hasMovementIntent && movementIntent.Active
-                    ? movementIntent.Revision + ":" +
-                      (movementIntent.HasWorldTarget
-                          ? movementIntent.TargetSurfaceId + "@" + movementIntent.TargetWorldX.ToString("R") + "," + movementIntent.TargetWorldY.ToString("R")
-                          : movementIntent.TargetWorkAreaId + "|" + movementIntent.TargetLocationId + "|" + movementIntent.SlotIndex)
-                    : "None";
-                diagnostic += "\nSatiety=" + civilian.Satiety + " Energy=" + civilian.Energy +
-                              "\nProfession=" + civilian.Profession + " CurrentActivity=" + civilian.Activity +
-                              " ActualPhase=" + HostMortalActivityPresentation.Describe(civilian) +
-                              " CurrentSchedulePhase=" + FactionMortalSchedule.Current(world.Tick) +
-                              " CivilianState=" + civilian.Disposition +
-                              "\nCivilianMovementOwner=" + movementOwner +
-                              "\nSquad: SquadId=" + (hasSquad ? selectedSquad.SquadId : "None") +
-                              " DefendedSiteId=" + (hasSquad && !string.IsNullOrEmpty(selectedSquad.DefendedSiteId)
-                                  ? selectedSquad.DefendedSiteId : "—") +
-                              " IsExplicitSiteDefender=" + (hasSquad && !string.IsNullOrEmpty(selectedSquad.DefendedSiteId)) +
-                              " Members=" + (hasSquad ? DescribeSquadMembers(world, selectedSquad) : "—") +
-                              " MemberCount=" + (hasSquad ? selectedSquad.MemberCharacterIds.Count : 0) +
-                              " CommandKind=" + (hasSquad ? selectedSquad.CommandKind.ToString() : "None") +
-                              " HasMotion=" + hasSquadMotion +
-                              " MotionIsMoving=" + (hasSquadMotion && squadMotion.IsMoving) +
-                              "\nFoodFetch: StorageRoomId=" + civilian.FoodFetchStorageRoomId +
-                              " SourceSiteId=" + civilian.CurrentSiteId +
-                              " FoodCount=" + MortalCivilianService.CountSiteFood(world, civilian.CurrentSiteId) +
-                              " Phase=" + civilian.FoodFetchPhase +
-                              " StorageCenter=" + storageCenter +
-                               " StorageSurface=" + storageSurface +
-                               " ResolvedAccessPoint=" + storageAccess +
-                               " CandidateIndex=" + civilian.FoodFetchAccessCandidateIndex +
-                               " CandidateAttempts=" + civilian.FoodFetchAccessAttemptCount +
-                               " FoodResourceId=" + civilian.PendingFoodResourceId +
-                              " Status=" + civilian.FoodFetchStatus +
-                              "\nResidence=" + civilian.ResidenceWorkAreaId +
-                              " CaptiveCarrier=" + civilian.CarrierId +
-                              " DetainedResidence=" + civilian.DetainedResidenceWorkAreaId +
-                              "\nRescue: Target=" + civilian.RescueTargetId +
-                              " Rescuer=" + civilian.EntityId +
-                              " Carrying=" + civilian.RescueCarrying +
-                              " RecoverySpotId=" + (string.IsNullOrEmpty(civilian.RescueDestinationId) ? "—" : civilian.RescueDestinationId) +
-                              " RejectedSpotId=" + (string.IsNullOrEmpty(civilian.RescueRejectedDestinationId)
-                                  ? "—" : civilian.RescueRejectedDestinationId) +
-                              " Occupied=" + (!string.IsNullOrEmpty(civilian.RescueDestinationId) &&
-                                  world.RecoverySpotDeliveries.TryGetInjured(civilian.RescueDestinationId, out _)) +
-                              " Reserved=" + (!string.IsNullOrEmpty(civilian.RescueDestinationId) &&
-                                  MortalCivilianService.IsRecoverySpotReserved(world, civilian.RescueDestinationId, EntityId.None)) +
-                              " Delivered=" + (!civilian.RescueTargetId.IsNone &&
-                                  world.RecoverySpotDeliveries.ContainsInjured(civilian.RescueTargetId)) +
-                              "\nRescueArrival: ResolvedTarget=" + resolvedTarget +
-                              " Remaining=" + remainingCells + " cells" +
-                              " HostRadius=" + hostArrivalRadius +
-                              " CoreRadiusWorld=" + coreDeliveryRadius +
-                              "\nPrison: Captive=" + (civilian.Disposition == CivilianDisposition.CapturedEscorted ? civilian.EntityId.ToString() : "—") +
-                              " Carrier=" + civilian.CarrierId +
-                              " BoundPrison=base:workarea_huangcun_prison" +
-                              " DropOffId=" + (MortalCivilianService.TryResolvePrisonDropOff(world,
-                                  "base:workarea_huangcun_prison", out var diagnosticDropOff, out _, out _)
-                                  ? diagnosticDropOff.StableAssetId : "—") +
-                              " AtDropOff=" + (civilian.Disposition == CivilianDisposition.CapturedEscorted &&
-                                  MortalCivilianService.CanDetain(world, civilian.EntityId,
-                                      "base:workarea_huangcun_prison").IsSuccess) +
-                              " DetainLegal=" + (civilian.Disposition == CivilianDisposition.CapturedEscorted &&
-                                  MortalCivilianService.CanDetain(world, civilian.EntityId,
-                                      "base:workarea_huangcun_prison").IsSuccess) +
-                              " DropOffDistance=" + prisonDistance +
-                              " CanDetainReason=" + detainReason +
-                              "\nPosition: Actual=" + actualPosition + " Core=" + corePosition +
-                              "\nPermanentManageable=" + (selectedEntity != null &&
-                                  PlayerPartyRuntime.CanPlayerControlCharacter(world, selected)) +
-                              " InPlayerParty=" + (world.Strategic.PlayerPartyContext?.IsMember(selected) == true) +
-                              "\nMovementIntent: Active=" + (hasMovementIntent && movementIntent.Active) +
-                              " HasWorldTarget=" + (hasMovementIntent && movementIntent.HasWorldTarget) +
-                              " Surface=" + (hasMovementIntent ? movementIntent.TargetSurfaceId : string.Empty) +
-                              " Target=(" + (hasMovementIntent ? movementIntent.TargetWorldX.ToString("0.###") : "—") +
-                              "," + (hasMovementIntent ? movementIntent.TargetWorldY.ToString("0.###") : "—") + ")" +
-                              " PathState=" + (hasMovementIntent ? movementIntent.HostPathState.ToString() : "None") +
-                              " TargetKey=" + targetKey +
-                              " PathRequested=" + (hasMovementIntent && movementIntent.HostPathRequested) +
-                              " PathAccepted=" + (hasMovementIntent && movementIntent.HostPathAccepted) +
-                              " PathFailure=" + (hasMovementIntent ? movementIntent.HostPathFailureReason : string.Empty) +
-                              " HostArrived=" + (hasMovementIntent && movementIntent.HostArrived) +
-                              " SpeedMultiplier=" + (hasMovementIntent ? movementIntent.SpeedMultiplier.ToString("0.###") : "1") +
-                              "\nWalkGrid: Source=" + sourceGrid + " Target=" + targetGrid +
-                              "\nHostMovement: IsMoving=" + (moveController?.IsMoving(selected) == true) +
-                              " EffectiveSpeed=" + (moveController != null
-                                  ? moveController.GetEffectiveMoveSpeed(selected).ToString("0.###") : "Unavailable") +
-                              " IsFarmWorker=" + (farmLabor?.IsFarming(selected) == true) +
-                              " IsHeldForInteraction=" + (moveController?.IsNpcHeldForInteraction(selected) == true) +
-                              " SquadOwnsMovement=" +
-                              (SquadCommandService.OwnsIndividualSchedule(world, selected) ||
-                               SquadWorldMotionService.OwnsCharacter(world, selected)) +
-                              " FirstGate=" + firstGate +
-                              "\nClock: WorldTick=" + world.Tick.Value + " AdvancingRecently=" + tickAdvancing +
-                              " PresentationDeltaTime=" + host.PresentationDeltaTime.ToString("0.####") +
-                               " SessionPaused=" + host.Session.IsPaused +
-                               "\nFlee: SourceSite=" + civilian.FleeSourceSiteId +
-                               " Candidate=" + civilian.FleeCandidateIndex +
-                               " Attempts=" + civilian.FleeAttemptCount +
-                               " Target=(" + civilian.FleeTargetX.ToString("0.###") + "," +
-                               civilian.FleeTargetY.ToString("0.###") + ") Status=" + civilian.FleeStatus +
-                               "\nDisplaced: Materialized=" + world.ContinuousOutdoorMaterialization.IsMaterialized(selected) +
-                               " FleeSourceSiteId=" + civilian.FleeSourceSiteId +
-                               " RefugeTargetSiteId=" + civilian.RefugeTargetSiteId +
-                               " BackgroundTraveling=" + backgroundTraveling +
-                               " BackgroundDestinationSite=" + backgroundDestination +
-                               " CurrentSiteId=" + civilian.CurrentSiteId +
-                               " CurrentSiteOwner=" + currentSiteOwner +
-                               " CharacterFactionId=" + characterFaction +
-                               " CanUseCurrentSiteFood=" + MortalCivilianService.CanUseCurrentSiteFood(world, selected) +
-                               " BackgroundNeedsLastProcessedTick=" + civilian.BackgroundNeedsLastProcessedTick +
-                               "\nSleep: Phase=" + civilian.SleepPhase +
-                              " StartedTick=" + civilian.SleepStartedTick +
-                              " RestSource=" +
-                              (civilian.SleepPhase == CivilianSleepPhase.SleepingAtResidence ? "Bed" :
-                               civilian.SleepPhase == CivilianSleepPhase.SleepingOnGround ? "Ground" : "None");
-            }
-            var siteEncounter = world.Strategic.CharacterEncounter;
-            if (siteEncounter?.Objective != null)
-            {
-                diagnostic += "\nCurrent Site Encounter: SiteId=" + siteEncounter.Objective.SiteId +
-                              " Phase=" + siteEncounter.Phase;
-                for (var i = 0; i < siteEncounter.Participants.Count; i++)
-                {
-                    var participant = siteEncounter.Participants[i];
-                    var participantId = new EntityId(participant.CharacterId);
-                    world.Entities.TryGet(participantId, out var participantEntity);
-                    var lifecycle = participantEntity != null &&
-                                    participantEntity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life)
-                        ? life.State.ToString() : "Missing";
-                    diagnostic += "\n  EntityId=" + participant.CharacterId +
-                                  " Name=" + (participantEntity?.DisplayName ?? "Missing") +
-                                  " SquadId=" + participant.SquadId +
-                                  " Side=" + (participant.Enemy ? "Enemy" : "Friendly") +
-                                  " Lifecycle=" + lifecycle +
-                                  " TargetId=" + (participant.TargetId == ulong.MaxValue
-                                      ? "None" : participant.TargetId.ToString());
-                }
-            }
-            _civilianDiagnosticCache = diagnostic;
-            _nextCivilianDiagnosticRefreshAt = Time.unscaledTime + .5f;
-            }
-            var h = body.CalcHeight(new GUIContent(_civilianDiagnosticCache), width);
-            GUI.TextArea(new Rect(x, y, width, h), _civilianDiagnosticCache); y += h + 8f;
-            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
-            {
-                var row = "建设 " + job.JobId + " " + job.BuildingId + " Site=" + job.SiteId +
-                          " Labor=" + job.LaborProgress + "/" + XianXia.Core.Construction.CivilianConstructionJobService.RequiredLabor +
-                          " Carrier=" + job.CarrierId + " Payload=" + job.PayloadItemId + "×" + job.PayloadCount +
-                          " Error=" + job.LastError;
-                foreach (var cost in job.Required)
-                { job.Delivered.TryGetValue(cost.ItemId, out var delivered); row += "\n" + cost.ItemId + " " + delivered + "/" + cost.Count; }
-                var rowHeight = body.CalcHeight(new GUIContent(row), width);
-                GUI.TextArea(new Rect(x, y, width, rowHeight), row); y += rowHeight + 4f;
-            }
-            return y;
-        }
-
-        static string DescribeSquadMembers(
-            XianXia.Core.Simulation.SimulationWorld world, SquadState squad)
-        {
-            if (world == null || squad == null) return "—";
-            var text = string.Empty;
-            for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
-            {
-                var id = new EntityId(squad.MemberCharacterIds[i]);
-                world.Entities.TryGet(id, out var member);
-                if (i > 0) text += ", ";
-                text += id.Value + ":" + (member?.DisplayName ?? "Missing");
-            }
-            return text;
-        }
-
-        static string DescribeMovementGate(
-            PlayableHostBootstrap host, EntityId id, MortalCivilianState civilian,
-            MovementIntentComponent intent, HostFarmFieldLabor farm, HostMoveController mover)
-        {
-            if (host?.Session == null || !host.Session.IsInitialized) return "SessionUnavailable";
-            if (host.Session.IsPaused) return "SessionPaused";
-            if (host.Session.World.ContentEvents.HasActive) return "ContentEvent";
-            var owner = MortalCivilianMovementAuthority.Resolve(host.Session.World, id, civilian);
-            if (owner != CivilianMovementOwner.CivilianLocal) return owner.ToString();
-            if (farm?.IsFarming(id) == true) return "FarmPresentation";
-            if (mover?.IsNpcHeldForInteraction(id) == true) return "InteractionHold";
-            if (intent == null || !intent.Active) return "NoActiveMovementIntent";
-            if (!intent.HostPathRequested) return "AwaitingHostPathRequest";
-            if (!intent.HostPathAccepted) return "HostPathRejected";
-            if (intent.HostArrived) return "Arrived";
-            if (mover?.IsMoving(id) == true) return "None";
-            return HostInputGate.BlockWorldInteraction ? "PlayerInputBlockedOnly" : "HostNotMoving";
-        }
-
-        static void DescribeIntentGrid(
-            PlayableHostBootstrap host, XianXia.Core.Simulation.SimulationWorld world,
-            EntityId entityId, MovementIntentComponent intent, EntityView view,
-            out string source, out string target)
-        {
-            source = target = "Unavailable";
-            var grid = host?.MoveController?.WalkGrid;
-            if (grid == null) return;
-            if (view != null) source = DescribeGridPoint(grid, view.transform.position);
-            if (intent == null || !intent.Active) return;
-            Vector3 point;
-            var scheduleMover = host.GetComponent<HostNpcScheduleMover>();
-            if (scheduleMover != null && scheduleMover.TryGetResolvedPresentationTarget(entityId, out point))
-            {
-                target = DescribeGridPoint(grid, point);
-                return;
-            }
-            if (intent.HasWorldTarget)
-            {
-                var runtime = host.ContinuousOutdoorSurfaceRuntime;
-                if (runtime == null || !runtime.IsActive ||
-                    !string.Equals(runtime.ActiveSurfaceId, intent.TargetSurfaceId, System.StringComparison.Ordinal))
-                    return;
-                runtime.Mapper.WorldToPresentation(intent.TargetWorldX, intent.TargetWorldY, out var px, out var py);
-                point = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                if (GUI.Button(new Rect(x, y, 140f, 26f), "正常 80")) { state.Satiety = 80; _sectionStatus = "饱食已设为 80。"; }
+                if (GUI.Button(new Rect(x + 146f, y, 140f, 26f), "低饱食 10")) { state.Satiety = 10; _sectionStatus = "饱食已设为 10。"; }
             }
             else
             {
-                var locationId = intent.TargetLocationId;
-                var ox = 0f; var oy = 0f;
-                if (!string.IsNullOrEmpty(intent.TargetWorkAreaId) &&
-                    world.TryGetWorkArea(intent.TargetWorkAreaId, out var area))
-                {
-                    locationId = area.LocationId;
-                    ox = area.OffsetX; oy = area.OffsetZ;
-                }
-                if (!HostZoneQuery.TryGetLocationCenter(world, locationId, out point)) return;
-                point += new Vector3(ox, oy, 0f);
+                if (GUI.Button(new Rect(x, y, 110f, 26f), "正常 80")) { state.Energy = 80; _sectionStatus = "精力已设为 80。"; }
+                if (GUI.Button(new Rect(x + 116f, y, 140f, 26f), "需要睡眠 30")) { state.Energy = 30; _sectionStatus = "精力已设为 30。"; }
+                if (GUI.Button(new Rect(x + 262f, y, 140f, 26f), "紧急疲劳 5")) { state.Energy = 5; _sectionStatus = "精力已设为 5。"; }
             }
-            target = DescribeGridPoint(grid, point);
+            GUI.enabled = true;
+            return DrawResult(x, y + 34f, width, body);
         }
 
-        static string DescribeGridPoint(XianXia.Core.Navigation.WalkGrid grid, Vector3 point)
+        float DrawDetainedLoyaltyTool(XianXia.Core.Simulation.SimulationWorld world,
+            HostSelectionController selection, float x, float y, float width, GUIStyle body)
         {
-            if (!grid.TryWorldToCell(point.x, point.y, out var x, out var y)) return "Outside";
-            return "(" + x + "," + y + ") Walkable=" + grid.IsWalkable(x, y);
+            var valid = TrySelectedCivilian(world, selection, out var state) && state.Disposition == CivilianDisposition.Detained;
+            GUI.Label(new Rect(x, y, width, 38f), valid ? "目标：Detained EntityId=" + selection.State.SelectedIds[0].Value : "仅允许唯一选中的 Detained 凡人。", body);
+            y += 44f; GUI.enabled = valid;
+            if (GUI.Button(new Rect(x, y, width, 26f), "忠诚设为 10"))
+            { XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, selection.State.SelectedIds[0], 10); _sectionStatus = "成功：囚犯忠诚已设为 10。"; }
+            GUI.enabled = true; return DrawResult(x, y + 34f, width, body);
         }
 
-        void PrepareCivilianRescue(PlayableHostBootstrap host)
+        float DrawGrainTool(XianXia.Core.Simulation.SimulationWorld world, bool add,
+            float x, float y, float width, GUIStyle body)
         {
-            var world = host.Session.World;
-            if (!world.Strategic.Sites.TryGet("base:site_huangcun", out var site) || !site.HasContinuousCore)
-            { _sectionStatus = "黄村 Site 不可用。"; return; }
-            XianXia.Core.Npc.WorkAreaDefinition medical = null;
-            foreach (var pair in world.WorkAreas)
-                if (MortalActivityEvaluator.HasTag(pair.Value, "medical")) { medical = pair.Value; break; }
-            if (medical == null || !MortalCivilianQuery.TryResolveWorkAreaWorldCenter(
-                    world, site.SiteId, medical, out var medicalSurface, out var medicalCenter, out var cellSize))
-            { _sectionStatus = "荒村医疗点不可用。"; return; }
-            XianXia.Core.Entities.Entity rescuer = null, injured = null;
-            foreach (var entity in world.Entities.All)
+            var siteId = ResolveAcceptanceSite(world);
+            var count = WorldSitePublicStockService.GetCount(world, siteId, MortalCivilianService.GrainResourceId);
+            GUI.Label(new Rect(x, y, width, 22f), "实际对象：" + siteId + "　当前粗粮=" + count, body); y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 26f), add ? "加入粗粮 20" : "清空粗粮"))
             {
-                var id = entity.DefinitionId.ToString();
-                if (id == "base:character_ch01_ref_mortal_a") rescuer = entity;
-                else if (id == "base:character_ch01_ref_mortal_b") injured = entity;
+                var result = add
+                    ? WorldSitePublicStockService.TryAdd(world, siteId, MortalCivilianService.GrainResourceId, 20)
+                    : WorldSitePublicStockService.TryRemove(world, siteId, MortalCivilianService.GrainResourceId, count);
+                _sectionStatus = result.IsSuccess ? (add ? "成功：已加入粗粮 20。" : "成功：粗粮已清空。") : "失败：" + result.Error;
             }
-            if (rescuer == null || injured == null)
-            { _sectionStatus = "阿石／阿青缺失。"; return; }
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawActionTool(string label, System.Action action, float x, float y, float width, GUIStyle body)
+        {
+            if (GUI.Button(new Rect(x, y, width, 26f), label)) action();
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawConfirmedTool(string confirmationId, string impact, System.Action action,
+            float x, float y, float width, GUIStyle body)
+        {
+            GUI.Label(new Rect(x, y, width, 54f), "影响范围：" + impact, body); y += 60f;
+            if (_pendingConfirmation != confirmationId)
+            {
+                if (GUI.Button(new Rect(x, y, width, 26f), "准备执行…"))
+                { _pendingConfirmation = confirmationId; _sectionStatus = "等待确认：尚未修改任何状态。"; }
+            }
+            else
+            {
+                if (GUI.Button(new Rect(x, y, width * .48f, 26f), "确认执行"))
+                { _pendingConfirmation = string.Empty; action(); }
+                if (GUI.Button(new Rect(x + width * .52f, y, width * .48f, 26f), "取消"))
+                { _pendingConfirmation = string.Empty; _sectionStatus = "已取消：未修改任何状态。"; }
+            }
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawResult(float x, float y, float width, GUIStyle body)
+        {
+            GUI.Label(new Rect(x, y, width, 20f), "最近结果", body);
+            GUI.Label(new Rect(x, y + 22f, width, 72f), string.IsNullOrEmpty(_sectionStatus) ? "尚未执行。" : _sectionStatus, body);
+            return y + 98f;
+        }
+
+        float DrawFocusHuangcun(PlayableHostBootstrap host, float x, float y, float width, GUIStyle body)
+        {
+            return DrawActionTool("定位荒村 Site Core", () =>
+            {
+                var world = host.Session.World;
+                if (!world.Strategic.Sites.TryGet("base:site_huangcun", out var site) || site == null || !site.HasContinuousCore)
+                { _sectionStatus = "失败：荒村 Continuous Site 不可用。"; return; }
+                var ok = host.TryFocusContinuousWorldPosition(site.CoreSurfaceId, new WorldVec2(site.CoreWorldX, site.CoreWorldY), out var reason);
+                _sectionStatus = ok ? "成功：已定位荒村；未传送或修改状态。" : "失败：" + reason;
+            }, x, y, width, body);
+        }
+
+        float DrawFocusTool(PlayableHostBootstrap host, string workAreaId,
+            float x, float y, float width, GUIStyle body) =>
+            DrawActionTool("定位 " + workAreaId, () => FocusWorkArea(host, workAreaId), x, y, width, body);
+
+        float DrawFixedFocusTool(PlayableHostBootstrap host, string targetId, float worldX, float worldY,
+            float x, float y, float width, GUIStyle body)
+        {
+            return DrawActionTool("定位 " + targetId, () =>
+            {
+                var ok = host.TryFocusContinuousWorldPosition("base:surface_main_wilderness_v1", new WorldVec2(worldX, worldY), out var reason);
+                _sectionStatus = ok ? "成功：已定位 " + targetId + "；未传送或修改状态。" : "失败：" + reason;
+            }, x, y, width, body);
+        }
+
+        float DrawPlayerWalletTool(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var wallet = world.Commerce.PlayerWallet;
+            GUI.Label(new Rect(x, y, width, 22f), "实际对象：PlayerParty 共用钱包　当前 " + wallet.Low + " / " + wallet.Mid + " / " + wallet.High, body);
+            y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "标准：10000 / 5 / 2"))
+            { world.Commerce.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(10000, 5, 2); _sectionStatus = "成功：玩家钱包=10000/5/2。"; }
+            y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "仅中品：0 / 10 / 0"))
+            { world.Commerce.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(0, 10, 0); _sectionStatus = "成功：玩家钱包=0/10/0。"; }
+            y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "仅下品：5000 / 0 / 0"))
+            { world.Commerce.PlayerWallet = new XianXia.Core.Inventory.SpiritStoneWallet(5000, 0, 0); _sectionStatus = "成功：玩家钱包=5000/0/0。"; }
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawShopWalletTool(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            const string shopId = "base:shop_qingshi_general";
+            if (!world.Commerce.Shops.TryGetValue(shopId, out var shop) || !world.Commerce.Definitions.TryGetValue(shopId, out var definition))
+            { GUI.Label(new Rect(x, y, width, 22f), "验收商店运行态不可用。", body); return y + 24f; }
+            GUI.Label(new Rect(x, y, width, 22f), "实际对象：" + shopId + "　当前 " + shop.Wallet.Low + " / " + shop.Wallet.Mid + " / " + shop.Wallet.High, body); y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "标准资金（保持库存）"))
+            { shop.Wallet = definition.InitialWallet.Copy(); _sectionStatus = "成功：商店资金已恢复，库存未改。"; }
+            y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "下品不足：0 / 10 / 2"))
+            { shop.Wallet = new XianXia.Core.Inventory.SpiritStoneWallet(0, 10, 2); _sectionStatus = "成功：商店资金=0/10/2。"; }
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawAuctionItemsTool(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            return DrawActionTool("发放粗木 10 / 中品秘籍 1", () =>
+            {
+                var wood = world.Inventory.TryAdd("base:item_rough_wood", 10);
+                var manual = world.Inventory.TryAdd("base:item_manual_jiang_lao_legacy", 1);
+                _sectionStatus = "已加入粗木 " + wood + "、中品秘籍 " + manual + "（受背包容量限制）。";
+            }, x, y, width, body);
+        }
+
+        float DrawQuestTool(PlayableHostSession session, string questId,
+            float x, float y, float width, GUIStyle body)
+        {
+            GUI.Label(new Rect(x, y, width, 22f), "Actor=" + session.PlayerParty.ActiveCharacterId + "　QuestId=" + questId, body); y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "接取任务"))
+            {
+                var result = new QuestService().TryStart(session.World, questId, session.PlayerParty.ActiveCharacterId);
+                _sectionStatus = result.IsSuccess ? "成功：已接取 " + questId : "失败：" + result.Error;
+            }
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawRelationshipTool(PlayableHostSession session, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            var actor = session.PlayerParty.ActiveCharacterId;
+            var target = selection != null && selection.State.Count == 1 ? selection.State.SelectedIds[0] : EntityId.None;
+            var valid = !actor.IsNone && !target.IsNone && target != actor;
+            GUI.Label(new Rect(x, y, width, 40f), "目标方向：NPC EntityId=" + target.Value + " → Active EntityId=" + actor.Value +
+                "　当前=" + session.World.Relationships.Score(target, actor), body); y += 46f;
+            GUI.enabled = valid;
+            if (GUI.Button(new Rect(x, y, 140f, 26f), "NPC→Active 19")) SetSocialScore(session, selection, 19, false);
+            if (GUI.Button(new Rect(x + 146f, y, 140f, 26f), "NPC→Active 20")) SetSocialScore(session, selection, 20, false);
+            if (GUI.Button(new Rect(x + 292f, y, 170f, 26f), "反向 Active→NPC 30")) SetSocialScore(session, selection, 30, true);
+            GUI.enabled = true; return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawFlagTool(PlayableHostSession session, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            GUI.Label(new Rect(x, y, 50f, 22f), "Flag", body);
+            GUI.SetNextControlName("LevelTester.Flag");
+            _flagInput = GUI.TextField(new Rect(x + 52f, y, width - 52f, 24f), _flagInput); y += 30f;
+            if (GUI.Button(new Rect(x, y, width * .48f, 26f), "设置")) RunFlag(session, selection, true);
+            if (GUI.Button(new Rect(x + width * .52f, y, width * .48f, 26f), "清除")) RunFlag(session, selection, false);
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawForceEventTool(PlayableHostSession session, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            GUI.Label(new Rect(x, y, 50f, 22f), "Event", body);
+            GUI.SetNextControlName("LevelTester.Event");
+            _eventInput = GUI.TextField(new Rect(x + 52f, y, width - 52f, 24f), _eventInput); y += 30f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "强制呈现")) ForceEvent(session, selection);
+            return DrawResult(x, y + 34f, width, body);
+        }
+
+        void SpawnMerchants(PlayableHostSession session)
+        {
+            var result = WorldOpportunityDriver.SpawnAcceptanceInstances(session.World,
+                "base:world_opportunity_event02_temporary_merchant", 2, out var summary);
+            _sectionStatus = result.IsSuccess ? "已生成：" + summary : "失败：" + result.Error;
+        }
+
+        void ClearDynamic(PlayableHostSession session)
+        {
+            var count = WorldOpportunityDriver.ClearAcceptanceInstances(session.World,
+                "base:world_opportunity_dynamic_hidden_stele", "base:world_opportunity_dynamic_public_package",
+                "base:world_opportunity_dynamic_visible_herb");
+            _sectionStatus = "已清理 " + count + " 个动态机会物体。";
+        }
+
+        float DrawMovementDiagnostic(XianXia.Core.Simulation.SimulationWorld world, PlayableHostBootstrap host,
+            HostSelectionController selection, float x, float y, float width, GUIStyle body)
+        {
+            if (selection == null || selection.State.Count != 1 || !world.Entities.TryGet(selection.State.SelectedIds[0], out var entity))
+            { GUI.Label(new Rect(x, y, width, 36f), "请只选中一个有效人物。", body); return y + 40f; }
+            entity.TryGet<MovementIntentComponent>(out var intent);
+            var owner = world.Civilians.TryGet(entity.Id, out var civilian)
+                ? MortalCivilianMovementAuthority.Resolve(world, entity.Id, civilian).ToString() : "非受管凡人";
+            var core = CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var presence) && presence.HasWorldPosition
+                ? presence.SurfaceId + "@(" + presence.WorldPosition.X.ToString("0.###") + "," + presence.WorldPosition.Y.ToString("0.###") + ")" : "—";
+            var text = "Entity=" + entity.DisplayName + "〔" + entity.Id.Value + "〕\nMovementOwner=" + owner + "\nCorePosition=" + core +
+                       "\nIntent.Active=" + (intent?.Active == true) + " DestinationKey=" + (intent?.DestinationKey ?? "—") +
+                       "\nTarget=" + (intent == null ? "—" : intent.TargetSurfaceId + "@(" + intent.TargetWorldX.ToString("0.###") + "," + intent.TargetWorldY.ToString("0.###") + ")") +
+                       "\nHostPathState=" + (intent == null ? "—" : intent.HostPathState.ToString()) + " HostArrived=" + (intent?.HostArrived == true) +
+                       "\nHostMoving=" + (host.MoveController?.IsMoving(entity.Id) == true) + " Failure=" + (intent?.HostPathFailureReason ?? "—");
+            var h = body.CalcHeight(new GUIContent(text), width); GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawCharacterDiagnostic(XianXia.Core.Simulation.SimulationWorld world, PlayableHostBootstrap host,
+            HostSelectionController selection, float x, float y, float width, GUIStyle body)
+        {
+            if (selection == null || selection.State.Count != 1 || !world.Entities.TryGet(selection.State.SelectedIds[0], out var entity))
+            { GUI.Label(new Rect(x, y, width, 36f), "请只选中一个有效人物。", body); return y + 40f; }
+            var faction = entity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) && membership.IsAffiliated
+                ? membership.FactionId : "None";
+            var loyalty = XianXia.Core.Social.CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out var score)
+                ? score.ToString() : "—";
+            var lifecycle = entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) ? life.State.ToString() : "Missing";
+            var hp = entity.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals) ? vitals.CurrentHp.ToString() : "—";
+            var text = "Entity=" + entity.DisplayName + "〔" + entity.Id.Value + "〕\nFaction=" + faction + " Loyalty=" + loyalty +
+                       "\nLifecycle=" + lifecycle + " HP=" + hp +
+                       "\nPermanentManageable=" + PlayerPartyRuntime.CanPlayerControlCharacter(world, entity.Id) +
+                       " InPlayerParty=" + (world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true) +
+                       "\nPendingPersonAction=" + (host.MoveController?.DescribePendingPersonAction() ?? "MoverMissing") +
+                       "\nRecruitInteraction=" + (host.GetComponent<HostNpcContextMenu>()?.DescribeRecruitInteraction() ?? "MenuMissing");
+            var h = body.CalcHeight(new GUIContent(text), width); GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawNeedsDiagnostic(XianXia.Core.Simulation.SimulationWorld world, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            if (selection == null || selection.State.Count != 1 || !world.Civilians.TryGet(selection.State.SelectedIds[0], out var state) || state == null)
+            { GUI.Label(new Rect(x, y, width, 36f), "请只选中一个已有 MortalCivilianState 的人物。", body); return y + 40f; }
+            var text = "EntityId=" + state.EntityId + " State=" + state.Disposition +
+                       "\nSatiety=" + state.Satiety + " Energy=" + state.Energy + " Profession=" + state.Profession +
+                       " Activity=" + state.Activity + " Schedule=" + FactionMortalSchedule.Current(world.Tick) +
+                       "\nSite=" + state.CurrentSiteId + " Residence=" + state.ResidenceWorkAreaId +
+                       "\nFoodFetch: Phase=" + state.FoodFetchPhase + " Storage=" + state.FoodFetchStorageRoomId +
+                       " Resource=" + state.PendingFoodResourceId + " Status=" + state.FoodFetchStatus +
+                       "\nSleep: Phase=" + state.SleepPhase + " StartedTick=" + state.SleepStartedTick +
+                       "\nFlee: Source=" + state.FleeSourceSiteId + " Refuge=" + state.RefugeTargetSiteId +
+                       " Candidate=" + state.FleeCandidateIndex + " Attempts=" + state.FleeAttemptCount + " Status=" + state.FleeStatus +
+                       "\nBackgroundTravel=" + world.BackgroundCharacterTravel.IsTraveling(state.EntityId) +
+                       " Materialized=" + world.ContinuousOutdoorMaterialization.IsMaterialized(state.EntityId);
+            var h = body.CalcHeight(new GUIContent(text), width); GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawRescueDiagnostic(XianXia.Core.Simulation.SimulationWorld world, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            var sb = new System.Text.StringBuilder();
+            var selected = selection != null && selection.State.Count == 1 ? selection.State.SelectedIds[0] : EntityId.None;
+            sb.AppendLine("Selected=" + selected);
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state == null || (state.RescueTargetId.IsNone && !state.RescueCarrying && string.IsNullOrEmpty(state.RescueDestinationId))) continue;
+                sb.AppendLine("Rescuer=" + state.EntityId + " Target=" + state.RescueTargetId + " Carrying=" + state.RescueCarrying);
+                sb.AppendLine("RecoverySpotId=" + state.RescueDestinationId + " Rejected=" + state.RescueRejectedDestinationId +
+                              " Reserved=" + MortalCivilianService.IsRecoverySpotReserved(world, state.RescueDestinationId, EntityId.None));
+                sb.AppendLine("Delivered=" + (!state.RescueTargetId.IsNone && world.RecoverySpotDeliveries.ContainsInjured(state.RescueTargetId)));
+            }
+            if (sb.Length == 0) sb.AppendLine("当前没有活动救援。 ");
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawPrisonDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var sb = new System.Text.StringBuilder();
+            var hasDropOff = MortalCivilianService.TryResolvePrisonDropOff(world, "base:workarea_huangcun_prison", out var point, out _, out _);
+            sb.AppendLine("DropOffId=" + (hasDropOff ? point.StableAssetId : "—"));
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state == null || (state.Disposition != CivilianDisposition.CapturedEscorted && state.Disposition != CivilianDisposition.Detained)) continue;
+                var can = MortalCivilianService.CanDetain(world, state.EntityId, "base:workarea_huangcun_prison");
+                sb.AppendLine("Captive=" + state.EntityId + " State=" + state.Disposition + " Carrier=" + state.CarrierId +
+                              " DetainLegal=" + can.IsSuccess + " Reason=" + (can.IsSuccess ? "OK" : can.Error.Message));
+            }
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawConstructionDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Jobs=" + world.CivilianConstructionJobs.Jobs.Count);
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+            {
+                sb.AppendLine(job.JobId + " | " + job.BuildingId + " | Site=" + job.SiteId +
+                              " | Labor=" + job.LaborProgress + "/" + CivilianConstructionJobService.RequiredLabor);
+                sb.AppendLine("Carrier=" + job.CarrierId + " Payload=" + job.PayloadItemId + "×" + job.PayloadCount + " Error=" + job.LastError);
+                foreach (var cost in job.Required)
+                { job.Delivered.TryGetValue(cost.ItemId, out var delivered); sb.AppendLine(cost.ItemId + " " + delivered + "/" + cost.Count); }
+            }
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawEncounterDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter == null) { GUI.Label(new Rect(x, y, width, 24f), "当前没有 CharacterEncounter。", body); return y + 28f; }
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Encounter=" + encounter.EncounterId + " Phase=" + encounter.Phase + " RosterVersion=" + encounter.RosterVersion);
+            if (encounter.Objective != null) sb.AppendLine("SiteId=" + encounter.Objective.SiteId);
+            foreach (var participant in encounter.Participants)
+                sb.AppendLine("EntityId=" + participant.CharacterId + " Squad=" + participant.SquadId +
+                              " Side=" + (participant.Enemy ? "Enemy" : "Friendly") +
+                              " TargetId=" + (participant.TargetId == ulong.MaxValue ? "None" : participant.TargetId.ToString()));
+            var text = sb.ToString(); var h = body.CalcHeight(new GUIContent(text), width);
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawShopDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            const string id = "base:shop_qingshi_general";
+            if (!world.Commerce.Shops.TryGetValue(id, out var shop)) { GUI.Label(new Rect(x, y, width, 24f), "验收商店不存在。", body); return y + 28f; }
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(id + " Wallet=" + shop.Wallet.Low + "L " + shop.Wallet.Mid + "M " + shop.Wallet.High + "H");
+            foreach (var stock in shop.Stock) sb.AppendLine(stock.Key + " ×" + stock.Value);
+            var text = sb.ToString(); var h = body.CalcHeight(new GUIContent(text), width);
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawAuctionDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            const string id = "base:auction_house_qingshi";
+            if (!world.Commerce.AuctionHouses.TryGetValue(id, out var house)) { GUI.Label(new Rect(x, y, width, 24f), "验收拍卖行不存在。", body); return y + 28f; }
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(id + " Wallet=" + house.HouseWallet.Low + "L " + house.HouseWallet.Mid + "M " + house.HouseWallet.High + "H");
+            foreach (var listing in house.Listings.Values)
+                sb.AppendLine(listing.ListingId + " | " + listing.ItemId + " | " + listing.Status + " | Bid=" + listing.CurrentBidAmount +
+                              " " + listing.Grade + " | Escrow=" + listing.PlayerEscrowAmount + " | End=" + listing.EndTick);
+            foreach (var claim in house.Claims.Values) sb.AppendLine("Claim " + claim.ClaimId + " | " + claim.ClaimKind + " | " + claim.ItemId + "×" + claim.Quantity);
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawQuestDiagnostic(PlayableHostSession session, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            var actor = session.PlayerParty.ActiveCharacterId;
+            var target = selection != null && selection.State.Count == 1 ? selection.State.SelectedIds[0] : EntityId.None;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Actor=" + actor + " Target=" + target + " NPC→Actor=" + session.World.Relationships.Score(target, actor));
+            foreach (var quest in session.World.Quests.Runtime.Values)
+                if (session.World.Quests.TryGetSpec(quest.QuestId, out var spec) && (spec.IsSecretRealm || quest.QuestId == "base:quest_social01_general"))
+                    sb.AppendLine(quest.QuestInstanceId + " | " + spec.QuestKind + " | " + quest.Status);
+            foreach (var binding in session.World.QuestCompanions.Bindings.Values)
+                sb.AppendLine("NPC=" + binding.CompanionEntityId + " Quest=" + binding.QuestInstanceId + " OriginalSquad=" + binding.OriginalSquadId + " State=" + binding.State);
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawDiplomacyDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var sb = new System.Text.StringBuilder();
+            if (world.Strategic.Wars?.All != null)
+                foreach (var pair in world.Strategic.Wars.All) if (pair.Value != null && pair.Value.Active) sb.AppendLine("War " + pair.Value.WarId);
+            sb.AppendLine("Alliances=" + world.Strategic.Alliances.All.Count + " Vassalages=" + world.Strategic.Vassalages.All.Count);
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawDelayedEventDiagnostic(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Pending=" + world.ScheduledContentEvents.Pending.Count);
+            foreach (var item in world.ScheduledContentEvents.OrderedPending())
+                sb.AppendLine(item.InstanceId + " | " + item.EventId + " | ExecuteTick=" + item.ExecuteTick + " | Actor=" + item.ActorEntityId + " Target=" + item.TargetEntityId);
+            if (!string.IsNullOrEmpty(world.ScheduledContentEvents.LastDiagnostic)) sb.AppendLine(world.ScheduledContentEvents.LastDiagnostic);
+            var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
+            GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;
+        }
+
+        float DrawContentDiagnostic(PlayableHostSession session, HostSelectionController selection,
+            float x, float y, float width, GUIStyle body)
+        {
+            if (GUI.Button(new Rect(x, y, 120f, 26f), "刷新内容状态")) RefreshDump(session, selection);
+            y += 34f;
+            var h = Mathf.Max(80f, Mathf.Min(900f, body.CalcHeight(new GUIContent(_dump), width)));
+            GUI.TextArea(new Rect(x, y, width, h), _dump); return y + h + 4f;
+        }
+
+        void ExecuteCivilianReset(PlayableHostBootstrap host)
+        {
+            var world = host?.Session?.World;
+            if (world == null) { _sectionStatus = "失败：会话未就绪。"; return; }
             MortalCivilianService.CancelAllRescues(world);
             world.RecoverySpotDeliveries.Clear();
-            WorldSiteOwnershipService.SetOwner(world, site.SiteId, world.Strategic.PlayerFactionId);
-            var people = new[] { rescuer, injured };
-            for (var i = 0; i < people.Length; i++)
-            {
-                var person = people[i];
-                if (!person.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership))
-                { membership = new XianXia.Core.Social.FactionMembershipComponent(); person.AddComponent(membership); }
-                membership.Assign(world.Strategic.PlayerFactionId, XianXia.Core.Social.FactionRoleKind.Member);
-                if (person.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
-                { life.State = XianXia.Core.Entities.LifecycleState.Alive; life.ClearBleedOut(); }
-                var state = MortalCivilianService.Ensure(world, person);
-                state.Disposition = CivilianDisposition.Normal; state.Satiety = state.Energy = 90;
-                state.CurrentSiteId = site.SiteId;
-                state.RescueTargetId = EntityId.None; state.RescueCarrying = false;
-                state.Profession = person == rescuer ? MortalProfession.Farmer : MortalProfession.Unassigned;
-                if (person.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();
-                var dx = person == rescuer ? -cellSize * 14f : -cellSize * 10f;
-                var pos = new XianXia.Core.World.WorldVec2(medicalCenter.X + dx, medicalCenter.Y);
-                world.WorldPresence.SetAtWorldPosition(person.Id, pos, medicalSurface);
-                if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(person.Id, out var view) &&
-                    view != null && host.ContinuousOutdoorSurfaceRuntime != null)
-                {
-                    host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(pos.X, pos.Y, out var px, out var py);
-                    view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                }
-            }
-            XianXia.Core.Combat.CombatDamageRules.EnsureVitals(injured);
-            if (!XianXia.Core.Combat.CombatLifeStateService.TryEnterIncapacitated(world, injured))
-            { _sectionStatus = "阿青无法进入弥留；请 Reset 后重试。"; return; }
-            if (injured.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var injuredLife))
-                injuredLife.BleedOutAfterTick = world.Tick.Value + 288UL;
-            var focused = host.TryFocusContinuousWorldPosition(medicalSurface,
-                medicalCenter, out var focusReason);
-            _sectionStatus = "成功：实际目标=阿石/阿青及荒村救援前置；RescueTarget 已清空，需由 AI 自行发现并实际搬运到恢复点，不触发自动治疗。" +
-                             (focused ? " 已定位医疗点。" : " 定位失败：" + focusReason);
-        }
-
-        void PrepareDedicatedPrison(PlayableHostBootstrap host)
-        {
-            var world = host?.Session?.World;
-            if (world == null || !world.Strategic.Sites.TryGet("base:site_huangcun", out var site) ||
-                site == null || !site.HasContinuousCore || world.Strategic.PlayerPartyContext == null ||
-                world.Strategic.PlayerPartyContext.ActiveCharacterId.IsNone ||
-                !world.Entities.TryGet(world.Strategic.PlayerPartyContext.ActiveCharacterId, out var carrier) ||
-                !XianXia.Core.Combat.CombatLifeStateService.CanFight(carrier))
-            { _sectionStatus = "荒村或可用主控角色不可用。"; return; }
-            XianXia.Core.Npc.WorkAreaDefinition prison = null;
-            foreach (var pair in world.WorkAreas)
-                if (HousingAssignmentService.IsDedicatedPrison(pair.Value)) { prison = pair.Value; break; }
-            if (prison == null || !MortalCivilianService.TryResolvePrisonDropOff(
-                    world, prison.Id, out var dropOff, out var prisonCenter, out var interactionRange))
-            { _sectionStatus = "荒村专用囚室不可用。"; return; }
-            var prisonSurface = dropOff.SurfaceId;
-            XianXia.Core.Entities.Entity captive = null;
-            foreach (var entity in world.Entities.All)
-                if (entity.DefinitionId.ToString() == "base:character_ch01_ref_farmer_b")
-                { captive = entity; break; }
-            if (captive == null)
-            { _sectionStatus = "阿土实体缺失。"; return; }
-            WorldSiteOwnershipService.SetOwner(world, site.SiteId, world.Strategic.PlayerFactionId);
-            MortalCivilianService.SeedContentResidenceUsages(world);
-            var detained = new System.Collections.Generic.List<EntityId>();
-            foreach (var pair in world.Civilians.All)
-                if (pair.Value != null && pair.Value.Disposition == CivilianDisposition.Detained &&
-                    string.Equals(pair.Value.DetainedResidenceWorkAreaId, prison.Id, System.StringComparison.Ordinal))
-                    detained.Add(pair.Key);
-            for (var i = 0; i < detained.Count; i++) MortalCivilianService.Release(world, detained[i]);
-            if (!captive.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
-            { _sectionStatus = "阿土缺少 Lifecycle。"; return; }
-            life.State = XianXia.Core.Entities.LifecycleState.Alive;
-            life.ClearBleedOut();
-            if (!XianXia.Core.Combat.CombatLifeStateService.TryEnterCaptured(
-                    world, captive, world.Strategic.PlayerFactionId))
-            { _sectionStatus = "阿土无法进入 Captured。"; return; }
-            var state = MortalCivilianService.Ensure(world, captive);
-            state.Disposition = CivilianDisposition.CapturedEscorted;
-            state.CarrierId = carrier.Id;
-            state.DetainedResidenceWorkAreaId = string.Empty;
-            state.CurrentSiteId = site.SiteId;
-            var start = new XianXia.Core.World.WorldVec2(prisonCenter.X - interactionRange * 8f, prisonCenter.Y);
-            world.WorldPresence.SetAtWorldPosition(carrier.Id, start, prisonSurface);
-            world.WorldPresence.SetAtWorldPosition(captive.Id, start, prisonSurface);
-            var prepared = new[] { carrier, captive };
-            for (var i = 0; i < prepared.Length; i++)
-                if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(prepared[i].Id, out var view) &&
-                    view != null && host.ContinuousOutdoorSurfaceRuntime != null)
-                {
-                    host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(start.X, start.Y, out var px, out var py);
-                    view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                }
-            var focused = host.TryFocusContinuousWorldPosition(prisonSurface, prisonCenter, out var focusReason);
-            _sectionStatus = "成功〔强制状态准备〕：实际目标=当前主控 Carrier / 阿土 EntityId=" + captive.Id.Value +
-                             "；点击囚犯交接点前往，到达后才能正式安置。仅验押送/交接，已跳过俘虏战；未直接 Detain。" +
-                             (focused ? " 已定位囚室。" : " 定位失败：" + focusReason);
-        }
-
-        void PrepareCivilianConstruction(PlayableHostBootstrap host)
-        {
-            var world = host.Session.World;
-            if (!XianXia.Core.Inventory.PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out var site) ||
-                !site.HasContinuousCore)
-            { _sectionStatus = "请先进入己方实际控制的 Continuous Site。"; return; }
-            var added = WorldSitePublicStockService.TryAdd(world, site.SiteId, MortalCivilianService.WoodResourceId, 20);
-            if (added.IsFailure) { _sectionStatus = added.Error.ToString(); return; }
+            CivilianConstructionJobService.CancelAllJobs(world);
+            world.Civilians.Clear();
+            var mover = host.GetComponent<HostNpcScheduleMover>();
+            var farm = host.GetComponent<HostFarmFieldLabor>();
             foreach (var entity in world.Entities.All)
             {
-                if (entity.DefinitionId.ToString() != "base:character_ch01_ref_mortal_a") continue;
-                if (!entity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership))
-                { membership = new XianXia.Core.Social.FactionMembershipComponent(); entity.AddComponent(membership); }
-                membership.Assign(world.Strategic.PlayerFactionId, XianXia.Core.Social.FactionRoleKind.Member);
                 var state = MortalCivilianService.Ensure(world, entity);
-                state.Disposition = CivilianDisposition.Normal; state.Profession = MortalProfession.Unassigned;
-                state.Satiety = state.Energy = 90; state.CurrentSiteId = site.SiteId;
-                var pos = new XianXia.Core.World.WorldVec2(site.CoreWorldX - 1.5f, site.CoreWorldY);
-                world.WorldPresence.SetAtWorldPosition(entity.Id, pos, site.CoreSurfaceId);
-                if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(entity.Id, out var view) &&
-                    view != null && host.ContinuousOutdoorSurfaceRuntime != null)
+                if (state == null) continue;
+                if (host.Session.Registry.TryGetCharacter(entity.DefinitionId, out var definition))
                 {
-                    host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(pos.X, pos.Y, out var px, out var py);
-                    view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                    if (System.Enum.TryParse(definition.InitialMortalProfession, true, out MortalProfession profession))
+                        state.Profession = profession;
+                    state.ResidenceWorkAreaId = definition.HomeWorkAreaId ?? string.Empty;
+                    if (entity.TryGet<ActivityTendencyComponent>(out var definitionTendency))
+                        definitionTendency.HomeWorkAreaId = state.ResidenceWorkAreaId;
                 }
-                break;
-            }
-            _sectionStatus = CivilianConstructionJobService.HasAvailableWorker(world, site.SiteId,
-                world.Strategic.PlayerFactionId)
-                ? "木材已入 Site PublicStock；阿石可搬运。请用正式建设 UI 放置农田／恢复处／储藏室。"
-                : "木材已入 Site PublicStock，但当前没有可自主工作的势力凡人；请先解除组队／Squad 调度，再用正式建设 UI 放置建筑。";
-        }
+                MortalCivilianService.ResetTransientNeedsActivity(entity, state);
+                mover?.CancelCivilianIntent(entity.Id);
+                host.MoveController?.CancelPresentationMovementPublic(entity.Id);
+                if (farm?.IsFarming(entity.Id) == true) farm.StopNpcScheduleFarmOwnershipOnly(entity.Id);
 
-        void PrepareSupervisorLife(PlayableHostBootstrap host)
-        {
-            var world = host?.Session?.World;
-            if (world == null || !world.Strategic.Sites.TryGet("base:site_huangcun", out var site) ||
-                site == null || !site.HasContinuousCore)
-            { _sectionStatus = "荒村 Continuous Site 不可用。"; return; }
-            XianXia.Core.Entities.Entity supervisor = null;
-            foreach (var entity in world.Entities.All)
-                if (entity.DefinitionId.ToString() == "base:character_ch01_ref_supervisor")
-                { supervisor = entity; break; }
-            if (supervisor == null)
-            { _sectionStatus = "杂役主管实体不存在。"; return; }
-            if (!supervisor.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
-            { _sectionStatus = "杂役主管缺少 Lifecycle。"; return; }
-            life.State = XianXia.Core.Entities.LifecycleState.Alive;
-            life.ClearBleedOut();
-            life.IncapacitatedAtTick = 0;
-            life.LastDeathConfirmationReason = XianXia.Core.Entities.DeathConfirmationReason.Unknown;
-            life.RecordTransition(life.LastTransitionTo, XianXia.Core.Entities.LifecycleState.Alive, "LevelTesterReset");
-            supervisor.RemoveComponent<XianXia.Core.Combat.CorpseComponent>();
-            supervisor.RemoveComponent<XianXia.Core.Combat.CombatDeathAttributionComponent>();
-            XianXia.Core.Combat.CombatDamageRules.EnsureVitals(supervisor);
-            if (supervisor.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals) &&
-                supervisor.TryGet<XianXia.Core.Entities.AttributesComponent>(out var attributes))
-                vitals.CurrentHp = System.Math.Max(1,
-                    attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp));
-            var position = new WorldVec2(site.CoreWorldX, site.CoreWorldY + .35f);
-            world.WorldPresence.SetAtWorldPosition(supervisor.Id, position, site.CoreSurfaceId);
-            host.MoveController?.CancelPresentationMovementPublic(supervisor.Id);
-            if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(supervisor.Id, out var view) &&
-                view != null && host.ContinuousOutdoorSurfaceRuntime != null)
-            {
-                host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(
-                    position.X, position.Y, out var px, out var py);
-                view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                view.SetActivityText(string.Empty);
-                host.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(supervisor.Id, view.transform.position);
+                var id = entity.DefinitionId.ToString();
+                if (id != "base:character_ch01_ref_mortal_b" && id != "base:character_ch01_ref_farmer_b") continue;
+                if (entity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership))
+                    membership.Assign("base:sect_huangcun_labor", XianXia.Core.Social.FactionRoleKind.LaborDisciple);
+                if (entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
+                { life.State = XianXia.Core.Entities.LifecycleState.Alive; life.ClearBleedOut(); }
+                XianXia.Core.Combat.CombatDamageRules.EnsureVitals(entity);
+                if (entity.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out var vitals) &&
+                    entity.TryGet<XianXia.Core.Entities.AttributesComponent>(out var attributes))
+                    vitals.CurrentHp = System.Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp));
+                state.ResidenceWorkAreaId = "base:workarea_houses";
+                if (entity.TryGet<ActivityTendencyComponent>(out var tendency)) tendency.HomeWorkAreaId = state.ResidenceWorkAreaId;
+                if (id == "base:character_ch01_ref_mortal_b")
+                    XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, entity.Id, 10);
+                else
+                {
+                    XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, entity.Id, 60);
+                    state.Profession = MortalProfession.Farmer;
+                }
             }
-            _sectionStatus = "杂役主管已恢复 Alive、满血、无尸体/弥留，并放回荒村合法世界位置。";
+
+            if (world.Strategic.Sites.TryGet("base:site_huangcun", out var site) && site != null)
+            {
+                WorldSiteOwnershipService.SetOwner(world, site.SiteId, "base:sect_huangcun_labor");
+                var grain = WorldSitePublicStockService.GetCount(world, site.SiteId, MortalCivilianService.GrainResourceId);
+                if (grain > 0) WorldSitePublicStockService.TryRemove(world, site.SiteId, MortalCivilianService.GrainResourceId, grain);
+                WorldSitePublicStockService.TryAdd(world, site.SiteId, MortalCivilianService.GrainResourceId, 20);
+                var offset = -.25f;
+                foreach (var entity in world.Entities.All)
+                {
+                    var id = entity.DefinitionId.ToString();
+                    if (id != "base:character_ch01_ref_mortal_b" && id != "base:character_ch01_ref_farmer_b") continue;
+                    var position = new WorldVec2(site.CoreWorldX + offset, site.CoreWorldY - .35f);
+                    world.WorldPresence.SetAtWorldPosition(entity.Id, position, site.CoreSurfaceId);
+                    if (world.Civilians.TryGet(entity.Id, out var state)) state.CurrentSiteId = site.SiteId;
+                    if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(entity.Id, out var view) &&
+                        view != null && host.ContinuousOutdoorSurfaceRuntime != null)
+                    {
+                        host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(position.X, position.Y, out var px, out var py);
+                        view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                        host.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(entity.Id, view.transform.position);
+                    }
+                    offset += .5f;
+                }
+            }
+            _sectionStatus = "成功：民生状态已重置；阿青忠诚 10，阿土忠诚 60 / Farmer。";
         }
 
         static bool TrySelectedCivilian(XianXia.Core.Simulation.SimulationWorld world, HostSelectionController selection, out MortalCivilianState state)
@@ -1031,74 +606,6 @@ namespace XianXia.Unity.Host
             if (selection == null || selection.State.Count != 1 || !world.Entities.TryGet(selection.State.SelectedIds[0], out var entity)) return false;
             // Read-only lookup: merely opening diagnostics must never create/repair civilian state.
             return world.Civilians.TryGet(entity.Id, out state) && state != null;
-        }
-
-        void PrepareCivilianNeedsAcceptance(
-            PlayableHostBootstrap host, HostSelectionController selection, string scenario)
-        {
-            var world = host?.Session?.World;
-            if (world == null || selection == null || selection.State.Count != 1 ||
-                !world.Entities.TryGet(selection.State.SelectedIds[0], out var entity) ||
-                !MortalCivilianQuery.IsManagedCivilian(world, entity) ||
-                !world.Civilians.TryGet(entity.Id, out var state) ||
-                state.Disposition != CivilianDisposition.Normal ||
-                world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true)
-            {
-                _sectionStatus = "请选择 Normal、非 PlayerParty 的普通凡人。";
-                return;
-            }
-
-            var siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
-            if (string.IsNullOrEmpty(siteId) || !world.Strategic.Sites.TryGet(siteId, out var site) ||
-                site == null || !site.HasContinuousCore)
-            {
-                _sectionStatus = "选中凡人当前不在有效 Continuous Site。";
-                return;
-            }
-            if ((scenario == "B" || scenario == "C") &&
-                (string.IsNullOrEmpty(state.ResidenceWorkAreaId) ||
-                 !world.TryGetWorkArea(state.ResidenceWorkAreaId, out var residence) ||
-                 !MortalActivityEvaluator.HasTag(residence, "home") ||
-                 world.Civilians.GetResidenceUsage(state.ResidenceWorkAreaId) != ResidenceUsage.Normal))
-            {
-                _sectionStatus = "选中凡人没有合法 Normal Residence。";
-                return;
-            }
-
-            MortalCivilianService.ResetTransientNeedsActivity(entity, state);
-            host.GetComponent<HostNpcScheduleMover>()?.CancelCivilianIntent(entity.Id);
-            host.MoveController?.CancelPresentationMovementPublic(entity.Id);
-            var farm = host.GetComponent<HostFarmFieldLabor>();
-            if (farm?.IsFarming(entity.Id) == true) farm.StopNpcScheduleFarmOwnershipOnly(entity.Id);
-
-            if (scenario == "A" || scenario == "D")
-            {
-                var current = WorldSitePublicStockService.GetCount(world, siteId, MortalCivilianService.GrainResourceId);
-                if (current > 0)
-                    WorldSitePublicStockService.TryRemove(world, siteId, MortalCivilianService.GrainResourceId, current);
-                if (scenario == "A")
-                    WorldSitePublicStockService.TryAdd(world, siteId, MortalCivilianService.GrainResourceId, 5);
-            }
-
-            state.Satiety = scenario == "A" || scenario == "D" ? 10 : 80;
-            state.Energy = scenario == "B" ? 30 : scenario == "A" ? 80 : 5;
-            state.Clamp();
-            var start = new WorldVec2(site.CoreWorldX, site.CoreWorldY - .35f);
-            world.WorldPresence.SetAtWorldPosition(entity.Id, start, site.CoreSurfaceId);
-            state.CurrentSiteId = siteId;
-            if (host.ViewSpawner?.Registry != null && host.ViewSpawner.Registry.TryGet(entity.Id, out var view) &&
-                view != null && host.ContinuousOutdoorSurfaceRuntime != null)
-            {
-                host.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(start.X, start.Y, out var px, out var py);
-                view.transform.position = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                host.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(entity.Id, view.transform.position);
-            }
-
-            var grain = WorldSitePublicStockService.GetCount(world, siteId, MortalCivilianService.GrainResourceId);
-            _sectionStatus = "食宿 " + scenario + " 已准备：人物=" + entity.DefinitionId +
-                             " SiteId=" + siteId + " 粗粮=" + grain +
-                             " Satiety=" + state.Satiety + " Energy=" + state.Energy +
-                             "；未直接完成移动、取食或睡眠。";
         }
 
         static string ResolveAcceptanceSite(XianXia.Core.Simulation.SimulationWorld world)
@@ -1159,37 +666,6 @@ namespace XianXia.Unity.Host
             _sectionStatus = ok
                 ? "成功：已定位伤员 " + entity.DisplayName + "〔EntityId=" + id.Value + "〕；未传送或修改生命。"
                 : "失败：伤员 EntityId=" + id.Value + "，" + reason;
-        }
-
-        float DrawQuestSocial(PlayableHostSession session, HostSelectionController selection, float x,float y,float width,GUIStyle body)
-        {
-            GUI.Label(new Rect(x,y,width,20), "SOCIAL-QUEST-01（关系方向：NPC → 当前 Active，门槛 20）",body); y += 24;
-            foreach (var suffix in new[] { "cave", "cave_b", "general" })
-            {
-                var id = "base:quest_social01_" + suffix;
-                if (GUI.Button(new Rect(x,y,width,24), "接取：" + (suffix == "general" ? "普通对照任务" : suffix == "cave" ? "秘境任务 A" : "秘境任务 B")))
-                {
-                    var result = new QuestService().TryStart(session.World,id,session.PlayerParty.ActiveCharacterId);
-                    _sectionStatus = result.IsSuccess ? "已接取 " + id : result.Error.ToString();
-                }
-                y += 27;
-            }
-            GUI.enabled = selection?.State != null && selection.State.Count == 1;
-            if (GUI.Button(new Rect(x,y,width,24),"选中 NPC → Active 好感设为 19（不足）")) SetSocialScore(session,selection,19,false); y += 27;
-            if (GUI.Button(new Rect(x,y,width,24),"选中 NPC → Active 好感设为 20（达标）")) SetSocialScore(session,selection,20,false); y += 27;
-            if (GUI.Button(new Rect(x,y,width,24),"仅 Active → 选中 NPC 好感设为 30（反向对照）")) SetSocialScore(session,selection,30,true); y += 27;
-            GUI.enabled = true;
-            var actor = session.PlayerParty.ActiveCharacterId;
-            var target = selection != null && selection.State.Count == 1 ? selection.State.SelectedIds[0] : EntityId.None;
-            var text = "Actor=" + actor + " Target=" + target + " NPC→Actor=" + session.World.Relationships.Score(target,actor) + "\n";
-            foreach (var q in session.World.Quests.Runtime.Values)
-                if (session.World.Quests.TryGetSpec(q.QuestId,out var spec) && (spec.IsSecretRealm || q.QuestId == "base:quest_social01_general"))
-                    text += q.QuestInstanceId + " | " + spec.QuestKind + " | " + q.Status + "\n";
-            foreach (var b in session.World.QuestCompanions.Bindings.Values)
-                text += "NPC=" + b.CompanionEntityId + " Quest=" + b.QuestInstanceId + "\nOriginalSquad=" + b.OriginalSquadId + " | " + b.State + "\n";
-            var height = body.CalcHeight(new GUIContent(text),width);
-            GUI.Label(new Rect(x,y,width,height),text,body);
-            return y + height + 5;
         }
 
         void SetSocialScore(PlayableHostSession session,HostSelectionController selection,int score,bool reverse)

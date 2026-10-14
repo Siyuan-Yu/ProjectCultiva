@@ -194,7 +194,10 @@ namespace XianXia.Unity.Host
             }
 
             if (GUI.Button(new Rect(x + 110f, y, 72f, 28f), "关闭"))
+            {
                 Close();
+                return;
+            }
             y += 36f;
 
             var gridTop = y;
@@ -340,7 +343,10 @@ namespace XianXia.Unity.Host
         {
             PlayerStrategicResourceService.CollectAccessibleStorageStock(world, _warehouseStock);
             if (GUI.Button(new Rect(x, y, 72f, 28f), "关闭"))
+            {
                 Close();
+                return;
+            }
             y += 36f;
 
             var gridH = rect.yMax - y - 100f;

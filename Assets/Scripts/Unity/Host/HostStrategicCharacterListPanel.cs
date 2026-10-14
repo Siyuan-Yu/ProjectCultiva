@@ -77,7 +77,10 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(panelRect.x + 10f, panelRect.y + 8f, panelRect.width - 100f, 22f),
                 "角色列表", _title);
             if (GUI.Button(new Rect(panelRect.xMax - 88f, panelRect.y + 6f, 76f, 24f), "关闭"))
+            {
                 Close();
+                return;
+            }
 
             const float footerH = 28f;
             const float footerPad = 8f;

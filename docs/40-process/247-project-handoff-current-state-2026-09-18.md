@@ -1,8 +1,16 @@
 # Project Handoff — Continuous World Current State
 
+## 当前阶段人工验收工作单（2026-10-11）
+
+完整操作表、填写栏和结果驱动的下一步建议见 [270](270-current-stage-producer-acceptance-plan-2026-10-11.md)。本次只读复核确认 CIVILIAN 囚犯食宿／两套日程缺口仍存在，并补充记录文本输入快捷键旁路与 legacy 输入标志覆盖；未实施修复。UI、CIVILIAN、DELAYED 的现有 Pending 状态不因验收表或静态核查自动改变。
+
+## UI 折叠菜单与关闭修复（2026-10-11）
+
+LevelTester 保留 74 个稳定 ToolId 与单功能页，左侧九组现以稳定 GroupKey 独立展开／收起；搜索临时展开命中项，清空恢复原折叠偏好。关闭按钮与标题拖动不再重叠，Hide 后不会从残留搜索焦点重新获取输入 owner，危险确认也会取消。人物页、任务日志、修炼页以及审计发现的斗技／背包／地图子面板当前帧续绘路径已收束到各自 Close 或安全返回。完整逐窗静态核查见 [269](269-ui-foldout-and-close-audit-2026-10-11.md)。状态：**UI 折叠菜单与关闭修复 Implementation Complete / Producer Acceptance Pending**；未启动 Unity，运行行为待制作人人工验收。
+
 ## LevelTester 工具整理与输入隔离（2026-10-10）
 
-五页签、owner-scoped 浮窗遮挡、Camera/WorldMap/Selection/世界命令共用命中、文本焦点门禁、固定目标/结果、Core 时间标识、正式 CameraRig 定位和 Reset 二次确认已实现。状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**。CIVILIAN-LIFE-01 仍为 **Implementation Complete / Producer Acceptance Pending**；唯一当前功能与验收状态表及三项业务缺口复核见 [267](267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10)，本页不复制矩阵。
+早先五大聚合页签方案已被制作人纠正并标记 Superseded。当前 LevelTester 使用左侧 74 个具体功能入口、右侧单一功能页和真实可点击搜索结果；稳定 ToolId、完整旧入口迁移与 handler／对象范围见 [268](268-level-tester-direct-tool-pages-2026-10-10.md)。owner-scoped 浮窗遮挡、Camera/WorldMap/Selection/世界命令共用命中、文本焦点门禁、固定目标/结果、Core 时间标识、正式 CameraRig 定位和 Reset 二次确认继续保留。状态：**LevelTester 独立小功能页重组 Implementation Complete / Producer Acceptance Pending**。CIVILIAN-LIFE-01 仍为 **Implementation Complete / Producer Acceptance Pending**。
 
 ## CIVILIAN-LIFE-01 P1 医疗搬运点与囚犯实际送达（2026-09-30）
 

@@ -15,6 +15,8 @@ namespace XianXia.Unity.Host
         int _overlordIndex;
         int _vassalIndex;
         string _sectionStatus = string.Empty;
+        readonly Dictionary<string, string> _toolStatuses = new Dictionary<string, string>();
+        string _statusToolId = string.Empty;
 
         public string SectionStatus => _sectionStatus;
 
@@ -23,99 +25,69 @@ namespace XianXia.Unity.Host
             _factions.Clear();
             _factionAIndex = _factionBIndex = _overlordIndex = _vassalIndex = 0;
             _sectionStatus = string.Empty;
+            _toolStatuses.Clear();
+            _statusToolId = string.Empty;
         }
 
-        public float Draw(
-            PlayableHostBootstrap bootstrap,
-            float x,
-            float y,
-            float width,
-            GUIStyle body)
+        public float DrawTool(string toolId, PlayableHostBootstrap bootstrap,
+            float x, float y, float width, GUIStyle body)
         {
-            var lineH = 18f;
-            var session = bootstrap?.Session;
-            var world = session?.World;
-
-            GUI.Label(new Rect(x, y, width, lineH), "外交（开发验收）", body);
-            y += lineH + 4f;
-
-            if (world == null || !session.IsInitialized)
+            ActivateToolStatus(toolId);
+            var world = bootstrap?.Session?.World;
+            if (world == null || bootstrap.Session.IsInitialized == false)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
-                return y + lineH;
+                GUI.Label(new Rect(x, y, width, 22f), "会话未就绪。", body);
+                return y + 24f;
             }
-
             FactionDiplomacyOverviewQuery.CollectRuntimeFactionIds(world, _factions);
             ClampIndices();
-
-            y = DrawReadOnlyStatus(world, x, y, width, lineH, body);
-            y += 6f;
-
             if (_factions.Count < 2)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "至少需要 2 个势力。", body);
-                return y + lineH;
+                GUI.Label(new Rect(x, y, width, 22f), "至少需要两个势力。", body);
+                return y + 24f;
             }
 
-            y = DrawFactionPicker(x, y, width, lineH, body, "势力 A", ref _factionAIndex, _factions);
-            y = DrawFactionPicker(x, y, width, lineH, body, "势力 B", ref _factionBIndex, _factions);
-            if (GUI.Button(new Rect(x, y, width, 24f), "宣战"))
+            if (toolId == "diplomacy.vassal")
             {
-                var result = WarGateService.DeclareWar(world, _factions[_factionAIndex], _factions[_factionBIndex]);
-                _sectionStatus = result.IsSuccess ? "成功：宣战" : "失败：" + result.Error.Message;
-            }
-
-            y += 28f;
-            if (GUI.Button(new Rect(x, y, width, 24f), "结盟"))
-            {
-                var ok = world.Strategic.Alliances.FormAlliance(
-                    _factions[_factionAIndex], _factions[_factionBIndex], out _);
-                _sectionStatus = ok ? "成功：结盟" : "失败：无法建立联盟";
-            }
-
-            y += 28f;
-            y = DrawFactionPicker(x, y, width, lineH, body, "宗主", ref _overlordIndex, _factions);
-            y = DrawFactionPicker(x, y, width, lineH, body, "附庸", ref _vassalIndex, _factions);
-            if (GUI.Button(new Rect(x, y, width, 24f), "建立附庸（测试）"))
-            {
-                var ok = world.Strategic.Vassalages.TryBindVassalage(
-                    _factions[_vassalIndex], _factions[_overlordIndex]);
-                _sectionStatus = ok ? "成功：建立附庸" : "失败：无法建立附庸";
-            }
-
-            y += 28f;
-            if (!string.IsNullOrEmpty(_sectionStatus))
-            {
-                GUI.Label(new Rect(x, y, width, lineH * 2f), _sectionStatus, body);
-                y += lineH * 2f;
-            }
-
-            return y;
-        }
-
-        float DrawReadOnlyStatus(
-            SimulationWorld world,
-            float x,
-            float y,
-            float width,
-            float lineH,
-            GUIStyle body)
-        {
-            var sb = new StringBuilder(256);
-            sb.AppendLine("势力数：" + _factions.Count);
-            if (world.Strategic?.Wars?.All != null)
-            {
-                foreach (var kv in world.Strategic.Wars.All)
+                y = DrawFactionPicker(x, y, width, 18f, body, "宗主", ref _overlordIndex, _factions);
+                y = DrawFactionPicker(x, y, width, 18f, body, "附庸", ref _vassalIndex, _factions);
+                if (GUI.Button(new Rect(x, y, width, 26f), "建立附庸"))
                 {
-                    var war = kv.Value;
-                    if (war == null || !war.Active)
-                        continue;
-                    sb.AppendLine("战争 " + war.WarId);
+                    var ok = world.Strategic.Vassalages.TryBindVassalage(_factions[_vassalIndex], _factions[_overlordIndex]);
+                    _sectionStatus = ok ? "成功：建立附庸。" : "失败：无法建立附庸。";
                 }
             }
+            else
+            {
+                y = DrawFactionPicker(x, y, width, 18f, body, "势力 A", ref _factionAIndex, _factions);
+                y = DrawFactionPicker(x, y, width, 18f, body, "势力 B", ref _factionBIndex, _factions);
+                var label = toolId == "diplomacy.war" ? "宣战" : "结盟";
+                if (GUI.Button(new Rect(x, y, width, 26f), label))
+                {
+                    if (toolId == "diplomacy.war")
+                    {
+                        var result = WarGateService.DeclareWar(world, _factions[_factionAIndex], _factions[_factionBIndex]);
+                        _sectionStatus = result.IsSuccess ? "成功：宣战。" : "失败：" + result.Error.Message;
+                    }
+                    else
+                    {
+                        var ok = world.Strategic.Alliances.FormAlliance(_factions[_factionAIndex], _factions[_factionBIndex], out _);
+                        _sectionStatus = ok ? "成功：结盟。" : "失败：无法建立联盟。";
+                    }
+                }
+            }
+            y += 34f;
+            GUI.Label(new Rect(x, y, width, 54f), string.IsNullOrEmpty(_sectionStatus) ? "尚未执行。" : _sectionStatus, body);
+            _toolStatuses[toolId] = _sectionStatus ?? string.Empty;
+            return y + 58f;
+        }
 
-            GUI.Label(new Rect(x, y, width, lineH * 4f), sb.ToString(), body);
-            return y + lineH * 4f;
+        void ActivateToolStatus(string toolId)
+        {
+            if (string.Equals(_statusToolId, toolId, System.StringComparison.Ordinal)) return;
+            if (!string.IsNullOrEmpty(_statusToolId)) _toolStatuses[_statusToolId] = _sectionStatus ?? string.Empty;
+            _statusToolId = toolId ?? string.Empty;
+            _sectionStatus = _toolStatuses.TryGetValue(_statusToolId, out var status) ? status : string.Empty;
         }
 
         static float DrawFactionPicker(

@@ -89,8 +89,7 @@ namespace XianXia.Unity.Host
             if (journal != null && journal.IsOpen)
             {
                 if (open)
-                    open = false;
-                ReleasePause();
+                    Close();
                 return;
             }
 
@@ -104,7 +103,7 @@ namespace XianXia.Unity.Host
                     else if (_manualDetailOpen)
                         _manualDetailOpen = false;
                     else
-                        open = false;
+                        Close();
                 }
             }
 
@@ -115,7 +114,7 @@ namespace XianXia.Unity.Host
                 else if (_manualDetailOpen)
                     _manualDetailOpen = false;
                 else
-                    open = false;
+                    Close();
             }
 
             if (open)
@@ -156,7 +155,7 @@ namespace XianXia.Unity.Host
             if (_subject.IsNone ||
                 !bootstrap.Session.World.Entities.TryGet(_subject, out var entity))
             {
-                open = false;
+                Close();
                 return;
             }
 
@@ -184,7 +183,7 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 80f, 28f), "修炼 · " + name, _title);
             if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, rect.y + 10f, 56f, 28f), "关闭"))
             {
-                open = false;
+                Close();
                 return;
             }
 
@@ -219,7 +218,7 @@ namespace XianXia.Unity.Host
                 else if (ritual.TryBegin(_subject, out var beginReason))
                 {
                     _status = "开始冲击瓶颈…";
-                    open = false;
+                    Close();
                 }
                 else
                     _status = string.IsNullOrEmpty(beginReason) ? "无法开始突破" : beginReason;
@@ -256,8 +255,7 @@ namespace XianXia.Unity.Host
 
             if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
             {
-                open = false;
-                _manualDetailOpen = false;
+                Close();
                 return;
             }
 
@@ -368,8 +366,7 @@ namespace XianXia.Unity.Host
             else if (study.TryBeginBreakthroughManual(_subject, out var beginReason))
             {
                 _status = "开始冲击熟练…";
-                open = false;
-                _manualDetailOpen = false;
+                Close();
             }
             else
                 _status = string.IsNullOrEmpty(beginReason) ? "无法突破" : beginReason;

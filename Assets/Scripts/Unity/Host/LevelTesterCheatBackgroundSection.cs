@@ -34,6 +34,8 @@ namespace XianXia.Unity.Host
         bool _siteMenuOpen;
         string _sectionStatus = string.Empty;
         string _eligibilityReason = string.Empty;
+        readonly Dictionary<string, string> _toolStatuses = new Dictionary<string, string>();
+        string _statusToolId = string.Empty;
 
         public string SectionStatus => _sectionStatus;
 
@@ -45,77 +47,70 @@ namespace XianXia.Unity.Host
             _selectedCharacterIndex = _selectedSiteIndex = 0;
             _characterMenuOpen = _siteMenuOpen = false;
             _sectionStatus = _eligibilityReason = string.Empty;
+            _toolStatuses.Clear();
+            _statusToolId = string.Empty;
         }
 
-        public float Draw(
-            PlayableHostBootstrap bootstrap,
-            float x,
-            float y,
-            float width,
-            GUIStyle body)
+        public float DrawTool(string toolId, PlayableHostBootstrap bootstrap,
+            float x, float y, float width, GUIStyle body)
         {
-            var lineH = 18f;
+            ActivateToolStatus(toolId);
             var session = bootstrap?.Session;
             var world = session?.World;
             var party = session?.PlayerParty;
-
-            GUI.Label(new Rect(x, y, width, lineH), "后台角色（调试覆盖：本地占用）", body);
-            y += lineH + 4f;
-
             if (world == null || !session.IsInitialized)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
-                return y + lineH;
+                GUI.Label(new Rect(x, y, width, 22f), "会话未就绪。", body);
+                return y + 24f;
             }
 
             RebuildCharacterCache(world, party);
             RebuildSiteCache(world);
             EnsureSelectedCharacter();
             EnsureSelectedSiteIndex();
-
-            GUI.Label(new Rect(x, y, 70f, lineH), "角色");
-            var charBtn = new Rect(x + 72f, y, width - 72f, 22f);
-            if (DrawDropdownButton(charBtn, GetSelectedCharacterLabel(), ref _characterMenuOpen))
+            GUI.Label(new Rect(x, y, 70f, 20f), "角色", body);
+            var characterButton = new Rect(x + 72f, y, width - 72f, 22f);
+            if (DrawDropdownButton(characterButton, GetSelectedCharacterLabel(), ref _characterMenuOpen))
             {
                 _siteMenuOpen = false;
-                DrawCharacterMenu(new Rect(charBtn.x, charBtn.yMax + 2f, charBtn.width, 0f));
+                DrawCharacterMenu(new Rect(characterButton.x, characterButton.yMax + 2f, characterButton.width, 0f));
             }
+            y += 28f;
+            y = DrawStatusBlock(world, party, x, y, width, 18f, body) + 6f;
 
-            y += 26f;
-            y = DrawStatusBlock(world, party, x, y, width, lineH, body);
-            y += 4f;
-
-            var travelEligible = TryGetTravelEligibility(world, party, out _eligibilityReason);
-            if (!travelEligible && !string.IsNullOrEmpty(_eligibilityReason))
+            if (toolId == "world.background-travel")
             {
-                GUI.Label(new Rect(x, y, width, lineH * 2f), _eligibilityReason, body);
-                y += lineH * 2f;
+                GUI.Label(new Rect(x, y, 70f, 20f), "地点", body);
+                var siteButton = new Rect(x + 72f, y, width - 72f, 22f);
+                if (DrawDropdownButton(siteButton, GetSelectedSiteLabel(), ref _siteMenuOpen))
+                {
+                    _characterMenuOpen = false;
+                    DrawSiteMenu(new Rect(siteButton.x, siteButton.yMax + 2f, siteButton.width, 0f));
+                }
+                y += 28f;
+                var eligible = TryGetTravelEligibility(world, party, out _eligibilityReason);
+                GUI.enabled = eligible;
+                if (GUI.Button(new Rect(x, y, width, 26f), "前往世界地点")) TravelToSite(bootstrap);
+                GUI.enabled = true;
+                if (!eligible) GUI.Label(new Rect(x, y + 32f, width, 40f), _eligibilityReason, body);
             }
-
-            GUI.Label(new Rect(x, y, 70f, lineH), "地点");
-            var siteBtn = new Rect(x + 72f, y, width - 72f, 22f);
-            if (DrawDropdownButton(siteBtn, GetSelectedSiteLabel(), ref _siteMenuOpen))
+            else
             {
-                _characterMenuOpen = false;
-                DrawSiteMenu(new Rect(siteBtn.x, siteBtn.yMax + 2f, siteBtn.width, 0f));
+                if (GUI.Button(new Rect(x, y, width, 26f), "取消该人物后台旅行")) CancelTravel(bootstrap);
             }
+            y += 76f;
+            GUI.Label(new Rect(x, y, width, 20f), "最近结果", body);
+            GUI.Label(new Rect(x, y + 22f, width, 54f), string.IsNullOrEmpty(_sectionStatus) ? "尚未执行。" : _sectionStatus, body);
+            _toolStatuses[toolId] = _sectionStatus ?? string.Empty;
+            return y + 80f;
+        }
 
-            y += 26f;
-            GUI.enabled = travelEligible;
-            if (GUI.Button(new Rect(x, y, width * .68f, 24f), "前往世界地点"))
-                TravelToSite(bootstrap);
-            GUI.enabled = true;
-            if (GUI.Button(new Rect(x + width * .70f, y, width * .30f, 24f), "取消"))
-                CancelTravel(bootstrap);
-
-            y += 30f;
-            if (!string.IsNullOrEmpty(_sectionStatus))
-            {
-                GUI.Label(new Rect(x, y, width, lineH * 3f), _sectionStatus, body);
-                y += lineH * 3f;
-            }
-
-            return y;
+        void ActivateToolStatus(string toolId)
+        {
+            if (string.Equals(_statusToolId, toolId, System.StringComparison.Ordinal)) return;
+            if (!string.IsNullOrEmpty(_statusToolId)) _toolStatuses[_statusToolId] = _sectionStatus ?? string.Empty;
+            _statusToolId = toolId ?? string.Empty;
+            _sectionStatus = _toolStatuses.TryGetValue(_statusToolId, out var status) ? status : string.Empty;
         }
 
         static bool DrawDropdownButton(Rect rect, string label, ref bool menuOpen)

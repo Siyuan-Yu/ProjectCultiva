@@ -60,6 +60,23 @@ namespace XianXia.Unity.Host
         {
             open = false;
             ReleasePauseOwnership();
+            SyncPauseAndInputGate();
+        }
+
+        void Open()
+        {
+            open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
+        }
+
+        void Toggle()
+        {
+            if (open) Close();
+            else Open();
         }
 
         public void Bind(PlayableHostBootstrap host, HostCommandBridge bridge, HostSelectionController selection)
@@ -124,19 +141,14 @@ namespace XianXia.Unity.Host
 
         public void OpenToClaim()
         {
-            open = true;
             _tab = Tab.Active;
-            if (!_holdingPause && bootstrap?.Session != null)
-            {
-                bootstrap.Session.AcquireModalPause(PauseOwner);
-                _holdingPause = true;
-            }
+            Open();
         }
 
         void Update()
         {
             if (Input.GetKeyDown(toggleKey))
-                open = !open;
+                Toggle();
 
             SyncPauseAndInputGate();
             ValidateTrackedQuest();
@@ -275,7 +287,7 @@ namespace XianXia.Unity.Host
             Fill(r, Parchment);
             DrawFrame(r, ParchmentDark);
             if (GUI.Button(r, open ? "关闭" : "任务", _title))
-                open = !open;
+                Toggle();
 
             if (QuestJournalQuery.HasUnclaimedRewards(session.World))
             {
@@ -329,7 +341,10 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(box.x + 16f, box.y + 10f, 200f, 28f), "任务日志", _title);
             if (GUI.Button(new Rect(box.xMax - 88f, box.y + 10f, 72f, 28f), "关闭"))
-                open = false;
+            {
+                Close();
+                return;
+            }
 
             var tabY = box.y + 44f;
             DrawTab(new Rect(box.x + 16f, tabY, 118f, 28f), Tab.Offer, "可接／未来");

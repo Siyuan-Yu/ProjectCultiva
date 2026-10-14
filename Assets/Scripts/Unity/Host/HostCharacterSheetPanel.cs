@@ -136,7 +136,7 @@ namespace XianXia.Unity.Host
         void Update()
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized) return;
-            if (open && Input.GetKeyDown(KeyCode.Escape)) open = false;
+            if (open && Input.GetKeyDown(KeyCode.Escape)) Close();
             if (open)
             {
                 HostInputGate.BlockWorldCamera = true;
@@ -166,7 +166,7 @@ namespace XianXia.Unity.Host
             EnsureStyles();
             if (_subject.IsNone || !bootstrap.Session.World.Entities.TryGet(_subject, out var entity))
             {
-                open = false;
+                Close();
                 return;
             }
 
@@ -183,7 +183,8 @@ namespace XianXia.Unity.Host
             var rail = new Rect(rect.x, rect.y, railW, rect.height);
             var main = new Rect(rail.xMax, rect.y, rect.width - railW, rect.height);
             DrawSubjectRail(rail, entity);
-            DrawTopTabs(main);
+            if (DrawTopTabs(main))
+                return;
             var bodyRect = new Rect(main.x + 18f, main.y + 66f, main.width - 36f, main.height - 84f);
             switch (_page)
             {
@@ -231,7 +232,7 @@ namespace XianXia.Unity.Host
             y += 39f;
         }
 
-        void DrawTopTabs(Rect main)
+        bool DrawTopTabs(Rect main)
         {
             var tabs = new[] { "人物属性", "人物故事", "亲族关系", "人际关系" };
             var tabW = Mathf.Min(138f, (main.width - 86f) / tabs.Length);
@@ -240,7 +241,10 @@ namespace XianXia.Unity.Host
                 var r = new Rect(main.x + 18f + i * (tabW + 5f), main.y + 14f, tabW, 38f);
                 if (GUI.Button(r, tabs[i], (int)_page == i ? _tabSelected : _tab)) _page = (CharacterProfilePage)i;
             }
-            if (GUI.Button(new Rect(main.xMax - 52f, main.y + 14f, 34f, 34f), "×", _tab)) open = false;
+            if (!GUI.Button(new Rect(main.xMax - 52f, main.y + 14f, 34f, 34f), "×", _tab))
+                return false;
+            Close();
+            return true;
         }
 
         void DrawAttributesPage(Rect rect, Entity entity)

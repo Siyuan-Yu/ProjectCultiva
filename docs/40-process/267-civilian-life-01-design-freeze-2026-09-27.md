@@ -181,7 +181,7 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 | 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低 Loyalty | Proper Care 与招降权限规则已确认 | 食宿、照料日、忠诚下降、招降后权限/入队 | 缺口 A 当前阻断 Detained 食宿闭环 | 下一轮先修 A，再执行 F 卡人工验收 |
 | CIVILIAN Snapshot v14 | `SnapshotService` / `HostLevelTesterSnapshotOps` | LevelTester“存档与会话” | 各分支已建立真实运行状态 | schema v14 与持久字段范围已确认 | 工作、送达、押送、关押、Fleeing/Displaced | 无工具自动验收；每条需人工对照 | G 卡逐状态保存/读取并核 EntityId/owner/target |
 | 历史回归：SHOP/AUCTION/SOCIAL/DYNAMIC | 各已封板 service / Host panel | 各正式 UI | BaseGame 对应对象 | **历史已封板（Producer Accepted / Sealed）** | 本轮不重开 | 无 | 仅在“世界与内容”保留折叠/滚动入口 |
-| LevelTester 工具整理与输入隔离 | `HostLevelTesterCheatPanel`、`HostUiHitTest`、Camera/Map/Selection/Command consumers | `` ` `` / 顶栏作弊工具 | LevelTester Scene | 需求范围已确认 | 滚轮、拖动、文本焦点、五页签、结果反馈、Reset/时间/定位 | 等待制作人人工验收 | **Implementation Complete / Producer Acceptance Pending** |
+| LevelTester 独立小功能页重组 | `HostLevelTesterCheatPanel`、`LevelTesterToolCatalog`、各 Cheat section、`HostUiHitTest` | `` ` `` / 顶栏作弊工具 | LevelTester Scene | 五大聚合页签方案已 Superseded | 74 个具体 ToolId、九组二级折叠菜单、搜索临时展开、单功能页、双滚动区、关闭生命周期 | 等待制作人人工验收；完整迁移表见 [268](268-level-tester-direct-tool-pages-2026-10-10.md)，关闭核查见 [269](269-ui-foldout-and-close-audit-2026-10-11.md) | **Implementation Complete / Producer Acceptance Pending** |
 
 状态词解释：历史已封板＝已有明确 Producer Acceptance；已实现待验收＝代码完成但没有人工结论；部分路径已人工通过必须有单独证据才可写；已确认缺陷见下表；明确延期不纳入当前通过条件；旧设想若被后续决定取代只保留 Historical / Superseded 标记。
 
@@ -203,7 +203,7 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 - CapturedEscorted 的第一版 carrier 是发起捕获的玩家主控 Character。`base:site_huangcun:prison_dropoff` 位于囚室南侧内部入口，且不与医疗区重叠；右键菜单专门分流为“安置俘虏／查看囚室”，绝不进入人物对话。选择安置后主控真实精确寻路，到达合法交互距离再重新校验并调用 `Detain`。Core `Detain/CanDetain` 共用 carrier、绑定、玩家控制 Site、PrisonerOnly 容量及 carrier／captive 对交接点的距离校验，成功后才转为 Detained，并在囚室合法位置解除押送。
 - Rescue 的正式世界目标携带稳定 `RecoverySpotId` 与 Core delivery radius。Host 对这类目标不使用通用 2.5 presentation-unit 到达半径或目标 snap，而是把同一 world-space radius 换算到 presentation space，并要求 exact goal cell；若 A* 终点不可走或路径完成后仍在交付半径外，显式返回 path failure。恢复点身份变化会增加 MovementIntent revision、取消旧路径并重建 A*，不再被旧 `0.2` 世界单位坐标容差吞掉。
 - carrier 死亡、移除、进入不兼容 Encounter 或运输取消时，Rescue／Prison transport 均在 carrier 当前合法位置安全放下目标并清除 carry binding；不会丢人物、保持隐形 carried 状态或远程完成送达。Snapshot 保持 v14；短期 Rescue transport 读档重新求值，正式恢复点送达关系、CapturedEscorted／Detained／Residence usage 持久保存。
-- LevelTester 提供“定位 荒村医疗点”“准备医疗搬运验收”“定位 荒村囚室”“准备囚犯搬运验收”。准备入口只把人物放在区域外并建立合法前置状态，不直接完成投送、治疗或拘留。
+- LevelTester 保留“定位荒村医疗点”“定位荒村囚室”及对应只读诊断。2026-10-13 已删除医疗搬运、囚犯押送、建设、四类食宿和主管生命恢复的一键准备入口及其专用逻辑；正式投送、治疗、拘留、建设与需求玩法均未修改。
 - Core／Data／Unity／Editor 离线编译与 source/baked parity、地图连通、meta/GUID、`git diff --check` 进行静态复核；未启动 Unity、PlayMode 或 Runner，未运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。
 
 本轮两处设施均为 BaseGame 预置内容；未来玩家自行建造医院／监狱、治疗系统、狱卒 AI 与自动押运不在本 P1 范围。

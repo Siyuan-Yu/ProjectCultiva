@@ -1,6 +1,6 @@
 # 114 · Level Tester（逻辑关卡试玩台）
 
-> 状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**｜日期：2026-10-10
+> 状态：**作弊工具精简 Implementation Complete / Producer Acceptance Pending**｜日期：2026-10-13
 > 场景：`Assets/Scenes/LevelTester.unity`  
 > 入口：`PlayableHostBootstrap` + `LevelTesterHud`  
 > 菜单：`XianXia/Level Tester/…`  
@@ -70,19 +70,13 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 - 键盘 **`` ` ``**（BackQuote）
 - 或 `LevelTesterHud` 顶栏 **「Cheat Tools」** 按钮
 
-**顶层页签（Tab，2026-10-10）：**
+**导航结构（2026-10-10 最终修正）：**
 
-| Tab | 能力 |
-|-----|------|
-| 当前验收 | CIVILIAN A–G 卡片：食宿、工作/建设、占领/追击、医疗搬运、囚室交接、照料/招降、存读档；卡片只导航/说明，不自动判定通过 |
-| 人物与资源 | 原 Battle：队伍数值、弥留、NPC Squad、SUCCESSION / CONTROL-HANDOFF |
-| 世界与内容 | 原 Background + Diplomacy + Content：后台旅行、外交、Shop、Auction、Social Quest、延迟事件、动态发现、CIVILIAN 准备与按需诊断 |
-| 存档与会话 | 原 Snapshot：Save/Load、全会话 Reset（二次确认） |
-| 诊断 | 原 Time + Diagnostics：Core Tick/次日零点、正常帧速度、authority/性能诊断 |
+早先“五大页签聚合很多功能”的方案已 **Superseded**。当前窗口顶部显示搜索与固定上下文；左侧使用“大类 → 小功能”两层折叠菜单，右侧一次只绘制一个功能页。默认只展开当前功能所属组，九组可独立展开；收起当前组不改变右侧功能。搜索临时展开含命中项的分组，清空后恢复用户原有展开状态。
 
-打开面板后通过五个页签切换；每页保存独立滚动位置。顶部固定显示选中人物/EntityId、ActiveCharacter、Site/owner、场景、数据包、Snapshot schema 与最近操作结果。搜索匹配操作名称、别名、说明和里程碑。没有唯一选中人物时，选中人物操作禁用且不回退到 Active。
+2026-10-13 精简后，目录保留 66 个稳定 `ToolId`。已移除四个食宿整场景准备、医疗搬运准备、囚犯押送准备、建设准备和主管生命恢复入口；对应专用准备逻辑一并删除。设置饱食／精力、添加／清空公库粗粮、定位与只读诊断等独立工具保留。
 
-旧操作迁移：`Time → 诊断`；`Background / Content / Diplomacy → 世界与内容`；`Snapshot → 存档与会话`；`Battle → 人物与资源`；`Diagnostics → 诊断`。仍有用的 Shop、Auction、Social、Delayed Event、Dynamic Discovery 等历史回归入口继续保留。
+每个功能使用稳定 `ToolId`，分组使用稳定 `GroupKey`；右侧滚动位置按 `ToolId` 保存。切换功能或关闭窗口会取消未完成的危险确认。没有唯一选中人物时，对应人物操作禁用或解释原因，不回退到 ActiveCharacter。完整“旧入口 → 新功能 → ToolId → handler → 对象范围”见 [268 · LevelTester 独立小功能页重组](268-level-tester-direct-tool-pages-2026-10-10.md)；现有窗口关闭专项核查见 [269](269-ui-foldout-and-close-audit-2026-10-11.md)。
 
 浮窗使用 `HostUiHitTest` owner-scoped 持久矩形；作弊窗口内的滚轮、中键、右键与选择不会穿透到近景或 WorldMap，窗口外维持原行为。工具本身不暂停世界；只有文本输入获得焦点时临时阻断世界键盘/相机/交互，失焦、隐藏、禁用或销毁时释放。正式 Modal 优先级不变。
 
@@ -92,7 +86,7 @@ Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Ga
 
 ### DYNAMIC-DISCOVERY-01 验收入口（2026-09-24）
 
-进入 **Content** 页签后可确定生成三类动态物体：隐藏石碑、公开包裹、世界可见灵草。隐藏石碑用于验证半径外完全不可见、进入半径后永久揭示，以及 onInspect 后仍保留、选择显式解决后才移除；公开包裹用于验证生成时 Activity／Toast／定位；世界可见灵草用于验证直接呈现且不进入 Activity。该页签另有清理这三类 acceptance instance 的按钮和当前实例／发现／Activity 状态摘要。完整 AL～AQ 路线见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
+左侧直接打开“生成隐藏石碑”“生成通知包裹”“生成可见灵草”或“清理动态发现验收物体”。隐藏石碑用于验证半径外完全不可见、进入半径后永久揭示，以及 onInspect 后仍保留、选择显式解决后才移除；公开包裹用于验证生成时 Activity／Toast／定位；世界可见灵草用于验证直接呈现且不进入 Activity。完整 AL～AQ 路线见 [261](261-dynamic-discovery-01-dynamic-worldobject-foundation-2026-09-24.md)。
 
 制作人已于 2026-09-24 完成主链人工验收，DYNAMIC-DISCOVERY-01 与 MAP-COORD-01 均为 **Producer Accepted / Sealed**。Hidden 入口继续只输出开发验收坐标，不增加 Debug Locate；使用 WorldMap 正式坐标参照判断方向后关闭地图实际探索。
 
@@ -126,6 +120,9 @@ Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Ga
 
 | 日期 | 说明 |
 |------|------|
+| 2026-10-13 | 删除 8 个 CIVILIAN 整场景准备/恢复工具及其专用 handler，保留独立数值、库存、定位和诊断工具；目录由 74 项缩减为 66 项 |
+| 2026-10-11 | 74 个单功能页保留；九个稳定分组改为二级折叠菜单，补齐 LevelTester Hide 生命周期与现有 UI 关闭专项核查 |
+| 2026-10-10 | 五大聚合页签方案标记 Superseded；改为左侧具体功能目录＋右侧单一功能页，共 74 个稳定 ToolId |
 | 2026-10-10 | 五页签整理、当前验收卡片、搜索/固定上下文与结果、浮窗输入隔离、Core 时间与正式定位修正；待制作人人工验收 |
 | 2026-08-27 | 统一 `HostLevelTesterCheatPanel`；移除分散 Debug Panel 与旧 Development Hotkey |
 | 2026-08-13 | 地图真源改 Content/BaseGame/Data |

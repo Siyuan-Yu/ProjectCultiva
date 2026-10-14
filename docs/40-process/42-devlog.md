@@ -1,5 +1,24 @@
 # 开发日志
 
+## 2026-10-13 — LevelTester 作弊工具精简（待制作人验收）
+
+- 从稳定目录和 Content 分派中删除 8 个入口：四个食宿整场景准备、医疗搬运准备、囚犯押送与交接准备、建设准备、主管生命状态恢复；对应 `PrepareCivilianNeedsAcceptance`、`PrepareCivilianRescue`、`PrepareDedicatedPrison`、`PrepareCivilianConstruction`、`PrepareSupervisorLife` 及专用绘制入口一并删除，目录由 74 个缩减为 66 个唯一 ToolId。
+- 保留“设置饱食／精力”“添加／清空公库粗粮”、全局凡人验收 Reset、定位和只读诊断等独立工具；没有修改凡人生活、睡眠、救援、押送、拘留、建设或其它正式 Gameplay 逻辑，也没有新增替代按钮。
+- 同步修正 [114](114-level-tester.md)、[267](267-civilian-life-01-design-freeze-2026-09-27.md)、[268](268-level-tester-direct-tool-pages-2026-10-10.md) 和 [270](270-current-stage-producer-acceptance-plan-2026-10-11.md) 的当前工具与验收说明。Core／Data／Unity／Editor 离线编译 `ALL_OK`，目录 66/66 ToolId 唯一且差异检查无错误；未启动 Unity／PlayMode／Runner，未运行或新增测试，未暂存、提交或推送。
+
+## 2026-10-11 — 当前阶段完整人工验收计划与缺口复核
+
+- 新增 [270 人工验收表与下一步建议](270-current-stage-producer-acceptance-plan-2026-10-11.md)，覆盖 UI、CIVILIAN 正式闭环、各状态存读档、DELAYED 补验和已封板功能最小回归，结果留空供制作人填写；不改变既有人工验收状态。
+- 只读代码复核重新确认囚犯食宿早退 A、凡人实际 Work/OffDuty 与可编辑课表不一致 B；另记录 LevelTester 文本焦点未被 J/B/M/Space/Q/E/G 全部快捷键尊重、共享 legacy 输入 bool 的覆盖路径。269 的单窗 handler 核查不代表这些输入边界已通过；Dialogue CanDismiss 还包含话题选择与任务讨论。
+- 验收以真实 LevelTester Scene 的 3 秒/Tick、当前 Snapshot v14 单槽和准备工具副作用为准。医疗准备清送达、囚犯准备释放已有 Detained，多人竞争与容量分支不能靠反复准备伪造。未修改运行代码、Content 或配置，未启动 Unity、Runner 或自动测试；未暂存、提交或推送。
+
+## 2026-10-11 — UI 折叠菜单与关闭修复（待制作人验收）
+
+- LevelTester 保留 74 个稳定 ToolId 与右侧单功能页，九个现有分组增加稳定 GroupKey 和独立折叠状态；默认展开当前组，搜索临时显示命中组／子项且清空后恢复原偏好，目录高度按实际可见行计算。
+- 修复标题 `DragWindow` 覆盖关闭按钮；关闭后当帧停止 overlay／焦点／输入 owner 处理，只延迟清理本窗口自己的 GUI 焦点与拖动捕获，并取消 Session Reset 和 Content 危险确认。retired rect 仍只保护关闭点击当帧。
+- 人物详情、任务日志、修炼页的直接 `open=false` 关闭旁路统一经过各自 `Close`；专项核查另修斗技仪式切换与关闭续绘、背包／仓库关闭续绘、战略角色／势力子面板和活动历史关闭续绘。商业事务、工作、建设、活动历史、对话、遭遇及小游戏业务语义未改。
+- Core 328／Data 84／Unity 145／Editor 6 源文件离线编译 `ALL_OK`；ToolId、GroupKey、owner 调用链、滚轮隔离和差异完整性只做静态检查。未启动 Unity／PlayMode／Runner，未运行或新增测试。详见 [269](269-ui-foldout-and-close-audit-2026-10-11.md)。状态：**UI 折叠菜单与关闭修复 Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-08 — CIVILIAN-LIFE-01 P1 囚犯交接与 Rescue 精确到达修复
 
 - 修复 `PrisonDropOff` 已被 Picker 识别但未进入右键菜单专用分支、最终落入普通 `DrawContextMenu/BeginTalk` 的问题。右键现在只提供“安置俘虏”和“查看囚室”；安置令 carrier 精确寻路，抵达后重新调用共用 `CanDetain/Detain`，禁止远程完成。
@@ -5510,6 +5529,12 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 该轮曾把巡卫甲／乙／丙补入荒村驻军，并按 Site／阵营／位置推断非 singleton 守军；此未验收方案已由上方“显式驻军”实现取代，巡卫现为独立普通 patrol squad，只有主管 Squad 显式守卫荒村。
 - 头顶、紧凑 HUD 与人物详情共用 activity resolver：生命状态优先，其次 active encounter／Separate Space 本地战斗，再到凡人活动、Action、Schedule 与 idle。LevelTester 增加移动倍率、Host 实际速度和 Site Encounter roster／TargetId 诊断。
 - Core／Data／Unity／Unity.Editor 离线编译通过；`git diff --check` 无 whitespace error。未启动 Unity、PlayMode 或 Runner，未新增或运行自动测试。状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-10 — LevelTester 独立小功能页重组（待制作人验收）
+
+- 制作人纠正五大聚合页签方向；`HostLevelTesterCheatPanel` 改为顶部搜索／上下文、左侧具体功能目录和右侧唯一功能页。74 个稳定 `ToolId` 覆盖原 Battle、Background、Diplomacy、Content、Time、Snapshot 与 Diagnostics 操作及其只读摘要；搜索结果直接打开具体工具。
+- `LevelTesterCheatContentSection`、`BackgroundSection`、`DiplomacySection`、`TimeSection` 删除全量 `Draw()` 路径并按 `ToolId` 拆分。右侧滚动状态按 ToolId 保存；切页取消危险确认，World／Scene 变化继续清旧实体、结果与 section runtime context。
+- 保留 owner-scoped persistent overlay、文本焦点 `HostInputGate`、Camera／WorldMap／Selection／世界命令输入隔离、正式 CameraRig 定位、Core 跳时说明和 Reset 二次确认。完整旧入口迁移见 [268](268-level-tester-direct-tool-pages-2026-10-10.md)。状态：**LevelTester 独立小功能页重组 Implementation Complete / Producer Acceptance Pending**；CIVILIAN-LIFE-01 不自动封板。
 
 ## 2026-10-10 — LevelTester 工具整理与输入隔离（待制作人验收）
 

@@ -98,9 +98,7 @@ namespace XianXia.Unity.Host
             if (bootstrap.QuestJournal != null && bootstrap.QuestJournal.IsOpen)
             {
                 if (open)
-                    open = false;
-                _detailOpen = false;
-                ReleasePause();
+                    Close();
                 return;
             }
 
@@ -241,8 +239,7 @@ namespace XianXia.Unity.Host
             else if (study.TryBeginBreakthroughArt(_subject, artId, out var beginReason))
             {
                 _status = "开始冲击熟练…";
-                open = false;
-                _detailOpen = false;
+                Close();
             }
             else
                 _status = string.IsNullOrEmpty(beginReason) ? "无法突破" : beginReason;
@@ -259,7 +256,10 @@ namespace XianXia.Unity.Host
             var y = rect.y + 12f;
             GUI.Label(new Rect(x, y, rect.width - 160f, 26f), "斗技 · " + actorName, _title);
             if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
+            {
                 Close();
+                return;
+            }
             y += 28f;
             GUI.Label(
                 new Rect(x, y, rect.width - 32f, 18f),
@@ -367,6 +367,7 @@ namespace XianXia.Unity.Host
             CollectTomes(world, arts, _tomeScratch);
             var bagView = new Rect(bagR.x + 4f, bagR.y + 24f, bagR.width - 8f, bagH - 28f);
             var bagContentH = Mathf.Max(bagView.height, _tomeScratch.Count * 28f + 8f);
+            var closeAfterBag = false;
             _scrollBag = GUI.BeginScrollView(bagView, _scrollBag, new Rect(0f, 0f, bagView.width - 18f, bagContentH));
             var by = 2f;
             if (_tomeScratch.Count == 0)
@@ -398,8 +399,7 @@ namespace XianXia.Unity.Host
                         else if (study.TryBeginLearnArt(_subject, itemId, out var beginReason))
                         {
                             _status = "开始参悟…";
-                            open = false;
-                            _detailOpen = false;
+                            closeAfterBag = true;
                         }
                         else
                             _status = string.IsNullOrEmpty(beginReason) ? "无法参悟" : beginReason;
@@ -407,10 +407,18 @@ namespace XianXia.Unity.Host
 
                     GUI.enabled = true;
                     by += 26f;
+                    if (closeAfterBag)
+                        break;
                 }
             }
 
             GUI.EndScrollView();
+            GUI.enabled = true;
+            if (closeAfterBag)
+            {
+                Close();
+                return;
+            }
 
             if (!string.IsNullOrEmpty(_status))
                 GUI.Label(new Rect(x, rect.yMax - 28f, rect.width - 32f, 22f), _status, _small);
