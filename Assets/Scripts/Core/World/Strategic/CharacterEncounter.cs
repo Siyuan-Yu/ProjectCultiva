@@ -641,15 +641,8 @@ namespace XianXia.Core.World.Strategic
                 {
                     if (IsLiving(world, p.CharacterId))
                     {
-                        if (p.SourceSpatialOwnerKind == EncounterSpatialOwnerKind.Squad &&
-                            world.Strategic.Squads.TryGetForCharacter(id, out var currentSquad) &&
-                            string.Equals(currentSquad.SquadId, p.SourceSquadId, StringComparison.Ordinal) &&
-                            world.Strategic.SquadWorldMotions.TryGet(currentSquad.SquadId, out var currentMotion) &&
-                            SquadWorldMotionService.IsActiveNpcSquadAuthority(
-                            world, currentSquad, currentMotion))
-                        {
+                        if (TryRestoreLivingNpcSquadPresence(world, p, id))
                             continue;
-                        }
                         if (p.SourceSpatialOwnerKind == EncounterSpatialOwnerKind.PlayerParty &&
                             world.Strategic.PlayerPartyContext?.IsMember(id) == true)
                         {
@@ -671,6 +664,38 @@ namespace XianXia.Core.World.Strategic
                 presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
                 presence.HasContinuousWorldPosition = true; presence.PersonalSurfaceId = state.SourceSurfaceId;
             }
+        }
+
+        static bool TryRestoreLivingNpcSquadPresence(
+            SimulationWorld world,
+            EncounterCharacter participant,
+            EntityId id)
+        {
+            if (participant.SourceSpatialOwnerKind != EncounterSpatialOwnerKind.Squad ||
+                !world.Strategic.Squads.TryGetForCharacter(id, out var currentSquad) ||
+                !string.Equals(currentSquad.SquadId, participant.SourceSquadId,
+                    StringComparison.Ordinal) ||
+                !world.Strategic.SquadWorldMotions.TryGet(
+                    currentSquad.SquadId, out var currentMotion) ||
+                !SquadWorldMotionService.IsActiveNpcSquadAuthority(
+                    world, currentSquad, currentMotion) ||
+                !ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
+                    world, id, currentMotion.SurfaceId, out var currentPosition,
+                    out var owner, out var ownerId, out _) ||
+                owner != ContinuousSpatialOwnerKind.Squad ||
+                !string.Equals(ownerId, currentSquad.SquadId, StringComparison.Ordinal))
+                return false;
+
+            // Encounter tactical coordinates are only a temporary projection. Restore the
+            // participant record from the still-authoritative NPC Squad without touching the
+            // Squad's position, route, command or membership.
+            if (!string.IsNullOrEmpty(currentMotion.SiteId))
+                world.WorldPresence.SetAtSiteWithAnchor(
+                    id, currentMotion.SiteId, currentPosition, currentMotion.SurfaceId);
+            else
+                world.WorldPresence.SetAtWorldPosition(
+                    id, currentPosition, currentMotion.SurfaceId);
+            return true;
         }
 
         static void RestorePlayerPartyMembersFromGroup(SimulationWorld world,

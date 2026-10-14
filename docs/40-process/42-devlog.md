@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-10-14 — CharacterEncounter 存活 NPC Squad 返场修复（待制作人验收）
+
+- 修复 `RestoreAnchors` 对仍由原有效 `SquadWorldMotion` 管理的存活 NPC 直接跳过、导致其持久 `WorldPresence` 残留 `InEncounter + TacticalX/Y` 并在普通 Continuous Surface 被隐藏的问题。正常 `CommitAndReturn` 与进入中止 `AbortEntry` 现在共用同一恢复分支，从当前合法小队 authority 派生 Surface、精确位置及 Site 上下文；不修改小队位置、路线、命令、成员关系、HP 或战斗结果。
+- 玩家队伍仍使用既有 `RestorePlayerPartyMembersFromGroup` 与失能控制交接；弥留、可见尸体和已脱离原组织者仍返回不可变 Return 坐标；Removed 不重建。`ResolvePendingCaptureAfterEncounter` 顺序与正式俘虏处理保持不变。
+- 现有一次性返场诊断扩充为 ReadyToEnd、Commit 后、释放独立战场后三个阶段，逐参战者记录 EntityId/名字/生命状态、Encounter/Phase、实际 WorldPresence.Mode、当前 Squad、解析后位置 authority、Surface/位置、materialization、View、最终可见性及拒绝原因。按仓库规则只执行离线编译和静态调用链检查，不新增或运行自动测试，不启动 Unity／PlayMode／Runner。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-13 — LevelTester 作弊工具精简（待制作人验收）
 
 - 从稳定目录和 Content 分派中删除 8 个入口：四个食宿整场景准备、医疗搬运准备、囚犯押送与交接准备、建设准备、主管生命状态恢复；对应 `PrepareCivilianNeedsAcceptance`、`PrepareCivilianRescue`、`PrepareDedicatedPrison`、`PrepareCivilianConstruction`、`PrepareSupervisorLife` 及专用绘制入口一并删除，目录由 74 个缩减为 66 个唯一 ToolId。

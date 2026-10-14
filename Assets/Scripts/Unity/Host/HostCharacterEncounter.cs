@@ -8,6 +8,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.Results;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -525,6 +526,9 @@ namespace XianXia.Unity.Host
                     new EntityId(participant.CharacterId));
             }
             Debug.Log(_host.ContinuousOutdoorSurfaceRuntime.DescribeReadyToEndDiagnostics(state), this);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LogReturnDiagnostics(world, state, "ReadyToEnd");
+#endif
         }
 
         void TickReadyToEndManualAttack(
@@ -613,7 +617,7 @@ namespace XianXia.Unity.Host
             var result = CharacterEncounterService.CommitAndReturn(world);
             if (result.IsFailure) { _failure = result.Error.Message; return false; }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            LogReturnDiagnostics(world, state);
+            LogReturnDiagnostics(world, state, "AfterCommit");
 #endif
             // CommitAndReturn clears the encounter-owned participant scope. Re-evaluate Active
             // control in that ordinary scope before Continuous startup asks for its EntityView;
@@ -621,6 +625,9 @@ namespace XianXia.Unity.Host
             // ActiveCharacterId/ControlState and makes the synchronous startup invariant fail.
             _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             _host.ContinuousOutdoorSurfaceRuntime.LeaveIndependentField(state);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LogReturnDiagnostics(world, state, "AfterLeaveIndependentField");
+#endif
             Phase = PresentationPhase.Report;
             // A party with no eligible controller may only transfer authority after
             // CommitAndReturn and after the independent field has released the old battlefield.
@@ -629,35 +636,80 @@ namespace XianXia.Unity.Host
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        static void LogReturnDiagnostics(
+        void LogReturnDiagnostics(
             SimulationWorld world,
-            CharacterEncounterState state)
+            CharacterEncounterState state,
+            string stage)
         {
+            var independentPhase = state.Phase == CharacterEncounterPhase.Active ||
+                                   state.Phase == CharacterEncounterPhase.ReadyToEnd;
             foreach (var participant in state.Participants)
             {
                 var id = new EntityId(participant.CharacterId);
                 world.Entities.TryGet(id, out var entity);
-                var life = entity != null &&
-                           entity.TryGet<LifecycleComponent>(out var lifecycle)
+                var life = entity != null && entity.TryGet<LifecycleComponent>(out var lifecycle)
                     ? lifecycle.State.ToString()
                     : "Missing";
-                var returned = world.WorldPresence.TryGet(id, out var presence) &&
-                               presence != null && presence.HasContinuousWorldPosition &&
-                               presence.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtWorldPosition
+                world.WorldPresence.TryGet(id, out var presence);
+                var actualMode = presence != null ? presence.Mode.ToString() : "Missing";
+                var actualPosition = presence != null && presence.HasContinuousWorldPosition
                     ? "(" + presence.WorldPosX.ToString("0.###") + "," +
                       presence.WorldPosY.ToString("0.###") + ")"
-                    : participant.SourceSpatialOwnerKind + "Authority";
+                    : "None";
+                var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                              squad != null
+                    ? squad.SquadId
+                    : string.Empty;
+                var resolved = CharacterWorldPresenceQuery.TryResolve(world, id, out var location);
+                var resolvedPosition = resolved && location.HasWorldPosition
+                    ? "(" + location.WorldPosition.X.ToString("0.###") + "," +
+                      location.WorldPosition.Y.ToString("0.###") + ")"
+                    : "None";
+                var materialized = world.ContinuousOutdoorMaterialization.IsMaterialized(id);
+                var hasView = _host.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
+                var activeView = hasView && view.gameObject.activeInHierarchy;
+                bool visibilityEligible;
+                string visibilityReason;
+                if (independentPhase)
+                    visibilityEligible = LocalMapVisibility.EvaluateIndependentEncounterVisibility(
+                        world, id, out visibilityReason);
+                else
+                    visibilityEligible = LocalMapVisibility.EvaluateContinuousMaterializedVisibility(
+                        world, id, out visibilityReason);
+                var visible = visibilityEligible && activeView;
+                if (visibilityEligible && !hasView)
+                    visibilityReason = "EntityViewMissing";
+                else if (visibilityEligible && !activeView)
+                    visibilityReason = "EntityViewInactive";
                 Debug.Log(
-                    "[CharacterEncounterReturn] CharacterId=" + participant.CharacterId +
+                    "[CharacterEncounterReturn] Stage=" + stage +
+                    " EncounterId=" + state.EncounterId +
+                    " Phase=" + state.Phase +
+                    " EntityId=" + participant.CharacterId +
+                    " Name=" + (entity?.DisplayName ?? string.Empty) +
                     " LifeState=" + life +
                     " SourceOwner=" + participant.SourceSpatialOwnerKind +
+                    " SquadId=" + squadId +
+                    " ActualMode=" + actualMode +
+                    " ActualSiteId=" + (presence?.SiteId ?? string.Empty) +
+                    " ActualSurface=" + (presence?.PersonalSurfaceId ?? string.Empty) +
+                    " ActualWorldPosition=" + actualPosition +
+                    " ResolvedOwner=" + (resolved ? location.State.ToString() : "Unresolved") +
+                    " ResolvedSiteId=" + (resolved ? location.SiteId : string.Empty) +
+                    " ResolvedSurface=" + (resolved ? location.SurfaceId : string.Empty) +
+                    " ResolvedWorldPosition=" + resolvedPosition +
                     " Origin=(" + participant.OriginX.ToString("0.###") + "," +
                     participant.OriginY.ToString("0.###") + ")" +
                     " Return=(" + participant.ReturnX.ToString("0.###") + "," +
                     participant.ReturnY.ToString("0.###") + ")" +
                     " FinalTactical=(" + participant.TacticalX.ToString("0.###") + "," +
                     participant.TacticalY.ToString("0.###") + ")" +
-                    " ReturnedWorldPosition=" + returned);
+                    " Materialized=" + materialized +
+                    " View=" + hasView +
+                    " ViewActive=" + activeView +
+                    " Visible=" + visible +
+                    " VisibilityReason=" + visibilityReason,
+                    this);
             }
         }
 #endif
