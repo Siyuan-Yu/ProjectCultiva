@@ -41,6 +41,19 @@ namespace XianXia.Core.Construction
             string.Equals(kind, RoomKind, StringComparison.Ordinal) ||
             string.Equals(kind, BedKind, StringComparison.Ordinal) ||
             string.Equals(kind, WallSegmentKind, StringComparison.Ordinal);
+
+        /// <summary>
+        /// Authored placements that are normalized onto the constructed-asset board at bootstrap.
+        /// Legacy authored grain fields remain Surface placements; player-built grain fields still
+        /// use the board through ConstructionService.
+        /// </summary>
+        public static bool IsAuthoredRuntimeAssetKind(string kind) =>
+            string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal) ||
+            string.Equals(kind, PrisonDropOffKind, StringComparison.Ordinal) ||
+            string.Equals(kind, StorageRoomKind, StringComparison.Ordinal) ||
+            string.Equals(kind, RoomKind, StringComparison.Ordinal) ||
+            string.Equals(kind, BedKind, StringComparison.Ordinal) ||
+            string.Equals(kind, WallSegmentKind, StringComparison.Ordinal);
     }
 
     public enum RoomUsage

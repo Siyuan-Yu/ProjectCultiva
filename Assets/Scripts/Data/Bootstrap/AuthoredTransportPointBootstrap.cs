@@ -37,7 +37,7 @@ namespace XianXia.Data.Bootstrap
                 for (var i = 0; i < surface.SitePlacements.Count; i++)
                 {
                     var p = surface.SitePlacements[i];
-                    if (p == null || !OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(p.Kind)) continue;
+                    if (p == null || !OutdoorConstructedAssetSemantics.IsAuthoredRuntimeAssetKind(p.Kind)) continue;
                     if (!Enum.TryParse(p.RoomUsage ?? string.Empty, true, out RoomUsage roomUsage))
                         roomUsage = RoomUsage.Residential;
                     var expected = new OutdoorConstructedAssetState {
