@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Construction;
@@ -100,13 +101,15 @@ namespace XianXia.Core.Simulation
         public void CancelOrdersFromSource(EntityId subject, OrderSource source)
         {
             _world.GetOrCreateOrderQueue(subject).RemoveWhere(order => order.Source == source);
-            RoomBedFacilityService.Release(_world, subject);
             if (_world.Entities.TryGet(subject, out var entity) &&
                 entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
                 state.ActiveOrderSource == source && _world.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
             {
+                var ownsBed = action is BedRestAction;
                 action.Cancel();
                 ClearActive(action);
+                if (ownsBed)
+                    RoomBedFacilityService.Release(_world, subject);
             }
         }
 
@@ -348,8 +351,10 @@ namespace XianXia.Core.Simulation
             _world.ActiveActions.Remove(action.Id);
             if (!_world.Entities.TryGet(action.Subject, out var entity))
                 return;
-            if (action is MoveAction &&
-                entity.TryGet<MovementIntentComponent>(out var intent))
+            if (action is MoveAction move &&
+                entity.TryGet<MovementIntentComponent>(out var intent) &&
+                !intent.HasWorldTarget &&
+                string.Equals(intent.TargetWorkAreaId, move.TargetWorkAreaId, StringComparison.Ordinal))
                 intent.Clear();
             // Soft slot: release when leaving the action. Move→Work same tick re-reserves in Work.Start.
             _world.WorkAreaOccupancy.Release(action.Subject);

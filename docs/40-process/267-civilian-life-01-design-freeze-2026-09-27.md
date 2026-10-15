@@ -12,12 +12,12 @@ Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作�
 
 - 本轮以仓库当前 `Assets/Scripts`、`Content/BaseGame`、制作人提供的问题代码事实和 `Content.zip` 为证据源。代码复核确认旧实现会在无粮时停留于 `FetchFood`、在抵达住所前写入睡眠开始时间，且 `HostInputGate.BlockWorldInteraction` 会中止全部移动更新；当前 Content 与参考包均确认荒村初始 grain 为 0、目标门墙原为 4 cells。修复针对这些已证明的根因，不改初始库存来掩盖行为缺口。
 - `FetchFood` 使用显式阶段：来源/设施/权限失败、等待 Host 寻路、行走、不可达、到达、进食。只有合法来源、权限、StorageRoom 和现存 food 同时成立才创建移动 intent；抵达后重新校验并原子扣 1 份 food，随后只结算一次 Satiety。无粮、无设施、无权限或不可达保留可见原因，并按条件签名变化或最多 8 WorldTick 后有界重试，不在同一失败状态逐 tick 重建路线。
-- `Energy < 10` 的紧急睡眠高于失败后的取食重试；无粮且极低精力会在同一决策 tick 转入就地睡眠，不在 FetchFood 与 Sleep 之间振荡。正常睡眠分为 `TravelingToResidence`、`SleepingAtResidence`、`SleepingOnGround`：返家路上不恢复 Energy、不写 `SleptToday`，只有同一住所 intent 的真实 `HostArrived` 才开始床上睡眠。
+- `Energy < 10` 的紧急睡眠高于失败后的取食重试；无粮且极低精力会在同一决策 tick 转入就地睡眠，不在 FetchFood 与 Sleep 之间振荡。正常睡眠分为 `TravelingToResidence`、`SleepingAtResidence`、`SleepingOnGround`：返家路上不恢复 Energy、不写 `SleptToday`，只有本人真实占用合法用途床位且位于床边使用格才产生床睡收益。
 - `MovementIntent.Revision` 与 Host request/accept/failure feedback 形成一次 intent 生命周期。Core 清除或替换已接受的 civilian intent 时，`HostNpcScheduleMover` 只取消该 civilian 的旧 Host path；PlayerParty、Encounter、SeparateSpace 与 NPC squad 运动边界保持。暂停仍冻结移动；人物菜单等 `BlockWorldInteraction` 只屏蔽玩家输入，不再冻结自治 NPC。
 - managed mortal 的 Continuous Surface 个人位置由 Host 移动逐步提交回 `WorldPresence`；普通 `CivilianLocal` 不再被静态 resident squad anchor 覆盖。CapturedEscorted 保持 carrier 同步；真实战略 squad 路线、多成员 follower、PlayerParty、Encounter 与 SeparateSpace 继续优先。
 - 荒村 guard housing 门洞的阻挡墙 `base:site_huangcun:place_wall_040130496` 在 source blueprint 与 baked surface 同步由 4 cells 缩至 3 cells，稳定 ID 和起始位置不变。离线复算中关键格 `(246,443)` 从 blocked 变为 walkable；3 名 guard 到 StorageRoom 的路径由不可达变为 39/42/43 格，外部起点到 guard housing 由不可达变为 21 格，原 farmer 与普通住房路径保持可达。
 - Snapshot schema 仍为 v14。睡眠阶段随现有民生状态持久化，避免读档把返家误当已睡；食物搬运仍为瞬时计划，读档从 Satiety、位置、Site、权限、StorageRoom 与库存重新求值。
-- LevelTester Content 页提供四个互相独立的准备入口：`准备食宿 A：有粮取食`、`准备食宿 B：正常回床`、`准备食宿 C：紧急睡眠`、`准备食宿 D：无粮且极低精力`。入口只准备当前选中的正常 managed mortal、当前实际 Site、需要的库存和 Needs，不替代正式行为完成；诊断同时显示阶段、实际位置、intent revision、Host path 反馈、源/目标 grid、首个 gate、WorldTick 和 pause 状态。
+- LevelTester 不再提供食宿整场景准备按钮；保留现有只读诊断与独立基础数值工具。诊断显示日程 ID／当前块、职业、实际活动、目标、移动 authority、Needs 与阻断原因，不能以准备逻辑替代正式行为完成。
 
 ### P1 Physical Food Fetch / Formal Work UI（2026-09-27）
 
@@ -25,7 +25,7 @@ Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作�
 - Detained 继续使用既有抽象 Site 公粮照料；PlayerParty 继续使用既有队伍供给逻辑。`FoodFetchStorageRoomId`、待取资源和进食阶段均为瞬时任务状态，不进入 Snapshot；读档后从正式 Satiety、位置、Site、StorageRoom 与库存重新求值。
 - 正式 HUD 常驻“工作”入口。面板按当前查看／当前玩家人物所在 Site 列出当地真实凡人，读取统一 Activity、Schedule Phase、Satiety、Energy、Faction Loyalty 与管理资格；玩家只能为玩家势力、永久可管理、`Normal` 的凡人通过 `MortalCivilianService.SetProfession` 改职业。
 - 专业工区必须与人物当前 Site、该 Site 的实际所属势力和所需 tag 同时匹配；不再从全世界取第一个同 tag 工区。紧凑人物卡与头顶字优先读取 `MortalCivilianState.Activity`，明确显示“取食／进食”等真实活动，课表阶段单独呈现。
-- 荒村初始职业：阿石／阿青 `Unassigned`，阿土／阿禾 `Farmer`，阿兰 `HerbFarmer`，阿杏 `Medic`，阿木／阿柴／阿枝 `Logger`。
+- 荒村九名劳工初始职业：阿石／阿土／阿禾 `Farmer`，阿青／阿兰／阿杏 `HerbFarmer`，阿木／阿柴／阿枝 `Logger`。巡卫、主管、商人及村内其它角色不并入该农业分组。
 
 ### P1 Managed Mortal MovementIntent Host Bridge Fix（2026-09-27）
 
@@ -33,7 +33,7 @@ Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作�
 - `HostFarmFieldLabor.StopNpcScheduleFarmOwnershipOnly` 只释放田格 reservation、农田表现移动和 worker 记录，不清除 Core MovementIntent。managed mortal 的农田注册只认当前 `MortalCivilianState.Activity` 与对应 farm intent，不再回退残留 `WorkAction`／legacy Schedule。
 - `MortalCivilianMovementAuthority` 是 Core evaluator、Host intent consumer 与 NPC squad presenter 的共同空间所有权规则。Battle、SeparateSpace、PlayerParty、真实活动路线中的 `SquadWorldMotion` 和多成员 `FollowLeader` follower 高于 civilian local movement；只有静态位置的 singleton resident squad 必须让位，且 presenter 不再把该人物写回 squad anchor。
 - `WorldSiteStorageRoomState` 由 authored placement／constructed asset 重建中心与完整 footprint；FetchFood 根据人物起点选择最近 footprint 边缘外侧 access point，再交给 Host 小范围 walk-grid snap。Core 只以该 intent 的 `HostArrived` 完成取粮，不再把阻挡建筑中心作为目标或另设距离 gate；这些字段仍是 derived／session-only，不升级 Snapshot v14。
-- Schedule Phase 只决定需求满足后是否开始工作，不拥有人物移动。Work 或 OffDuty 下 Satiety 触发 FetchFood 时，需求始终先于 Profession／Schedule。
+- `ScheduleComponent.DefinitionId → ScheduleDefinition.TryResolve(WorldTick)` 是计划阶段唯一真源。`Rest / Labor / Idle` 决定计划睡眠、专业工作与自由活动，但不取代真实移动／床位／Host 农作 authority；Satiety 需求仍可插入，完成后重新读取当前日程。
 - LevelTester 只读诊断增加统一 `CivilianMovementOwner`、Squad id／人数／命令／motion 状态、StorageRoom center／resolved access，以及既有 MovementIntent、Host path／arrived／farm／interaction 状态。
 
 ## Implemented V1
@@ -72,14 +72,14 @@ V1 只包含 `Satiety`（饱食）与 `Energy`（精力），建议均为 0–10
 3. Hunger／Satiety。
 4. Sleep／Energy。
 5. 紧急 Rescue。
-6. 当前 Faction Mortal Daily Schedule 阶段。
-7. Work 时的专业职业工作、通用搬运／建设；OffDuty 时返家／休息／Idle。
+6. 当前人物绑定的 `ScheduleDefinition` 阶段。
+7. `Labor` 时的专业职业工作、通用搬运／建设；`Rest` 时真实返床睡眠；`Idle` 时自由活动。
 
 饥饿通常先于睡眠与工作；逃亡者不会因轻微饥饿停下。`Energy < 10` 时可原地紧急睡眠，恢复慢于床位；正常返床阈值可调。
 
 势力凡人没有个人物品栏。普通有势力居民从当前可访问、同势力 Site PublicStock 取食；永久 PlayerParty 凡人优先取当前己方 Site PublicStock，缺粮后从 PartyInventory 取食；无势力但拥有合法 Residence 的居民只有该住所 Site 的 food-only 取食权，不因此获得仓库管理、势力工作或势力身份；Detained 只从拘留他的玩家控制 Site PublicStock 取食。`food` tag 资源按稳定 ID 顺序选择，不凭空生成或跨币种折算。
 
-Faction-affiliated Mortal 遵循统一 Faction Mortal Daily Schedule：Work / OffDuty。V1 起止时间集中在 `MortalCivilianTuning`（当前默认 08:00–18:00），属于可调默认值而非永久冻结规则；无势力者不接受此工作日程。即时战斗／危险、强制处置、紧急饥饿与睡眠优先于日程；紧急 Rescue 可打断 OffDuty。OffDuty 不主动开启 Farmer／HerbFarmer／Logger／Medic 工作，可返回 Residence。
+受管凡人的计划阶段直接读取其绑定日程。`base:schedule_mortal_day` 当前为 00:00–05:00 `Rest`、05:00–22:00 `Labor`、22:00–24:00 `Idle`；进食没有固定时段，由需求插入。即时战斗／危险、强制处置、玩家／小队移动及紧急需求优先；Rescue 仍可插队。巡卫／主管的专用日程不映射为农业劳动，未由受管凡人生活驱动执行的专职块必须明确显示由既有职责系统接管。
 
 ## Work 与 Profession
 
@@ -149,7 +149,7 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 
 ## Implemented V1 Tunables
 
-当前集中参数：Satiety/Energy 默认 100；饥饿阈值 40；正常睡眠阈值 35；紧急地面睡眠阈值 10；醒来阈值 85；进食恢复 55；床每 2 tick 恢复 1，地面每 4 tick 恢复 1；Satiety 每 4 tick 下降 1，清醒 Energy 每 5 tick 下降 1；逃离 buffer 为当前 Surface 的 3 个导航格、按 EntityId 错峰最多 12 tick；得到食物且在合法囚室睡眠的完整 World Day 使 Loyalty -5。食物按资源 `food` tag 从当前合法 Site PublicStock 确定性取用。招募写 PlayerFaction `Member`、Loyalty 50、Profession Unassigned，且不加入 PlayerParty。
+当前集中参数：Satiety/Energy 默认 100；饥饿阈值 40；正常疲劳补觉阈值 35；紧急地面睡眠阈值 10；疲劳补觉醒来阈值 85；进食恢复 55；合法床睡每 tick 恢复 1，地面每 4 tick 恢复 1；计划 `Rest` 不因 Energy 达到 85 提前结束；Satiety 每 4 tick 下降 1，清醒 Energy 每 5 tick 下降 1。食物按资源 `food` tag 从当前合法 Site PublicStock 确定性取用；无势力本地住户资格由其正式住宅床所属 Residential Room／Site 派生，不再读取旧 `ResidenceWorkAreaId`。
 
 ## Producer Manual Acceptance
 
@@ -178,14 +178,14 @@ ROOM-01 已实现并保持 **Producer Acceptance Pending**：旧 `WorkArea.Capac
 
 荒村三组旧住房、旧医疗／囚室、四个遗留设施、15 段旧墙及五个住房 WorkArea 已从 Content 删除，新 22 房／27 床紧凑迁回原区域并由正式作者发布链生成 runtime。状态仍为 **Implementation Complete / Producer Acceptance Pending**；未启动 Unity 或执行人工验收。
 
-### 当前功能与验收状态表（唯一维护点，2026-10-10）
+### 当前功能与验收状态表（唯一维护点，2026-10-15）
 
 > 本表是 CIVILIAN-LIFE-01 当前功能与人工验收状态的唯一清单。`114`、`247`、总览与 Devlog 只链接本节，不复制第二份状态矩阵。工具准备成功、离线编译通过均不等于制作人人工验收通过。
 
 | 能力名称 | 当前代码入口 | 正式 UI / 玩家入口 | Content 前置 | 制作人已确认范围 | 仍待验收分支 | 已知阻塞 | 下一步动作 |
 |---|---|---|---|---|---|---|---|
 | 食宿与 Needs | `MortalCivilianService.Tick` / `ApplyActivity` | 自动生活；正式速度栏 | StorageRoom、Site PublicStock、Normal Residence | 规则与实现范围已确认 | 有粮取食、回床、紧急地睡、无粮低精力、Save/Load | Detained 受缺口 A 影响 | LevelTester A 卡按 1x/2x/5x/20x 人工验收 |
-| 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 同 Site/owner 的专业 WorkArea | 单选职业、通用救援/建设范围已确认 | Farmer/HerbFarmer/Logger、职业切换与存档 | 课表显示/执行受缺口 B 影响；Medic 治疗延期 | 用正式工作面板逐项人工验收 |
+| 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 同 Site/owner 的专业 WorkArea | 单选职业、九名劳工初始分组、通用救援/建设范围已确认 | Farmer/HerbFarmer/Logger、日程边界、职业切换与存档 | Medic 治疗延期 | 用正式工作面板逐项人工验收 |
 | 建设与搬运 | `CivilianConstructionJobService`、`ConstructionService` | 正式建设 UI | 己方 Site、公共木材、合法工人 | 工具只准备人物/材料，正式 UI 发起 | 取材、搬运、施工、读档续作 | Repair 与普通建筑拆除明确延期 | B 卡准备后从正式建设 UI 落点 |
 | 占领、驻军与追击 | `WorldSiteTerritoryTransferService`、`SquadState.DefendedSiteId`、Flee MovementIntent | SiteCore 战争、人物右键交互 | 主管显式驻军；巡卫独立 patrol squad | 显式驻军、0.2 逃亡、真实追击、Displaced 范围已确认 | 全链与 Save/Load | 无工具阻塞；业务仍待人工确认 | C 卡观察实际名单、速度、位置与身份 |
 | 医疗搬运 | `MortalCivilianService` Rescue、`RecoverySpotDeliveries` | 自动发现与真实搬运 | 同势力弥留者、空闲 recoverySpot | 只搬到具体恢复点并放下 | 自动发现、搬起、送达/占用、中断、Save/Load | 自动治疗、入院、出院、Medic 治疗均明确延期 | D 卡二次确认准备；不得用预填 RescueTarget 冒充发现 |
@@ -202,7 +202,7 @@ ROOM-01 已实现并保持 **Producer Acceptance Pending**：旧 `WorkArea.Capac
 | 缺口 | 当前文件 / 函数 | 对玩家操作的影响 | 复核结论 | 建议下一轮 |
 |---|---|---|---|---|
 | A. 囚犯食宿早退 | `Assets/Scripts/Core/Npc/MortalCivilianSystem.cs`，`MortalCivilianService.Tick` 约 468–524 行；`life.State != Alive` 在 `ApplyActivity` 前 `continue` | Detained 的 Lifecycle 为 Captured 时虽然先衰减 Needs/结算旧日照料，但不会进入 Detained 取食/睡眠活动，因此无法自然形成新的 Proper Care 日 | **仍存在，已确认缺陷** | 单独业务轮决定 Captured+Detained 的合法 Tick 分支；不得把 Captured 改 Alive 伪装通过 |
-| B. 两套日程 | `HostFormalHud.DrawEditableSchedulePanel` / `BuildScheduleText` 与 `HostCharacterPresentation` 读取 `ScheduleComponent`；`MortalActivityEvaluator` / `ApplyActivity` 读取固定 `FactionMortalSchedule.Current` | 右栏可查看/编辑的旧课表不会改变凡人实际 08:00–18:00 Work/OffDuty；UI 反馈与运行行为不一致 | **仍存在，已确认缺陷** | 单独设计/实施轮统一 authority 或明确拆分 UI；本轮不改需求优先级与日程 |
+| B. 两套日程 | `HostFormalHud`、`FactionMortalSchedule.Current`、`MortalActivityEvaluator` 共读角色绑定 `ScheduleDefinition` | 右栏编辑会直接改变受管凡人的实际阶段；受管凡人编辑只循环 Rest/Labor/Idle | **已实现修复，待制作人验收** | 在 59/60、263/264 边界与三日循环中人工确认 |
 | C. 普通住房转囚室后缺交接点 | `MortalCivilianService.TryResolvePrisonDropOff` / `ValidateDetain`；`Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json` 的 `base:site_huangcun:prison_dropoff` | 旧版本会因没有显式点而无法安置；当前荒村 PrisonerOnly 囚室已有绑定 `base:loc_ref_huangcun_prison` 的 `prisonDropOff` | **最新仓库已不存在**（保留显式交接要求） | 不改回住房中心 fallback；继续人工验收到点距离、容量和存读档 |
 
 旧“架构冻结不编码”与“不切独立战斗”等提案均为 **Historical / Superseded**；现行实现与验收规则以本页、ADR-0044、当前 CharacterEncounter / Continuous Surface 代码和 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 为准，不删除历史记录，也不把代码改回旧方案。

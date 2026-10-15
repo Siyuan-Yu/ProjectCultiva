@@ -113,6 +113,14 @@ namespace XianXia.Core.World.Surface
                 return SurfaceGroundRouteStatus.OutsideCoverage;
             if (!IsWalkable(goal.X, goal.Y))
                 return SurfaceGroundRouteStatus.BlockedGoal;
+            // Most travel over the expanded plain has direct line of sight. Avoid allocating
+            // a full-surface A* workspace (6.46M cells) for an already clear segment.
+            if (IsSegmentWalkable(start.X, start.Y, goal.X, goal.Y))
+            {
+                routeOut.Add(start);
+                if (!start.Equals(goal)) routeOut.Add(goal);
+                return SurfaceGroundRouteStatus.Found;
+            }
             _pathScratch.Clear();
             if (!_workspace.TryFindWorldPath(
                     _walkGrid, start.X, start.Y, goal.X, goal.Y,

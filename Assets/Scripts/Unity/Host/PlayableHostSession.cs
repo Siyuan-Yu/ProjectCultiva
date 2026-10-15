@@ -259,7 +259,8 @@ namespace XianXia.Unity.Host
                 return Result.Failure(parsed.Error);
             }
 
-            var restored = service.Restore(parsed.Value, expectedVersion);
+            var restored = service.Restore(parsed.Value, expectedVersion,
+                (candidate, snapshot) => StrategicContentBootstrap.PrepareSnapshotSiteIdentities(candidate, Registry, snapshot));
             if (restored.IsFailure)
             {
                 LastError = restored.Error.ToString();

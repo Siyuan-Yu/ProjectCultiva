@@ -140,7 +140,9 @@ namespace XianXia.Data.Bootstrap
             var schedules = ScheduleRuntimeBootstrap.Register(world, registry);
             if (schedules.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(schedules.Error);
-            EnsureBuiltinSchedules(world, scheduleId);
+            var requiredSchedules = EnsureBuiltinSchedules(world, scheduleId);
+            if (requiredSchedules.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(requiredSchedules.Error);
 
             var jobs = JobRuntimeBootstrap.Register(world, registry);
             if (jobs.IsFailure)
@@ -359,30 +361,26 @@ namespace XianXia.Data.Bootstrap
         }
 
         /// <summary>
-        /// Content schedules are preferred. Factories remain as safety net if JSON missing an id.
+        /// 正式开局要求 Content 已注册全部必需日程。工厂只供独立工具／fixture 显式调用，
+        /// 不在正常加载中静默掩盖缺失或拼错的 JSON definition id。
         /// </summary>
-        static void EnsureBuiltinSchedules(SimulationWorld world, string primaryScheduleId)
+        static Result EnsureBuiltinSchedules(SimulationWorld world, string primaryScheduleId)
         {
-            if (!world.TryGetSchedule(primaryScheduleId, out _))
-                world.RegisterSchedule(CreateLaborDaySchedule(primaryScheduleId));
-            if (!world.TryGetSchedule("base:schedule_mortal_day", out _))
-                world.RegisterSchedule(ScheduleDefinition.CreateMortalDay());
-            if (!world.TryGetSchedule("base:schedule_cultivator_day", out _))
-                world.RegisterSchedule(ScheduleDefinition.CreateCultivatorDay());
-            if (!world.TryGetSchedule("base:schedule_supervisor_day", out _))
-                world.RegisterSchedule(ScheduleDefinition.CreateSupervisorDay());
-            if (!world.TryGetSchedule("base:schedule_laborer_day", out _))
-                world.RegisterSchedule(ScheduleDefinition.CreateDefaultLaborerDay());
-        }
-
-        static ScheduleDefinition CreateLaborDaySchedule(string scheduleId)
-        {
-            return new ScheduleDefinition(scheduleId)
-                .AddBlock(0, 24, ScheduleActivity.Rest, 6)
-                .AddBlock(24, 144, ScheduleActivity.Labor, 12)
-                .AddBlock(144, 168, ScheduleActivity.Rest, 6)
-                .AddBlock(168, 240, ScheduleActivity.Labor, 12)
-                .AddBlock(240, 288, ScheduleActivity.Rest, 6);
+            var required = new[]
+            {
+                primaryScheduleId,
+                "base:schedule_mortal_day",
+                "base:schedule_cultivator_day",
+                "base:schedule_supervisor_day",
+                "base:schedule_laborer_day"
+            };
+            for (var i = 0; i < required.Length; i++)
+                if (string.IsNullOrWhiteSpace(required[i]) || !world.TryGetSchedule(required[i], out _))
+                    return Result.Failure(
+                        ErrorCode.NotFound,
+                        "正式日程配置缺失，无法启动开局。",
+                        required[i] ?? string.Empty);
+            return Result.Success();
         }
 
         static Result<DefinitionId> ResolveScenarioId(string openingScenarioId)

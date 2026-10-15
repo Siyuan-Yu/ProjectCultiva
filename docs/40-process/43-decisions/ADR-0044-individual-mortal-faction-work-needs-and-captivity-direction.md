@@ -10,7 +10,7 @@
 
 - 每个凡人是持久真实 Character；人口、劳动力与职业统计由人物派生，匿名 `MortalPopulation` 不再是现行人物或劳动 authority。
 - 有归属凡人使用真实 FactionMembership；无归属凡人不接受势力排程。FactionMembership、PlayerParty 与 ActiveCharacter 保持分离。
-- V1 需求只含 Satiety 与 Energy，按危险／强制状态／紧急需求／Faction Mortal Daily Schedule／工作顺序仲裁。统一 Work/OffDuty profile 的钟点是集中可调默认值，不是永久规则；OffDuty 不主动开始专业工作，紧急 Rescue 仍可打断。
+- V1 需求只含 Satiety 与 Energy，按危险／强制状态／紧急需求／人物绑定 `ScheduleDefinition`／工作顺序仲裁。受管凡人通过 `ScheduleComponent.DefinitionId → TryResolve(WorldTick)` 与正式课表 UI 共用唯一日程结果；`base:schedule_mortal_day` 的 Rest/Labor/Idle 时段由 Content 定义，进食由需求插入。专职日程不伪装成农业劳动，紧急 Rescue 仍可打断。
 - 食物来源确定：势力居民使用同势力可访问 Site PublicStock；永久 PlayerParty 凡人先用当前己方 Site PublicStock，缺货后用 PartyInventory；无势力合法 Residence 居民仅有住所 Site 的 food-only access；Detained 仅使用拘留 Site PublicStock。普通凡人无个人背包。
 - 每人最多一个专业职业：Unassigned、Farmer、HerbFarmer、Logger、Medic；所有有行动能力凡人均可搬运／救援与建设。
 - Site 易主不改居民势力。战败势力居民按对当前 Faction 的 Loyalty 留下或真实 Fleeing；逃出 Site 后成为保留身份和位置的 Displaced，不删除。
@@ -28,7 +28,7 @@
 
 既有农业／劳动已增量接入具名 worker；人员 UI 显示人物行，不采用大型工作矩阵。Snapshot v14 已增加需求、职业、逃亡、押送、拘留、Residence usage 与 Site 内建设工单／材料托运持久化，并严格拒绝 v1-v13。P1 realization note：Loyalty 已从 MortalCivilianBoard 移到通用 `CharacterFactionLoyaltyLedger`，由 CharacterId + 当前 FactionId 唯一确定；Snapshot v14 顶层独立保存，未封板 interim v14 不兼容。占领、拘留和招募只是该通用属性的第一批消费者；无势力人物不适用。实现说明：Rescue 以真实 Character WorldPresence 搬运，非 Medic 不直接治疗；Haul 将 Site PublicStock 资源送入工单 escrow；Construction 复用正式建筑完成事务且不二次扣材；现有势力旗拆除可由工人执行，Repair 与普通建筑拆除尚无正式玩法入口。产品规则不因该实现说明扩张；制作人人工验收待完成。
 
-完整规则、非目标、可调项与未来人工验收愿景见 [267](../267-civilian-life-01-design-freeze-2026-09-27.md)。
+日程／睡眠 realization：计划 `Rest` 要求人物真实前往并占用其住宅床，达到疲劳补觉阈值不提前结束；只有合法占床且处于床边使用格，或正在执行合法 `BedRestAction`，才获得床睡 Energy。取消某一 OrderSource 只释放该来源实际拥有的 BedRestAction，不能无条件释放生活系统或玩家动作的床位。无势力本地住户的公粮资格由其已分配 Residential bed → parent Room → Site 派生，旧 `ResidenceWorkAreaId` 不再参与该权限判断。完整规则、非目标、可调项与未来人工验收愿景见 [267](../267-civilian-life-01-design-freeze-2026-09-27.md)。
 
 ## P1 Decision Note — Medical Rescue Area / Prisoner Delivery Area
 

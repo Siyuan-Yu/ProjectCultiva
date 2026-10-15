@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Cultivation;
@@ -9,6 +10,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
+using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
@@ -23,7 +25,7 @@ namespace XianXia.Core.Npc
         Idle = 0, Eat = 1, SleepAtResidence = 2, SleepOnGround = 3,
         FarmerWork = 4, HerbFarmerWork = 5, Logging = 6, MedicCare = 7,
         Rescue = 8, Haul = 9, Construction = 10, Flee = 11,
-        Escorted = 12, Detained = 13, FetchFood = 14
+        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15
     }
     public enum CivilianDisposition
     {
@@ -31,7 +33,10 @@ namespace XianXia.Core.Npc
         CapturedEscorted = 4, Detained = 5
     }
     public enum ResidenceUsage { Normal = 0, PrisonerOnly = 1 }
-    public enum FactionMortalSchedulePhase { Work = 0, OffDuty = 1 }
+    public enum FactionMortalSchedulePhase
+    {
+        Work = 0, Rest = 1, Free = 2, DedicatedDuty = 3, Missing = 4
+    }
     public enum FoodFetchPhase
     {
         None = 0, NeedFood = 1, NoFoodSource = 2, NoStorage = 3,
@@ -51,7 +56,7 @@ namespace XianXia.Core.Npc
         public const int SleepThreshold = 35;
         public const int WakeThreshold = 85;
         public const int MealRestore = 55;
-        public const int BedSleepRestoreEveryTicks = 2;
+        public const int BedSleepRestoreEveryTicks = 1;
         public const int GroundSleepRestoreEveryTicks = 4;
         public const int SatietyDecayEveryTicks = 4;
         public const int EnergyDecayEveryTicks = 5;
@@ -61,18 +66,35 @@ namespace XianXia.Core.Npc
         public const float FleeBoundaryBufferCells = 3f;
         public const int FleeCandidateCount = 8;
         public const ulong FleeRetryDelayTicks = 8UL;
-        // One V1 faction profile; hours are centralized tunables, not a permanent design rule.
-        public const int WorkStartHour = 8;
-        public const int WorkEndHour = 18;
     }
 
     public static class FactionMortalSchedule
     {
-        public static FactionMortalSchedulePhase Current(WorldTick tick)
+        public static FactionMortalSchedulePhase Current(
+            SimulationWorld world, Entity entity, out string scheduleId,
+            out ScheduleBlock block, out string reason)
         {
-            var hour = DayClock.FromWorldTick(tick).HourOfDay;
-            return hour >= MortalCivilianTuning.WorkStartHour && hour < MortalCivilianTuning.WorkEndHour
-                ? FactionMortalSchedulePhase.Work : FactionMortalSchedulePhase.OffDuty;
+            scheduleId = string.Empty;
+            block = null;
+            reason = string.Empty;
+            if (world == null || entity == null ||
+                !entity.TryGet<ScheduleComponent>(out var schedule) ||
+                string.IsNullOrWhiteSpace(schedule.DefinitionId))
+            { reason = "未绑定日程"; return FactionMortalSchedulePhase.Missing; }
+            scheduleId = schedule.DefinitionId;
+            if (!world.TryGetSchedule(scheduleId, out var definition))
+            { reason = "日程配置缺失：" + scheduleId; return FactionMortalSchedulePhase.Missing; }
+            if (!definition.TryResolve(world.Tick, out block))
+            { reason = "当前时间未被日程覆盖：" + scheduleId; return FactionMortalSchedulePhase.Missing; }
+            switch (block.Activity)
+            {
+                case ScheduleActivity.Rest: return FactionMortalSchedulePhase.Rest;
+                case ScheduleActivity.Labor: return FactionMortalSchedulePhase.Work;
+                case ScheduleActivity.Idle: return FactionMortalSchedulePhase.Free;
+                default:
+                    reason = "专职日程交由既有职责 action 执行：" + block.Activity;
+                    return FactionMortalSchedulePhase.DedicatedDuty;
+            }
         }
     }
 
@@ -124,6 +146,8 @@ namespace XianXia.Core.Npc
         public int FoodFetchAccessCandidateIndex { get; set; } = -1;
         public int FoodFetchAccessAttemptCount { get; set; }
         public ulong MealStartedTick { get; set; }
+        // Runtime diagnostic only. The ScheduleDefinition remains the authority.
+        public string ScheduleStatus { get; set; } = string.Empty;
 
         public void Clamp()
         {
@@ -348,17 +372,17 @@ namespace XianXia.Core.Npc
             if (state.Disposition == CivilianDisposition.CapturedEscorted) return MortalActivity.Escorted;
             if (state.Disposition == CivilianDisposition.Detained) return MortalActivity.Detained;
             if (state.Disposition == CivilianDisposition.Fleeing) return MortalActivity.Flee;
+            var schedulePhase = FactionMortalSchedule.Current(
+                world, entity, out var scheduleId, out var scheduleBlock, out var scheduleReason);
+            state.ScheduleStatus = schedulePhase == FactionMortalSchedulePhase.Missing ||
+                                   schedulePhase == FactionMortalSchedulePhase.DedicatedDuty
+                ? scheduleReason
+                : scheduleId + " · " + scheduleBlock.Activity;
             if (state.Activity == MortalActivity.Eat && state.MealStartedTick > 0 &&
                 world.Tick.Value < state.MealStartedTick + 2) return MortalActivity.Eat;
-            // Once real sleep has started it continues to WakeThreshold. Traveling home is not
-            // sleep, so Energy dropping below the emergency threshold still switches to ground rest.
             if (state.SleepPhase == CivilianSleepPhase.SleepingOnGround &&
                 state.Energy < MortalCivilianTuning.WakeThreshold)
                 return MortalActivity.SleepOnGround;
-            if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence &&
-                state.Energy < MortalCivilianTuning.WakeThreshold &&
-                RoomBedFacilityService.HasAvailableBed(world, entity.Id, RoomUsage.Residential))
-                return MortalActivity.SleepAtResidence;
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                 MortalCivilianService.IsFoodPlanInProgress(state))
                 return MortalActivity.FetchFood;
@@ -366,31 +390,51 @@ namespace XianXia.Core.Npc
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                 MortalCivilianService.ShouldRetryFood(world, entity, state))
                 return MortalActivity.FetchFood;
-            if (state.Energy <= MortalCivilianTuning.SleepThreshold)
-                return RoomBedFacilityService.HasAvailableBed(world, entity.Id, RoomUsage.Residential)
-                    ? MortalActivity.SleepAtResidence : MortalActivity.SleepOnGround;
-            // A failed food plan remains a need-level wait and does not fall through into work.
-            if (state.Satiety <= MortalCivilianTuning.HungerThreshold) return MortalActivity.Idle;
+            var validResidenceSleep =
+                RoomBedFacilityService.IsValidOccupiedBed(
+                    world, entity.Id, RoomUsage.Residential, out _);
+            if (validResidenceSleep &&
+                (schedulePhase == FactionMortalSchedulePhase.Rest ||
+                 state.Energy < MortalCivilianTuning.WakeThreshold))
+                return MortalActivity.SleepAtResidence;
             if (state.Disposition == CivilianDisposition.SurrenderWaiting || state.Disposition == CivilianDisposition.Displaced)
                 return MortalActivity.Idle;
             if (!state.RescueTargetId.IsNone || MortalCivilianService.HasRescueTarget(world, entity))
                 return MortalActivity.Rescue;
+            if (schedulePhase == FactionMortalSchedulePhase.Rest)
+                return RoomBedFacilityService.HasAvailableBed(world, entity.Id, RoomUsage.Residential)
+                    ? MortalActivity.SleepAtResidence : MortalActivity.SleepOnGround;
+            if (state.Energy <= MortalCivilianTuning.SleepThreshold)
+                return RoomBedFacilityService.HasAvailableBed(world, entity.Id, RoomUsage.Residential)
+                    ? MortalActivity.SleepAtResidence : MortalActivity.SleepOnGround;
+            // During planned rest a failed food trip yields to sleep until its retry cooldown.
+            if (state.Satiety <= MortalCivilianTuning.HungerThreshold) return MortalActivity.Idle;
+            if (schedulePhase == FactionMortalSchedulePhase.Free)
+            { state.ScheduleStatus = scheduleId + " · 自由活动"; return MortalActivity.Idle; }
+            if (schedulePhase == FactionMortalSchedulePhase.DedicatedDuty)
+                return MortalActivity.DedicatedDuty;
+            if (schedulePhase == FactionMortalSchedulePhase.Missing) return MortalActivity.Idle;
             if (!entity.TryGet<FactionMembershipComponent>(out var membership) || !membership.IsAffiliated)
-                return MortalActivity.Idle;
-            if (FactionMortalSchedule.Current(world.Tick) == FactionMortalSchedulePhase.OffDuty)
-                return MortalActivity.Idle;
+            { state.ScheduleStatus = "工作受阻：无正式势力归属"; return MortalActivity.Idle; }
             switch (state.Profession)
             {
                 case MortalProfession.Farmer:
                     if (MortalCivilianQuery.TryFindProfessionArea(world, entity, "grain", out _)) return MortalActivity.FarmerWork;
+                    state.ScheduleStatus = "工作受阻：无合法粮田工区";
                     break;
                 case MortalProfession.HerbFarmer:
                     if (MortalCivilianQuery.TryFindProfessionArea(world, entity, "herb", out _)) return MortalActivity.HerbFarmerWork;
+                    state.ScheduleStatus = "工作受阻：无合法药田工区";
                     break;
                 case MortalProfession.Logger:
                     if (MortalCivilianQuery.TryFindProfessionArea(world, entity, "wood", out _)) return MortalActivity.Logging;
+                    state.ScheduleStatus = "工作受阻：无合法伐木工区";
                     break;
                 case MortalProfession.Medic:
+                    state.ScheduleStatus = "专职行为尚未接入受管凡人执行：Medic";
+                    break;
+                default:
+                    state.ScheduleStatus = "工作受阻：未分配职业";
                     break;
             }
             return CivilianConstructionJobService.HasJob(world, entity, true) ? MortalActivity.Haul :
@@ -467,7 +511,7 @@ namespace XianXia.Core.Npc
                 var state = Ensure(world, entity);
                 if (state == null) continue;
                 if (!entity.TryGet<LifecycleComponent>(out var life) || life.State == LifecycleState.Dead || life.State == LifecycleState.Removed)
-                { DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
+                { EndCivilianSleep(world, entity.Id, state); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
                 AdvanceDayCare(world, entity.Id, state, world.Tick.Value / WorldTick.TicksPerDay);
                 state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
                 if (life.State == LifecycleState.Alive &&
@@ -480,6 +524,7 @@ namespace XianXia.Core.Npc
                 AdvanceNeeds(world, entity, state);
                 if (life.State != LifecycleState.Alive)
                 {
+                    EndCivilianSleep(world, entity.Id, state);
                     DropRescue(world, entity, state);
                     CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
                     state.Activity = MortalActivity.Idle;
@@ -490,6 +535,7 @@ namespace XianXia.Core.Npc
                 // Party control owns movement and work. Civilian needs remain persistent while enlisted.
                 if (movementOwner == CivilianMovementOwner.PlayerParty)
                 {
+                    EndCivilianSleep(world, entity.Id, state);
                     ClearFoodTrip(entity, state);
                     ClearCivilianMovement(entity);
                     DropRescue(world, entity, state);
@@ -502,11 +548,11 @@ namespace XianXia.Core.Npc
                     continue;
                 }
                 if (movementOwner == CivilianMovementOwner.Battle)
-                { ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
+                { EndCivilianSleep(world, entity.Id, state); ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
                 if (movementOwner == CivilianMovementOwner.SeparateSpace ||
                     movementOwner == CivilianMovementOwner.ActiveSquadTravel ||
                     movementOwner == CivilianMovementOwner.BackgroundTravel)
-                { ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
+                { EndCivilianSleep(world, entity.Id, state); ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
                 if (state.Disposition == CivilianDisposition.Fleeing) AdvanceFlee(world, entity, state);
                 if (state.Disposition == CivilianDisposition.CapturedEscorted) SyncEscort(world, entity, state);
                 state.Activity = MortalActivityEvaluator.Evaluate(world, entity, state);
@@ -534,7 +580,15 @@ namespace XianXia.Core.Npc
         {
             var now = world.Tick.Value;
             if (now % (ulong)MortalCivilianTuning.SatietyDecayEveryTicks == 0) state.Satiety--;
-            var sleeping = state.SleepPhase == CivilianSleepPhase.SleepingAtResidence ||
+            var sleepUsage = state.Disposition == CivilianDisposition.Detained
+                ? RoomUsage.Prison : RoomUsage.Residential;
+            var validResidenceSleep = state.SleepPhase == CivilianSleepPhase.SleepingAtResidence &&
+                                      RoomBedFacilityService.IsValidOccupiedBed(
+                                          world, entity.Id, sleepUsage, out _);
+            if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence && !validResidenceSleep)
+                EndCivilianSleep(world, entity.Id, state);
+            var actionBedSleep = IsRunningBedRestAction(world, entity.Id);
+            var sleeping = validResidenceSleep || actionBedSleep ||
                            state.SleepPhase == CivilianSleepPhase.SleepingOnGround;
             if (sleeping)
             {
@@ -545,6 +599,20 @@ namespace XianXia.Core.Npc
             }
             else if (now % (ulong)MortalCivilianTuning.EnergyDecayEveryTicks == 0) state.Energy--;
             state.Clamp();
+        }
+
+        static bool IsRunningBedRestAction(SimulationWorld world, EntityId id)
+        {
+            if (world == null || !world.Entities.TryGet(id, out var entity) ||
+                !entity.TryGet<ActionStateComponent>(out var actionState) ||
+                !actionState.HasActiveAction ||
+                !world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action) ||
+                !(action is BedRestAction bedRest) || action.Status != ActionStatus.Running ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(bedRest.BedId, out var bed))
+                return false;
+            return RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential) &&
+                   bed.OccupantCharacterId == id &&
+                   RoomBedFacilityService.IsAtAccessPoint(world, bed, id);
         }
 
         static bool HandleDisplaced(SimulationWorld world, Entity entity, MortalCivilianState state)
@@ -602,7 +670,7 @@ namespace XianXia.Core.Npc
             SimulationWorld world, Entity entity, MortalCivilianState state)
         {
             ClearFoodTrip(entity, state);
-            ClearSleep(state);
+            EndCivilianSleep(world, entity.Id, state);
             ClearCivilianMovement(entity);
             DropRescue(world, entity, state);
             CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
@@ -689,21 +757,12 @@ namespace XianXia.Core.Npc
         static void ApplyActivity(SimulationWorld world, Entity entity, MortalCivilianState state)
         {
             if (state.Activity != MortalActivity.SleepAtResidence && state.Activity != MortalActivity.SleepOnGround &&
-                state.Activity != MortalActivity.Detained)
-            { ClearSleep(state); RoomBedFacilityService.Release(world, entity.Id); }
+                state.Activity != MortalActivity.Detained && state.SleepPhase != CivilianSleepPhase.None)
+                EndCivilianSleep(world, entity.Id, state);
             switch (state.Activity)
             {
                 case MortalActivity.Idle:
-                    if (FactionMortalSchedule.Current(world.Tick) == FactionMortalSchedulePhase.OffDuty &&
-                        entity.TryGet<FactionMembershipComponent>(out var idleFaction) && idleFaction.IsAffiliated &&
-                        RoomBedFacilityService.TryGetAssignedHome(world, entity.Id, out var homeBed, out _, out var homePoint))
-                    {
-                        var radius = world.SurfaceSpatial.TryGet(homeBed.SurfaceId, out var metric) && metric != null
-                            ? metric.CellSize * .75f : 0f;
-                        MoveToWorldPoint(entity, homeBed.SurfaceId, homePoint,
-                            destinationKey: "home-bed:" + homeBed.StableAssetId, arrivalRadiusWorld: radius);
-                    }
-                    else if (entity.TryGet<MovementIntentComponent>(out var idleIntent)) idleIntent.Clear();
+                    if (entity.TryGet<MovementIntentComponent>(out var idleIntent)) idleIntent.Clear();
                     break;
                 case MortalActivity.Eat:
                     if (entity.TryGet<MovementIntentComponent>(out var eatIntent)) eatIntent.Clear();
@@ -733,12 +792,16 @@ namespace XianXia.Core.Npc
                     CivilianConstructionJobService.Work(world, entity, true); break;
                 case MortalActivity.Construction:
                     CivilianConstructionJobService.Work(world, entity, false); break;
+                case MortalActivity.DedicatedDuty:
+                    // Do not manufacture a fake civilian action or clear an intent owned by the
+                    // existing squad/duty system. ScheduleStatus exposes the unsupported bridge.
+                    break;
                 case MortalActivity.Escorted:
                 case MortalActivity.Detained:
                     if (state.Activity == MortalActivity.Escorted)
                     {
                         if (entity.TryGet<MovementIntentComponent>(out var forcedIntent)) forcedIntent.Clear();
-                        ClearSleep(state);
+                        EndCivilianSleep(world, entity.Id, state);
                         break;
                     }
                     if (state.Satiety <= MortalCivilianTuning.HungerThreshold && TryConsumeFoodAbstract(world, entity.Id, state.CurrentSiteId))
@@ -748,7 +811,7 @@ namespace XianXia.Core.Npc
                         state.Energy < MortalCivilianTuning.WakeThreshold)
                         ApplyResidenceSleep(world, entity, state,
                             RoomUsage.Prison);
-                    else { ClearSleep(state); RoomBedFacilityService.Release(world, entity.Id); }
+                    else EndCivilianSleep(world, entity.Id, state);
                     break;
             }
         }
@@ -759,19 +822,28 @@ namespace XianXia.Core.Npc
         {
             if (!RoomBedFacilityService.TryReserve(world, entity.Id, requiredUsage, out var bed))
             {
+                state.ScheduleStatus = "休息受阻：没有可用的合法床位";
                 StartGroundSleep(world, entity, state);
                 return;
             }
 
             if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence)
             {
-                if (entity.TryGet<MovementIntentComponent>(out var sleepingIntent) && sleepingIntent.Active)
-                    sleepingIntent.Clear();
-                return;
+                if (RoomBedFacilityService.IsValidOccupiedBed(world, entity.Id, requiredUsage, out var occupied) &&
+                    string.Equals(occupied.StableAssetId, bed.StableAssetId, StringComparison.Ordinal))
+                {
+                    if (entity.TryGet<MovementIntentComponent>(out var sleepingIntent) && sleepingIntent.Active)
+                        sleepingIntent.Clear();
+                    return;
+                }
+                EndCivilianSleep(world, entity.Id, state);
+                if (!RoomBedFacilityService.TryReserve(world, entity.Id, requiredUsage, out bed))
+                { state.ScheduleStatus = "休息受阻：原床位已失效"; StartGroundSleep(world, entity, state); return; }
             }
 
             if (!RoomBedFacilityService.TryResolveAccessPoint(world, bed, out var target))
             {
+                state.ScheduleStatus = "休息受阻：床边没有合法使用格";
                 StartGroundSleep(world, entity, state);
                 return;
             }
@@ -788,6 +860,8 @@ namespace XianXia.Core.Npc
             if (intent.HostPathState == MovementHostPathState.RetryablePathUnavailable ||
                 intent.HostPathState == MovementHostPathState.PermanentFailure)
             {
+                state.ScheduleStatus = "休息受阻：床位不可达" +
+                    (string.IsNullOrEmpty(intent.HostPathFailureReason) ? string.Empty : " · " + intent.HostPathFailureReason);
                 StartGroundSleep(world, entity, state);
                 return;
             }
@@ -795,9 +869,10 @@ namespace XianXia.Core.Npc
                 return;
             intent.Clear();
             if (!RoomBedFacilityService.TryOccupy(world, bed.StableAssetId, entity.Id))
-            { StartGroundSleep(world, entity, state); return; }
+            { state.ScheduleStatus = "休息受阻：床位在到达时已被占用"; StartGroundSleep(world, entity, state); return; }
             state.SleepPhase = CivilianSleepPhase.SleepingAtResidence;
             state.SleepStartedTick = world.Tick.Value;
+            state.ScheduleStatus = "已在床位睡眠：" + bed.StableAssetId;
         }
 
         static void StartGroundSleep(SimulationWorld world, Entity entity, MortalCivilianState state)
@@ -815,6 +890,13 @@ namespace XianXia.Core.Npc
             state.SleepStartedTick = 0;
         }
 
+        static void EndCivilianSleep(SimulationWorld world, EntityId id, MortalCivilianState state)
+        {
+            if (state == null || state.SleepPhase == CivilianSleepPhase.None) return;
+            RoomBedFacilityService.Release(world, id);
+            ClearSleep(state);
+        }
+
         static bool TryConsumeFoodAbstract(SimulationWorld world, EntityId eater, string siteId)
         {
             if (!world.Entities.TryGet(eater, out var entity) || !world.Civilians.TryGet(eater, out var civilian)) return false;
@@ -830,11 +912,7 @@ namespace XianXia.Core.Npc
                 else if (entity.TryGet<FactionMembershipComponent>(out var membership) && membership.IsAffiliated)
                     allowed = string.Equals(membership.FactionId, site.OwnerFactionId, StringComparison.Ordinal);
                 else
-                    allowed = !string.IsNullOrEmpty(civilian.ResidenceWorkAreaId) &&
-                              world.TryGetWorkArea(civilian.ResidenceWorkAreaId, out var residence) &&
-                              MortalActivityEvaluator.HasTag(residence, "home") &&
-                              world.Civilians.GetResidenceUsage(residence.Id) == ResidenceUsage.Normal &&
-                              string.Equals(civilian.CurrentSiteId, siteId, StringComparison.Ordinal);
+                    allowed = HasLocalResidentialFoodRight(world, eater, civilian, siteId);
                 if (allowed)
                 {
                     var ids = new List<string>(stock.Resources.Keys); ids.Sort(StringComparer.Ordinal);
@@ -1001,13 +1079,24 @@ namespace XianXia.Core.Npc
 
         static bool CanUseSiteFood(SimulationWorld world, Entity entity, MortalCivilianState state, WorldSite site)
         {
-            if (state.Disposition == CivilianDisposition.SurrenderWaiting) return true;
             if (entity.TryGet<FactionMembershipComponent>(out var membership) && membership.IsAffiliated)
                 return string.Equals(membership.FactionId, site.OwnerFactionId, StringComparison.Ordinal);
-            return !string.IsNullOrEmpty(state.ResidenceWorkAreaId) &&
-                   world.TryGetWorkArea(state.ResidenceWorkAreaId, out var residence) &&
-                   MortalActivityEvaluator.HasTag(residence, "home") &&
-                   world.Civilians.GetResidenceUsage(residence.Id) == ResidenceUsage.Normal;
+            return HasLocalResidentialFoodRight(world, entity.Id, state, site.SiteId);
+        }
+
+        static bool HasLocalResidentialFoodRight(
+            SimulationWorld world, EntityId characterId, MortalCivilianState state, string siteId)
+        {
+            if (world == null || state == null || string.IsNullOrEmpty(siteId) ||
+                !string.Equals(state.CurrentSiteId, siteId, StringComparison.Ordinal) ||
+                !RoomBedFacilityService.TryGetAssignedHome(
+                    world, characterId, out var bed, out var room, out _))
+                return false;
+            var homeSiteId = !string.IsNullOrWhiteSpace(room.BoundWorldSiteId)
+                ? room.BoundWorldSiteId
+                : RoomBedFacilityService.ResolveBedSiteId(world, bed);
+            return room.RoomUsage == RoomUsage.Residential &&
+                   string.Equals(homeSiteId, siteId, StringComparison.Ordinal);
         }
 
         public static bool CanUseCurrentSiteFood(SimulationWorld world, EntityId id)

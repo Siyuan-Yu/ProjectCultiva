@@ -165,14 +165,15 @@ namespace XianXia.Unity.Host
                 return "交战中";
 
             if (!string.IsNullOrEmpty(specialActivity)) return specialActivity;
-            if (world.Civilians.TryGet(entity.Id, out var civilian))
-                return HostMortalActivityPresentation.Describe(civilian);
-            if (isMoving) return "移动中";
-
+            world.Civilians.TryGet(entity.Id, out var civilian);
             if (entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
                 world.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
             {
-                if (action is MoveAction) return "移动中";
+                if (action is BedRestAction) return "睡眠";
+                if (action is MoveAction)
+                    return civilian != null
+                        ? HostMortalActivityPresentation.Describe(world, entity, civilian, true)
+                        : "移动中";
                 if (action is WorkAction work) return ActivityDisplay(work.Activity) + "中";
                 if (action is LaborAction) return "工作中";
                 if (action is CultivateAction) return "修炼中";
@@ -182,6 +183,10 @@ namespace XianXia.Unity.Host
                 if (action is WaitAction) return "发呆中";
                 return "行动中";
             }
+
+            if (civilian != null)
+                return HostMortalActivityPresentation.Describe(world, entity, civilian, isMoving);
+            if (isMoving) return "移动中";
 
             // Player-managed characters do not pretend to execute an NPC schedule while idle.
             if (!PlayerPartyRuntime.CanPlayerControlCharacter(world, entity.Id) &&
@@ -204,7 +209,7 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Explore: return "探索";
                 case ScheduleActivity.Patrol: return "巡视";
                 case ScheduleActivity.Inspect: return "检查";
-                case ScheduleActivity.Idle: return "发呆";
+                case ScheduleActivity.Idle: return "自由活动";
                 default: return "待命";
             }
         }

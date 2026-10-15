@@ -1,5 +1,20 @@
 # 开发日志
 
+## 2026-10-15 — CIVILIAN-LIFE-01 荒村日程、计划睡眠与真实状态统一（待制作人验收）
+
+- `base:schedule_mortal_day` 收为 00:00–05:00 Rest、05:00–22:00 Labor、22:00–24:00 Idle；进食改由需求插入。受管凡人的实际调度、右侧课表与工作面板共同读取人物绑定的 `ScheduleComponent.DefinitionId → ScheduleDefinition.TryResolve`，正式加载缺少必需日程时明确失败，不再由工厂静默补旧表。
+- 计划 Rest 会真实预约、寻路并占用本人 Residential 床，Energy 达到 85 后仍睡到日程切换；床睡恢复调整为每 tick 1。睡眠收益要求真实占床和床边位置，`BedRestAction` 不再在短动作结束时直接写 Energy=85；战斗、PlayerParty、Separate Space 与旅行接管时会结束 civilian sleep。
+- `CancelOrdersFromSource` 不再无条件释放人物床位，只在实际取消该来源的 `BedRestAction` 时释放。无势力本地住户的公粮资格改由已分配住宅床、父房间和同 Site 派生；实际取粮与 UI 查询共用同一 predicate。
+- 新开局九名劳工固定为三名粮农（阿石／阿土／阿禾）、三名药农（阿青／阿兰／阿杏）、三名樵夫（阿木／阿柴／阿枝）。HUD 区分计划与真实活动，并显示日程、目标工区／床位、移动 authority、Needs 与阻断原因；受管凡人课表编辑只开放 Rest/Labor/Idle。
+- Core／Data／Unity／Editor 离线编译 `ALL_OK`；JSON、绑定、引用和 diff 继续静态复核。按项目规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-14 — WORLD-LAYOUT-02 荒村布局与主路绕行（待制作人验收）
+
+- 世界保持 3800×1700，荒村保持 120×100 与 Surface Cell 起点 (486,844)。`road_001` 中段改从荒村南侧、东南侧绕行，原有两端连通关系不变；九条 `huangcun:lane:*` 从作者源删除。
+- 19 间普通住宅重排为三排，房屋 4×6、床 1×2、稳定 ID、父房间和初始分配不变；同排净横向间隔 1 格，相邻排净纵向间隔 1 格。农田、药田、矿区整体迁移后，住宅至农田／药田为 32 格，农田至药田为 14 格，住宅至矿区约 21.02 格，伐木区至矿区为 20 格。
+- 医疗房、牢房、主管住宅、储藏室、议政厅、SitePlace 与 20 个 opening SpawnKey 同步新位置。现有 `CompatibilityPublisher` 已重生成三份正式运行数据；作者验证 0 error／0 warning，runtime `sourceHash` 一致，荒村范围 12000 格全部 Plain、道路格为 0，主路边缘净空约 24.5 格。
+- SurfaceAuthoring.Core 编译 0 error；按项目规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner。详见 [271](271-world-layout-02-huangcun-layout.md)。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-14 — 荒村旧标签、议政厅锚点与床用途配色（待制作人验收）
 
 - 从荒村作者蓝图删除旧测试集合点，并由正式 `CompatibilityPublisher` 同步清除 runtime placement、`base:loc_ref_party_rally` 地点及全部邻接引用；原“调度·三人集合”任务保持 ID、前置、奖励与完成标记，目的地改为 `base:loc_ref_labor_yard`。三个旧住房地点保留剧情／日程语义，以 `hideMapLabel` tag 仅取消过时地图文字。

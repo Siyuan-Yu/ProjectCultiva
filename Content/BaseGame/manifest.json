@@ -1,10 +1,12 @@
 {
   "modId": "base",
   "namespace": "base",
-  "version": "0.0.3-vs01",
+  "version": "0.0.4-world-expand-04",
   "compatibleGameVersion": "0.1.0",
   "dependencies": [],
   "optionalDependencies": [],
   "loadAfter": [],
-  "contentFolders": ["Data"]
+  "contentFolders": [
+    "Data"
+  ]
 }

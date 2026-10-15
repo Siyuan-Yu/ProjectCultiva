@@ -267,28 +267,28 @@ namespace XianXia.Unity.Host
 
         void DrawAttributesPage(Rect rect, Entity entity)
         {
-            var canvas = new Rect(0f, 0f, rect.width - 18f, 730f);
+            var canvas = new Rect(0f, 0f, rect.width - 18f, 810f);
             _attributesScroll = GUI.BeginScrollView(rect, _attributesScroll, canvas);
             HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info,
                 bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(entity.Id) == true);
             var active = bootstrap.Session.PlayerParty?.ActiveCharacterId ?? EntityId.None;
             var leftW = active.IsNone || active == entity.Id ? canvas.width : canvas.width * 0.61f;
-            DrawOverviewCard(new Rect(0f, 0f, leftW - 8f, 170f), entity, info);
+            DrawOverviewCard(new Rect(0f, 0f, leftW - 8f, 244f), entity, info);
             if (!active.IsNone && active != entity.Id)
                 HostCharacterRelationUi.DrawAttitudeDetail(
-                    new Rect(leftW + 8f, 0f, canvas.width - leftW - 8f, 170f), "对当前主控的态度",
+                    new Rect(leftW + 8f, 0f, canvas.width - leftW - 8f, 244f), "对当前主控的态度",
                     bootstrap.Session.World.Relationships.GetAttitude(entity.Id, active), _heading, _body, _px);
 
             const float gap = 12f;
             var colW = (canvas.width - gap * 2f) / 3f;
-            DrawAttributeColumn(new Rect(0f, 184f, colW, 286f), "个人属性", entity, PersonalAttributes, false);
-            DrawAttributeColumn(new Rect(colW + gap, 184f, colW, 286f), "战斗属性", entity, CombatAttributes, true);
-            DrawCultivationColumn(new Rect((colW + gap) * 2f, 184f, colW, 286f), entity);
+            DrawAttributeColumn(new Rect(0f, 258f, colW, 286f), "个人属性", entity, PersonalAttributes, false);
+            DrawAttributeColumn(new Rect(colW + gap, 258f, colW, 286f), "战斗属性", entity, CombatAttributes, true);
+            DrawCultivationColumn(new Rect((colW + gap) * 2f, 258f, colW, 286f), entity);
             var lowerW = (canvas.width - gap * 3f) / 4f;
-            DrawTextCard(new Rect(0f, 484f, lowerW, 220f), "性格", JoinTags(info?.PersonalityTags));
-            DrawTextCard(new Rect(lowerW + gap, 484f, lowerW, 220f), "背景", JoinTags(info?.BackgroundTags));
-            DrawTextCard(new Rect((lowerW + gap) * 2f, 484f, lowerW, 220f), "天赋", JoinTags(info?.TalentTags));
-            DrawTextCard(new Rect((lowerW + gap) * 3f, 484f, lowerW, 220f), "活动倾向", BuildTendency(entity));
+            DrawTextCard(new Rect(0f, 558f, lowerW, 220f), "性格", JoinTags(info?.PersonalityTags));
+            DrawTextCard(new Rect(lowerW + gap, 558f, lowerW, 220f), "背景", JoinTags(info?.BackgroundTags));
+            DrawTextCard(new Rect((lowerW + gap) * 2f, 558f, lowerW, 220f), "天赋", JoinTags(info?.TalentTags));
+            DrawTextCard(new Rect((lowerW + gap) * 3f, 558f, lowerW, 220f), "活动倾向", BuildTendency(entity));
             GUI.EndScrollView();
         }
 
@@ -300,9 +300,33 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(life)) life = "正常";
             var loyalty = CharacterFactionLoyaltyService.TryGetLoyalty(bootstrap.Session.World, entity.Id, out var value)
                 ? value.ToString() : "—";
+            var scheduleText = info?.Schedule ?? "无";
+            var civilianText = string.Empty;
+            if (bootstrap.Session.World.Civilians.TryGet(entity.Id, out var civilian))
+            {
+                var phase = FactionMortalSchedule.Current(bootstrap.Session.World, entity,
+                    out var scheduleId, out var block, out var scheduleReason);
+                scheduleText = scheduleId + " / " + (block == null ? phase.ToString() : block.Activity.ToString());
+                var workTarget = entity.TryGet<MovementIntentComponent>(out var intent) &&
+                                 !string.IsNullOrEmpty(intent.TargetWorkAreaId)
+                    ? intent.TargetWorkAreaId : "—";
+                var bedTarget = RoomBedFacilityService.TryGetAssignedBed(
+                    bootstrap.Session.World, entity.Id, out var bed) ? bed.StableAssetId : "—";
+                civilianText = "\n民生：" + HostMortalActivityPresentation.Profession(civilian.Profession) +
+                               " · 饱食 " + civilian.Satiety + " · 精力 " + civilian.Energy +
+                               "\n目标：工区 " + workTarget + " · 床位 " + bedTarget +
+                               " · 控制 " + MortalCivilianMovementAuthority.Resolve(
+                                   bootstrap.Session.World, entity.Id, civilian) +
+                               "\n阻断：" + (string.IsNullOrEmpty(civilian.ScheduleStatus)
+                                   ? scheduleReason : civilian.ScheduleStatus);
+            }
+            var actualActivity = info?.Activity ?? "待命";
+            if (bootstrap.ViewSpawner?.Registry.TryGet(entity.Id, out var view) == true &&
+                view != null && !string.IsNullOrWhiteSpace(view.ActivityText))
+                actualActivity = view.ActivityText;
             var text = "势力：" + (info?.FactionName ?? "无") + "\n身份：" + (info?.FactionRole ?? "无") +
                        "\n忠诚：" + loyalty + "\n境界：" + realm + "\n当前位置：" + (info?.Location ?? "未知") +
-                       "\n当前状态：" + (info?.Activity ?? "待命") + "\n日程：" + (info?.Schedule ?? "无");
+                       "\n当前状态：" + actualActivity + "\n日程：" + scheduleText + civilianText;
             GUI.Label(new Rect(rect.x + 14f, rect.y + 38f, rect.width - 28f, rect.height - 46f), text, _body);
         }
 
@@ -679,7 +703,7 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Labor: return "工作"; case ScheduleActivity.Rest: return "休息";
                 case ScheduleActivity.Eat: return "吃饭"; case ScheduleActivity.Cultivate: return "修炼";
                 case ScheduleActivity.Explore: return "探索"; case ScheduleActivity.Patrol: return "巡视";
-                case ScheduleActivity.Inspect: return "检查"; case ScheduleActivity.Idle: return "发呆";
+                case ScheduleActivity.Inspect: return "检查"; case ScheduleActivity.Idle: return "自由活动";
                 default: return activity.ToString();
             }
         }

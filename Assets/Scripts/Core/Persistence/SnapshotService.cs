@@ -600,16 +600,18 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        public Result<(SimulationWorld world, SimulationLoop loop)> RestoreJson(string json, string expectedPackageVersion = null)
+        public Result<(SimulationWorld world, SimulationLoop loop)> RestoreJson(string json, string expectedPackageVersion = null,
+            Func<SimulationWorld, WorldSnapshot, Result> prepareSiteIdentities = null)
         {
             var parsed = _serializer.Deserialize(json);
             if (parsed.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(parsed.Error);
 
-            return Restore(parsed.Value, expectedPackageVersion);
+            return Restore(parsed.Value, expectedPackageVersion, prepareSiteIdentities);
         }
 
-        public Result<(SimulationWorld world, SimulationLoop loop)> Restore(WorldSnapshot snap, string expectedPackageVersion = null)
+        public Result<(SimulationWorld world, SimulationLoop loop)> Restore(WorldSnapshot snap, string expectedPackageVersion = null,
+            Func<SimulationWorld, WorldSnapshot, Result> prepareSiteIdentities = null)
         {
             if (snap == null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot null.");
@@ -712,7 +714,7 @@ namespace XianXia.Core.Persistence
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.IncompatibleContentVersion,
-                    "Content package version mismatch.",
+                    "存档内容版本不兼容。WORLD-EXPAND-04 已调整世界尺寸与地点布局，请新开局；旧存档保留，未自动迁移或重置。",
                     snap.EnabledPackageVersion + " != " + expectedPackageVersion);
             }
 
@@ -1146,6 +1148,14 @@ namespace XianXia.Core.Persistence
 
             if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion && snap.Strategic != null)
             {
+                // Site references on squads/facilities are validated below, before the full
+                // content rehydration phase. Populate identities only; never replay NewGame.
+                if (prepareSiteIdentities != null)
+                {
+                    var identities = prepareSiteIdentities(world, snap);
+                    if (identities.IsFailure)
+                        return Result.Fail<(SimulationWorld, SimulationLoop)>(identities.Error);
+                }
                 var strategicRestore = StrategicSnapshotHelper.Restore(world, snap.Strategic);
                 if (strategicRestore.IsFailure)
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(strategicRestore.Error);

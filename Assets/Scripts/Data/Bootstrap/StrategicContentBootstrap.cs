@@ -8,6 +8,39 @@ namespace XianXia.Data.Bootstrap
     /// <summary>Playable startup from the authored continuous Surface.</summary>
     public static class StrategicContentBootstrap
     {
+        /// <summary>Restore preflight only: static identity from current Content, dynamic identity
+        /// from Snapshot. Full geometry/political validation still runs in phase two.</summary>
+        public static Result PrepareSnapshotSiteIdentities(SimulationWorld world, DefinitionRegistry registry,
+            XianXia.Core.Persistence.WorldSnapshot snapshot)
+        {
+            if (world == null || registry == null || snapshot?.Strategic == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Snapshot Site identity shell is unavailable.");
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly) continue;
+                foreach (var region in surface.SiteRegions)
+                {
+                    if (world.Strategic.Sites.TryGet(region.SiteId, out _))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate authored Site identity.", region.SiteId);
+                    world.Strategic.Sites.Register(new WorldSite {
+                        SiteId = region.SiteId, DisplayName = region.DisplayName,
+                        SiteType = region.SiteType, UsesContinuousOutdoorSurface = true
+                    });
+                }
+            }
+            foreach (var site in snapshot.Strategic.RuntimeWorldSites)
+            {
+                if (site == null || string.IsNullOrWhiteSpace(site.SiteId) || world.Strategic.Sites.TryGet(site.SiteId, out _))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime Site identity.", site?.SiteId ?? "");
+                world.Strategic.Sites.Register(new WorldSite {
+                    SiteId = site.SiteId, DisplayName = site.DisplayName, SiteType = site.SiteType,
+                    IsRuntimeCreated = true, UsesContinuousOutdoorSurface = true
+                });
+            }
+            return Result.Success();
+        }
+
         public static Result ApplyCh01Defaults(
             SimulationWorld world,
             DefinitionRegistry registry,

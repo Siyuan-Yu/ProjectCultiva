@@ -78,18 +78,15 @@ namespace XianXia.Core.Schedule
         }
 
         /// <summary>
-        /// 凡人劳役日：深夜休息 → 白天劳役 → 正午吃饭 → 下午劳役 → 入夜 Explore → 再休息。
-        /// Tick（288/日）：0–60 休｜60–132 劳｜132–156 饭｜156–228 劳｜228–264 夜探｜264–288 休。
+        /// 凡人劳役日：00:00—05:00 休息，05:00—22:00 劳役，22:00—24:00 自由活动。
+        /// 进食由需求系统插入，不占用固定日程块。
         /// </summary>
         public static ScheduleDefinition CreateMortalDay(string id = "base:schedule_mortal_day")
         {
             return new ScheduleDefinition(id)
                 .AddBlock(0, 60, ScheduleActivity.Rest, 6)
-                .AddBlock(60, 132, ScheduleActivity.Labor, 12)
-                .AddBlock(132, 156, ScheduleActivity.Eat, 6)
-                .AddBlock(156, 228, ScheduleActivity.Labor, 12)
-                .AddBlock(228, 264, ScheduleActivity.Explore, 12)
-                .AddBlock(264, 288, ScheduleActivity.Rest, 6);
+                .AddBlock(60, 264, ScheduleActivity.Labor, 12)
+                .AddBlock(264, 288, ScheduleActivity.Idle, 6);
         }
 
         /// <summary>普通修士：休息／探索／修炼；入夜保留修炼窗。</summary>

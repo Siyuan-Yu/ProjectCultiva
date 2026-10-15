@@ -324,7 +324,15 @@ namespace XianXia.Data.Serialization
                             CellsW = (int)cellsWValue.Number,
                             CellsH = (int)cellsHValue.Number,
                             BoundLocationId = boundLocationIdValue.String,
-                            BoundWorldSiteId = boundWorldSiteId });
+                            BoundWorldSiteId = boundWorldSiteId,
+                            QuarterTurns = (int)node.GetNumber("quarterTurns"),
+                            ParentRoomId = node.GetString("parentRoomId", string.Empty),
+                            RoomUsage = (int)node.GetNumber("roomUsage"),
+                            AssignedCharacterId = ReadU(node, "assignedCharacterId"),
+                            ReservedCharacterId = ReadU(node, "reservedCharacterId"),
+                            OccupantCharacterId = ReadU(node, "occupantCharacterId"),
+                            InitialAssigneeSpawnKey = node.GetString("initialAssigneeSpawnKey", string.Empty),
+                            StructureDurability = (int)node.GetNumber("structureDurability") });
                     }
                 }
                 else if (root.TryGetProperty("nextOutdoorConstructedAssetSequence", out _))
@@ -968,7 +976,15 @@ namespace XianXia.Data.Serialization
                     ["cellsW"] = JsonValue.FromNumber(a.CellsW),
                     ["cellsH"] = JsonValue.FromNumber(a.CellsH),
                     ["boundLocationId"] = JsonValue.FromString(a.BoundLocationId),
-                    ["boundWorldSiteId"] = JsonValue.FromString(a.BoundWorldSiteId ?? string.Empty) }));
+                    ["boundWorldSiteId"] = JsonValue.FromString(a.BoundWorldSiteId ?? string.Empty),
+                    ["quarterTurns"] = JsonValue.FromNumber(a.QuarterTurns),
+                    ["parentRoomId"] = JsonValue.FromString(a.ParentRoomId ?? string.Empty),
+                    ["roomUsage"] = JsonValue.FromNumber(a.RoomUsage),
+                    ["assignedCharacterId"] = JsonValue.FromString(a.AssignedCharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    ["reservedCharacterId"] = JsonValue.FromString(a.ReservedCharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    ["occupantCharacterId"] = JsonValue.FromString(a.OccupantCharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    ["initialAssigneeSpawnKey"] = JsonValue.FromString(a.InitialAssigneeSpawnKey ?? string.Empty),
+                    ["structureDurability"] = JsonValue.FromNumber(a.StructureDurability) }));
             return list;
         }
 

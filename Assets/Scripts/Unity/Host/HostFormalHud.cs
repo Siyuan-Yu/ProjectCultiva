@@ -1181,7 +1181,8 @@ namespace XianXia.Unity.Host
             var tickInDay = (int)(session.World.Tick.Value % (ulong)WorldTick.TicksPerDay);
             GUI.Label(
                 new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f),
-                ShortId(def.Id),
+                "查看：" + (string.IsNullOrWhiteSpace(e.DisplayName) ? e.Id.ToString() : e.DisplayName) +
+                " · " + def.Id,
                 _body);
 
             var listRect = new Rect(rect.x + 6f, rect.y + 48f, rect.width - 12f, rect.height - 56f);
@@ -1199,7 +1200,8 @@ namespace XianXia.Unity.Host
                             "  " + ActivityName(b.Activity);
                 if (GUI.Button(new Rect(0f, y, listRect.width - 18f, 24f), label))
                 {
-                    var next = NextEditableActivity(b.Activity);
+                    var next = NextEditableActivity(
+                        b.Activity, MortalCivilianQuery.IsManagedCivilian(session.World, e));
                     if (def.TryReplaceBlockActivity(i, next))
                         Debug.Log("[Host] 课表已改: " + ActivityName(next));
                 }
@@ -1210,8 +1212,17 @@ namespace XianXia.Unity.Host
             GUI.EndScrollView();
         }
 
-        static ScheduleActivity NextEditableActivity(ScheduleActivity current)
+        static ScheduleActivity NextEditableActivity(ScheduleActivity current, bool managedCivilian)
         {
+            if (managedCivilian)
+            {
+                switch (current)
+                {
+                    case ScheduleActivity.Rest: return ScheduleActivity.Labor;
+                    case ScheduleActivity.Labor: return ScheduleActivity.Idle;
+                    default: return ScheduleActivity.Rest;
+                }
+            }
             switch (current)
             {
                 case ScheduleActivity.Labor: return ScheduleActivity.Rest;
@@ -1795,8 +1806,9 @@ namespace XianXia.Unity.Host
                 return sb.ToString();
             }
 
-            var shortId = ShortId(def.Id);
-            sb.AppendLine(shortId);
+            var name = string.IsNullOrWhiteSpace(e.DisplayName) ? e.Id.ToString() : e.DisplayName;
+            sb.AppendLine("查看：" + name);
+            sb.AppendLine(def.Id);
             for (var i = 0; i < def.Blocks.Count; i++)
             {
                 var b = def.Blocks[i];
@@ -2122,7 +2134,7 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Explore: return "探索";
                 case ScheduleActivity.Patrol: return "巡视";
                 case ScheduleActivity.Inspect: return "检查";
-                case ScheduleActivity.Idle: return "发呆";
+                case ScheduleActivity.Idle: return "自由活动";
                 default: return a.ToString();
             }
         }

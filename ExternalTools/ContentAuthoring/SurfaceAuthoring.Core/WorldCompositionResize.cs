@@ -44,6 +44,14 @@ public static class WorldCompositionResize
         foreach (var item in copy.WorldObjectPlacements) { item.WorldSurfaceX += shiftX; item.WorldSurfaceY += shiftY; }
         foreach (var item in copy.WorldSiteBlueprintPlacements) { item.SurfaceCellX += shiftX; item.SurfaceCellY += shiftY; }
         foreach (var item in copy.DetailPatchPlacements) { item.SurfaceCellX += shiftX; item.SurfaceCellY += shiftY; }
+        if (copy.RuntimeLayout != null)
+            foreach (var collection in copy.RuntimeLayout)
+                if (collection.Value is System.Text.Json.Nodes.JsonArray entries)
+                    foreach (var item in entries.OfType<System.Text.Json.Nodes.JsonObject>())
+                    {
+                        item["surfaceCellX"] = item["surfaceCellX"]!.GetValue<double>() + shiftX;
+                        item["surfaceCellY"] = item["surfaceCellY"]!.GetValue<double>() + shiftY;
+                    }
         copy.SurfaceWidthCells = newWidthCells;
         copy.SurfaceHeightCells = newHeightCells;
         if (copy.RuntimeSurface != null)
@@ -53,6 +61,7 @@ public static class WorldCompositionResize
         }
 
         errors.AddRange(FindOutOfBounds(copy, linked));
+        errors.AddRange(RuntimeLayoutPublication.Validate(copy).Select(x => x.Message));
         return errors.Count == 0 ? new(copy, errors) : new(null, errors);
     }
 

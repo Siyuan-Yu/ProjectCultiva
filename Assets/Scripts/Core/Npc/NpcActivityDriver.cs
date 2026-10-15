@@ -29,7 +29,23 @@ namespace XianXia.Core.Npc
             {
                 if (MortalCivilianQuery.IsManagedCivilian(world, entity))
                 {
-                    loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                    // Rest/Labor/Idle and needs are owned by MortalCivilianService. A specialized
+                    // bound block (Patrol/Inspect/Cultivate/...) may still use the existing generic
+                    // schedule action chain, unless a Squad or higher authority owns the character.
+                    if (!world.Civilians.TryGet(entity.Id, out var civilian) ||
+                        civilian.Activity != MortalActivity.DedicatedDuty ||
+                        World.Strategic.SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ||
+                        !AutonomousActionContinuationService.CanContinue(world, entity.Id) ||
+                        !entity.TryGet<ScheduleComponent>(out var managedBinding) ||
+                        string.IsNullOrEmpty(managedBinding.DefinitionId) ||
+                        !world.TryGetSchedule(managedBinding.DefinitionId, out var managedDefinition))
+                    {
+                        loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                        continue;
+                    }
+                    if (!entity.TryGet<JobComponent>(out _))
+                        entity.AddComponent(new JobComponent());
+                    DriveEntity(world, loop, entity, managedDefinition, allowFallback: false);
                     continue;
                 }
                 if (World.Strategic.SquadCommandService.OwnsIndividualSchedule(world, entity.Id))
@@ -62,7 +78,8 @@ namespace XianXia.Core.Npc
             SimulationWorld world,
             SimulationLoop loop,
             Entity entity,
-            ScheduleDefinition definition)
+            ScheduleDefinition definition,
+            bool allowFallback = true)
         {
             if (!entity.TryGet<ActionStateComponent>(out var actionState))
                 return;
@@ -94,12 +111,25 @@ namespace XianXia.Core.Npc
                 TryDriveAssignedHome(world, loop, entity, queue, choice.Activity, duration))
                 return;
 
-            if (!TryResolveWithFallback(world, entity, choice.Activity, duration, out var resolved))
+            var resolvedOk = allowFallback
+                ? TryResolveWithFallback(world, entity, choice.Activity, duration, out var resolved)
+                : ActivityResolver.TryResolve(world, entity, choice.Activity, duration, out resolved);
+            if (!resolvedOk)
+            {
+                if (!allowFallback && world.Civilians.TryGet(entity.Id, out var civilian))
+                    civilian.ScheduleStatus = "专职日程受阻：没有对应执行目标 · " + choice.Activity;
                 return;
+            }
 
             // Soft slot claim before enqueue so peers see occupied capacity this tick.
             if (!TryClaimResolvedSlot(world, entity, ref resolved))
             {
+                if (!allowFallback)
+                {
+                    if (world.Civilians.TryGet(entity.Id, out var civilian))
+                        civilian.ScheduleStatus = "专职日程受阻：没有可用职责工位 · " + choice.Activity;
+                    return;
+                }
                 if (resolved.Activity != ScheduleActivity.Idle &&
                     ActivityResolver.TryResolve(world, entity, ScheduleActivity.Idle, duration, out resolved) &&
                     TryClaimResolvedSlot(world, entity, ref resolved))

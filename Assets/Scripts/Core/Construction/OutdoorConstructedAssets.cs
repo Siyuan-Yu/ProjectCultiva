@@ -460,6 +460,30 @@ namespace XianXia.Core.Construction
             return true;
         }
 
+        /// <summary>
+        /// Returns the real bed currently occupied by this character. Reservation alone is not sleep.
+        /// </summary>
+        public static bool TryGetOccupiedBed(
+            SimulationWorld world, EntityId characterId, RoomUsage usage,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            if (world == null || characterId.IsNone) return false;
+            foreach (var candidate in Beds(world))
+                if (candidate.OccupantCharacterId == characterId && BedHasUsage(world, candidate, usage))
+                { bed = candidate; return true; }
+            return false;
+        }
+
+        public static bool IsValidOccupiedBed(
+            SimulationWorld world, EntityId characterId, RoomUsage usage,
+            out OutdoorConstructedAssetState bed)
+        {
+            return TryGetOccupiedBed(world, characterId, usage, out bed) &&
+                   CanUseBed(world, bed, characterId, out _) &&
+                   IsAtAccessPoint(world, bed, characterId);
+        }
+
         public static void Release(SimulationWorld world, EntityId characterId)
         {
             if (world == null || characterId.IsNone) return;
@@ -535,7 +559,7 @@ namespace XianXia.Core.Construction
             return true;
         }
 
-        static string ResolveBedSiteId(SimulationWorld world, OutdoorConstructedAssetState bed)
+        public static string ResolveBedSiteId(SimulationWorld world, OutdoorConstructedAssetState bed)
         {
             if (bed == null) return string.Empty;
             if (!string.IsNullOrWhiteSpace(bed.BoundWorldSiteId)) return bed.BoundWorldSiteId;

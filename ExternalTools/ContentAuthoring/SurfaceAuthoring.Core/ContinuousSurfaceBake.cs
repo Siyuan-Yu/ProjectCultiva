@@ -59,7 +59,7 @@ public static class ContinuousSurfaceBaker
         return bake;
     }
     public static void Save(string path,FinalContinuousSurfaceBake bake)=>SurfaceAuthoringJson.Write(path,bake);
-    private static string SourceHash(WorldCompositionDocument source,LinkedSourceSet linked)
+    public static string SourceHash(WorldCompositionDocument source,LinkedSourceSet linked)
     {
         var text=new System.Text.StringBuilder(SurfaceAuthoringJson.Serialize(source)); foreach(var x in linked.Blueprints)text.Append('\n').Append(x.Key).Append('\n').Append(SurfaceAuthoringJson.Serialize(x.Value));foreach(var x in linked.Patches)text.Append('\n').Append(x.Key).Append('\n').Append(SurfaceAuthoringJson.Serialize(x.Value));return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString()))).ToLowerInvariant();
     }

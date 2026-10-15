@@ -1,4 +1,6 @@
+using XianXia.Core.Entities;
 using XianXia.Core.Npc;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
@@ -6,8 +8,14 @@ namespace XianXia.Unity.Host
     {
         public static string Describe(MortalCivilianState state)
         {
-            if (state == null) return "空闲";
-            if (state.SleepPhase == CivilianSleepPhase.TravelingToResidence) return "前往住所";
+            return Describe(null, null, state);
+        }
+
+        public static string Describe(
+            SimulationWorld world, Entity entity, MortalCivilianState state, bool isMoving = false)
+        {
+            if (state == null) return "待命";
+            if (state.SleepPhase == CivilianSleepPhase.TravelingToResidence) return "前往床位";
             if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence) return "睡眠";
             if (state.SleepPhase == CivilianSleepPhase.SleepingOnGround) return "就地休息";
             switch (state.FoodFetchPhase)
@@ -22,12 +30,28 @@ namespace XianXia.Unity.Host
                 case FoodFetchPhase.Arrived: return "前往储藏室";
                 case FoodFetchPhase.Eating: return "进食";
             }
+            var moving = isMoving || entity != null &&
+                entity.TryGet<MovementIntentComponent>(out var intent) && intent.Active;
+            if (moving)
+            {
+                switch (state.Activity)
+                {
+                    case MortalActivity.FarmerWork: return "前往农田";
+                    case MortalActivity.HerbFarmerWork: return "前往药田";
+                    case MortalActivity.Logging: return "前往伐木区";
+                    case MortalActivity.Rescue: return "前往救援目标";
+                    case MortalActivity.Haul: return "前往搬运";
+                    case MortalActivity.Construction: return "前往施工点";
+                    case MortalActivity.DedicatedDuty: return "专职行动中";
+                }
+                return "移动中";
+            }
             var activity = state.Activity;
             switch (activity)
             {
                 case MortalActivity.FetchFood: return "需要进食";
                 case MortalActivity.Eat: return "进食";
-                case MortalActivity.SleepAtResidence: return "前往住所";
+                case MortalActivity.SleepAtResidence: return "前往床位";
                 case MortalActivity.SleepOnGround: return "就地休息";
                 case MortalActivity.FarmerWork: return "种田";
                 case MortalActivity.HerbFarmerWork: return "种药";
@@ -39,7 +63,10 @@ namespace XianXia.Unity.Host
                 case MortalActivity.Flee: return "逃亡";
                 case MortalActivity.Escorted: return "押送中";
                 case MortalActivity.Detained: return "囚禁";
-                default: return "空闲";
+                case MortalActivity.DedicatedDuty: return "专职职责待既有系统执行";
+                default:
+                    return state.ScheduleStatus != null && state.ScheduleStatus.Contains("自由活动")
+                        ? "自由活动" : "待命";
             }
         }
 

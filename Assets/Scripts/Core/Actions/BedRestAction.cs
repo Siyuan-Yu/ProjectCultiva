@@ -50,7 +50,7 @@ namespace XianXia.Core.Actions
             { Status = ActionStatus.Failed; RoomBedFacilityService.Release(world, Subject); return Result.Failure(ErrorCode.InvalidOperation, "床位已失效。"); }
             Clock = Clock.Consume(1); if (!Clock.IsComplete) return Result.Success();
             if (world.Civilians.TryGet(Subject, out var civilian))
-            { civilian.Energy = MortalCivilianTuning.WakeThreshold; civilian.SleptToday = true; civilian.Clamp(); }
+            { civilian.SleptToday = true; civilian.Clamp(); }
             RoomBedFacilityService.Release(world, Subject); Status = ActionStatus.Completed; return Result.Success();
         }
         public void Cancel() { if (Status == ActionStatus.Pending || Status == ActionStatus.Running) Status = ActionStatus.Cancelled; }

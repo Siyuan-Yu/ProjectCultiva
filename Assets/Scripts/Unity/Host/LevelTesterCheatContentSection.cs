@@ -377,9 +377,13 @@ namespace XianXia.Unity.Host
         {
             if (selection == null || selection.State.Count != 1 || !world.Civilians.TryGet(selection.State.SelectedIds[0], out var state) || state == null)
             { GUI.Label(new Rect(x, y, width, 36f), "请只选中一个已有 MortalCivilianState 的人物。", body); return y + 40f; }
+            var schedulePhase = FactionMortalSchedule.Current(world, world.Entities.TryGet(state.EntityId, out var scheduledEntity) ? scheduledEntity : null,
+                out var scheduleId, out var scheduleBlock, out var scheduleReason);
             var text = "EntityId=" + state.EntityId + " State=" + state.Disposition +
                        "\nSatiety=" + state.Satiety + " Energy=" + state.Energy + " Profession=" + state.Profession +
-                       " Activity=" + state.Activity + " Schedule=" + FactionMortalSchedule.Current(world.Tick) +
+                       " Activity=" + state.Activity + " Schedule=" + scheduleId + "/" +
+                       (scheduleBlock == null ? schedulePhase.ToString() : scheduleBlock.Activity.ToString()) +
+                       " Reason=" + (string.IsNullOrEmpty(state.ScheduleStatus) ? scheduleReason : state.ScheduleStatus) +
                        "\nSite=" + state.CurrentSiteId + " Residence=" + state.ResidenceWorkAreaId +
                        "\nFoodFetch: Phase=" + state.FoodFetchPhase + " Storage=" + state.FoodFetchStorageRoomId +
                        " Resource=" + state.PendingFoodResourceId + " Status=" + state.FoodFetchStatus +

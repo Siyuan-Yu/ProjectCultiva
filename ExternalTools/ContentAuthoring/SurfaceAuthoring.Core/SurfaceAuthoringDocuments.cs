@@ -160,6 +160,9 @@ public sealed class WorldCompositionDocument
     public BaseTerrain DefaultBaseTerrain { get; set; } = BaseTerrain.Plain;
     public RuntimeSurfaceBinding? RuntimeSurface { get; set; }
     public LegacyMigrationBinding? LegacyMigration { get; set; }
+    // Optional authored business anchors, in Surface Cells. Publishing converts these through
+    // RuntimeSurfaceBinding, so a republish does not resurrect pre-relocation runtime positions.
+    public JsonObject? RuntimeLayout { get; set; }
     public List<CoarseTerrainSourceCell> CoarseTerrainSources { get; set; } = [];
     public List<CoarseFeatureSourceCell> CoarseFeatureSources { get; set; } = [];
     public List<RiverPathSource> Rivers { get; set; } = [];
@@ -219,6 +222,7 @@ public static class SurfaceAuthoringValidation
         foreach (var road in d.Roads) ValidatePath(issues, road.PathId, RoadWidths.GetWidth(road.RoadClass), road.ControlPoints, d);
         foreach (var crossing in CompositionEngine.FindCrossings(d)) if (crossing.Resolution == CrossingResolution.Unresolved) Warn(issues, $"坐标 ({crossing.X:0.#},{crossing.Y:0.#}) 附近的道路/河流交叉口尚未处理。");
         if (linked != null) issues.AddRange(linked.Issues);
+        issues.AddRange(RuntimeLayoutPublication.Validate(d));
         return issues;
     }
 
