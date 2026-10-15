@@ -129,6 +129,7 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Participants.Clear(); world.Strategic.ClockFreeze.Clear();
             world.Strategic.CharacterEncounter = null;
             RestorePlayerPartyMembersFromGroup(world, state);
+            MortalCivilianService.ReconcileEscortsAfterEncounter(world, state);
         }
 
         public static Result Prepare(SimulationWorld world, EntityId attacker, EntityId target,
@@ -529,6 +530,7 @@ namespace XianXia.Core.World.Strategic
                 presence.WorldPosY = participant.TacticalY;
                 presence.HasContinuousWorldPosition = true;
             }
+            repaired += MortalCivilianService.ReconcileEscortsForEncounter(world, state);
             return repaired;
         }
 
@@ -627,6 +629,7 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Participants.Clear();
             world.Strategic.ClockFreeze.Clear();
             RestorePlayerPartyMembersFromGroup(world, state);
+            MortalCivilianService.ReconcileEscortsAfterEncounter(world, state);
             return Result.Success();
         }
         static void RestoreAnchors(SimulationWorld world, CharacterEncounterState state)

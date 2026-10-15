@@ -4,6 +4,7 @@ using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.World.Strategic;
 
@@ -203,6 +204,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap?.Session?.World;
+            if (MortalTransportConstraintService.ValidateUnburdenedAction(world, id).IsFailure)
+                return false;
             if (!AutonomousActionContinuationService.CanContinue(world, id))
                 return false;
             var actingFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
@@ -272,7 +275,9 @@ namespace XianXia.Unity.Host
             for (var i = _workers.Count - 1; i >= 0; i--)
             {
                 var w = _workers[i];
-                if (!AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id))
+                if (!AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id) ||
+                    MortalTransportConstraintService.ValidateUnburdenedAction(
+                        bootstrap.Session.World, w.Id).IsFailure)
                 {
                     ReleaseReserve(w);
                     moveController?.CancelPresentationMovementPublic(w.Id);

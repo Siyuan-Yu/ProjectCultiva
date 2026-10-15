@@ -4,6 +4,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Social;
+using XianXia.Core.Npc;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -302,7 +303,10 @@ namespace XianXia.Unity.Host
                 return false;
             }
             var participant = state.Find(id.Value);
-            if (participant == null)
+            var carriedCaptive = participant == null && world.Civilians.TryGet(id, out var civilian) &&
+                                 civilian.Disposition == CivilianDisposition.CapturedEscorted &&
+                                 !civilian.CarrierId.IsNone && state.Find(civilian.CarrierId.Value) != null;
+            if (participant == null && !carriedCaptive)
             {
                 reason = "NotCurrentEncounterParticipant";
                 return false;
@@ -325,12 +329,14 @@ namespace XianXia.Unity.Host
                 return false;
             }
             if (!entity.TryGet<EntityLocationComponent>(out var location) || location == null ||
-                !location.HasPresentationOverride)
+                !location.HasPresentationOverride && !carriedCaptive)
             {
                 reason = "PresentationOverrideMissing";
                 return false;
             }
-            reason = "CurrentIndependentEncounterParticipant";
+            reason = carriedCaptive
+                ? "EscortedCaptiveOfCurrentEncounterParticipant"
+                : "CurrentIndependentEncounterParticipant";
             return true;
         }
 

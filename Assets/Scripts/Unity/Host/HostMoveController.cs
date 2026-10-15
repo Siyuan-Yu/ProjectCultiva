@@ -60,6 +60,9 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, float> _moveSpeedMultiplierByEntity = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, HostMoveCompletionPolicy> _completionPolicies =
             new Dictionary<ulong, HostMoveCompletionPolicy>();
+        // Presentation-only ownership serial.  Independent Host executors use this to cancel
+        // only the path they issued, without erasing a newer schedule / needs path.
+        readonly Dictionary<ulong, uint> _movementRevisionByEntity = new Dictionary<ulong, uint>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
@@ -107,6 +110,19 @@ namespace XianXia.Unity.Host
 
         public bool HasMovementPath(EntityId id) =>
             !id.IsNone && _paths.ContainsKey(id.Value);
+
+        public uint GetPresentationMovementRevision(EntityId id) =>
+            id.IsNone || !_movementRevisionByEntity.TryGetValue(id.Value, out var revision)
+                ? 0u : revision;
+
+        public bool CancelPresentationMovementIfRevision(EntityId id, uint expectedRevision)
+        {
+            if (id.IsNone || expectedRevision == 0u ||
+                GetPresentationMovementRevision(id) != expectedRevision)
+                return false;
+            CancelPresentationMovement(id);
+            return true;
+        }
 
         public bool TryGetPathLocalMapId(EntityId id, out string localMapId) =>
             _pathLocalMapIds.TryGetValue(id.Value, out localMapId);
@@ -465,6 +481,7 @@ namespace XianXia.Unity.Host
         {
             if (id.IsNone)
                 return;
+            AdvancePresentationMovementRevision(id);
             ClearPath(id);
             _movingIds.Remove(id.Value);
             _playerPartyPathMoveIds.Remove(id.Value);
@@ -648,6 +665,7 @@ namespace XianXia.Unity.Host
             SnapOntoWalkableIfNeeded(view);
             _targets[view] = path[0];
             _movingIds.Add(id.Value);
+            AdvancePresentationMovementRevision(id);
             view.SetActivityText("\u79fb\u52a8\u4e2d");
             if (arriveCommand.HasValue)
                 _pendingOnArrive[id.Value] = arriveCommand.Value;
@@ -658,6 +676,17 @@ namespace XianXia.Unity.Host
             if (issueStop)
                 HoldPlayerWait(id, pathLen);
             return true;
+        }
+
+        void AdvancePresentationMovementRevision(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            _movementRevisionByEntity.TryGetValue(id.Value, out var revision);
+            revision++;
+            if (revision == 0u)
+                revision = 1u;
+            _movementRevisionByEntity[id.Value] = revision;
         }
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)

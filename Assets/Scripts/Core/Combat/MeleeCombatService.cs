@@ -7,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Npc;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Combat
@@ -149,6 +150,8 @@ namespace XianXia.Core.Combat
                     "Target is not an opposing participant in the active manual battle.");
             if (!world.Entities.TryGet(attackerId, out var attacker))
                 return Result.Failure(ErrorCode.EntityNotFound, "Attacker missing.");
+            var transportPermission = MortalTransportConstraintService.ValidateAttack(world, attackerId);
+            if (transportPermission.IsFailure) return transportPermission;
             if (!world.Entities.TryGet(defenderId, out var defender))
                 return Result.Failure(ErrorCode.EntityNotFound, "Defender missing.");
             if (!CombatLifeStateService.CanFight(attacker))

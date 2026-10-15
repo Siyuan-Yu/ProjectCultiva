@@ -1,5 +1,31 @@
 # 开发日志
 
+## 2026-10-15 — MED-PRISON-02 通用救援、医疗稳定与真实囚床交接（待制作人验收）
+
+- 自动救援从“仅玩家势力／仅医疗床”改为同一 Site、同一 Surface 的同势力受管凡人通用紧急任务；玩家直接控制、战斗／旅行、押送、重载或不可行动者不接单。伤员按剩余弥留时间与 EntityId 排序，救援者按接近伤员加搬往床位的成本与 EntityId 确定；床位严格按空闲 Medical、伤员本人 Residential、未分配 Residential 三层选择，选中即预约，无床不搬运。
+- 新增正式“搬运者站在床边 → 原子安置被搬运者到床中心并确认 Occupant”的床位提交入口；医疗床与普通床统一记录 RecoverySpot placement、预约、占用与人物真实位置。医疗稳定只以真实有效 Medical 床占用为准，每个 WorldTick 保留剩余弥留时间；普通床继续倒计时，离床／拆床／改用途后从原剩余时间继续，不改 HP、不复活。
+- 正式关押只接受 `RoomUsage.Prison` 房间内真实空牢床，旧 Housing WorkArea capacity／独立 drop-off 不再能完成拘留。押送者和囚犯必须到具体床边，床预约与原子安置成功后才写 `Detained` 并清 Carrier；失败继续保持 `CapturedEscorted`。角色菜单增加实际押送者可用的“释放囚犯”。
+- 押送关系不再因进入 CharacterEncounter 被丢弃：囚犯在独立战场跟随押送者的战术位置但不进入参战 roster；返场后押送者仍可行动则继续押送，押送者弥留／死亡则在返场合法位置释放并进入既有逃亡。统一攻击提交、战斗 AI、普通近战及角色攻击入口拒绝押送者造成伤害；农业、伐木／采矿、建设、修炼、恢复与床休息同样受统一负重限制，移动和被攻击保持允许。
+- Snapshot v15 以向后兼容可选字段补存救援目标、搬运阶段、目标床及不可达床列表；既有床资产继续保存预约／Occupant，恢复时校验救援床、普通／医疗安置、押送 Carrier、正式 Prison Room 与唯一真实牢床占用。人物详情及既有救援／囚禁诊断扩充床类型、预约／占用、剩余弥留时间、医疗稳定、Carrier、交接失败原因与攻击权限；未新增准备场景按钮。
+- 全程序集离线编译 `ALL_OK`（仅保留测试程序集既有 2 条 warning）；六份当前未提交 JSON 均可解析，`git diff --check` 无错误。按仓库规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner，尚未完成 LevelTester 人工游玩。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-15 — 荒村林地前哨旗与实际行政控制接通（待制作人验收）
+
+- 在正式世界作者源 `main_world.worldcomposition.json` 的 `runtimeLayout.factionFlags` 新增 `base:flag_huangcun_forest_outpost`，归属 `base:sect_huangcun_labor`，顺序 21，一级 Outpost，Surface Cell `(500,887)`／世界坐标 `(12.600,23.436)`；运行时 Site 由既有 `FactionFlagSiteCoreBootstrap` 按正式规则派生为 `site:runtime:base:flag_huangcun_forest_outpost`。
+- `world_spatial_rules.json` 未改，一级据点仍为 150×150 Cells（当前 Surface 为 4.2×4.2 世界单位）。新 Claim 范围为 X `[10.500,14.700]`、Y `[21.336,25.536]`；正式发布数据静态复算覆盖荒村林区 21/21 棵树与矿区 9/9 块矿石，与敌对旗帜 Claim 交集为 0。原荒村议政厅核心及其 6/6 农田、4/4 药田、22/22 房间仍在原 150×150 控制范围内。
+- 候选格为 Plain、无 Forest 特征，正式 geography 的中心及周边 5×5 均可通行，旗位不落入任何阻挡 placement。未移动树木／矿石，未改变已有 Site、旗帜、势力、控制等级或控制范围。
+- 使用既有 `CompatibilityPublisher` 正式发布 `main_wilderness_surface_v1.json`、`w2a_surface_geography_baked_v1.json` 与 `main_world_surface_map_v1.json`，发布前作者校验 0 error／0 warning；runtime 中新旗唯一、顺序唯一。樵夫的既有正式结算会把产出写入树木实际管理 Site，因此林区木材进入新前哨公库，不自动转入原荒村公库。
+- 全程序集离线编译 `ALL_OK`；JSON、作者源／runtime parity、控制几何、阻挡与持久化调用链已静态复核。按项目规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner，尚未做新开局、真实砍伐与存读档人工验收。状态：**Configuration Complete / Producer Acceptance Pending**。
+
+## 2026-10-15 — 荒村樵夫持续伐木与路径所有权修复（待制作人验收）
+
+- 确认樵夫已有 `Logging` 活动和真实砍树伤害链，但 Host 仅在人物周围固定 30 个显示单位内找树，且日程移动器仍会用旧 `MovementIntent.Revision` 核销并取消新树木路径，导致人物到达林区后回到工区中心或停止持续砍伐。
+- 民生日程进入有效伐木会话后，由伐木执行器接管“接近树木 → 砍伐 → 结算 → 下一棵树”；日程移动器只释放旧中心路径与自身 tracking，不清 Core intent。表现路径增加轻量 revision，伐木结束只取消自己签发且尚未被新吃饭／睡眠／战斗路径取代的移动。
+- 采伐权限只按树的实际 Surface／WorldPosition 调用 `WorldSiteAdministrativeControlResolver`，并比较实际管理 Site owner 与 Logger faction；树木 `boundLocationId` 仅用于同一批合法目标内的工区偏好排序，不再充当所有权或硬授权。无绑定树仍可合法入选，同势力不同 Site 不因 SiteId 不同被拒；跨 Site 产出写入树木实际管理 Site 的公库，不任意写入人物 CurrentSite。
+- 目标仍只扫描当前已加载的 destructible registry，使用树木实际交互包围盒外的可走边缘作为接近点；不可达目标短暂排除后尝试其它树，不再每 0.25 秒重跑 A*。头顶、人物详情与一次性诊断分别区分本区无树、无主、其他势力、己方但不可达、前往和砍伐，并记录实际行政 Site 与入库 Site。
+- 当前作者源／发布数据各有 21 棵林区树，但正式一级控制范围静态复算显示其中心全部位于荒村控制西界之外：21 棵均为无主、0 棵荒村、0 棵其他势力。未擅自扩大 TerritoryClaim、改变 Site owner 或移动树木，需制作人确认地图／初始控制范围调整后才能完成现场正向验收。
+- 全程序集离线编译 `ALL_OK`；JSON、行政控制几何、作者源／发布树数量、静态调用链及 diff 完整性已复核。按项目规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner，尚未做人工游玩。状态：**Code Implementation Complete / Configuration Decision Pending / Producer Acceptance Pending**。
+
 ## 2026-10-15 — CIVILIAN-LIFE-01 荒村日程、计划睡眠与真实状态统一（待制作人验收）
 
 - `base:schedule_mortal_day` 收为 00:00–05:00 Rest、05:00–22:00 Labor、22:00–24:00 Idle；进食改由需求插入。受管凡人的实际调度、右侧课表与工作面板共同读取人物绑定的 `ScheduleComponent.DefinitionId → ScheduleDefinition.TryResolve`，正式加载缺少必需日程时明确失败，不再由工厂静默补旧表。

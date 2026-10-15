@@ -894,6 +894,10 @@ namespace XianXia.Core.Persistence
         public int MortalFleeAttemptCount { get; set; }
         public ulong MortalCarrierId { get; set; }
         public string MortalDetainedResidenceWorkAreaId { get; set; } = string.Empty;
+        public ulong MortalRescueTargetId { get; set; }
+        public bool MortalRescueCarrying { get; set; }
+        public string MortalRescueDestinationId { get; set; } = string.Empty;
+        public string MortalRescueRejectedDestinationIds { get; set; } = string.Empty;
         public ulong MortalCareDayIndex { get; set; }
         public bool MortalAteToday { get; set; }
         public bool MortalSleptToday { get; set; }

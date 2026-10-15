@@ -365,6 +365,15 @@ namespace XianXia.Unity.Host
             var world = _host?.Session?.World;
             var state = world?.Strategic?.CharacterEncounter;
             if (state == null || !state.Opposing(attacker.Value, target.Value)) return;
+            var transportPermission = MortalTransportConstraintService.ValidateAttack(world, attacker);
+            if (transportPermission.IsFailure)
+            {
+                var participant = state.Find(attacker.Value);
+                if (participant != null) participant.TargetId = 0;
+                if (_host.Session.PlayerParty.IsPlayerControllableMember(attacker))
+                    _host.StrategicInterrupt?.ShowTransientToast(transportPermission.Error.Message);
+                return;
+            }
             if (state.Phase == CharacterEncounterPhase.ReadyToEnd)
             {
                 if (_host.Session.PlayerParty.ActiveCharacterId != attacker ||
@@ -466,6 +475,8 @@ namespace XianXia.Unity.Host
                     if (!CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
                     var id = new EntityId(p.CharacterId);
                     p.Cooldown = Mathf.Max(0f, p.Cooldown - dt);
+                    if (MortalTransportConstraintService.ValidateAttack(world, id).IsFailure)
+                    { p.TargetId = 0; continue; }
                     if (p.TargetId == ulong.MaxValue && _host.Session.PlayerParty.ActiveCharacterId == id) continue;
                     if (!state.Opposing(p.CharacterId, p.TargetId) || !CharacterEncounterService.IsLiving(world, p.TargetId))
                     {
@@ -539,7 +550,8 @@ namespace XianXia.Unity.Host
             var attacker = state.Find(attackerId.Value);
             if (attacker == null || attacker.TargetId == 0 || attacker.TargetId == ulong.MaxValue ||
                 !world.Entities.TryGet(attackerId, out var attackerEntity) ||
-                !CombatLifeStateService.CanFight(attackerEntity))
+                !CombatLifeStateService.CanFight(attackerEntity) ||
+                MortalTransportConstraintService.ValidateAttack(world, attackerId).IsFailure)
                 return;
             var targetId = new EntityId(attacker.TargetId);
             if (!state.Opposing(attackerId.Value, targetId.Value) ||

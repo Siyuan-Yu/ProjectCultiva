@@ -7,6 +7,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Data.Content;
 using XianXia.Core.Exploration;
 using XianXia.Core.Navigation;
+using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
@@ -422,6 +423,23 @@ namespace XianXia.Unity.Host
                 _mapper.WorldToPresentation(participant.TacticalX, participant.TacticalY,
                     out var x, out var y);
                 view.transform.position = HostPresentationSpace.FromPresentation(x, y);
+            }
+            var world = _bootstrap?.Session?.World;
+            if (world == null) return;
+            foreach (var pair in world.Civilians.All)
+            {
+                var civilian = pair.Value;
+                if (civilian.Disposition != CivilianDisposition.CapturedEscorted ||
+                    civilian.CarrierId.IsNone) continue;
+                var carrier = state.Find(civilian.CarrierId.Value);
+                if (carrier == null) continue;
+                _mapper.WorldToPresentation(carrier.TacticalX, carrier.TacticalY, out var x, out var y);
+                var position = HostPresentationSpace.FromPresentation(x - .28f, y - .16f);
+                if (world.Entities.TryGet(pair.Key, out var captive) &&
+                    captive.TryGet<EntityLocationComponent>(out var location))
+                    location.SetPresentationOverride(position.x, position.y);
+                if (_bootstrap.ViewSpawner.Registry.TryGet(pair.Key, out var view) && view != null)
+                    view.transform.position = position;
             }
         }
 

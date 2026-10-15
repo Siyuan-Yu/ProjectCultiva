@@ -8,6 +8,7 @@ using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Npc;
 
 namespace XianXia.Core.Actions
 {
@@ -35,6 +36,8 @@ namespace XianXia.Core.Actions
         {
             if (!world.Entities.TryGet(Subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
+            if (burden.IsFailure) return burden;
             if (!entity.TryGet<LifecycleComponent>(out var life))
                 return Result.Failure(ErrorCode.ComponentMissing, "Lifecycle missing.");
             if (life.IsDead || life.IsRemoved || life.IsIncapacitated)

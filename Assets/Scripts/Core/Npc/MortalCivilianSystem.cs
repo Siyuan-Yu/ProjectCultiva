@@ -10,6 +10,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
+using XianXia.Core.Orders;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
@@ -128,11 +129,12 @@ namespace XianXia.Core.Npc
         public bool SleptToday { get; set; }
         public ulong LastWorkOutputTick { get; set; }
         public EntityId PendingCaptureCarrierId { get; set; }
-        // Short-lived transport reservation. Snapshot stores both real character positions; jobs re-evaluate on load.
+        // Rescue transport is persisted together with the real bed reservation and world positions.
         public EntityId RescueTargetId { get; set; }
         public bool RescueCarrying { get; set; }
         public string RescueDestinationId { get; set; } = string.Empty;
         public string RescueRejectedDestinationId { get; set; } = string.Empty;
+        public string RescueStatus { get; set; } = string.Empty;
         // Session-only food trip. Stock remains SitePublicStock authority and is removed only on arrival.
         public string FoodFetchStorageRoomId { get; set; } = string.Empty;
         public string PendingFoodResourceId { get; set; } = string.Empty;
@@ -364,6 +366,43 @@ namespace XianXia.Core.Npc
         }
     }
 
+    /// <summary>Shared authority query for actions that require both hands while escorting.</summary>
+    public static class MortalTransportConstraintService
+    {
+        public const string EscortActionDenied = "正在押送囚犯，无法执行该动作。";
+
+        public static bool TryGetEscortedCaptive(
+            SimulationWorld world, EntityId carrierId, out EntityId captiveId)
+        {
+            captiveId = EntityId.None;
+            if (world == null || carrierId.IsNone) return false;
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state == null || state.Disposition != CivilianDisposition.CapturedEscorted ||
+                    state.CarrierId != carrierId) continue;
+                if (!captiveId.IsNone && captiveId != pair.Key)
+                {
+                    // Corrupt/legacy duplicate loads must fail closed: the carrier remains
+                    // burdened until validation rejects the duplicate relation.
+                    return true;
+                }
+                captiveId = pair.Key;
+            }
+            return !captiveId.IsNone;
+        }
+
+        public static Result ValidateAttack(SimulationWorld world, EntityId attackerId) =>
+            TryGetEscortedCaptive(world, attackerId, out _)
+                ? Result.Failure(ErrorCode.InvalidOperation, EscortActionDenied)
+                : Result.Success();
+
+        public static Result ValidateUnburdenedAction(SimulationWorld world, EntityId actorId) =>
+            TryGetEscortedCaptive(world, actorId, out _)
+                ? Result.Failure(ErrorCode.ActionCannotStart, EscortActionDenied)
+                : Result.Success();
+    }
+
     /// <summary>Priority evaluator: forced states, hunger, sleep, rescue, profession, common work, idle.</summary>
     public static class MortalActivityEvaluator
     {
@@ -378,6 +417,14 @@ namespace XianXia.Core.Npc
                                    schedulePhase == FactionMortalSchedulePhase.DedicatedDuty
                 ? scheduleReason
                 : scheduleId + " · " + scheduleBlock.Activity;
+            if (state.Energy < MortalCivilianTuning.GroundSleepThreshold) return MortalActivity.SleepOnGround;
+            if (MortalTransportConstraintService.TryGetEscortedCaptive(world, entity.Id, out _))
+            {
+                state.ScheduleStatus = MortalTransportConstraintService.EscortActionDenied;
+                return MortalActivity.Idle;
+            }
+            if (!state.RescueTargetId.IsNone || MortalCivilianService.HasRescueTarget(world, entity))
+                return MortalActivity.Rescue;
             if (state.Activity == MortalActivity.Eat && state.MealStartedTick > 0 &&
                 world.Tick.Value < state.MealStartedTick + 2) return MortalActivity.Eat;
             if (state.SleepPhase == CivilianSleepPhase.SleepingOnGround &&
@@ -386,7 +433,6 @@ namespace XianXia.Core.Npc
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                 MortalCivilianService.IsFoodPlanInProgress(state))
                 return MortalActivity.FetchFood;
-            if (state.Energy < MortalCivilianTuning.GroundSleepThreshold) return MortalActivity.SleepOnGround;
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                 MortalCivilianService.ShouldRetryFood(world, entity, state))
                 return MortalActivity.FetchFood;
@@ -399,8 +445,6 @@ namespace XianXia.Core.Npc
                 return MortalActivity.SleepAtResidence;
             if (state.Disposition == CivilianDisposition.SurrenderWaiting || state.Disposition == CivilianDisposition.Displaced)
                 return MortalActivity.Idle;
-            if (!state.RescueTargetId.IsNone || MortalCivilianService.HasRescueTarget(world, entity))
-                return MortalActivity.Rescue;
             if (schedulePhase == FactionMortalSchedulePhase.Rest)
                 return RoomBedFacilityService.HasAvailableBed(world, entity.Id, RoomUsage.Residential)
                     ? MortalActivity.SleepAtResidence : MortalActivity.SleepOnGround;
@@ -522,12 +566,23 @@ namespace XianXia.Core.Npc
                     continue;
                 }
                 AdvanceNeeds(world, entity, state);
-                if (life.State != LifecycleState.Alive)
+                if (life.State != LifecycleState.Alive && life.State != LifecycleState.Captured)
                 {
                     EndCivilianSleep(world, entity.Id, state);
                     DropRescue(world, entity, state);
                     CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
                     state.Activity = MortalActivity.Idle;
+                    state.LastUpdateTick = world.Tick.Value;
+                    continue;
+                }
+                if (life.State == LifecycleState.Captured &&
+                    state.Disposition == CivilianDisposition.CapturedEscorted)
+                {
+                    EndCivilianSleep(world, entity.Id, state);
+                    DropRescue(world, entity, state);
+                    CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
+                    SyncEscort(world, entity, state);
+                    state.Activity = MortalActivity.Escorted;
                     state.LastUpdateTick = world.Tick.Value;
                     continue;
                 }
@@ -1156,6 +1211,7 @@ namespace XianXia.Core.Npc
             if (entity == null || state == null) return;
             ClearFoodTrip(entity, state);
             ClearSleep(state);
+            state.RescueStatus = string.Empty;
             state.Activity = MortalActivity.Idle;
         }
 
@@ -1174,20 +1230,49 @@ namespace XianXia.Core.Npc
                 intent.Begin(area.LocationId, area.Id, 0);
         }
 
-        public static bool HasRescueTarget(SimulationWorld world, Entity rescuer) =>
-            FindRescueTarget(world, rescuer) != null;
+        public static bool HasRescueTarget(SimulationWorld world, Entity rescuer)
+        {
+            var target = FindRescueTarget(world, rescuer);
+            if (target != null) return true;
+            if (world != null && rescuer != null && world.Civilians.TryGet(rescuer.Id, out var state))
+            {
+                const string noBed = "救援受阻：本地同势力伤员没有可用且可达的医疗／本人／空闲住宅床";
+                if (HasLocalSameFactionInjured(world, rescuer)) state.RescueStatus = noBed;
+                else if (string.Equals(state.RescueStatus, noBed, StringComparison.Ordinal))
+                    state.RescueStatus = string.Empty;
+            }
+            return false;
+        }
+
+        static bool HasLocalSameFactionInjured(SimulationWorld world, Entity rescuer)
+        {
+            if (world == null || rescuer == null ||
+                !rescuer.TryGet<FactionMembershipComponent>(out var own) || !own.IsAffiliated ||
+                !CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var rescuerPresence) ||
+                !rescuerPresence.HasWorldPosition) return false;
+            var siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, rescuer.Id);
+            foreach (var entity in world.Entities.All)
+                if (entity.Id != rescuer.Id &&
+                    entity.TryGet<FactionMembershipComponent>(out var faction) && faction.IsAffiliated &&
+                    string.Equals(faction.FactionId, own.FactionId, StringComparison.Ordinal) &&
+                    entity.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated &&
+                    !world.RecoverySpotDeliveries.ContainsInjured(entity.Id) &&
+                    !IsRescueReserved(world, entity.Id) &&
+                    string.Equals(MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id), siteId,
+                        StringComparison.Ordinal) &&
+                    CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var injuredPresence) &&
+                    injuredPresence.HasWorldPosition &&
+                    string.Equals(injuredPresence.SurfaceId, rescuerPresence.SurfaceId, StringComparison.Ordinal))
+                    return true;
+            return false;
+        }
 
         static Entity FindRescueTarget(SimulationWorld world, Entity rescuer)
         {
             ValidateRecoverySpotPlacements(world);
-            if (!rescuer.TryGet<FactionMembershipComponent>(out var own) || !own.IsAffiliated ||
-                !string.Equals(own.FactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal) ||
-                !rescuer.TryGet<LifecycleComponent>(out var rescuerLife) || rescuerLife.State != LifecycleState.Alive ||
-                !world.Civilians.TryGet(rescuer.Id, out var rescuerState) ||
-                rescuerState.Disposition != CivilianDisposition.Normal) return null;
-            var siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, rescuer.Id);
-            if (string.IsNullOrEmpty(siteId)) return null;
-            Entity chosen = null;
+            if (!IsEligibleAutomaticRescuer(world, rescuer, out var own, out var siteId, out var rescuerPresence))
+                return null;
+            var injured = new List<Entity>();
             foreach (var other in world.Entities.All)
             {
                 if (other.Id == rescuer.Id ||
@@ -1196,16 +1281,84 @@ namespace XianXia.Core.Npc
                     !string.Equals(MortalCivilianQuery.ResolveCurrentSiteId(world, other.Id), siteId, StringComparison.Ordinal) ||
                     !other.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
                     !CharacterWorldPresenceQuery.TryResolve(world, other.Id, out var presence) || !presence.HasWorldPosition ||
+                    !string.Equals(presence.SurfaceId, rescuerPresence.SurfaceId, StringComparison.Ordinal) ||
                     world.RecoverySpotDeliveries.ContainsInjured(other.Id) ||
-                    !TryRescueDestination(world, rescuer, other.Id, string.Empty,
-                        rescuerState.RescueRejectedDestinationId, out _, out var destination, out var surfaceId,
-                        out var deliveryRange) ||
-                    !string.Equals(presence.SurfaceId, surfaceId, StringComparison.Ordinal) ||
-                    DistanceSquared(presence.WorldPosition, destination) <= deliveryRange * deliveryRange ||
                     IsRescueReserved(world, other.Id)) continue;
-                if (chosen == null || other.Id.Value < chosen.Id.Value) chosen = other;
+                injured.Add(other);
             }
-            return chosen;
+            injured.Sort((a, b) =>
+            {
+                a.TryGet<LifecycleComponent>(out var al);
+                b.TryGet<LifecycleComponent>(out var bl);
+                var deadline = al.BleedOutAfterTick.CompareTo(bl.BleedOutAfterTick);
+                return deadline != 0 ? deadline : a.Id.Value.CompareTo(b.Id.Value);
+            });
+            for (var i = 0; i < injured.Count; i++)
+            {
+                var target = injured[i];
+                if (!TryResolveBestRescuer(world, target, own.FactionId, siteId, out var best) ||
+                    best != rescuer.Id) continue;
+                return target;
+            }
+            return null;
+        }
+
+        static bool IsEligibleAutomaticRescuer(
+            SimulationWorld world,
+            Entity rescuer,
+            out FactionMembershipComponent faction,
+            out string siteId,
+            out CharacterWorldPresenceQuery.ResolvedPresence presence)
+        {
+            faction = null; siteId = string.Empty; presence = default;
+            if (world == null || rescuer == null ||
+                !MortalCivilianQuery.IsManagedCivilian(world, rescuer) ||
+                !rescuer.TryGet<FactionMembershipComponent>(out faction) || !faction.IsAffiliated ||
+                !rescuer.TryGet<LifecycleComponent>(out var life) || life.State != LifecycleState.Alive ||
+                !world.Civilians.TryGet(rescuer.Id, out var state) ||
+                state.Disposition != CivilianDisposition.Normal || !state.RescueTargetId.IsNone ||
+                state.Energy < MortalCivilianTuning.GroundSleepThreshold ||
+                world.Strategic.PlayerPartyContext?.IsMember(rescuer.Id) == true ||
+                MortalTransportConstraintService.TryGetEscortedCaptive(world, rescuer.Id, out _) ||
+                !MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, rescuer.Id, state) ||
+                !CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out presence) ||
+                !presence.HasWorldPosition)
+                return false;
+            if (rescuer.TryGet<ActionStateComponent>(out var actions) && actions.HasActiveAction &&
+                actions.ActiveOrderSource == OrderSource.Player)
+                return false;
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+                if (job.CarrierId == rescuer.Id && job.PayloadCount > 0)
+                    return false;
+            siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, rescuer.Id);
+            return !string.IsNullOrEmpty(siteId);
+        }
+
+        static bool TryResolveBestRescuer(
+            SimulationWorld world, Entity injured, string factionId, string siteId, out EntityId best)
+        {
+            best = EntityId.None;
+            if (!CharacterWorldPresenceQuery.TryResolve(world, injured.Id, out var injuredPresence) ||
+                !injuredPresence.HasWorldPosition) return false;
+            var bestCost = double.MaxValue;
+            foreach (var pair in world.Civilians.All)
+            {
+                if (!world.Entities.TryGet(pair.Key, out var candidate) ||
+                    !IsEligibleAutomaticRescuer(world, candidate, out var own, out var candidateSite,
+                        out var rescuerPresence) ||
+                    !string.Equals(own.FactionId, factionId, StringComparison.Ordinal) ||
+                    !string.Equals(candidateSite, siteId, StringComparison.Ordinal) ||
+                    !string.Equals(rescuerPresence.SurfaceId, injuredPresence.SurfaceId, StringComparison.Ordinal) ||
+                    !TryRescueDestination(world, candidate, injured.Id, string.Empty,
+                        pair.Value.RescueRejectedDestinationId, out _, out var destination,
+                        out var surfaceId, out _)) continue;
+                var cost = DistanceSquared(rescuerPresence.WorldPosition, injuredPresence.WorldPosition) +
+                           DistanceSquared(injuredPresence.WorldPosition, destination);
+                if (cost < bestCost - .000001d ||
+                    Math.Abs(cost - bestCost) <= .000001d && (best.IsNone || pair.Key.Value < best.Value))
+                { best = pair.Key; bestCost = cost; }
+            }
+            return !best.IsNone;
         }
 
         static bool IsRescueReserved(SimulationWorld world, EntityId target)
@@ -1232,41 +1385,34 @@ namespace XianXia.Core.Npc
             out float deliveryRange)
         {
             destinationId = surfaceId = string.Empty; destination = default; deliveryRange = 0f;
+            if (world == null || rescuer == null || injured.IsNone ||
+                !world.Entities.TryGet(injured, out var injuredEntity) ||
+                !injuredEntity.TryGet<LifecycleComponent>(out var injuredLife) || !injuredLife.IsIncapacitated)
+                return false;
             var siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, rescuer.Id);
             if (string.IsNullOrEmpty(siteId) || !world.Strategic.Sites.TryGet(siteId, out var site) ||
                 !site.HasContinuousCore || !rescuer.TryGet<FactionMembershipComponent>(out var own) ||
                 !string.Equals(site.OwnerFactionId, own.FactionId, StringComparison.Ordinal)) return false;
             surfaceId = site.CoreSurfaceId;
-            var medicalLocations = new HashSet<string>(StringComparer.Ordinal);
-            var ids = new List<string>(world.WorkAreas.Keys);
-            ids.Sort(StringComparer.Ordinal);
-            for (var i = 0; i < ids.Count; i++)
-            {
-                if (!world.TryGetWorkArea(ids[i], out var area) ||
-                    !MortalActivityEvaluator.HasTag(area, "medical")) continue;
-                medicalLocations.Add(area.LocationId ?? string.Empty);
-            }
             var keys = new List<string>(world.OutdoorConstructedAssets.Assets.Keys);
-            keys.Sort((a, b) =>
-            {
-                var aa = world.OutdoorConstructedAssets.Assets[a];
-                var bb = world.OutdoorConstructedAssets.Assets[b];
-                var am = medicalLocations.Contains(aa.BoundLocationId) ? 0 : 1;
-                var bm = medicalLocations.Contains(bb.BoundLocationId) ? 0 : 1;
-                var requested = string.Equals(a, requestedSpotId, StringComparison.Ordinal) ? -2 :
-                    string.Equals(b, requestedSpotId, StringComparison.Ordinal) ? 2 : 0;
-                return requested != 0 ? requested : am != bm ? am.CompareTo(bm) : StringComparer.Ordinal.Compare(a, b);
-            });
+            keys.Sort(StringComparer.Ordinal);
+            var bestPriority = int.MaxValue;
+            var bestDistance = double.MaxValue;
             for (var i = 0; i < keys.Count; i++)
             {
                 var key = keys[i]; var asset = world.OutdoorConstructedAssets.Assets[key];
-                var medicalBed = RoomBedGeometry.IsBed(asset) &&
-                    RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Medical);
-                if (!medicalBed ||
-                    asset.SurfaceId != surfaceId ||
-                    string.Equals(key, excludedSpotId, StringComparison.Ordinal) ||
+                if (!RoomBedGeometry.IsBed(asset) || asset.SurfaceId != surfaceId ||
+                    IsRejectedDestination(excludedSpotId, key) ||
+                    !string.Equals(RoomBedFacilityService.ResolveBedSiteId(world, asset), siteId,
+                        StringComparison.Ordinal) ||
                     (!world.RecoverySpotDeliveries.TryGetInjured(key, out var placed) ? false : placed != injured) ||
                     IsRecoverySpotReserved(world, key, rescuer.Id)) continue;
+                var priority = RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Medical) ? 0 :
+                    RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Residential) &&
+                    asset.AssignedCharacterId == injured ? 1 :
+                    RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Residential) &&
+                    asset.AssignedCharacterId.IsNone ? 2 : int.MaxValue;
+                if (priority == int.MaxValue) continue;
                 if ((!asset.ReservedCharacterId.IsNone && asset.ReservedCharacterId != injured) ||
                     (!asset.OccupantCharacterId.IsNone && asset.OccupantCharacterId != injured)) continue;
                 var center = new WorldVec2(asset.WorldX + asset.WorldWidth * .5f,
@@ -1276,13 +1422,62 @@ namespace XianXia.Core.Npc
                     recoverySite.SiteId != siteId ||
                     !world.SurfaceGround.TryGet(surfaceId, out var navigation) ||
                     !navigation.Contains(access.X, access.Y)) continue;
-                asset.ReservedCharacterId = injured;
+                var requested = string.Equals(key, requestedSpotId, StringComparison.Ordinal);
+                var distance = CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var rescuerPresence) &&
+                               rescuerPresence.HasWorldPosition
+                    ? DistanceSquared(rescuerPresence.WorldPosition, access) : double.MaxValue;
+                if (!requested && (priority > bestPriority ||
+                    priority == bestPriority && distance > bestDistance + .000001d)) continue;
+                if (!requested && priority == bestPriority && Math.Abs(distance - bestDistance) <= .000001d &&
+                    !string.IsNullOrEmpty(destinationId) &&
+                    StringComparer.Ordinal.Compare(key, destinationId) >= 0) continue;
+                bestPriority = priority; bestDistance = distance;
                 destinationId = asset.StableAssetId; destination = access;
                 deliveryRange = world.SurfaceSpatial.TryGet(surfaceId, out var metric) && metric != null
                     ? metric.CellSize * .75f : Math.Min(asset.WorldWidth, asset.WorldHeight) * .5f;
-                return true;
+                if (requested) return true;
+            }
+            return !string.IsNullOrEmpty(destinationId);
+        }
+
+        static bool IsRejectedDestination(string rejected, string destinationId)
+        {
+            if (string.IsNullOrEmpty(rejected) || string.IsNullOrEmpty(destinationId)) return false;
+            var start = 0;
+            while (start <= rejected.Length)
+            {
+                var end = rejected.IndexOf('\n', start);
+                if (end < 0) end = rejected.Length;
+                if (string.Equals(rejected.Substring(start, end - start), destinationId,
+                        StringComparison.Ordinal)) return true;
+                if (end == rejected.Length) break;
+                start = end + 1;
             }
             return false;
+        }
+
+        static void RejectDestination(MortalCivilianState state, string destinationId)
+        {
+            if (state == null || string.IsNullOrEmpty(destinationId) ||
+                IsRejectedDestination(state.RescueRejectedDestinationId, destinationId)) return;
+            state.RescueRejectedDestinationId = string.IsNullOrEmpty(state.RescueRejectedDestinationId)
+                ? destinationId : state.RescueRejectedDestinationId + "\n" + destinationId;
+        }
+
+        static bool TryClaimRescueDestination(
+            SimulationWorld world, Entity rescuer, EntityId injured, string requestedId,
+            MortalCivilianState state, out string destinationId, out WorldVec2 destination,
+            out string surfaceId, out float deliveryRange)
+        {
+            if (!TryRescueDestination(world, rescuer, injured, requestedId,
+                    state.RescueRejectedDestinationId, out destinationId, out destination,
+                    out surfaceId, out deliveryRange) ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(destinationId, out var bed) ||
+                !bed.ReservedCharacterId.IsNone && bed.ReservedCharacterId != injured ||
+                !bed.OccupantCharacterId.IsNone && bed.OccupantCharacterId != injured)
+                return false;
+            bed.ReservedCharacterId = injured;
+            return true;
         }
 
         static void RescueOneAlly(SimulationWorld world, Entity rescuer)
@@ -1291,27 +1486,30 @@ namespace XianXia.Core.Npc
             var target = state.RescueTargetId.IsNone ? FindRescueTarget(world, rescuer) :
                 world.Entities.TryGet(state.RescueTargetId, out var saved) ? saved : null;
             if (target == null || !target.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
-                !TryRescueDestination(world, rescuer, target?.Id ?? EntityId.None, state.RescueDestinationId,
-                    state.RescueRejectedDestinationId,
+                !TryClaimRescueDestination(world, rescuer, target?.Id ?? EntityId.None,
+                    state.RescueDestinationId, state,
                     out var destinationId, out var destination, out var surfaceId, out var deliveryRange) ||
                 !CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var rescuerPresence) ||
                 !rescuerPresence.HasWorldPosition || rescuerPresence.SurfaceId != surfaceId ||
                 !CharacterWorldPresenceQuery.TryResolve(world, target.Id, out var targetPresence) ||
                 !targetPresence.HasWorldPosition || targetPresence.SurfaceId != surfaceId)
-            { DropRescue(world, rescuer, state); return; }
+            { state.RescueStatus = "救援受阻：没有合法伤员、床位或本地路径"; DropRescue(world, rescuer, state); return; }
             state.RescueTargetId = target.Id;
             state.RescueDestinationId = destinationId;
             if (!state.RescueCarrying)
             {
+                state.RescueStatus = "前往伤员";
                 MoveToWorldPoint(rescuer, targetPresence.SurfaceId, targetPresence.WorldPosition,
                     destinationKey: "rescue-target:" + target.Id.Value);
                 if (rescuer.TryGet<MovementIntentComponent>(out var failedApproach) &&
                     (failedApproach.HostPathState == MovementHostPathState.PermanentFailure ||
                      failedApproach.HostPathState == MovementHostPathState.RetryablePathUnavailable))
-                { DropRescue(world, rescuer, state); return; }
+                { state.RescueStatus = "救援受阻：伤员不可达"; DropRescue(world, rescuer, state); return; }
+                var pickupRange = world.SurfaceSpatial.TryGet(surfaceId, out var pickupMetric) && pickupMetric != null
+                    ? pickupMetric.CellSize * 1.5f : .1f;
                 if (rescuer.TryGet<MovementIntentComponent>(out var approach) && approach.HostArrived &&
-                    DistanceSquared(rescuerPresence.WorldPosition, targetPresence.WorldPosition) <= 9f)
-                { state.RescueCarrying = true; approach.Clear(); }
+                    DistanceSquared(rescuerPresence.WorldPosition, targetPresence.WorldPosition) <= pickupRange * pickupRange)
+                { state.RescueCarrying = true; state.RescueStatus = "正在搬往床位"; approach.Clear(); }
                 return;
             }
             world.WorldPresence.SetAtWorldPosition(target.Id, rescuerPresence.WorldPosition, surfaceId);
@@ -1322,8 +1520,9 @@ namespace XianXia.Core.Npc
                  failedDelivery.HostPathState == MovementHostPathState.RetryablePathUnavailable))
             {
                 RoomBedFacilityService.Release(world, target.Id);
-                state.RescueRejectedDestinationId = destinationId;
+                RejectDestination(state, destinationId);
                 state.RescueDestinationId = string.Empty;
+                state.RescueStatus = "安置受阻：床位不可达，正在改选";
                 failedDelivery.Clear();
                 return;
             }
@@ -1331,19 +1530,33 @@ namespace XianXia.Core.Npc
                 DistanceSquared(rescuerPresence.WorldPosition, destination) <= deliveryRange * deliveryRange)
             {
                 if (!world.RecoverySpotDeliveries.TryPlace(destinationId, target.Id))
-                { DropRescue(world, rescuer, state); return; }
-                if (world.OutdoorConstructedAssets.Assets.TryGetValue(destinationId, out var medicalBed) &&
-                    RoomBedGeometry.IsBed(medicalBed))
+                { state.RescueStatus = "安置失败：床位记录冲突"; DropRescue(world, rescuer, state); return; }
+                if (!world.OutdoorConstructedAssets.Assets.TryGetValue(destinationId, out var bed) ||
+                    !RoomBedGeometry.IsBed(bed))
                 {
-                    medicalBed.ReservedCharacterId = target.Id; medicalBed.OccupantCharacterId = target.Id;
-                    world.WorldPresence.SetAtWorldPosition(target.Id,
-                        new WorldVec2(medicalBed.WorldX + medicalBed.WorldWidth * .5f,
-                            medicalBed.WorldY + medicalBed.WorldHeight * .5f), surfaceId);
+                    world.RecoverySpotDeliveries.RemoveSpot(destinationId);
+                    state.RescueStatus = "安置失败：目标床位已失效";
+                    DropRescue(world, rescuer, state);
+                    return;
                 }
-                else world.WorldPresence.SetAtWorldPosition(target.Id, destination, surfaceId);
+                var usage = RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical)
+                    ? RoomUsage.Medical : RoomUsage.Residential;
+                var placed = RoomBedFacilityService.TryPlaceCarriedOccupant(
+                    world, destinationId, rescuer.Id, target.Id, usage);
+                if (placed.IsFailure)
+                {
+                    world.RecoverySpotDeliveries.RemoveSpot(destinationId);
+                    RoomBedFacilityService.Release(world, target.Id);
+                    RejectDestination(state, destinationId);
+                    state.RescueDestinationId = string.Empty;
+                    state.RescueStatus = "安置失败：" + placed.Error.Message + "，正在改选";
+                    delivery.Clear();
+                    return;
+                }
                 delivery.Clear(); state.RescueTargetId = EntityId.None;
                 state.RescueCarrying = false; state.RescueDestinationId = string.Empty;
                 state.RescueRejectedDestinationId = string.Empty;
+                state.RescueStatus = "已完成床位安置";
             }
         }
 
@@ -1366,16 +1579,21 @@ namespace XianXia.Core.Npc
             foreach (var pair in world.RecoverySpotDeliveries.Placements)
             {
                 if (!world.OutdoorConstructedAssets.Assets.TryGetValue(pair.Key, out var spot) ||
-                    !(RoomBedGeometry.IsBed(spot) && RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical)) ||
+                    !(RoomBedGeometry.IsBed(spot) &&
+                      (RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential))) ||
                     !world.Entities.TryGet(pair.Value, out var injured) ||
                     !injured.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
-                    !CharacterWorldPresenceQuery.TryResolve(world, pair.Value, out var presence) || !presence.HasWorldPosition ||
-                    presence.SurfaceId != spot.SurfaceId)
+                    spot.OccupantCharacterId != pair.Value ||
+                    !RoomBedFacilityService.IsAtBed(world, spot, pair.Value) ||
+                    !CharacterWorldPresenceQuery.TryResolve(world, pair.Value, out var presence) ||
+                    !presence.HasWorldPosition || presence.SurfaceId != spot.SurfaceId)
                 { remove.Add(pair.Key); continue; }
                 var center = new WorldVec2(spot.WorldX + spot.WorldWidth * .5f, spot.WorldY + spot.WorldHeight * .5f);
                 var range = world.SurfaceSpatial.TryGet(spot.SurfaceId, out var metric) && metric != null
                     ? metric.CellSize * .75f : Math.Min(spot.WorldWidth, spot.WorldHeight) * .5f;
-                if (DistanceSquared(presence.WorldPosition, center) > range * range) remove.Add(pair.Key);
+                if (DistanceSquared(presence.WorldPosition, center) > range * range &&
+                    !RoomBedFacilityService.IsAtAccessPoint(world, spot, pair.Value)) remove.Add(pair.Key);
             }
             if (rejectInvalid && remove.Count > 0)
                 return Result.Failure(ErrorCode.SnapshotInvalid,
@@ -1399,10 +1617,53 @@ namespace XianXia.Core.Npc
                     DropRescue(world, worker, pair.Value);
                     CivilianConstructionJobService.ReleaseCarrier(world, worker.Id);
                 }
-                if (pair.Value.Disposition == CivilianDisposition.CapturedEscorted &&
-                    !pair.Value.CarrierId.IsNone && encounter.Find(pair.Value.CarrierId.Value) != null &&
-                    world.Entities.TryGet(pair.Key, out var escorted))
-                    DropEscort(world, escorted, pair.Value);
+            }
+        }
+
+        public static int ReconcileEscortsForEncounter(SimulationWorld world, CharacterEncounterState encounter)
+        {
+            if (world == null || encounter == null) return 0;
+            var repaired = 0;
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state.Disposition != CivilianDisposition.CapturedEscorted || state.CarrierId.IsNone ||
+                    !world.Entities.TryGet(pair.Key, out var captive)) continue;
+                var carrier = encounter.Find(state.CarrierId.Value);
+                if (carrier == null) continue;
+                var presence = world.WorldPresence.GetOrCreate(captive.Id);
+                if (presence.Mode != PartyWorldPresenceMode.InEncounter ||
+                    presence.PersonalSurfaceId != encounter.SourceSurfaceId ||
+                    !presence.HasContinuousWorldPosition || presence.WorldPosX != carrier.TacticalX ||
+                    presence.WorldPosY != carrier.TacticalY) repaired++;
+                presence.Mode = PartyWorldPresenceMode.InEncounter;
+                presence.SiteId = string.Empty;
+                presence.PersonalSurfaceId = encounter.SourceSurfaceId;
+                presence.WorldPosX = carrier.TacticalX;
+                presence.WorldPosY = carrier.TacticalY;
+                presence.HasContinuousWorldPosition = true;
+            }
+            return repaired;
+        }
+
+        public static void ReconcileEscortsAfterEncounter(SimulationWorld world, CharacterEncounterState encounter)
+        {
+            if (world == null || encounter == null) return;
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state.Disposition != CivilianDisposition.CapturedEscorted || state.CarrierId.IsNone ||
+                    encounter.Find(state.CarrierId.Value) == null ||
+                    !world.Entities.TryGet(pair.Key, out var captive)) continue;
+                if (world.Entities.TryGet(state.CarrierId, out var carrierEntity) &&
+                    CombatLifeStateService.CanFight(carrierEntity) &&
+                    CharacterWorldPresenceQuery.TryResolve(world, state.CarrierId, out var carrier) &&
+                    carrier.HasWorldPosition)
+                {
+                    world.WorldPresence.SetAtWorldPosition(captive.Id, carrier.WorldPosition, carrier.SurfaceId);
+                    continue;
+                }
+                ReleaseEscortedAtCarrier(world, captive, state);
             }
         }
 
@@ -1579,8 +1840,95 @@ namespace XianXia.Core.Npc
             return Result.Success();
         }
 
+        public static Result ValidateTransportPlacements(SimulationWorld world)
+        {
+            if (world == null) return Invalid("World is required.");
+            var rescueTargets = new HashSet<EntityId>();
+            var escortCarriers = new HashSet<EntityId>();
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (!state.RescueTargetId.IsNone)
+                {
+                    if (!rescueTargets.Add(state.RescueTargetId) ||
+                        !world.Entities.TryGet(pair.Key, out _) ||
+                        !world.Entities.TryGet(state.RescueTargetId, out var injured) ||
+                        !injured.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
+                        string.IsNullOrWhiteSpace(state.RescueDestinationId) ||
+                        !world.OutdoorConstructedAssets.Assets.TryGetValue(state.RescueDestinationId, out var bed) ||
+                        !RoomBedGeometry.IsBed(bed) || bed.ReservedCharacterId != state.RescueTargetId ||
+                        !(RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ||
+                          RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential)))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Saved mortal rescue transport is inconsistent.", "Rescuer=" + pair.Key.Value);
+                }
+                if (state.Disposition == CivilianDisposition.CapturedEscorted)
+                {
+                    if (state.CarrierId.IsNone || !escortCarriers.Add(state.CarrierId) ||
+                        !world.Entities.TryGet(state.CarrierId, out _) ||
+                        !world.Entities.TryGet(pair.Key, out var captive) ||
+                        !captive.TryGet<LifecycleComponent>(out var captiveLife) ||
+                        captiveLife.State != LifecycleState.Captured)
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Saved escorted captive is inconsistent.", "Captive=" + pair.Key.Value);
+                }
+                if (state.Disposition != CivilianDisposition.Detained) continue;
+                if (!world.OutdoorConstructedAssets.Assets.TryGetValue(
+                        state.DetainedResidenceWorkAreaId, out var room) ||
+                    !RoomBedGeometry.IsRoom(room) || room.RoomUsage != RoomUsage.Prison)
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Saved detainee does not reference a formal Prison room.", "Detainee=" + pair.Key.Value);
+                var occupied = 0;
+                foreach (var bed in RoomBedFacilityService.BedsInRoom(world, room.StableAssetId))
+                    if (bed.OccupantCharacterId == pair.Key)
+                    {
+                        occupied++;
+                        if (!RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ||
+                            !RoomBedFacilityService.IsAtBed(world, bed, pair.Key))
+                            return Result.Failure(ErrorCode.SnapshotInvalid,
+                                "Saved detainee bed placement is invalid.", bed.StableAssetId);
+                    }
+                if (occupied != 1)
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Saved detainee must occupy exactly one real prison bed.", "Detainee=" + pair.Key.Value);
+            }
+            return Result.Success();
+        }
+
+        public static Result ReleaseEscorted(SimulationWorld world, EntityId actor, EntityId target)
+        {
+            if (!TryInteractive(world, target, out _, out var state) ||
+                state.Disposition != CivilianDisposition.CapturedEscorted || state.CarrierId != actor)
+                return Invalid("只能由实际押送者主动释放所押送的囚犯。");
+            if (world.Strategic.PlayerPartyContext?.IsMember(actor) != true)
+                return Invalid("只有玩家队伍中的押送者可以释放囚犯。");
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null && encounter.Find(actor.Value) != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
+                return Invalid("独立战斗结束返场后才能安全释放囚犯。");
+            if (!CharacterWorldPresenceQuery.TryResolve(world, actor, out var carrier) ||
+                !carrier.HasWorldPosition ||
+                !CharacterWorldPresenceQuery.TryResolve(world, target, out var captive) ||
+                !captive.HasWorldPosition || carrier.SurfaceId != captive.SurfaceId)
+                return Invalid("押送者与囚犯不在同一合法世界空间。");
+            world.WorldPresence.SetAtWorldPosition(target, carrier.WorldPosition, carrier.SurfaceId);
+            return Release(world, target);
+        }
+
         public static Result RequestCapture(SimulationWorld world, EntityId carrier, EntityId target)
         {
+            var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, carrier);
+            if (burden.IsFailure) return burden;
+            if (world == null || !world.Entities.TryGet(carrier, out var carrierEntity) ||
+                !CombatLifeStateService.CanFight(carrierEntity))
+                return Invalid("Capture requires a living carrier.");
+            if (world.Civilians.TryGet(carrier, out var carrierState) &&
+                (!carrierState.RescueTargetId.IsNone || carrierState.RescueCarrying))
+                return Invalid("Carrier is already transporting another person.");
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+                if (job.CarrierId == carrier && job.PayloadCount > 0)
+                    return Invalid("Carrier is already transporting construction materials.");
             if (!TryInteractive(world, target, out _, out var state) || state.Disposition != CivilianDisposition.Fleeing)
                 return Invalid("Only a fleeing mortal can be captured.");
             state.PendingCaptureCarrierId = carrier;
@@ -1610,7 +1958,30 @@ namespace XianXia.Core.Npc
                 state.Disposition = CivilianDisposition.CapturedEscorted;
                 state.CarrierId = ResolveCarrier(world, requestedCarrier);
                 if (state.CarrierId.IsNone) state.CarrierId = FirstFriendly(encounter);
+                CancelEscortIncompatibleActions(world, state.CarrierId);
             }
+        }
+
+        static void CancelEscortIncompatibleActions(SimulationWorld world, EntityId carrier)
+        {
+            if (world == null || carrier.IsNone) return;
+            world.GetOrCreateOrderQueue(carrier).RemoveWhere(o =>
+                o.Type == OrderType.Cultivate || o.Type == OrderType.Labor ||
+                o.Type == OrderType.Work || o.Type == OrderType.Rest ||
+                o.Type == OrderType.Recover || o.Type == OrderType.RestAtBed);
+            world.WorkAreaOccupancy.Release(carrier);
+            RoomBedFacilityService.Release(world, carrier);
+            if (!world.Entities.TryGet(carrier, out var entity) ||
+                !entity.TryGet<ActionStateComponent>(out var actionState) ||
+                !actionState.HasActiveAction ||
+                !world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action) ||
+                action is MoveAction || action is WaitAction || action is ObserveAction)
+                return;
+            action.Cancel();
+            world.ActiveActions.Remove(action.Id);
+            actionState.ActiveActionId = ActionId.None;
+            actionState.ActiveClock = null;
+            actionState.ActiveOrderSource = OrderSource.Player;
         }
 
         static EntityId FirstFriendly(CharacterEncounterState encounter)
@@ -1638,11 +2009,18 @@ namespace XianXia.Core.Npc
         static void SyncEscort(SimulationWorld world, Entity entity, MortalCivilianState state)
         {
             if (state.CarrierId.IsNone) return;
-            if (!world.Entities.TryGet(state.CarrierId, out var carrierEntity) ||
-                !CombatLifeStateService.CanFight(carrierEntity) ||
-                CharacterEncounterService.OwnsParticipantSpatialState(world, state.CarrierId))
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null && encounter.Find(state.CarrierId.Value) != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
             {
-                DropEscort(world, entity, state);
+                ReconcileEscortsForEncounter(world, encounter);
+                return;
+            }
+            if (!world.Entities.TryGet(state.CarrierId, out var carrierEntity) ||
+                !CombatLifeStateService.CanFight(carrierEntity))
+            {
+                ReleaseEscortedAtCarrier(world, entity, state);
                 return;
             }
             if (CharacterWorldPresenceQuery.TryResolve(world, state.CarrierId, out var carrier) && carrier.HasWorldPosition)
@@ -1657,6 +2035,16 @@ namespace XianXia.Core.Npc
                 carrier.HasWorldPosition)
                 world.WorldPresence.SetAtWorldPosition(entity.Id, carrier.WorldPosition, carrier.SurfaceId);
             state.CarrierId = EntityId.None;
+        }
+
+        static void ReleaseEscortedAtCarrier(SimulationWorld world, Entity entity, MortalCivilianState state)
+        {
+            DropEscort(world, entity, state);
+            if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured)
+                life.State = LifecycleState.Alive;
+            state.DetainedResidenceWorkAreaId = string.Empty;
+            state.Disposition = CivilianDisposition.Fleeing;
+            BeginFlee(world, entity, state, MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id));
         }
 
         public static Result SetResidenceUsage(SimulationWorld world, string areaId, ResidenceUsage usage)
@@ -1696,20 +2084,16 @@ namespace XianXia.Core.Npc
         public static Result Detain(SimulationWorld world, EntityId target, string residenceId)
         {
             var validation = ValidateDetain(world, target, residenceId, out var entity, out var state,
-                out var area, out var prisonSurface, out var dropOffCenter);
+                out var prisonBed, out var prisonSurface, out _);
             if (validation.IsFailure) return validation;
-            var detentionPosition = dropOffCenter;
-            var detentionSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
-            if (area != null && MortalCivilianQuery.TryResolveWorkAreaWorldCenter(world, detentionSiteId, area,
-                    out var detentionSurface, out var prisonCenter, out _) && detentionSurface == prisonSurface)
-                detentionPosition = prisonCenter;
-            else if (RoomBedFacilityService.TryReserveInRoom(world, residenceId, target, out var prisonBed))
+            prisonBed.ReservedCharacterId = target;
+            var placed = RoomBedFacilityService.TryPlaceCarriedOccupant(
+                world, prisonBed.StableAssetId, state.CarrierId, target, RoomUsage.Prison);
+            if (placed.IsFailure)
             {
-                detentionPosition = new WorldVec2(prisonBed.WorldX + prisonBed.WorldWidth * .5f,
-                    prisonBed.WorldY + prisonBed.WorldHeight * .5f);
-                RoomBedFacilityService.TryOccupy(world, prisonBed.StableAssetId, target);
+                if (prisonBed.OccupantCharacterId != target) prisonBed.ReservedCharacterId = EntityId.None;
+                return placed;
             }
-            world.WorldPresence.SetAtWorldPosition(target, detentionPosition, prisonSurface);
             state.Disposition = CivilianDisposition.Detained; state.DetainedResidenceWorkAreaId = residenceId;
             state.CarrierId = EntityId.None; state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
             if (entity.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();
@@ -1728,45 +2112,35 @@ namespace XianXia.Core.Npc
                 RoomBedGeometry.IsRoom(room) && room.RoomUsage == RoomUsage.Prison)
             {
                 dropOff = room;
+                OutdoorConstructedAssetState selected = null;
+                foreach (var bed in RoomBedFacilityService.BedsInRoom(world, residenceId))
+                    if (RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) &&
+                        bed.OccupantCharacterId.IsNone && bed.ReservedCharacterId.IsNone &&
+                        (selected == null || StringComparer.Ordinal.Compare(bed.StableAssetId, selected.StableAssetId) < 0))
+                        selected = bed;
+                if (selected == null || !RoomBedFacilityService.TryResolveAccessPoint(world, selected, out center))
+                    return false;
                 var cell = room.WorldWidth / room.CellsW;
-                center = new WorldVec2(room.WorldX + room.WorldWidth * .5f, room.WorldY - cell * .5f);
                 interactionRange = world.SurfaceSpatial.TryGet(room.SurfaceId, out var roomMetric) && roomMetric != null
                     ? roomMetric.CellSize * 1.5f : cell * 1.5f;
                 return true;
             }
-            var locationId = world.TryGetWorkArea(residenceId, out var residence) && residence != null
-                ? residence.LocationId : residenceId;
-            foreach (var pair in world.OutdoorConstructedAssets.Assets)
-            {
-                var candidate = pair.Value;
-                if (candidate.Kind != OutdoorConstructedAssetSemantics.PrisonDropOffKind ||
-                    candidate.BoundLocationId != locationId) continue;
-                if (dropOff != null && StringComparer.Ordinal.Compare(candidate.StableAssetId, dropOff.StableAssetId) >= 0) continue;
-                dropOff = candidate;
-            }
-            if (dropOff == null) return false;
-            center = new WorldVec2(dropOff.WorldX + dropOff.WorldWidth * .5f,
-                dropOff.WorldY + dropOff.WorldHeight * .5f);
-            interactionRange = world.SurfaceSpatial.TryGet(dropOff.SurfaceId, out var metric) && metric != null
-                ? metric.CellSize * 1.5f : Math.Max(dropOff.WorldWidth, dropOff.WorldHeight);
-            return true;
+            return false;
         }
 
         static Result ValidateDetain(SimulationWorld world, EntityId target, string residenceId,
-            out Entity entity, out MortalCivilianState state, out WorkAreaDefinition area,
+            out Entity entity, out MortalCivilianState state, out OutdoorConstructedAssetState prisonBed,
             out string prisonSurface, out WorldVec2 dropOffCenter)
         {
-            entity = null; state = null; area = null; prisonSurface = string.Empty; dropOffCenter = default;
+            entity = null; state = null; prisonBed = null; prisonSurface = string.Empty; dropOffCenter = default;
             if (!TryInteractive(world, target, out entity, out state) || state.Disposition != CivilianDisposition.CapturedEscorted)
                 return Invalid("Only an escorted captive can be detained.");
             var party = world.Strategic.PlayerPartyContext;
             if (state.CarrierId.IsNone || party?.IsMember(state.CarrierId) != true ||
                 !world.Entities.TryGet(state.CarrierId, out var carrier) || !CombatLifeStateService.CanFight(carrier))
                 return Invalid("Detention requires a living player-party carrier.");
-            var roomPrison = world.OutdoorConstructedAssets.Assets.TryGetValue(residenceId, out var prisonRoom) &&
-                             RoomBedGeometry.IsRoom(prisonRoom) && prisonRoom.RoomUsage == RoomUsage.Prison;
-            if (!roomPrison && (world.Civilians.GetResidenceUsage(residenceId) != ResidenceUsage.PrisonerOnly ||
-                !world.TryGetWorkArea(residenceId, out area) || !HousingAssignmentService.IsHousingArea(area)))
+            if (!world.OutdoorConstructedAssets.Assets.TryGetValue(residenceId, out var prisonRoom) ||
+                !RoomBedGeometry.IsRoom(prisonRoom) || prisonRoom.RoomUsage != RoomUsage.Prison)
                 return Invalid("A Prison room is required.");
             var currentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
             var carrierSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, state.CarrierId);
@@ -1774,40 +2148,40 @@ namespace XianXia.Core.Npc
                 !string.Equals(currentSiteId, carrierSiteId, StringComparison.Ordinal) ||
                 !string.Equals(currentSite.OwnerFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal))
                 return Invalid("Captive must be at a player-controlled Site.");
-            if (!TryResolvePrisonDropOff(world, residenceId, out var dropOff, out dropOffCenter, out var interactionRange) ||
-                !string.Equals(dropOff.BoundWorldSiteId, currentSiteId, StringComparison.Ordinal) ||
-                string.IsNullOrWhiteSpace(dropOff.SurfaceId) ||
+            if (!TryFindPrisonBed(world, residenceId, target, out prisonBed) ||
+                !RoomBedFacilityService.TryResolveAccessPoint(world, prisonBed, out dropOffCenter))
+                return Invalid("Prison room has no free real bed.");
+            var interactionRange = world.SurfaceSpatial.TryGet(prisonBed.SurfaceId, out var metric) && metric != null
+                ? metric.CellSize * 1.5f : Math.Max(prisonBed.WorldWidth, prisonBed.WorldHeight);
+            if (!string.Equals(prisonBed.BoundWorldSiteId, currentSiteId, StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(prisonBed.SurfaceId) ||
                 !CharacterWorldPresenceQuery.TryResolve(world, state.CarrierId, out var carrierPresence) ||
                 !carrierPresence.HasWorldPosition ||
                 !CharacterWorldPresenceQuery.TryResolve(world, target, out var captivePresence) ||
                 !captivePresence.HasWorldPosition ||
-                !string.Equals(carrierPresence.SurfaceId, dropOff.SurfaceId, StringComparison.Ordinal) ||
-                !string.Equals(captivePresence.SurfaceId, dropOff.SurfaceId, StringComparison.Ordinal) ||
+                !string.Equals(carrierPresence.SurfaceId, prisonBed.SurfaceId, StringComparison.Ordinal) ||
+                !string.Equals(captivePresence.SurfaceId, prisonBed.SurfaceId, StringComparison.Ordinal) ||
                 DistanceSquared(carrierPresence.WorldPosition, dropOffCenter) > interactionRange * interactionRange ||
                 DistanceSquared(captivePresence.WorldPosition, dropOffCenter) > interactionRange * interactionRange ||
                 DistanceSquared(captivePresence.WorldPosition, carrierPresence.WorldPosition) > interactionRange * interactionRange)
                 return Invalid("Carrier and captive must physically reach the prison drop-off point.");
-            if (roomPrison)
-            {
-                var capacity = 0; var used = 0;
-                foreach (var bed in RoomBedFacilityService.BedsInRoom(world, residenceId))
-                { capacity++; if (!bed.OccupantCharacterId.IsNone && bed.OccupantCharacterId != target) used++; }
-                if (capacity == 0 || used >= capacity) return Invalid("Prison room has no free bed.");
-                prisonSurface = prisonRoom.SurfaceId;
-                return Result.Success();
-            }
-            var occupants = new HashSet<EntityId>();
-            foreach (var resident in world.Entities.All)
-                if (resident.TryGet<ActivityTendencyComponent>(out var tendency) &&
-                    string.Equals(tendency.HomeWorkAreaId, residenceId, StringComparison.Ordinal))
-                    occupants.Add(resident.Id);
-            foreach (var pair in world.Civilians.All)
-                if (pair.Value.Disposition == CivilianDisposition.Detained &&
-                    string.Equals(pair.Value.DetainedResidenceWorkAreaId, residenceId, StringComparison.Ordinal))
-                    occupants.Add(pair.Value.EntityId);
-            if (occupants.Count >= Math.Max(1, area.Capacity)) return Invalid("Prisoner residence is full.");
-            prisonSurface = dropOff.SurfaceId;
+            prisonSurface = prisonRoom.SurfaceId;
             return Result.Success();
+        }
+
+        static bool TryFindPrisonBed(SimulationWorld world, string roomId, EntityId target,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            foreach (var candidate in RoomBedFacilityService.BedsInRoom(world, roomId))
+            {
+                if (!RoomBedFacilityService.BedHasUsage(world, candidate, RoomUsage.Prison) ||
+                    (!candidate.AssignedCharacterId.IsNone && candidate.AssignedCharacterId != target) ||
+                    !RoomBedFacilityService.CanUseBed(world, candidate, target, out _)) continue;
+                if (bed == null || StringComparer.Ordinal.Compare(candidate.StableAssetId, bed.StableAssetId) < 0)
+                    bed = candidate;
+            }
+            return bed != null;
         }
 
         public static Result Execute(SimulationWorld world, EntityId actor, EntityId target)

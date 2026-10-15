@@ -705,7 +705,7 @@ namespace XianXia.Unity.Host
             var extraRows = civilian == null ? 0 :
                 civilian.Disposition == CivilianDisposition.SurrenderWaiting ? 2 :
                 civilian.Disposition == CivilianDisposition.Fleeing ? 2 :
-                civilian.Disposition == CivilianDisposition.CapturedEscorted ? 0 :
+                civilian.Disposition == CivilianDisposition.CapturedEscorted && civilian.CarrierId == _actor ? 1 :
                 civilian.Disposition == CivilianDisposition.Detained ? 3 : 0;
             var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows;
             var h = itemH * rows + 34f;
@@ -757,6 +757,13 @@ namespace XianXia.Unity.Host
                 {
                     if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "处决", _button))
                         BeginPersonApproach(HostNpcArriveAction.Execute);
+                    y += itemH;
+                }
+                if (civilian.Disposition == CivilianDisposition.CapturedEscorted && civilian.CarrierId == _actor)
+                {
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "释放囚犯", _button))
+                        RunCivilianCommand(MortalCivilianService.ReleaseEscorted(
+                            bootstrap.Session.World, _actor, _targetNpc));
                     y += itemH;
                 }
                 if (civilian.Disposition == CivilianDisposition.SurrenderWaiting ||
@@ -999,6 +1006,9 @@ namespace XianXia.Unity.Host
                 CloseAll();
                 return;
             }
+            var transportPermission = MortalTransportConstraintService.ValidateAttack(world, _actor);
+            if (transportPermission.IsFailure)
+            { HostWorldSiteCoreWarfare.Feedback(bootstrap, transportPermission.Error.Message); CloseAll(); return; }
             if (!HostWorldSiteCoreWarfare.ValidateTarget(bootstrap, _actor, flag.SiteId)) { CloseAll(); return; }
             BeginStrategicAggressionIfNeeded(
                 world.Strategic.PlayerFactionId, flag.FactionId, BeginFactionFlagAttackAfterAggression);
@@ -1046,6 +1056,9 @@ namespace XianXia.Unity.Host
             }
 
             var playerFaction = world.Strategic?.PlayerFactionId ?? string.Empty;
+            var transportPermission = MortalTransportConstraintService.ValidateAttack(world, _actor);
+            if (transportPermission.IsFailure)
+            { HostWorldSiteCoreWarfare.Feedback(bootstrap, transportPermission.Error.Message); CloseAll(); return; }
             if (!WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(world, core.WorkAreaId, out var site))
             {
                 HostWorldSiteCoreWarfare.Feedback(bootstrap, "议政厅缺少正式据点绑定，无法发起攻击。");
@@ -1564,6 +1577,8 @@ namespace XianXia.Unity.Host
         bool CanInitiatePlayerHostileAction(EntityId actor, EntityId target)
         {
             var session = bootstrap?.Session;
+            if (session == null || MortalTransportConstraintService.ValidateAttack(
+                    session.World, actor).IsFailure) return false;
             var encounter = session?.World?.Strategic?.CharacterEncounter;
             if (encounter != null &&
                 (encounter.Phase == CharacterEncounterPhase.Active ||

@@ -12957,8 +12957,8 @@
           "displayName": "青石荒村",
           "siteType": "Village",
           "ownerFactionId": "base:sect_huangcun_labor",
-          "arrivalWorldX": 14.308,
-          "arrivalWorldY": 23.632
+          "arrivalWorldX": 14.924000000000001,
+          "arrivalWorldY": 24.024
         },
         {
           "siteId": "base:site_lingdi",
@@ -13195,8 +13195,8 @@
         {
           "stableId": "base:site_huangcun:block_supervisor_mansion",
           "siteId": "base:site_huangcun",
-          "worldX": 14.168,
-          "worldY": 23.296000000000003,
+          "worldX": 14.784,
+          "worldY": 23.688000000000002,
           "worldWidth": 0.17321,
           "worldHeight": 0.28,
           "kind": "controlCore",
@@ -13299,7 +13299,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_234917059",
           "siteId": "base:site_huangcun",
-          "worldX": 12.824,
+          "worldX": 13.104,
           "worldY": 23.156000000000002,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13317,7 +13317,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_235504495",
           "siteId": "base:site_huangcun",
-          "worldX": 12.824,
+          "worldX": 13.104,
           "worldY": 22.946,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13335,7 +13335,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_235506687",
           "siteId": "base:site_huangcun",
-          "worldX": 12.997208,
+          "worldX": 13.277208000000002,
           "worldY": 23.156000000000002,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13353,7 +13353,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_235509329",
           "siteId": "base:site_huangcun",
-          "worldX": 12.997208,
+          "worldX": 13.277208000000002,
           "worldY": 22.946,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13371,7 +13371,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_235512636",
           "siteId": "base:site_huangcun",
-          "worldX": 13.170416,
+          "worldX": 13.450415999999999,
           "worldY": 22.946,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13389,7 +13389,7 @@
         {
           "stableId": "base:site_huangcun:place_grainField_235514826",
           "siteId": "base:site_huangcun",
-          "worldX": 13.170416,
+          "worldX": 13.450415999999999,
           "worldY": 23.156000000000002,
           "worldWidth": 0.10825,
           "worldHeight": 0.14,
@@ -13407,7 +13407,7 @@
         {
           "stableId": "base:site_huangcun:place_herbField_234905155",
           "siteId": "base:site_huangcun",
-          "worldX": 13.468,
+          "worldX": 13.951,
           "worldY": 23.121000000000002,
           "worldWidth": 0.15155,
           "worldHeight": 0.175,
@@ -13425,7 +13425,7 @@
         {
           "stableId": "base:site_huangcun:place_herbField_235721557",
           "siteId": "base:site_huangcun",
-          "worldX": 13.468,
+          "worldX": 13.951,
           "worldY": 22.876,
           "worldWidth": 0.15155,
           "worldHeight": 0.175,
@@ -13443,7 +13443,7 @@
         {
           "stableId": "base:site_huangcun:place_herbField_235723679",
           "siteId": "base:site_huangcun",
-          "worldX": 13.662880000000001,
+          "worldX": 14.145880000000002,
           "worldY": 22.876,
           "worldWidth": 0.15155,
           "worldHeight": 0.175,
@@ -13455,13 +13455,13 @@
           "sourceGridY": 12,
           "sourceCellsW": 7,
           "sourceCellsH": 5,
-          "chunkX": 10,
+          "chunkX": 11,
           "chunkY": 17
         },
         {
           "stableId": "base:site_huangcun:place_herbField_235725691",
           "siteId": "base:site_huangcun",
-          "worldX": 13.662880000000001,
+          "worldX": 14.145880000000002,
           "worldY": 23.121000000000002,
           "worldWidth": 0.15155,
           "worldHeight": 0.175,
@@ -13473,14 +13473,14 @@
           "sourceGridY": 19,
           "sourceCellsW": 7,
           "sourceCellsH": 5,
-          "chunkX": 10,
+          "chunkX": 11,
           "chunkY": 17
         },
         {
           "stableId": "base:site_huangcun:place_ore_233945981",
           "siteId": "base:site_huangcun",
           "worldX": 12.46428,
-          "worldY": 23.556,
+          "worldY": 23.836000000000002,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13492,13 +13492,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_233947755",
           "siteId": "base:site_huangcun",
           "worldX": 12.39933,
-          "worldY": 23.556,
+          "worldY": 23.836000000000002,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13510,13 +13510,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_233947996",
           "siteId": "base:site_huangcun",
           "worldX": 12.334380000000001,
-          "worldY": 23.556,
+          "worldY": 23.836000000000002,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13528,13 +13528,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_233948259",
           "siteId": "base:site_huangcun",
           "worldX": 12.334380000000001,
-          "worldY": 23.661000000000005,
+          "worldY": 23.941000000000003,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13546,13 +13546,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_233954089",
           "siteId": "base:site_huangcun",
           "worldX": 12.39933,
-          "worldY": 23.661000000000005,
+          "worldY": 23.941000000000003,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13564,13 +13564,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_233955496",
           "siteId": "base:site_huangcun",
           "worldX": 12.46428,
-          "worldY": 23.661000000000005,
+          "worldY": 23.941000000000003,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13582,13 +13582,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_234005826",
           "siteId": "base:site_huangcun",
           "worldX": 12.46428,
-          "worldY": 23.766000000000002,
+          "worldY": 24.046,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13600,13 +13600,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_234007406",
           "siteId": "base:site_huangcun",
           "worldX": 12.39933,
-          "worldY": 23.766000000000002,
+          "worldY": 24.046,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13618,13 +13618,13 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_ore_234009233",
           "siteId": "base:site_huangcun",
           "worldX": 12.334380000000001,
-          "worldY": 23.766000000000002,
+          "worldY": 24.046,
           "worldWidth": 0.0433,
           "worldHeight": 0.07,
           "kind": "ore",
@@ -13636,7 +13636,7 @@
           "sourceCellsW": 2,
           "sourceCellsH": 2,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:place_treeL_234950832",
@@ -14020,7 +14020,7 @@
           "stableId": "base:site_huangcun:place_zoneMine_233921010",
           "siteId": "base:site_huangcun",
           "worldX": 12.312730000000002,
-          "worldY": 23.521,
+          "worldY": 23.801000000000002,
           "worldWidth": 0.21651,
           "worldHeight": 0.35,
           "kind": "zoneMine",
@@ -14032,13 +14032,13 @@
           "sourceCellsW": 10,
           "sourceCellsH": 10,
           "chunkX": 9,
-          "chunkY": 17
+          "chunkY": 18
         },
         {
           "stableId": "base:site_huangcun:room_medical",
           "siteId": "base:site_huangcun",
-          "worldX": 14.112,
-          "worldY": 23.744000000000003,
+          "worldX": 14.168,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.224,
           "worldHeight": 0.336,
           "kind": "room",
@@ -14048,7 +14048,7 @@
           "sourceCellsW": 8,
           "sourceCellsH": 12,
           "chunkX": 11,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_medium_wood",
           "quarterTurns": 0,
           "roomUsage": "Medical",
@@ -14057,8 +14057,8 @@
         {
           "stableId": "base:site_huangcun:room_medical:bed_1",
           "siteId": "base:site_huangcun",
-          "worldX": 14.14,
-          "worldY": 23.8,
+          "worldX": 14.196,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14075,8 +14075,8 @@
         {
           "stableId": "base:site_huangcun:room_medical:bed_2",
           "siteId": "base:site_huangcun",
-          "worldX": 14.196,
-          "worldY": 23.8,
+          "worldX": 14.252,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14093,8 +14093,8 @@
         {
           "stableId": "base:site_huangcun:room_medical:bed_3",
           "siteId": "base:site_huangcun",
-          "worldX": 14.252,
-          "worldY": 23.8,
+          "worldX": 14.308,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14111,8 +14111,8 @@
         {
           "stableId": "base:site_huangcun:room_prison",
           "siteId": "base:site_huangcun",
-          "worldX": 14.056,
-          "worldY": 24.248,
+          "worldX": 14.168,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.224,
           "worldHeight": 0.336,
           "kind": "room",
@@ -14131,8 +14131,8 @@
         {
           "stableId": "base:site_huangcun:room_prison:bed_1",
           "siteId": "base:site_huangcun",
-          "worldX": 14.084,
-          "worldY": 24.304000000000002,
+          "worldX": 14.196,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14149,8 +14149,8 @@
         {
           "stableId": "base:site_huangcun:room_prison:bed_2",
           "siteId": "base:site_huangcun",
-          "worldX": 14.14,
-          "worldY": 24.304000000000002,
+          "worldX": 14.252,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14167,8 +14167,8 @@
         {
           "stableId": "base:site_huangcun:room_prison:bed_3",
           "siteId": "base:site_huangcun",
-          "worldX": 14.196,
-          "worldY": 24.304000000000002,
+          "worldX": 14.308,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14185,8 +14185,8 @@
         {
           "stableId": "base:site_huangcun:room_prison:bed_4",
           "siteId": "base:site_huangcun",
-          "worldX": 14.196,
-          "worldY": 24.416,
+          "worldX": 14.308,
+          "worldY": 24.752000000000002,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14203,8 +14203,8 @@
         {
           "stableId": "base:site_huangcun:room_res_01",
           "siteId": "base:site_huangcun",
-          "worldX": 12.824,
-          "worldY": 23.744000000000003,
+          "worldX": 13.104,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14213,7 +14213,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14222,8 +14222,8 @@
         {
           "stableId": "base:site_huangcun:room_res_01:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 12.852,
-          "worldY": 23.8,
+          "worldX": 13.132,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14241,8 +14241,8 @@
         {
           "stableId": "base:site_huangcun:room_res_02",
           "siteId": "base:site_huangcun",
-          "worldX": 12.991999999999999,
-          "worldY": 23.744000000000003,
+          "worldX": 13.244,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14251,7 +14251,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14260,8 +14260,8 @@
         {
           "stableId": "base:site_huangcun:room_res_02:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.02,
-          "worldY": 23.8,
+          "worldX": 13.272,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14279,8 +14279,8 @@
         {
           "stableId": "base:site_huangcun:room_res_03",
           "siteId": "base:site_huangcun",
-          "worldX": 13.16,
-          "worldY": 23.744000000000003,
+          "worldX": 13.384,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14289,7 +14289,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14298,8 +14298,8 @@
         {
           "stableId": "base:site_huangcun:room_res_03:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.188,
-          "worldY": 23.8,
+          "worldX": 13.412,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14317,8 +14317,8 @@
         {
           "stableId": "base:site_huangcun:room_res_04",
           "siteId": "base:site_huangcun",
-          "worldX": 13.328,
-          "worldY": 23.744000000000003,
+          "worldX": 13.524,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14327,7 +14327,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14336,8 +14336,8 @@
         {
           "stableId": "base:site_huangcun:room_res_04:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.356,
-          "worldY": 23.8,
+          "worldX": 13.552,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14355,8 +14355,8 @@
         {
           "stableId": "base:site_huangcun:room_res_05",
           "siteId": "base:site_huangcun",
-          "worldX": 13.496,
-          "worldY": 23.744000000000003,
+          "worldX": 13.664,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14365,7 +14365,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14374,8 +14374,8 @@
         {
           "stableId": "base:site_huangcun:room_res_05:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.524,
-          "worldY": 23.8,
+          "worldX": 13.692,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14393,8 +14393,8 @@
         {
           "stableId": "base:site_huangcun:room_res_06",
           "siteId": "base:site_huangcun",
-          "worldX": 13.664,
-          "worldY": 23.744000000000003,
+          "worldX": 13.804,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14403,7 +14403,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14412,8 +14412,8 @@
         {
           "stableId": "base:site_huangcun:room_res_06:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.692,
-          "worldY": 23.8,
+          "worldX": 13.832,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14431,8 +14431,8 @@
         {
           "stableId": "base:site_huangcun:room_res_07",
           "siteId": "base:site_huangcun",
-          "worldX": 13.832,
-          "worldY": 23.744000000000003,
+          "worldX": 13.944,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14441,7 +14441,7 @@
           "sourceCellsW": 4,
           "sourceCellsH": 6,
           "chunkX": 10,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_normal_wood",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14450,8 +14450,8 @@
         {
           "stableId": "base:site_huangcun:room_res_07:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.86,
-          "worldY": 23.8,
+          "worldX": 13.972,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14469,8 +14469,8 @@
         {
           "stableId": "base:site_huangcun:room_res_08",
           "siteId": "base:site_huangcun",
-          "worldX": 12.824,
-          "worldY": 24.024,
+          "worldX": 13.104,
+          "worldY": 24.388,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14488,8 +14488,8 @@
         {
           "stableId": "base:site_huangcun:room_res_08:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 12.852,
-          "worldY": 24.080000000000002,
+          "worldX": 13.132,
+          "worldY": 24.444000000000003,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14507,8 +14507,8 @@
         {
           "stableId": "base:site_huangcun:room_res_09",
           "siteId": "base:site_huangcun",
-          "worldX": 12.991999999999999,
-          "worldY": 24.024,
+          "worldX": 13.244,
+          "worldY": 24.388,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14526,8 +14526,8 @@
         {
           "stableId": "base:site_huangcun:room_res_09:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.02,
-          "worldY": 24.080000000000002,
+          "worldX": 13.272,
+          "worldY": 24.444000000000003,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14545,8 +14545,8 @@
         {
           "stableId": "base:site_huangcun:room_res_10",
           "siteId": "base:site_huangcun",
-          "worldX": 13.496,
-          "worldY": 24.304000000000002,
+          "worldX": 13.664,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14564,8 +14564,8 @@
         {
           "stableId": "base:site_huangcun:room_res_10:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.524,
-          "worldY": 24.360000000000003,
+          "worldX": 13.692,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14583,8 +14583,8 @@
         {
           "stableId": "base:site_huangcun:room_res_11",
           "siteId": "base:site_huangcun",
-          "worldX": 13.664,
-          "worldY": 24.304000000000002,
+          "worldX": 13.804,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14602,8 +14602,8 @@
         {
           "stableId": "base:site_huangcun:room_res_11:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.692,
-          "worldY": 24.360000000000003,
+          "worldX": 13.832,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14621,8 +14621,8 @@
         {
           "stableId": "base:site_huangcun:room_res_12",
           "siteId": "base:site_huangcun",
-          "worldX": 13.832,
-          "worldY": 24.304000000000002,
+          "worldX": 13.944,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14640,8 +14640,8 @@
         {
           "stableId": "base:site_huangcun:room_res_12:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.86,
-          "worldY": 24.360000000000003,
+          "worldX": 13.972,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14659,8 +14659,8 @@
         {
           "stableId": "base:site_huangcun:room_res_13",
           "siteId": "base:site_huangcun",
-          "worldX": 13.16,
-          "worldY": 24.024,
+          "worldX": 13.384,
+          "worldY": 24.388,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14678,8 +14678,8 @@
         {
           "stableId": "base:site_huangcun:room_res_13:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.188,
-          "worldY": 24.080000000000002,
+          "worldX": 13.412,
+          "worldY": 24.444000000000003,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14697,8 +14697,8 @@
         {
           "stableId": "base:site_huangcun:room_res_14",
           "siteId": "base:site_huangcun",
-          "worldX": 13.328,
-          "worldY": 24.024,
+          "worldX": 13.524,
+          "worldY": 24.388,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14716,8 +14716,8 @@
         {
           "stableId": "base:site_huangcun:room_res_14:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.356,
-          "worldY": 24.080000000000002,
+          "worldX": 13.552,
+          "worldY": 24.444000000000003,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14735,8 +14735,8 @@
         {
           "stableId": "base:site_huangcun:room_res_15",
           "siteId": "base:site_huangcun",
-          "worldX": 13.496,
-          "worldY": 24.024,
+          "worldX": 13.664,
+          "worldY": 24.388,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14754,8 +14754,8 @@
         {
           "stableId": "base:site_huangcun:room_res_15:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.524,
-          "worldY": 24.080000000000002,
+          "worldX": 13.692,
+          "worldY": 24.444000000000003,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14773,8 +14773,8 @@
         {
           "stableId": "base:site_huangcun:room_res_16",
           "siteId": "base:site_huangcun",
-          "worldX": 12.824,
-          "worldY": 24.304000000000002,
+          "worldX": 13.104,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14792,8 +14792,8 @@
         {
           "stableId": "base:site_huangcun:room_res_16:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 12.852,
-          "worldY": 24.360000000000003,
+          "worldX": 13.132,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14811,8 +14811,8 @@
         {
           "stableId": "base:site_huangcun:room_res_17",
           "siteId": "base:site_huangcun",
-          "worldX": 12.991999999999999,
-          "worldY": 24.304000000000002,
+          "worldX": 13.244,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14830,8 +14830,8 @@
         {
           "stableId": "base:site_huangcun:room_res_17:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.02,
-          "worldY": 24.360000000000003,
+          "worldX": 13.272,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14849,8 +14849,8 @@
         {
           "stableId": "base:site_huangcun:room_res_18",
           "siteId": "base:site_huangcun",
-          "worldX": 13.16,
-          "worldY": 24.304000000000002,
+          "worldX": 13.384,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14868,8 +14868,8 @@
         {
           "stableId": "base:site_huangcun:room_res_18:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.188,
-          "worldY": 24.360000000000003,
+          "worldX": 13.412,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14887,8 +14887,8 @@
         {
           "stableId": "base:site_huangcun:room_res_19",
           "siteId": "base:site_huangcun",
-          "worldX": 13.328,
-          "worldY": 24.304000000000002,
+          "worldX": 13.524,
+          "worldY": 24.584000000000003,
           "worldWidth": 0.112,
           "worldHeight": 0.168,
           "kind": "room",
@@ -14906,8 +14906,8 @@
         {
           "stableId": "base:site_huangcun:room_res_19:bed",
           "siteId": "base:site_huangcun",
-          "worldX": 13.356,
-          "worldY": 24.360000000000003,
+          "worldX": 13.552,
+          "worldY": 24.64,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14926,7 +14926,7 @@
           "stableId": "base:site_huangcun:room_supervisor",
           "siteId": "base:site_huangcun",
           "worldX": 14.504,
-          "worldY": 23.744000000000003,
+          "worldY": 24.192000000000004,
           "worldWidth": 0.224,
           "worldHeight": 0.336,
           "kind": "room",
@@ -14935,7 +14935,7 @@
           "sourceCellsW": 8,
           "sourceCellsH": 12,
           "chunkX": 11,
-          "chunkY": 17,
+          "chunkY": 18,
           "buildingId": "base:room_medium_stone",
           "quarterTurns": 0,
           "roomUsage": "Residential",
@@ -14945,7 +14945,7 @@
           "stableId": "base:site_huangcun:room_supervisor:bed",
           "siteId": "base:site_huangcun",
           "worldX": 14.532,
-          "worldY": 23.8,
+          "worldY": 24.248,
           "worldWidth": 0.028,
           "worldHeight": 0.056,
           "kind": "bed",
@@ -14963,8 +14963,8 @@
         {
           "stableId": "base:site_huangcun:storage_room",
           "siteId": "base:site_huangcun",
-          "worldX": 14.952,
-          "worldY": 24.64,
+          "worldX": 13.776,
+          "worldY": 23.688000000000002,
           "worldWidth": 0.06495,
           "worldHeight": 0.105,
           "kind": "storageRoom",
@@ -14974,8 +14974,8 @@
           "sourceGridY": 45,
           "sourceCellsW": 3,
           "sourceCellsH": 3,
-          "chunkX": 11,
-          "chunkY": 18
+          "chunkX": 10,
+          "chunkY": 17
         },
         {
           "stableId": "base:site_huangcun:zone_spring",
@@ -15002,72 +15002,72 @@
           "spawnKey": "base:character_ch01_ref_farmer_b",
           "definitionId": "base:character_ch01_ref_farmer_b",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.048,
-          "worldY": 23.702
+          "worldX": 13.3,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_farmer_c",
           "definitionId": "base:character_ch01_ref_farmer_c",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.216,
-          "worldY": 23.702
+          "worldX": 13.44,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_guard_a",
           "definitionId": "base:character_ch01_ref_guard_a",
           "sourceLocationId": "base:loc_ref_guard_housing",
-          "worldX": 13.552,
-          "worldY": 24.262
+          "worldX": 13.72,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_guard_b",
           "definitionId": "base:character_ch01_ref_guard_b",
           "sourceLocationId": "base:loc_ref_guard_housing",
-          "worldX": 13.72,
-          "worldY": 24.262
+          "worldX": 13.86,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_guard_c",
           "definitionId": "base:character_ch01_ref_guard_c",
           "sourceLocationId": "base:loc_ref_guard_housing",
-          "worldX": 13.888,
-          "worldY": 24.262
+          "worldX": 14,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_herb_b",
           "definitionId": "base:character_ch01_ref_herb_b",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.552,
-          "worldY": 23.702
+          "worldX": 13.72,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_herb_c",
           "definitionId": "base:character_ch01_ref_herb_c",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.72,
-          "worldY": 23.702
+          "worldX": 13.86,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_mortal_a",
           "definitionId": "base:character_ch01_ref_mortal_a",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 12.88,
-          "worldY": 23.702
+          "worldX": 13.16,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_mortal_b",
           "definitionId": "base:character_ch01_ref_mortal_b",
           "sourceLocationId": "base:loc_ref_herb_field",
-          "worldX": 13.384,
-          "worldY": 23.702
+          "worldX": 13.58,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
@@ -15075,71 +15075,71 @@
           "definitionId": "base:character_ch01_ref_supervisor",
           "sourceLocationId": "base:loc_ref_supervisor_housing",
           "worldX": 14.616000000000001,
-          "worldY": 23.702
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_wood_b",
           "definitionId": "base:character_ch01_ref_wood_b",
           "sourceLocationId": "base:loc_ref_mine",
-          "worldX": 12.88,
-          "worldY": 23.982000000000003
+          "worldX": 13.16,
+          "worldY": 24.374000000000002
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_wood_c",
           "definitionId": "base:character_ch01_ref_wood_c",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.048,
-          "worldY": 23.982000000000003
+          "worldX": 13.3,
+          "worldY": 24.374000000000002
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_ch01_ref_woodcutter",
           "definitionId": "base:character_ch01_ref_woodcutter",
           "sourceLocationId": "base:loc_ref_forest",
-          "worldX": 13.888,
-          "worldY": 23.702
+          "worldX": 14,
+          "worldY": 24.178
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_companion_a",
           "definitionId": "base:character_companion_a",
           "sourceLocationId": "base:loc_ref_labor_yard",
-          "worldX": 13.384,
-          "worldY": 23.982000000000003
+          "worldX": 13.58,
+          "worldY": 24.374000000000002
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_companion_b",
           "definitionId": "base:character_companion_b",
           "sourceLocationId": "base:loc_ref_labor_yard",
-          "worldX": 13.552,
-          "worldY": 23.982000000000003
+          "worldX": 13.72,
+          "worldY": 24.374000000000002
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_jiang_lao",
           "definitionId": "base:character_jiang_lao",
           "sourceLocationId": "base:loc_ref_spring",
-          "worldX": 13.048,
-          "worldY": 24.262
+          "worldX": 13.3,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_protagonist",
           "definitionId": "base:character_protagonist",
           "sourceLocationId": "base:loc_ref_labor_yard",
-          "worldX": 13.216,
-          "worldY": 23.982000000000003
+          "worldX": 13.44,
+          "worldY": 24.374000000000002
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_village_recruit",
           "definitionId": "base:character_village_recruit",
           "sourceLocationId": "base:loc_ref_labor_yard",
-          "worldX": 12.88,
-          "worldY": 24.262
+          "worldX": 13.16,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_chengzhen",
@@ -15194,16 +15194,16 @@
           "spawnKey": "base:character_qingshi_shopkeeper",
           "definitionId": "base:character_qingshi_shopkeeper",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.216,
-          "worldY": 24.262
+          "worldX": 13.44,
+          "worldY": 24.57
         },
         {
           "siteId": "base:site_huangcun",
           "spawnKey": "base:character_qingshi_auction_attendant",
           "definitionId": "base:character_qingshi_auction_attendant",
           "sourceLocationId": "base:loc_ref_houses",
-          "worldX": 13.384,
-          "worldY": 24.262
+          "worldX": 13.58,
+          "worldY": 24.57
         }
       ],
       "sitePlaces": [
@@ -15360,7 +15360,7 @@
             "Inspect",
             "Patrol"
           ],
-          "worldX": 13.051333,
+          "worldX": 13.331332999999999,
           "worldY": 23.121000000000002
         },
         {
@@ -15386,8 +15386,8 @@
             "Eat",
             "Patrol"
           ],
-          "worldX": 13.44,
-          "worldY": 23.688000000000002
+          "worldX": 13.58,
+          "worldY": 24.472
         },
         {
           "siteId": "base:site_huangcun",
@@ -15432,8 +15432,8 @@
           "allowedActivities": [
             "Rest"
           ],
-          "worldX": 14.224,
-          "worldY": 23.912000000000003
+          "worldX": 14.28,
+          "worldY": 24.360000000000003
         },
         {
           "siteId": "base:site_huangcun",
@@ -15454,8 +15454,8 @@
           "allowedActivities": [
             "Rest"
           ],
-          "worldX": 14.168,
-          "worldY": 24.416
+          "worldX": 14.28,
+          "worldY": 24.752000000000002
         },
         {
           "siteId": "base:site_huangcun",
@@ -15479,7 +15479,7 @@
             "Explore"
           ],
           "worldX": 12.420985,
-          "worldY": 23.696
+          "worldY": 23.976000000000003
         },
         {
           "siteId": "base:site_huangcun",
@@ -15503,7 +15503,7 @@
             "Labor",
             "Inspect"
           ],
-          "worldX": 13.641214999999999,
+          "worldX": 14.124215,
           "worldY": 23.086000000000002
         },
         {
@@ -15581,8 +15581,8 @@
             "Inspect",
             "Explore"
           ],
-          "worldX": 14.254605000000002,
-          "worldY": 23.436000000000003
+          "worldX": 14.870605,
+          "worldY": 23.828000000000003
         },
         {
           "siteId": "base:site_huangcun",
@@ -15607,8 +15607,8 @@
             "Eat",
             "Patrol"
           ],
-          "worldX": 13.72,
-          "worldY": 24.248
+          "worldX": 13.86,
+          "worldY": 24.668000000000003
         },
         {
           "siteId": "base:site_huangcun",
@@ -15634,7 +15634,7 @@
             "Patrol"
           ],
           "worldX": 14.616000000000001,
-          "worldY": 23.688000000000002
+          "worldY": 24.360000000000003
         },
         {
           "siteId": "base:site_lingdi",

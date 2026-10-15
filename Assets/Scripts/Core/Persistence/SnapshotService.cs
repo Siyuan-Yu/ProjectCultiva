@@ -267,6 +267,10 @@ namespace XianXia.Core.Persistence
                     dto.MortalFleeAttemptCount = civilian.FleeAttemptCount;
                     dto.MortalCarrierId = civilian.CarrierId.Value;
                     dto.MortalDetainedResidenceWorkAreaId = civilian.DetainedResidenceWorkAreaId;
+                    dto.MortalRescueTargetId = civilian.RescueTargetId.Value;
+                    dto.MortalRescueCarrying = civilian.RescueCarrying;
+                    dto.MortalRescueDestinationId = civilian.RescueDestinationId;
+                    dto.MortalRescueRejectedDestinationIds = civilian.RescueRejectedDestinationId;
                     dto.MortalCareDayIndex = civilian.CareDayIndex; dto.MortalAteToday = civilian.AteToday; dto.MortalSleptToday = civilian.SleptToday;
                     dto.MortalLastWorkOutputTick = civilian.LastWorkOutputTick;
                     dto.MortalPendingCaptureCarrierId = civilian.PendingCaptureCarrierId.Value;
@@ -651,6 +655,9 @@ namespace XianXia.Core.Persistence
                      !Enum.IsDefined(typeof(CivilianSleepPhase), entity.MortalSleepPhase) ||
                      !Enum.IsDefined(typeof(CivilianDisposition), entity.CivilianDisposition) ||
                      entity.MortalCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalCarrierId) ||
+                     entity.MortalRescueTargetId != 0 && !snapshotEntityIds.Contains(entity.MortalRescueTargetId) ||
+                     entity.MortalRescueCarrying && (entity.MortalRescueTargetId == 0 || string.IsNullOrWhiteSpace(entity.MortalRescueDestinationId)) ||
+                     entity.CivilianDisposition == (int)CivilianDisposition.CapturedEscorted && entity.MortalCarrierId == 0 ||
                      entity.MortalPendingCaptureCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalPendingCaptureCarrierId) ||
                      entity.CivilianDisposition == (int)CivilianDisposition.Detained && string.IsNullOrWhiteSpace(entity.MortalDetainedResidenceWorkAreaId) ||
                      entity.CivilianDisposition == (int)CivilianDisposition.Fleeing &&
@@ -701,14 +708,16 @@ namespace XianXia.Core.Persistence
                     !Enum.IsDefined(typeof(ResidenceUsage), snap.CivilianResidenceUsages[i].Usage) ||
                     !residenceUsageIds.Add(snap.CivilianResidenceUsages[i].WorkAreaId))
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid civilian residence usage.");
-            var prisonerResidences = new HashSet<string>(snap.CivilianResidenceUsages
-                .Where(x => x != null && x.Usage == (int)ResidenceUsage.PrisonerOnly)
-                .Select(x => x.WorkAreaId), StringComparer.Ordinal);
+            var prisonerResidences = new HashSet<string>(snap.OutdoorConstructedAssets
+                .Where(x => x != null && string.Equals(x.Kind,
+                                OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal) &&
+                            x.RoomUsage == (int)RoomUsage.Prison)
+                .Select(x => x.StableAssetId), StringComparer.Ordinal);
             foreach (var entity in snap.Entities)
                 if (entity.HasMortalCivilian && entity.CivilianDisposition == (int)CivilianDisposition.Detained &&
                     !prisonerResidences.Contains(entity.MortalDetainedResidenceWorkAreaId))
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
-                        "Detained civilian lacks PrisonerOnly residence authority.", "EntityId=" + entity.Id);
+                        "Detained civilian lacks a formal Prison room authority.", "EntityId=" + entity.Id);
             if (!string.IsNullOrEmpty(expectedPackageVersion) &&
                 !string.Equals(snap.EnabledPackageVersion, expectedPackageVersion, StringComparison.Ordinal))
             {
@@ -1003,6 +1012,10 @@ namespace XianXia.Core.Persistence
                     civilian.FleeAttemptCount = e.MortalFleeAttemptCount;
                     civilian.CarrierId = new EntityId(e.MortalCarrierId);
                     civilian.DetainedResidenceWorkAreaId = e.MortalDetainedResidenceWorkAreaId ?? string.Empty;
+                    civilian.RescueTargetId = new EntityId(e.MortalRescueTargetId);
+                    civilian.RescueCarrying = e.MortalRescueCarrying;
+                    civilian.RescueDestinationId = e.MortalRescueDestinationId ?? string.Empty;
+                    civilian.RescueRejectedDestinationId = e.MortalRescueRejectedDestinationIds ?? string.Empty;
                     civilian.CareDayIndex = e.MortalCareDayIndex; civilian.AteToday = e.MortalAteToday; civilian.SleptToday = e.MortalSleptToday;
                     civilian.LastWorkOutputTick = e.MortalLastWorkOutputTick;
                     civilian.PendingCaptureCarrierId = new EntityId(e.MortalPendingCaptureCarrierId);
@@ -1183,6 +1196,9 @@ namespace XianXia.Core.Persistence
                 .ValidateRecoverySpotPlacements(world, true);
             if (recoveryPhysical.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(recoveryPhysical.Error);
+            var transportPhysical = MortalCivilianService.ValidateTransportPlacements(world);
+            if (transportPhysical.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(transportPhysical.Error);
             var jobRestore = RestoreCivilianConstructionJobs(world, snap);
             if (jobRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(jobRestore.Error);
             RestoreOutdoorStatefulObjects(world, snap);
@@ -1508,7 +1524,10 @@ namespace XianXia.Core.Persistence
                 if (dto == null || injured.IsNone || !world.Entities.TryGet(injured, out var entity) ||
                     !entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) || !life.IsIncapacitated ||
                     !world.OutdoorConstructedAssets.Assets.TryGetValue(dto.RecoverySpotId, out var spot) ||
-                    !(RoomBedGeometry.IsBed(spot) && RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical)) ||
+                    !(RoomBedGeometry.IsBed(spot) &&
+                      (RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential))) ||
+                    spot.OccupantCharacterId != injured || spot.ReservedCharacterId != injured ||
                     !world.RecoverySpotDeliveries.TryRestore(dto.RecoverySpotId, injured))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid or duplicate recovery spot placement.", dto?.RecoverySpotId ?? string.Empty);

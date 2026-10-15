@@ -45,6 +45,7 @@ namespace XianXia.Unity.Host
 
                 // 田区农作自管头顶字，勿盖成「发呆中」
                 var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+                var logging = bootstrap.GetComponent<HostDestructibleAssault>();
                 var melee = bootstrap.GetComponent<HostNpcMeleeAssault>();
                 var resolved = HostCharacterActivityPresentation.Resolve(session, entity,
                     inLocalCombat: melee != null && melee.IsInFight(view.EntityId),
@@ -54,6 +55,13 @@ namespace XianXia.Unity.Host
                 if (farm != null && farm.IsFarming(view.EntityId) &&
                     resolved != "交战中" && !CombatLifeStateService.IsDown(entity))
                     continue;
+                if (logging != null &&
+                    logging.TryGetCivilianLoggingStatus(view.EntityId, out var loggingStatus) &&
+                    resolved != "交战中" && !CombatLifeStateService.IsDown(entity))
+                {
+                    view.SetActivityText(loggingStatus);
+                    continue;
+                }
                 view.SetActivityText(resolved);
             }
         }

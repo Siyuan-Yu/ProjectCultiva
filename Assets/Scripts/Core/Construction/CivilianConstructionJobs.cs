@@ -124,6 +124,7 @@ namespace XianXia.Core.Construction
                     own.FactionId == factionId && MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id) == siteId &&
                     world.Civilians.TryGet(entity.Id, out var state) && state.Disposition == CivilianDisposition.Normal &&
                     world.Strategic.PlayerPartyContext?.IsMember(entity.Id) != true &&
+                    !MortalTransportConstraintService.TryGetEscortedCaptive(world, entity.Id, out _) &&
                     MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, entity.Id, state) &&
                     entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Alive)
                     return true;
@@ -136,6 +137,7 @@ namespace XianXia.Core.Construction
         {
             if (world == null || worker == null || !worker.TryGet<FactionMembershipComponent>(out var own) ||
                 !own.IsAffiliated || !world.Civilians.TryGet(worker.Id, out var civilian) ||
+                MortalTransportConstraintService.TryGetEscortedCaptive(world, worker.Id, out _) ||
                 !MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, worker.Id, civilian)) return null;
             var site = MortalCivilianQuery.ResolveCurrentSiteId(world, worker.Id);
             var keys = new List<string>(world.CivilianConstructionJobs.Jobs.Keys);

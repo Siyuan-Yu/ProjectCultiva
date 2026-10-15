@@ -32,6 +32,7 @@ namespace XianXia.Unity.Host
         public int WoodYield => woodYield;
         public bool IsDestroyed => destroyed;
         public bool HasInteractionBounds => _hasInteractionBounds;
+        public Rect InteractionBounds => _interactionBounds;
         public float InteractionBoundsArea => _hasInteractionBounds ? _interactionBounds.width * _interactionBounds.height : float.MaxValue;
         public bool IsTree =>
             string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||

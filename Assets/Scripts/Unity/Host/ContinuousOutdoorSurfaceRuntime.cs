@@ -1600,6 +1600,25 @@ namespace XianXia.Unity.Host
                     if (SquadWorldMotionService.OwnsCharacter(world, id))
                         _continuousSquadPopulation.Add(id);
                 }
+                // An escorted captive follows a participant's tactical presentation but is not
+                // added to the combat roster and therefore can never be targeted by battle AI.
+                foreach (var pair in world.Civilians.All)
+                {
+                    var civilian = pair.Value;
+                    if (civilian == null || civilian.Disposition != CivilianDisposition.CapturedEscorted ||
+                        civilian.CarrierId.IsNone || !combat.Contains(civilian.CarrierId) ||
+                        !world.Entities.TryGet(pair.Key, out var captive) || captive == null ||
+                        CombatLifeStateService.ShouldHideFromSpawn(captive) ||
+                        !world.Entities.TryGet(civilian.CarrierId, out var carrier) || carrier == null ||
+                        !carrier.TryGet<EntityLocationComponent>(out var carrierLocation) ||
+                        carrierLocation == null || !carrierLocation.HasPresentationOverride ||
+                        !captive.TryGet<EntityLocationComponent>(out var captiveLocation) || captiveLocation == null)
+                        continue;
+                    captiveLocation.SetPresentationOverride(
+                        carrierLocation.PresentationOverrideX - .28f,
+                        carrierLocation.PresentationOverrideZ - .16f);
+                    _desiredMaterializedEntities.Add(pair.Key);
+                }
                 ApplyOutdoorEntityMaterializationReconcile(world);
                 return;
             }

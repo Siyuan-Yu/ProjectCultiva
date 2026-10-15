@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Navigation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -151,12 +152,19 @@ namespace XianXia.Unity.Host
             _pathRequests.Clear();
             _orderedPathRequests.Clear();
             var farmLabor = bootstrap.GetComponent<HostFarmFieldLabor>();
+            var destructibleAssault = bootstrap.GetComponent<HostDestructibleAssault>();
 
             foreach (var entity in session.World.Entities.All)
             {
                 if ((entity.Tags & EntityTag.Character) != 0)
                     continue;
                 if ((entity.Tags & EntityTag.Npc) == 0)
+                    continue;
+                // A valid civilian logging session owns the tree approach and chopping loop.
+                // Do not reconcile its old Core intent revision here: that would cancel the
+                // newly-issued tree path and send the logger back to the work-area center.
+                if (destructibleAssault != null &&
+                    destructibleAssault.IsCivilianLoggingOwner(entity.Id))
                     continue;
                 entity.TryGet<MovementIntentComponent>(out var intent);
                 ReconcileIssuedIntent(entity.Id, intent);
@@ -453,8 +461,22 @@ namespace XianXia.Unity.Host
                 target.transform.position = carrier.transform.position + new Vector3(-.28f, -.16f, 0f);
                 surface.Mapper.PresentationToWorld(carrier.transform.position.x,
                     carrier.transform.position.y, out var wx, out var wy);
-                world.WorldPresence.SetAtWorldPosition(targetId,
-                    new XianXia.Core.World.WorldVec2(wx, wy), surface.ActiveSurfaceId);
+                var encounter = world.Strategic.CharacterEncounter;
+                if (encounter != null && encounter.Find(carrierId.Value) != null &&
+                    (encounter.Phase == CharacterEncounterPhase.Active ||
+                     encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
+                {
+                    var presence = world.WorldPresence.GetOrCreate(targetId);
+                    presence.Mode = PartyWorldPresenceMode.InEncounter;
+                    presence.SiteId = string.Empty;
+                    presence.PersonalSurfaceId = encounter.SourceSurfaceId;
+                    presence.WorldPosX = wx;
+                    presence.WorldPosY = wy;
+                    presence.HasContinuousWorldPosition = true;
+                }
+                else
+                    world.WorldPresence.SetAtWorldPosition(targetId,
+                        new XianXia.Core.World.WorldVec2(wx, wy), surface.ActiveSurfaceId);
             }
         }
 
@@ -470,6 +492,20 @@ namespace XianXia.Unity.Host
         {
             if (entityId.IsNone) return;
             if (_issuedIntentRevision.Remove(entityId.Value))
+                moveController?.CancelPresentationMovementPublic(entityId);
+            ClearTracking(entityId.Value);
+        }
+
+        /// <summary>
+        /// Transfers presentation-path ownership from the Core work-area intent to logging.
+        /// Never clears or completes the Core intent itself.
+        /// </summary>
+        public void RelinquishCivilianIntentPathForLogging(EntityId entityId, bool cancelCurrentPath)
+        {
+            if (entityId.IsNone)
+                return;
+            var hadIssuedPath = _issuedIntentRevision.Remove(entityId.Value);
+            if (cancelCurrentPath && hadIssuedPath)
                 moveController?.CancelPresentationMovementPublic(entityId);
             ClearTracking(entityId.Value);
         }

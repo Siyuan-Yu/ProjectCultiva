@@ -6,6 +6,7 @@ using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Npc;
 
 namespace XianXia.Core.Actions
 {
@@ -34,6 +35,8 @@ namespace XianXia.Core.Actions
         {
             if (world == null || string.IsNullOrWhiteSpace(RecoverySpotId))
                 return Result.Failure(ErrorCode.InvalidArgument, "恢复处无效。");
+            var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
+            if (burden.IsFailure) return burden;
             if (world.Strategic != null &&
                 (world.Strategic.CharacterEncounter?.Phase == CharacterEncounterPhase.Active ||
                  world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None))

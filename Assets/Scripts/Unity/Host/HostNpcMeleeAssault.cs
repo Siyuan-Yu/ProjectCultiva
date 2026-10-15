@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Npc;
 using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 
@@ -76,6 +77,7 @@ namespace XianXia.Unity.Host
         internal void BeginAutomatic(EntityId attacker, EntityId defender)
         {
             var world = bootstrap?.Session?.World;
+            if (MortalTransportConstraintService.ValidateAttack(world, attacker).IsFailure) return;
             // SPACE-01：双方均在 Separate Space → 直接本地 melee，不进 CharacterEncounter。
             if (world != null &&
                 SeparateSpaceCombatPolicy.AreBothInActiveSeparateSpace(world, attacker, defender))
@@ -274,6 +276,8 @@ namespace XianXia.Unity.Host
                 }
 
                 NotifyVeilSpiritEmpty(atkEnt);
+                if (MortalTransportConstraintService.ValidateAttack(world, atkId).IsFailure)
+                { RemoveAttacker(atkId, null); continue; }
                 if (!TryGetPresentation(atkId, out var ax, out var ay))
                 {
                     RemoveAttacker(atkId, null);
@@ -348,6 +352,8 @@ namespace XianXia.Unity.Host
                 !defEnt.TryGet<LifecycleComponent>(out defLife) ||
                 defLife.IsIncapacitated ||
                 defLife.IsDead)
+                return;
+            if (MortalTransportConstraintService.ValidateAttack(world, _defender).IsFailure)
                 return;
 
             for (var n = 0; n < _attackers.Count; n++)

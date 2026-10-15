@@ -23,6 +23,8 @@ namespace XianXia.Core.Actions
 
         public Result CanStart(SimulationWorld world)
         {
+            var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
+            if (burden.IsFailure) return burden;
             if (world == null || !world.Entities.TryGet(Subject, out _) ||
                 !world.OutdoorConstructedAssets.Assets.TryGetValue(BedId, out var bed) ||
                 !RoomBedGeometry.IsBed(bed) ||

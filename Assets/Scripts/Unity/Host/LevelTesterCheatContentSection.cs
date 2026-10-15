@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Construction;
+using XianXia.Core.Combat;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Opportunity;
@@ -404,10 +405,27 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.Civilians.All)
             {
                 var state = pair.Value;
-                if (state == null || (state.RescueTargetId.IsNone && !state.RescueCarrying && string.IsNullOrEmpty(state.RescueDestinationId))) continue;
-                sb.AppendLine("Rescuer=" + state.EntityId + " Target=" + state.RescueTargetId + " Carrying=" + state.RescueCarrying);
+                if (state == null || (state.RescueTargetId.IsNone && !state.RescueCarrying &&
+                    string.IsNullOrEmpty(state.RescueDestinationId) && string.IsNullOrEmpty(state.RescueStatus))) continue;
+                var faction = world.Entities.TryGet(state.EntityId, out var rescuer) &&
+                              rescuer.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership)
+                    ? membership.FactionId : "—";
+                sb.AppendLine("Rescuer=" + state.EntityId + " Faction=" + faction + " Target=" + state.RescueTargetId +
+                              " Phase=" + (state.RescueCarrying ? "CarryingToBed" :
+                                  state.RescueTargetId.IsNone ? "IdleOrBlocked" : "ApproachingTarget"));
+                sb.AppendLine("Status=" + state.RescueStatus);
                 sb.AppendLine("RecoverySpotId=" + state.RescueDestinationId + " Rejected=" + state.RescueRejectedDestinationId +
                               " Reserved=" + MortalCivilianService.IsRecoverySpotReserved(world, state.RescueDestinationId, EntityId.None));
+                if (world.OutdoorConstructedAssets.Assets.TryGetValue(state.RescueDestinationId, out var bed))
+                    sb.AppendLine("BedUsage=" +
+                                  (RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ? RoomUsage.Medical :
+                                   RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ? RoomUsage.Prison :
+                                   RoomUsage.Residential) +
+                                  " Reservation=" + bed.ReservedCharacterId + " Occupant=" + bed.OccupantCharacterId);
+                if (world.Entities.TryGet(state.RescueTargetId, out var injured) &&
+                    CombatLifeStateService.TryGetLifeStateCountdown(world, injured, out _, out var seconds))
+                    sb.AppendLine("BleedOutRemaining=" + seconds + " Stabilized=" +
+                                  CombatLifeStateService.IsMedicallyStabilized(world, injured, out _));
                 sb.AppendLine("Delivered=" + (!state.RescueTargetId.IsNone && world.RecoverySpotDeliveries.ContainsInjured(state.RescueTargetId)));
             }
             if (sb.Length == 0) sb.AppendLine("当前没有活动救援。 ");
@@ -422,13 +440,29 @@ namespace XianXia.Unity.Host
             const string prisonId = "base:site_huangcun:room_prison";
             var hasDropOff = MortalCivilianService.TryResolvePrisonDropOff(world, prisonId, out var point, out _, out _);
             sb.AppendLine("DropOffId=" + (hasDropOff ? point.StableAssetId : "—"));
+            var capacity = 0; var occupied = 0;
+            foreach (var bed in RoomBedFacilityService.BedsInRoom(world, prisonId))
+            {
+                capacity++;
+                if (!bed.OccupantCharacterId.IsNone) occupied++;
+                sb.AppendLine("Bed=" + bed.StableAssetId + " Reserved=" + bed.ReservedCharacterId +
+                              " Occupant=" + bed.OccupantCharacterId);
+            }
+            sb.AppendLine("PrisonBeds=" + capacity + " Occupied=" + occupied + " Free=" + (capacity - occupied));
             foreach (var pair in world.Civilians.All)
             {
                 var state = pair.Value;
                 if (state == null || (state.Disposition != CivilianDisposition.CapturedEscorted && state.Disposition != CivilianDisposition.Detained)) continue;
                 var can = MortalCivilianService.CanDetain(world, state.EntityId, prisonId);
                 sb.AppendLine("Captive=" + state.EntityId + " State=" + state.Disposition + " Carrier=" + state.CarrierId +
+                              " Room=" + state.DetainedResidenceWorkAreaId +
                               " DetainLegal=" + can.IsSuccess + " Reason=" + (can.IsSuccess ? "OK" : can.Error.Message));
+                if (!state.CarrierId.IsNone)
+                {
+                    var attack = MortalTransportConstraintService.ValidateAttack(world, state.CarrierId);
+                    sb.AppendLine("CarrierAttackAllowed=" + attack.IsSuccess +
+                                  " Reason=" + (attack.IsSuccess ? "OK" : attack.Error.Message));
+                }
             }
             var text = sb.ToString(); var h = Mathf.Max(60f, body.CalcHeight(new GUIContent(text), width));
             GUI.TextArea(new Rect(x, y, width, h), text); return y + h + 4f;

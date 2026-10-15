@@ -90945,6 +90945,17 @@
         "coreLevel": 1,
         "surfaceCellX": 1646.4739285714286,
         "surfaceCellY": 1492.8571428571427
+      },
+      {
+        "flagId": "base:flag_huangcun_forest_outpost",
+        "factionId": "base:sect_huangcun_labor",
+        "establishedOrder": 21,
+        "createsWorldSite": true,
+        "siteDisplayName": "荒村林地前哨",
+        "siteType": "Outpost",
+        "coreLevel": 1,
+        "surfaceCellX": 500,
+        "surfaceCellY": 887
       }
     ],
     "sitePlaces": [

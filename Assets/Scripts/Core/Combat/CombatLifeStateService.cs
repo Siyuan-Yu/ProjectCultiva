@@ -11,6 +11,8 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.Actions;
+using XianXia.Core.Construction;
+using XianXia.Core.Npc;
 
 namespace XianXia.Core.Combat
 {
@@ -108,7 +110,7 @@ namespace XianXia.Core.Combat
             var now = world.Tick.Value;
             if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
             {
-                label = "弥留";
+                label = IsMedicallyStabilized(world, entity, out _) ? "弥留·医疗稳定" : "弥留";
                 remainingSeconds = (int)Math.Max(0L, (long)life.BleedOutAfterTick - (long)now);
                 return true;
             }
@@ -164,6 +166,8 @@ namespace XianXia.Core.Combat
 
             CaptureSquadWorldMotionHandoff(world, entity.Id);
 
+            ReleaseRecoveryBed(world, entity.Id);
+
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = 0;
@@ -201,6 +205,7 @@ namespace XianXia.Core.Combat
 
             CaptureSquadWorldMotionHandoff(world, entity.Id);
 
+            ReleaseRecoveryBed(world, entity.Id);
             life.State = LifecycleState.Captured;
             life.ClearBleedOut();
             ClearDeathAttribution(entity);
@@ -225,6 +230,7 @@ namespace XianXia.Core.Combat
             if (!life.IsIncapacitated)
                 return false;
 
+            ReleaseRecoveryBed(world, entity.Id);
             life.State = LifecycleState.Alive;
             life.ClearBleedOut();
             life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Alive, "Recovery");
@@ -262,6 +268,8 @@ namespace XianXia.Core.Combat
                 return false;
 
             CaptureSquadWorldMotionHandoff(world, target.Id);
+
+            ReleaseRecoveryBed(world, target.Id);
 
             var responsibleAttackerId = attackerId;
             if (responsibleAttackerId.IsNone &&
@@ -328,6 +336,10 @@ namespace XianXia.Core.Combat
             if (world?.Entities == null)
                 return;
 
+            // Moving away, changing room usage or destroying the bed ends stabilization
+            // immediately and releases stale reservation/occupancy before this tick decays.
+            MortalCivilianService.ValidateRecoverySpotPlacements(world);
+
             var now = world.Tick.Value;
             // 先收集再改，避免枚举中途改集合
             var bleedOut = new System.Collections.Generic.List<Entity>(8);
@@ -337,6 +349,16 @@ namespace XianXia.Core.Combat
             {
                 if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                     continue;
+
+                if (life.IsIncapacitated &&
+                    life.BleedOutAfterTick > 0 &&
+                    IsMedicallyStabilized(world, entity, out _))
+                {
+                    // Preserve the exact remaining duration while a real medical bed is
+                    // occupied. This is not healing and never changes HP/lifecycle.
+                    if (life.BleedOutAfterTick < ulong.MaxValue) life.BleedOutAfterTick++;
+                    continue;
+                }
 
                 if (life.IsIncapacitated &&
                     life.BleedOutAfterTick > 0 &&
@@ -371,6 +393,7 @@ namespace XianXia.Core.Combat
                     !entity.TryGet<LifecycleComponent>(out var life)) continue;
                 if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
                 {
+                    if (IsMedicallyStabilized(world, entity, out _)) continue;
                     if (life.BleedOutAfterTick <= world.Tick.Value + 1)
                         TryConfirmDeath(world, EntityId.None, entity, DeathConfirmationReason.BleedOut, out _);
                     else life.BleedOutAfterTick--;
@@ -395,6 +418,7 @@ namespace XianXia.Core.Combat
             var removalSpatialBefore = FormatRemovalSpatial(world, entity.Id);
 #endif
             life.State = LifecycleState.Removed;
+            ReleaseRecoveryBed(world, entity.Id);
             life.ClearBleedOut();
             AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
             PlayerPartyLifeStateMembershipService.ReconcilePlayerPartyAfterLifeStateChange(world);
@@ -426,6 +450,41 @@ namespace XianXia.Core.Combat
                 " SpatialOwner=Removed" +
                 " HandoffAction=Remove");
 #endif
+        }
+
+        public static bool IsMedicallyStabilized(
+            SimulationWorld world,
+            Entity entity,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            if (world == null || entity == null ||
+                !entity.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated)
+                return false;
+            foreach (var pair in world.RecoverySpotDeliveries.Placements)
+            {
+                if (pair.Value != entity.Id ||
+                    !world.OutdoorConstructedAssets.Assets.TryGetValue(pair.Key, out var candidate) ||
+                    !RoomBedFacilityService.BedHasUsage(world, candidate, RoomUsage.Medical) ||
+                    !RoomBedFacilityService.IsValidOccupiedBed(
+                        world, entity.Id, RoomUsage.Medical, out var occupied) ||
+                    !string.Equals(occupied.StableAssetId, candidate.StableAssetId, StringComparison.Ordinal))
+                    continue;
+                bed = candidate;
+                return true;
+            }
+            return false;
+        }
+
+        static void ReleaseRecoveryBed(SimulationWorld world, EntityId characterId)
+        {
+            if (world == null || characterId.IsNone) return;
+            var spots = new System.Collections.Generic.List<string>();
+            foreach (var pair in world.RecoverySpotDeliveries.Placements)
+                if (pair.Value == characterId) spots.Add(pair.Key);
+            for (var i = 0; i < spots.Count; i++)
+                world.RecoverySpotDeliveries.RemoveSpot(spots[i]);
+            RoomBedFacilityService.Release(world, characterId);
         }
 
         static void CaptureSquadWorldMotionHandoff(SimulationWorld world, EntityId id)

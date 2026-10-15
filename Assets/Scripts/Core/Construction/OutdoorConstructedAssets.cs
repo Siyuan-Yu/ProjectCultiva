@@ -461,6 +461,54 @@ namespace XianXia.Core.Construction
         }
 
         /// <summary>
+        /// Atomic carried-person placement. The carrier, rather than the carried character, must
+        /// stand at the real bed access point; only after every check succeeds is the carried
+        /// character moved onto the bed and recorded as its occupant.
+        /// </summary>
+        public static Result TryPlaceCarriedOccupant(
+            SimulationWorld world,
+            string bedId,
+            EntityId carrierId,
+            EntityId occupantId,
+            RoomUsage requiredUsage)
+        {
+            if (world == null || carrierId.IsNone || occupantId.IsNone || carrierId == occupantId ||
+                !world.Entities.TryGet(carrierId, out _) || !world.Entities.TryGet(occupantId, out _) ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId ?? string.Empty, out var bed) ||
+                !RoomBedGeometry.IsBed(bed))
+                return Result.Failure(ErrorCode.InvalidArgument, "搬运安置需要有效的搬运者、人物和床位。");
+            if (!BedHasUsage(world, bed, requiredUsage))
+                return Result.Failure(ErrorCode.InvalidOperation, "目标床位用途已改变。");
+            if (bed.ReservedCharacterId != occupantId)
+                return Result.Failure(ErrorCode.InvalidOperation, "目标床位没有由当前人物持有预约。");
+            if (!CanUseBed(world, bed, occupantId, out var reason))
+                return Result.Failure(ErrorCode.InvalidOperation, reason);
+            if (!IsAtAccessPoint(world, bed, carrierId))
+                return Result.Failure(ErrorCode.InvalidOperation, "搬运者尚未到达床边合法使用位置。");
+            if (!CharacterWorldPresenceQuery.TryResolve(world, carrierId, out var carrier) ||
+                !carrier.HasWorldPosition || carrier.SurfaceId != bed.SurfaceId ||
+                !CharacterWorldPresenceQuery.TryResolve(world, occupantId, out var occupant) ||
+                !occupant.HasWorldPosition || occupant.SurfaceId != bed.SurfaceId)
+                return Result.Failure(ErrorCode.InvalidOperation, "搬运者、人物与床位不在同一世界空间。");
+            var cell = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
+                ? metric.CellSize
+                : Math.Min(bed.WorldWidth / Math.Max(1, bed.CellsW),
+                    bed.WorldHeight / Math.Max(1, bed.CellsH));
+            var dx = occupant.WorldPosition.X - carrier.WorldPosition.X;
+            var dy = occupant.WorldPosition.Y - carrier.WorldPosition.Y;
+            if (dx * dx + dy * dy > cell * cell * 2.25f)
+                return Result.Failure(ErrorCode.InvalidOperation, "被搬运人物没有真实跟随搬运者到达床边。");
+
+            bed.OccupantCharacterId = occupantId;
+            world.WorldPresence.SetAtWorldPosition(
+                occupantId,
+                new WorldVec2(bed.WorldX + bed.WorldWidth * .5f,
+                    bed.WorldY + bed.WorldHeight * .5f),
+                bed.SurfaceId);
+            return Result.Success();
+        }
+
+        /// <summary>
         /// Returns the real bed currently occupied by this character. Reservation alone is not sleep.
         /// </summary>
         public static bool TryGetOccupiedBed(
@@ -481,7 +529,25 @@ namespace XianXia.Core.Construction
         {
             return TryGetOccupiedBed(world, characterId, usage, out bed) &&
                    CanUseBed(world, bed, characterId, out _) &&
-                   IsAtAccessPoint(world, bed, characterId);
+                   IsAtBed(world, bed, characterId);
+        }
+
+        public static bool IsAtBed(
+            SimulationWorld world, OutdoorConstructedAssetState bed, EntityId characterId)
+        {
+            if (IsAtAccessPoint(world, bed, characterId)) return true;
+            if (world == null || bed == null ||
+                !CharacterWorldPresenceQuery.TryResolve(world, characterId, out var presence) ||
+                !presence.HasWorldPosition || presence.SurfaceId != bed.SurfaceId) return false;
+            var centerX = bed.WorldX + bed.WorldWidth * .5f;
+            var centerY = bed.WorldY + bed.WorldHeight * .5f;
+            var dx = presence.WorldPosition.X - centerX;
+            var dy = presence.WorldPosition.Y - centerY;
+            var cell = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
+                ? metric.CellSize
+                : Math.Min(bed.WorldWidth / Math.Max(1, bed.CellsW),
+                    bed.WorldHeight / Math.Max(1, bed.CellsH));
+            return dx * dx + dy * dy <= cell * cell * .75f * .75f;
         }
 
         public static void Release(SimulationWorld world, EntityId characterId)

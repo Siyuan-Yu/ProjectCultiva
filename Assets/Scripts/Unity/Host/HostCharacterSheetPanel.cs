@@ -312,13 +312,39 @@ namespace XianXia.Unity.Host
                     ? intent.TargetWorkAreaId : "—";
                 var bedTarget = RoomBedFacilityService.TryGetAssignedBed(
                     bootstrap.Session.World, entity.Id, out var bed) ? bed.StableAssetId : "—";
+                var occupiedBed = "—";
+                foreach (var candidate in bootstrap.Session.World.OutdoorConstructedAssets.Assets.Values)
+                    if (candidate.OccupantCharacterId == entity.Id)
+                    { occupiedBed = candidate.StableAssetId + "(" +
+                        (RoomBedFacilityService.BedHasUsage(bootstrap.Session.World, candidate, RoomUsage.Medical) ? RoomUsage.Medical :
+                         RoomBedFacilityService.BedHasUsage(bootstrap.Session.World, candidate, RoomUsage.Prison) ? RoomUsage.Prison :
+                         RoomUsage.Residential) + ")"; break; }
+                var rescue = civilian.RescueTargetId.IsNone ? "无" :
+                    (civilian.RescueCarrying ? "背负" : "前往") + " " + civilian.RescueTargetId.Value +
+                    " → " + (string.IsNullOrEmpty(civilian.RescueDestinationId) ? "未选床" : civilian.RescueDestinationId);
+                var escort = MortalTransportConstraintService.TryGetEscortedCaptive(
+                    bootstrap.Session.World, entity.Id, out var captive)
+                    ? "押送 " + captive.Value + " / 禁止攻击与工作" :
+                    civilian.Disposition == CivilianDisposition.CapturedEscorted
+                        ? "被 " + civilian.CarrierId.Value + " 押送" : "无";
+                var stabilized = CombatLifeStateService.IsMedicallyStabilized(
+                    bootstrap.Session.World, entity, out var medicalBed)
+                    ? "是(" + medicalBed.StableAssetId + ")" : "否";
+                var loggingStatus = bootstrap.GetComponent<HostDestructibleAssault>()?
+                    .TryGetCivilianLoggingStatus(entity.Id, out var resolvedLoggingStatus) == true
+                    ? resolvedLoggingStatus : string.Empty;
                 civilianText = "\n民生：" + HostMortalActivityPresentation.Profession(civilian.Profession) +
                                " · 饱食 " + civilian.Satiety + " · 精力 " + civilian.Energy +
                                "\n目标：工区 " + workTarget + " · 床位 " + bedTarget +
+                               " · 实占 " + occupiedBed +
                                " · 控制 " + MortalCivilianMovementAuthority.Resolve(
                                    bootstrap.Session.World, entity.Id, civilian) +
+                               "\n救援：" + rescue + " · " + civilian.RescueStatus + " · 医疗稳定 " + stabilized +
+                               "\n押送：" + escort +
                                "\n阻断：" + (string.IsNullOrEmpty(civilian.ScheduleStatus)
-                                   ? scheduleReason : civilian.ScheduleStatus);
+                                   ? scheduleReason : civilian.ScheduleStatus) +
+                               (string.IsNullOrEmpty(loggingStatus) ? string.Empty :
+                                   "\n伐木：" + loggingStatus);
             }
             var actualActivity = info?.Activity ?? "待命";
             if (bootstrap.ViewSpawner?.Registry.TryGet(entity.Id, out var view) == true &&
