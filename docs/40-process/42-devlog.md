@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-10-16 — 美术登记表 XLSX 查看版与样张先行流程
+
+- `273-current-art-asset-register.tsv` 继续作为唯一可编辑真源；`tools/export-art-register.mjs` 将其单向导出为双工作表 XLSX，并回读核对 AssetID、全字段、统计与 SHA-256。每次 TSV 更新须在同一任务中重新导出并校验查看版，不手工在 XLSX 中维护进度。
+- [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md) 将第一批限定为一张综合场景样张和一张对应的精细立绘样张；通过后才拆少量独立素材、接入 LevelTester 小片区域验证，最后按批次完成 P0。批量阶段只记录追踪和成本要求，未实现生图平台、未生成图片、未接入 Unity 美术。
+
+## 2026-10-16 — 美术双层风格方向确认（文档更新）
+
+- 在 [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md) 和保持 UTF-8 with BOM 的 [273](273-current-art-asset-register.tsv) 明确场景国风平涂/轻纹理/清晰轮廓/顶视角、简化实时人物与更精细角色立绘的双层标准；Work 共用，攻击独立，搬运与受击/睡眠等简化。首批仅建议普通实时人物及 Work、木房模块、共用床、树及反馈、角色立绘五项样本。方向/帧数、运行尺寸、搬运轻差分和源文件存放仍待样本验证或制作人拍板；未生图、未接入、未做 Unity 视觉验收。
+
 ## 2026-10-16 — 美术筹备与资产盘点（文档阶段）
 
 - 按 `base:scenario_playable_day`、`base:roster_level_tester`、荒村 Blueprint／发布 Surface、MapKindCatalog、Host 人物/UI/战斗接线和现有 PNG/Prefab GUID 建立 [273 当前唯一资产登记表](273-current-art-asset-register.tsv)：55 个去重表现族，P0 39、P1 12、P2 4。对象使用次数与基础资产、变体、共用动作、程序效果分开记；旧 Demo 美术文档明确标为历史参考。

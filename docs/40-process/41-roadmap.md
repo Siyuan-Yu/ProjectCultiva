@@ -4,6 +4,8 @@
 
 当前获批范围仅为工程资产盘点、规格与接入追踪；[当前唯一资产总表](273-current-art-asset-register.tsv)和[阶段/规格/生产替换流程](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)已建立。后续顺序：制作人确认范围与规格 → 少量风格样本 → LevelTester 少量样本接入验证 → 分批 AI 首版 → 实际游戏人工验收 → 人工外包逐项替换。当前未生图、未接入、未视觉验收；CIVILIAN-LIFE-01 及 LOCAL-CONTINUITY-FINAL 等近期玩法工作仍保持各自待制作人验收状态，不能因为美术筹备而标为封板。
 
+风格方向已确认：场景/建筑/地表为参考《鬼谷八荒》气质的国风平涂、轻纹理、清晰轮廓与顶视角适配；实时人物简化且强复用，角色立绘采用更高精度。**下一步先验证一张综合场景风格样张和一张对应人物的精细立绘样张**；通过后拆少量独立素材接入 LevelTester 一小片场景，再分批完成 P0，并非现在全量制作。方向数、帧数、运行密度、搬运姿态及源文件存放规则仍待确认。
+
 ## CIVILIAN-LIFE-01 实施完成待验收（2026-09-27）
 
 **Implementation Complete / Producer Acceptance Pending。** 已接入 Satiety/Energy、Work/OffDuty、职业、人事、占领／俘虏／招募，以及真实 Rescue 搬运、Site 内物资 Haul、正式建筑工单与势力旗拆除劳动；静态编译通过，运行行为待制作人验收。完整范围见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。
