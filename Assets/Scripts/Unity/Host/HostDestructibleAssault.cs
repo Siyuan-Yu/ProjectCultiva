@@ -85,6 +85,17 @@ namespace XianXia.Unity.Host
         public bool IsAssaulting => _sessions.Count > 0;
         public HostMapDestructible Target => _sessions.Count > 0 ? _sessions[0].Target : null;
 
+        /// <summary>Presentation-only logging signal; job intent alone does not mean chopping.</summary>
+        public bool IsCivilianPerformingWork(EntityId id)
+        {
+            if (id.IsNone || !_civilianStatus.TryGetValue(id.Value, out var status) || status != "砍伐中")
+                return false;
+            for (var i = 0; i < _sessions.Count; i++)
+                if (_sessions[i].Attacker == id && _sessions[i].FromCivilianWork && _sessions[i].Target != null)
+                    return true;
+            return false;
+        }
+
         public void Bind(PlayableHostBootstrap host)
         {
             bootstrap = host;
@@ -308,6 +319,9 @@ namespace XianXia.Unity.Host
             var dealt = target.ApplyDamage(damage, out var destroyed);
             if (dealt > 0)
             {
+                if (!session.FromCivilianWork && viewSpawner != null &&
+                    viewSpawner.Registry.TryGet(attacker, out var artView) && artView != null)
+                    artView.PlayArtAttack(hitPos);
                 strikeVfx?.Play(hitPos + Vector3.up * 0.4f, hitPos);
                 Toast(attacker, "-" + dealt, new Color(0.75f, 0.9f, 0.45f));
             }

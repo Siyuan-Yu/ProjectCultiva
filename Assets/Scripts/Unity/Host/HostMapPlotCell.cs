@@ -300,8 +300,13 @@ namespace XianXia.Unity.Host
                 !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
                 !RoomBedGeometry.IsBed(bed))
                 return;
-            var color = RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ? Prison :
-                RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ? Medical : Residential;
+            var usage = RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ? RoomUsage.Prison :
+                RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ? RoomUsage.Medical :
+                    RoomUsage.Residential;
+            if (HostStepAArt.ApplyObjectVisual(target, HostStepAArt.BedSprite(usage)))
+                return;
+            var color = usage == RoomUsage.Prison ? Prison :
+                usage == RoomUsage.Medical ? Medical : Residential;
             var renderers = target.GetComponentsInChildren<SpriteRenderer>(true);
             for (var i = 0; i < renderers.Length; i++)
             {

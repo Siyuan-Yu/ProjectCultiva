@@ -685,10 +685,13 @@ namespace XianXia.Unity.Host
                         new Vector3(spriteBounds.max.x, spriteBounds.max.y),
                         new Vector3(spriteBounds.max.x, spriteBounds.min.y)
                     };
+                    // Keep the prefab geometry and batching, but use the authored seamless grass texture.
+                    var runtimeGrass = HostStepAArt.MapSprite("grass");
+                    var artSprite = runtimeGrass != null ? runtimeGrass : sprite;
                     var layer = new CompactGrassLayer
                     {
                         Material = spriteRenderer.sharedMaterial,
-                        Texture = sprite.texture,
+                        Texture = artSprite.texture,
                         Color = spriteRenderer.color,
                         SortingLayerId = spriteRenderer.sortingLayerID,
                         SortingOrder = spriteRenderer.sortingOrder
@@ -700,7 +703,7 @@ namespace XianXia.Unity.Host
                             (point.x - totalBounds.center.x) / totalBounds.size.x,
                             (point.y - totalBounds.center.y) / totalBounds.size.y);
                     }
-                    var outer = DataUtility.GetOuterUV(sprite);
+                    var outer = DataUtility.GetOuterUV(artSprite);
                     layer.Uvs[0] = new Vector2(outer.x, outer.y);
                     layer.Uvs[1] = new Vector2(outer.x, outer.w);
                     layer.Uvs[2] = new Vector2(outer.z, outer.w);

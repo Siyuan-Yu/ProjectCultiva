@@ -83,6 +83,15 @@ namespace XianXia.Unity.Host
             return false;
         }
 
+        /// <summary>Presentation-only query of the existing per-cell work phase.</summary>
+        public bool IsPerformingWork(EntityId id)
+        {
+            for (var i = 0; i < _workers.Count; i++)
+                if (_workers[i].Id == id && _workers[i].Phase == Phase.Work && _workers[i].Cell != null)
+                    return true;
+            return false;
+        }
+
         public bool TryGetFarmLocation(EntityId id, out string locationId)
         {
             locationId = null;

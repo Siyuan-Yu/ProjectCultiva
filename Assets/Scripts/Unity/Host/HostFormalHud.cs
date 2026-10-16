@@ -1665,7 +1665,11 @@ namespace XianXia.Unity.Host
         void DrawOptionalStatBar(
             float x, float y, float w, string label, bool hasValue, int cur, int max, Color fill)
         {
-            GUI.Label(new Rect(x, y, 56f, 20f), label, _parchmentBody);
+            var icon = HostStepAArt.StatusIcon(label);
+            if (icon != null)
+                GUI.DrawTexture(new Rect(x, y + 1f, 17f, 17f), icon, ScaleMode.ScaleToFit, true);
+            GUI.Label(new Rect(x + (icon != null ? 18f : 0f), y, icon != null ? 38f : 56f, 20f),
+                label, _parchmentBody);
             var bar = new Rect(x + 58f, y + 4f, Mathf.Max(40f, w - 62f), 14f);
             Fill(bar, new Color(0.55f, 0.48f, 0.38f, 0.55f));
             var pct = hasValue && max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;

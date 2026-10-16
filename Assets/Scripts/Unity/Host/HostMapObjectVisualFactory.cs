@@ -35,6 +35,8 @@ namespace XianXia.Unity.Host
             go.transform.position = intendedCenter;
             Fit(go, Mathf.Max(.01f, worldWidth), Mathf.Max(.01f, worldHeight));
             Align(go, intendedCenter);
+            if (!missing)
+                HostStepAArt.ApplyObjectVisual(go, HostStepAArt.MapSprite(kind));
             foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>(true))
                 if (renderer != null) renderer.sortingOrder = missing ? sortingOrder + 50 : sortingOrder;
             StripNonHostBehaviours(go);

@@ -64,6 +64,7 @@ namespace XianXia.Unity.Host
         // Presentation-only ownership serial.  Independent Host executors use this to cancel
         // only the path they issued, without erasing a newer schedule / needs path.
         readonly Dictionary<ulong, uint> _movementRevisionByEntity = new Dictionary<ulong, uint>();
+        readonly Dictionary<ulong, int> _directMoveFrameByEntity = new Dictionary<ulong, int>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
@@ -116,6 +117,11 @@ namespace XianXia.Unity.Host
 
         public bool HasMovementPath(EntityId id) =>
             !id.IsNone && _paths.ContainsKey(id.Value);
+
+        /// <summary>Presentation-only direct-control movement signal for this rendered frame.</summary>
+        public bool WasDirectMovedThisFrame(EntityId id) =>
+            !id.IsNone && _directMoveFrameByEntity.TryGetValue(id.Value, out var frame) &&
+            frame == Time.frameCount;
 
         public uint GetPresentationMovementRevision(EntityId id) =>
             id.IsNone || !_movementRevisionByEntity.TryGetValue(id.Value, out var revision)
@@ -807,6 +813,7 @@ namespace XianXia.Unity.Host
 
             var dt = Time.deltaTime;
             var pos = view.transform.position;
+            var startPos = pos;
             var dx = dir.x * speed * dt;
             var dy = dir.y * speed * dt;
 
@@ -831,6 +838,8 @@ namespace XianXia.Unity.Host
 
             pos.z = HostPresentationSpace.EntityZ;
             view.transform.position = pos;
+            if ((pos - startPos).sqrMagnitude > 0.000004f)
+                _directMoveFrameByEntity[id.Value] = Time.frameCount;
             CaptureIndependentTacticalPosition(view);
         }
 

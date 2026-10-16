@@ -1,0 +1,11 @@
+{
+  "carry_preview": "ArtSource/Batches/Batch_Codex_002/Previews/ART-ANIM-003_carry_actual_appearance_mount_sample_v02.png",
+  "static_states_preview": "ArtSource/Batches/Batch_Codex_002/Previews/ART-ANIM-005_static_state_transform_sample_v02.png",
+  "carrier_source": "ArtSource/Batches/Batch_Codex_002/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_01_v02.png",
+  "carried_source": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-002_companion_a_idle_south_v02.png",
+  "status": "visual candidate only; no Host mount/socket/ordering or play test",
+  "issues": [
+    "mount position is schematic",
+    "lying transforms have no bed fit or collision validation"
+  ]
+}

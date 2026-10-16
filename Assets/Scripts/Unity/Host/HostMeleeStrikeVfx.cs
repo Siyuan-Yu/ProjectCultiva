@@ -75,6 +75,7 @@ namespace XianXia.Unity.Host
                 PlayProjectile(aView.transform.position, dView.transform.position, dView);
             else
             {
+                aView.PlayArtAttack(dView.transform.position);
                 Play(aView.transform.position, dView.transform.position);
                 dView.PlayHitFlash(hitFlashSeconds);
             }

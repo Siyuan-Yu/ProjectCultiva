@@ -1,0 +1,125 @@
+{
+  "room": "ArtSource/Batches/Batch_Codex_002/Previews/ART-ROOM-001_002_003_006_assembly_schematic_v02.png",
+  "road": "ArtSource/Batches/Batch_Codex_002/Previews/ART-GROUND-002_road_repeat_seam_v02.png",
+  "ui_32px": "ArtSource/Batches/Batch_Codex_002/Previews/ART-UI-002_003_32px_readability_v02.png",
+  "fields": [
+    {
+      "asset_id": "ART-GROUND-010",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-010_grain_4stage_sheet_v01.png",
+      "source_sha256": "22de7eb838bac5e2d6d770dc988e7a85f14a7f7973dd4760383f3d29c33db8ab",
+      "soil_base": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-010_soil_base_v02.png",
+      "preview": "ArtSource/Batches/Batch_Codex_002/Previews/ART-GROUND-010_shared_soil_plant_overlay_v02.png",
+      "layers": [
+        {
+          "stage": "empty",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-010_plant_empty_v02.png",
+          "nonempty": false,
+          "source_region_xyxy": [
+            64,
+            116,
+            490,
+            558
+          ],
+          "sha256": "8355e4f14f517102b08d7e16c4b060d3349e77ef5ced2c484b135d812226ba37"
+        },
+        {
+          "stage": "sprout",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-010_plant_sprout_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            607,
+            116,
+            1033,
+            558
+          ],
+          "sha256": "7d9b00109280f56c8f0b79ce529f0c81129ff141bac504dbda041779a432f65e"
+        },
+        {
+          "stage": "growing",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-010_plant_growing_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            1150,
+            116,
+            1576,
+            558
+          ],
+          "sha256": "3a12c75ae8a0e83decff046227cd54573a95ac2a8dfd6210103e5b2045933249"
+        },
+        {
+          "stage": "mature",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-010_plant_mature_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            1693,
+            116,
+            2119,
+            558
+          ],
+          "sha256": "a803bcffee9ab5139e84e3a55517275316428204a0fe084f8ef0708c2fe1920b"
+        }
+      ],
+      "status": "experimental chroma isolation, not clean art/Unity approved",
+      "issue": "Source stages have different soil; chroma matte needs visual repair and crop bounds QA."
+    },
+    {
+      "asset_id": "ART-GROUND-011",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-011_herb_4stage_sheet_v01.png",
+      "source_sha256": "0ea587cd27a32fc4b60c990b3ae51f98567658cc3fab0a052503c648b8d7d029",
+      "soil_base": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-011_soil_base_v02.png",
+      "preview": "ArtSource/Batches/Batch_Codex_002/Previews/ART-GROUND-011_shared_soil_plant_overlay_v02.png",
+      "layers": [
+        {
+          "stage": "empty",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-011_plant_empty_v02.png",
+          "nonempty": false,
+          "source_region_xyxy": [
+            64,
+            116,
+            490,
+            558
+          ],
+          "sha256": "5e9550932793d52d58379ede9dc99998edb3e3355bbf98acd386524578828ba3"
+        },
+        {
+          "stage": "sprout",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-011_plant_sprout_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            607,
+            116,
+            1033,
+            558
+          ],
+          "sha256": "2d52ca05a235adda4932b8b463ce4b3412f706261466a9233f2f8012ff16db00"
+        },
+        {
+          "stage": "growing",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-011_plant_growing_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            1150,
+            116,
+            1576,
+            558
+          ],
+          "sha256": "3b6a2c39516398de1280ec409d929c549d973945c16e4ccdd00b35307a686bf0"
+        },
+        {
+          "stage": "mature",
+          "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-011_plant_mature_v02.png",
+          "nonempty": true,
+          "source_region_xyxy": [
+            1693,
+            116,
+            2119,
+            558
+          ],
+          "sha256": "f4dfe3885a67339c95d23d9294b6e08945682e66386ef6795130dba00b544913"
+        }
+      ],
+      "status": "experimental chroma isolation, not clean art/Unity approved",
+      "issue": "Source stages have different soil; chroma matte needs visual repair and crop bounds QA."
+    }
+  ]
+}

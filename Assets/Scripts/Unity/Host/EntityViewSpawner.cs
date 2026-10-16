@@ -90,6 +90,10 @@ namespace XianXia.Unity.Host
 
                 view.SetBaseColor(color);
                 ApplyLifeStateVisual(session.World, entity, view);
+                view.ConfigureRuntimeArt(HostStepAArt.ResolveProfile(entity),
+                    GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
+                    GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
+                    GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>());
                 _registry.Register(id, view);
                 _spawned.Add(view);
             }
@@ -258,6 +262,10 @@ namespace XianXia.Unity.Host
 
                 view.SetBaseColor(color);
                 ApplyLifeStateVisual(session.World, entity, view);
+                view.ConfigureRuntimeArt(HostStepAArt.ResolveProfile(entity),
+                    GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
+                    GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
+                    GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>());
                 _registry.Register(id, view);
                 _spawned.Add(view);
             }

@@ -1,0 +1,1075 @@
+{
+  "version": 3,
+  "canvas": [
+    560,
+    440
+  ],
+  "direction_order": [
+    "north",
+    "south",
+    "west",
+    "east"
+  ],
+  "foot_anchor_top": [
+    280,
+    392
+  ],
+  "frame_records": [
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_north_01_v03.png",
+      "source": "Originals/protagonist_walk_north_v03.png",
+      "source_sha256": "f7af7dad03c423d9212cc1172d19456c93325be9d983cfdb8df6d6b28af95d49",
+      "source_bbox": [
+        76,
+        31,
+        392,
+        778
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_north_02_v03.png",
+      "source": "Originals/protagonist_walk_north_v03.png",
+      "source_sha256": "f7af7dad03c423d9212cc1172d19456c93325be9d983cfdb8df6d6b28af95d49",
+      "source_bbox": [
+        565,
+        30,
+        883,
+        772
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_north_03_v03.png",
+      "source": "Originals/protagonist_walk_north_v03.png",
+      "source_sha256": "f7af7dad03c423d9212cc1172d19456c93325be9d983cfdb8df6d6b28af95d49",
+      "source_bbox": [
+        1065,
+        32,
+        1378,
+        769
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_north_04_v03.png",
+      "source": "Originals/protagonist_walk_north_v03.png",
+      "source_sha256": "f7af7dad03c423d9212cc1172d19456c93325be9d983cfdb8df6d6b28af95d49",
+      "source_bbox": [
+        1557,
+        28,
+        1866,
+        775
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_idle_north_01_v03.png",
+      "source": "protagonist_walk_north_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_south_01_v03.png",
+      "source": "Originals/protagonist_walk_south_v03.png",
+      "source_sha256": "b9a03e4d8262ee7e1c58287a73193cb94c4612cc6ce5d9dd34813e689b83bc10",
+      "source_bbox": [
+        129,
+        0,
+        453,
+        717
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_south_02_v03.png",
+      "source": "Originals/protagonist_walk_south_v03.png",
+      "source_sha256": "b9a03e4d8262ee7e1c58287a73193cb94c4612cc6ce5d9dd34813e689b83bc10",
+      "source_bbox": [
+        646,
+        5,
+        987,
+        717
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_south_03_v03.png",
+      "source": "Originals/protagonist_walk_south_v03.png",
+      "source_sha256": "b9a03e4d8262ee7e1c58287a73193cb94c4612cc6ce5d9dd34813e689b83bc10",
+      "source_bbox": [
+        1183,
+        5,
+        1518,
+        717
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_south_04_v03.png",
+      "source": "Originals/protagonist_walk_south_v03.png",
+      "source_sha256": "b9a03e4d8262ee7e1c58287a73193cb94c4612cc6ce5d9dd34813e689b83bc10",
+      "source_bbox": [
+        1722,
+        4,
+        2054,
+        717
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_idle_south_01_v03.png",
+      "source": "Batch_Codex_002/Static",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1,
+      "note": "authored south idle"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_west_01_v03.png",
+      "source": "Originals/protagonist_walk_west_v03.png",
+      "source_sha256": "1c2fdcce62629670dd444c5fdc42574cf3daeef30f9a595333ca9afcc4d15342",
+      "source_bbox": [
+        77,
+        7,
+        453,
+        710
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_west_02_v03.png",
+      "source": "Originals/protagonist_walk_west_v03.png",
+      "source_sha256": "1c2fdcce62629670dd444c5fdc42574cf3daeef30f9a595333ca9afcc4d15342",
+      "source_bbox": [
+        599,
+        7,
+        996,
+        708
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_west_03_v03.png",
+      "source": "Originals/protagonist_walk_west_v03.png",
+      "source_sha256": "1c2fdcce62629670dd444c5fdc42574cf3daeef30f9a595333ca9afcc4d15342",
+      "source_bbox": [
+        1150,
+        9,
+        1537,
+        710
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_west_04_v03.png",
+      "source": "Originals/protagonist_walk_west_v03.png",
+      "source_sha256": "1c2fdcce62629670dd444c5fdc42574cf3daeef30f9a595333ca9afcc4d15342",
+      "source_bbox": [
+        1698,
+        9,
+        2077,
+        708
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_idle_west_01_v03.png",
+      "source": "protagonist_walk_west_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_east_01_v03.png",
+      "source": "Originals/protagonist_walk_east_v03.png",
+      "source_sha256": "cc80e66fa84ab843b1d1b6666790fba8e1d3fba7ab3f873916a74c234a7cfedf",
+      "source_bbox": [
+        95,
+        31,
+        468,
+        697
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_east_02_v03.png",
+      "source": "Originals/protagonist_walk_east_v03.png",
+      "source_sha256": "cc80e66fa84ab843b1d1b6666790fba8e1d3fba7ab3f873916a74c234a7cfedf",
+      "source_bbox": [
+        644,
+        27,
+        965,
+        698
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_east_03_v03.png",
+      "source": "Originals/protagonist_walk_east_v03.png",
+      "source_sha256": "cc80e66fa84ab843b1d1b6666790fba8e1d3fba7ab3f873916a74c234a7cfedf",
+      "source_bbox": [
+        1178,
+        32,
+        1547,
+        699
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_walk_east_04_v03.png",
+      "source": "Originals/protagonist_walk_east_v03.png",
+      "source_sha256": "cc80e66fa84ab843b1d1b6666790fba8e1d3fba7ab3f873916a74c234a7cfedf",
+      "source_bbox": [
+        1717,
+        32,
+        2098,
+        698
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_idle_east_01_v03.png",
+      "source": "protagonist_walk_east_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_north_01_v03.png",
+      "source": "Originals/companion_a_walk_north_v03.png",
+      "source_sha256": "fe7a3ec33eace54afad63baabfbfd0db1f99e75f80b1602a0835ddb61e72b283",
+      "source_bbox": [
+        86,
+        21,
+        507,
+        703
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_north_02_v03.png",
+      "source": "Originals/companion_a_walk_north_v03.png",
+      "source_sha256": "fe7a3ec33eace54afad63baabfbfd0db1f99e75f80b1602a0835ddb61e72b283",
+      "source_bbox": [
+        637,
+        20,
+        1070,
+        702
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_north_03_v03.png",
+      "source": "Originals/companion_a_walk_north_v03.png",
+      "source_sha256": "fe7a3ec33eace54afad63baabfbfd0db1f99e75f80b1602a0835ddb61e72b283",
+      "source_bbox": [
+        1165,
+        27,
+        1587,
+        702
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_north_04_v03.png",
+      "source": "Originals/companion_a_walk_north_v03.png",
+      "source_sha256": "fe7a3ec33eace54afad63baabfbfd0db1f99e75f80b1602a0835ddb61e72b283",
+      "source_bbox": [
+        1706,
+        21,
+        2130,
+        702
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_idle_north_01_v03.png",
+      "source": "companion_a_walk_north_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_south_01_v03.png",
+      "source": "Originals/companion_a_walk_south_v03.png",
+      "source_sha256": "a871d7349c5221c2dd9de7b52cabe1b3f58cdaf75e57faeceb6defe860ffab98",
+      "source_bbox": [
+        34,
+        7,
+        529,
+        715
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_south_02_v03.png",
+      "source": "Originals/companion_a_walk_south_v03.png",
+      "source_sha256": "a871d7349c5221c2dd9de7b52cabe1b3f58cdaf75e57faeceb6defe860ffab98",
+      "source_bbox": [
+        584,
+        10,
+        1053,
+        715
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_south_03_v03.png",
+      "source": "Originals/companion_a_walk_south_v03.png",
+      "source_sha256": "a871d7349c5221c2dd9de7b52cabe1b3f58cdaf75e57faeceb6defe860ffab98",
+      "source_bbox": [
+        1116,
+        8,
+        1608,
+        715
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_south_04_v03.png",
+      "source": "Originals/companion_a_walk_south_v03.png",
+      "source_sha256": "a871d7349c5221c2dd9de7b52cabe1b3f58cdaf75e57faeceb6defe860ffab98",
+      "source_bbox": [
+        1687,
+        9,
+        2133,
+        715
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_idle_south_01_v03.png",
+      "source": "Batch_Codex_002/Static",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1,
+      "note": "authored south idle"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_west_01_v03.png",
+      "source": "Originals/companion_a_walk_west_v03.png",
+      "source_sha256": "2122f76e02817ec175036bfabe5f3003dab648cd8be1f73334eedc0bc37fa1d1",
+      "source_bbox": [
+        43,
+        9,
+        510,
+        714
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_west_02_v03.png",
+      "source": "Originals/companion_a_walk_west_v03.png",
+      "source_sha256": "2122f76e02817ec175036bfabe5f3003dab648cd8be1f73334eedc0bc37fa1d1",
+      "source_bbox": [
+        603,
+        9,
+        1045,
+        711
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_west_03_v03.png",
+      "source": "Originals/companion_a_walk_west_v03.png",
+      "source_sha256": "2122f76e02817ec175036bfabe5f3003dab648cd8be1f73334eedc0bc37fa1d1",
+      "source_bbox": [
+        1117,
+        9,
+        1585,
+        714
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_west_04_v03.png",
+      "source": "Originals/companion_a_walk_west_v03.png",
+      "source_sha256": "2122f76e02817ec175036bfabe5f3003dab648cd8be1f73334eedc0bc37fa1d1",
+      "source_bbox": [
+        1672,
+        9,
+        2143,
+        715
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_idle_west_01_v03.png",
+      "source": "companion_a_walk_west_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_east_01_v03.png",
+      "source": "Originals/companion_a_walk_east_v03.png",
+      "source_sha256": "ece2cc6adac7218de753b60daf18e63384d7ab8222ddac5b5d2c91e2608237f5",
+      "source_bbox": [
+        21,
+        10,
+        507,
+        737
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_east_02_v03.png",
+      "source": "Originals/companion_a_walk_east_v03.png",
+      "source_sha256": "ece2cc6adac7218de753b60daf18e63384d7ab8222ddac5b5d2c91e2608237f5",
+      "source_bbox": [
+        547,
+        12,
+        977,
+        738
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_east_03_v03.png",
+      "source": "Originals/companion_a_walk_east_v03.png",
+      "source_sha256": "ece2cc6adac7218de753b60daf18e63384d7ab8222ddac5b5d2c91e2608237f5",
+      "source_bbox": [
+        1058,
+        14,
+        1547,
+        738
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_walk_east_04_v03.png",
+      "source": "Originals/companion_a_walk_east_v03.png",
+      "source_sha256": "ece2cc6adac7218de753b60daf18e63384d7ab8222ddac5b5d2c91e2608237f5",
+      "source_bbox": [
+        1583,
+        14,
+        2049,
+        738
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_idle_east_01_v03.png",
+      "source": "companion_a_walk_east_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_north_01_v03.png",
+      "source": "Originals/companion_b_walk_north_v03.png",
+      "source_sha256": "09e70ff9750e938daf9bd209e7c892d2480ad928af29a6e913c516760b6561bc",
+      "source_bbox": [
+        67,
+        2,
+        429,
+        707
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_north_02_v03.png",
+      "source": "Originals/companion_b_walk_north_v03.png",
+      "source_sha256": "09e70ff9750e938daf9bd209e7c892d2480ad928af29a6e913c516760b6561bc",
+      "source_bbox": [
+        627,
+        1,
+        995,
+        708
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_north_03_v03.png",
+      "source": "Originals/companion_b_walk_north_v03.png",
+      "source_sha256": "09e70ff9750e938daf9bd209e7c892d2480ad928af29a6e913c516760b6561bc",
+      "source_bbox": [
+        1184,
+        7,
+        1569,
+        703
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_north_04_v03.png",
+      "source": "Originals/companion_b_walk_north_v03.png",
+      "source_sha256": "09e70ff9750e938daf9bd209e7c892d2480ad928af29a6e913c516760b6561bc",
+      "source_bbox": [
+        1755,
+        6,
+        2111,
+        711
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_idle_north_01_v03.png",
+      "source": "companion_b_walk_north_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "north",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_south_01_v03.png",
+      "source": "Originals/companion_b_walk_south_v03.png",
+      "source_sha256": "0a36d4b69e5404f6c3252c404178be4da17ffc6b7d3788a901d95e0f0464fe5b",
+      "source_bbox": [
+        104,
+        4,
+        493,
+        721
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_south_02_v03.png",
+      "source": "Originals/companion_b_walk_south_v03.png",
+      "source_sha256": "0a36d4b69e5404f6c3252c404178be4da17ffc6b7d3788a901d95e0f0464fe5b",
+      "source_bbox": [
+        638,
+        1,
+        1036,
+        719
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_south_03_v03.png",
+      "source": "Originals/companion_b_walk_south_v03.png",
+      "source_sha256": "0a36d4b69e5404f6c3252c404178be4da17ffc6b7d3788a901d95e0f0464fe5b",
+      "source_bbox": [
+        1168,
+        0,
+        1585,
+        721
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_south_04_v03.png",
+      "source": "Originals/companion_b_walk_south_v03.png",
+      "source_sha256": "0a36d4b69e5404f6c3252c404178be4da17ffc6b7d3788a901d95e0f0464fe5b",
+      "source_bbox": [
+        1713,
+        5,
+        2108,
+        719
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_idle_south_01_v03.png",
+      "source": "Batch_Codex_002/Static",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "south",
+      "frame": 1,
+      "note": "authored south idle"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_west_01_v03.png",
+      "source": "Originals/companion_b_walk_west_v03.png",
+      "source_sha256": "76bff0cb27f446a5ee48ede2cfcda5070ef038e5e59919a73af73c981eed6a7b",
+      "source_bbox": [
+        42,
+        4,
+        518,
+        710
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_west_02_v03.png",
+      "source": "Originals/companion_b_walk_west_v03.png",
+      "source_sha256": "76bff0cb27f446a5ee48ede2cfcda5070ef038e5e59919a73af73c981eed6a7b",
+      "source_bbox": [
+        593,
+        7,
+        1060,
+        709
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_west_03_v03.png",
+      "source": "Originals/companion_b_walk_west_v03.png",
+      "source_sha256": "76bff0cb27f446a5ee48ede2cfcda5070ef038e5e59919a73af73c981eed6a7b",
+      "source_bbox": [
+        1125,
+        4,
+        1579,
+        709
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_west_04_v03.png",
+      "source": "Originals/companion_b_walk_west_v03.png",
+      "source_sha256": "76bff0cb27f446a5ee48ede2cfcda5070ef038e5e59919a73af73c981eed6a7b",
+      "source_bbox": [
+        1680,
+        6,
+        2138,
+        706
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_idle_west_01_v03.png",
+      "source": "companion_b_walk_west_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "west",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_east_01_v03.png",
+      "source": "Originals/companion_b_walk_east_v03.png",
+      "source_sha256": "081547a470435b29ec46d1492f30d72559482a3e565484fb3f7a60f7cda00967",
+      "source_bbox": [
+        55,
+        7,
+        476,
+        714
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_east_02_v03.png",
+      "source": "Originals/companion_b_walk_east_v03.png",
+      "source_sha256": "081547a470435b29ec46d1492f30d72559482a3e565484fb3f7a60f7cda00967",
+      "source_bbox": [
+        593,
+        7,
+        1015,
+        714
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 2
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_east_03_v03.png",
+      "source": "Originals/companion_b_walk_east_v03.png",
+      "source_sha256": "081547a470435b29ec46d1492f30d72559482a3e565484fb3f7a60f7cda00967",
+      "source_bbox": [
+        1163,
+        5,
+        1550,
+        718
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 3
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_walk_east_04_v03.png",
+      "source": "Originals/companion_b_walk_east_v03.png",
+      "source_sha256": "081547a470435b29ec46d1492f30d72559482a3e565484fb3f7a60f7cda00967",
+      "source_bbox": [
+        1695,
+        13,
+        2122,
+        714
+      ],
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 4
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_idle_east_01_v03.png",
+      "source": "companion_b_walk_east_v03 pose 2",
+      "pivot_top": [
+        280,
+        392
+      ],
+      "direction": "east",
+      "frame": 1,
+      "note": "temporary near-contact pose reuse"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_protagonist_sleep_v03.png",
+      "source": "Originals/protagonist_sleep_v03.png",
+      "source_sha256": "3f5f838531affc2462739044b08c7b63cf0d9a48484e8f5b850710d6b0d6e827",
+      "source_bbox": [
+        2,
+        107,
+        1765,
+        776
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_a_sleep_v03.png",
+      "source": "Originals/companion_a_sleep_v03.png",
+      "source_sha256": "5ce44003a4e2ddcb6da5ddcf940684dd0aaf8da0dcd7ce93bfb4cdba4b4ce9d6",
+      "source_bbox": [
+        16,
+        72,
+        1758,
+        836
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-002_companion_b_sleep_v03.png",
+      "source": "Originals/companion_b_sleep_v03.png",
+      "source_sha256": "b4a66674fc1ae325d708f713a8c34a35d0be5d57e2656e962221eeb607732ad0",
+      "source_bbox": [
+        13,
+        78,
+        1761,
+        812
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-001_villager_sleep_v03.png",
+      "source": "Originals/villager_sleep_v03.png",
+      "source_sha256": "ca864c8f037d0d26007ee8a0d2aaa0c64db6d916e4f0e8a941d03ee76cdeff20",
+      "source_bbox": [
+        104,
+        306,
+        1442,
+        796
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-004_guard_sleep_v03.png",
+      "source": "Originals/guard_sleep_v03.png",
+      "source_sha256": "0c9107b9b02324ebb46879fd806fc08bb6f4006aedab4b36e84edff8e1b2bb7b",
+      "source_bbox": [
+        75,
+        258,
+        1576,
+        744
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-003_supervisor_sleep_v03.png",
+      "source": "Originals/supervisor_sleep_v03.png",
+      "source_sha256": "ce5156c027d87fa5fd661495757a7f23a3444dd9264f486cf0fb235c87709078",
+      "source_bbox": [
+        21,
+        80,
+        1756,
+        838
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-005_resident_hoe_sleep_v03.png",
+      "source": "Originals/resident_hoe_sleep_v03.png",
+      "source_sha256": "a3da0202670fa9a62a0ff75e1cefcffb48ff36e492be8eb5d0d94b6cb089ce3e",
+      "source_bbox": [
+        42,
+        173,
+        1730,
+        777
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-005_resident_apron_sleep_v03.png",
+      "source": "Originals/resident_apron_sleep_v03.png",
+      "source_sha256": "eb7e6f9a9d4ab93ff4973e9d87a15c5ba1fc7fdb1c21cf3016915ae9f5e31705",
+      "source_bbox": [
+        54,
+        120,
+        1945,
+        731
+      ],
+      "pose": "lying, head left"
+    },
+    {
+      "path": "Frames/ART-CHAR-005_resident_basket_sleep_v03.png",
+      "source": "Originals/resident_basket_sleep_v03.png",
+      "source_sha256": "7b27d7dd87dc43e98918bd245f2ff8ae3205efb2b241617dfd895df21687845e",
+      "source_bbox": [
+        67,
+        144,
+        1733,
+        780
+      ],
+      "pose": "lying, head left"
+    }
+  ]
+}

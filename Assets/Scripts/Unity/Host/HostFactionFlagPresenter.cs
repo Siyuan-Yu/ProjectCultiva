@@ -305,6 +305,8 @@ namespace XianXia.Unity.Host
             if (!_visuals.TryGetValue(flag.FlagId, out var visual) || visual?.Root == null)
             {
                 var root = InstantiateBuilding("FactionControlPost_" + flag.FlagId);
+                if (string.Equals(flag.FactionId, "base:sect_huangcun_labor", StringComparison.Ordinal))
+                    HostStepAArt.ApplyObjectVisual(root, HostStepAArt.MapSprite("factionControlPost"));
                 root.transform.SetParent(transform, false);
                 root.AddComponent<HostFactionFlagView>().Bind(flag.FlagId);
                 var labelObject = new GameObject("FlagStatus");

@@ -146,6 +146,18 @@ namespace XianXia.Unity.Host
             text.anchor = TextAnchor.MiddleCenter;
             text.fontSize = 40;
             text.color = Color.white;
+            var marker = HostStepAArt.SiteMarkerSprite();
+            if (marker != null)
+            {
+                var markerObject = new GameObject("SiteMarkerArt");
+                markerObject.transform.SetParent(go.transform, false);
+                markerObject.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+                var spriteRenderer = markerObject.AddComponent<SpriteRenderer>();
+                spriteRenderer.sprite = marker;
+                spriteRenderer.sortingOrder = 498;
+                var textRenderer = go.GetComponent<MeshRenderer>();
+                if (textRenderer != null) textRenderer.sortingOrder = 499;
+            }
             _built.Add(go);
         }
     }

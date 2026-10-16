@@ -508,6 +508,8 @@ namespace XianXia.Unity.Host
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                     var strike = _melee.ApplyStrike(
                         world, id, target, out _, out var defenderDefeated);
+                    if (strike.IsSuccess)
+                        actorView.PlayArtAttack(targetView.transform.position);
                     if (strike.IsSuccess && defenderDefeated)
                         RefreshDefeatedParticipant(target);
                 }
@@ -582,6 +584,8 @@ namespace XianXia.Unity.Host
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
             var strike = _melee.ApplyStrike(
                 world, attackerId, targetId, out _, out var defenderDefeated);
+            if (strike.IsSuccess)
+                attackerView.PlayArtAttack(targetView.transform.position);
             if (strike.IsSuccess && defenderDefeated)
                 RefreshDefeatedParticipant(targetId);
             if (!CombatLifeStateService.CanBeAttacked(targetEntity))

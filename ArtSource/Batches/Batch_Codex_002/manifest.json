@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "batch_id": "Batch_Codex_002",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "style_reference": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+  "generator": "Codex built-in image_gen, medium-detail prompting; no medium quality parameter",
+  "generation_prompts": "ArtSource/Batches/Batch_Codex_002/generation_prompts.md",
+  "scope": "art preparation only; no Unity Assets/Content/Prefab/meta/GUID changes",
+  "generated_originals": [
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-CHAR-001_attack_4dir_4f_sheet_v01.png",
+      "sha256": "89311b3f8a3ea38ede59cf04eda7182811a3c62868198e3b087431586ea78df7",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-GROUND-001_grass_tile_v01.png",
+      "sha256": "de4ddea9ec86b4fd16bbe33d2b51f6c053aba6e19f93259ce3224dcf8c0afffe",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-ROOM-008_core_isolated_v03.png",
+      "sha256": "1dec467ba1f17d4bdb7f090ed9dab6b3c471fdedb86562292a14883f904c3d3f",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-001_hud_frame_v01.png",
+      "sha256": "1a5b17c6c6792982857e2ba01d3746be84a39a2611ad0f5797e8858054860860",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    },
+    {
+      "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-007_interaction_markers_v01.png",
+      "sha256": "83494cc9e4d1c57f66bcc551934188df548acee1ae1f3f8aaaa91db68752cdd1",
+      "kind": "built-in image_gen original/edit, not accepted or Unity integrated"
+    }
+  ],
+  "counts": {
+    "new_generated_originals": 7,
+    "processed_animation_sheets": 7,
+    "animation_single_frames": 88,
+    "static_cutouts_in_manifest": 48,
+    "experimental_field_plant_layers": 8
+  },
+  "animation_manifest": "ArtSource/Batches/Batch_Codex_002/character_manifest.json",
+  "animation_qa": "ArtSource/Batches/Batch_Codex_002/character_qa.json",
+  "animation_technical_checks_pass": true,
+  "static_manifest": "ArtSource/Batches/Batch_Codex_002/static_manifest.json",
+  "composites_manifest": "ArtSource/Batches/Batch_Codex_002/composites_manifest.json",
+  "behavior_samples_manifest": "ArtSource/Batches/Batch_Codex_002/behavior_samples_manifest.json",
+  "appearance_action_matrix": "ArtSource/Batches/Batch_Codex_002/appearance_action_matrix.md",
+  "corrected_core": {
+    "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_core_isolated_v03.png",
+    "sha256": "1dec467ba1f17d4bdb7f090ed9dab6b3c471fdedb86562292a14883f904c3d3f",
+    "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+    "status": "transparent edited candidate; identity/size not Unity checked"
+  },
+  "remaining_p0": [
+    "ART-CHAR-002/003/005: only south static identity candidates for distinct outfits/hair; four-direction action coverage absent",
+    "ART-ANIM-003: actual carried appearance sample exists but mount/occlusion not validated",
+    "ART-ROOM-001/002/003: schematic assembly only; real grid dimensions, door opening and seamless floor not verified",
+    "ART-GROUND-002: road repeat preview shows a visible seam",
+    "ART-GROUND-010/011: separated plant overlays are experimental, with holes/soil color remnants; not ready",
+    "ART-UI-001: generated frame only; 9-slice bounds and inventory/character panel layouts not validated",
+    "ART-UI-002/003: 32px preview exists, final HUD legibility and item mapping not Unity validated",
+    "ART-UI-007: marker and flag cutouts exist; scale/occlusion and world anchoring not validated"
+  ],
+  "status": "mixed prepared/failed candidates; none Unity integrated or accepted"
+}

@@ -44,6 +44,7 @@ namespace XianXia.Unity.Host
         GUIStyle _title;
         GUIStyle _small;
         GUIStyle _slot;
+        GUIStyle _iconSlot;
 
         public bool IsOpen => open;
 
@@ -230,8 +231,11 @@ namespace XianXia.Unity.Host
                 var r = new Rect(col * (cell + gap), row * (cell + gap), cell, cell);
                 if (_selectedSlot == i)
                     GUI.color = new Color(1f, 0.92f, 0.7f);
-                if (GUI.Button(r, SlotLabel(catalog, slot), _slot))
+                var icon = slot != null && !slot.IsEmpty ? HostStepAArt.ItemIcon(slot.ItemId) : null;
+                if (GUI.Button(r, SlotLabel(catalog, slot), icon != null ? _iconSlot : _slot))
                     _selectedSlot = i;
+                if (icon != null)
+                    GUI.DrawTexture(new Rect(r.x + 27f, r.y + 6f, 34f, 34f), icon, ScaleMode.ScaleToFit, true);
                 GUI.color = Color.white;
                 drawIndex++;
             }
@@ -499,6 +503,7 @@ namespace XianXia.Unity.Host
                 alignment = TextAnchor.MiddleCenter,
                 wordWrap = true
             };
+            _iconSlot = new GUIStyle(_slot) { alignment = TextAnchor.LowerCenter };
         }
     }
 }

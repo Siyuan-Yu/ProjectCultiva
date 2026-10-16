@@ -1,0 +1,1262 @@
+{
+  "cutouts": [
+    {
+      "name": "ART-CHAR-005_resident_basket_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png",
+      "source_sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
+      "source_region_xyxy": [
+        0,
+        0,
+        480,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        394,
+        718
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-005_resident_basket_idle_south_v02.png",
+      "sha256": "387e6a2d48dee9689c3f344b85bb1152f091003f9a324b595ee0d6602d00faac",
+      "size_px": [
+        394,
+        718
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-005_resident_apron_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png",
+      "source_sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
+      "source_region_xyxy": [
+        480,
+        0,
+        970,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        347,
+        715
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-005_resident_apron_idle_south_v02.png",
+      "sha256": "d4c6c6da572682a260f82e4906d2ab704480f1428af4839913dad0a1e20f423f",
+      "size_px": [
+        347,
+        715
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-005_resident_hoe_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png",
+      "source_sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
+      "source_region_xyxy": [
+        970,
+        0,
+        1448,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        412,
+        735
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-005_resident_hoe_idle_south_v02.png",
+      "sha256": "616039024432c5357a53b46f701a33d2cab8eacfe928757a9ee6f0dd1aae32ff",
+      "size_px": [
+        412,
+        735
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-002_protagonist_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "source_sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
+      "source_region_xyxy": [
+        0,
+        0,
+        480,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        340,
+        714
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-002_protagonist_idle_south_v02.png",
+      "sha256": "22c2b67c82234597a9acbf1b641eba8d88f649a4c4fa405a96326cdd75d64217",
+      "size_px": [
+        340,
+        714
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-002_companion_a_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "source_sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
+      "source_region_xyxy": [
+        480,
+        0,
+        970,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        397,
+        699
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-002_companion_a_idle_south_v02.png",
+      "sha256": "c865c22b519cc73d022a3cabbee8fc1aff08362674a8f0fbd4b9001036f35953",
+      "size_px": [
+        397,
+        699
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-002_companion_b_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "source_sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
+      "source_region_xyxy": [
+        970,
+        0,
+        1448,
+        1086
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        365,
+        709
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-002_companion_b_idle_south_v02.png",
+      "sha256": "97db0f846acc15af0fa2a3efb8690b8ef7fadb2d7ec0b4ccbe5b8a1135a9a8d4",
+      "size_px": [
+        365,
+        709
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-CHAR-003_supervisor_idle_south_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-003_supervisor_v01.png",
+      "source_sha256": "dbe6068fbd4749140ff0f9be83e270e321f3b46f9073f6716938c07fdf0dfb5a",
+      "source_region_xyxy": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        515,
+        1048
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-CHAR-003_supervisor_idle_south_v02.png",
+      "sha256": "f387844d2f69e19da909ebb809a57413b0e37789b79badd508673745c4915123",
+      "size_px": [
+        515,
+        1048
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-001_floor_interior_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "source_sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "source_region_xyxy": [
+        105,
+        145,
+        650,
+        665
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        545,
+        520
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-001_floor_interior_v02.png",
+      "sha256": "a5dd56935843ba5f89cd8f9244b75b329d52e5f1ca08490f4902f14155f8bce4",
+      "size_px": [
+        545,
+        520
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": false,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-002_wall_straight_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "source_sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "source_region_xyxy": [
+        775,
+        90,
+        1395,
+        275
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        620,
+        185
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-002_wall_straight_v02.png",
+      "sha256": "3a6b16e13bd4d87aa869d1344dd37b9a2bcb150eae50db17aab57e3f841db213",
+      "size_px": [
+        620,
+        185
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-002_corner_left_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "source_sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "source_region_xyxy": [
+        755,
+        370,
+        1050,
+        705
+      ],
+      "tight_bounds_in_region": [
+        0,
+        4,
+        295,
+        330
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-002_corner_left_v02.png",
+      "sha256": "b353e538134d4f120dfaa5d66edaa09fa15f5c2ef765f7f3cf5fbfda1ee4e33a",
+      "size_px": [
+        295,
+        326
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-002_corner_right_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "source_sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "source_region_xyxy": [
+        1110,
+        370,
+        1410,
+        705
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        293,
+        335
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-002_corner_right_v02.png",
+      "sha256": "bbf0a7dc6c5d143aa1479b191fce6a3e10819972d5ab1eac7d2fce6de10abb45",
+      "size_px": [
+        293,
+        335
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-003_door_open_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "source_sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "source_region_xyxy": [
+        430,
+        785,
+        990,
+        1020
+      ],
+      "tight_bounds_in_region": [
+        0,
+        7,
+        552,
+        226
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-003_door_open_v02.png",
+      "sha256": "b79039693ff3b991f6fdbe053ab5ba34f184ccce98cb3ce86112d95c5bab6a71",
+      "size_px": [
+        552,
+        219
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-006_bed_residential_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "source_sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
+      "source_region_xyxy": [
+        35,
+        155,
+        465,
+        920
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        403,
+        730
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-006_bed_residential_v02.png",
+      "sha256": "7eed947338beb2017f2cd1d544cbd05effb5219354061c43ed1a02ad2eb083f0",
+      "size_px": [
+        403,
+        730
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-006_bed_medical_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "source_sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
+      "source_region_xyxy": [
+        510,
+        155,
+        930,
+        920
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        403,
+        731
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-006_bed_medical_v02.png",
+      "sha256": "27c1a68818c721a60ccc5d49231a6f3887aaa67e9e3d456673090ca45a7effdb",
+      "size_px": [
+        403,
+        731
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-006_bed_prison_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "source_sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
+      "source_region_xyxy": [
+        990,
+        155,
+        1430,
+        920
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        417,
+        734
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-006_bed_prison_v02.png",
+      "sha256": "fe778b4ccc0a3dad999a8c2e62bcbf58c0663ab5f79f538f5988dea7c671a35d",
+      "size_px": [
+        417,
+        734
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-007_tree_small_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "source_sha256": "41a037b512544dc458d769f2f52861ee8b8fb61d3adaaf7736b2fcc9dfe59e89",
+      "source_region_xyxy": [
+        0,
+        0,
+        455,
+        887
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        366,
+        403
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-007_tree_small_v02.png",
+      "sha256": "883bd8a3f6de5b54647567a44a393a6b2e2f19aee1170551fe7d3777df8544a3",
+      "size_px": [
+        366,
+        403
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-007_tree_medium_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "source_sha256": "41a037b512544dc458d769f2f52861ee8b8fb61d3adaaf7736b2fcc9dfe59e89",
+      "source_region_xyxy": [
+        455,
+        0,
+        1030,
+        887
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        513,
+        617
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-007_tree_medium_v02.png",
+      "sha256": "d1d6a5d4c0a0121c9de008f838364ecd1be63e9fef714304efab2e0dd082a929",
+      "size_px": [
+        513,
+        617
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-007_tree_large_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "source_sha256": "41a037b512544dc458d769f2f52861ee8b8fb61d3adaaf7736b2fcc9dfe59e89",
+      "source_region_xyxy": [
+        1030,
+        0,
+        1774,
+        887
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        722,
+        835
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-007_tree_large_v02.png",
+      "sha256": "0b81bdaa3512c2b1800182ac14be3b20635da3ae4b05a70a0b51c5f83228d508",
+      "size_px": [
+        722,
+        835
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-009_ore_base_v02",
+      "source": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "source_sha256": "727b4d0893e64f52421b478587319a1e743c0948385e181d9f00a93c9a944b54",
+      "source_region_xyxy": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        1053,
+        860
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-009_ore_base_v02.png",
+      "sha256": "faaa235ba076a32d6af4a87244f8e055ed985a350288a61fdd24f4bd2c381113",
+      "size_px": [
+        1053,
+        860
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-007_storage_sacks_v03",
+      "source": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "source_sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "source_region_xyxy": [
+        0,
+        0,
+        350,
+        370
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        254,
+        207
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-007_storage_sacks_v03.png",
+      "sha256": "4357c95bbd86609a181481b14acbd892627e1b72b14faa062462ca4123c57825",
+      "size_px": [
+        254,
+        207
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-007_storage_crates_v03",
+      "source": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "source_sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "source_region_xyxy": [
+        330,
+        0,
+        675,
+        370
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        267,
+        197
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-007_storage_crates_v03.png",
+      "sha256": "4c7c254c031b27729ba70474cf6f214c9ba5b93008fb7558244ac27c25132835",
+      "size_px": [
+        267,
+        197
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-007_storage_jars_v03",
+      "source": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "source_sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "source_region_xyxy": [
+        675,
+        0,
+        1000,
+        370
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        230,
+        181
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-007_storage_jars_v03.png",
+      "sha256": "158cb135089eccd3bb00011cae8221899db275200f04092f217fa14cb46ad69a",
+      "size_px": [
+        230,
+        181
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-007_storage_bales_v03",
+      "source": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "source_sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "source_region_xyxy": [
+        990,
+        0,
+        1220,
+        370
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        230,
+        182
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-007_storage_bales_v03.png",
+      "sha256": "42a2ac26988a74a337ec2b05fd7c697a2b20cab75ecc2b74c93c83cf5abc72f1",
+      "size_px": [
+        230,
+        182
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-007_storage_sign_v03",
+      "source": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "source_sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "source_region_xyxy": [
+        1190,
+        0,
+        1448,
+        370
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        160,
+        342
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-007_storage_sign_v03.png",
+      "sha256": "2eaaef846889ce23dd98c64fd008e0a5eca364d420dcffcd2eaccc9993525b20",
+      "size_px": [
+        160,
+        342
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-010_cave_entrance_v02",
+      "source": "ArtSource/Inbox/ART-ROOM-010_cave_entrance_cliff_modules_sheet_v01.png",
+      "source_sha256": "94f6c215e09b3215082297ec2fd7ce49aa82784832bbd9f86d3aaac6b07f92fb",
+      "source_region_xyxy": [
+        0,
+        0,
+        725,
+        640
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        680,
+        578
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-010_cave_entrance_v02.png",
+      "sha256": "46790fd0820b6898075cb5e22b6168d415e27772a55159dd56c1873a5d423f4b",
+      "size_px": [
+        680,
+        578
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-010_cliff_top_v02",
+      "source": "ArtSource/Inbox/ART-ROOM-010_cave_entrance_cliff_modules_sheet_v01.png",
+      "source_sha256": "94f6c215e09b3215082297ec2fd7ce49aa82784832bbd9f86d3aaac6b07f92fb",
+      "source_region_xyxy": [
+        725,
+        0,
+        1448,
+        365
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        694,
+        219
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-010_cliff_top_v02.png",
+      "sha256": "709a8f054a8fad1136eb5d177ccf13b5e785de260440336fb5c73c47c739efb0",
+      "size_px": [
+        694,
+        219
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-008_core_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "source_sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
+      "source_region_xyxy": [
+        0,
+        0,
+        720,
+        768
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        622,
+        492
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_core_v02.png",
+      "sha256": "14d0cb1a3fd182e178e58edfd412a60ee82a7e4883a1bdbebfcb07978dfbf88d",
+      "size_px": [
+        622,
+        492
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-008_flag_blue_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "source_sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
+      "source_region_xyxy": [
+        720,
+        0,
+        1110,
+        768
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        294,
+        694
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_flag_blue_v02.png",
+      "sha256": "ed6d09beaac821d2c7f26c3e6888af691b2d5ab913566ebac72d64a10af0b97f",
+      "size_px": [
+        294,
+        694
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-008_flag_red_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "source_sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
+      "source_region_xyxy": [
+        1160,
+        0,
+        1550,
+        768
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        294,
+        695
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_flag_red_v02.png",
+      "sha256": "5f9673fd39bba36d7bc8eb9ee0818cdc715dcdb9dc6fb4f406c9afe734369fb8",
+      "size_px": [
+        294,
+        695
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-ROOM-008_flag_green_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "source_sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
+      "source_region_xyxy": [
+        1620,
+        0,
+        2048,
+        768
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        291,
+        700
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_flag_green_v02.png",
+      "sha256": "082014e62422aba03d74727be455ff572589c967db269d165d44e8f6fc1b83b7",
+      "size_px": [
+        291,
+        700
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_vertical_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        278,
+        425
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_vertical_v02.png",
+      "sha256": "008a575c00cc49815a83bab36d12cf1e2821defefd1494375c5d0190db5643a5",
+      "size_px": [
+        278,
+        425
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_horizontal_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        395,
+        319
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_horizontal_v02.png",
+      "sha256": "16114855cafcbef41e3083455d12905a7848c3581ef1978296026ae75725778f",
+      "size_px": [
+        395,
+        319
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_turn_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        1024,
+        0,
+        1536,
+        512
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        363,
+        360
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_turn_v02.png",
+      "sha256": "bfd3317c703a026d6984783e36fe15f3065ed68aa35dade2d9db93d97d0bdacc",
+      "size_px": [
+        363,
+        360
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_tee_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        405,
+        399
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_tee_v02.png",
+      "sha256": "b4fdcb8dfd54122c1f80f614f2674f70f5efd84d6c2e1667fdc7a35ba732f4a9",
+      "size_px": [
+        405,
+        399
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_cross_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        400,
+        406
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_cross_v02.png",
+      "sha256": "36b1be84d68afb75deec08a6e5bca6b5d4ca98725a30249707f6a1194a0fbed6",
+      "size_px": [
+        400,
+        406
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-GROUND-002_road_end_v02",
+      "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "source_sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "source_region_xyxy": [
+        1024,
+        512,
+        1536,
+        1024
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        340,
+        383
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-002_road_end_v02.png",
+      "sha256": "ca921c99751946d10069ba0601b99c0c64df4a639ef7f2d5275b199da0a07cf1",
+      "size_px": [
+        340,
+        383
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-002_hunger_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "source_sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "source_region_xyxy": [
+        0,
+        0,
+        434,
+        724
+      ],
+      "tight_bounds_in_region": [
+        31,
+        9,
+        434,
+        708
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-002_hunger_v01.png",
+      "sha256": "b4529fb4e289502bf480aa5a786d2bc955c707b3c87cefd0064cbe2cb7a44592",
+      "size_px": [
+        403,
+        699
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-002_stamina_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "source_sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "source_region_xyxy": [
+        434,
+        0,
+        868,
+        724
+      ],
+      "tight_bounds_in_region": [
+        0,
+        9,
+        434,
+        672
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-002_stamina_v01.png",
+      "sha256": "58029259b3bcae449a33c65801ae05a27d9226af7b51b84a97ffef5cf73af414",
+      "size_px": [
+        434,
+        663
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-002_dying_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "source_sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "source_region_xyxy": [
+        868,
+        0,
+        1303,
+        724
+      ],
+      "tight_bounds_in_region": [
+        0,
+        25,
+        435,
+        692
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-002_dying_v01.png",
+      "sha256": "dc2047dab8bf0e8c8249c8c231ece69f33cb050b05f32135d3852e8c43777d75",
+      "size_px": [
+        435,
+        667
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-002_sleep_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "source_sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "source_region_xyxy": [
+        1303,
+        0,
+        1737,
+        724
+      ],
+      "tight_bounds_in_region": [
+        0,
+        45,
+        434,
+        690
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-002_sleep_v01.png",
+      "sha256": "b357641ce24f38be45c1922de8b39529a4e3daa643fa8cfbb46251339146ccd3",
+      "size_px": [
+        434,
+        645
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-002_escorted_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-002_status_icons_v01.png",
+      "source_sha256": "39e52105f2c719ee0f033b7add60b0bf8e749d6320017385cca6d0a266a61b48",
+      "source_region_xyxy": [
+        1737,
+        0,
+        2172,
+        724
+      ],
+      "tight_bounds_in_region": [
+        0,
+        21,
+        432,
+        700
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-002_escorted_v01.png",
+      "sha256": "9e54d68092c5747851e03be3a0c6ec548a9d74e4c5a7a30ea7c8109e4d4a5a1c",
+      "size_px": [
+        432,
+        679
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-003_rough_wood_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "source_sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "source_region_xyxy": [
+        0,
+        0,
+        431,
+        729
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        405,
+        408
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-003_rough_wood_v01.png",
+      "sha256": "c684528d32d0fd4788dcc951f645f2a0b3b2bac906f531e91cd856479f37e8da",
+      "size_px": [
+        405,
+        408
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-003_jiang_manual_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "source_sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "source_region_xyxy": [
+        431,
+        0,
+        862,
+        729
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        376,
+        462
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-003_jiang_manual_v01.png",
+      "sha256": "9c01e4e0b0081942141fdc81e505138d96b8bbcdd217b7d9676a2d3cd148e1cf",
+      "size_px": [
+        376,
+        462
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-003_dongfu_manual_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "source_sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "source_region_xyxy": [
+        862,
+        0,
+        1293,
+        729
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        394,
+        463
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-003_dongfu_manual_v01.png",
+      "sha256": "14a860067520be70968e67e9a91de15c8380145ee0603de996cc9ddbfbfc4bef",
+      "size_px": [
+        394,
+        463
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-003_liezhao_art_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "source_sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "source_region_xyxy": [
+        1293,
+        0,
+        1724,
+        729
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        396,
+        463
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-003_liezhao_art_v01.png",
+      "sha256": "35e38bc424adec252f77cf3c994ff7bd37987c0511a705d314a017148dae97bc",
+      "size_px": [
+        396,
+        463
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-003_kaishan_art_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-003_item_icons_v01.png",
+      "source_sha256": "0abbd67439578ff9a7acf3b67baf751fbe2891a9b4aa2b3e8e850d1aef18e856",
+      "source_region_xyxy": [
+        1724,
+        0,
+        2156,
+        729
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        390,
+        463
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-003_kaishan_art_v01.png",
+      "sha256": "8b55b31691ffd80e52fa062dab45259674b5ea7dc17fffeb30a1de343d0ee05f",
+      "size_px": [
+        390,
+        463
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-007_site_marker_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-007_interaction_markers_v01.png",
+      "source_sha256": "83494cc9e4d1c57f66bcc551934188df548acee1ae1f3f8aaaa91db68752cdd1",
+      "source_region_xyxy": [
+        0,
+        0,
+        1024,
+        832
+      ],
+      "tight_bounds_in_region": [
+        0,
+        0,
+        836,
+        438
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-007_site_marker_v01.png",
+      "sha256": "0b81b73ec50dbfaefc4719b9df02b3b54e69d840cb058d0e661ef2c0a7ec7778",
+      "size_px": [
+        836,
+        438
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    },
+    {
+      "name": "ART-UI-007_interact_rune_v01",
+      "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-UI-007_interaction_markers_v01.png",
+      "source_sha256": "83494cc9e4d1c57f66bcc551934188df548acee1ae1f3f8aaaa91db68752cdd1",
+      "source_region_xyxy": [
+        1024,
+        0,
+        1774,
+        832
+      ],
+      "tight_bounds_in_region": [
+        0,
+        21,
+        738,
+        832
+      ],
+      "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-UI-007_interact_rune_v01.png",
+      "sha256": "6bcd31fd3e5bf172742f9f7187b4ca767ef63f360b626a631219fa04172b734c",
+      "size_px": [
+        738,
+        811
+      ],
+      "nonempty_alpha": true,
+      "has_transparency": true,
+      "review": "cutout candidate; alignment, clean component separation and Unity dimensions unverified"
+    }
+  ],
+  "grass": {
+    "source": "ArtSource/Batches/Batch_Codex_002/Originals/ART-GROUND-001_grass_tile_v01.png",
+    "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-GROUND-001_grass_tile_seam_candidate_v02.png",
+    "preview": "ArtSource/Batches/Batch_Codex_002/Previews/ART-GROUND-001_2x2_seam_v02.jpg",
+    "opposite_edge_mae_x": 0.0,
+    "opposite_edge_mae_y": 0.0,
+    "opaque": true,
+    "review": "2x2 seam candidate only; generated source is not inherently tileable"
+  },
+  "contact": "ArtSource/Batches/Batch_Codex_002/Previews/static_cutouts_contact_v02.jpg"
+}

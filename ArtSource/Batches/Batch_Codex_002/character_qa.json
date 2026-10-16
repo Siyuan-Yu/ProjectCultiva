@@ -1,0 +1,107 @@
+{
+  "checks": [
+    {
+      "asset_id": "ART-CHAR-001",
+      "action": "idle",
+      "frame_count": 4,
+      "expected": 4,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-001",
+      "action": "walk",
+      "frame_count": 16,
+      "expected": 16,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-001",
+      "action": "work",
+      "frame_count": 16,
+      "expected": 16,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-001",
+      "action": "attack",
+      "frame_count": 16,
+      "expected": 16,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-004",
+      "action": "idle",
+      "frame_count": 4,
+      "expected": 4,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-004",
+      "action": "walk",
+      "frame_count": 16,
+      "expected": 16,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    },
+    {
+      "asset_id": "ART-CHAR-004",
+      "action": "attack",
+      "frame_count": 16,
+      "expected": 16,
+      "uniform_size": true,
+      "nonempty": true,
+      "transparent_alpha": true,
+      "canvas_edge_hits": [],
+      "exact_duplicate_frames": 0,
+      "review": "Pixel uniqueness is not motion validity; inspect switch GIF for foot/garment/equipment jump."
+    }
+  ],
+  "switch_previews": [
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_north_idle_walk_work_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_south_idle_walk_work_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_west_idle_walk_work_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_east_idle_walk_work_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-004_north_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-004_south_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-004_west_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-004_east_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_north_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_south_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_west_idle_walk_attack_switch_v02.gif",
+    "ArtSource/Batches/Batch_Codex_002/Previews/ART-CHAR-001_east_idle_walk_attack_switch_v02.gif"
+  ],
+  "all_technical_checks_pass": true,
+  "limitations": [
+    "No Unity PPU/pivot/render or human playtest",
+    "Motion quality requires visual review"
+  ]
+}
