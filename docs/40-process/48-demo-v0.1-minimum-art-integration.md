@@ -1,5 +1,7 @@
 # 第一批最小可用素材接入清单
 
+> **历史 Demo v0.1 接入记录，不能推断当前 LevelTester 全部正式运行视图已引用这些 PNG。** 当前资源引用核查、灰盒状态与待确认接线见 [273](273-current-art-asset-register.tsv)、[274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)。
+
 > 状态：已接入占位资源 | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`45-demo-v0.1.md`
 > 关联：`46-demo-v0.1-art-assets.md`、`47-demo-v0.1-ai-art-batches.md`

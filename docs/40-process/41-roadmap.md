@@ -1,5 +1,9 @@
 # 路线图
 
+## 美术筹备／美术样机（2026-10-16，盘点完成、规格待确认）
+
+当前获批范围仅为工程资产盘点、规格与接入追踪；[当前唯一资产总表](273-current-art-asset-register.tsv)和[阶段/规格/生产替换流程](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)已建立。后续顺序：制作人确认范围与规格 → 少量风格样本 → LevelTester 少量样本接入验证 → 分批 AI 首版 → 实际游戏人工验收 → 人工外包逐项替换。当前未生图、未接入、未视觉验收；CIVILIAN-LIFE-01 及 LOCAL-CONTINUITY-FINAL 等近期玩法工作仍保持各自待制作人验收状态，不能因为美术筹备而标为封板。
+
 ## CIVILIAN-LIFE-01 实施完成待验收（2026-09-27）
 
 **Implementation Complete / Producer Acceptance Pending。** 已接入 Satiety/Energy、Work/OffDuty、职业、人事、占领／俘虏／招募，以及真实 Rescue 搬运、Site 内物资 Haul、正式建筑工单与势力旗拆除劳动；静态编译通过，运行行为待制作人验收。完整范围见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。

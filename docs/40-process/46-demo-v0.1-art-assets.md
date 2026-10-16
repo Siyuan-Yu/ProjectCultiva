@@ -1,5 +1,7 @@
 # Demo v0.1 美术资源需求表
 
+> **历史 Demo v0.1 规划（非当前资产状态真源）。** 当前 LevelTester 美术筹备的唯一逐项登记见 [273](273-current-art-asset-register.tsv)，阶段规格与替换流程见 [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)。本页当年的像素风、尺寸、动画方向和数量均未在本轮确认为最终规格。
+
 > 状态：Prototype 资源规划草案 | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`docs/40-process/45-demo-v0.1.md`
 > 关联：`docs/20-systems/23-combat.md`、`docs/20-systems/24-world-and-settlements.md`、`docs/20-systems/26-territory-management.md`、`docs/20-systems/27-characters-and-population.md`

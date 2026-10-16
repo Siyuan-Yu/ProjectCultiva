@@ -1,5 +1,10 @@
 # 开发日志
 
+## 2026-10-16 — 美术筹备与资产盘点（文档阶段）
+
+- 按 `base:scenario_playable_day`、`base:roster_level_tester`、荒村 Blueprint／发布 Surface、MapKindCatalog、Host 人物/UI/战斗接线和现有 PNG/Prefab GUID 建立 [273 当前唯一资产登记表](273-current-art-asset-register.tsv)：55 个去重表现族，P0 39、P1 12、P2 4。对象使用次数与基础资产、变体、共用动作、程序效果分开记；旧 Demo 美术文档明确标为历史参考。
+- [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md) 写明待确认规格、最小样本、接入条件、来源/授权、AI 首版到人工替换的状态流。未生图、未改玩法/配置/Prefab、未运行 Unity 或做视觉验收；近期玩法实现和跨旗帜救援等仍以各自待制作人验收状态为准。
+
 ## 2026-10-16 — LOCAL-CONTINUITY-FINAL 本地跨旗帜连续性与加载可见性修复（待制作人验收）
 
 - 救援链路移除 `HasLocalSameFactionInjured`、`FindRescueTarget`、`TryResolveBestRescuer`、`TryRescueDestination` 中以 SiteId 相等代替阵营／距离／设施权限的限制。当前按同一精确 Faction、同一 Surface、由 Streaming policy 派生的有界本地半径与地表路线求解；床所属 active Site 仍须归该势力，目的地依次为医疗床、伤员本人床、未分配住宅床。

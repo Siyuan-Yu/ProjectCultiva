@@ -1,5 +1,7 @@
 # Demo v0.1 AI 美术生成批次计划
 
+> **历史批次草案，当前未获准照此批量生图。** 现阶段仅执行 [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md) 的盘点与待确认流程，逐项状态以 [273](273-current-art-asset-register.tsv) 为准。
+
 > 状态：可执行批次草案 | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`docs/40-process/46-demo-v0.1-art-assets.md`
 > 关联：`docs/40-process/45-demo-v0.1.md`
