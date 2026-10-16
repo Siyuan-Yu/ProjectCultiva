@@ -1,0 +1,1026 @@
+{
+  "schema_version": 1,
+  "batch_id": "Batch_Codex_001",
+  "created_utc": "2026-10-16T04:12:09.128444+00:00",
+  "generator": "Codex built-in image_gen; tool has no selectable quality argument, prompts target medium detail",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "style_reference": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+  "status": "generated_candidates_only_not_unity_integrated_or_accepted",
+  "contact_sheet": "ArtSource/Batches/Batch_Codex_001/Previews/contact-sheet.png",
+  "entries": [
+    {
+      "asset_ids": [
+        "ART-CHAR-001"
+      ],
+      "primary_asset_id": "ART-CHAR-001",
+      "type": "animation",
+      "group": "idle",
+      "filename": "ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
+      "sha256": "c0c775bc0923ed7a795f2469b65db6eb01c4e5a11a68ec005e7e46a64ae488d3",
+      "size_px": [
+        1774,
+        887
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1142082,
+      "partial_alpha_pixel_count": 430725,
+      "alpha_bounds_xyxy": [
+        80,
+        9,
+        1754,
+        869
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "left-to-right directions"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "四方向静态姿态可读；与既有三人组合图相比只选了背篓蓝灰服男性作为基础候选，不能代表全部村民变体。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_east_01_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 1,
+      "frame_edge_review": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-001"
+      ],
+      "primary_asset_id": "ART-CHAR-001",
+      "type": "animation",
+      "group": "walk",
+      "filename": "ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
+      "sha256": "f76b7b1d00c68f460b281d4241c1e80a64ac637e62b7b48b187a9712264bbfc2",
+      "size_px": [
+        1144,
+        1375
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1063324,
+      "partial_alpha_pixel_count": 507350,
+      "alpha_bounds_xyxy": [
+        47,
+        23,
+        1096,
+        1335
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 4,
+        "reading_order": "rows north,south,west,east; frames left-to-right"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "11/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
+        "步态有逐帧差分，但脚底基线和身形宽度尚未统一；机械切片有切边风险。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_04_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 4,
+      "frame_edge_review": [
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 4
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 13
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 11
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 58
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 49
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 56
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 58
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 62,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 56,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 60,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 64,
+            "bottom": 0
+          }
+        }
+      ],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-001"
+      ],
+      "primary_asset_id": "ART-CHAR-001",
+      "type": "animation",
+      "group": "work",
+      "filename": "ART-CHAR-001_work_4dir_4f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_work_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_work_4dir_4f_sheet_v01.png",
+      "sha256": "52ca5c89408fecc3898b725668984b0d7d411e7de7f5cadec461bbdc867443cb",
+      "size_px": [
+        1230,
+        1278
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1059938,
+      "partial_alpha_pixel_count": 510702,
+      "alpha_bounds_xyxy": [
+        0,
+        21,
+        1216,
+        1256
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 4,
+        "reading_order": "rows north,south,west,east; frames left-to-right"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "12/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
+        "锄具动作可读，但部分工具接近或跨越格边；共用 Work 表现仍需验证不同工种的工具挂接。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_04_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 4,
+      "frame_edge_review": [
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 8
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 54
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 26
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 6
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 50,
+            "bottom": 72
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 68
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 68
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 72,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 44
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 72,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 101,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 54,
+            "bottom": 0
+          }
+        }
+      ],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-004"
+      ],
+      "primary_asset_id": "ART-CHAR-004",
+      "type": "animation",
+      "group": "idle",
+      "filename": "ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
+      "sha256": "3e1f0351fea622d80aca4aca506d5062106e7cdb79903945709a51ec84b5385e",
+      "size_px": [
+        1983,
+        793
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1121203,
+      "partial_alpha_pixel_count": 448747,
+      "alpha_bounds_xyxy": [
+        0,
+        15,
+        1941,
+        776
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "left-to-right directions"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "枪杆与人体是合层图，后续武器挂点及遮挡关系待定。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_east_01_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 1,
+      "frame_edge_review": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-004"
+      ],
+      "primary_asset_id": "ART-CHAR-004",
+      "type": "animation",
+      "group": "walk",
+      "filename": "ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
+      "sha256": "16f5a5ada9f71055d259352ad5630b2ea155ac93d8c8c24a22df9249e37e44ce",
+      "size_px": [
+        1237,
+        1271
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1142057,
+      "partial_alpha_pixel_count": 428354,
+      "alpha_bounds_xyxy": [
+        0,
+        7,
+        1227,
+        1255
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 4,
+        "reading_order": "rows north,south,west,east; frames left-to-right"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "12/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
+        "枪杆与衣袖会靠近格边；部分拆帧触边，需重新排布或人工修切。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_04_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 4,
+      "frame_edge_review": [
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 48
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 48
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 44
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 48
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 46,
+            "bottom": 46
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 47,
+            "bottom": 54
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 41,
+            "bottom": 51
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 48,
+            "bottom": 51
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 38,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 54,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 47,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 48,
+            "bottom": 0
+          }
+        }
+      ],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-004"
+      ],
+      "primary_asset_id": "ART-CHAR-004",
+      "type": "animation",
+      "group": "attack",
+      "filename": "ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
+      "sha256": "640d746ef9b8b70aac0097bd2240afe87d2ad4232e61db5dd84b93b3b1e6984a",
+      "size_px": [
+        1223,
+        1286
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 1156947,
+      "partial_alpha_pixel_count": 414900,
+      "alpha_bounds_xyxy": [
+        43,
+        10,
+        1223,
+        1262
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 4,
+        "reading_order": "rows north,south,west,east; frames left-to-right"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
+        "7/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
+        "长枪动作连续意图可见，但跨帧枪长、握持和身形略有漂移；部分长枪接近/跨越格边，当前切帧不可直接接入。"
+      ],
+      "frame_files": [
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_04_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_01_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_02_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_03_v01.png",
+        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_04_v01.png"
+      ],
+      "direction_order": [
+        "north",
+        "south",
+        "west",
+        "east"
+      ],
+      "frames_per_direction_candidate": 4,
+      "frame_edge_review": [
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 44
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 38,
+            "top": 0,
+            "bottom": 81
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 34,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_01_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 0,
+            "top": 47,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_02_v01.png",
+          "edge_opaque_pixels": {
+            "left": 0,
+            "right": 63,
+            "top": 81,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_03_v01.png",
+          "edge_opaque_pixels": {
+            "left": 67,
+            "right": 48,
+            "top": 0,
+            "bottom": 0
+          }
+        },
+        {
+          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_04_v01.png",
+          "edge_opaque_pixels": {
+            "left": 46,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          }
+        }
+      ],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-ROOM-006"
+      ],
+      "primary_asset_id": "ART-ROOM-006",
+      "type": "static",
+      "group": "bed_variants",
+      "filename": "ART-ROOM-006_bed_variants_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-006_bed_variants_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-006_bed_variants_sheet_v01.png",
+      "sha256": "7d1e621b6c36c4ae81cd0d111ac248e0a773194570c9583d8c9251e5cbf1fd0a",
+      "size_px": [
+        1774,
+        887
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 551300,
+      "partial_alpha_pixel_count": 1019939,
+      "alpha_bounds_xyxy": [
+        0,
+        23,
+        1714,
+        864
+      ],
+      "sheet_grid": {
+        "columns": 3,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "三床外形与枕端基本统一；用途色与游戏现行 RoomUsage 表现、占地及使用点需样本核对。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-GROUND-007"
+      ],
+      "primary_asset_id": "ART-GROUND-007",
+      "type": "static",
+      "group": "trees_s_m_l",
+      "filename": "ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "sha256": "41a037b512544dc458d769f2f52861ee8b8fb61d3adaaf7736b2fcc9dfe59e89",
+      "size_px": [
+        1774,
+        887
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 870020,
+      "partial_alpha_pixel_count": 703422,
+      "alpha_bounds_xyxy": [
+        31,
+        21,
+        1758,
+        887
+      ],
+      "sheet_grid": {
+        "columns": 3,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "小中大三形可分；大树冠触及画布下缘，根部锚点和遮挡范围需复核。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-GROUND-010"
+      ],
+      "primary_asset_id": "ART-GROUND-010",
+      "type": "static",
+      "group": "grain_4stage",
+      "filename": "ART-GROUND-010_grain_4stage_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-010_grain_4stage_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-010_grain_4stage_sheet_v01.png",
+      "sha256": "22de7eb838bac5e2d6d770dc988e7a85f14a7f7973dd4760383f3d29c33db8ab",
+      "size_px": [
+        2172,
+        724
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 773952,
+      "partial_alpha_pixel_count": 798371,
+      "alpha_bounds_xyxy": [
+        47,
+        17,
+        2140,
+        724
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "四阶段为候选视觉递进；实际玩法阶段与独立植物/土层关系待核，不可直接视为已分层。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-GROUND-011"
+      ],
+      "primary_asset_id": "ART-GROUND-011",
+      "type": "static",
+      "group": "herb_4stage",
+      "filename": "ART-GROUND-011_herb_4stage_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-011_herb_4stage_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-011_herb_4stage_sheet_v01.png",
+      "sha256": "0ea587cd27a32fc4b60c990b3ae51f98567658cc3fab0a052503c648b8d7d029",
+      "size_px": [
+        2172,
+        724
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 746585,
+      "partial_alpha_pixel_count": 825591,
+      "alpha_bounds_xyxy": [
+        58,
+        21,
+        2125,
+        724
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "四阶段为候选视觉递进；药草形态和实际采空/再生阶段需核对。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-GROUND-002"
+      ],
+      "primary_asset_id": "ART-GROUND-002",
+      "type": "static",
+      "group": "road_modules",
+      "filename": "ART-GROUND-002_road_modules_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-002_road_modules_sheet_v01.png",
+      "sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
+      "size_px": [
+        1536,
+        1024
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 774694,
+      "partial_alpha_pixel_count": 798170,
+      "alpha_bounds_xyxy": [
+        0,
+        19,
+        1522,
+        1024
+      ],
+      "sheet_grid": {
+        "columns": 3,
+        "rows": 2,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "道路边缘与宽度是生成候选；接缝和方向模块的无缝拼接尚未验证。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-ROOM-008"
+      ],
+      "primary_asset_id": "ART-ROOM-008",
+      "type": "static",
+      "group": "flat_core_flags",
+      "filename": "ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
+      "size_px": [
+        2048,
+        768
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 947403,
+      "partial_alpha_pixel_count": 625461,
+      "alpha_bounds_xyxy": [
+        41,
+        23,
+        2000,
+        768
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "控制核心已改成贴地符阵样式，需确认是否符合正式控制核心几何；三色旗只作阵营色参考，不绑定固定势力图样。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    },
+    {
+      "asset_ids": [
+        "ART-ROOM-005"
+      ],
+      "primary_asset_id": "ART-ROOM-005",
+      "type": "static",
+      "group": "usage_markers",
+      "filename": "ART-ROOM-005_usage_markers_sheet_v01.png",
+      "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-005_usage_markers_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-005_usage_markers_sheet_v01.png",
+      "sha256": "46b2a4ffee5f441ac14cabc523201aafa2f7b56245e5ec6b85e2ff3b0c4831ff",
+      "size_px": [
+        2048,
+        768
+      ],
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "transparent_pixel_count": 911285,
+      "partial_alpha_pixel_count": 661579,
+      "alpha_bounds_xyxy": [
+        78,
+        0,
+        1972,
+        756
+      ],
+      "sheet_grid": {
+        "columns": 4,
+        "rows": 1,
+        "reading_order": "row-major"
+      },
+      "status": "AI首版候选；未选图、未接入、未验收",
+      "issues": [
+        "原图可见像素触边，切片需复核",
+        "小图标辨识度仍需在 LevelTester 实际缩放下核验；用途切换逻辑仍由运行数据决定。"
+      ],
+      "frame_files": [],
+      "review_status": "需人工选图与静态/切片/运行复核"
+    }
+  ],
+  "notes": [
+    "生成工具无 medium quality 参数，使用中等细节提示词；不能声称内置质量档精确设为 medium。",
+    "Frames 为按候选网格机械裁切，不表示角色比例、动作连续性或 Unity Pivot 已验收。"
+  ]
+}

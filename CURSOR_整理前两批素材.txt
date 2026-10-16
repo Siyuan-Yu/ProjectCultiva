@@ -1,0 +1,19 @@
+整理PJCultiva前两批美术素材，不接入Unity。
+
+先读取：
+ArtSource/BatchInfo/All_20261016_01_02/asset_manifest.json
+
+素材位置：ArtSource/Inbox/
+本包共20张原始PNG，另有1张整体画风参考放在ArtSource/References/。
+
+要求：
+1. 以manifest的asset_ids、parts和notes为准建立候选对应关系，不再凭名称猜用途。
+2. 按SHA-256核验，已整理的第一批跳过；同名不同内容先报告，不覆盖或丢失原图。
+3. 多物件图保持原图与子件记录，本轮不擅自切片、缩放、抠图、设PPU/Pivot或制作动画。
+4. 存在透明通道不等于透明质量通过；检查色边、裁切风险、比例和接缝时分别如实记录。
+5. 保留需返工的指挥台记录；农田药田组合图不能写成已完成独立植物层；药田A/B为相关候选，不重复统计需求。
+6. 273仍为全局登记真源，仅在实际入库后更新候选路径和说明，不把原始候选升级成已接入/已验收。
+7. 若修改273 TSV，保持UTF-8 with BOM和Tab分隔，并运行node tools/export-art-register.mjs。导出失败如实报告。
+8. 不修改Core、Content配置、场景、正式Prefab、.meta/GUID；不执行git add/commit/push；不声称完成Unity视觉验收。
+
+最后只汇报新增、重复跳过、待确认/返工数量和实际整理位置。

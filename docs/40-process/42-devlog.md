@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-10-16 — Codex 直接生图第一优先批次（候选，未接入）
+
+- 制作人将美术候选生产改为 Codex 内置生图分批进行，并指定第一批与临时四方向逐帧候选规格。按 273 建立 55 项分类计划，生成 9 个 AssetID 对应的 13 张新图（村民与巡卫各 Idle/Walk/Work 或 Attack 三张；床、树、农田、药田、路、控制核心/旗、房间用途标识各一张），保留原图、规范候选、浅/深底预览、总览及 72 张机械拆帧。批次详情见 `ArtSource/Batches/Batch_Codex_001/manifest.json` 与 `notes.md`。
+- 多组机械拆帧有边缘裁切风险，长枪/工具、道路接缝、田地分层、树冠和运行缩放均需复核；未把候选记作可直接接入。273 中 9 行追加候选来源/路径，XLSX 已按脚本重新导出并回读核对 55 行。未接入 Unity、未启动 Unity 或运行测试、未提交 Git。状态：**AI 首版候选已生成 / 选图与 Producer Acceptance Pending**。
+
+## 2026-10-16 — 正俯视国风修仙村落与开面房屋方向确认
+
+- 制作人确认正俯视、国风修仙村落、国风平涂/轻纹理/清晰轮廓与概括笔触；房屋全部开面且默认可见室内，不用完整遮挡屋顶、明显高台/楼梯/门前抬升地基。实时人物继续简化，Work 复用、搬运以挂接加轻差分为主、攻击独立；村落生活感和修仙氛围结合。更新 [274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md) 与 [273](273-current-art-asset-register.tsv) 的相关备注，未将石碑/法阵等方向候选当作已实现资产；运行规格、文件引用与视觉接入仍待样本验证。本轮未生成或接入美术。
+
 ## 2026-10-16 — 美术登记表 XLSX 查看版与样张先行流程
 
 - `273-current-art-asset-register.tsv` 继续作为唯一可编辑真源；`tools/export-art-register.mjs` 将其单向导出为双工作表 XLSX，并回读核对 AssetID、全字段、统计与 SHA-256。每次 TSV 更新须在同一任务中重新导出并校验查看版，不手工在 XLSX 中维护进度。
@@ -5666,3 +5675,18 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - Core 新增指定 BedId 的发起、预约、完成与精确取消入口；到达后复用 `TryPlaceCarriedOccupant`，成功才转 Detained、记录真实 RoomId 并解除 Carrier。房间和旧交接点入口只选床一次后走同一流程。
 - Host 命令锁定 Carrier/Captive/Room/Bed 和 movement revision。停止、改令、路径失败、战斗/会话变化只释放本命令预约；途中读档清理没有 Occupant 的 Prison 预约并保留押送，已完成具体床位占用继续由 Snapshot 保存。
 - 离线编译全程序集 `ALL_OK`，未启动 Unity／PlayMode／Runner；按项目规则未新增或运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-16 — 美术固定收件箱与批次整理工作流
+
+- 仓库根目录新增 `ArtSource/Inbox`、`References` 与 `Batches`：制作人只需把 ChatGPT 会话生成图投入 Inbox，中文和空格文件名可保留；`ArtSource` 不作为 Unity 运行资源目录。
+- 新增 `tools/organize-art-inbox.py`，按内容 SHA-256 去重并保全原始字节，记录尺寸、格式、文件大小、Alpha 通道与真实透明像素，生成浅／深底预览、批次总览和文件级 manifest。没有新增图时不创建虚假批次。
+- 批次 manifest 只承担文件追溯与候选 AssetID 映射；273 TSV 继续作为全局制作／接入／验收状态唯一可编辑真源。收图、选定、加工、Unity 接入和 LevelTester 人工验收继续分开。
+- 本轮收件箱为空，未生成批次、未修改 273／XLSX、未生成图片或接入 Unity。脚本语法及空收件箱幂等运行检查通过；未启动 Unity／PlayMode／Runner。
+
+## 2026-10-16 — 首批 AI 美术候选整理（Batch_20261016_01）
+
+- 按 `ArtSource/BatchInfo/Batch_20261016_01/asset_manifest.json` 整理 Inbox 的 10 张 PNG；来源清单、文件集合、SHA-256、尺寸、Alpha 声明与 273 的 14 个 AssetID 全部一致，未按文件名猜用途。
+- 同一来源清单指向的 `ART-REF-001_huangcun_style_reference.png` 单独登记为整体气质参考：1672×941、RGBA 但无实际透明像素，含布局文字且为斜俯视，不计入 10 张运行候选，不可直接裁成运行地图或 Sprite。
+- 批次保全 10 张 Originals，生成 10 张浅／深底单图检查预览和 1 张总览；manifest 记录 14 个 AssetID 映射及 25 个尚未加工的子件。10 张均有真实透明像素，8 张存在画布边缘半透明像素，需在后续加工阶段复核清理。
+- 人物、房间模块、三种床、三尺寸树、灵矿、成熟农田、控制台与三色旗均只登记为 AI 首版候选。主管／巡卫／树／矿的正俯视适配需返工验证；成熟农田需拆地块/围栏/作物层；控制台因高台和台阶违反既定方向，明确必须返工，旗帜可单独候选。
+- 273 保留现有运行引用，追加候选来源、Originals 路径、子件与返工说明；制作进度未升级为待接入，验收仍为未验收。未修改 Unity 正式 Sprite／Prefab／`.meta`，未启动 Unity／PlayMode／Runner。

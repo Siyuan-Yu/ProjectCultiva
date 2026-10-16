@@ -1,0 +1,11 @@
+﻿序号	文件名	主要AssetID	关联AssetID	中文内容	画面子件	状态	注意事项	SHA256
+1	ART-CHAR-001_common_villagers_3up_v01.png	ART-CHAR-001	ART-CHAR-001;ART-CHAR-005	共用村民三人（含服装差分）	村民男（背篓）;村民女（围裙）;村民男（锄具）	AI首版候选-待选图	候选组合图，不是已切出的单人 Sprite；尚无 Idle/移动/Work 动画。	ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6
+2	ART-CHAR-002_protagonist_trio_3up_v01.png	ART-CHAR-002	ART-CHAR-002	主角三人识别变体	蓝灰服男;粉白服女;绿服男	AI首版候选-待选图	单帧候选组合图；人物身份与正式主角配置需人工对应。	198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411
+3	ART-CHAR-003_supervisor_v01.png	ART-CHAR-003	ART-CHAR-003	主管独特外观	主管	AI首版候选-待选图	单张人物候选，角度/比例仍需与实际角色单位比较。	dbe6068fbd4749140ff0f9be83e270e321f3b46f9073f6716938c07fdf0dfb5a
+4	ART-CHAR-004_patrol_guard_v01.png	ART-CHAR-004	ART-CHAR-004	巡卫持枪外观	巡卫（持长枪）	AI首版候选-待选图	单张人物候选，武器与人物是否应拆层未决定。	1e1494b8d28f61d05f6f23996c56d4dfa92f620aa79c4a125c834cedd1c89dbe
+5	ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png	ART-ROOM-001	ART-ROOM-001;ART-ROOM-002;ART-ROOM-003	开面式木质房间：地板、墙段、墙角、门洞	木地板;长墙段;左墙角;右墙角;门洞墙段	AI首版候选-待选图	组合图尚未验证可无缝拼接；切图时保留门洞与实际碰撞/通行语义。	b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec
+6	ART-ROOM-006_beds_residential_medical_prison_3up_v01.png	ART-ROOM-006	ART-ROOM-006	三种用途共用床	住宅蓝色床;医疗灰色床;囚禁棕色床	AI首版候选-待选图	按同一家具三种用途变体登记，不新建三个玩法家具；占地/使用点未校准。	ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f
+7	ART-GROUND-007_trees_small_medium_large_sheet_v01.png	ART-GROUND-007	ART-GROUND-007	小中大树三尺寸候选	小树;中树;大树	AI首版候选-待选图	树木组合图需人工选定与裁切，遮挡与实际占地未校准。	9d0e225dfdc5756b92e8c3646a5fbc5f02c5c6b3d74046ac7fa51b1a739224c9
+8	ART-GROUND-009_spirit_ore_blue_crystal_v01.png	ART-GROUND-009	ART-GROUND-009	蓝色灵矿岩簇	灵矿堆	AI首版候选-待选图	候选静态图，采矿反馈/耗尽状态尚未生成。	727b4d0893e64f52421b478587319a1e743c0948385e181d9f00a93c9a944b54
+9	ART-GROUND-005_grain_field_mature_v01.png	ART-GROUND-005	ART-GROUND-005;ART-GROUND-010	成熟农田（围栏与稻谷合图）	成熟稻田整体图	AI首版候选-待选图	围栏与成熟作物被合成一张；不能冒充生长阶段分层、拼接模块已经完成。	f0d28cd4675f6dcec502f23073b191665d54f3420c777814357b76008096c6f6
+10	ART-ROOM-008_control_post_and_three_flags_sheet_v01.png	ART-ROOM-008	ART-ROOM-008	控制核心候选与三色旗	控制台;蓝旗;红旗;绿旗	AI首版候选-待选图	控制台含明显高台/台阶，不符合既定无高台/楼梯建筑方向，应标记返工！三色旗可独立候选。	8f3a40b953d5944ce1855131c14f70f1acfaea30226ce125c29d477ca3b130f8

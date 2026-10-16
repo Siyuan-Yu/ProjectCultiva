@@ -1,0 +1,251 @@
+{
+  "batch_id": "Batch_20261016_01",
+  "project": "PJCultiva",
+  "source": "ChatGPT image generation in current conversation on 2026-10-16",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "status": "candidate_assets_only_not_unity_integrated_or_accepted",
+  "readme": "已直接按现有AssetID命名，无需Cursor猜原始中文或自动英文文件名。",
+  "images_count": 10,
+  "style_reference_relative_path": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+  "entries": [
+    {
+      "filename": "ART-CHAR-001_common_villagers_3up_v01.png",
+      "asset_ids": [
+        "ART-CHAR-001",
+        "ART-CHAR-005"
+      ],
+      "label": "共用村民三人（含服装差分）",
+      "parts": [
+        "村民男（背篓）",
+        "村民女（围裙）",
+        "村民男（锄具）"
+      ],
+      "notes": "候选组合图，不是已切出的单人 Sprite；尚无 Idle/移动/Work 动画。",
+      "ordinal": 1,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_png_style_illustration_on_a_transparent_ba_1_batch_1.png",
+      "relative_path": "ArtSource/Inbox/ART-CHAR-001_common_villagers_3up_v01.png",
+      "primary_asset_id": "ART-CHAR-001",
+      "sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "asset_ids": [
+        "ART-CHAR-002"
+      ],
+      "label": "主角三人识别变体",
+      "parts": [
+        "蓝灰服男",
+        "粉白服女",
+        "绿服男"
+      ],
+      "notes": "单帧候选组合图；人物身份与正式主角配置需人工对应。",
+      "ordinal": 2,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "wide_clean_png_style_illustration_on_a_transparen_2_batch_2.png",
+      "relative_path": "ArtSource/Inbox/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "primary_asset_id": "ART-CHAR-002",
+      "sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-CHAR-003_supervisor_v01.png",
+      "asset_ids": [
+        "ART-CHAR-003"
+      ],
+      "label": "主管独特外观",
+      "parts": [
+        "主管"
+      ],
+      "notes": "单张人物候选，角度/比例仍需与实际角色单位比较。",
+      "ordinal": 3,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_isolated_character_illustration_on_a_trans_3_batch_3.png",
+      "relative_path": "ArtSource/Inbox/ART-CHAR-003_supervisor_v01.png",
+      "primary_asset_id": "ART-CHAR-003",
+      "sha256": "dbe6068fbd4749140ff0f9be83e270e321f3b46f9073f6716938c07fdf0dfb5a",
+      "width_px": 1254,
+      "height_px": 1254,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-CHAR-004_patrol_guard_v01.png",
+      "asset_ids": [
+        "ART-CHAR-004"
+      ],
+      "label": "巡卫持枪外观",
+      "parts": [
+        "巡卫（持长枪）"
+      ],
+      "notes": "单张人物候选，武器与人物是否应拆层未决定。",
+      "ordinal": 4,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_centered_isolated_transparent_background_chara_4_batch_4.png",
+      "relative_path": "ArtSource/Inbox/ART-CHAR-004_patrol_guard_v01.png",
+      "primary_asset_id": "ART-CHAR-004",
+      "sha256": "1e1494b8d28f61d05f6f23996c56d4dfa92f620aa79c4a125c834cedd1c89dbe",
+      "width_px": 1254,
+      "height_px": 1254,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "asset_ids": [
+        "ART-ROOM-001",
+        "ART-ROOM-002",
+        "ART-ROOM-003"
+      ],
+      "label": "开面式木质房间：地板、墙段、墙角、门洞",
+      "parts": [
+        "木地板",
+        "长墙段",
+        "左墙角",
+        "右墙角",
+        "门洞墙段"
+      ],
+      "notes": "组合图尚未验证可无缝拼接；切图时保留门洞与实际碰撞/通行语义。",
+      "ordinal": 5,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_transparent_background_asset_sheet_top_do_5_batch_5.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "primary_asset_id": "ART-ROOM-001",
+      "sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "asset_ids": [
+        "ART-ROOM-006"
+      ],
+      "label": "三种用途共用床",
+      "parts": [
+        "住宅蓝色床",
+        "医疗灰色床",
+        "囚禁棕色床"
+      ],
+      "notes": "按同一家具三种用途变体登记，不新建三个玩法家具；占地/使用点未校准。",
+      "ordinal": 6,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_png_style_concept_art_game_asset_sheet_o_6_batch_6.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "primary_asset_id": "ART-ROOM-006",
+      "sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
+      "asset_ids": [
+        "ART-GROUND-007"
+      ],
+      "label": "小中大树三尺寸候选",
+      "parts": [
+        "小树",
+        "中树",
+        "大树"
+      ],
+      "notes": "树木组合图需人工选定与裁切，遮挡与实际占地未校准。",
+      "ordinal": 7,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_png_style_illustration_on_a_transparent_ba_7_batch_7.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
+      "primary_asset_id": "ART-GROUND-007",
+      "sha256": "9d0e225dfdc5756b92e8c3646a5fbc5f02c5c6b3d74046ac7fa51b1a739224c9",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "asset_ids": [
+        "ART-GROUND-009"
+      ],
+      "label": "蓝色灵矿岩簇",
+      "parts": [
+        "灵矿堆"
+      ],
+      "notes": "候选静态图，采矿反馈/耗尽状态尚未生成。",
+      "ordinal": 8,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_single_detailed_png_style_game_asset_illustratio_8_batch_8.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "primary_asset_id": "ART-GROUND-009",
+      "sha256": "727b4d0893e64f52421b478587319a1e743c0948385e181d9f00a93c9a944b54",
+      "width_px": 1254,
+      "height_px": 1254,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-GROUND-005_grain_field_mature_v01.png",
+      "asset_ids": [
+        "ART-GROUND-005",
+        "ART-GROUND-010"
+      ],
+      "label": "成熟农田（围栏与稻谷合图）",
+      "parts": [
+        "成熟稻田整体图"
+      ],
+      "notes": "围栏与成熟作物被合成一张；不能冒充生长阶段分层、拼接模块已经完成。",
+      "ordinal": 9,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "top_down_isometric_ish_game_art_style_illustrati_9_batch_9.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-005_grain_field_mature_v01.png",
+      "primary_asset_id": "ART-GROUND-005",
+      "sha256": "f0d28cd4675f6dcec502f23073b191665d54f3420c777814357b76008096c6f6",
+      "width_px": 1254,
+      "height_px": 1254,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    },
+    {
+      "filename": "ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
+      "asset_ids": [
+        "ART-ROOM-008"
+      ],
+      "label": "控制核心候选与三色旗",
+      "parts": [
+        "控制台",
+        "蓝旗",
+        "红旗",
+        "绿旗"
+      ],
+      "notes": "控制台含明显高台/台阶，不符合既定无高台/楼梯建筑方向，应标记返工！三色旗可独立候选。",
+      "ordinal": 10,
+      "batch_id": "Batch_20261016_01",
+      "original_generated_filename": "a_clean_png_style_game_asset_sheet_on_a_transparen_10_batch_10.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
+      "primary_asset_id": "ART-ROOM-008",
+      "sha256": "8f3a40b953d5944ce1855131c14f70f1acfaea30226ce125c29d477ca3b130f8",
+      "width_px": 1448,
+      "height_px": 1086,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "status": "AI首版候选-待人工选图/切片/运行验证；未接入未验收"
+    }
+  ]
+}

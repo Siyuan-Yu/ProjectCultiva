@@ -1,0 +1,813 @@
+{
+  "schemaVersion": 1,
+  "batchId": "Batch_20261016_01",
+  "createdAt": "2026-10-16T11:38:38+08:00",
+  "sourceInbox": "ArtSource/Inbox",
+  "sourceManifest": "ArtSource/BatchInfo/Batch_20261016_01/asset_manifest.json",
+  "sourceManifestSha256": "a7912da292901648ee81854dbd6e8492acc1a41d928b64fa9bab58b2f5b6cdc4",
+  "globalRegister": "docs/40-process/273-current-art-asset-register.tsv",
+  "authorityNote": "这里只记录文件追溯和候选映射；全局制作、接入与验收进度以 273 TSV 为准。",
+  "overviewPreviewPath": "ArtSource/Batches/Batch_20261016_01/Previews/contact-sheet.png",
+  "styleReference": {
+    "assetId": "ART-REF-001",
+    "path": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+    "sha256": "3160f3b787b264098589158bfec44ec6a6363769a5fbbf6b1f6130dc1640ecb9",
+    "width": 1672,
+    "height": 941,
+    "format": "PNG",
+    "hasAlphaChannel": true,
+    "hasTransparentPixels": false,
+    "status": "reference_only_not_runtime_integrated_or_accepted",
+    "review": "含布局文字且为斜俯视整体构图，只作国风修仙村落气质参考，不直接裁成运行地图或 Sprite。"
+  },
+  "files": [
+    {
+      "number": 1,
+      "sourceFileName": "ART-CHAR-001_common_villagers_3up_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-001_common_villagers_3up_v01.png",
+      "sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png",
+      "fileSizeBytes": 1185929,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1571722,
+        "fullyTransparentPixelCount": 1074424,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-CHAR-001",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        },
+        {
+          "assetId": "ART-CHAR-005",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "村民男（背篓）",
+          "assetIds": [
+            "ART-CHAR-001",
+            "ART-CHAR-005"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "村民女（围裙）",
+          "assetIds": [
+            "ART-CHAR-001",
+            "ART-CHAR-005"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "村民男（锄具）",
+          "assetIds": [
+            "ART-CHAR-001",
+            "ART-CHAR-005"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "共用村民三人（含服装差分）",
+      "sourceNotes": "候选组合图，不是已切出的单人 Sprite；尚无 Idle/移动/Work 动画。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "三人组合原图需按人物子件人工切分并统一落脚点、Pivot 与运行尺寸。",
+          "当前只有单帧外观，不能代表 Idle、移动或 Work 动画已经完成。",
+          "人物视角与正式正俯视运行效果仍需小批接入验证。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-CHAR-001",
+      "originalGeneratedFilename": "a_clean_png_style_illustration_on_a_transparent_ba_1_batch_1.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/001.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 2,
+      "sourceFileName": "ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png",
+      "fileSizeBytes": 1203094,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1572207,
+        "fullyTransparentPixelCount": 1088075,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-CHAR-002",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "蓝灰服男",
+          "assetIds": [
+            "ART-CHAR-002"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "粉白服女",
+          "assetIds": [
+            "ART-CHAR-002"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "绿服男",
+          "assetIds": [
+            "ART-CHAR-002"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "主角三人识别变体",
+      "sourceNotes": "单帧候选组合图；人物身份与正式主角配置需人工对应。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "三名人物需分别切分，并与正式三名主角定义逐一确认身份。",
+          "当前只有单帧外观，方向、移动、Work 与攻击动画均未完成。",
+          "落脚点、比例与正俯视可读性需在 LevelTester 小批接入时验证。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-CHAR-002",
+      "originalGeneratedFilename": "wide_clean_png_style_illustration_on_a_transparen_2_batch_2.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/002.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 3,
+      "sourceFileName": "ART-CHAR-003_supervisor_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-003_supervisor_v01.png",
+      "sha256": "dbe6068fbd4749140ff0f9be83e270e321f3b46f9073f6716938c07fdf0dfb5a",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-003_supervisor_v01.png",
+      "fileSizeBytes": 778271,
+      "image": {
+        "format": "PNG",
+        "width": 1254,
+        "height": 1254,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1572135,
+        "fullyTransparentPixelCount": 1204280,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-CHAR-003",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "主管",
+          "assetIds": [
+            "ART-CHAR-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "主管独特外观",
+      "sourceNotes": "单张人物候选，角度/比例仍需与实际角色单位比较。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "当前人物接近正面立姿，和已确定的实时场景正俯视方向存在明显差异。",
+          "可保留为主管造型参考；作为运行 Sprite 前需重做或调整视角、比例和落脚点。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-CHAR-003",
+      "originalGeneratedFilename": "a_clean_isolated_character_illustration_on_a_trans_3_batch_3.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/003.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 4,
+      "sourceFileName": "ART-CHAR-004_patrol_guard_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-004_patrol_guard_v01.png",
+      "sha256": "1e1494b8d28f61d05f6f23996c56d4dfa92f620aa79c4a125c834cedd1c89dbe",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-004_patrol_guard_v01.png",
+      "fileSizeBytes": 595424,
+      "image": {
+        "format": "PNG",
+        "width": 1254,
+        "height": 1254,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1571876,
+        "fullyTransparentPixelCount": 1304467,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-CHAR-004",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "巡卫（持长枪）",
+          "assetIds": [
+            "ART-CHAR-004"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "巡卫持枪外观",
+      "sourceNotes": "单张人物候选，武器与人物是否应拆层未决定。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "人物与长枪的层级、占地和攻击动作接口尚未确定。",
+          "当前视角仍需按正式正俯视运行标准复核，不能直接作为攻击动画。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-CHAR-004",
+      "originalGeneratedFilename": "a_centered_isolated_transparent_background_chara_4_batch_4.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/004.png",
+      "issues": [],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 5,
+      "sourceFileName": "ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
+      "fileSizeBytes": 1301648,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1571576,
+        "fullyTransparentPixelCount": 891162,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-ROOM-001",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        },
+        {
+          "assetId": "ART-ROOM-002",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        },
+        {
+          "assetId": "ART-ROOM-003",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "木地板",
+          "assetIds": [
+            "ART-ROOM-001",
+            "ART-ROOM-002",
+            "ART-ROOM-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "长墙段",
+          "assetIds": [
+            "ART-ROOM-001",
+            "ART-ROOM-002",
+            "ART-ROOM-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "左墙角",
+          "assetIds": [
+            "ART-ROOM-001",
+            "ART-ROOM-002",
+            "ART-ROOM-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "右墙角",
+          "assetIds": [
+            "ART-ROOM-001",
+            "ART-ROOM-002",
+            "ART-ROOM-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "门洞墙段",
+          "assetIds": [
+            "ART-ROOM-001",
+            "ART-ROOM-002",
+            "ART-ROOM-003"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "开面式木质房间：地板、墙段、墙角、门洞",
+      "sourceNotes": "组合图尚未验证可无缝拼接；切图时保留门洞与实际碰撞/通行语义。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "五个模块需分别切分，当前没有验证边缘无缝、墙角组合或门洞宽度。",
+          "墙体厚度和透视需与正俯视、开面室内及现有碰撞格对齐后才能接入。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-ROOM-001",
+      "originalGeneratedFilename": "a_clean_transparent_background_asset_sheet_top_do_5_batch_5.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/005.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 6,
+      "sourceFileName": "ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
+      "fileSizeBytes": 1565436,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1570681,
+        "fullyTransparentPixelCount": 776906,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-ROOM-006",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "住宅蓝色床",
+          "assetIds": [
+            "ART-ROOM-006"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "医疗灰色床",
+          "assetIds": [
+            "ART-ROOM-006"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "囚禁棕色床",
+          "assetIds": [
+            "ART-ROOM-006"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "三种用途共用床",
+      "sourceNotes": "按同一家具三种用途变体登记，不新建三个玩法家具；占地/使用点未校准。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "三张床只作为同一床体的住宅、医疗、囚禁用途变体。",
+          "需分别切分并校准共同占地、枕端、Pivot 和床边合法使用点。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-ROOM-006",
+      "originalGeneratedFilename": "a_clean_png_style_concept_art_game_asset_sheet_o_6_batch_6.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/006.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 7,
+      "sourceFileName": "ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
+      "sha256": "9d0e225dfdc5756b92e8c3646a5fbc5f02c5c6b3d74046ac7fa51b1a739224c9",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
+      "fileSizeBytes": 1536309,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1572297,
+        "fullyTransparentPixelCount": 969637,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-GROUND-007",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "小树",
+          "assetIds": [
+            "ART-GROUND-007"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "中树",
+          "assetIds": [
+            "ART-GROUND-007"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "大树",
+          "assetIds": [
+            "ART-GROUND-007"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "小中大树三尺寸候选",
+      "sourceNotes": "树木组合图需人工选定与裁切，遮挡与实际占地未校准。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "小、中、大三棵树需分别切分并定义共同落地点。",
+          "当前树木带明显侧视树干和冠层，需验证是否符合正式正俯视读取、遮挡与占地。",
+          "受损和砍伐反馈尚未提供。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-GROUND-007",
+      "originalGeneratedFilename": "a_clean_png_style_illustration_on_a_transparent_ba_7_batch_7.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/007.png",
+      "issues": [],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 8,
+      "sourceFileName": "ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "sha256": "727b4d0893e64f52421b478587319a1e743c0948385e181d9f00a93c9a944b54",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
+      "fileSizeBytes": 1439957,
+      "image": {
+        "format": "PNG",
+        "width": 1254,
+        "height": 1254,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1572257,
+        "fullyTransparentPixelCount": 994810,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-GROUND-009",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "灵矿堆",
+          "assetIds": [
+            "ART-GROUND-009"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "蓝色灵矿岩簇",
+      "sourceNotes": "候选静态图，采矿反馈/耗尽状态尚未生成。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "当前矿簇为明显斜俯视表现，需与正式正俯视场景比例和占地复核。",
+          "只有完整静态状态，受损、采集反馈和耗尽状态均未完成。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-GROUND-009",
+      "originalGeneratedFilename": "a_single_detailed_png_style_game_asset_illustratio_8_batch_8.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/008.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 9,
+      "sourceFileName": "ART-GROUND-005_grain_field_mature_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-005_grain_field_mature_v01.png",
+      "sha256": "f0d28cd4675f6dcec502f23073b191665d54f3420c777814357b76008096c6f6",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-005_grain_field_mature_v01.png",
+      "fileSizeBytes": 2438466,
+      "image": {
+        "format": "PNG",
+        "width": 1254,
+        "height": 1254,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1572321,
+        "fullyTransparentPixelCount": 659979,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-GROUND-005",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        },
+        {
+          "assetId": "ART-GROUND-010",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "成熟稻田整体图",
+          "assetIds": [
+            "ART-GROUND-005",
+            "ART-GROUND-010"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "成熟农田（围栏与稻谷合图）",
+      "sourceNotes": "围栏与成熟作物被合成一张；不能冒充生长阶段分层、拼接模块已经完成。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "围栏、地块和成熟作物需要按正式地块及生长层职责重新拆分。",
+          "当前只能作为成熟农田整体造型参考，不能表示 ART-GROUND-005 与 ART-GROUND-010 已完成。",
+          "生长、受损、成熟和收获后状态尚未提供。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-GROUND-005",
+      "originalGeneratedFilename": "top_down_isometric_ish_game_art_style_illustrati_9_batch_9.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/009.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    },
+    {
+      "number": 10,
+      "sourceFileName": "ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
+      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
+      "sha256": "8f3a40b953d5944ce1855131c14f70f1acfaea30226ce125c29d477ca3b130f8",
+      "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
+      "fileSizeBytes": 1484546,
+      "image": {
+        "format": "PNG",
+        "width": 1448,
+        "height": 1086,
+        "mode": "RGBA",
+        "hasAlphaChannel": true,
+        "hasTransparentPixels": true,
+        "transparentPixelCount": 1571406,
+        "fullyTransparentPixelCount": 942801,
+        "alphaMin": 0,
+        "alphaMax": 255
+      },
+      "suggestedMappings": [
+        {
+          "assetId": "ART-ROOM-008",
+          "subpartName": null,
+          "status": "source_manifest_declared",
+          "note": "由批次来源 manifest 明确提供，未按文件名推断。"
+        }
+      ],
+      "mappingStatus": "source_manifest_declared_review_required",
+      "subparts": [
+        {
+          "name": "控制台",
+          "assetIds": [
+            "ART-ROOM-008"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "蓝旗",
+          "assetIds": [
+            "ART-ROOM-008"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "红旗",
+          "assetIds": [
+            "ART-ROOM-008"
+          ],
+          "status": "manifest_declared_unprocessed"
+        },
+        {
+          "name": "绿旗",
+          "assetIds": [
+            "ART-ROOM-008"
+          ],
+          "status": "manifest_declared_unprocessed"
+        }
+      ],
+      "sourceLabel": "控制核心候选与三色旗",
+      "sourceNotes": "控制台含明显高台/台阶，不符合既定无高台/楼梯建筑方向，应标记返工！三色旗可独立候选。",
+      "humanReview": {
+        "status": "reviewed_candidate_not_accepted",
+        "requiresReworkBeforeRuntime": true,
+        "findings": [
+          "控制台含高台和台阶，违反已确定的无明显高台、楼梯和抬升地基约束，必须返工。",
+          "蓝、红、绿旗可作为独立子件继续检查，但需先切分并校准 Pivot、占地与阵营配色。"
+        ]
+      },
+      "sourceStatus": "AI首版候选-待人工选图/切片/运行验证；未接入未验收",
+      "primaryAssetId": "ART-ROOM-008",
+      "originalGeneratedFilename": "a_clean_png_style_game_asset_sheet_on_a_transparen_10_batch_10.png",
+      "previewPath": "ArtSource/Batches/Batch_20261016_01/Previews/010.png",
+      "issues": [
+        {
+          "code": "transparent_edge_review",
+          "message": "画布边缘存在半透明像素，需检查留白、光效或裁切。"
+        }
+      ],
+      "processing": {
+        "cropRegions": [],
+        "scale": null,
+        "versions": []
+      },
+      "technicalCheckStatus": "recorded_review_required",
+      "visualAcceptance": "not_performed"
+    }
+  ],
+  "skippedDuplicates": []
+}

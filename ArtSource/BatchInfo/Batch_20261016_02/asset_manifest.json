@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "batch_id": "Batch_20261016_02",
+  "project": "PJCultiva",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "status": "candidate_assets_only_not_unity_integrated_or_accepted",
+  "images_count": 10,
+  "style_reference_relative_path": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+  "entries": [
+    {
+      "filename": "ART-ROOM-009_cultivation_mats_recovery_spots_4up_v01.png",
+      "asset_ids": [
+        "ART-ROOM-009"
+      ],
+      "label": "修炼垫与恢复点：四款候选",
+      "parts": [
+        "左上：草编修炼垫",
+        "右上：蓝白布面修炼垫",
+        "左下：石制莲纹台",
+        "右下：青蓝发光恢复点"
+      ],
+      "notes": "四款外观候选不代表四种新增玩法。台座高度、俯视角度需核对；发光范围与相邻子件接近，不能盲目等格裁切。恢复点发光已烘焙在原图，不是独立特效层。",
+      "ordinal": 1,
+      "batch_ordinal": 1,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "四款修炼冥想坐垫素材图.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-009_cultivation_mats_recovery_spots_4up_v01.png",
+      "primary_asset_id": "ART-ROOM-009",
+      "sha256": "0349b347aa59d3c224ee7cd4fb81b3a485cb5b1340c4f4876b3296a7bd7ab051",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 1928288,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 771058,
+      "partially_transparent_pixels": 800543,
+      "alpha_bounds_xyxy": [
+        0,
+        0,
+        1442,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "top",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 11
+    },
+    {
+      "filename": "ART-ROOM-010_cave_entrance_cliff_modules_sheet_v01.png",
+      "asset_ids": [
+        "ART-ROOM-010"
+      ],
+      "label": "洞口与山壁：六个地形候选",
+      "parts": [
+        "左上：木支撑岩洞入口",
+        "右上：横向岩壁",
+        "中央：左侧岩壁",
+        "右侧：右侧岩壁",
+        "左下：岩石边缘长段",
+        "右下：岩壁转角"
+      ],
+      "notes": "候选模块尚未验证无缝拼接；洞口、岩壁的俯视角度需与游戏对照，不能改变正式入口、地形阻挡或通行规则。",
+      "ordinal": 2,
+      "batch_ordinal": 2,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "水墨仙侠岩洞地形素材集.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-010_cave_entrance_cliff_modules_sheet_v01.png",
+      "primary_asset_id": "ART-ROOM-010",
+      "sha256": "94f6c215e09b3215082297ec2fd7ce49aa82784832bbd9f86d3aaac6b07f92fb",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2298977,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 703859,
+      "partially_transparent_pixels": 868228,
+      "alpha_bounds_xyxy": [
+        0,
+        16,
+        1422,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 12
+    },
+    {
+      "filename": "ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "asset_ids": [
+        "ART-ROOM-007"
+      ],
+      "label": "储藏室货物、货架与储物标识",
+      "parts": [
+        "上排：粮袋组、木箱组、陶罐组、捆扎物资、储物旗",
+        "中排：货架、谷物篮低台、桶袋箱组合、竖杆草席架",
+        "下排：布袋堆、开口木箱粮袋、灯笼箱篮组合、柴捆、箱袋陶罐堆"
+      ],
+      "notes": "储藏室室内道具或标识的组合候选，不是新建筑或正式库存图标全集。子件之间及画布边缘的间隔需检查；不承诺所有小物件均可单独无损切出。",
+      "ordinal": 3,
+      "batch_ordinal": 3,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "水墨田园储物道具图集.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-007_storage_goods_markers_sheet_v01.png",
+      "primary_asset_id": "ART-ROOM-007",
+      "sha256": "647f37083c474c179199187ba9a568bbdb4211f35f78b455a93bc11c5494adb0",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2072973,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 754394,
+      "partially_transparent_pixels": 816836,
+      "alpha_bounds_xyxy": [
+        0,
+        0,
+        1434,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "top",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 13
+    },
+    {
+      "filename": "ART-GROUND-002_dirt_road_junction_modules_sheet_v01.png",
+      "asset_ids": [
+        "ART-GROUND-002"
+      ],
+      "label": "土路：直段、弯道、路口与端头",
+      "parts": [
+        "左上：纵向直路",
+        "中上：直角转弯",
+        "右上：圆弧转弯",
+        "左下：端头",
+        "中下：T形路口",
+        "右下：十字路口"
+      ],
+      "notes": "六种外形候选；道路出口宽度、边缘连续性、纹理衔接未校准，不是已完成无缝的Tilemap图集。",
+      "ordinal": 4,
+      "batch_ordinal": 4,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "手绘奇幻土路瓦片集.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-002_dirt_road_junction_modules_sheet_v01.png",
+      "primary_asset_id": "ART-GROUND-002",
+      "sha256": "b9f3d6433f49b2ff329f3005b618f4f91b21d2413c49e8fff49c621a6258b2bd",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 1909814,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 775100,
+      "partially_transparent_pixels": 797332,
+      "alpha_bounds_xyxy": [
+        0,
+        9,
+        1447,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 14
+    },
+    {
+      "filename": "ART-GROUND-003_forest_floor_patches_4up_v01.png",
+      "asset_ids": [
+        "ART-GROUND-003"
+      ],
+      "label": "林地地面：苔地、落叶、树根、灌草",
+      "parts": [
+        "左上：苔草土面",
+        "右上：落叶覆盖地面",
+        "左下：树根草地",
+        "右下：密集灌草地表"
+      ],
+      "notes": "不规则地表装饰块候选，不是四边可循环的无缝底纹。不能直接作为已验证可平铺地砖。",
+      "ordinal": 5,
+      "batch_ordinal": 5,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "手绘水彩森林地面贴图合集.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-003_forest_floor_patches_4up_v01.png",
+      "primary_asset_id": "ART-GROUND-003",
+      "sha256": "f0d230eb4dd16f00cd13a949a882faa163e4ec410660b8c81d5b2dc465bc2645",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2919261,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 410937,
+      "partially_transparent_pixels": 1161530,
+      "alpha_bounds_xyxy": [
+        0,
+        0,
+        1445,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "top",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 15
+    },
+    {
+      "filename": "ART-GROUND-004_rock_mining_ground_patches_4up_v01.png",
+      "asset_ids": [
+        "ART-GROUND-004"
+      ],
+      "label": "石地与矿区：四种地表底色候选",
+      "parts": [
+        "左上：岩土空地",
+        "右上：碎石地",
+        "左下：开裂石板地",
+        "右下：矿区碎晶地表"
+      ],
+      "notes": "不规则地表块，尚未无缝化；碎晶为装饰图样，不替代ART-GROUND-009的可采集矿堆或其互动状态。",
+      "ordinal": 6,
+      "batch_ordinal": 6,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "水彩矿岩地形图块集.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-004_rock_mining_ground_patches_4up_v01.png",
+      "primary_asset_id": "ART-GROUND-004",
+      "sha256": "9f4f859e279704b21f156fd1c26e1b1278c1a0980817cf83414365165a9fd074",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2946040,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 438243,
+      "partially_transparent_pixels": 1134120,
+      "alpha_bounds_xyxy": [
+        0,
+        0,
+        1434,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "top",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 16
+    },
+    {
+      "filename": "ART-GROUND-006_herb_field_empty_sprout_mature_harvested_4up_v01.png",
+      "asset_ids": [
+        "ART-GROUND-006",
+        "ART-GROUND-011"
+      ],
+      "label": "药田方案A：空地、幼苗、成熟、采空",
+      "parts": [
+        "左上：空地",
+        "右上：幼苗",
+        "左下：开花成熟药草",
+        "右下：采空残茎"
+      ],
+      "notes": "围栏、土面和植物烘焙在同一图内，不是独立植物透明叠层。四状态边框未逐像素对齐。与药田方案B为相关候选，不能不经校准就混作一组状态；不新增生长玩法。",
+      "ordinal": 7,
+      "batch_ordinal": 7,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "四阶段魔法香草园地块_sprite_图集.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-006_herb_field_empty_sprout_mature_harvested_4up_v01.png",
+      "primary_asset_id": "ART-GROUND-006",
+      "sha256": "ba2a8e0d80a3c3be029b6a9a79e75214f24fed853908de5f81069209fc397f67",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2249069,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 687164,
+      "partially_transparent_pixels": 885259,
+      "alpha_bounds_xyxy": [
+        0,
+        3,
+        1447,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 17
+    },
+    {
+      "filename": "ART-GROUND-010_grain_growth_states_4up_v01.png",
+      "asset_ids": [
+        "ART-GROUND-010",
+        "ART-GROUND-005"
+      ],
+      "label": "农田：空地、幼苗、生长、成熟",
+      "parts": [
+        "从左至右：空地",
+        "幼苗",
+        "青绿生长期",
+        "金黄成熟期"
+      ],
+      "notes": "原图已包含围栏与土面，不是独立作物层。各状态外框与占地未逐像素对齐，边缘间距需检查；不更改正式农田状态机和结算规则。",
+      "ordinal": 8,
+      "batch_ordinal": 8,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "四阶段农田作物生长图鉴.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-010_grain_growth_states_4up_v01.png",
+      "primary_asset_id": "ART-GROUND-010",
+      "sha256": "b9cc2bf48af8454105944ff9c21c909d5a47bca8978015780e1e791a535acfe6",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 1623069,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 985145,
+      "partially_transparent_pixels": 586778,
+      "alpha_bounds_xyxy": [
+        0,
+        19,
+        1448,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "right",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 18
+    },
+    {
+      "filename": "ART-GROUND-011_herb_growth_states_4up_v01.png",
+      "asset_ids": [
+        "ART-GROUND-011",
+        "ART-GROUND-006"
+      ],
+      "label": "药田方案B：空地、幼苗、茂叶、开花",
+      "parts": [
+        "左上：空地",
+        "右上：幼苗",
+        "左下：茂叶生长期",
+        "右下：开花成熟期"
+      ],
+      "notes": "围栏、土面、植物未分层，状态外框未校准。此图没有独立的采空残茎状态。与方案A存在需求重叠，需统一选型，不能统计成两个已完成的独立药田系统。",
+      "ordinal": 9,
+      "batch_ordinal": 9,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "四阶段魔法药草田精灵.png",
+      "relative_path": "ArtSource/Inbox/ART-GROUND-011_herb_growth_states_4up_v01.png",
+      "primary_asset_id": "ART-GROUND-011",
+      "sha256": "be30ef8852e87fa179c5a5ae9cdd12d248f6439ae07b8969497d2dcaa3f7570c",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 2616432,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 574960,
+      "partially_transparent_pixels": 997199,
+      "alpha_bounds_xyxy": [
+        0,
+        17,
+        1428,
+        1086
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [
+        "left",
+        "bottom"
+      ],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 19
+    },
+    {
+      "filename": "ART-ROOM-005_room_usage_markers_4up_v01.png",
+      "asset_ids": [
+        "ART-ROOM-005"
+      ],
+      "label": "房间用途标识：住宅、医疗、囚禁、中性",
+      "parts": [
+        "从左至右：住宅标识",
+        "医疗标识",
+        "囚禁标识",
+        "可选中性标识"
+      ],
+      "notes": "悬挂标识候选，缩小时的可读性待验证；第四个中性图样不代表新增RoomUsage类型。原图包含挂绳与流苏，切片须保留完整。",
+      "ordinal": 10,
+      "batch_ordinal": 10,
+      "batch_id": "Batch_20261016_02",
+      "original_generated_filename": "水墨仙村建筑标识旗帜组.png",
+      "relative_path": "ArtSource/Inbox/ART-ROOM-005_room_usage_markers_4up_v01.png",
+      "primary_asset_id": "ART-ROOM-005",
+      "sha256": "e798bb6afba20fcb8ad8ba87304b8cf31fe63d7c524c65bef366d85dabcc27b9",
+      "status": "AI首版候选；未切片、未接入、未通过Unity运行验收",
+      "width_px": 1448,
+      "height_px": 1086,
+      "mode": "RGBA",
+      "file_size_bytes": 1226501,
+      "has_alpha_channel": true,
+      "has_transparent_pixels": true,
+      "fully_transparent_pixels": 1076583,
+      "partially_transparent_pixels": 493983,
+      "alpha_bounds_xyxy": [
+        9,
+        23,
+        1430,
+        1062
+      ],
+      "source_bytes_preserved": true,
+      "alpha_content_touches_canvas_edges": [],
+      "technical_check_note": "存在透明像素不代表抠图、色边、裁切或游戏尺度验收通过。贴边检测只作提示，不等同于确认缺失。",
+      "combined_ordinal": 20
+    }
+  ]
+}
