@@ -216,6 +216,21 @@ namespace XianXia.Core.Construction
         public static bool IsBed(OutdoorConstructedAssetState asset) => asset != null &&
             string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal);
 
+        public static bool IsRoomWallCell(OutdoorConstructedAssetState room, int cellX, int cellY)
+        {
+            if (!IsRoom(room) || room.CellsW < 3 || room.CellsH < 3 ||
+                cellX < 0 || cellY < 0 || cellX >= room.CellsW || cellY >= room.CellsH)
+                return false;
+            var perimeter = cellX == 0 || cellY == 0 ||
+                            cellX == room.CellsW - 1 || cellY == room.CellsH - 1;
+            var doorLeft = (room.CellsW - 2) / 2;
+            var doorway = cellY == 0 && cellX >= doorLeft && cellX < doorLeft + 2;
+            return perimeter && !doorway;
+        }
+
+        public static string RoomWallCellId(OutdoorConstructedAssetState room, int cellX, int cellY) =>
+            OutdoorStatefulObjectId.ForCell((room?.StableAssetId ?? string.Empty) + ":wall", cellX, cellY);
+
         public static bool IsAllowedNestedPair(OutdoorConstructedAssetState a, OutdoorConstructedAssetState b)
         {
             var room = IsRoom(a) ? a : IsRoom(b) ? b : null;
@@ -259,11 +274,25 @@ namespace XianXia.Core.Construction
             out WorldVec2 point)
         {
             point = default;
-            if (board == null || !IsBed(bed) || bed.CellsW <= 0 || bed.CellsH <= 0) return false;
+            var candidates = new List<WorldVec2>(4);
+            CollectAccessPoints(board, bed, candidates);
+            if (candidates.Count == 0) return false;
+            point = candidates[0];
+            return true;
+        }
+
+        public static void CollectAccessPoints(
+            OutdoorConstructedAssetBoard board,
+            OutdoorConstructedAssetState bed,
+            List<WorldVec2> into)
+        {
+            if (into == null) throw new ArgumentNullException(nameof(into));
+            into.Clear();
+            if (board == null || !IsBed(bed) || bed.CellsW <= 0 || bed.CellsH <= 0) return;
             OutdoorConstructedAssetState room = null;
             if (!string.IsNullOrEmpty(bed.ParentRoomId) &&
                 (!board.Assets.TryGetValue(bed.ParentRoomId, out room) || !FitsUsableInterior(room, bed)))
-                return false;
+                return;
 
             var cellX = room != null ? room.WorldWidth / room.CellsW : bed.WorldWidth / bed.CellsW;
             var cellY = room != null ? room.WorldHeight / room.CellsH : bed.WorldHeight / bed.CellsH;
@@ -278,9 +307,22 @@ namespace XianXia.Core.Construction
                 var candidate = candidates[i];
                 if (room != null && !CellFitsInterior(room, candidate, cellX, cellY)) continue;
                 if (CellOverlapsFurniture(board, bed, room, candidate, cellX, cellY)) continue;
-                point = candidate;
-                return true;
+                into.Add(candidate);
             }
+        }
+
+        public static bool IsAccessPoint(
+            OutdoorConstructedAssetBoard board,
+            OutdoorConstructedAssetState bed,
+            WorldVec2 point,
+            float epsilon = .001f)
+        {
+            var candidates = new List<WorldVec2>(4);
+            CollectAccessPoints(board, bed, candidates);
+            for (var i = 0; i < candidates.Count; i++)
+                if (Math.Abs(candidates[i].X - point.X) <= epsilon &&
+                    Math.Abs(candidates[i].Y - point.Y) <= epsilon)
+                    return true;
             return false;
         }
 
@@ -569,14 +611,19 @@ namespace XianXia.Core.Construction
 
         public static bool IsAtAccessPoint(SimulationWorld world, OutdoorConstructedAssetState bed, EntityId characterId)
         {
-            if (!TryResolveAccessPoint(world, bed, out var access) ||
-                !CharacterWorldPresenceQuery.TryResolve(world, characterId, out var presence) ||
+            if (world == null || !CharacterWorldPresenceQuery.TryResolve(world, characterId, out var presence) ||
                 !presence.HasWorldPosition || presence.SurfaceId != bed.SurfaceId) return false;
             var cell = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
                 ? metric.CellSize : Math.Min(bed.WorldWidth / bed.CellsW, bed.WorldHeight / bed.CellsH);
-            var dx = presence.WorldPosition.X - access.X;
-            var dy = presence.WorldPosition.Y - access.Y;
-            return dx * dx + dy * dy <= cell * cell * .75f * .75f;
+            var accesses = new List<WorldVec2>(4);
+            RoomBedGeometry.CollectAccessPoints(world.OutdoorConstructedAssets, bed, accesses);
+            for (var i = 0; i < accesses.Count; i++)
+            {
+                var dx = presence.WorldPosition.X - accesses[i].X;
+                var dy = presence.WorldPosition.Y - accesses[i].Y;
+                if (dx * dx + dy * dy <= cell * cell * .75f * .75f) return true;
+            }
+            return false;
         }
 
         public static bool CanUseBed(
@@ -596,11 +643,8 @@ namespace XianXia.Core.Construction
             if (!CharacterWorldPresenceQuery.TryResolve(world, characterId, out var presence) ||
                 !presence.HasWorldPosition || presence.SurfaceId != bed.SurfaceId)
             { reason = "人物与床不在同一处世界空间。"; return false; }
-            var bedSiteId = ResolveBedSiteId(world, bed);
-            if (!string.IsNullOrEmpty(bedSiteId) &&
-                (!WorldSitePhysicalRegionQuery.TryResolve(world, presence.WorldPosition, out var personSite) ||
-                 !string.Equals(personSite.SiteId, bedSiteId, StringComparison.Ordinal)))
-            { reason = "人物不在床所属地点。"; return false; }
+            // Travel eligibility is independent from current physical Site. Actual occupation and
+            // carried-person placement still require the character/carrier at a legal bedside point.
             return true;
         }
 

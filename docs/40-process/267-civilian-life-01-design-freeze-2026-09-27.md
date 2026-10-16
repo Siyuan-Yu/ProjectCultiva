@@ -8,6 +8,16 @@
 
 Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作人人工验收。未修改既有 AUCTION-01 规则。
 
+### LOCAL-CONTINUITY-FINAL 修订（2026-10-16）
+
+- 本地救援不再以 `rescuer SiteId == injured SiteId == bed SiteId` 作为资格。正式条件拆为：精确同一 `FactionId`、同一 Continuous Surface、位于由 `ContinuousSurfaceStreamingPolicy` 派生的有界本地范围内、地表路线可达，以及目标床所属 active Site 仍归该势力合法使用。当前物理 Site、伤员 Site 与床 Site 保留各自真实身份，不因救援改写。
+- 新救援任务先按 `BleedOutAfterTick` 最早者排序；对最紧急且有可执行方案的伤员，只允许成本最低的合格救援者认领，其他救援者不会越过该伤员为较晚伤员抢走最后床位。床序仍为 Medical → 本人 Residential → 未分配 Residential；伤员、救援者和稳定 BedId 一经预约即保持，跨旗帜边界不重新选床。临时导航未准备保留任务并有界退避，永久不可达才释放本任务预约并改选。
+- `RoomBedFacilityService.CanUseBed` 只判断人物与床是否同一世界空间、床位状态及合法使用格；它不再把“尚未进入床所属 Site”误当作不可前往。真正占用、救援放置及囚犯交接仍必须在床边合法使用点完成。牢床权限由押送者与床所属玩家控制 Site 校验，敌方囚犯的 Faction 不充当设施权限主体。
+- 职业工区优先保留人物既有绑定，并在同势力、同 Surface、本地范围内解析实际工区 Site；人物跨入邻近旗帜范围不会仅因 CurrentSite 改变而忘掉原工区。取食会锁定附近合法储藏室的 `StorageRoomId + source SiteId`，抵达后只从该实际 Site 公库扣粮；分配住宅床可从邻近同势力 Site 发起返家，最终睡眠仍要求真实床边占用。
+- Host 的本地表现可见性统一以 active Surface 与 `IsWorldPositionLoaded` 为准。Streaming 先移除退场 chunk 的各 presenter owner，再重建 overlay；连续地点只在其具体坐标所在 chunk 已加载时注册。蓝点、地点文字、世界物拾取、洞口／控制核心拾取、菜单与检视外框均服从同一门槛；这只影响本地表现和玩家现场交互，不删除 Core 地点、人物、床或建筑 authority。
+- 通用 `ApplyInitialBedAssignments` 已移除荒村固定 20 人断言，按配置中的 `InitialAssigneeSpawnKey` 实际数量初始化；人物存在、住宅用途、唯一分配以及既有房间／床几何校验仍保留并输出 BedId／SpawnKey。Snapshot schema 保持当前 v15，不新增版本；救援稳定 BedId 与搬运关系继续使用既有字段恢复，瞬时导航退避和取食行程读档后重建。
+- 状态：**Implementation Complete / Producer Acceptance Pending**。仅完成离线编译与静态引用／内容核对；未启动 Unity、PlayMode 或 Runner，运行行为仍需制作人在 `LevelTester` 人工验收。
+
 ### P1 食宿动作闭环、失败处理与地图可达性（2026-09-27）
 
 - 本轮以仓库当前 `Assets/Scripts`、`Content/BaseGame`、制作人提供的问题代码事实和 `Content.zip` 为证据源。代码复核确认旧实现会在无粮时停留于 `FetchFood`、在抵达住所前写入睡眠开始时间，且 `HostInputGate.BlockWorldInteraction` 会中止全部移动更新；当前 Content 与参考包均确认荒村初始 grain 为 0、目标门墙原为 4 cells。修复针对这些已证明的根因，不改初始库存来掩盖行为缺口。
@@ -165,6 +175,22 @@ Social Need、Mood、Comfort、Entertainment、越狱、复杂囚犯待遇、酷
 ## Current Status
 
 **Implementation Complete / Producer Acceptance Pending。**
+
+### NAV-FIX 公共移动链路修复（2026-10-16）
+
+- 搬运显示在所有普通 `Update` 移动完成后的 `LateUpdate` 绑定到正式 carrier；`RescueCarrying + RescueTargetId` 与 `CapturedEscorted + CarrierId` 的被搬运人物不再拥有独立表现路径，也不参与软避让。真实床位占用者同样退出 idle separation；隔墙近邻经当前 Composite WalkGrid 的局部线段检查排除。
+- `GridPathfinder.IsWorldSegmentWalkable` 改为逐格 DDA，网格顶点遵守与 A* 相同的双正交格防切角规则，沿格边界同时检查相邻格。路径简化与精确终点替换共用该判定；精确点不能安全替换末格中心时保留中心作为额外航点。
+- Host 的点击、NPC、WASD、轴向滑动与 separation 位移均校验完整运动段；同帧按剩余距离消费多个近航点。WalkGrid 未就绪时返回失败而非直线穿墙。NPC 卡住进度按航点和剩余折线路程计算，当前剩余路径失效时停止旧路径并受预算/冷却控制地重算。
+- Host WalkGrid 每次更换实例递增代次，避免阻挡数量相同但位置变化时旧路径继续使用。Room 外围墙的导航投影与表现共用 `RoomBedGeometry` 墙格/门洞判定，并读取同一逐格摧毁 tombstone，避免已拆墙仍有空气墙。
+- 床位公开全部合法使用点。当前使用点 A* 不可达时，Host 依稳定候选顺序尝试同床其它使用点，并把选中坐标写回原 `MovementIntent`；睡眠与救援 Core 保留该坐标，安置校验接受同床任一合法使用点，不新增第二份床位 ownership。
+- `LevelTester.unity` 的 `moveSpeed=6`、`arriveEpsilon=0.2`、`separationRadius=1.2`、`separationStrength=3.2`、`hardOverlapRadius=0.4`、`maxSeparationSpeed=5.5` 未改。本轮按项目约定只做离线编译与静态检查，未启动 Unity／PlayMode／Runner，未新增或运行自动测试；状态保持 **Implementation Complete / Producer Acceptance Pending**。
+
+### PRISON-BED-UI 指定牢床交接（2026-10-16）
+
+- Bed 右键菜单每次从 `StableCellId → Bed → ParentRoomId → RoomUsage` 查询真实用途。Residential 保留长期分配／休息；Medical 不显示住宅分配；Prison 显示空闲、预约或实际关押人物，并只在当前命令 authority 确实通过 `CapturedEscorted + CarrierId` 背负囚犯时提供“将【人物】安置到此床”。菜单查询不修改预约或人物状态。
+- Core 指定床流程分为远距离发起与到达完成：`CanBeginDetainAtBed`／`ReservePrisonBedForDetain` 固定 CarrierId、CaptiveId、RoomId、BedId；`CanCompleteDetainAtBed`／`DetainAtBed` 在同一床边重新校验押送关系、生命、战斗空间、地点权限、预约所有者和物理接近，再复用 `TryPlaceCarriedOccupant` 提交。房间／交接点入口只自动选床一次，随后委托同一指定床命令。
+- Host 保存本次移动 revision。停止、改令、路径失效、目标失效、进入战斗或会话清理只释放该 BedId 上属于该 CaptiveId 且尚未形成 Occupant 的预约；旧命令不会取消后来路径。途中 Snapshot Restore 因 Host 回调不持久化，会在既有运输恢复校验中清除“Prison bed reservation without occupant”，保留真实押送关系；已完成的具体床位占用照常保存。
+- 未改变囚犯 Faction、Loyalty、Needs、Captured 生命周期、医疗救援或住宅分配 authority。状态保持 **Implementation Complete / Producer Acceptance Pending**。
 
 ### ROOM-01 implementation update（2026-10-14）
 

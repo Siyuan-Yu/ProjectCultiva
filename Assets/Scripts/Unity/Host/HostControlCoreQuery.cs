@@ -41,6 +41,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
+            if (continuous != null && continuous.IsActive &&
+                !continuous.IsPresentationPositionLoaded(p.x, p.y)) return false;
             var bestArea = float.MaxValue;
             string bestId = null;
 

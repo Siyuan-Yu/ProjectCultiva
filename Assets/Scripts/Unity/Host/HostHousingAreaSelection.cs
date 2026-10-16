@@ -71,6 +71,9 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (_inspect.HasTarget && !IsInspectTargetLocallyVisible())
+                _inspect.Clear();
+
             // 选中己方时收起住房检视，保留主管府（突击中要看耐久）
             if (selectionController != null && selectionController.State.Count > 0)
             {
@@ -95,6 +98,32 @@ namespace XianXia.Unity.Host
                  _inspect.Kind == WorldObjectInspectKind.Room ||
                  _inspect.Kind == WorldObjectInspectKind.Bed) && _inspect.Plot == null)
                 _inspect.Clear();
+        }
+
+        bool IsInspectTargetLocallyVisible()
+        {
+            var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            var world = bootstrap?.Session?.World;
+            if (continuous == null || !continuous.IsActive || world == null) return true;
+            Vector3 point;
+            if (_inspect.Plot != null) point = _inspect.Plot.transform.position;
+            else if (_inspect.Destructible != null) point = _inspect.Destructible.transform.position;
+            else if (_inspect.Kind == WorldObjectInspectKind.ControlCore &&
+                     world.ControlCores.TryGet(_inspect.WorkAreaId, out var core) &&
+                     HostControlCoreQuery.TryGetCenter(world, null, continuous, core, out point)) { }
+            else if (_inspect.Kind == WorldObjectInspectKind.FactionFlag &&
+                     world.Strategic.FactionFlags.Flags.TryGetValue(_inspect.FactionFlagId, out var flag) &&
+                     flag != null && flag.HasWorldPosition)
+                return continuous.IsWorldPositionLoaded(flag.SurfaceId, flag.WorldX, flag.WorldY);
+            else if ((_inspect.Kind == WorldObjectInspectKind.Housing ||
+                      _inspect.Kind == WorldObjectInspectKind.WorkArea) &&
+                     world.TryGetWorkArea(_inspect.WorkAreaId, out var area) && area != null &&
+                     world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc))
+                point = HostPresentationSpace.FromPresentation(
+                    loc.PresentationX + area.OffsetX, loc.PresentationZ + area.OffsetZ);
+            else return false;
+            var presentation = HostPresentationSpace.ToPresentation(point);
+            return continuous.IsPresentationPositionLoaded(presentation.x, presentation.y);
         }
 
         void OnMiss(Vector2 screenPoint)

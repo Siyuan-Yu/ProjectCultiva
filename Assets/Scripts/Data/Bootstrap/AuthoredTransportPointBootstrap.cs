@@ -18,30 +18,28 @@ namespace XianXia.Data.Bootstrap
         {
             if (world == null) return Result.Failure(ErrorCode.InvalidArgument, "World is required.");
             var assignedCharacters = new HashSet<ulong>();
-            var assignmentCount = 0;
             foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
             {
                 if (!RoomBedGeometry.IsBed(asset) || string.IsNullOrWhiteSpace(asset.InitialAssigneeSpawnKey)) continue;
                 if (!world.OpeningSpawnIdentities.TryGetEntity(asset.InitialAssigneeSpawnKey, out var assignee))
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "Authored bed assignee SpawnKey is missing.", asset.InitialAssigneeSpawnKey);
+                        "Authored residential bed assignee is missing. BedId=" + asset.StableAssetId +
+                        " SpawnKey=" + asset.InitialAssigneeSpawnKey, asset.InitialAssigneeSpawnKey);
                 if (!RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Residential))
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "Only residential beds may define an initial assignee.", asset.StableAssetId);
+                        "Only residential beds may define an initial assignee. BedId=" + asset.StableAssetId +
+                        " SpawnKey=" + asset.InitialAssigneeSpawnKey, asset.StableAssetId);
                 if (!assignedCharacters.Add(assignee.Value))
                     return Result.Failure(ErrorCode.ContentLoadFailed,
-                        "Authored bed assignee is duplicated.", asset.InitialAssigneeSpawnKey);
+                        "Authored bed assignee is duplicated. BedId=" + asset.StableAssetId +
+                        " SpawnKey=" + asset.InitialAssigneeSpawnKey, asset.InitialAssigneeSpawnKey);
                 asset.AssignedCharacterId = assignee;
-                assignmentCount++;
                 if (world.Entities.TryGet(assignee, out var entity) &&
                     entity.TryGet<ActivityTendencyComponent>(out var tendency))
                     tendency.HomeWorkAreaId = string.Empty;
                 if (world.Civilians.TryGet(assignee, out var civilian))
                     civilian.ResidenceWorkAreaId = string.Empty;
             }
-            if (assignmentCount != 20)
-                return Result.Failure(ErrorCode.ContentLoadFailed,
-                    "Huangcun must resolve exactly 20 authored residential bed assignments.", assignmentCount.ToString());
             return Result.Success();
         }
 

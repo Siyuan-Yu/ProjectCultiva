@@ -7,6 +7,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -56,6 +57,14 @@ namespace XianXia.Unity.Host
         const float RecruitInteractionSeconds = 5f;
         string _pendingRoomUsageId = string.Empty;
         RoomUsage _pendingRoomUsage;
+        SimulationWorld _pendingPrisonWorld;
+        EntityId _pendingPrisonCarrier = EntityId.None;
+        EntityId _pendingPrisonCaptive = EntityId.None;
+        string _pendingPrisonRoomId = string.Empty;
+        string _pendingPrisonBedId = string.Empty;
+        uint _pendingPrisonMoveRevision;
+        readonly List<WorldVec2> _prisonAccessScratch = new List<WorldVec2>(4);
+        readonly List<Vector3> _prisonPathScratch = new List<Vector3>(32);
 
         Texture2D _px;
         GUIStyle _label;
@@ -112,6 +121,7 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             CancelRecruitInteraction();
+            CancelPendingPrisonBedCommand(true, "会话已重建");
             ReleaseInteractionNpcNow();
             CloseAll();
         }
@@ -225,11 +235,23 @@ namespace XianXia.Unity.Host
         void Update()
         {
             TickRecruitInteraction();
+            TickPendingPrisonBedCommand();
             if (_phase == Phase.Closed)
             {
                 TryReleaseInteractionNpc();
                 return;
             }
+
+            if (_worldObjectTarget.IsValid &&
+                !HostWorldObjectPicker.IsTargetLocallyVisible(bootstrap, _worldObjectTarget))
+            { CloseAll(); return; }
+            if (IsCaveEntranceTarget && bootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true &&
+                bootstrap.Session?.World != null &&
+                (!bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(
+                     _targetEntranceLocationId, out var entrance) ||
+                 !bootstrap.ContinuousOutdoorSurfaceRuntime.IsPresentationPositionLoaded(
+                     entrance.PresentationX, entrance.PresentationZ)))
+            { CloseAll(); return; }
 
             if (Input.GetKeyDown(KeyCode.Escape))
                 CloseAll();
@@ -420,32 +442,79 @@ namespace XianXia.Unity.Host
 
         void DrawBedMenu()
         {
-            const float w = 240f;
+            const float w = 270f;
             const float itemH = 30f;
             var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
-            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 170f);
-            _menuGuiRect = new Rect(x, y, w, 166f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 204f);
+            _menuGuiRect = new Rect(x, y, w, 200f);
             HostUiHitTest.Block(_menuGuiRect); Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
             var bedId = _worldObjectTarget.Plot?.StableCellId ?? string.Empty;
             var world = bootstrap?.Session?.World;
             OutdoorConstructedAssetState bed = null;
             world?.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out bed);
-            var assignedName = bed == null || bed.AssignedCharacterId.IsNone ? "无人" : EntityName(world, bed.AssignedCharacterId);
-            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "床 · 已分配：" + assignedName, _label);
-            var manageReason = "床位不存在。";
-            var canManage = bed != null && RoomBedFacilityService.CanManageBed(world, bed, out manageReason);
-            GUI.enabled = canManage;
-            if (GUI.Button(new Rect(x + 8f, y + 36f, w - 16f, itemH - 4f), "分配给当前人物", _button))
+            OutdoorConstructedAssetState room = null;
+            if (bed != null && !string.IsNullOrEmpty(bed.ParentRoomId))
+                world?.OutdoorConstructedAssets.Assets.TryGetValue(bed.ParentRoomId, out room);
+            var usage = room != null && RoomBedGeometry.IsRoom(room)
+                ? room.RoomUsage : RoomUsage.Residential;
+            var yy = y + 6f;
+
+            if (usage == RoomUsage.Prison)
             {
-                var assigned = RoomBedFacilityService.AssignBed(world, bedId, _actor);
-                if (assigned.IsFailure) Debug.LogWarning("[Bed] " + assigned.Error.Message, this);
-                CloseAll(); return;
+                var status = bed == null ? "牢床：不存在" :
+                    !bed.OccupantCharacterId.IsNone
+                        ? "正在关押：" + EntityName(world, bed.OccupantCharacterId)
+                        : !bed.ReservedCharacterId.IsNone
+                            ? "已预约：" + EntityName(world, bed.ReservedCharacterId)
+                            : "牢床：空闲";
+                GUI.Label(new Rect(x + 10f, yy, w - 20f, 22f), status, _label); yy += 28f;
+                var captive = EntityId.None;
+                var reason = "当前主控没有押送囚犯。";
+                var canPlace = TryFindEscortedCaptive(_actor, out captive);
+                if (canPlace)
+                {
+                    var canBegin = MortalCivilianService.CanBeginDetainAtBed(
+                        world, _actor, captive, bed?.ParentRoomId ?? string.Empty, bedId);
+                    canPlace = canBegin.IsSuccess;
+                    if (canBegin.IsFailure) reason = canBegin.Error.Message;
+                }
+                GUI.enabled = canPlace;
+                var captiveName = captive.IsNone ? "囚犯" : EntityName(world, captive);
+                if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f),
+                        "将【" + captiveName + "】安置到此床", _button))
+                { BeginPrisonBed(bedId); GUI.enabled = true; return; }
+                GUI.enabled = true; yy += itemH;
+                if (!canPlace)
+                { GUI.Label(new Rect(x + 10f, yy, w - 20f, 42f), reason, _label); yy += 44f; }
             }
-            GUI.enabled = true;
-            if (!canManage)
-                GUI.Label(new Rect(x + 10f, y + 66f, w - 20f, 24f), manageReason, _label);
-            if (GUI.Button(new Rect(x + 8f, y + 96f, w - 16f, itemH - 4f), "休息恢复", _button))
-                BeginRecoverySpot();
+            else
+            {
+                var assignedName = bed == null || bed.AssignedCharacterId.IsNone
+                    ? "无人" : EntityName(world, bed.AssignedCharacterId);
+                var title = usage == RoomUsage.Medical ? "医疗床" : "床 · 已分配：" + assignedName;
+                GUI.Label(new Rect(x + 10f, yy, w - 20f, 22f), title, _label); yy += 30f;
+                if (usage == RoomUsage.Residential)
+                {
+                    var manageReason = "床位不存在。";
+                    var canManage = bed != null && RoomBedFacilityService.CanManageBed(world, bed, out manageReason);
+                    GUI.enabled = canManage;
+                    if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f),
+                            "分配给当前人物", _button))
+                    {
+                        var assigned = RoomBedFacilityService.AssignBed(world, bedId, _actor);
+                        if (assigned.IsFailure) Debug.LogWarning("[Bed] " + assigned.Error.Message, this);
+                        GUI.enabled = true; CloseAll(); return;
+                    }
+                    GUI.enabled = true; yy += itemH;
+                    if (!canManage)
+                    { GUI.Label(new Rect(x + 10f, yy, w - 20f, 24f), manageReason, _label); yy += 26f; }
+                }
+                if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "休息恢复", _button))
+                { BeginRecoverySpot(); return; }
+                yy += itemH;
+            }
+            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "查看详情", _button))
+            { ShowWorldObjectDetails(); return; }
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -511,17 +580,99 @@ namespace XianXia.Unity.Host
         {
             var actor = _actor;
             if (!TryFindEscortedCaptive(actor, out var captive) ||
-                !MortalCivilianService.TryResolvePrisonDropOff(bootstrap.Session.World, roomId,
-                    out var room, out var door, out _))
+                !MortalCivilianService.TrySelectPrisonBedForDetain(
+                    bootstrap.Session.World, actor, captive, roomId, out var bedId, out _))
             { CloseAll(); return; }
-            bootstrap.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(door.X, door.Y, out var px, out var py);
-            var destination = HostPresentationSpace.FromPresentation(px, py);
+            BeginPrisonBedCommand(actor, captive, roomId, bedId);
+        }
+
+        void BeginPrisonBed(string bedId)
+        {
+            var world = bootstrap?.Session?.World;
+            var actor = _actor;
+            if (world == null || !world.OutdoorConstructedAssets.Assets.TryGetValue(
+                    bedId ?? string.Empty, out var bed) || !RoomBedGeometry.IsBed(bed) ||
+                !TryFindEscortedCaptive(actor, out var captive))
+            { CloseAll(); return; }
+            BeginPrisonBedCommand(actor, captive, bed.ParentRoomId, bedId);
+        }
+
+        void BeginPrisonBedCommand(
+            EntityId carrier, EntityId captive, string roomId, string bedId)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || carrier.IsNone || captive.IsNone ||
+                string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(bedId))
+            { CloseAll(); return; }
+            if (_pendingPrisonWorld == world && _pendingPrisonCarrier == carrier &&
+                _pendingPrisonCaptive == captive &&
+                string.Equals(_pendingPrisonRoomId, roomId, System.StringComparison.Ordinal) &&
+                string.Equals(_pendingPrisonBedId, bedId, System.StringComparison.Ordinal))
+            { CloseAll(); return; }
+
+            CancelPendingPrisonBedCommand(true, "被新的牢床交接命令替换");
+            var reservation = MortalCivilianService.ReservePrisonBedForDetain(
+                world, carrier, captive, roomId, bedId, out _);
+            if (reservation.IsFailure)
+            {
+                Debug.LogWarning("[PrisonBed] 无法预约指定牢床：" + reservation.Error.Message, this);
+                CloseAll(); return;
+            }
+
+            _pendingPrisonWorld = world;
+            _pendingPrisonCarrier = carrier;
+            _pendingPrisonCaptive = captive;
+            _pendingPrisonRoomId = roomId;
+            _pendingPrisonBedId = bedId;
+            if (MortalCivilianService.CanCompleteDetainAtBed(
+                    world, carrier, captive, roomId, bedId).IsSuccess)
+            {
+                CloseAll();
+                CompletePrisonBedCommand(carrier, captive, roomId, bedId);
+                return;
+            }
+
+            if (!world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
+                bootstrap.ContinuousOutdoorSurfaceRuntime == null || moveController == null ||
+                bootstrap.ViewSpawner == null ||
+                !bootstrap.ViewSpawner.Registry.TryGet(carrier, out var carrierView) || carrierView == null)
+            {
+                CancelPendingPrisonBedCommand(false, "缺少牢床导航上下文");
+                CloseAll(); return;
+            }
+
+            RoomBedGeometry.CollectAccessPoints(
+                world.OutdoorConstructedAssets, bed, _prisonAccessScratch);
+            var destination = Vector3.zero;
+            var found = false;
+            for (var i = 0; i < _prisonAccessScratch.Count; i++)
+            {
+                if (!bootstrap.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(
+                        _prisonAccessScratch[i], out var candidate))
+                    continue;
+                if (!moveController.TryBuildPathPreview(
+                        carrierView.transform.position, candidate, _prisonPathScratch, exactGoal: true))
+                    continue;
+                destination = candidate; found = true; break;
+            }
+            if (!found)
+            {
+                CancelPendingPrisonBedCommand(false, "指定牢床没有可达使用点");
+                Debug.LogWarning("[PrisonBed] 指定牢床没有可达使用点：" + bedId, this);
+                CloseAll(); return;
+            }
+
             CloseAll();
-            if (MortalCivilianService.CanDetain(bootstrap.Session.World, captive, roomId).IsSuccess)
-            { CompletePrisonDropOff(actor, captive, roomId); return; }
-            if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
-                    () => CompletePrisonDropOff(actor, captive, roomId), exactGoal: true))
-                Debug.LogWarning("[Civilian] 无法前往囚室门口。", this);
+            if (!moveController.OrderEntityToWorldPointPublic(carrier, destination,
+                    () => CompletePrisonBedCommand(carrier, captive, roomId, bedId), exactGoal: true))
+            {
+                CancelPendingPrisonBedCommand(false, "无法建立前往指定牢床的路径");
+                Debug.LogWarning("[PrisonBed] 无法前往指定牢床：" + bedId, this);
+                return;
+            }
+            _pendingPrisonMoveRevision = moveController.GetPresentationMovementRevision(carrier);
+            if (bootstrap.ViewSpawner.Registry.TryGet(carrier, out carrierView) && carrierView != null)
+                carrierView.SetActivityText("前往牢床安置【" + EntityName(world, captive) + "】");
         }
 
         bool TryResolveBoundPrison(out WorkAreaDefinition prison)
@@ -563,29 +714,103 @@ namespace XianXia.Unity.Host
             if (!TryResolveBoundPrison(out var prison) || plot == null ||
                 !TryFindEscortedCaptive(actor, out var captive))
             { CloseAll(); return; }
-            var prisonId = prison.Id;
-            var destination = plot.transform.position;
-            CloseAll();
-            if (MortalCivilianService.CanDetain(bootstrap.Session.World, captive, prisonId).IsSuccess)
-            { CompletePrisonDropOff(actor, captive, prisonId); return; }
-            if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
-                    () => CompletePrisonDropOff(actor, captive, prisonId), exactGoal: true))
-                Debug.LogWarning("[Civilian] 无法前往囚犯交接点。", this);
+            var roomId = string.Empty;
+            foreach (var asset in bootstrap.Session.World.OutdoorConstructedAssets.Assets.Values)
+                if (RoomBedGeometry.IsRoom(asset) && asset.RoomUsage == RoomUsage.Prison &&
+                    string.Equals(asset.BoundLocationId, prison.LocationId, System.StringComparison.Ordinal) &&
+                    (string.IsNullOrEmpty(roomId) ||
+                     System.StringComparer.Ordinal.Compare(asset.StableAssetId, roomId) < 0))
+                    roomId = asset.StableAssetId;
+            if (string.IsNullOrEmpty(roomId) ||
+                !MortalCivilianService.TrySelectPrisonBedForDetain(
+                    bootstrap.Session.World, actor, captive, roomId, out var bedId, out _))
+            { Debug.LogWarning("[PrisonBed] 囚室没有可用牢床。", this); CloseAll(); return; }
+            BeginPrisonBedCommand(actor, captive, roomId, bedId);
         }
 
-        void CompletePrisonDropOff(EntityId actor, EntityId captive, string prisonId)
+        void CompletePrisonBedCommand(
+            EntityId carrier, EntityId captive, string roomId, string bedId)
         {
-            if (bootstrap?.Session?.World == null ||
-                !bootstrap.Session.World.Civilians.TryGet(captive, out var state) || state.CarrierId != actor)
+            if (_pendingPrisonWorld == null || _pendingPrisonCarrier != carrier ||
+                _pendingPrisonCaptive != captive ||
+                !string.Equals(_pendingPrisonRoomId, roomId, System.StringComparison.Ordinal) ||
+                !string.Equals(_pendingPrisonBedId, bedId, System.StringComparison.Ordinal))
                 return;
-            var validation = MortalCivilianService.CanDetain(bootstrap.Session.World, captive, prisonId);
+            var world = _pendingPrisonWorld;
+            var validation = MortalCivilianService.CanCompleteDetainAtBed(
+                world, carrier, captive, roomId, bedId);
             if (validation.IsFailure)
             {
-                Debug.LogWarning("[Civilian] 囚犯交接失败：" + validation.Error.Message, this);
+                Debug.LogWarning("[PrisonBed] 囚犯交接失败：" + validation.Error.Message, this);
+                CancelPendingPrisonBedCommand(false, validation.Error.Message);
                 return;
             }
-            var result = MortalCivilianService.Detain(bootstrap.Session.World, captive, prisonId);
-            if (result.IsFailure) Debug.LogWarning("[Civilian] 囚犯交接失败：" + result.Error.Message, this);
+            var result = MortalCivilianService.DetainAtBed(world, carrier, captive, roomId, bedId);
+            if (result.IsFailure)
+            {
+                Debug.LogWarning("[PrisonBed] 囚犯交接失败：" + result.Error.Message, this);
+                CancelPendingPrisonBedCommand(false, result.Error.Message);
+                return;
+            }
+            ClearPendingPrisonBedCommand();
+        }
+
+        void TickPendingPrisonBedCommand()
+        {
+            if (_pendingPrisonWorld == null || _pendingPrisonCarrier.IsNone)
+                return;
+            var currentWorld = bootstrap?.Session?.World;
+            if (!ReferenceEquals(currentWorld, _pendingPrisonWorld))
+            {
+                CancelPendingPrisonBedCommand(false, "存档或会话切换取消了未完成交接");
+                return;
+            }
+            var validation = MortalCivilianService.CanBeginDetainAtBed(
+                currentWorld, _pendingPrisonCarrier, _pendingPrisonCaptive,
+                _pendingPrisonRoomId, _pendingPrisonBedId);
+            if (validation.IsFailure)
+            {
+                CancelPendingPrisonBedCommand(true, validation.Error.Message);
+                return;
+            }
+            if (moveController == null ||
+                moveController.GetPresentationMovementRevision(_pendingPrisonCarrier) !=
+                    _pendingPrisonMoveRevision ||
+                !moveController.IsMoving(_pendingPrisonCarrier))
+                CancelPendingPrisonBedCommand(false, "移动被停止、改令或路径失效");
+        }
+
+        void CancelPendingPrisonBedCommand(bool cancelMovement, string reason)
+        {
+            var world = _pendingPrisonWorld;
+            var carrier = _pendingPrisonCarrier;
+            var captive = _pendingPrisonCaptive;
+            var bedId = _pendingPrisonBedId;
+            var revision = _pendingPrisonMoveRevision;
+            var sameWorld = ReferenceEquals(bootstrap?.Session?.World, world);
+            if (cancelMovement && sameWorld && moveController != null && !carrier.IsNone && revision != 0u)
+                moveController.CancelPresentationMovementIfRevision(carrier, revision);
+            if (world != null && !captive.IsNone && !string.IsNullOrEmpty(bedId))
+                MortalCivilianService.CancelPrisonBedReservation(world, bedId, captive);
+            if (sameWorld && !carrier.IsNone && bootstrap?.ViewSpawner != null &&
+                bootstrap.ViewSpawner.Registry.TryGet(carrier, out var view) && view != null &&
+                view.ActivityText.StartsWith("前往牢床", System.StringComparison.Ordinal))
+                view.SetActivityText(string.Empty);
+            if (!carrier.IsNone && !string.IsNullOrEmpty(reason))
+                Debug.LogWarning("[PrisonBed] 取消未完成交接：" + reason +
+                                 " Carrier=" + carrier.Value + " Captive=" + captive.Value +
+                                 " Bed=" + bedId, this);
+            ClearPendingPrisonBedCommand();
+        }
+
+        void ClearPendingPrisonBedCommand()
+        {
+            _pendingPrisonWorld = null;
+            _pendingPrisonCarrier = EntityId.None;
+            _pendingPrisonCaptive = EntityId.None;
+            _pendingPrisonRoomId = string.Empty;
+            _pendingPrisonBedId = string.Empty;
+            _pendingPrisonMoveRevision = 0u;
         }
 
         void BeginRecoverySpot()
@@ -1633,6 +1858,7 @@ namespace XianXia.Unity.Host
         void OnDisable()
         {
             CancelRecruitInteraction();
+            CancelPendingPrisonBedCommand(true, "界面生命周期结束");
             bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);
             if (_holdingDismantlePause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);

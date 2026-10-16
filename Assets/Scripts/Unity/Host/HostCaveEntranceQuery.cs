@@ -36,6 +36,7 @@ namespace XianXia.Unity.Host
             if (continuous != null && continuous.IsActive)
             {
                 var point = HostPresentationSpace.ToPresentation(worldPoint);
+                if (!continuous.IsPresentationPositionLoaded(point.x, point.y)) return false;
                 if (!continuous.TryPickBakedPlacement("cave", point.x, point.y, out var id) ||
                     !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(id, out var outdoorEntrance) ||
                     !OpportunityEntranceRules.IsHiddenEntrance(outdoorEntrance) ||

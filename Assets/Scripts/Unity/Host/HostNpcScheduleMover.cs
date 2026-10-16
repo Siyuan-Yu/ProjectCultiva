@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
@@ -36,6 +37,11 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, float> _nextRepathAt = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, Vector3> _lastPos = new Dictionary<ulong, Vector3>();
         readonly Dictionary<ulong, float> _lastProgressAt = new Dictionary<ulong, float>();
+        readonly Dictionary<ulong, int> _lastPathIndex = new Dictionary<ulong, int>();
+        readonly Dictionary<ulong, float> _lastRemainingDistance = new Dictionary<ulong, float>();
+        readonly List<Vector3> _remainingPathScratch = new List<Vector3>(32);
+        readonly List<Vector3> _bedPathScratch = new List<Vector3>(32);
+        readonly List<WorldVec2> _bedAccessScratch = new List<WorldVec2>(4);
         readonly Dictionary<ulong, string> _lastTargetKey = new Dictionary<ulong, string>();
         // 目标几何缓存：只在 target 变／首次／interact spot 重新注册时才解析（禁止每帧 TryResolveWorldTarget）。
         readonly Dictionary<ulong, Vector3> _resolvedCenter = new Dictionary<ulong, Vector3>();
@@ -136,14 +142,15 @@ namespace XianXia.Unity.Host
                 _trackedWorld = session.World;
                 ClearTrackingCaches();
             }
-            SyncCarriedCharacters(session.World);
             var grid = moveController.WalkGrid;
             // Path computation 是 CPU presentation work，不是 Simulation progress：repath／stuck
             // 窗口用 real-time（unscaled），绝不除以 game speed（20x 会把冷却压到 0.15s）。
             var now = Time.unscaledTime;
             var repathInterval = Mathf.Max(MinRepathIntervalSeconds, repathIntervalSeconds);
             var stuckLimit = Mathf.Max(MinStuckSeconds, stuckSeconds);
-            var gridRevision = grid != null ? grid.Revision : 0;
+            // Grid identity/generation matters as much as its mutation counter: a recomposed grid
+            // can have the same number of blockers and therefore the same Revision value.
+            var gridRevision = moveController.WalkGridGeneration;
             var spotGeneration = HostInteractSpots.LayoutGeneration;
 
             NpcPathRequestsThisFrame = 0;
@@ -238,6 +245,10 @@ namespace XianXia.Unity.Host
                         continue;
                     }
 
+                    if (intent.ArrivalRadiusWorld > 0f &&
+                        TryRetargetUnreachableBedAccess(session.World, entity.Id, intent, pos, rawCenter))
+                        continue;
+
                     if (intent.ArrivalRadiusWorld > 0f && grid != null &&
                         (!grid.TryWorldToCell(rawCenter.x, rawCenter.y, out var exactX, out var exactY) ||
                          !grid.IsWalkable(exactX, exactY)))
@@ -279,14 +290,21 @@ namespace XianXia.Unity.Host
                 if (moveController.IsNpcHeldForInteraction(entity.Id))
                     continue;
 
-                TrackProgress(id, pos, now);
+                TrackProgress(entity.Id, pos, now);
                 var stuck = IsStuck(id, now, stuckLimit);
                 var due = !_nextRepathAt.TryGetValue(id, out var t) || now >= t;
                 var gridRevisionChanged = _gridRevisionAtPath.TryGetValue(id, out var settledRevision) &&
                                           settledRevision != gridRevision;
+                var remainingPathInvalid = isMoving && !moveController.IsRemainingPathValid(entity.Id);
+                if (remainingPathInvalid)
+                {
+                    moveController.CancelPresentationMovementPublic(entity.Id);
+                    isMoving = false;
+                }
 
                 if (!NpcSchedulePathRequestPolicy.ShouldRequestPath(
-                        targetChanged, stuck, isMoving, due, gridRevisionChanged))
+                        targetChanged, stuck, isMoving, due,
+                        gridRevisionChanged || remainingPathInvalid))
                     continue;
 
                 if (targetChanged)
@@ -480,6 +498,16 @@ namespace XianXia.Unity.Host
             }
         }
 
+        void LateUpdate()
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized ||
+                bootstrap.Session.World == null)
+                return;
+            // Bind transported views only after all ordinary Update movement has completed, so a
+            // carried character never becomes an independent obstacle one frame behind its carrier.
+            SyncCarriedCharacters(bootstrap.Session.World);
+        }
+
         void ReconcileIssuedIntent(EntityId entityId, MovementIntentComponent intent)
         {
             if (entityId.IsNone || !_issuedIntentRevision.TryGetValue(entityId.Value, out var issued)) return;
@@ -519,6 +547,8 @@ namespace XianXia.Unity.Host
             _nextRepathAt.Remove(id);
             _lastPos.Remove(id);
             _lastProgressAt.Remove(id);
+            _lastPathIndex.Remove(id);
+            _lastRemainingDistance.Remove(id);
             _deferredPathRequestIds.Remove(id);
         }
 
@@ -532,6 +562,8 @@ namespace XianXia.Unity.Host
             _nextRepathAt.Clear();
             _lastPos.Clear();
             _lastProgressAt.Clear();
+            _lastPathIndex.Clear();
+            _lastRemainingDistance.Clear();
             _deferredPathRequestIds.Clear();
             _pathUnavailableReported.Clear();
         }
@@ -546,11 +578,28 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        void TrackProgress(ulong id, Vector3 pos, float now)
+        void TrackProgress(EntityId entityId, Vector3 pos, float now)
         {
-            if (!_lastPos.TryGetValue(id, out var prev) ||
-                (pos - prev).sqrMagnitude >= stuckMoveEpsilon * stuckMoveEpsilon)
+            var id = entityId.Value;
+            var pathIndex = 0;
+            var remaining = float.PositiveInfinity;
+            if (moveController != null &&
+                moveController.TryGetPathProgress(entityId, out pathIndex, out _) &&
+                moveController.TryGetRemainingPath(entityId, _remainingPathScratch))
             {
+                remaining = 0f;
+                for (var i = 1; i < _remainingPathScratch.Count; i++)
+                    remaining += Vector3.Distance(_remainingPathScratch[i - 1], _remainingPathScratch[i]);
+            }
+
+            var progressed = !_lastPathIndex.TryGetValue(id, out var previousIndex) ||
+                             pathIndex > previousIndex ||
+                             !_lastRemainingDistance.TryGetValue(id, out var previousRemaining) ||
+                             remaining + stuckMoveEpsilon < previousRemaining;
+            if (progressed)
+            {
+                _lastPathIndex[id] = pathIndex;
+                _lastRemainingDistance[id] = remaining;
                 _lastPos[id] = pos;
                 _lastProgressAt[id] = now;
             }
@@ -575,6 +624,50 @@ namespace XianXia.Unity.Host
                 return world;
             grid.CellToWorldCenter(nx, ny, out var wx, out var wy);
             return new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+        }
+
+        bool TryRetargetUnreachableBedAccess(
+            XianXia.Core.Simulation.SimulationWorld world,
+            EntityId entityId,
+            MovementIntentComponent intent,
+            Vector3 current,
+            Vector3 currentTarget)
+        {
+            if (world == null || intent == null || moveController == null ||
+                bootstrap?.ContinuousOutdoorSurfaceRuntime == null ||
+                moveController.TryBuildPathPreview(current, currentTarget, _bedPathScratch, exactGoal: true))
+                return false;
+            var key = intent.DestinationKey ?? string.Empty;
+            const string sleepPrefix = "sleep-bed:";
+            var bedId = key.StartsWith(sleepPrefix, System.StringComparison.Ordinal)
+                ? key.Substring(sleepPrefix.Length) : key;
+            if (!world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
+                !RoomBedGeometry.IsBed(bed))
+                return false;
+
+            RoomBedGeometry.CollectAccessPoints(
+                world.OutdoorConstructedAssets, bed, _bedAccessScratch);
+            var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            for (var i = 0; i < _bedAccessScratch.Count; i++)
+            {
+                var candidate = _bedAccessScratch[i];
+                if (Mathf.Abs(candidate.X - intent.TargetWorldX) < .0001f &&
+                    Mathf.Abs(candidate.Y - intent.TargetWorldY) < .0001f)
+                    continue;
+                surface.Mapper.WorldToPresentation(candidate.X, candidate.Y, out var px, out var py);
+                var presentation = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                if (!moveController.TryBuildPathPreview(
+                        current, presentation, _bedPathScratch, exactGoal: true))
+                    continue;
+                intent.BeginWorldPoint(intent.TargetSurfaceId, candidate.X, candidate.Y,
+                    intent.SpeedMultiplier, intent.DestinationKey, intent.ArrivalRadiusWorld);
+                Debug.LogWarning("[NpcNavigation] Retargeted unreachable bed access. EntityId=" +
+                                 entityId.Value + " BedId=" + bedId + " Candidate=" +
+                                 candidate.X.ToString("0.###") + "," +
+                                 candidate.Y.ToString("0.###"), this);
+                return true;
+            }
+            return false;
         }
 
         bool TryResolveWorldTarget(

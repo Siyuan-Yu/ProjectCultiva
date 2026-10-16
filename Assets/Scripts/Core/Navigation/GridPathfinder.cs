@@ -72,33 +72,87 @@ namespace XianXia.Core.Navigation
                 cells.RemoveRange(write, cells.Count - write);
         }
 
-        /// <summary>Sample the segment; false if any sample lands on a blocked／OOB cell.</summary>
+        /// <summary>
+        /// Exact grid traversal for a world-space segment. Every crossed cell is checked and a
+        /// vertex crossing additionally checks both adjacent cardinal cells, matching A*'s
+        /// no-corner-cut rule.
+        /// </summary>
         public static bool IsWorldSegmentWalkable(
             WalkGrid grid, float x0, float y0, float x1, float y1)
         {
             if (grid == null)
                 return false;
-            var dx = x1 - x0;
-            var dy = y1 - y0;
-            var dist = Math.Sqrt(dx * dx + dy * dy);
-            if (dist < 1e-4)
-            {
-                if (!grid.TryWorldToCell(x0, y0, out var cx, out var cy))
-                    return false;
-                return grid.IsWalkable(cx, cy);
-            }
+            if (!grid.TryWorldToCell(x0, y0, out var cx, out var cy) ||
+                !grid.TryWorldToCell(x1, y1, out var goalX, out var goalY) ||
+                !grid.IsWalkable(cx, cy) || !grid.IsWalkable(goalX, goalY))
+                return false;
+            if (cx == goalX && cy == goalY)
+                return true;
 
-            var step = Math.Max(0.25f, grid.CellSize * 0.35f);
-            var n = Math.Max(1, (int)Math.Ceiling(dist / step));
-            for (var i = 0; i <= n; i++)
-            {
-                var t = i / (float)n;
-                var x = x0 + dx * t;
-                var y = y0 + dy * t;
-                if (!grid.TryWorldToCell(x, y, out var cx, out var cy) || !grid.IsWalkable(cx, cy))
-                    return false;
-            }
+            var gx0 = (x0 - grid.OriginX) / grid.CellSize;
+            var gy0 = (y0 - grid.OriginY) / grid.CellSize;
+            var gx1 = (x1 - grid.OriginX) / grid.CellSize;
+            var gy1 = (y1 - grid.OriginY) / grid.CellSize;
+            const double boundaryEpsilon = 1e-7;
+            var onVerticalBoundary = Math.Abs(gx0 - Math.Round(gx0)) <= boundaryEpsilon &&
+                                     Math.Abs(gx1 - Math.Round(gx1)) <= boundaryEpsilon;
+            var onHorizontalBoundary = Math.Abs(gy0 - Math.Round(gy0)) <= boundaryEpsilon &&
+                                       Math.Abs(gy1 - Math.Round(gy1)) <= boundaryEpsilon;
+            if (!BoundaryCompanionsWalkable(
+                    grid, cx, cy, onVerticalBoundary, onHorizontalBoundary))
+                return false;
+            var dx = gx1 - gx0;
+            var dy = gy1 - gy0;
+            var stepX = dx > 0d ? 1 : dx < 0d ? -1 : 0;
+            var stepY = dy > 0d ? 1 : dy < 0d ? -1 : 0;
+            var deltaX = stepX == 0 ? double.PositiveInfinity : Math.Abs(1d / dx);
+            var deltaY = stepY == 0 ? double.PositiveInfinity : Math.Abs(1d / dy);
+            var nextX = stepX > 0 ? cx + 1d : cx;
+            var nextY = stepY > 0 ? cy + 1d : cy;
+            var maxX = stepX == 0 ? double.PositiveInfinity : (nextX - gx0) / dx;
+            var maxY = stepY == 0 ? double.PositiveInfinity : (nextY - gy0) / dy;
+            const double tieEpsilon = 1e-10;
 
+            while (cx != goalX || cy != goalY)
+            {
+                if (maxX + tieEpsilon < maxY)
+                {
+                    cx += stepX;
+                    maxX += deltaX;
+                    if (!grid.IsWalkable(cx, cy) || !BoundaryCompanionsWalkable(
+                            grid, cx, cy, onVerticalBoundary, onHorizontalBoundary)) return false;
+                }
+                else if (maxY + tieEpsilon < maxX)
+                {
+                    cy += stepY;
+                    maxY += deltaY;
+                    if (!grid.IsWalkable(cx, cy) || !BoundaryCompanionsWalkable(
+                            grid, cx, cy, onVerticalBoundary, onHorizontalBoundary)) return false;
+                }
+                else
+                {
+                    if (!grid.IsWalkable(cx + stepX, cy) ||
+                        !grid.IsWalkable(cx, cy + stepY) ||
+                        !grid.IsWalkable(cx + stepX, cy + stepY))
+                        return false;
+                    cx += stepX;
+                    cy += stepY;
+                    maxX += deltaX;
+                    maxY += deltaY;
+                    if (!BoundaryCompanionsWalkable(
+                            grid, cx, cy, onVerticalBoundary, onHorizontalBoundary)) return false;
+                }
+            }
+            return true;
+        }
+
+        static bool BoundaryCompanionsWalkable(
+            WalkGrid grid, int cellX, int cellY, bool verticalBoundary, bool horizontalBoundary)
+        {
+            if (verticalBoundary && !grid.IsWalkable(cellX - 1, cellY)) return false;
+            if (horizontalBoundary && !grid.IsWalkable(cellX, cellY - 1)) return false;
+            if (verticalBoundary && horizontalBoundary &&
+                !grid.IsWalkable(cellX - 1, cellY - 1)) return false;
             return true;
         }
 

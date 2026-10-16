@@ -283,6 +283,13 @@ namespace XianXia.Unity.Host
             return _loaded.Contains(_mapper.WorldToChunk(worldX, worldY));
         }
 
+        public bool IsPresentationPositionLoaded(float presentationX, float presentationZ)
+        {
+            if (!IsActive || _mapper == null) return false;
+            _mapper.PresentationToWorld(presentationX, presentationZ, out var worldX, out var worldY);
+            return IsWorldPositionLoaded(ActiveSurfaceId, worldX, worldY);
+        }
+
         /// <summary>
         /// Lightweight boundary signal for travelers crossing the already-loaded neighborhood.
         /// Exact positions are excluded, so movement within the same side stays clean.
@@ -965,7 +972,7 @@ namespace XianXia.Unity.Host
                     ReconcileOutdoorEntityMaterialization();
                     _bootstrap.FlushLoadedDestinationArrivals();
                     LogStreamTiming("Materialization", null, started);
-                    _streamTransitionPhase = StreamTransitionPhase.RefreshOverlay;
+                    _streamTransitionPhase = StreamTransitionPhase.RetireTrailing;
                     return;
                 }
                 case StreamTransitionPhase.RefreshOverlay:
@@ -973,14 +980,14 @@ namespace XianXia.Unity.Host
                     var started = Stopwatch.GetTimestamp();
                     _bootstrap.RefreshContinuousOutdoorOverlaysOnce();
                     LogStreamTiming("Overlay", null, started);
-                    _streamTransitionPhase = StreamTransitionPhase.RetireTrailing;
+                    CompleteNeighborhoodTransition();
                     return;
                 }
                 case StreamTransitionPhase.RetireTrailing:
                 {
                     if (_pendingRemoveIndex >= _pendingRemoves.Count)
                     {
-                        CompleteNeighborhoodTransition();
+                        _streamTransitionPhase = StreamTransitionPhase.RefreshOverlay;
                         return;
                     }
                     var chunk = _pendingRemoves[_pendingRemoveIndex++];
@@ -993,7 +1000,7 @@ namespace XianXia.Unity.Host
                         LogStreamTiming("RetireTrailing", chunk, started);
                     }
                     if (_pendingRemoveIndex >= _pendingRemoves.Count)
-                        CompleteNeighborhoodTransition();
+                        _streamTransitionPhase = StreamTransitionPhase.RefreshOverlay;
                     return;
                 }
             }
@@ -1295,19 +1302,22 @@ namespace XianXia.Unity.Host
                 {
                     var cw = asset.WorldWidth / asset.CellsW;
                     var ch = asset.WorldHeight / asset.CellsH;
-                    var doorLeft = (asset.CellsW - 2) / 2;
                     for (var gy = 0; gy < asset.CellsH; gy++)
                     for (var gx = 0; gx < asset.CellsW; gx++)
                     {
-                        var perimeter = gx == 0 || gy == 0 || gx == asset.CellsW - 1 || gy == asset.CellsH - 1;
-                        if (!perimeter || gy == 0 && gx >= doorLeft && gx < doorLeft + 2) continue;
+                        if (!RoomBedGeometry.IsRoomWallCell(asset, gx, gy) ||
+                            OutdoorStatefulPlacementResolver.IsDestroyed(
+                                _bootstrap.Session.World.OutdoorStatefulObjects,
+                                RoomBedGeometry.RoomWallCellId(asset, gx, gy))) continue;
                         RasterBlocker(grid, originX, originY, cell,
                             asset.WorldX + gx * cw, asset.WorldY + gy * ch, cw, ch);
+                        any = true;
                     }
                 }
                 else RasterBlocker(grid, originX, originY, cell,
                     asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight);
-                any = true;
+                if (!string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal))
+                    any = true;
             }
 
             return any ? grid : null;
@@ -1527,7 +1537,8 @@ namespace XianXia.Unity.Host
                 for (var placeIndex = 0; placeIndex < surface.SitePlaces.Count; placeIndex++)
                 {
                     var place = surface.SitePlaces[placeIndex];
-                    if (place == null || !string.Equals(place.SiteId, region.SiteId, StringComparison.Ordinal)) continue;
+                    if (place == null || !string.Equals(place.SiteId, region.SiteId, StringComparison.Ordinal) ||
+                        !IsWorldPositionLoaded(surface.SurfaceId, place.WorldX, place.WorldY)) continue;
                     world.ContinuousOutdoorMaterialization.RegisterPlace(
                         region.SiteId, CreateMaterializedPlace(place, _mapper));
                     loadedPlaces++;

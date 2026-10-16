@@ -176,15 +176,32 @@ namespace XianXia.Core.Navigation
                 pathXyOut.Add(wy);
             }
 
-            // Exact goal only if last segment does not cut through blocked cells.
+            // Exact replacement is validated from the previously retained waypoint. If that
+            // shortcut is unsafe, keep the goal-cell centre and append the exact point.
             if (_cells.Count > 0)
             {
                 grid.CellToWorldCenter(gx, gy, out var cx, out var cy);
-                var useExactGoal = grid.TryWorldToCell(goalX, goalY, out var ogx, out var ogy) &&
-                                   grid.IsWalkable(ogx, ogy) &&
-                                   GridPathfinder.IsWorldSegmentWalkable(grid, cx, cy, goalX, goalY);
-                pathXyOut[pathXyOut.Count - 2] = useExactGoal ? goalX : cx;
-                pathXyOut[pathXyOut.Count - 1] = useExactGoal ? goalY : cy;
+                var exactWalkable = grid.TryWorldToCell(goalX, goalY, out var ogx, out var ogy) &&
+                                    grid.IsWalkable(ogx, ogy);
+                var priorX = _cells.Count > 1 ? pathXyOut[pathXyOut.Count - 4] : startX;
+                var priorY = _cells.Count > 1 ? pathXyOut[pathXyOut.Count - 3] : startY;
+                if (exactWalkable &&
+                    GridPathfinder.IsWorldSegmentWalkable(grid, priorX, priorY, goalX, goalY))
+                {
+                    pathXyOut[pathXyOut.Count - 2] = goalX;
+                    pathXyOut[pathXyOut.Count - 1] = goalY;
+                }
+                else
+                {
+                    pathXyOut[pathXyOut.Count - 2] = cx;
+                    pathXyOut[pathXyOut.Count - 1] = cy;
+                    if (exactWalkable &&
+                        GridPathfinder.IsWorldSegmentWalkable(grid, cx, cy, goalX, goalY))
+                    {
+                        pathXyOut.Add(goalX);
+                        pathXyOut.Add(goalY);
+                    }
+                }
             }
 
             return pathXyOut.Count >= 2 || (pathXyOut.Count == 0 && sx == gx && sy == gy);

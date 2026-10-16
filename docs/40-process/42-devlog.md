@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-10-16 — LOCAL-CONTINUITY-FINAL 本地跨旗帜连续性与加载可见性修复（待制作人验收）
+
+- 救援链路移除 `HasLocalSameFactionInjured`、`FindRescueTarget`、`TryResolveBestRescuer`、`TryRescueDestination` 中以 SiteId 相等代替阵营／距离／设施权限的限制。当前按同一精确 Faction、同一 Surface、由 Streaming policy 派生的有界本地半径与地表路线求解；床所属 active Site 仍须归该势力，目的地依次为医疗床、伤员本人床、未分配住宅床。
+- 最紧急且存在可执行方案的伤员会阻止其它救援者越过它为较晚伤员抢床；最佳救援者按“救援者到伤员 + 伤员到床”成本确定。稳定伤员／救援者／BedId 与预约在跨旗帜边界时保持；Host 临时路径未准备保留任务并延时重试，永久不可达才释放本任务预约或换床。
+- 职业工区按原绑定与同势力本地范围解析，不再因 CurrentSite 改变遗忘；返家可从邻近 Site 发起；取食锁定附近合法 StorageRoom 与实际 source Site，到达后只扣该 Site 公库。指定牢床发起阶段只校验床所属玩家控制 Site、真实押送关系与同一 Surface，最终交接继续要求载人与床边真实到达。
+- Continuous Surface transition 改为先退场旧 chunk owner，再重建 overlay；materialized place 逐个按具体坐标 `IsWorldPositionLoaded` 过滤。地图文字／蓝点、世界物／控制核心／洞口拾取、已开菜单和检视外框共用局部加载门槛，未加载暗区不再泄漏表现或交互；Core 数据和离屏医疗稳定不受表现卸载影响。
+- `AuthoredTransportPointBootstrap.ApplyInitialBedAssignments` 删除荒村固定 20 人生产断言，继续按配置中的 SpawnKey 校验人物、住宅床用途与重复分配，并在错误中附 BedId／SpawnKey；既有房间／床几何校验仍由 authored transport bootstrap 保持。本轮未修改 Content，Snapshot 维持 v15。
+- 全程序集离线编译 `ALL_OK`（仅保留测试程序集既有 2 条 warning）；按仓库规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner。状态：**Implementation Complete / Producer Acceptance Pending**。
+
 ## 2026-10-15 — MED-PRISON-02 通用救援、医疗稳定与真实囚床交接（待制作人验收）
 
 - 自动救援从“仅玩家势力／仅医疗床”改为同一 Site、同一 Surface 的同势力受管凡人通用紧急任务；玩家直接控制、战斗／旅行、押送、重载或不可行动者不接单。伤员按剩余弥留时间与 EntityId 排序，救援者按接近伤员加搬往床位的成本与 EntityId 确定；床位严格按空闲 Medical、伤员本人 Residential、未分配 Residential 三层选择，选中即预约，无床不搬运。
@@ -5629,3 +5638,17 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - CIVILIAN 全局 Reset、医疗清绑定/恢复点占用和囚室准备增加二次确认与取消零副作用说明。医疗准备保持 RescueTarget 为空、由 AI 发现且只搬运不治疗；囚室准备只制造 CapturedEscorted 并明确跳过俘虏战、不直接 Detain。
 - [267](267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10) 新增唯一当前状态表；复核记录 A 囚犯食宿早退与 B 两套日程仍存在，C 缺失交接点已被最新显式 `prisonDropOff` 取代。本轮未改三项业务逻辑。
 - 离线编译 `XianXia.Core`、`XianXia.Data`、`XianXia.Unity`、`XianXia.Unity.Editor`、`Assembly-CSharp`、`Assembly-CSharp-Editor` 全部 `OK`。未启动 Unity／PlayMode／Runner，未新增或运行自动测试。状态：**LevelTester 工具整理与输入隔离 Implementation Complete / Producer Acceptance Pending**；CIVILIAN-LIFE-01 仍待最终人工验收。
+
+## 2026-10-16 — NAV-FIX 搬运、切角与动态阻挡修复（待制作人验收）
+
+- 首个现场阻断确认为 carried View 被普通 crowd separation 当作独立邻居，持续反推自己的 carrier。搬运同步移至 `LateUpdate`，正式救援／押送绑定从独立移动和 separation 排除；床位占用者与隔墙近邻也不再被 idle separation 推动。
+- 公共线段合法性由稀疏采样改为逐格 DDA，统一 A* 简化、精确终点、Host 移动、WASD 与轴向滑动的防切角规则。Host 同帧消费多个航点；无 WalkGrid 时 fail closed。NPC stuck 改看航点与剩余路径，并在网格代次或实际剩余段失效后受控重寻路。
+- 房间表现和导航共用墙格／门洞几何及逐格摧毁状态；新 Composite 实例使用 Host 网格代次使旧路径失效。床边路径可在同床多个合法点间改选，选中点继续写入既有 MovementIntent 和 Core 安置校验。
+- `tools/offline-compile.ps1` 全程序集 `ALL_OK`，`git diff --check` 无 whitespace error。按 `AGENTS.md` 未新增或运行自动测试，未启动 Unity／PlayMode／Runner；LevelTester 的六项移动/避让序列化参数未修改。状态为 **Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-16 — PRISON-BED-UI 指定牢床交接（待制作人验收）
+
+- 牢床右键菜单按实时 RoomUsage 分流，显示具体 Reserved／Occupant；不再显示普通分床和休息。合法按钮从当前 command authority 的正式 `CapturedEscorted + CarrierId` 关系解析囚犯。
+- Core 新增指定 BedId 的发起、预约、完成与精确取消入口；到达后复用 `TryPlaceCarriedOccupant`，成功才转 Detained、记录真实 RoomId 并解除 Carrier。房间和旧交接点入口只选床一次后走同一流程。
+- Host 命令锁定 Carrier/Captive/Room/Bed 和 movement revision。停止、改令、路径失败、战斗/会话变化只释放本命令预约；途中读档清理没有 Occupant 的 Prison 预约并保留押送，已完成具体床位占用继续由 Snapshot 保存。
+- 离线编译全程序集 `ALL_OK`，未启动 Unity／PlayMode／Runner；按项目规则未新增或运行自动测试。状态为 **Implementation Complete / Producer Acceptance Pending**。

@@ -113,6 +113,11 @@ namespace XianXia.Unity.Host
             MapLayoutDefinition layout = null;
             var continuous = host.ContinuousOutdoorSurfaceRuntime;
             if (continuous == null || !continuous.IsActive) MapLayoutPick.TryGet(host.Session, out layout);
+            if (continuous != null && continuous.IsActive)
+            {
+                var presentation = HostPresentationSpace.ToPresentation(point);
+                if (!continuous.IsPresentationPositionLoaded(presentation.x, presentation.y)) return false;
+            }
 
             if (purpose == WorldObjectPickPurpose.PlayerInteraction &&
                 HostDynamicWorldObjectRegistry.TryPick(point, out var opportunityObject))
@@ -216,6 +221,17 @@ namespace XianXia.Unity.Host
                 return true;
             }
             return false;
+        }
+
+        public static bool IsTargetLocallyVisible(
+            PlayableHostBootstrap host, WorldObjectInteractionTarget target)
+        {
+            if (!target.IsValid || host == null) return false;
+            var continuous = host.ContinuousOutdoorSurfaceRuntime;
+            if (continuous == null || !continuous.IsActive) return true;
+            if (!target.HasApproachPosition) return false;
+            var point = HostPresentationSpace.ToPresentation(target.ApproachPosition);
+            return continuous.IsPresentationPositionLoaded(point.x, point.y);
         }
 
         public static bool TryResolveStableTarget(PlayableHostBootstrap host, string kind, string stableId,

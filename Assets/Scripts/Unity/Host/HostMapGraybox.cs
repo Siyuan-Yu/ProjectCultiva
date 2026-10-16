@@ -47,11 +47,16 @@ namespace XianXia.Unity.Host
 
             var locations = session.World.LocalPlaces.Locations;
             var continuousPlaces = session.World.ContinuousOutdoorMaterialization.PlacesByLocationId;
+            var continuous = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
+                             GetComponentInParent<ContinuousOutdoorSurfaceRuntime>();
             var labeledLocationIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var kv in locations)
             {
                 // 洞府内室等只属于洞内图：地表不画标签（MapEditor 里也不会出现）
                 if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
+                    continue;
+                if (continuous != null && continuous.IsActive &&
+                    !continuous.IsPresentationPositionLoaded(kv.Value.PresentationX, kv.Value.PresentationZ))
                     continue;
                 if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
                     !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, kv.Value))
@@ -65,6 +70,9 @@ namespace XianXia.Unity.Host
 
             foreach (var kv in locations)
             {
+                if (continuous != null && continuous.IsActive &&
+                    !continuous.IsPresentationPositionLoaded(kv.Value.PresentationX, kv.Value.PresentationZ))
+                    continue;
                 var marker = new GameObject("ZoneMarker_" + kv.Key);
                 marker.transform.SetParent(mapRoot, false);
                 _built.Add(marker);
@@ -75,6 +83,8 @@ namespace XianXia.Unity.Host
                 var loc = kv.Value;
                 if (loc == null || (OpportunityEntranceRules.IsHiddenEntrance(loc) &&
                     !OpportunityEntranceRules.IsRevealedToPlayerParty(session.World, loc))) continue;
+                if (continuous != null && continuous.IsActive &&
+                    !continuous.IsPresentationPositionLoaded(loc.PresentationX, loc.PresentationZ)) continue;
                 if (ShouldHideMapLabel(loc) || !labeledLocationIds.Add(kv.Key)) continue;
                 BuildZoneLabel(loc);
                 var marker = new GameObject("ContinuousSiteMarker_" + kv.Key);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Content;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -72,16 +73,21 @@ namespace XianXia.Unity.Host
         // Crowd separation：空间分桶（cell = separationRadius），只扫 3x3 邻桶；否则是每帧 O(N²)。
         readonly Dictionary<long, List<EntityView>> _separationBuckets = new Dictionary<long, List<EntityView>>();
         readonly List<EntityView> _separationCandidates = new List<EntityView>(32);
+        readonly Dictionary<ulong, ulong> _carriedToCarrier = new Dictionary<ulong, ulong>();
+        readonly HashSet<ulong> _separationExcludedIds = new HashSet<ulong>();
         int _separationBucketFrame = -1;
+        int _separationStateFrame = -1;
         float _idleSeparationNextAt;
 
         const float PursuitRepathDistance = .75f;
         const float PursuitRepathCooldown = .55f;
 
         WalkGrid _walkGrid;
+        int _walkGridGeneration;
         string _boundLocalMapId = string.Empty;
 
         public WalkGrid WalkGrid => _walkGrid;
+        public int WalkGridGeneration => _walkGridGeneration;
 
         /// <summary>LocalMap layout id that current paths / WalkGrid belong to.</summary>
         public string BoundLocalMapId => _boundLocalMapId;
@@ -165,6 +171,9 @@ namespace XianXia.Unity.Host
             _pathLocalMapIds.Clear();
             _moveSpeedMultiplierByEntity.Clear();
             _completionPolicies.Clear();
+            _carriedToCarrier.Clear();
+            _separationExcludedIds.Clear();
+            _separationStateFrame = -1;
             _playerPartyPathMoveSerial = 0;
             PurgeOrphanedMoveTargets();
         }
@@ -244,8 +253,9 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Build an A* world polyline without issuing a move order.</summary>
-        public bool TryBuildPathPreview(Vector3 from, Vector3 to, List<Vector3> into) =>
-            TryBuildWorldPath(from, to, into);
+        public bool TryBuildPathPreview(
+            Vector3 from, Vector3 to, List<Vector3> into, bool exactGoal = false) =>
+            TryBuildWorldPath(from, to, into, exactGoal);
 
         public Vector3 PreviewFormationGoal(Vector3 click, int moveIndex, int moveCount) =>
             ResolveFormationGoal(click, FormationOffset(moveIndex, moveCount));
@@ -266,7 +276,12 @@ namespace XianXia.Unity.Host
                 worldCamera = Camera.main;
         }
 
-        public void SetWalkGrid(WalkGrid grid) => _walkGrid = grid;
+        public void SetWalkGrid(WalkGrid grid)
+        {
+            if (!ReferenceEquals(_walkGrid, grid))
+                _walkGridGeneration++;
+            _walkGrid = grid;
+        }
 
         bool HasActiveMoveTarget(EntityId id)
         {
@@ -828,8 +843,7 @@ namespace XianXia.Unity.Host
             next.x += dx;
             next.y += dy;
             next.z = HostPresentationSpace.EntityZ;
-            if (_walkGrid.TryWorldToCell(next.x, next.y, out var gx, out var gy) &&
-                _walkGrid.IsWalkable(gx, gy))
+            if (GridPathfinder.IsWorldSegmentWalkable(_walkGrid, pos.x, pos.y, next.x, next.y))
             {
                 pos = next;
                 return;
@@ -839,8 +853,7 @@ namespace XianXia.Unity.Host
             {
                 next = pos;
                 next.x += dx;
-                if (_walkGrid.TryWorldToCell(next.x, next.y, out gx, out gy) &&
-                    _walkGrid.IsWalkable(gx, gy))
+                if (GridPathfinder.IsWorldSegmentWalkable(_walkGrid, pos.x, pos.y, next.x, next.y))
                     pos = next;
             }
 
@@ -848,8 +861,7 @@ namespace XianXia.Unity.Host
             {
                 next = pos;
                 next.y += dy;
-                if (_walkGrid.TryWorldToCell(next.x, next.y, out gx, out gy) &&
-                    _walkGrid.IsWalkable(gx, gy))
+                if (GridPathfinder.IsWorldSegmentWalkable(_walkGrid, pos.x, pos.y, next.x, next.y))
                     pos = next;
             }
         }
@@ -894,12 +906,8 @@ namespace XianXia.Unity.Host
             waypoints.Clear();
             if (_walkGrid == null)
             {
-                Debug.LogWarning(
-                    "[HostMove] WalkGrid missing straight-line move (will ignore blocksMovement). " +
-                    "Ensure PlayableHostBootstrap finished Initialize.",
-                    this);
-                waypoints.Add(new Vector3(to.x, to.y, HostPresentationSpace.EntityZ));
-                return true;
+                Debug.LogWarning("[HostMove] WalkGrid missing; refusing an unvalidated straight-line move.", this);
+                return false;
             }
 
             _pathScratch.Clear();
@@ -977,17 +985,33 @@ namespace XianXia.Unity.Host
                     ClearPending(view.EntityId);
                     continue;
                 }
+                if (IsTransportAttached(view.EntityId, out _))
+                {
+                    done.Add(view);
+                    ClearPending(view.EntityId);
+                    continue;
+                }
 
                 var pos = view.transform.position;
-                var sep = ComputeSeparation(view, pos);
+                if (_walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
+                        _walkGrid, pos.x, pos.y, target.x, target.y))
+                {
+                    Debug.LogWarning("[HostMoveBlocked] Current path leg became invalid. EntityId=" +
+                                     view.EntityId.Value + " Position=" + pos.x.ToString("0.###") +
+                                     "," + pos.y.ToString("0.###") + " Target=" +
+                                     target.x.ToString("0.###") + "," + target.y.ToString("0.###") +
+                                     " NavigationGeneration=" + _walkGridGeneration, this);
+                    done.Add(view);
+                    ClearPending(view.EntityId);
+                    continue;
+                }
                 var multiplier = _moveSpeedMultiplierByEntity.TryGetValue(view.EntityId.Value, out var configured)
                     ? configured : 1f;
-                var desired = Vector3.MoveTowards(pos, target, moveSpeed * multiplier * dt);
-                var next = desired + ClampSeparationDelta(sep * (separationStrength * dt), dt);
-                next.z = HostPresentationSpace.EntityZ;
-                next = ClampToWalkable(pos, next);
+                var next = AdvanceAlongPath(view, pos, moveSpeed * multiplier * dt, dt);
                 view.transform.position = next;
                 CaptureIndependentTacticalPosition(view);
+                if (!_targets.TryGetValue(view, out target))
+                    continue;
                 if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
                     continue;
 
@@ -1039,6 +1063,55 @@ namespace XianXia.Unity.Host
                          selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
+        }
+
+        Vector3 AdvanceAlongPath(EntityView view, Vector3 start, float distanceBudget, float dt)
+        {
+            var pos = start;
+            var idv = view.EntityId.Value;
+            var guard = 0;
+            while (distanceBudget > .0001f && guard++ < 64 &&
+                   _targets.TryGetValue(view, out var target))
+            {
+                var delta = target - pos;
+                delta.z = 0f;
+                var distance = delta.magnitude;
+                if (distance <= arriveEpsilon)
+                {
+                    pos = ClampToWalkable(pos, target);
+                    if ((pos - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
+                        break;
+                    if (_paths.TryGetValue(idv, out var path) &&
+                        _pathIndex.TryGetValue(idv, out var index) && index + 1 < path.Count)
+                    {
+                        _pathIndex[idv] = index + 1;
+                        _targets[view] = path[index + 1];
+                        continue;
+                    }
+                    break;
+                }
+
+                var routeStep = Mathf.Min(distanceBudget, distance);
+                var proposed = pos + delta / distance * routeStep;
+                if (distance > arriveEpsilon * 2f)
+                {
+                    var separation = ClampSeparationDelta(
+                        ComputeSeparation(view, pos) * (separationStrength * dt), dt);
+                    var maxLateral = routeStep * .35f;
+                    if (separation.sqrMagnitude > maxLateral * maxLateral)
+                        separation = separation.normalized * maxLateral;
+                    proposed += separation;
+                }
+                proposed.z = HostPresentationSpace.EntityZ;
+                var moved = ClampToWalkable(pos, proposed);
+                var consumed = Vector3.Distance(pos, moved);
+                pos = moved;
+                distanceBudget -= consumed;
+                if (consumed < .0001f)
+                    break;
+            }
+            pos.z = HostPresentationSpace.EntityZ;
+            return pos;
         }
 
         bool IsFarmingUnit(EntityId id)
@@ -1161,19 +1234,19 @@ namespace XianXia.Unity.Host
             if (_walkGrid == null)
                 return proposed;
 
-            if (_walkGrid.TryWorldToCell(proposed.x, proposed.y, out var nx, out var ny) &&
-                _walkGrid.IsWalkable(nx, ny))
+            if (GridPathfinder.IsWorldSegmentWalkable(
+                    _walkGrid, from.x, from.y, proposed.x, proposed.y))
                 return proposed;
 
             // Prefer axis slides so soft-separation cannot shove units into buildings.
             var slideX = new Vector3(proposed.x, from.y, proposed.z);
-            if (_walkGrid.TryWorldToCell(slideX.x, slideX.y, out nx, out ny) &&
-                _walkGrid.IsWalkable(nx, ny))
+            if (GridPathfinder.IsWorldSegmentWalkable(
+                    _walkGrid, from.x, from.y, slideX.x, slideX.y))
                 return slideX;
 
             var slideY = new Vector3(from.x, proposed.y, proposed.z);
-            if (_walkGrid.TryWorldToCell(slideY.x, slideY.y, out nx, out ny) &&
-                _walkGrid.IsWalkable(nx, ny))
+            if (GridPathfinder.IsWorldSegmentWalkable(
+                    _walkGrid, from.x, from.y, slideY.x, slideY.y))
                 return slideY;
 
             return from;
@@ -1215,6 +1288,8 @@ namespace XianXia.Unity.Host
                 if (_movingIds.Contains(view.EntityId.Value))
                     continue;
                 if (!activeChar.IsNone && view.EntityId.Equals(activeChar))
+                    continue;
+                if (IsSeparationExcluded(view.EntityId))
                     continue;
                 if (world != null && world.Entities.TryGet(view.EntityId, out var entity) &&
                     !CombatLifeStateService.CanFight(entity))
@@ -1266,7 +1341,7 @@ namespace XianXia.Unity.Host
 
         Vector3 ComputeSeparation(EntityView self, Vector3 pos)
         {
-            if (viewSpawner == null)
+            if (viewSpawner == null || self == null || IsSeparationExcluded(self.EntityId))
                 return Vector3.zero;
             var push = Vector3.zero;
             var r = Mathf.Max(0.2f, separationRadius);
@@ -1295,10 +1370,17 @@ namespace XianXia.Unity.Host
                 var other = _separationCandidates[i];
                 if (other == null || other == self || !other.IsBound)
                     continue;
+                if (IsSeparationExcluded(other.EntityId) ||
+                    IsSameTransportPair(self.EntityId, other.EntityId))
+                    continue;
                 var d = pos - other.transform.position;
                 d.z = 0f;
                 var sq = d.sqrMagnitude;
                 if (sq > r2)
+                    continue;
+                if (_walkGrid != null && !GridPathfinder.IsWorldSegmentWalkable(
+                        _walkGrid, pos.x, pos.y,
+                        other.transform.position.x, other.transform.position.y))
                     continue;
 
                 // 完全重合时旧逻辑会跳永远叠在一起；用双id 生成稳定侧向推力
@@ -1321,6 +1403,56 @@ namespace XianXia.Unity.Host
 
             return push;
         }
+
+        bool IsSeparationExcluded(EntityId id)
+        {
+            if (id.IsNone) return true;
+            RefreshSeparationState();
+            return _separationExcludedIds.Contains(id.Value);
+        }
+
+        bool IsTransportAttached(EntityId id, out EntityId carrier)
+        {
+            carrier = EntityId.None;
+            if (id.IsNone) return false;
+            RefreshSeparationState();
+            if (!_carriedToCarrier.TryGetValue(id.Value, out var carrierValue)) return false;
+            carrier = new EntityId(carrierValue);
+            return true;
+        }
+
+        void RefreshSeparationState()
+        {
+            var frame = Time.frameCount;
+            if (_separationStateFrame == frame) return;
+            _separationStateFrame = frame;
+            _carriedToCarrier.Clear();
+            _separationExcludedIds.Clear();
+            var world = bootstrap?.Session?.World;
+            if (world == null) return;
+            foreach (var pair in world.Civilians.All)
+            {
+                var state = pair.Value;
+                if (state == null) continue;
+                if (state.RescueCarrying && !state.RescueTargetId.IsNone)
+                {
+                    _carriedToCarrier[state.RescueTargetId.Value] = pair.Key.Value;
+                    _separationExcludedIds.Add(state.RescueTargetId.Value);
+                }
+                if (state.Disposition == CivilianDisposition.CapturedEscorted && !state.CarrierId.IsNone)
+                {
+                    _carriedToCarrier[pair.Key.Value] = state.CarrierId.Value;
+                    _separationExcludedIds.Add(pair.Key.Value);
+                }
+            }
+            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+                if (RoomBedGeometry.IsBed(asset) && !asset.OccupantCharacterId.IsNone)
+                    _separationExcludedIds.Add(asset.OccupantCharacterId.Value);
+        }
+
+        bool IsSameTransportPair(EntityId a, EntityId b) =>
+            IsTransportAttached(a, out var carrierA) && carrierA == b ||
+            IsTransportAttached(b, out var carrierB) && carrierB == a;
 
         float SeparationBucketSize() => Mathf.Max(0.5f, separationRadius);
 

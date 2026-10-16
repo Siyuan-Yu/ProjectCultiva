@@ -1,5 +1,13 @@
 # Project Handoff — Continuous World Current State
 
+## LOCAL-CONTINUITY-FINAL（2026-10-16，待制作人验收）
+
+同势力凡人的本地救援已从“同 Site”改为“同一 Continuous Surface + 精确同 Faction + 有界本地范围 + 真实路线／设施权限”。最紧急伤员先取得唯一救援者与稳定 BedId；医疗床、本人住宅床、空闲公共住宅床依次选择，进行中跨旗帜边界不重选，临时路径未准备有界退避，最终仍必须搬到床边原子安置。职业工区、分配住宅床、附近合法储藏室及指定牢床的发起资格不再错误依赖人物当前 Site；库存仍从锁定的实际来源 Site 扣除，囚犯交接仍以床所属玩家控制 Site 和最终床边到达为准。
+
+Continuous Surface Host 现在以 `IsWorldPositionLoaded` 统一约束具体位置的蓝点、地点文字、世界物／洞口／控制核心拾取、菜单和检视外框。退场 chunk 的 presenter owner 先清理，再在同一 transition 尾部重建 overlay；“Site 部分加载”不再注册其未加载坐标的地点。该门槛只属于本地表现与现场交互，Core 地点、人物、床位、任务和医疗稳定数据不随镜头卸载。通用开局床位初始化已移除固定 20 人限制，继续校验 SpawnKey、住宅用途、重复人物和既有几何。当前实际包为 `Content/BaseGame`，LevelTester 使用 `base:scenario_playable_day` 与 `base:roster_level_tester`，主要运行地图为 `Data/Worlds/main_wilderness_surface_v1.json`，作者源为 `Authoring/ContinuousSurface/Worlds/main_world.worldcomposition.json` 及对应 Blueprint；本轮未修改 Content。
+
+离线全程序集编译通过；按仓库规则未新增或运行自动测试，未启动 Unity／PlayMode／Runner。Snapshot 保持当前 v15。状态：**CIVILIAN-LIFE-01 / LOCAL-CONTINUITY-FINAL Implementation Complete / Producer Acceptance Pending**。
+
 ## 当前阶段人工验收工作单（2026-10-11）
 
 完整操作表、填写栏和结果驱动的下一步建议见 [270](270-current-stage-producer-acceptance-plan-2026-10-11.md)。本次只读复核确认 CIVILIAN 囚犯食宿／两套日程缺口仍存在，并补充记录文本输入快捷键旁路与 legacy 输入标志覆盖；未实施修复。UI、CIVILIAN、DELAYED 的现有 Pending 状态不因验收表或静态核查自动改变。
