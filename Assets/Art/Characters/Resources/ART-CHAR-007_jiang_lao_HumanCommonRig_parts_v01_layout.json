@@ -1,0 +1,148 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01.png",
+  "sourceSha256": "38ddb51e5ba0e507cb97537a9bfce188149c3193d44d77b68dac8e7a1c02aa08",
+  "parts": [
+    {
+      "x": 105,
+      "y": 44,
+      "width": 261,
+      "height": 355,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.86,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "hasSockets": true,
+      "neckSocket": {
+        "x": 0.4942529,
+        "y": 0.9577465
+      },
+      "leftShoulderSocket": {
+        "x": 0.0689655,
+        "y": 0.7746479
+      },
+      "rightShoulderSocket": {
+        "x": 0.9386973,
+        "y": 0.7690141
+      }
+    },
+    {
+      "x": 509,
+      "y": 56,
+      "width": 274,
+      "height": 352,
+      "pivotX": 0.4525547,
+      "pivotY": 0.1448864,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 962,
+      "y": 47,
+      "width": 206,
+      "height": 367,
+      "pivotX": 0.1067961,
+      "pivotY": 0.8692098,
+      "worldHeight": 0.82,
+      "gripX": 0.7135922,
+      "gripY": 0.1307902
+    },
+    {
+      "x": 101,
+      "y": 448,
+      "width": 199,
+      "height": 370,
+      "pivotX": 0.8743719,
+      "pivotY": 0.8864865,
+      "worldHeight": 0.82,
+      "gripX": 0.1457286,
+      "gripY": 0.1135135
+    },
+    {
+      "x": 532,
+      "y": 447,
+      "width": 172,
+      "height": 358,
+      "pivotX": 0.5,
+      "pivotY": 0.94,
+      "worldHeight": 0.76,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 955,
+      "y": 448,
+      "width": 175,
+      "height": 356,
+      "pivotX": 0.5,
+      "pivotY": 0.94,
+      "worldHeight": 0.76,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 95,
+      "y": 843,
+      "width": 274,
+      "height": 351,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.86,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "hasSockets": true,
+      "neckSocket": {
+        "x": 0.5,
+        "y": 0.974359
+      },
+      "leftShoulderSocket": {
+        "x": 0.0474453,
+        "y": 0.7834758
+      },
+      "rightShoulderSocket": {
+        "x": 0.9525547,
+        "y": 0.7834758
+      }
+    },
+    {
+      "x": 510,
+      "y": 853,
+      "width": 238,
+      "height": 308,
+      "pivotX": 0.4957983,
+      "pivotY": 0.0519481,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 947,
+      "y": 846,
+      "width": 190,
+      "height": 352,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.86,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "hasSockets": true,
+      "neckSocket": {
+        "x": 0.4894737,
+        "y": 0.9318182
+      },
+      "leftShoulderSocket": {
+        "x": 0.3736842,
+        "y": 0.7528409
+      },
+      "rightShoulderSocket": {
+        "x": 0.6421053,
+        "y": 0.6136364
+      },
+      "mirrorX": true
+    }
+  ],
+  "calibrationSource": "ArtSource/BatchInfo/human-common-rig-calibration.json",
+  "calibrationSha256": "9118b256ee37754e3d495bde45692a2f654d2f2e3fb0a5b4ce8bf94017a9b689",
+  "calibrationSchemaVersion": 1
+}

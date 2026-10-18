@@ -1,0 +1,114 @@
+{
+  "batch": "Batch_ModularRig_005",
+  "purpose": "side and diagonal shoulder-pivoted arm art",
+  "resources": [
+    {
+      "skin": "ART-CHAR-001",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-001_HumanCommonRig_sidearm_v01.png",
+      "sha256": "9912928cd2062a40e279b41386461c0b2d57611b355f2de166bddb10209c3546",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-002_HumanCommonRig_sidearm_v01.png",
+      "sha256": "abc1b279395c9139c3297bcd9253f647abc65cfc25e9d0391a648dc3c30a72d3",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-004",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-004_HumanCommonRig_sidearm_v01.png",
+      "sha256": "8a807f85ac04eb1c467bfbe7ddcbefa09e87a69fea0d04af37e74faf7a31ce00",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002_companion_a",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-002_companion_a_HumanCommonRig_sidearm_v01.png",
+      "sha256": "582395e13337d3e45b5b3614def46f062f987ae448133ca8a2842e69c97f36ac",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002_companion_b",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-002_companion_b_HumanCommonRig_sidearm_v01.png",
+      "sha256": "9f81ccad428ef52996b7620ca1bcc25838edf4a3f87a8b0878270eb5754458e4",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-003_supervisor",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-003_supervisor_HumanCommonRig_sidearm_v01.png",
+      "sha256": "cd6dac9269720b6f1b0825cb67f2fe21ca611dc577b4d596c05929b0fff27fa9",
+      "pixelSize": [
+        1117,
+        1408
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_hoe",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_hoe_HumanCommonRig_sidearm_v01.png",
+      "sha256": "881efaf8e9d6452f92e931b1eda9b7d2686b6a1d905c5eaea5972e8fa0789194",
+      "pixelSize": [
+        1022,
+        1539
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_apron",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_apron_HumanCommonRig_sidearm_v01.png",
+      "sha256": "0c20a8dd40f85efccd3d9b3f9d32f7ee8704b43a0390bf5f89890d3fecaef686",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_basket",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_basket_HumanCommonRig_sidearm_v01.png",
+      "sha256": "21a20254006eaf48675ded62c055b8a4aac10c42f67a91ade1d862a5e1a4d99b",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-006_merchant",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-006_merchant_HumanCommonRig_sidearm_v01.png",
+      "sha256": "2c8a9ce80bc53bf661ece41993cb88006daec83e4f9024d3e224644438f55c68",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-007_other",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-007_other_HumanCommonRig_sidearm_v01.png",
+      "sha256": "f38994da3a1a407c37f22c6eb7df042bce63f76f9ee1a450efe87018af5f76c8",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "skin": "ART-CHAR-007_jiang_lao",
+      "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_sidearm_v01.png",
+      "sha256": "3667db98963d83cfcd5db8e7deeef163176c838f2f8d403c9e112f09a77cf42d",
+      "pixelSize": [
+        1024,
+        1536
+      ]
+    }
+  ]
+}

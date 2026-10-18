@@ -154,7 +154,11 @@ namespace XianXia.Unity.Host
             cds[slotIndex] = art.CooldownSeconds > 0f ? art.CooldownSeconds : 2f;
             if (strikeVfx == null && bootstrap != null)
                 strikeVfx = bootstrap.GetComponent<HostMeleeStrikeVfx>();
-            strikeVfx?.PlayBetween(viewSpawner, caster, target);
+            strikeVfx?.PlaySkillBetween(viewSpawner, caster, target);
+            if (strikeVfx == null && viewSpawner != null &&
+                viewSpawner.Registry.TryGet(caster, out var casterView) && casterView != null &&
+                viewSpawner.Registry.TryGet(target, out var targetView) && targetView != null)
+                casterView.PlayArtAttack(targetView.transform.position, styleOverride: HumanAttackStyle.Unarmed);
             Toast(target, art.Name + " -" + total + (hits > 1 ? ("×" + hits) : ""), new Color(1f, 0.75f, 0.35f));
             if (defeated)
             {

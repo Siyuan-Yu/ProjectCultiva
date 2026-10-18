@@ -1,0 +1,72 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-ANIM-002_004_HumanCommonRig_tools_v01.png",
+  "sourceSha256": "1e56f4645c7c408d9519ef5a2654333637d749aadcf3b24e10aa120316bc9361",
+  "parts": [
+    {
+      "x": 210,
+      "y": 16,
+      "width": 61,
+      "height": 672,
+      "pivotX": 0.5,
+      "pivotY": 0.4,
+      "worldHeight": 2.0,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 560,
+      "y": 210,
+      "width": 191,
+      "height": 448,
+      "pivotX": 0.5,
+      "pivotY": 0.24,
+      "worldHeight": 0.95,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 897,
+      "y": 149,
+      "width": 249,
+      "height": 534,
+      "pivotX": 0.8,
+      "pivotY": 0.22,
+      "worldHeight": 1.55,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 47,
+      "y": 766,
+      "width": 381,
+      "height": 450,
+      "pivotX": 0.5,
+      "pivotY": 0.22,
+      "worldHeight": 1.35,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 549,
+      "y": 774,
+      "width": 206,
+      "height": 448,
+      "pivotX": 0.6,
+      "pivotY": 0.18,
+      "worldHeight": 1.1,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 880,
+      "y": 797,
+      "width": 331,
+      "height": 397,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.75,
+      "gripX": 0.5,
+      "gripY": 0.08
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_basket_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "21a20254006eaf48675ded62c055b8a4aac10c42f67a91ade1d862a5e1a4d99b",
+  "parts": [
+    {
+      "x": 388,
+      "y": 146,
+      "width": 282,
+      "height": 1259,
+      "pivotX": 0.4371,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.6056,
+      "gripY": 0.06
+    }
+  ]
+}

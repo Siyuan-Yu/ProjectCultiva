@@ -49,7 +49,6 @@ namespace XianXia.Unity.Host
                 spec.WorldObjectWorldWidth, spec.WorldObjectWorldHeight, -18, true);
             var bounds = new Bounds(center, new Vector3(
                 Mathf.Max(.2f, spec.WorldObjectWorldWidth), Mathf.Max(.2f, spec.WorldObjectWorldHeight), 1f));
-            if (HostMapObjectVisualFactory.TryGetRendererBounds(view, out var rendererBounds)) bounds = rendererBounds;
             var entry = new HostDynamicWorldObjectEntry
             {
                 WorldObjectInstanceId = instance.WorldObjectInstanceId,

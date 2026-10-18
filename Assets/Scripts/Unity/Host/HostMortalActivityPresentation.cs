@@ -31,7 +31,7 @@ namespace XianXia.Unity.Host
                 case FoodFetchPhase.Eating: return "进食";
             }
             var moving = isMoving || entity != null &&
-                entity.TryGet<MovementIntentComponent>(out var intent) && intent.Active;
+                entity.TryGet<MovementIntentComponent>(out var intent) && intent.Active && !intent.HostArrived;
             if (moving)
             {
                 switch (state.Activity)
@@ -63,7 +63,7 @@ namespace XianXia.Unity.Host
                 case MortalActivity.Flee: return "逃亡";
                 case MortalActivity.Escorted: return "押送中";
                 case MortalActivity.Detained: return "囚禁";
-                case MortalActivity.DedicatedDuty: return "专职职责待既有系统执行";
+                case MortalActivity.DedicatedDuty: return "待命";
                 default:
                     return state.ScheduleStatus != null && state.ScheduleStatus.Contains("自由活动")
                         ? "自由活动" : "待命";

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4574459f71084b44a438b6715c69b21b, type: 3}
+  m_Name: MapLayoutPrefabCatalog
+  m_EditorClassIdentifier:
+  entries:
+  - path: Assets/Prefabs/Environment/Buildings/CommonHouse.prefab
+    prefab: {fileID: 3018707451254015131, guid: f6ae25fd789f80245bfd6905b3c804b9, type: 3}
+  - path: Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab
+    prefab: {fileID: 2174865104236986170, guid: 4ee38b358e4c7c84eb500e80e166c58d, type: 3}
+  - path: Assets/Prefabs/Environment/Buildings/Warehouse.prefab
+    prefab: {fileID: 1421030608202920327, guid: d56f4e7357ce693449f5efecb138833f, type: 3}
+  - path: Assets/Prefabs/Environment/Props/Cushion.prefab
+    prefab: {fileID: 4735573085919227875, guid: 19c68f5c060d3d04595089ccb68a5db8, type: 3}
+  - path: Assets/Prefabs/Environment/Props/OrePile.prefab
+    prefab: {fileID: 4673174557007453180, guid: ff17bebad3ed47a4d877bfc21186352d, type: 3}
+  - path: Assets/Prefabs/Environment/Props/TreeLarge.prefab
+    prefab: {fileID: 2047272495969268595, guid: ed7e8976ec870eb40b9e9b6a424890a2, type: 3}
+  - path: Assets/Prefabs/Environment/Props/TreeMid.prefab
+    prefab: {fileID: 2047272495969268595, guid: 88e7d6180c028ce4183e58d9b33754c5, type: 3}
+  - path: Assets/Prefabs/Environment/Props/TreeSmall.prefab
+    prefab: {fileID: 2047272495969268595, guid: 3f87d6434ac59d04395442a1499aae74, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/DirtRoadTile.prefab
+    prefab: {fileID: 4673174557007453180, guid: a7c373037bd444f4384eb465f3bf6137, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/FarmlandTile.prefab
+    prefab: {fileID: 4453802312678433359, guid: 540091fb2f2dad1469b05a2470cea41a, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/ForestFloorTile.prefab
+    prefab: {fileID: 2047272495969268595, guid: 421af83b0105ba74fb148bcb9a21a003, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/GrassTile.prefab
+    prefab: {fileID: 6185717498923286583, guid: f601806d856107c48a1a9c59c0bc7ad0, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/HerbPatchTile.prefab
+    prefab: {fileID: 8674606619681467786, guid: ae5524229e1a7d74e8257ccb52d0bd02, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/MissingPrefabPlaceholder.prefab
+    prefab: {fileID: 7950360748929944065, guid: 5d49868677406e740841d58a199e4bae, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/RockTile.prefab
+    prefab: {fileID: 4673174557007453180, guid: 7c4f0b3f5a8f4037a5866196478f5b40, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/SpiritSiteTile.prefab
+    prefab: {fileID: 4735573085919227875, guid: 583350b71dfefe748a9b2c298e3e9d7c, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/WallTile.prefab
+    prefab: {fileID: 4673174557007453180, guid: 5517ed19fed845309602e8db51b9c0ed, type: 3}

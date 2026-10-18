@@ -1371,7 +1371,7 @@ namespace XianXia.Unity.Host
                 var dist = Vector2.Distance(
                     new Vector2(view.transform.position.x, view.transform.position.y),
                     new Vector2(activePos.x + offset.x, activePos.y + offset.y));
-                if (dist <= followStopDistance)
+                if (dist <= followStopDistance && _move.IsCharacterStandClear(id))
                     continue;
 
                 // 周期性 repath throttle：moving follower 也允许在 followRepathInterval 后
@@ -1382,7 +1382,8 @@ namespace XianXia.Unity.Host
                     continue;
 
                 _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    freeStandRadius: 1.25f);
                 _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
             }
         }
@@ -1417,11 +1418,13 @@ namespace XianXia.Unity.Host
                     continue;
                 var goal = activePosition + offset;
                 goal.z = HostPresentationSpace.EntityZ;
-                if (Vector2.Distance(view.transform.position, goal) <= followStopDistance ||
+                if ((Vector2.Distance(view.transform.position, goal) <= followStopDistance &&
+                    _move.IsCharacterStandClear(id)) ||
                     !ShouldRepathFollower(id))
                     continue;
                 _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    freeStandRadius: 1.25f);
                 _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
             }
         }
@@ -1503,7 +1506,8 @@ namespace XianXia.Unity.Host
             // 错误取消整队 PlayerParty Surface AutoTravel。OrderEntityToWorldPoint(issueStop:false)
             // 仍会 ClearPath/ClearPending 并重建 Local A* path（见 HostMoveController:426）。
             _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: false,
-                completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
+                completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                freeStandRadius: 1.25f);
             _nextFollowRepath[follower.Value] = Time.unscaledTime + followRepathInterval;
         }
 

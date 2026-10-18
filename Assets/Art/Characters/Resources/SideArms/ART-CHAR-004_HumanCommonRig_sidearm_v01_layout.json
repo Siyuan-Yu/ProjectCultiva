@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-004_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "8a807f85ac04eb1c467bfbe7ddcbefa09e87a69fea0d04af37e74faf7a31ce00",
+  "parts": [
+    {
+      "x": 382,
+      "y": 301,
+      "width": 279,
+      "height": 1031,
+      "pivotX": 0.3802,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.6702,
+      "gripY": 0.06
+    }
+  ]
+}

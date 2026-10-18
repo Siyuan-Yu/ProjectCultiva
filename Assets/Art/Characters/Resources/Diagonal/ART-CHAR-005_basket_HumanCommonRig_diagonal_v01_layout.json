@@ -1,0 +1,218 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-005_basket_HumanCommonRig_diagonal_v01.png",
+  "sourceSha256": "73b8a3b337ff87878509e043f4eb6728aea7570b5d3a3f51ab8a2c89f01e8ffd",
+  "parts": [
+    {
+      "x": 149,
+      "y": 82,
+      "width": 435,
+      "height": 545,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.86,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "hasSockets": true,
+      "neckSocket": {
+        "x": 0.52,
+        "y": 0.94
+      },
+      "leftShoulderSocket": {
+        "x": 0.22,
+        "y": 0.79
+      },
+      "rightShoulderSocket": {
+        "x": 0.78,
+        "y": 0.79
+      },
+      "meshVertices": [
+        {
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "x": 0.36,
+          "y": 1.0
+        },
+        {
+          "x": 0.64,
+          "y": 1.0
+        },
+        {
+          "x": 0.75,
+          "y": 0.82
+        },
+        {
+          "x": 0.71,
+          "y": 0.6
+        },
+        {
+          "x": 0.85,
+          "y": 0.05
+        },
+        {
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "x": 0.15,
+          "y": 0.05
+        },
+        {
+          "x": 0.29,
+          "y": 0.6
+        },
+        {
+          "x": 0.25,
+          "y": 0.82
+        }
+      ],
+      "meshTriangles": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
+        0,
+        3,
+        4,
+        0,
+        4,
+        5,
+        0,
+        5,
+        6,
+        0,
+        6,
+        7,
+        0,
+        7,
+        8,
+        0,
+        8,
+        9,
+        0,
+        9,
+        1
+      ]
+    },
+    {
+      "x": 727,
+      "y": 130,
+      "width": 422,
+      "height": 494,
+      "pivotX": 0.5155,
+      "pivotY": 0.06,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08
+    },
+    {
+      "x": 175,
+      "y": 627,
+      "width": 407,
+      "height": 565,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "worldHeight": 0.86,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "hasSockets": true,
+      "neckSocket": {
+        "x": 0.52,
+        "y": 0.94
+      },
+      "leftShoulderSocket": {
+        "x": 0.22,
+        "y": 0.79
+      },
+      "rightShoulderSocket": {
+        "x": 0.78,
+        "y": 0.79
+      },
+      "meshVertices": [
+        {
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "x": 0.36,
+          "y": 1.0
+        },
+        {
+          "x": 0.64,
+          "y": 1.0
+        },
+        {
+          "x": 0.75,
+          "y": 0.82
+        },
+        {
+          "x": 0.71,
+          "y": 0.6
+        },
+        {
+          "x": 0.85,
+          "y": 0.05
+        },
+        {
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "x": 0.15,
+          "y": 0.05
+        },
+        {
+          "x": 0.29,
+          "y": 0.6
+        },
+        {
+          "x": 0.25,
+          "y": 0.82
+        }
+      ],
+      "meshTriangles": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
+        0,
+        3,
+        4,
+        0,
+        4,
+        5,
+        0,
+        5,
+        6,
+        0,
+        6,
+        7,
+        0,
+        7,
+        8,
+        0,
+        8,
+        9,
+        0,
+        9,
+        1
+      ]
+    },
+    {
+      "x": 760,
+      "y": 705,
+      "width": 389,
+      "height": 456,
+      "pivotX": 0.5052,
+      "pivotY": 0.06,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08
+    }
+  ]
+}

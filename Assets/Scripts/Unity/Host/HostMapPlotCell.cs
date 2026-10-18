@@ -296,21 +296,33 @@ namespace XianXia.Unity.Host
 
         public static void Apply(GameObject target, SimulationWorld world, string bedId)
         {
-            if (target == null || world == null || string.IsNullOrEmpty(bedId) ||
+            if (target == null) return;
+            var layers = target.GetComponent<HostBedVisualLayers>();
+            if (world == null || string.IsNullOrEmpty(bedId) ||
                 !world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
                 !RoomBedGeometry.IsBed(bed))
+            {
+                layers?.ClearConfiguration();
                 return;
+            }
             var usage = RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ? RoomUsage.Prison :
                 RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical) ? RoomUsage.Medical :
                     RoomUsage.Residential;
-            if (HostStepAArt.ApplyObjectVisual(target, HostStepAArt.BedSprite(usage)))
+            if (HostStepAArt.ApplyObjectVisual(target, HostStepAArt.BedSprite(usage), bed.QuarterTurns))
+            {
+                if (layers == null) layers = target.AddComponent<HostBedVisualLayers>();
+                var overlay = target.transform.Find("StepAArtVisual");
+                layers.Configure(overlay != null ? overlay.GetComponent<SpriteRenderer>() : null, usage);
                 return;
+            }
+            layers?.ClearConfiguration();
             var color = usage == RoomUsage.Prison ? Prison :
                 usage == RoomUsage.Medical ? Medical : Residential;
             var renderers = target.GetComponentsInChildren<SpriteRenderer>(true);
             for (var i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null) continue;
+                if (layers != null && layers.IsForegroundRenderer(renderers[i])) continue;
                 renderers[i].sprite = HostSpriteFactory.BedSprite();
                 renderers[i].color = color;
             }

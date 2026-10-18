@@ -85,14 +85,24 @@ namespace XianXia.Unity.Host
         public bool IsAssaulting => _sessions.Count > 0;
         public HostMapDestructible Target => _sessions.Count > 0 ? _sessions[0].Target : null;
 
-        /// <summary>Presentation-only logging signal; job intent alone does not mean chopping.</summary>
-        public bool IsCivilianPerformingWork(EntityId id)
+        public bool TryGetWorkVisual(EntityId id, out HostCharacterWorkVisual visual)
         {
-            if (id.IsNone || !_civilianStatus.TryGetValue(id.Value, out var status) || status != "砍伐中")
+            visual = default;
+            if (viewSpawner == null || !viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return false;
             for (var i = 0; i < _sessions.Count; i++)
-                if (_sessions[i].Attacker == id && _sessions[i].FromCivilianWork && _sessions[i].Target != null)
-                    return true;
+            {
+                var session = _sessions[i];
+                var target = session.Target;
+                if (session.Attacker != id || target == null || target.IsDestroyed || !target.IsTree) continue;
+                var distance = session.FromCivilianWork ? DistanceToTargetFootprint(target, view.transform.position) :
+                    Vector2.Distance(view.transform.position, target.transform.position);
+                if (distance > engageRange) continue;
+                visual = HostCharacterWorkVisual.For(HumanWorkMotion.Chop, HumanCommonRigView.Equipment.Axe);
+                visual.HasTarget = true;
+                visual.Target = target.transform.position;
+                return true;
+            }
             return false;
         }
 
@@ -288,7 +298,11 @@ namespace XianXia.Unity.Host
             var dist = session.FromCivilianWork
                 ? DistanceToTargetFootprint(target, attackerPoint)
                 : Vector2.Distance(new Vector2(ax, ay), new Vector2(targetPoint.x, targetPoint.y));
-            if (dist > engageRange)
+            // Preserve the original cooldown clock: it advances while in work range,
+            // including a short reposition, and pauses while travelling from farther away.
+            if (dist <= engageRange)
+                session.Cooldown -= bootstrap.PresentationDeltaTime;
+            if (dist > engageRange || moveController != null && !moveController.IsCharacterStandClear(attacker))
             {
                 if (session.FromCivilianWork)
                 {
@@ -300,10 +314,12 @@ namespace XianXia.Unity.Host
             }
 
             if (session.FromCivilianWork)
+                ReleaseOwnedMovement(session);
+            else
+                moveController?.CancelPresentationMovementPublic(attacker);
+            if (session.FromCivilianWork)
                 SetCivilianStatus(attacker, "砍伐中", session);
 
-            var dt = bootstrap.PresentationDeltaTime;
-            session.Cooldown -= dt;
             if (session.Cooldown > 0f)
                 return true;
             session.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
@@ -319,9 +335,13 @@ namespace XianXia.Unity.Host
             var dealt = target.ApplyDamage(damage, out var destroyed);
             if (dealt > 0)
             {
-                if (!session.FromCivilianWork && viewSpawner != null &&
-                    viewSpawner.Registry.TryGet(attacker, out var artView) && artView != null)
-                    artView.PlayArtAttack(hitPos);
+                if (viewSpawner != null && viewSpawner.Registry.TryGet(attacker, out var artView) && artView != null)
+                {
+                    if (isTree)
+                        artView.PlayArtWorkContact(hitPos, HumanWorkMotion.Chop, HumanCommonRigView.Equipment.Axe);
+                    else if (!session.FromCivilianWork)
+                        artView.PlayArtAttack(hitPos);
+                }
                 strikeVfx?.Play(hitPos + Vector3.up * 0.4f, hitPos);
                 Toast(attacker, "-" + dealt, new Color(0.75f, 0.9f, 0.45f));
             }
@@ -553,7 +573,8 @@ namespace XianXia.Unity.Host
                 administrativeSite == null || string.IsNullOrEmpty(administrativeSite.SiteId))
                 return false;
 
-            var inRange = DistanceToTargetFootprint(tree, view.transform.position) <= engageRange;
+            var inRange = DistanceToTargetFootprint(tree, view.transform.position) <= engageRange &&
+                          moveController != null && moveController.IsCharacterStandClear(logger.Id);
             var approach = view.transform.position;
             uint ownedRevision = 0u;
             var scheduleMover = bootstrap.GetComponent<HostNpcScheduleMover>();
@@ -564,7 +585,7 @@ namespace XianXia.Unity.Host
             }
             else
             {
-                if (!TryResolveTreeApproach(view.transform.position, tree, out approach))
+                if (!TryResolveTreeApproach(logger.Id, view.transform.position, tree, out approach))
                 {
                     ExcludeTemporarily(logger.Id, tree);
                     return false;
@@ -647,7 +668,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        bool TryResolveTreeApproach(Vector3 from, HostMapDestructible tree, out Vector3 approach)
+        bool TryResolveTreeApproach(EntityId actor, Vector3 from, HostMapDestructible tree, out Vector3 approach)
         {
             approach = tree != null ? tree.transform.position : default;
             if (tree == null || moveController?.WalkGrid == null)
@@ -660,16 +681,25 @@ namespace XianXia.Unity.Host
             if (direction.sqrMagnitude < .001f)
                 direction = Vector2.down;
             direction.Normalize();
-            var edge = ClosestPoint(bounds, center + direction * (bounds.size.magnitude + engageRange));
-            var desired = edge + direction * Mathf.Min(.45f, engageRange * .3f);
             var grid = moveController.WalkGrid;
-            if (!grid.TryWorldToCell(desired.x, desired.y, out var cx, out var cy))
-                return false;
-            if (!grid.IsWalkable(cx, cy) && !grid.TryFindNearestWalkable(cx, cy, 8, out cx, out cy))
-                return false;
-            grid.CellToWorldCenter(cx, cy, out var wx, out var wy);
-            approach = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
-            return DistanceToTargetFootprint(tree, approach) <= engageRange;
+            var angle = Mathf.Atan2(direction.y, direction.x);
+            // Reserve approach positions around the tree, not the whole tree. Several
+            // workers can cooperate without sharing the same snapped cell center.
+            for (var i = 0; i < 16; i++)
+            {
+                var turn = i == 0 ? 0f : ((i + 1) / 2) * Mathf.PI / 8f * (i % 2 == 1 ? 1f : -1f);
+                var radial = new Vector2(Mathf.Cos(angle + turn), Mathf.Sin(angle + turn));
+                var edge = ClosestPoint(bounds, center + radial * (bounds.size.magnitude + engageRange));
+                var desired = edge + radial * Mathf.Min(.45f, engageRange * .3f);
+                if (!grid.TryWorldToCell(desired.x, desired.y, out var cx, out var cy) ||
+                    !grid.IsWalkable(cx, cy)) continue;
+                var preferred = new Vector3(desired.x, desired.y, HostPresentationSpace.EntityZ);
+                if (!moveController.TryResolveFreeStandPoint(actor, preferred, .75f, out var candidate) ||
+                    DistanceToTargetFootprint(tree, candidate) > engageRange) continue;
+                approach = candidate;
+                return true;
+            }
+            return false;
         }
 
         static float DistanceToTargetFootprint(HostMapDestructible target, Vector3 point)
@@ -859,13 +889,18 @@ namespace XianXia.Unity.Host
         {
             if (moveController == null || session?.Target == null)
                 return false;
-            if (moveController.IsMoving(session.Attacker))
-                return true;
             if (Time.unscaledTime < session.NextRepath)
                 return true;
             session.NextRepath = Time.unscaledTime + Mathf.Max(.75f, civilianRepathInterval);
+            if (moveController.IsMoving(session.Attacker) &&
+                moveController.TryResolveFreeStandPoint(
+                    session.Attacker, session.ApproachPoint, 0f, out _))
+                return true;
+            // A precise approach can become occupied after it was issued. Reconsider it
+            // on the existing throttle instead of waiting forever on IsMoving alone.
+            ReleaseOwnedMovement(session);
             if (!viewSpawner.Registry.TryGet(session.Attacker, out var atkView) || atkView == null ||
-                !TryResolveTreeApproach(atkView.transform.position, session.Target, out var dest))
+                !TryResolveTreeApproach(session.Attacker, atkView.transform.position, session.Target, out var dest))
             {
                 ExcludeTemporarily(session.Attacker, session.Target);
                 SetCivilianStatus(session.Attacker, "伐木受阻：目标没有可达接近点", session);
@@ -885,8 +920,8 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        // Preserve the established player/follower tree and wall pursuit behavior.  Civilian
-        // logging alone uses the footprint-aware, source-owned path above.
+        // Player/follower tree and wall pursuit retains its original center-based range,
+        // but chooses a free point inside that range instead of a shared point on one side.
         void ChaseExisting(Session session)
         {
             if (moveController == null || session?.Target == null)
@@ -894,20 +929,25 @@ namespace XianXia.Unity.Host
             if (Time.unscaledTime < session.NextRepath)
                 return;
             session.NextRepath = Time.unscaledTime + repathInterval;
-            var dest = session.Target.transform.position;
-            if (viewSpawner != null &&
-                viewSpawner.Registry.TryGet(session.Attacker, out var atkView) &&
-                atkView != null)
+            if (viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(session.Attacker, out var atkView) || atkView == null)
+                return;
+            var center = session.Target.transform.position;
+            var delta = atkView.transform.position - center;
+            var angle = delta.sqrMagnitude > .001f ? Mathf.Atan2(delta.y, delta.x) : -Mathf.PI * .5f;
+            for (var i = 0; i < 16; i++)
             {
-                var delta = atkView.transform.position - dest;
-                delta.z = 0f;
-                if (delta.sqrMagnitude > 0.01f)
-                    dest += delta.normalized * (engageRange * 0.4f);
+                var turn = i == 0 ? 0f : ((i + 1) / 2) * Mathf.PI / 8f * (i % 2 == 1 ? 1f : -1f);
+                var preferred = center + new Vector3(Mathf.Cos(angle + turn), Mathf.Sin(angle + turn), 0f) *
+                    (engageRange * .75f);
+                preferred.z = HostPresentationSpace.EntityZ;
+                if (!moveController.TryResolveFreeStandPoint(session.Attacker, preferred, .2f, out var dest) ||
+                    Vector2.Distance(dest, center) > engageRange)
+                    continue;
+                if (moveController.OrderEntityToWorldPoint(
+                        session.Attacker, dest, arriveCommand: null, issueStop: false, exactGoal: true))
+                    return;
             }
-
-            dest.z = HostPresentationSpace.EntityZ;
-            moveController.OrderEntityToWorldPoint(
-                session.Attacker, dest, arriveCommand: null, issueStop: false);
         }
 
         bool TryGetPresentation(EntityId id, out float x, out float y)

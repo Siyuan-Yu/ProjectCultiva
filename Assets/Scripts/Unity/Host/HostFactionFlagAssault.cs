@@ -76,7 +76,10 @@ namespace XianXia.Unity.Host
             if (_bootstrap.ViewSpawner.Registry.TryGet(attacker, out var view) && view != null)
             {
                 if (HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
+                {
+                    view.PlayArtAttack(center);
                     _vfx?.Play(view.transform.position, center);
+                }
             }
             Toast(attacker, "-" + damage, new Color(1f, .45f, .3f));
             if (!world.Strategic.FactionFlags.Flags.ContainsKey(_flagId))

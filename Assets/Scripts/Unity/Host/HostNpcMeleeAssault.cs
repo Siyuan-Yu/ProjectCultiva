@@ -286,17 +286,22 @@ namespace XianXia.Unity.Host
 
                 var atkRange = _veil.ResolveEngageRange(atkEnt);
                 var dist = Vector2.Distance(new Vector2(ax, ay), new Vector2(dx, dy));
-                if (dist > atkRange)
+                var needsApproach = dist > atkRange ||
+                    moveController != null && !moveController.IsCharacterStandClear(atkId);
+                if (needsApproach)
                 {
                     ChaseDefender(atkId, atkRange);
-                    continue;
+                    // Keep the existing cooldown clock: only being outside attack range
+                    // suspends it; moving out of an overlap inside range does not.
+                    if (dist > atkRange) continue;
                 }
+                else moveController?.CancelPresentationMovementPublic(atkId);
 
                 if (!_cooldownByAttacker.TryGetValue(atkId.Value, out var cd))
                     cd = 0f;
                 cd -= dt;
                 _cooldownByAttacker[atkId.Value] = cd;
-                if (cd > 0f)
+                if (cd > 0f || needsApproach)
                     continue;
 
                 _cooldownByAttacker[atkId.Value] = MeleeCombatService.DefaultMeleeIntervalSeconds;
@@ -496,6 +501,10 @@ namespace XianXia.Unity.Host
         {
             if (strikeVfx == null && bootstrap != null)
                 strikeVfx = bootstrap.GetComponent<HostMeleeStrikeVfx>();
+            if (strikeVfx == null && viewSpawner != null &&
+                viewSpawner.Registry.TryGet(from, out var actor) && actor != null &&
+                viewSpawner.Registry.TryGet(to, out var target) && target != null)
+                actor.PlayArtAttack(target.transform.position, ranged);
             if (ranged)
                 strikeVfx?.PlayRangedBetween(viewSpawner, from, to);
             else
@@ -514,18 +523,7 @@ namespace XianXia.Unity.Host
                 return;
 
             _nextRepathByAttacker[attacker.Value] = Time.unscaledTime + Mathf.Max(0.1f, repathInterval);
-            var dest = defView.transform.position;
-            if (viewSpawner.Registry.TryGet(attacker, out var atkView) && atkView != null)
-            {
-                var delta = atkView.transform.position - dest;
-                delta.z = 0f;
-                if (delta.sqrMagnitude > 0.01f)
-                    dest += delta.normalized * (engageRange * 0.35f);
-            }
-
-            dest.z = HostPresentationSpace.EntityZ;
-            moveController.OrderEntityToWorldPoint(
-                attacker, dest, arriveCommand: null, issueStop: false);
+            moveController.OrderCharacterApproach(attacker, _defender, engageRange);
             SetFightActivity(attacker, true);
         }
 

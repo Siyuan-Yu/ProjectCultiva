@@ -7,7 +7,7 @@ using XianXia.Core.Entities;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 头顶生命／灵力护盾条：己方、敌对、交战单位常显；其余单位淡显。
+    /// 人体脚下生命／灵力护盾条，世界尺寸随人物和镜头一起缩放。
     /// </summary>
     public sealed class HostCombatVitalsBars : MonoBehaviour
     {
@@ -16,9 +16,12 @@ namespace XianXia.Unity.Host
         [SerializeField] HostNpcMeleeAssault meleeAssault;
         [SerializeField] HostSelectionController selection;
         [SerializeField] Camera worldCamera;
-        [SerializeField] float barWidth = 42f;
-        [SerializeField] float barHeight = 5f;
-        [SerializeField] float yOffset = 0.85f;
+        // Actor-local world units, including spacing and borders; never clamp to screen pixels.
+        [SerializeField] float barLocalWidth = .8f;
+        [SerializeField] float barLocalHeight = .07f;
+        [SerializeField] float groundGap = .10f;
+        [SerializeField] float shieldGap = .025f;
+        [SerializeField] float borderThickness = .012f;
 
         static readonly Color HpFill = new Color(0.82f, 0.28f, 0.22f, 0.95f);
         static readonly Color HpBack = new Color(0.08f, 0.06f, 0.05f, 0.7f);
@@ -42,7 +45,7 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World == null || viewSpawner == null)
                 return;
-            // 人物详情是硬模态；世界头顶条不得穿透到其上层。
+            // 人物详情是硬模态；世界人物条不得穿透到其上层。
             if (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen)
                 return;
             if (worldCamera == null)
@@ -79,15 +82,19 @@ namespace XianXia.Unity.Host
                         continue;
                 }
 
-                var worldPos = view.transform.position + Vector3.up * yOffset;
-                var screen = worldCamera.WorldToScreenPoint(worldPos);
-                if (screen.z < 0.05f)
+                if (!view.TryGetVisibleBodyBounds(out _))
                     continue;
-
-                var guiX = screen.x - barWidth * 0.5f;
-                var guiY = Screen.height - screen.y;
+                var scale = view.transform.lossyScale;
+                var scaleX = Mathf.Abs(scale.x);
+                var scaleY = Mathf.Abs(scale.y);
+                var width = Mathf.Max(0f, barLocalWidth) * scaleX;
+                var height = Mathf.Max(0f, barLocalHeight) * scaleY;
+                var border = Mathf.Max(0f, borderThickness) * scaleY;
+                var topCenter = view.VitalsGroundAnchor - Vector3.up * (Mathf.Max(0f, groundGap) * scaleY);
+                if (!TryProjectBar(topCenter, width, height, border, out var hpRect, out var hpBorder))
+                    continue;
                 var alpha = emphasize ? 1f : 0.55f;
-                DrawBar(guiX, guiY, barWidth, barHeight, curHp / (float)maxHp, HpFill, HpBack, alpha);
+                DrawBar(hpRect, hpBorder, curHp / (float)maxHp, HpFill, HpBack, alpha);
 
                 var hasShield = entity.TryGet<CultivationComponent>(out var cult) &&
                                 cult.Realm >= RealmStage.QiRefining;
@@ -95,11 +102,31 @@ namespace XianXia.Unity.Host
                 if (hasShield && maxSp > 0)
                 {
                     var curSp = Mathf.Clamp(vitals.CurrentSpiritPower, 0, maxSp);
-                    DrawBar(
-                        guiX, guiY + barHeight + 2f, barWidth, barHeight - 1f,
-                        curSp / (float)maxSp, SpFill, SpBack, alpha * 0.95f);
+                    var shieldTop = topCenter - Vector3.up * (height + Mathf.Max(0f, shieldGap) * scaleY);
+                    if (TryProjectBar(shieldTop, width, height * .8f, border,
+                        out var spRect, out var spBorder))
+                        DrawBar(spRect, spBorder, curSp / (float)maxSp, SpFill, SpBack, alpha * 0.95f);
                 }
             }
+        }
+
+        bool TryProjectBar(Vector3 topCenter, float width, float height, float border,
+            out Rect rect, out float projectedBorder)
+        {
+            rect = default;
+            projectedBorder = 0f;
+            if (width <= 0f || height <= 0f)
+                return false;
+            var topLeft = worldCamera.WorldToScreenPoint(topCenter + Vector3.left * (width * .5f));
+            var bottomRight = worldCamera.WorldToScreenPoint(
+                topCenter + Vector3.right * (width * .5f) + Vector3.down * height);
+            if (topLeft.z < .05f || bottomRight.z < .05f)
+                return false;
+            rect = new Rect(Mathf.Min(topLeft.x, bottomRight.x),
+                Screen.height - Mathf.Max(topLeft.y, bottomRight.y),
+                Mathf.Abs(bottomRight.x - topLeft.x), Mathf.Abs(topLeft.y - bottomRight.y));
+            projectedBorder = rect.height * Mathf.Clamp(border / height, 0f, .5f);
+            return rect.width > 0f && rect.height > 0f;
         }
 
         bool ShouldEmphasize(Entity entity, XianXia.Core.Domain.Ids.EntityId id)
@@ -118,19 +145,18 @@ namespace XianXia.Unity.Host
         }
 
         static void DrawBar(
-            float x, float y, float w, float h, float fill01,
+            Rect rect, float border, float fill01,
             Color fill, Color back, float alpha)
         {
             fill01 = Mathf.Clamp01(fill01);
             var prev = GUI.color;
             GUI.color = new Color(back.r, back.g, back.b, back.a * alpha);
-            GUI.DrawTexture(new Rect(x, y, w, h), Texture2D.whiteTexture);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = new Color(fill.r, fill.g, fill.b, fill.a * alpha);
-            GUI.DrawTexture(new Rect(x, y, w * fill01, h), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * fill01, rect.height), Texture2D.whiteTexture);
             GUI.color = new Color(Border.r, Border.g, Border.b, Border.a * alpha);
-            // 细边
-            GUI.DrawTexture(new Rect(x, y, w, 1f), Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(x, y + h - 1f, w, 1f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, border), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x, rect.yMax - border, rect.width, border), Texture2D.whiteTexture);
             GUI.color = prev;
         }
     }

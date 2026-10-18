@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-003_supervisor_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "cd6dac9269720b6f1b0825cb67f2fe21ca611dc577b4d596c05929b0fff27fa9",
+  "parts": [
+    {
+      "x": 406,
+      "y": 88,
+      "width": 332,
+      "height": 1207,
+      "pivotX": 0.4332,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.6638,
+      "gripY": 0.06
+    }
+  ]
+}

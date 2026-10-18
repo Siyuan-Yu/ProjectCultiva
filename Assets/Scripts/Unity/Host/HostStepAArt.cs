@@ -8,9 +8,10 @@ namespace XianXia.Unity.Host
     /// <summary>LevelTester Step A art selection. All frames of an action share one imported texture.</summary>
     public static class HostStepAArt
     {
-        public enum Profile { None, Villager, Guard, Protagonist, CompanionA, CompanionB, Supervisor, FarmerHoe, FarmerApron, ResidentBasket }
+        public enum Profile { None, Villager, Guard, Protagonist, CompanionA, CompanionB, Supervisor, FarmerHoe, FarmerApron, ResidentBasket, Merchant, Other, JiangLao }
         public enum Action { Idle, Walk, Work, Attack }
-        public enum Direction { North, South, West, East }
+        // Preserve the first four values: they are the authored legacy sheet row order.
+        public enum Direction { North, South, West, East, NorthEast, SouthEast, SouthWest, NorthWest }
 
         const int FrameWidth = 560;
         const int FrameHeight = 440;
@@ -21,6 +22,34 @@ namespace XianXia.Unity.Host
         static readonly Dictionary<string, Sprite[]> Frames = new Dictionary<string, Sprite[]>();
         static readonly Dictionary<string, Sprite> Props = new Dictionary<string, Sprite>();
         static readonly Dictionary<string, Texture2D> Icons = new Dictionary<string, Texture2D>();
+        static Sprite _plainFlag;
+
+        public static Sprite FlagSprite(string factionId)
+        {
+            if (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.HuangcunLaborId)
+            {
+                var red = MapSprite("factionControlPost");
+                if (red != null) return red;
+            }
+            if (_plainFlag != null) return _plainFlag;
+            var texture = new Texture2D(32, 48, TextureFormat.RGBA32, false);
+            texture.name = "FactionFlagFallback";
+            for (var row = 0; row < 48; row++)
+            for (var column = 0; column < 32; column++)
+                texture.SetPixel(column, row, column >= 7 && column <= 9 && row >= 2 && row <= 45 ||
+                    column >= 10 && column <= 29 && row >= 25 && row <= 44 ? Color.white : Color.clear);
+            texture.Apply();
+            _plainFlag = Sprite.Create(texture, new Rect(0, 0, 32, 48), new Vector2(.5f, .5f), 16f);
+            return _plainFlag;
+        }
+
+        public static Color FlagColor(string factionId)
+        {
+            if (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.HuangcunLaborId &&
+                MapSprite("factionControlPost") != null) return Color.white;
+            XianXia.Core.World.Strategic.StrategicFactionCatalog.MapTint(factionId, out var red, out var green, out var blue);
+            return new Color(red, green, blue);
+        }
 
         public static Texture2D ItemIcon(string itemId)
         {
@@ -74,7 +103,7 @@ namespace XianXia.Unity.Host
                 case "base:character_ch01_ref_guard_b":
                 case "base:character_ch01_ref_guard_c":
                     return Profile.Guard;
-                // Only the explicitly reviewed common-villager appearance; identity variants fall back.
+                // Explicit identities keep their reviewed skin; other people share the common rig skin.
                 case "base:character_ch01_ref_mortal_a":
                 case "base:character_village_recruit":
                     return Profile.Villager;
@@ -85,8 +114,22 @@ namespace XianXia.Unity.Host
                 case "base:character_ch01_ref_farmer_b": return Profile.FarmerHoe;
                 case "base:character_ch01_ref_farmer_c": return Profile.FarmerApron;
                 case "base:character_ch01_ref_mortal_b": return Profile.ResidentBasket;
+                case "base:character_qingshi_shopkeeper":
+                case "base:character_qingshi_auction_attendant": return Profile.Merchant;
+                case "base:character_jiang_lao": return Profile.JiangLao;
+                case "base:character_ch01_ref_herb_b":
+                case "base:character_ch01_ref_herb_c":
+                case "base:character_ch01_ref_woodcutter":
+                case "base:character_ch01_ref_wood_b":
+                case "base:character_ch01_ref_wood_c":
+                case "base:character_qingshi_acceptance_unaffiliated_a":
+                case "base:character_qingshi_acceptance_unaffiliated_b":
+                case "base:character_qingshi_acceptance_unaffiliated_hostile":
+                case "base:character_qingshi_acceptance_shuofeng_civilian_a":
+                case "base:character_qingshi_acceptance_shuofeng_civilian_b": return Profile.Other;
                 default:
-                    return Profile.None;
+                    return (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0
+                        ? Profile.Other : Profile.None;
             }
         }
 
@@ -102,7 +145,7 @@ namespace XianXia.Unity.Host
             if (identity == null && profile != Profile.Villager && profile != Profile.Guard)
                 return StaticCharacter(profile);
             if (profile == Profile.Guard && action == Action.Work)
-                return null;
+                return CharacterFrame(profile, Action.Idle, direction, 0);
             var id = identity != null ? "ART-CHAR-002_" + identity :
                 profile == Profile.Guard ? "ART-CHAR-004" : "ART-CHAR-001";
             var actionName = action.ToString().ToLowerInvariant();
@@ -115,7 +158,8 @@ namespace XianXia.Unity.Host
                 {
                     Debug.LogWarning("[StepAArt] Missing or invalid character sheet: " + path);
                     Frames[path] = Array.Empty<Sprite>();
-                    return identity != null ? StaticCharacter(profile) : null;
+                    return identity != null ? StaticCharacter(profile) :
+                        action == Action.Idle ? null : CharacterFrame(profile, Action.Idle, direction, 0);
                 }
                 texture.filterMode = FilterMode.Bilinear;
                 texture.wrapMode = TextureWrapMode.Clamp;
@@ -132,12 +176,16 @@ namespace XianXia.Unity.Host
                 Frames[path] = sprites;
             }
             if (sprites.Length == 0)
-                return identity != null ? StaticCharacter(profile) : null;
+                return identity != null ? StaticCharacter(profile) :
+                    action == Action.Idle ? null : CharacterFrame(profile, Action.Idle, direction, 0);
             var framesPerDirection = action == Action.Idle ? 1 : 4;
-            return sprites[(int)direction * framesPerDirection + Mathf.Clamp(frame, 0, framesPerDirection - 1)];
+            // Legacy sheets contain four rows. Diagonals are rendered by HumanCommonRig;
+            // keep the fallback path in bounds if the rig resource is unavailable.
+            var legacyDirection = direction == Direction.NorthEast || direction == Direction.NorthWest
+                ? Direction.North : direction == Direction.SouthEast || direction == Direction.SouthWest
+                    ? Direction.South : direction;
+            return sprites[(int)legacyDirection * framesPerDirection + Mathf.Clamp(frame, 0, framesPerDirection - 1)];
         }
-
-        public static bool HasWorkAnimation(Profile profile) => profile == Profile.Villager;
 
         public static Sprite SleepSprite(Profile profile)
         {
@@ -242,7 +290,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Visual child only: original fit, colliders, interaction bounds and root position stay intact.</summary>
-        public static bool ApplyObjectVisual(GameObject root, Sprite sprite)
+        public static bool ApplyObjectVisual(GameObject root, Sprite sprite, int visualQuarterTurns = 0)
         {
             if (root == null || sprite == null)
                 return false;
@@ -250,15 +298,24 @@ namespace XianXia.Unity.Host
             var existing = root.transform.Find(overlayName);
             SpriteRenderer overlay = existing != null ? existing.GetComponent<SpriteRenderer>() : null;
             var renderers = root.GetComponentsInChildren<SpriteRenderer>(true);
+            var bedLayers = root.GetComponent<HostBedVisualLayers>();
             Bounds bounds = default;
             var found = false;
             var order = -12;
+            var sortingLayerId = 0;
             for (var i = 0; i < renderers.Length; i++)
             {
                 var renderer = renderers[i];
                 if (renderer == null || !renderer.enabled || renderer.sprite == null)
                     continue;
-                if (!found) { bounds = renderer.bounds; order = renderer.sortingOrder; found = true; }
+                if (bedLayers != null && bedLayers.IsForegroundRenderer(renderer)) continue;
+                if (!found)
+                {
+                    bounds = renderer.bounds;
+                    order = renderer.sortingOrder;
+                    sortingLayerId = renderer.sortingLayerID;
+                    found = true;
+                }
                 else bounds.Encapsulate(renderer.bounds);
             }
             if (!found)
@@ -271,11 +328,17 @@ namespace XianXia.Unity.Host
             }
             overlay.sprite = sprite;
             overlay.color = Color.white;
+            overlay.sortingLayerID = sortingLayerId;
             overlay.sortingOrder = order;
             overlay.transform.position = new Vector3(bounds.center.x, bounds.center.y, root.transform.position.z);
+            var quarter = ((visualQuarterTurns % 4) + 4) % 4;
+            overlay.transform.localRotation = Quaternion.Euler(0f, 0f, -90f * quarter);
+            var sideways = (quarter & 1) != 0;
             overlay.transform.localScale = new Vector3(
-                bounds.size.x / Mathf.Max(0.0001f, sprite.bounds.size.x * root.transform.lossyScale.x),
-                bounds.size.y / Mathf.Max(0.0001f, sprite.bounds.size.y * root.transform.lossyScale.y), 1f);
+                (sideways ? bounds.size.y : bounds.size.x) / Mathf.Max(0.0001f,
+                    sprite.bounds.size.x * Mathf.Abs(sideways ? root.transform.lossyScale.y : root.transform.lossyScale.x)),
+                (sideways ? bounds.size.x : bounds.size.y) / Mathf.Max(0.0001f,
+                    sprite.bounds.size.y * Mathf.Abs(sideways ? root.transform.lossyScale.x : root.transform.lossyScale.y)), 1f);
             for (var i = 0; i < renderers.Length; i++)
                 if (renderers[i] != null && renderers[i] != overlay)
                     renderers[i].enabled = false;

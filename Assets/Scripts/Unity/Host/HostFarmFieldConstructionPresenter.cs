@@ -259,6 +259,12 @@ namespace XianXia.Unity.Host
 
         static bool Overlaps(Rect rect, GameObject go)
         {
+            var plot = go.GetComponent<HostMapPlotCell>();
+            var destructible = go.GetComponent<HostMapDestructible>();
+            if (go.TryGetComponent<HostMapVisualGeometry>(out var geometry))
+                return rect.Overlaps(geometry.WorldRect);
+            if (plot != null && plot.HasInteractionBounds) return rect.Overlaps(plot.InteractionBounds);
+            if (destructible != null && destructible.HasInteractionBounds) return rect.Overlaps(destructible.InteractionBounds);
             foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>())
             {
                 var b = renderer.bounds;

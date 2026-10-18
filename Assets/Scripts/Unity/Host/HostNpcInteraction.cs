@@ -67,14 +67,12 @@ namespace XianXia.Unity.Host
             var bestDist = float.MaxValue;
             foreach (var candidate in spawner.Registry.All)
             {
-                if (candidate == null || !candidate.IsBound)
+                if (candidate == null || !candidate.IsBound ||
+                    !candidate.TryGetVisibleBodyBounds(out _))
                     continue;
 
-                float dist = 0f;
-                var rend = candidate.GetComponentInChildren<Renderer>();
-                var hit = rend != null && rend.bounds.extents.sqrMagnitude > 0.0001f &&
-                          rend.bounds.IntersectRay(ray, out dist);
-                if (!hit)
+                var hit = candidate.TryHitVisibleBody(ray, out var dist);
+                if (!hit && !candidate.UsesRestBodyBounds)
                 {
                     var radius = 0.75f * Mathf.Max(
                         candidate.transform.lossyScale.x,

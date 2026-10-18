@@ -163,7 +163,7 @@ namespace XianXia.Unity.Host
         {
             if (strikeVfx == null && bootstrap != null)
                 strikeVfx = bootstrap.GetComponent<HostMeleeStrikeVfx>();
-            if (strikeVfx == null || viewSpawner == null)
+            if (viewSpawner == null)
                 return;
             if (!viewSpawner.Registry.TryGet(attacker, out var aView) || aView == null)
                 return;
@@ -174,7 +174,8 @@ namespace XianXia.Unity.Host
                     bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var center))
                 to = center;
 
-            strikeVfx.Play(from, to);
+            aView.PlayArtAttack(to);
+            strikeVfx?.Play(from, to);
         }
 
         void Toast(EntityId id, string text, Color color)

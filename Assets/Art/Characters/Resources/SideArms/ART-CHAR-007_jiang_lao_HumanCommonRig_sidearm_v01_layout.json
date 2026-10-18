@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "3667db98963d83cfcd5db8e7deeef163176c838f2f8d403c9e112f09a77cf42d",
+  "parts": [
+    {
+      "x": 378,
+      "y": 190,
+      "width": 296,
+      "height": 1270,
+      "pivotX": 0.3481,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.7109,
+      "gripY": 0.06
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01.png",
+  "sourceSha256": "d686dda0d0c2b6db4792d24d1b0ef9e258b760f45129c1f05804dc413d03abfe",
+  "parts": [
+    {
+      "x": 157,
+      "y": 124,
+      "width": 420,
+      "height": 482,
+      "pivotX": 0.5428571,
+      "pivotY": 0.1721992,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "meshVertices": [
+        {
+          "x": 0.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 0.1244813
+        },
+        {
+          "x": 0.6809524,
+          "y": 0.1244813
+        },
+        {
+          "x": 0.3452381,
+          "y": 0.2406639
+        },
+        {
+          "x": 0.0,
+          "y": 0.2406639
+        }
+      ],
+      "meshTriangles": [
+        0,
+        5,
+        4,
+        0,
+        4,
+        3,
+        0,
+        3,
+        2,
+        2,
+        1,
+        0
+      ]
+    },
+    {
+      "x": 869,
+      "y": 115,
+      "width": 448,
+      "height": 493,
+      "pivotX": 0.578125,
+      "pivotY": 0.1724138,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "meshVertices": [
+        {
+          "x": 0.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 0.1359026
+        },
+        {
+          "x": 0.6763393,
+          "y": 0.1359026
+        },
+        {
+          "x": 0.4263393,
+          "y": 0.2271805
+        },
+        {
+          "x": 0.0,
+          "y": 0.2271805
+        }
+      ],
+      "meshTriangles": [
+        0,
+        5,
+        4,
+        0,
+        4,
+        3,
+        0,
+        3,
+        2,
+        2,
+        1,
+        0
+      ]
+    },
+    {
+      "x": 1572,
+      "y": 114,
+      "width": 459,
+      "height": 490,
+      "pivotX": 0.6100218,
+      "pivotY": 0.1714286,
+      "worldHeight": 0.74,
+      "gripX": 0.5,
+      "gripY": 0.08,
+      "meshVertices": [
+        {
+          "x": 0.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 1.0
+        },
+        {
+          "x": 1.0,
+          "y": 0.1183673
+        },
+        {
+          "x": 0.7668845,
+          "y": 0.1183673
+        },
+        {
+          "x": 0.4270153,
+          "y": 0.2346939
+        },
+        {
+          "x": 0.0,
+          "y": 0.2346939
+        }
+      ],
+      "meshTriangles": [
+        0,
+        5,
+        4,
+        0,
+        4,
+        3,
+        0,
+        3,
+        2,
+        2,
+        1,
+        0
+      ]
+    }
+  ],
+  "calibrationSource": "ArtSource/BatchInfo/human-common-rig-calibration.json",
+  "calibrationSha256": "9118b256ee37754e3d495bde45692a2f654d2f2e3fb0a5b4ce8bf94017a9b689",
+  "calibrationSchemaVersion": 1
+}

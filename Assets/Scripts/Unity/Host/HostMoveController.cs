@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Content;
-using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -26,7 +25,7 @@ namespace XianXia.Unity.Host
     /// <summary>
     /// RTS 移动：沿 WalkGrid A* 航点行进；交互／修炼抵达后下令。支NPC Stop 订单的走位
     /// </summary>
-    public sealed class HostMoveController : MonoBehaviour
+    public sealed partial class HostMoveController : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
@@ -37,14 +36,6 @@ namespace XianXia.Unity.Host
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float arriveEpsilon = 0.2f;
         [SerializeField] float formationSpacing = 1.25f;
-        [SerializeField] float separationRadius = 1.2f;
-        [SerializeField] float separationStrength = 3.2f;
-        [Tooltip("站定／工作中也轻轻推开，避免多人叠在同一点；仍可穿过彼此：")]
-        [SerializeField] float idleSeparationStrength = 4.5f;
-        [Tooltip("站定软斥力频率（Hz）：5~10Hz 足够，不必每帧。")]
-        [SerializeField] float idleSeparationHz = 8f;
-        [SerializeField] float hardOverlapRadius = 0.4f;
-        [SerializeField] float maxSeparationSpeed = 5.5f;
 
         readonly Dictionary<EntityView, Vector3> _targets = new Dictionary<EntityView, Vector3>();
         readonly Dictionary<ulong, List<Vector3>> _paths = new Dictionary<ulong, List<Vector3>>();
@@ -64,21 +55,13 @@ namespace XianXia.Unity.Host
         // Presentation-only ownership serial.  Independent Host executors use this to cancel
         // only the path they issued, without erasing a newer schedule / needs path.
         readonly Dictionary<ulong, uint> _movementRevisionByEntity = new Dictionary<ulong, uint>();
-        readonly Dictionary<ulong, int> _directMoveFrameByEntity = new Dictionary<ulong, int>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
-        readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
         // TickMoves 每帧不再 new List；改用 field 级 scratch。
         readonly List<EntityView> _tickViews = new List<EntityView>(64);
         readonly List<EntityView> _tickDone = new List<EntityView>(32);
-        // Crowd separation：空间分桶（cell = separationRadius），只扫 3x3 邻桶；否则是每帧 O(N²)。
-        readonly Dictionary<long, List<EntityView>> _separationBuckets = new Dictionary<long, List<EntityView>>();
-        readonly List<EntityView> _separationCandidates = new List<EntityView>(32);
         readonly Dictionary<ulong, ulong> _carriedToCarrier = new Dictionary<ulong, ulong>();
-        readonly HashSet<ulong> _separationExcludedIds = new HashSet<ulong>();
-        int _separationBucketFrame = -1;
-        int _separationStateFrame = -1;
-        float _idleSeparationNextAt;
+        int _transportStateFrame = -1;
 
         const float PursuitRepathDistance = .75f;
         const float PursuitRepathCooldown = .55f;
@@ -118,10 +101,12 @@ namespace XianXia.Unity.Host
         public bool HasMovementPath(EntityId id) =>
             !id.IsNone && _paths.ContainsKey(id.Value);
 
-        /// <summary>Presentation-only direct-control movement signal for this rendered frame.</summary>
-        public bool WasDirectMovedThisFrame(EntityId id) =>
-            !id.IsNone && _directMoveFrameByEntity.TryGetValue(id.Value, out var frame) &&
-            frame == Time.frameCount;
+        /// <summary>Read-only animation recovery gate for an active, current-map move path.</summary>
+        public bool HasActiveLocomotionTarget(EntityId id) =>
+            !id.IsNone && _movingIds.Contains(id.Value) && HasActiveMoveTarget(id) &&
+            (!_pathLocalMapIds.TryGetValue(id.Value, out var pathMap) ||
+             string.IsNullOrEmpty(_boundLocalMapId) ||
+             string.Equals(pathMap, _boundLocalMapId, StringComparison.Ordinal));
 
         public uint GetPresentationMovementRevision(EntityId id) =>
             id.IsNone || !_movementRevisionByEntity.TryGetValue(id.Value, out var revision)
@@ -178,8 +163,8 @@ namespace XianXia.Unity.Host
             _moveSpeedMultiplierByEntity.Clear();
             _completionPolicies.Clear();
             _carriedToCarrier.Clear();
-            _separationExcludedIds.Clear();
-            _separationStateFrame = -1;
+            ResetCharacterSpacing();
+            _transportStateFrame = -1;
             _playerPartyPathMoveSerial = 0;
             PurgeOrphanedMoveTargets();
         }
@@ -358,7 +343,6 @@ namespace XianXia.Unity.Host
                 if (bootstrap.Session.IsPaused)
                     return;
                 TickMoves();
-                TickIdleCrowdSpacing();
                 return;
             }
 
@@ -383,7 +367,6 @@ namespace XianXia.Unity.Host
                 return;
             TickPendingNpcApproaches();
             TickMoves();
-            TickIdleCrowdSpacing();
         }
 
         void IssueMoveToMouse()
@@ -432,21 +415,9 @@ namespace XianXia.Unity.Host
             var policy = action == HostNpcArriveAction.Attack || action == HostNpcArriveAction.Capture
                 ? HostNpcApproachPolicy.Pursuit : HostNpcApproachPolicy.Cooperative;
             var requiredRange = ResolveNpcRequiredRange(actor, action);
-            var target = npcView.transform.position;
-            if (viewSpawner.Registry.TryGet(actor, out var actorView) && actorView != null)
-            {
-                var delta = actorView.transform.position - target;
-                delta.z = 0f;
-                // 停在交战距离内侧；开斗气纱衣时用远程半径，避免白走贴
-                var stopShort = requiredRange * 0.55f;
-                if (delta.sqrMagnitude > 0.01f)
-                    target += delta.normalized * stopShort;
-            }
-
-            target.z = HostPresentationSpace.EntityZ;
             if (policy == HostNpcApproachPolicy.Cooperative)
                 HoldNpcForInteraction(npc);
-            if (!OrderEntityToWorldPoint(actor, target, null, issueStop: true))
+            if (!TryOrderCharacterApproach(actor, npc, requiredRange, issueStop: true))
             {
                 if (policy == HostNpcApproachPolicy.Cooperative) ReleaseNpcForInteraction(npc);
                 return false;
@@ -547,29 +518,24 @@ namespace XianXia.Unity.Host
                 if (!TryResolveApproachViews(intent, out var actorView, out var targetView))
                 { CancelPendingNpcIntent(actorId); continue; }
                 var distance = Vector2.Distance(actorView.transform.position, targetView.transform.position);
-                if (distance <= intent.RequiredRange)
+                if (distance <= intent.RequiredRange && IsCharacterStandClear(actorId))
                 {
                     CancelPresentationMovement(actorId);
                     ApplyPendingNpcIntent(actorId);
                     continue;
                 }
-                if (intent.Policy != HostNpcApproachPolicy.Pursuit) continue;
                 var targetPosition = targetView.transform.position;
                 targetPosition.z = HostPresentationSpace.EntityZ;
                 var moved = Vector2.Distance(targetPosition, intent.LastTargetPosition);
                 var needsRetry = intent.RepathState == "RepathFailed" ||
                                  intent.RepathState == "AwaitingMovingTargetRepath";
-                if ((!needsRetry && moved < PursuitRepathDistance) ||
+                if ((!needsRetry && moved < PursuitRepathDistance && IsMoving(actorId)) ||
                     Time.unscaledTime < intent.LastRepathTime + PursuitRepathCooldown)
                     continue;
-                var delta = actorView.transform.position - targetPosition;
-                delta.z = 0f;
-                if (delta.sqrMagnitude > .01f)
-                    targetPosition += delta.normalized * (intent.RequiredRange * .55f);
                 intent.LastTargetPosition = targetView.transform.position;
                 intent.LastRepathTime = Time.unscaledTime;
-                if (OrderEntityToWorldPoint(actorId, targetPosition, null, issueStop: false,
-                        preserveNpcIntent: true))
+                if (TryOrderCharacterApproach(actorId, intent.NpcId, intent.RequiredRange,
+                        issueStop: false, preserveNpcIntent: true))
                     intent.RepathState = "RepathAccepted";
                 else
                     intent.RepathState = "RepathFailed";
@@ -639,7 +605,9 @@ namespace XianXia.Unity.Host
             HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby,
             bool exactGoal = false,
             bool preserveNpcIntent = false,
-            float speedMultiplier = 1f)
+            float speedMultiplier = 1f,
+            float freeStandRadius = 0f,
+            bool stopBeforeCommit = false)
         {
             if (id.IsNone || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
@@ -654,10 +622,31 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            SnapOntoWalkableIfNeeded(view);
+            if (stopBeforeCommit)
+            {
+                // A player repath must be planned from the visible foot point. Never move the
+                // character to a grid centre as a side effect of a right click.
+                var foot = view.transform.position;
+                if (_walkGrid == null || !_walkGrid.TryWorldToCell(foot.x, foot.y, out var cx, out var cy) ||
+                    !_walkGrid.IsWalkable(cx, cy)) return false;
+            }
+            else SnapOntoWalkableIfNeeded(view);
+            var requestedCenter = point;
+            freeStandRadius = float.IsNaN(freeStandRadius) || float.IsInfinity(freeStandRadius)
+                ? 0f : Mathf.Max(0f, freeStandRadius);
+            if (freeStandRadius > 0f &&
+                !TryResolveFreeStandPoint(id, requestedCenter, freeStandRadius, out point))
+                return false;
             if (!TryBuildWorldPath(view.transform.position, point, _wpScratch, exactGoal))
                 return false;
 
+            // Commit the player's Stop only after a replacement path exists. A blocked click
+            // leaves the current route running rather than producing a visible stop/restart.
+            if (stopBeforeCommit)
+            {
+                CancelSurfaceAutoTravelIfActive();
+                StopOne(id);
+            }
             bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
             bootstrap?.SkillStudyRitual?.NotifyMoveOrdered(id);
 
@@ -665,7 +654,7 @@ namespace XianXia.Unity.Host
             if (issueStop)
                 StopOne(id);
 
-            ClearPath(id);
+            ClearPath(id, replacingPath: true);
             if (preserveNpcIntent)
             {
                 _pendingOnArrive.Remove(id.Value);
@@ -676,6 +665,7 @@ namespace XianXia.Unity.Host
             var path = new List<Vector3>(_wpScratch.Count);
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
+            ReserveCharacterDestination(id, path[path.Count - 1], requestedCenter, freeStandRadius);
             _pathIndex[id.Value] = 0;
             _moveSpeedMultiplierByEntity[id.Value] = SanitizeSpeedMultiplier(speedMultiplier);
             _completionPolicies[id.Value] = completionPolicy;
@@ -683,7 +673,6 @@ namespace XianXia.Unity.Host
                 _pathLocalMapIds[id.Value] = _boundLocalMapId;
             else
                 _pathLocalMapIds.Remove(id.Value);
-            SnapOntoWalkableIfNeeded(view);
             _targets[view] = path[0];
             _movingIds.Add(id.Value);
             AdvancePresentationMovementRevision(id);
@@ -712,21 +701,14 @@ namespace XianXia.Unity.Host
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)
         {
-            CancelSurfaceAutoTravelIfActive();
-
             var active = ResolveActiveCharacter();
             if (active.IsNone)
                 return false;
 
             npcContextMenu?.CancelRecruitInteractionForActor(active);
-            if (commandBridge != null)
-                commandBridge.IssueOne(active, PlayerCommandKind.Stop, 0);
-            else
-                StopActiveViaPort(active);
-
-            ClearHostMove(active);
-
-            if (OrderEntityToWorldPoint(active, point, arriveCommand, issueStop: false, arriveLocationId))
+            if (OrderEntityToWorldPoint(active, point, arriveCommand, issueStop: false, arriveLocationId,
+                    freeStandRadius: arriveCommand.HasValue ? 0f : 1.25f,
+                    stopBeforeCommit: true))
             {
                 _playerPartyPathMoveIds.Add(active.Value);
                 _playerPartyPathMoveSerial++;
@@ -788,14 +770,6 @@ namespace XianXia.Unity.Host
             farm?.Stop(id);
         }
 
-        void StopActiveViaPort(EntityId active)
-        {
-            var session = bootstrap?.Session;
-            if (session?.Port == null || active.IsNone)
-                return;
-            session.Port.Submit(new PlayerCommandRequest(active, PlayerCommandKind.Stop, 0));
-        }
-
         /// <summary>Direct WASD locomotion for Active only; cancels click-move path.</summary>
         public void TickDirectWasdMove(EntityId id, Vector2 dir, float speed)
         {
@@ -808,7 +782,10 @@ namespace XianXia.Unity.Host
                 !CombatLifeStateService.CanFight(ent))
                 return;
 
-            ClearHostMove(id);
+            if (_paths.ContainsKey(id.Value) || _targets.ContainsKey(view) ||
+                _pendingNpcIntent.ContainsKey(id.Value) || _pendingOnArrive.ContainsKey(id.Value) ||
+                _pendingArriveActions.ContainsKey(id.Value) || _pendingArriveLocation.ContainsKey(id.Value))
+                ClearHostMove(id);
             ResumeTime();
 
             var dt = Time.deltaTime;
@@ -837,9 +814,10 @@ namespace XianXia.Unity.Host
             }
 
             pos.z = HostPresentationSpace.EntityZ;
+            pos = FilterCharacterStep(view, startPos, pos, pos,
+                Mathf.Max(0f, dt), settling: false, requireWaypointConnection: false);
             view.transform.position = pos;
-            if ((pos - startPos).sqrMagnitude > 0.000004f)
-                _directMoveFrameByEntity[id.Value] = Time.frameCount;
+            view.RecordLocomotion(pos - startPos);
             CaptureIndependentTacticalPosition(view);
         }
 
@@ -932,6 +910,13 @@ namespace XianXia.Unity.Host
                     HostPresentationSpace.EntityZ));
             }
 
+            // A* emits the start cell centre as waypoint zero. When the exact current foot
+            // point can see waypoint one, routing via that centre creates a short sideways
+            // hook on every right-click retarget, especially at increased presentation speed.
+            if (waypoints.Count > 1 && GridPathfinder.IsWorldSegmentWalkable(
+                    _walkGrid, from.x, from.y, waypoints[1].x, waypoints[1].y))
+                waypoints.RemoveAt(0);
+
             return waypoints.Count > 0;
         }
 
@@ -972,6 +957,7 @@ namespace XianXia.Unity.Host
             _tickViews.Clear();
             foreach (var key in _targets.Keys)
                 _tickViews.Add(key);
+            _tickViews.Sort(CompareCharacterMoveViews);
             _tickDone.Clear();
             var views = _tickViews;
             var done = _tickDone;
@@ -1000,6 +986,15 @@ namespace XianXia.Unity.Host
                     ClearPending(view.EntityId);
                     continue;
                 }
+                if (IsCharacterSleeping(view.EntityId))
+                {
+                    done.Add(view);
+                    ClearPending(view.EntityId);
+                    continue;
+                }
+
+                RefreshFreeStandDestination(view, dt);
+                if (!_targets.TryGetValue(view, out target)) continue;
 
                 var pos = view.transform.position;
                 if (_walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
@@ -1018,6 +1013,7 @@ namespace XianXia.Unity.Host
                     ? configured : 1f;
                 var next = AdvanceAlongPath(view, pos, moveSpeed * multiplier * dt, dt);
                 view.transform.position = next;
+                view.RecordLocomotion(next - pos);
                 CaptureIndependentTacticalPosition(view);
                 if (!_targets.TryGetValue(view, out target))
                     continue;
@@ -1029,10 +1025,14 @@ namespace XianXia.Unity.Host
                     _pathIndex.TryGetValue(idv, out var idx) &&
                     idx + 1 < path.Count)
                 {
+                    if ((next - target).sqrMagnitude > .0001f) continue;
                     _pathIndex[idv] = idx + 1;
                     _targets[view] = path[idx + 1];
                     continue;
                 }
+
+                if ((next - target).sqrMagnitude > .0001f || !IsCharacterStandClear(view.EntityId))
+                    continue;
 
                 done.Add(view);
             }
@@ -1074,7 +1074,7 @@ namespace XianXia.Unity.Host
             }
         }
 
-        Vector3 AdvanceAlongPath(EntityView view, Vector3 start, float distanceBudget, float dt)
+        Vector3 AdvanceAlongPath(EntityView view, Vector3 start, float distanceBudget, float deltaTime)
         {
             var pos = start;
             var idv = view.EntityId.Value;
@@ -1085,11 +1085,18 @@ namespace XianXia.Unity.Host
                 var delta = target - pos;
                 delta.z = 0f;
                 var distance = delta.magnitude;
+                var finalLeg = !_paths.TryGetValue(idv, out var currentPath) ||
+                    !_pathIndex.TryGetValue(idv, out var currentIndex) || currentIndex + 1 >= currentPath.Count;
                 if (distance <= arriveEpsilon)
                 {
-                    pos = ClampToWalkable(pos, target);
-                    if ((pos - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
+                    var nearTarget = Vector3.MoveTowards(pos, target, distanceBudget);
+                    var beforeSnap = pos;
+                    pos = FilterCharacterStep(view, pos, ClampToWalkable(pos, nearTarget), target,
+                        deltaTime, settling: finalLeg && distance <= distanceBudget);
+                    distanceBudget -= Vector3.Distance(beforeSnap, pos);
+                    if ((pos - target).sqrMagnitude > .0001f)
                         break;
+                    if (finalLeg && !IsCharacterStandClearAt(view, pos)) break;
                     if (_paths.TryGetValue(idv, out var path) &&
                         _pathIndex.TryGetValue(idv, out var index) && index + 1 < path.Count)
                     {
@@ -1102,20 +1109,14 @@ namespace XianXia.Unity.Host
 
                 var routeStep = Mathf.Min(distanceBudget, distance);
                 var proposed = pos + delta / distance * routeStep;
-                if (distance > arriveEpsilon * 2f)
-                {
-                    var separation = ClampSeparationDelta(
-                        ComputeSeparation(view, pos) * (separationStrength * dt), dt);
-                    var maxLateral = routeStep * .35f;
-                    if (separation.sqrMagnitude > maxLateral * maxLateral)
-                        separation = separation.normalized * maxLateral;
-                    proposed += separation;
-                }
                 proposed.z = HostPresentationSpace.EntityZ;
-                var moved = ClampToWalkable(pos, proposed);
+                var moved = FilterCharacterStep(view, pos, ClampToWalkable(pos, proposed), target,
+                    deltaTime, settling: finalLeg && distance <= routeStep + .0001f);
                 var consumed = Vector3.Distance(pos, moved);
                 pos = moved;
-                distanceBudget -= consumed;
+                // A slowed/blocked candidate spends this step's budget; never repeat tiny steps
+                // in the same frame until the original full speed has been recovered.
+                distanceBudget -= routeStep;
                 if (consumed < .0001f)
                     break;
             }
@@ -1149,7 +1150,8 @@ namespace XianXia.Unity.Host
                 return;
             if (!TryResolveApproachViews(intent, out var actorView, out var targetView))
             { CancelPendingNpcIntent(id); return; }
-            if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > intent.RequiredRange)
+            if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > intent.RequiredRange ||
+                !IsCharacterStandClear(id))
             {
                 intent.RepathState = "AwaitingMovingTargetRepath";
                 intent.LastRepathTime = 0f;
@@ -1247,7 +1249,7 @@ namespace XianXia.Unity.Host
                     _walkGrid, from.x, from.y, proposed.x, proposed.y))
                 return proposed;
 
-            // Prefer axis slides so soft-separation cannot shove units into buildings.
+            // Keep partial axis movement on the existing walkable geometry.
             var slideX = new Vector3(proposed.x, from.y, proposed.z);
             if (GridPathfinder.IsWorldSegmentWalkable(
                     _walkGrid, from.x, from.y, slideX.x, slideX.y))
@@ -1259,69 +1261,6 @@ namespace XianXia.Unity.Host
                 return slideY;
 
             return from;
-        }
-
-        /// <summary>
-        /// 站定单位软斥力：不挡路、可穿过，只避免完全叠在同一坐标
-        /// 正在寻路移动的单位已<see cref="TickMoves"/> 里推过，这里跳过以免加倍
-        /// </summary>
-        void TickIdleCrowdSpacing()
-        {
-            if (viewSpawner == null)
-                return;
-            var dt = bootstrap != null ? bootstrap.PresentationDeltaTime : Time.unscaledDeltaTime;
-            if (dt <= 0f)
-                return;
-            // 站定软斥力降到 5~10Hz（real-time）：每帧对全 population 做斥力是纯 presentation
-            // 开销，没有每帧必要；行为（推开／可穿过）不变。
-            var now = Time.unscaledTime;
-            var interval = 1f / Mathf.Clamp(idleSeparationHz, 1f, 60f);
-            if (now < _idleSeparationNextAt)
-                return;
-            _idleSeparationNextAt = now + interval;
-            // 让降频后的位移量与时长相匹配（保持相同推开速率，而非变慢）。
-            dt = Mathf.Max(dt, interval);
-
-            _crowdScratch.Clear();
-            // Phase 5R-B3B.5：PlayerParty Active Character 的位置 authority 在 Materialization /
-            // EntityLocationComponent（PresentationOverride）与正式 movement；TickIdleCrowdSpacing
-            // 不得绕过它直接移动 physical transform（运行时铁证：ingress 后 old=(0.5,-6,0) →
-            // new=(-4.34,0.96,0)，kind=AtWorldSite moving=False）。排除 Active Character；
-            // 普通 NPC / crowd presentation 原行为保持。
-            var activeChar = bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None;
-            var world = bootstrap?.Session?.World;
-            foreach (var view in viewSpawner.Registry.All)
-            {
-                if (view == null || !view.IsBound)
-                    continue;
-                if (_movingIds.Contains(view.EntityId.Value))
-                    continue;
-                if (!activeChar.IsNone && view.EntityId.Equals(activeChar))
-                    continue;
-                if (IsSeparationExcluded(view.EntityId))
-                    continue;
-                if (world != null && world.Entities.TryGet(view.EntityId, out var entity) &&
-                    !CombatLifeStateService.CanFight(entity))
-                    continue;
-                _crowdScratch.Add(view);
-            }
-
-            for (var i = 0; i < _crowdScratch.Count; i++)
-            {
-                var view = _crowdScratch[i];
-                if (view == null)
-                    continue;
-                var pos = view.transform.position;
-                var sep = ComputeSeparation(view, pos);
-                if (sep.sqrMagnitude < 1e-8f)
-                    continue;
-
-                var next = pos + ClampSeparationDelta(sep * (idleSeparationStrength * dt), dt);
-                next.z = HostPresentationSpace.EntityZ;
-                next = ClampToWalkable(pos, next);
-                view.transform.position = next;
-                CaptureIndependentTacticalPosition(view);
-            }
         }
 
         void CaptureIndependentTacticalPosition(EntityView view)
@@ -1340,103 +1279,22 @@ namespace XianXia.Unity.Host
                 view.EntityId, view.transform.position);
         }
 
-        Vector3 ClampSeparationDelta(Vector3 delta, float dt)
-        {
-            var max = Mathf.Max(0.1f, maxSeparationSpeed) * Mathf.Max(dt, 1e-4f);
-            if (delta.sqrMagnitude <= max * max)
-                return delta;
-            return delta.normalized * max;
-        }
-
-        Vector3 ComputeSeparation(EntityView self, Vector3 pos)
-        {
-            if (viewSpawner == null || self == null || IsSeparationExcluded(self.EntityId))
-                return Vector3.zero;
-            var push = Vector3.zero;
-            var r = Mathf.Max(0.2f, separationRadius);
-            var r2 = r * r;
-            var hard = Mathf.Clamp(hardOverlapRadius, 0.05f, r);
-            var selfId = self != null ? self.EntityId.Value : 0UL;
-
-            // 只考虑 pos 所在桶及 3x3 邻桶（cell = separationRadius）；语义不变（仍按距离过滤），
-            // 但不再每帧对 Registry.All 做 O(N²) 扫描。
-            RebuildSeparationBuckets();
-            _separationCandidates.Clear();
-            var cell = SeparationBucketSize();
-            var bcx = (int)Mathf.Floor(pos.x / cell);
-            var bcy = (int)Mathf.Floor(pos.y / cell);
-            for (var ox = -1; ox <= 1; ox++)
-            for (var oy = -1; oy <= 1; oy++)
-            {
-                if (!_separationBuckets.TryGetValue(BucketKey(bcx + ox, bcy + oy), out var bucket))
-                    continue;
-                for (var i = 0; i < bucket.Count; i++)
-                    _separationCandidates.Add(bucket[i]);
-            }
-
-            for (var i = 0; i < _separationCandidates.Count; i++)
-            {
-                var other = _separationCandidates[i];
-                if (other == null || other == self || !other.IsBound)
-                    continue;
-                if (IsSeparationExcluded(other.EntityId) ||
-                    IsSameTransportPair(self.EntityId, other.EntityId))
-                    continue;
-                var d = pos - other.transform.position;
-                d.z = 0f;
-                var sq = d.sqrMagnitude;
-                if (sq > r2)
-                    continue;
-                if (_walkGrid != null && !GridPathfinder.IsWorldSegmentWalkable(
-                        _walkGrid, pos.x, pos.y,
-                        other.transform.position.x, other.transform.position.y))
-                    continue;
-
-                // 完全重合时旧逻辑会跳永远叠在一起；用双id 生成稳定侧向推力
-                if (sq < 1e-6f)
-                {
-                    var otherId = other.EntityId.Value;
-                    var h = unchecked((int)(selfId * 73856093UL ^ otherId * 19349663UL));
-                    var ang = (h & 1023) * (Mathf.PI * 2f / 1024f);
-                    d = new Vector3(Mathf.Cos(ang), Mathf.Sin(ang), 0f);
-                    push += d * 1.35f;
-                    continue;
-                }
-
-                var dist = Mathf.Sqrt(sq);
-                var w = 1f - dist / r;
-                if (dist < hard)
-                    w *= 1f + (hard - dist) / hard * 2.2f;
-                push += d / dist * w;
-            }
-
-            return push;
-        }
-
-        bool IsSeparationExcluded(EntityId id)
-        {
-            if (id.IsNone) return true;
-            RefreshSeparationState();
-            return _separationExcludedIds.Contains(id.Value);
-        }
-
         bool IsTransportAttached(EntityId id, out EntityId carrier)
         {
             carrier = EntityId.None;
             if (id.IsNone) return false;
-            RefreshSeparationState();
+            RefreshTransportState();
             if (!_carriedToCarrier.TryGetValue(id.Value, out var carrierValue)) return false;
             carrier = new EntityId(carrierValue);
             return true;
         }
 
-        void RefreshSeparationState()
+        void RefreshTransportState()
         {
             var frame = Time.frameCount;
-            if (_separationStateFrame == frame) return;
-            _separationStateFrame = frame;
+            if (_transportStateFrame == frame) return;
+            _transportStateFrame = frame;
             _carriedToCarrier.Clear();
-            _separationExcludedIds.Clear();
             var world = bootstrap?.Session?.World;
             if (world == null) return;
             foreach (var pair in world.Civilians.All)
@@ -1444,52 +1302,9 @@ namespace XianXia.Unity.Host
                 var state = pair.Value;
                 if (state == null) continue;
                 if (state.RescueCarrying && !state.RescueTargetId.IsNone)
-                {
                     _carriedToCarrier[state.RescueTargetId.Value] = pair.Key.Value;
-                    _separationExcludedIds.Add(state.RescueTargetId.Value);
-                }
                 if (state.Disposition == CivilianDisposition.CapturedEscorted && !state.CarrierId.IsNone)
-                {
                     _carriedToCarrier[pair.Key.Value] = state.CarrierId.Value;
-                    _separationExcludedIds.Add(pair.Key.Value);
-                }
-            }
-            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
-                if (RoomBedGeometry.IsBed(asset) && !asset.OccupantCharacterId.IsNone)
-                    _separationExcludedIds.Add(asset.OccupantCharacterId.Value);
-        }
-
-        bool IsSameTransportPair(EntityId a, EntityId b) =>
-            IsTransportAttached(a, out var carrierA) && carrierA == b ||
-            IsTransportAttached(b, out var carrierB) && carrierB == a;
-
-        float SeparationBucketSize() => Mathf.Max(0.5f, separationRadius);
-
-        static long BucketKey(int cellX, int cellY) => ((long)cellX << 32) ^ (uint)cellY;
-
-        /// <summary>每帧最多重建一次；桶 cell = separationRadius，3x3 邻桶即覆盖完整影响半径。</summary>
-        void RebuildSeparationBuckets()
-        {
-            var frame = Time.frameCount;
-            if (_separationBucketFrame == frame)
-                return;
-            _separationBucketFrame = frame;
-            foreach (var bucket in _separationBuckets.Values)
-                bucket.Clear();
-            var cell = SeparationBucketSize();
-            foreach (var view in viewSpawner.Registry.All)
-            {
-                if (view == null || !view.IsBound)
-                    continue;
-                var p = view.transform.position;
-                var key = BucketKey((int)Mathf.Floor(p.x / cell), (int)Mathf.Floor(p.y / cell));
-                if (!_separationBuckets.TryGetValue(key, out var bucket))
-                {
-                    bucket = new List<EntityView>(8);
-                    _separationBuckets[key] = bucket;
-                }
-
-                bucket.Add(view);
             }
         }
 
@@ -1699,7 +1514,7 @@ namespace XianXia.Unity.Host
             _pendingArriveActions.Remove(id.Value);
         }
 
-        void ClearPath(EntityId id)
+        void ClearPath(EntityId id, bool replacingPath = false)
         {
             if (id.IsNone)
                 return;
@@ -1707,6 +1522,7 @@ namespace XianXia.Unity.Host
             _pathIndex.Remove(id.Value);
             _pathLocalMapIds.Remove(id.Value);
             _moveSpeedMultiplierByEntity.Remove(id.Value);
+            ReleaseCharacterDestination(id, preserveCrowdWait: replacingPath);
         }
 
         public float GetMoveSpeedMultiplier(EntityId id) =>
@@ -1714,6 +1530,10 @@ namespace XianXia.Unity.Host
                 ? multiplier : 1f;
 
         public float GetEffectiveMoveSpeed(EntityId id) => moveSpeed * GetMoveSpeedMultiplier(id);
+
+        /// <summary>Presentation-only time step for gait filtering; never drives Core motion.</summary>
+        public float GaitPresentationDeltaTime => bootstrap != null
+            ? bootstrap.PresentationDeltaTime : Time.unscaledDeltaTime;
 
         static float SanitizeSpeedMultiplier(float value) =>
             float.IsNaN(value) || float.IsInfinity(value) || value <= 0f ? 1f : value;

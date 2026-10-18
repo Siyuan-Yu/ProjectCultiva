@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_hoe_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "881efaf8e9d6452f92e931b1eda9b7d2686b6a1d905c5eaea5972e8fa0789194",
+  "parts": [
+    {
+      "x": 347,
+      "y": 99,
+      "width": 421,
+      "height": 1347,
+      "pivotX": 0.3211,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.8026,
+      "gripY": 0.06
+    }
+  ]
+}

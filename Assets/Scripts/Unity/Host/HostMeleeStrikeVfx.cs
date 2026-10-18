@@ -42,6 +42,10 @@ namespace XianXia.Unity.Host
         Transform _root;
         Sprite _slashSprite;
         Sprite _boltSprite;
+        PlayableHostBootstrap _host;
+        float _clock;
+
+        void Awake() => _host = GetComponent<PlayableHostBootstrap>();
 
         public void PlayBetween(
             EntityViewSpawner spawner,
@@ -60,22 +64,26 @@ namespace XianXia.Unity.Host
             PlayBetween(spawner, attacker, defender, ranged: true);
         }
 
+        /// <summary>Current active arts are unarmed fist/claw; a held weapon must not select their gesture.</summary>
+        public void PlaySkillBetween(EntityViewSpawner spawner, EntityId attacker, EntityId defender) =>
+            PlayBetween(spawner, attacker, defender, ranged: false, styleOverride: HumanAttackStyle.Unarmed);
+
         void PlayBetween(
             EntityViewSpawner spawner,
             EntityId attacker,
             EntityId defender,
-            bool ranged)
+            bool ranged, HumanAttackStyle? styleOverride = null)
         {
             if (spawner == null ||
                 !spawner.Registry.TryGet(attacker, out var aView) || aView == null ||
                 !spawner.Registry.TryGet(defender, out var dView) || dView == null)
                 return;
 
+            aView.PlayArtAttack(dView.transform.position, ranged, styleOverride);
             if (ranged)
                 PlayProjectile(aView.transform.position, dView.transform.position, dView);
             else
             {
-                aView.PlayArtAttack(dView.transform.position);
                 Play(aView.transform.position, dView.transform.position);
                 dView.PlayHitFlash(hitFlashSeconds);
             }
@@ -103,7 +111,7 @@ namespace XianXia.Unity.Host
         {
             EnsureRoot();
             var fx = Rent();
-            fx.BornAt = Time.unscaledTime;
+            fx.BornAt = _clock;
             fx.From = from;
             fx.To = to;
             fx.Kind = kind;
@@ -130,10 +138,12 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            if (_host != null && _host.Session != null && _host.Session.IsPaused) return;
+            _clock += Time.unscaledDeltaTime;
             if (_live.Count == 0)
                 return;
 
-            var now = Time.unscaledTime;
+            var now = _clock;
             for (var i = _live.Count - 1; i >= 0; i--)
             {
                 var s = _live[i];
@@ -275,7 +285,7 @@ namespace XianXia.Unity.Host
                     s.Renderer.color = ProjectileColor;
                 }
 
-                s.Renderer.sortingOrder = 1200;
+                    s.Renderer.sortingOrder = 32750;
             }
 
             Animate(s, 0f);
@@ -314,7 +324,7 @@ namespace XianXia.Unity.Host
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = SlashSprite();
             sr.color = new Color(1f, 0.92f, 0.72f, 0.9f);
-            sr.sortingOrder = 1200;
+            sr.sortingOrder = 32750;
             go.SetActive(false);
             return new Fx { Root = go.transform, Renderer = sr };
         }

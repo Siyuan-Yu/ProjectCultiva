@@ -1,5 +1,150 @@
 # 开发日志
 
+## 2026-10-18 — 人物表现与右键移动暂时封版授权
+
+- 制作人明确要求“这一轮可以暂时封版上传，记得写中文提交”。本次选择性封版范围为共用骨架人物的资源与 Host 表现、八向/侧臂、睡眠/选中/血条、NPC 工作与避人、主角右键改路，以及对应美术登记和实施记录。旧素材压缩包删除、批次清理及其他未确认变动不纳入本次提交。
+- “暂时封版”只授权版本提交与上传，不代替侧臂实际观感和右键连续移动的制作人人工验收；这些仍为 Producer Acceptance Pending。
+
+## 2026-10-18 — 主角连续右键改目标位置连贯性（Implemented，待制作人验收）
+
+- 按 [296实施记录](296-right-click-repath-position-continuity-2026-10-18.md) 核查右键到 Host 路线：原流程先 Stop/清旧路，再规划新路；每次下令触发格中心纠偏检查，A* 首航点又保留起点格中心。右键改为从当前精确脚点先规划、成功才替换旧路，失败点击保留既有移动；能直接走向下一航点时跳过起点格中心，仍须绕障时保留。移除路径提交后的重复纠偏，不改移动速度、避人、Core 位置权威与动画位移来源。
+- `XianXia.Unity` 基础编译 `ALL_OK`，最少静态引用核对完成；未启动 Unity、未写/跑自动测试。连续改目标、障碍旁和倍速下的实际连贯性待制作人人工验收；未提交／推送。
+
+## 2026-10-18 — 侧向及斜向手臂视角返修（Implemented，待制作人验收）
+
+- 按 [295实施记录](295-side-facing-arm-presentation-2026-10-18.md) 核查侧行宽袖：八向头身已切换，原骨架却始终渲染正面左右臂。为 12 Skin 制作侧面单臂切件并登记 `Batch_ModularRig_005` 源图/SHA；侧面和四斜向改用对应侧臂，手掌握点随切件重新校准，仍沿用肩骨节、步态、工作/攻击和工具挂点。正背、卧姿保留原图；缺资源仅告警回退。
+- `XianXia.Unity` 基础编译 `ALL_OK`，12/12 资源、布局与 SHA 静态核对完成；未启动 Unity、未写/跑自动测试。实际袖型、遮挡、工具贴合和多人观感待制作人人工验收；未提交/推送。
+
+## 2026-10-18 — 八向头颈注册裁框返修（Implemented，待制作人复验）
+
+- 制作人截图确认初版主角多个斜向的头与身体脱节。按 [294返修记录](294-eight-direction-head-neck-registration-repair-2026-10-18.md) 追到 `Batch_ModularRig_004` 的非零 alpha 噪点使切片框过大：主角斜后头仅填充旧 Sprite 框约 68% 高度，固定颈 pivot 落在空白中。导出器改以 alpha ≥ 16 定真实切片，再从头部底端可见形状确定各 Skin 的颈水平 pivot；12 套布局重导，原 PNG、Unity GUID、骨架步频与移动权威均不变。
+- 基础编译和 12 套资源静态完整性核对完成；未启动 Unity、未写/跑自动测试。四斜向现场观感、工具贴合仍待制作人复验；未提交/推送。
+
+## 2026-10-18 — 共用骨架人物八向移动（Implemented，待制作人验收）
+
+- 按 [293统一范围与实施记录](293-character-eight-direction-movement-2026-10-18.md)，`EntityView` 从实际位移/目标向量选八扇区并对普通移动做边界滞回；主角右键与 NPC 自主移动共用，步频仍随真实位移。12 Skin 制作两种斜向头身四切片，左右镜像得到四斜向，颈/肩 Socket、袖部网格、工具和腿继续用原骨骼；原正背侧与卧姿闭眼保留。旧四行逐帧资源只作安全回退，不标记八向完成。
+- Batch_ModularRig_004 保留 12 张生成原图及 SHA，运行图集与布局在 `Resources/Diagonal`；静态核对 12/12 文件一致、48 部件与 24 个 Unity GUID，154 Unity 源文件基础编译 `ALL_OK`。未启动 Unity、未写/跑自动测试，视角过渡、肩颈/手部贴合、Build 与多人性能均待制作人人工验收；未提交/推送。
+
+## 2026-10-18 — 12套Skin闭眼头部静态差分（Implemented，待制作人验收）
+
+- 制作人确认保留平时的简化五官，睡眠等卧姿单独切闭眼头。按 [292统一范围与实施记录](292-character-closed-eye-head-variants-2026-10-18.md)，由原图生成正面/侧面闭眼差分，16张编辑源图按原布局无缩放导出24张运行小头像；源图与导出哈希见Batch_ModularRig_003 manifest，原睁眼图未覆盖。HumanCommonRig沿用原头部pivot/PPU/床排序，睡眠、弥留、死亡切闭眼，醒来恢复；缺图仅头像回退并明确告警。ART-ANIM-005登记待验资源。
+- 154个Unity源文件基础编译`ALL_OK`；24/24资源尺寸/manifest SHA与新GUID最少静态核对完成。未启动Unity、未运行自动测试，正常镜头下头部切换、床上可见、Build与性能仍待制作人人工验收。Core／Data／Content／场景／Packages／ProjectSettings／Freeze未改，未提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-18 — 人物美术旧八步清单现状核查（只读审计）
+
+- 按制作人提供的八步截图核对当前代码、资源与 276、280～290 记录，结果见 [291状态核查](291-character-art-eight-step-status-audit-2026-10-18.md)。图集切片/关节、默认骨架、朝向/工具/工作/攻击及卧姿均有实施，但三 Skin 完整现场验收、多人性能与正式 Build 证据尚缺；290 睡眠返修仍待制作人复看，旧逐帧退役及环境/UI 后续范围未启动。八向仅为 Proposed；本轮未改运行代码/素材、未启动 Unity 或运行自动测试、未提交。
+
+## 2026-10-18 — 床上人物可见与卧姿选中、血条复位（Implemented，待制作人验收）
+
+- 制作人以截图反馈289后睡眠人物完全被床图盖住，选中圈留在床外旧脚点、血条在被面／床尾。登记[290统一修复范围](290-bed-occupant-visibility-and-rest-selection-2026-10-18.md)并归档两张现场图；确认人物床上头和躯干原处同一SortingGroup，选中圈Spawner固定脚点、血条按人体下缘且未参考床沿。289的基础编译不能代替运行验收。
+- 头Sprite作为原头骨节子节点，有效床姿时嵌套`sortAtRoot`组置于被子之上：整床B、身B+1、被B+2、头B+3、名字B+4、选中圈B+5；起床停用独立头组。卧姿选中圈按实际全身bounds移动／缩放，直立恢复；床上血条取床图或人体较低下缘。点选与NPC交互的卧姿命中使用人体世界XY范围，不再回退到床外的根脚点；现有视觉Collider也持续跟随人体。
+- 154个Unity源文件基础编译`ALL_OK`；必要层级、选择链路和差异静态检查完成。未启动Unity、未新增或运行自动测试，实际床上可见／点选／血条、Build与性能仍待制作人人工；Core／Data／Content／场景／Packages／ProjectSettings／Freeze和原床PNG保持，未提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**；3项短验收见290。
+
+## 2026-10-18 — 共用卧姿、真实枕位与床上盖被分层（Implemented，待制作人验收）
+
+- 制作人反馈睡眠如站立、人体完整画在被面上，并要求判断是否去眼。先登记 [289统一实施范围](289-character-rest-pose-bed-layering-and-eye-policy-2026-10-18.md)，查实旧sleep/life腿仍站姿、床位固定偏移、整床单Sprite与人物外部排序不能形成被子遮挡；没有把问题归因于新的睡眠玩法逻辑。
+- 共用静态卧姿以少量手位、腿角、头倾区分睡眠／失能／死亡／被搬，床上仰卧与地面卧向分开；以本帧头部支撑点对齐三床源像素枕芯，继承实际拟合／四转。新HostBedVisualLayers复用现有床纹理建立被子和床尾前景，整床B／人物组B+1／被子B+2同层；重复Apply排除前景拟合，临时失效可节流重配，离床恢复直立与默认层。
+- EntityView只消费原有合法住宅／医疗／监牢床占用；既有救援到普通床同样盖被，不新增治疗资格。死亡／被搬优先清旧床请求，床视图缺失保留当前点卧姿；Entity根和Core床位／恢复／救援规则保持。建议保留简化眼睛，后续正／侧各一份闭眼头，12Skin约24份静态切件即可；**闭眼素材仍是Proposed，未制作**，本轮不重画PNG或批量生图。
+- 最终154个Unity源文件基础编译`ALL_OK`，必要接线／差异／资源检查完成；未启动Unity、未编写或运行自动测试，视觉／Build／性能待制作人人工。源PNG／GUID、Core／Data／Content／场景／Packages／ProjectSettings／Freeze未改，未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**；竞品证据限制及3项短验收见289。
+
+## 2026-10-18 — 人物接近站位、同点分散与移动前绕让（Implemented，待制作人验收）
+
+- 制作人截图反馈不同人物长期叠成同一人，授权修正283移除斥力后留下的同点停驻边界。先登记 [288统一实施范围](288-character-approach-spacing-and-soft-avoidance-2026-10-18.md)，查到正式遭遇追中心且冷却前不停路、本地近战同来向落在range×0.35、日程slot／伐木／施工共享目标、跟随够近后忽略重叠、Squad遇阻slot回同anchor等具体来源。
+- 共用Host脚点／在途终点检查、显式有界软落点分配和移动前绕让／减速，普通右键、跟随、日程、攻击及交互直接接通；末步不在占位中完成，软终点被占会重选。正常路径窄道等待后可短暂交错，WASD无已知终点时仅绕行／减速／停下；未恢复帧后推根、全员站立互推或刚体斥力。
+- 农格横距约0.7732小于标准脚距0.92，利用原0.55到格盘内最多0.44分配空位，保留格预约／产出；无位明确等待重试。树周多人分站而不独占整棵树，原作用距离保持。日程／农作／伐木取消按Host movement revision；施工仍围绕原世界目标且守Core已有3世界单位到场范围。Squad fallback在已加载可走连通范围内稳定去重，无位不隐藏真实成员，不改宏观authority／个人exact重现／尸体。
+- 最终153个Unity源文件基础编译 `ALL_OK`，最少静态接线／差异检查完成；未启动Unity、未编写或运行自动测试，现场视觉／Build／性能仍待人工。Core／Data／Content／场景／Packages／ProjectSettings／Freeze／源美术未改，未生图、未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**，3项短验收及窄道／精确点容量边界见288。
+
+## 2026-10-18 — 共用人物头身比例与侧面厚度（Implemented，待制作人验收）
+
+- 制作人新截图反馈所有NPC仍显头大、身薄／头高，明确授权尝试改比例。先登记 [287统一实施范围](287-character-head-body-proportion-polish-2026-10-18.md)，按现有源图和Socket核对：侧头可见宽／侧身宽约1.27～1.61（含头发／胡须），不再继续改短颈裁切或挪世界root。
+- 共用骨架头部围颈pivot等比0.88、侧躯干横宽1.12／正背1.06；领口与双肩Socket同步横宽，保留局部／整体镜像、肩袖连接和既有工具可达求解。上身／脚骨、肢体和工具附件不整体拉伸；选取／Collider仍读取实际人体范围，脚下血条沿用286。
+- 152个Unity源文件基础编译 `ALL_OK`，完成最少增量／Socket接线静态复核；未启动Unity、未编写或运行自动测试，视觉／Build／性能待人工。仅改Host共用比例及记录，源PNG／源标定／布局、Core／Data／Content／场景／Packages／ProjectSettings／Freeze保持，未生图、未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**，2项短人工验收见287。
+
+## 2026-10-18 — 侧头短颈、主角成对手臂与脚下血条（Implemented，待制作人验收）
+
+- 制作人新截图指出侧头悬高、血条在颈部且不随缩放、主角双手同手性。先登记 [286统一实施范围](286-character-head-pairing-and-ground-vitals-2026-10-18.md)，证实侧头多余衣领／长颈与正背挂点语义不一致；旧血条直接画root上方0.85与42×5固定像素；主角两臂取不同索引但源图拇指同向。没有把这些表现归因于移动／工作逻辑。
+- 12套侧头逐图短颈配准和可见网格去多余衣领，保留脸部尺寸、长发与江老胡须。主角右臂显式复用正确左臂并镜像，源标定／布局记录来源，肩轴、掌心、中性角和工具可达求解同步反射；其他Skin手臂不统一翻转。17份归档／运行布局一致、manifest同步，原16张人体PNG／GUID与工具布局保持，未重画或生图。
+- 血条改到稳定脚点下方，宽高、间距与边框以世界尺寸投影，随镜头及人物缩放；卧姿取实际人体下缘。可见人体API排除附件、名字、圈和隐藏旧方块，选取与既有Collider代理统一对齐；隐藏／Removed人物不走选取兜底。未移动root、改变导航／数值或恢复人体斥力。
+- 152个Unity源文件基础编译 `ALL_OK`，必要静态引用／资源完整性复核完成；未启动Unity、未编写或运行自动测试，修复后现场视觉／Build／性能仍待人工。Core／Data／Content／场景／Packages／ProjectSettings／Freeze未改，未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**，3项短验收见286。
+
+## 2026-10-18 — 全Skin关节注册、侧向组合与固定肩握具修复（Implemented，待制作人验收）
+
+- 制作人截图确认已进入骨架，但主角脱臂、阿石侧向工作与江老站姿怪异。先登记 [285 统一实施范围](285-human-rig-joint-registration-and-pose-repair-2026-10-18.md)，逐图查到主角双臂旧pivot及四套侧头pivot落空、主角／巡卫重复固定袖、11侧躯干原向与侧头相反、通用0°站臂沿原图外斜，以及握具IK主动挪肩等具体问题；没有继续改步频或猜工作逻辑。
+- 新增逐原图像素标定源，覆盖12Skin的24臂肩／掌、36头颈和36躯干Socket，16张人体源图pin SHA。导出器应用标定并同步归档／运行布局和manifest；主角／巡卫6份躯干可见网格去固定整袖，保留肩盖、衣襟与下摆，侧向原向逐Skin标准化。PNG／PNG meta／GUID保持，原3张制作人反馈仅归档为证据。
+- 骨架从Sprite实际尺寸解析Socket，头肩与躯干换向同步；臂以真实肩→掌向量建立中性下垂，再叠共用动作，侧向工作／进食／搬运／施放手势向面前伸。肩固定，工具主副握点受可达范围协调，不再靠挪肩弥补；江老无真实专职执行时仍Idle，显示“待命”。驱动、动作资格、时间、移动和Core结算保持。
+- 152个Unity源文件基础离线编译 `ALL_OK`，最少资源完整性与方向／关节／网格静态复核完成；未启动Unity、未编写或运行自动测试，未做修复后现场视觉／Build／性能验收。Core／Data／Content／场景／Packages／ProjectSettings／Freeze未改，未生新图、未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**，3项短人工验收及单片肢体限制见285。
+
+## 2026-10-18 — 实际旧驱动误选与全人物工作接线修复（Implemented，待制作人验收）
+
+- 制作人确认上一轮仍未解决主角移动，且只有阿土有工作动作。本轮先追实际执行路径：只读解析 Unity 已有 Play 前二进制场景备份，唯一 LevelTester 的 EntityViewSpawner 实际 `prototypeVisualDriver=0 (LegacySprite)`，并精确匹配脚本 GUID；源码默认 ModularRig 不等于实际场景值。旧主角西向近似重复帧与多数 NPC Work 静图回退共同吻合反馈。上一轮只改 Rig 曲线而未核实际驱动的判断在此纠正，完整证据与范围见 [284](284-character-actual-driver-and-unified-work-binding-2026-10-18.md)。
+- 正式人物固定使用共用骨架，删除旧可序列化驱动入口；旧帧仅显式临时 Debug 预览，重建／下次运行恢复骨架。既有显式 Skin 保留，其他 Character／Npc 使用 Other 共用动作。视图区分配置与成功绑定，资源失败每2真实秒只修复视觉绑定、不重置动作时钟；首绑日志和具体资源失败原因补齐，坏布局不缓存。
+- 农作／伐木真实阶段优先，Running Action 统一解析先于民生活动 fallback；补 WorkAction Cultivate／Eat，保留 Labor／恢复／修炼，抵达后不再误标为前往。没有阿土姓名特例，也没有让未抵达、休息、巡逻、缺工作或尚无治疗执行的医者假装劳动。未改移动源／步频／斥力规则／Core 结算，未生图。
+- 152 个 Unity 源文件基础离线编译 `ALL_OK`，最少静态引用与资源复核完成。未启动 Unity、未编写或运行自动测试，未做修复后现场视觉／Build／性能验收；Core／Data／Content／场景布局／Packages／ProjectSettings／Freeze 未改，未暂存／提交／推送。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-18 — 四向步态修正与人物非阻挡穿行（Implemented，待制作人验收）
+
+- 制作人反馈北向相对正常、东西南步态不清楚，并要求先去掉人物相遇时的奇怪斥力。先登记 [283 统一实施范围](283-character-directional-gait-and-nonblocking-overlap-2026-10-18.md)，再完成两处 Host 文件的直接修改；未扩大到新避让／占位系统。
+- 四向原本共用位移相位，东西也只有整体镜像，没有证据支持西向另有慢时钟。保留北向公式；东西南改用半周期错开的承重／抬脚足端轨迹，腿骨直接跟相位、WalkBlend 保留走停过渡，南向按鞋点调整腿层级。长袍与单片肢体仍需正常镜头人工确认。
+- 删除行走侧推与站立持续推开及对应私有斥力代码，保留真实移动采样、静态导航、队形、床／工位预约、搬运门禁及初次出生分散。日常人物允许沿合法路径穿行，同目标可能停驻重叠。283 记录《环世界》开发者历史近战说明、《了不起的修仙模拟器》官方互卡修复与公开算法证据限制，不把本轮方案宣称为两款游戏的完整内部做法。
+- 152 个 Unity 源文件基础离线编译 `ALL_OK`，最少差异／引用复核完成；未启动 Unity、未编写或运行自动测试、未生图，未做现场视觉／Build／性能验收。Core／Data／Content／场景／Packages／ProjectSettings／Freeze 未改；未暂存、提交或推送。状态：**Implementation Complete / Producer Acceptance Pending**，3 项短人工验收见 283。
+
+## 2026-10-18 — 人物移动与工具动作标杆（Implemented，待制作人验收）
+
+- 制作人授权优先解决 NPC 自主／主控右键移动动画观感，并以俯视经营镜头为标准、不继续批量生图。本轮定位到正背步态幅度过小且步频偏快、有效移动强依赖同帧标记、宏观队列停止／权限移交清理不足等可处理点；未把磁盘已有调用链等同于现场正常。完整范围、实现与短人工验收见 [282](282-character-locomotion-and-tool-action-polish-2026-10-18.md)。
+- 位移样本改为一次消费，现有 Host 路径可用合理实际位移恢复漏报；初建／增量／缺失绑定共用接线，稳定回退并避免同帧拾回待销毁旧骨架。正背／侧面脚步增强，循环改 3.2 表现单位、最高 2.8 轮/真实秒，攻击上身与步态分开；Inspector 保留实际驱动、状态、相位、来源与可见层读数。宏观步态清理与排除暂停的计时补齐，根位置仍保持原 Tick 投影。
+- 工具改为明确主／副握点驱动，劳动使用分段关键姿态；成功砍树通知只对齐视觉接触，最后一击短暂保留，不结算第二次伤害或产出。床图与骨架床姿共用真实 QuarterTurns，床内人物沿长轴朝枕端，根位置／碰撞／占用点不变。复用现有部件，未新增图、正式装备或治疗玩法。
+- XianXia.Unity 的 152 个源文件基础离线编译 `ALL_OK`，必要静态引用与差异检查完成；未启动 Unity、未编写或运行自动测试，未做现场视觉、Build 或性能验收。Core／Data／Content／场景布局／Packages／ProjectSettings／Freeze 未改，未暂存、提交或推送。状态：**Implementation Complete / Producer Acceptance Pending**。
+
+## 2026-10-18 — 项目体验与美术表现差距审查（审查完成，建议未实施）
+
+- 制作人要求综合审查项目目标、当前实现、美术生成、动画／工具替换、界面与特效，并明确偏《了不起的修仙模拟器》的俯视经营观感；现场反馈自主与主控右键移动像未播走路。新增 [281 综合报告](281-project-experience-and-art-gap-audit-2026-10-18.md)，交叉核对当前工作区与素材，区分可证实问题、待现场定位反馈和 Proposed 建议。
+- 当前人物默认已是共用轻量部件骨架，工具附件与正式装备玩法分开；右键／近场日程的磁盘步态调用链存在，但不能据此否定现场反馈或宣称已修复。报告记录宏观投影跳步、环境独立 XY 拉伸、方向／握持／接触节奏、大面积环境模块缺口、状态文档漂移，以及参考关／验收配置与完整成长体验的差距；保留已封板能力，不重开迁移。
+- 建议下一轮围绕人物移动与工具动作标杆形成一份完整实施指令，再据正常镜头体验安排场景模块与内容；未把建议转为开发授权。仅新增报告和本日志条目，未修改运行代码、Content、Packages、ProjectSettings 或 Freeze，未启动 Unity、未编写或运行自动测试，未提交／推送。
+
+## 2026-10-18 — 人物动画语义、附件与步态全面复核修复（Implemented，待人工验收）
+
+- 制作人反馈动作不流畅、工作误绑和工具混用。本轮复核初始/后续生成、日程/受管居民、逐格农作、伐木/采矿/施工、普通/技能/建筑攻击、宏观Squad步态、搬运、睡眠与生命周期。确认前轮25身份映射不等于工作绑定正确：旧逻辑将所有WorkAction视为劳动、按ID猜工具并默认镰刀、所有工作同一摆臂、左右臂反绑、固定格裁切、头臂未跟躯干、到达帧步态丢失、部分建筑出手漏接。具体依据、修复与边界写入 [280](280-animation-binding-audit-and-fix-2026-10-18.md)。
+- 新增只读 `HostCharacterVisualContext`，从真正执行阶段、Activity/Status、Tags与到达/材料状态解析手势；新增 `HumanCommonRigEquipment` 将可替换工作Sprite/握点与战斗武器、空手/挥击/前刺/施放分离。工作斧不自动变为武器；拳/爪技能与远程出手不拿劳动工具。医者照料当前Core未接入，保留真实未实现状态，不伪造治疗动作或新增装备玩法。
+- `export-human-rig-layouts.py` 为两批17张PNG导出126个alpha部件范围与肩/髋/颈/握点布局JSON；原图、运行PNG和既有PNG meta/GUID保持。骨架修正左右臂与UpperBodyBone层级、脚点和标准尺寸、手势插值、SortingGroup、卧姿与被搬者；布局缺失时拒绝错误切片并回退。有效位移由移动源记录，停走不清相位，宏观已观测位移分摊步态；暂停冻结，根位置/碰撞和Core结算保持原接线。搬运状态集中每帧读取，避免每个角色全量重扫。
+- 离线编译及必要静态资源核对完成；当前152个Unity源码编译通过，17套布局/126部件边界有效且无相互重叠，原图/运行图SHA与原manifest相符。273进度未改；技术文档、批次manifest、完整美术清单、变更报告与项目范围列表同步。没有Unity人工视觉/性能/Build结果，未启动Unity、未编写或运行自动测试，未提交/推送。最少人工验收项见280。
+
+## 2026-10-17 — HumanCommonRig 扩至现有全名录身份（Implemented，Unity 人工验收待完成）
+
+- 制作人明确要求把需要骨骼表现的人物全部迁至共用部件骨骼。保持 Unity Transform + SpriteRenderer 路线与旧逐帧回退，不引入 Spine、不改 Core、Content、场景、Packages 或玩法真源。首批三套保留；Codex 内置 image_gen 新增两名同伴、主管、三类居民、商店/拍卖共用执事、通用劳作者及江老九套透明九部件 Skin，并补侧头像，共 12 套。`Batch_ModularRig_002` manifest 记录 SHA 与来源，运行副本各有独立 Unity `.meta`。
+- `HostStepAArt` 按 25 个现有 DefinitionId 映射，`EntityViewSpawner` 默认 ModularRig；`EntityView`/`HumanCommonRigView` 仍只读现有动作与位置。修复九格重叠切片、东西镜像挂点与北向手臂层级；补长枪前刺、材料/救援搬运持有姿态、无需旧睡姿图的床/地睡眠及弥留/尸体静态姿态，旧逐帧切换保留。高倍时间步态、生成图边界裁切与四方向肢体复用待视觉核对。
+- 273 仅增量补第二批路径与迁移说明，保留 55 个 ID 和原有进度/验收字段；XLSX 从 TSV 导出并全字段回读。274/276、生产计划及 [279 接线记录](279-human-common-rig-roster-migration-2026-10-17.md)同步。文件级清单及变更报告已重建。离线 Unity 代码编译通过，静态核查 25/25 身份映射和新运行图 `.meta`；未启动 Unity、未运行自动测试、未做人工视觉、Build 或性能验收，未提交/推送。
+
+## 2026-10-17 — HumanCommonRig 三 Skin 样机与位移驱动步态（Implemented，待制作人验收）
+
+- 后续绘画交接新增 `tools/export-project-art-file-list.py`，导出 `ArtSource/Reports/project-wide-art-file-list.md`：列出 ArtSource、Assets/Art、相关预制体/场景/视觉代码、规划文档与工具的项目相对路径及大小；仅供定位文件，不替代273制作状态或文件级SHA清单。
+- 制作人将实时人物正式目标从 Spine 改为 Unity Transform + SpriteRenderer 共用轻量部件骨骼。原角色 `EntityView` 保持唯一位置、身份、碰撞和玩法真源；新增可切换的 `HumanCommonRigView` 视觉子层，当前仅普通村民、主角、巡卫三 Skin。旧逐帧继续默认运行和资源缺失回退，无 Spine 依赖或额外编辑器。
+- `HostCharacterArtState` 的 Walk 四帧相位改由实际有效世界位移推进，按 1.4 世界单位/循环并限制最快 6 循环/秒；`EntityView` 只把有效移动源的小步位移计入步态，忽略暂停、微抖、瞬移和载具/拥挤同步。WASD、鼠标与 NPC 共用该表现依据，时间倍率使用各自实际移动结果，不改变世界移动速度与玩法结算。
+- Codex image_gen 生成三套正/背/侧简化分层图及独立侧头像、长枪和四种工具/背篓附件，记录于 `ArtSource/Batches/Batch_ModularRig_001/manifest.json` 与 `generation_prompts.md`；同 SHA 运行副本放于 `Assets/Art/Characters/Resources`。共享 Idle/Walk/Work/Attack/Sleep 姿态由表现状态驱动，LevelTester 现有 `EntityViewSpawner` 的 Play Mode Debug 选项可切换新旧表现。当前仅做离线编译和静态引用/完整性核查，Unity 正常缩放视觉、Player Build 与性能数据均未验收。
+- 273 的 55 个 AssetID 与既有进度/验收字段保留，12 个人物/动作族目标改为 Unity 模块骨骼；274/276/278/ArtSource 计划同步当前路线，273 XLSX 从 TSV 单向生成并全字段回读。文件级清单与差异报告更新。不改 Core、Content、场景布局，不删除旧运行素材，不运行 Unity/自动测试，不提交或推送。
+
+## 2026-10-17 — ArtSource 第一轮瘦身（文件级清理，非运行迁移）
+
+- 按本机 SHA-256 重新核对并保留唯一原图：Batch_Codex_001 的 13 张 Candidates、Inbox 中已归档的 10 张、Batch_Codex_002 控制核心 Static 副本均与对应 Originals 相同。先调整现行 manifest、来源索引、加工脚本与 273 中的文件路径，再清理副本；273 的 AssetID、制作/接入/验收状态及 Spine 技术路线不变，XLSX 从 TSV 单向同步并完成全字段回读。
+- Batch_Codex_001 的 72 张错误机械切帧、26 张单图浅/深底预览退役；保留该批 13 张 Originals、contact-sheet、问题测量与说明。删除 122 个文件、77,579,008 字节；逐项删除路径、SHA-256 和保留/替代依据记录于 `ArtSource/Reports/artsource-slimming-2026-10-17.tsv`，单图预览可按原图重建。当前 Batch_Codex_002/003 帧与图集、人物设定原图、全部运行资源不动。
+- 完整文件清单与本次差异由 `tools/export-art-inventory.py` 更新。只做现存 JSON manifest 文件路径和加工脚本静态引用检查；未改 Unity 玩法、Prefab、Content、场景、meta/GUID，未运行 Unity 或自动测试，未提交/推送。Spine 替换前继续保留当前逐帧运行资源。
+
+## 2026-10-16 — Spine 样机输入与美术文件清单交接（未进入样机）
+
+- 复核 273 的 55 个 AssetID、四列目标字段与 276 的 55 行技术路线一致；12 个人物/共用动作族均列 Spine 目标，274 与 ArtSource 旧四方向逐帧计划已明确历史/兼容边界。正式 Sprite 运行链仍由 `EntityView`/`HostStepAArt` 驱动；本机未发现 Spine runtime、编辑器或真实工程/导出物。新增 [278 样机输入准备](278-human-common-rig-spine-sample-inputs-2026-10-16.md)，列出三 Skin 参考与分层、遮挡补绘、绑定、版本/授权缺口，未制作 Spine。
+- 新增 `tools/export-art-inventory.py`，为美术任务建立 UTF-8 文件级清单与上一快照差异交接；首轮只建基线，不把现有文件误作本次新增。清理仅删除一份经 SHA-256 核实且有对应源码的可重建 Python 字节码缓存（11,870 字节）；同字节原图/派生图、最新帧、运行图集和 `.meta` 均保留，路径引用不变。清单/清理详情见 `ArtSource/Reports/`。未改 Core、Content、场景布局、Packages、Prefab 或正式资源引用；未运行 Unity/自动测试，未提交。
+
+## 2026-10-16 — 美术生产技术路线调整：Spine、短逐帧特效与静态Sprite（仅文档）
+
+- 制作人确认实时人物以HumanCommonRig共用骨架、Skin/Attachment与共用动作作为正式目标，先用普通凡人/一名主角/一名巡卫长枪做样机再决定迁移；旧逐帧与本人卧姿保留回退。场景/家具静态模块，田地/药草/树矿按实际状态切图，挥砍/灵气允许短逐帧，其余优先程序/Shader。Spine事件不能成为第二套玩法结算。
+- [273资产真源](273-current-art-asset-register.tsv)原55个ID、顺序、优先级与17个既有字段不变，新增推荐技术路线、制作与复用要求、目标交付文件、旧素材与迁移规则四列。[274](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)增量明确新路线、历史逐帧规格和当前接线记录；新建[276正式技术规划](276-art-tech-route-spine-frame-static-v1-2026-10-16.md)，原同编号人物/卧姿审计文件保留。[ArtSource生产计划](../../ArtSource/BatchInfo/codex_generation_plan.md)增加分层部件、Skin、共用动作/挂点、静态状态层与短特效策略，旧55项候选表保留为历史批次。
+- 导出工具在“美术清单”增加路线列，“工程明细”保留全部21字段；TSV保持UTF-8 BOM和Tab。XLSX已导出并全字段回读，55项、P0=39/P1=12/P2=4；独立核对ID顺序与原字段、全部运行/原图字节保持。上一轮修复保持，不修改Unity运行代码/Prefab/场景/Content，不生图、不删除素材、不制作或接入Spine、不提交推送。下一步等待制作人确认是否开始样机。
+
+## 2026-10-16 — 美术表现二次代码审查（待制作人验收）
+
+- 按制作人明确要求修复表现层动作/身份分离、暂停计时、生命状态原色恢复、远程实际出手、同身份缺帧回退；人物与环境共用脚点排序，交互和建造重叠优先使用稳定逻辑几何。正式 Player 地图 Prefab 通过小型 Resources 引用表加载；动态旗帜脱离旧 Warehouse，并随真实势力更新外观。未修改 Core 玩法、Content 位置/身份或场景，未提交。
+- [277 审查报告](277-art-second-code-review-2026-10-16.md) 与逐项 TSV 记录荒村 98 对象（新美术接线 60、旧表现 38）、名录 25 人（12 已映射、13 旧显示）、ArtSource 来源与重复图保留情况。旧植物图层、缺失专属动作与视觉验收仍明确待完成。
+- 本轮测试由制作人明确授权：8 程序集离线编译通过，Player 非 Editor 分支编译通过，9/9 表现状态 headless 检查通过，资源/坐标引用静态审计通过；8 项 Unity EditMode 与 1 项 PlayMode 检查已编译但未运行。当前 Unity Editor 已打开，未接管其会话，未执行实际 Build/视觉验收，不能把编译或 headless 结果视为人工验收。
+
 ## 2026-10-16 — 美术接入 Step A：LevelTester 首批运行样本（待制作人验收）
 
 - 将 Batch_Codex_002 选定的 7 套角色图集与三用途床、树 S/M/L、矿堆共 14 张 PNG 复制到 `Assets/Art/Resources/StepA/`，原 `ArtSource` 不动。`HostStepAArt` 按 560×440 帧、原图脚点 (280,392)、300 PPU 切出共享缓存 Sprite；LevelTester 既有角色根节点比例 1.15，约 310px 主体对应约 1.2 展示单位。资源导入最大边 4096、无 mipmap、双线性、透明、无压缩，未沿用旧 32 PPU。

@@ -1,0 +1,217 @@
+{
+  "batch": "Batch_ModularRig_003",
+  "date": "2026-10-18",
+  "tool": "Codex built-in image_gen precise-object-edit; deterministic crop export from the generated atlas using the original head layout",
+  "promptSet": "Edit the existing transparent atlas: gently close only the visible eyes of each front or side head; preserve character identity, hair, face shape, colors, alpha and atlas placement; no new text or redesigned clothing.",
+  "note": "Runtime loads only the exported head sprites. Original open-eye atlases stay unchanged. Producer visual acceptance pending.",
+  "entries": [
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_closedeyes_v01.png",
+      "sourceSha256": "e168e2be638ace883834c218b249f937ed7f502faa641eab67ca589e3049f85e",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_head_0_closedeyes_v01.png",
+          "sha256": "8daf09595903df20ef7403b72d069ed54dfd1c0c59767c83aa29d405ed2f1c96"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_head_1_closedeyes_v01.png",
+          "sha256": "ca1e6b050be5f89368287ae775a24559e64edea57ab9a95121ee6391ce655e3b"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_head_2_closedeyes_v01.png",
+          "sha256": "f12c6d8faa64c3f3c3f3af0bfc4d47b9373247445f3012d1d062ea2cbce261ea"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-001_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-001_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "cbe6ead2fbc1619d3ba542477b30bac3889f7dfd0551a07b6e19cbceb535d9a3",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-001_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "0afaf80c44e4d73693ce76bcd2304ac48525ec0f597eedb22ba9d4bc11488885"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_closedeyes_v01.png",
+      "sourceSha256": "ee25c467948cc6aaa2e85b984cd5838f59d775448a9737affaae90fd6ffe098a",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_head_0_closedeyes_v01.png",
+          "sha256": "b6f40f8f050b4e98c1ce7b9be7b3394a11ecac2437a2eea303a068020efd1a1f"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_head_1_closedeyes_v01.png",
+          "sha256": "31c16bd0e4b2f05c75fe813028959bfe9828fa45e5764b4b65ee679b3b230b4d"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_head_2_closedeyes_v01.png",
+          "sha256": "8f1bb328f9c3bd225a9fc26d159ca093a4aab0b2d4d90e18e23da4a23a92b7e9"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_head_3_closedeyes_v01.png",
+          "sha256": "80bc30148d83fb5fda7bf379afa18b789f2b56de569db269f5caed79eb7834cc"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "d498f22bf072d47b8729e99f115e58a4bf832a46b8b90f69f4b98b704b65ca96",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "e0d30ca8b3ee8c57d91e0eafa772a67b416fb32a92423403b9aedaf4080bee8b"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "e11728d43f29ef0eafceb3b02a47e74dd20f930b45d24a17ecd376830e1c643a",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "7a3baff1e95fc0b109f54f2c99d555f73cc10f070bab46ef13aad91fb20998b7"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-002_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-002_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "9fa905bc08b2b55993263757ac3a02ae58f47cd358527206722880d9613471c2",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-002_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "8373627df429f33e0f2662bd7a7f8fa89d33b192cfd9bede5704cab4b5faf3c4"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "d97cacc2b86713df78edf4f86bee619fecdae2fdf42facc9bfacc1e362bda709",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "6c86b233bb25b3c109d3765da7794b3a5f5cb740c8e8c6048a0222e0034f7aed"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-004_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-004_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "6ac921e9068c27bb1a4da56043b87900bcc4cc0189381d69f62f98e8367c80c6",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-004_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "813a4428ac86b07d88a13b5cefec40d479c44a145828eecd190b451f81823790"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_closedeyes_v01.png",
+      "sourceSha256": "5aab038cd12c4fab9004358fdec4c39b4166ffddce7939265c4d3f4594b21363",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_head_0_closedeyes_v01.png",
+          "sha256": "e06ed4a177e6dfe2f4af21aa7c43000bf24770a13e0402a17da04f92ad9e55ce"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_head_1_closedeyes_v01.png",
+          "sha256": "ab92008a1cd5c188ea9924d295fa516fec0a5c579aab286a6ffc89972dc70de2"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_head_2_closedeyes_v01.png",
+          "sha256": "20cd8cc0e9f4bf98dc48d265f4d2be2c70e35648953b4bf1bc43426fe96503cb"
+        },
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_head_3_closedeyes_v01.png",
+          "sha256": "3dc9258367bd74db95ddba8b16c6a82e66d5645322161557ddc1157d62198445"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-005_apron_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-005_apron_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "da70da4dad06e9f4a57fc54e1ad2fca1cbf53a6e39be842e51bb0a63c16138d8",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_apron_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "9b74b8585f3a37ae02bd8b156caf547a2af4be1a651a0ca286f4384755d544c7"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-005_basket_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-005_basket_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "902f1959beeeb527be4b1cb873458b80896ede036d71d09abb045998a209bc5d",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_basket_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "76b78789f8553f62a8e35f9b867a9be1e0ed4299e2623ffcd4f2d93ca1593307"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-005_hoe_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-005_hoe_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "17bacbf1f09e4a0f226b91d31a58cc990ea12678ae1e1627a235acc7a23ca96a",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-005_hoe_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "787e5f27ad708a509303cda837856d072ed849fae6ee2f98cee3e9dfab0956b6"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-006_merchant_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-006_merchant_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "c140a890d9eb320d5aef099fef82afee2e9d06845b0d1356a8647e6ddcdcd463",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-006_merchant_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "12966802ae41a153075dfa7d779d0674e32def6c904f8df2cde1bb813ad4ab93"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "d60ce90af47c857a1ea430db2ab8d4ec830ecc6039c94969dd80f64015a8559b",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "9a771c44c5191548e659eafe6420a7e90316d67a0e73c0e69a8ea5211a2b7aa3"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01_closedeyes_v01.png",
+      "sourceSha256": "b3e9bf36707e93735e341df0cb9343cac2aeafd36108f9c4682d4338f5e57f4a",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01_head_0_closedeyes_v01.png",
+          "sha256": "010fad1627dbfbb6acffc735fff4d974fb287b587db6ff9c9a3feba619965f0b"
+        }
+      ]
+    },
+    {
+      "originalAtlas": "Assets/Art/Characters/Resources/ART-CHAR-007_other_HumanCommonRig_parts_v01.png",
+      "editedSourceAtlas": "ArtSource/Batches/Batch_ModularRig_003/Originals/ART-CHAR-007_other_HumanCommonRig_parts_v01_closedeyes_v01.png",
+      "sourceSha256": "d6de359c50cb5401b3e9b27644e649d91bf39793d3b4203957daf49af4c04993",
+      "exportedHeads": [
+        {
+          "path": "Assets/Art/Characters/Resources/ClosedEyes/ART-CHAR-007_other_HumanCommonRig_parts_v01_head_1_closedeyes_v01.png",
+          "sha256": "c3f6cd7d94fead14e68a13f24f7e08849cfe971629fc3abf6d97e22152cb897d"
+        }
+      ]
+    }
+  ]
+}

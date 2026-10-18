@@ -1,0 +1,120 @@
+{
+  "batch": "Batch_ModularRig_004",
+  "purpose": "eight-direction diagonal head/torso views",
+  "resources": [
+    {
+      "skin": "ART-CHAR-001",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-001_HumanCommonRig_diagonal_v01.png",
+      "sha256": "8d0b96283ffb680b816a4af64bd7327452ea8ccf5c7b2b43b0ee54c7d2e08ffa",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-002_HumanCommonRig_diagonal_v01.png",
+      "sha256": "7010a06bedd5d2a9fbee06f7e07661f9c8dfa305f1fce1d3ac7bd1cc106c14a9",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-004",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-004_HumanCommonRig_diagonal_v01.png",
+      "sha256": "b638c0911473fd04671951c05ea9e601be3006f46258278e3d65acab573a100e",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002_companion_a",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-002_companion_a_HumanCommonRig_diagonal_v01.png",
+      "sha256": "c723d3f812a41866d60120f17c9242b25196885c5e961a4f902d075822b2837c",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-002_companion_b",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-002_companion_b_HumanCommonRig_diagonal_v01.png",
+      "sha256": "b8f7db6dd952cea61f0407d555e3abdce73d6e7f796264bc26a612dc713e3b8b",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-003_supervisor",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-003_supervisor_HumanCommonRig_diagonal_v01.png",
+      "sha256": "80046e53824bb72a95c2b2e82996cc2bcf5990655372fa8ab84228d09840914f",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_hoe",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-005_hoe_HumanCommonRig_diagonal_v01.png",
+      "sha256": "97a22a3a95a3d088201b415ab70aa45fbb04b7fbf73b8f9392d2d2f74661245a",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_apron",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-005_apron_HumanCommonRig_diagonal_v01.png",
+      "sha256": "c954216dd61f548ed1a1c1fe1d7268eb491703bc4710c43129ea7b06b3eadc77",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-005_basket",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-005_basket_HumanCommonRig_diagonal_v01.png",
+      "sha256": "73b8a3b337ff87878509e043f4eb6728aea7570b5d3a3f51ab8a2c89f01e8ffd",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-006_merchant",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-006_merchant_HumanCommonRig_diagonal_v01.png",
+      "sha256": "c4b4766e54c1fb5ac30790516fb3c946a7a25e75d5ec4b08917abc7f3302d562",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-007_other",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-007_other_HumanCommonRig_diagonal_v01.png",
+      "sha256": "a617992cc66a99023a13a593bffe0bcb906e7d06395f8ec8afc3a0048ce373a6",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "skin": "ART-CHAR-007_jiang_lao",
+      "source": "ArtSource/Batches/Batch_ModularRig_004/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_diagonal_v01.png",
+      "sha256": "3c1d47672407df0594ad7b96a318dfbaa8ffe020cce58fa41714901342f6753b",
+      "size": [
+        1254,
+        1254
+      ]
+    }
+  ],
+  "partOrder": [
+    "southeastTorso",
+    "southeastHead",
+    "northeastTorso",
+    "northeastHead"
+  ]
+}

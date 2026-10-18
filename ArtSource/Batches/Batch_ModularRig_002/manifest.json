@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "batch_id": "Batch_ModularRig_002",
+  "date_local": "2026-10-17",
+  "generator": "Codex built-in image_gen; transparent output",
+  "technical_route": "Unity Transform + SpriteRenderer HumanCommonRig",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "parts_layout": "3x3 strict cells: front torso/head/right arm; left arm/left leg/right leg; back torso/head/side torso",
+  "side_head_layout": "4 east-facing heads per atlas, Jiang Lao separate",
+  "fallback": "LegacySprite retained; original assets and meta untouched",
+  "status": "Implemented; LevelTester producer acceptance pending",
+  "entries": [
+    {
+      "asset_id": "ART-CHAR-002",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01.png",
+      "bytes": 1609004,
+      "sha256": "03b5dadabc9bdb30b9dc112d99e9799e7e5e6f58bfe63d1b0bc22afbe60040b1",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-002",
+        "ART-CHAR-003",
+        "ART-CHAR-005"
+      ],
+      "skin_or_usage": "CompanionA/CompanionB/Supervisor/FarmerHoe",
+      "atlas_layout": "east-facing detached heads",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01_layout.json",
+      "layout_sha256": "b4fe7ddd0e28c48a21bcc1052f57d5a04031b5414b2c1e8d82a322fd01569d34"
+    },
+    {
+      "asset_id": "ART-CHAR-002",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01.png",
+      "bytes": 1229198,
+      "sha256": "a1779009ca8ce1e5f2211898aa1fa30a90d50d6fe4a76f66e2b4edb176f9878d",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-002"
+      ],
+      "skin_or_usage": "companion_a",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_a_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "9482f0adcd21407f54f3c5c6a0cc7a3127f44afa6adc24b197501eff1d578634"
+    },
+    {
+      "asset_id": "ART-CHAR-002",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01.png",
+      "bytes": 1072333,
+      "sha256": "d05c19705a161e16cadf4680c89ad6f12ab791d7e88955660142b89734fbdd7d",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-002"
+      ],
+      "skin_or_usage": "companion_b",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-002_companion_b_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "69a5fd6d675389606072d38aad07aa256c42607eb68b46e8201e54bf06a10f16"
+    },
+    {
+      "asset_id": "ART-CHAR-003",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01.png",
+      "bytes": 1044171,
+      "sha256": "e62ecd12e9e9815b1abea25acc8fd6dbe295a0f01f7aa59f11aa420734d6d3cf",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-003"
+      ],
+      "skin_or_usage": "supervisor",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-003_supervisor_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "5e54c93237729d1afbfb262a8101117d45b956e0ad866e6e1bc69b51ab89833a"
+    },
+    {
+      "asset_id": "ART-CHAR-005",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01.png",
+      "bytes": 1606338,
+      "sha256": "02a22751ab1b2e897d56a5bd228ae99b5474fb8357ae0088810f9a0cc31fad88",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-005",
+        "ART-CHAR-006",
+        "ART-CHAR-007"
+      ],
+      "skin_or_usage": "FarmerApron/ResidentBasket/Merchant/Other",
+      "atlas_layout": "east-facing detached heads",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01_layout.json",
+      "layout_sha256": "8bca9af20956bd117d8183a8f770de5fcf87d853de9178abcb685ff8a4468b8a"
+    },
+    {
+      "asset_id": "ART-CHAR-005",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-005_apron_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-005_apron_HumanCommonRig_parts_v01.png",
+      "bytes": 1177312,
+      "sha256": "cb06df3420714b9c0a665f96dc76c9fc371e5347e687817004a4bea48e0e833e",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-005"
+      ],
+      "skin_or_usage": "apron",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-005_apron_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-005_apron_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "52616914462124375b92a6b54871d31af45b6aac319b7e019bcd16f55a427620"
+    },
+    {
+      "asset_id": "ART-CHAR-005",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-005_basket_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-005_basket_HumanCommonRig_parts_v01.png",
+      "bytes": 1092942,
+      "sha256": "d58a92b3895a48f663d3410a71eb1bb0610a694808d3b655577ec3fd1ba159d4",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-005"
+      ],
+      "skin_or_usage": "basket",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-005_basket_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-005_basket_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "a2846864cdfd225ebfd020bae95e7a75950f942c9e57ef34d7cf450f4ec0d3c0"
+    },
+    {
+      "asset_id": "ART-CHAR-005",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-005_hoe_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-005_hoe_HumanCommonRig_parts_v01.png",
+      "bytes": 1156020,
+      "sha256": "4a24a0351e3967e1a3b436f54750edef4f361f3089d4acac45c0dd576ab7c34a",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-005"
+      ],
+      "skin_or_usage": "hoe",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-005_hoe_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-005_hoe_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "80eb9b21ce35e0e8c7966f8c0a57148e23857572b91cb64ef17568bcd524be40"
+    },
+    {
+      "asset_id": "ART-CHAR-006",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-006_merchant_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-006_merchant_HumanCommonRig_parts_v01.png",
+      "bytes": 1071733,
+      "sha256": "f2aa6d5c6821099fe8a52b37bec2eb648fc2dc6a3629411a9951addeb786d0a6",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-006"
+      ],
+      "skin_or_usage": "merchant",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-006_merchant_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-006_merchant_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "241afcc1eb6296ef7127e0011faaec245932546aea69b90f4f176e831464cb97"
+    },
+    {
+      "asset_id": "ART-CHAR-007",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01.png",
+      "bytes": 1235257,
+      "sha256": "38ddb51e5ba0e507cb97537a9bfce188149c3193d44d77b68dac8e7a1c02aa08",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-007"
+      ],
+      "skin_or_usage": "JiangLao",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "3552387ef49957d31e7aa1cb8932ed78698fc65f7f63590068f5c2614fac8eaf"
+    },
+    {
+      "asset_id": "ART-CHAR-007",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01.png",
+      "bytes": 1422398,
+      "sha256": "e67cd16d2ca4bfa25cfdc7323d740eff716ff072767ea1bea0150934bda81c01",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-007"
+      ],
+      "skin_or_usage": "JiangLao",
+      "atlas_layout": "east-facing detached heads",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01_layout.json",
+      "layout_sha256": "7518544bc69328e76798120814328e820c7aa0786c967ffb058149c180cbf621"
+    },
+    {
+      "asset_id": "ART-CHAR-007",
+      "file": "ArtSource/Batches/Batch_ModularRig_002/Originals/ART-CHAR-007_other_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-007_other_HumanCommonRig_parts_v01.png",
+      "bytes": 1128748,
+      "sha256": "71529c43c928e5a984162ebcdb75875f2bafc81ab633b5ee3f7bf2677c639f87",
+      "status": "Generated and runtime-wired; Unity visual/build/performance acceptance pending",
+      "asset_ids": [
+        "ART-CHAR-007"
+      ],
+      "skin_or_usage": "other",
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_002/Layouts/ART-CHAR-007_other_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-007_other_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "d1ecf25c12f1182eb0c99f17185e0bb0a8e217a71ca764268374cca5ad9bb189"
+    }
+  ],
+  "known_gaps": [
+    "Some generated silhouettes touch cell bounds; normal-scale Unity joint and clipping review needed",
+    "Side-facing limbs reuse front limb artwork; dedicated side/back arms and legs pending",
+    "Merchant and Other are shared category Skins, not individual portrait approval",
+    "No Unity visual, Player Build, or performance acceptance"
+  ],
+  "layout_generator": "tools/export-human-rig-layouts.py",
+  "layout_status": "Alpha-derived bounds with explicit per-image anatomical joints/sockets, visible body/head meshes and mirrored part aliases; Unity visual acceptance pending",
+  "calibration_source": "ArtSource/BatchInfo/human-common-rig-calibration.json",
+  "calibration_sha256": "9118b256ee37754e3d495bde45692a2f654d2f2e3fb0a5b4ce8bf94017a9b689",
+  "calibration_schema_version": 1
+}

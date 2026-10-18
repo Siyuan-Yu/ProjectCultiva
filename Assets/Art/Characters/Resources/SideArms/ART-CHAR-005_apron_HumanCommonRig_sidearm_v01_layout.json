@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-005_apron_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "0c20a8dd40f85efccd3d9b3f9d32f7ee8704b43a0390bf5f89890d3fecaef686",
+  "parts": [
+    {
+      "x": 389,
+      "y": 148,
+      "width": 296,
+      "height": 1270,
+      "pivotX": 0.3182,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.4835,
+      "gripY": 0.06
+    }
+  ]
+}

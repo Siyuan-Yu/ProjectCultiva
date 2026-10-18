@@ -305,8 +305,6 @@ namespace XianXia.Unity.Host
             if (!_visuals.TryGetValue(flag.FlagId, out var visual) || visual?.Root == null)
             {
                 var root = InstantiateBuilding("FactionControlPost_" + flag.FlagId);
-                if (string.Equals(flag.FactionId, "base:sect_huangcun_labor", StringComparison.Ordinal))
-                    HostStepAArt.ApplyObjectVisual(root, HostStepAArt.MapSprite("factionControlPost"));
                 root.transform.SetParent(transform, false);
                 root.AddComponent<HostFactionFlagView>().Bind(flag.FlagId);
                 var labelObject = new GameObject("FlagStatus");
@@ -317,11 +315,12 @@ namespace XianXia.Unity.Host
                 label.anchor = TextAnchor.LowerCenter; label.alignment = TextAlignment.Center;
                 label.color = Color.white;
                 var mr = labelObject.GetComponent<MeshRenderer>();
-                if (mr != null) mr.sortingOrder = 722;
+                if (mr != null) mr.sortingOrder = 32760;
                 visual = new FlagVisual { Root = root, Label = label };
                 _visuals[flag.FlagId] = visual;
             }
             visual.Label.text = BuildLabel(flag);
+            SetFlagStyle(visual.Root, flag.FactionId);
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (continuous != null && continuous.IsActive &&
                 HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
@@ -350,21 +349,23 @@ namespace XianXia.Unity.Host
         {
             if (_preview != null) return;
             _preview = InstantiateBuilding("FactionControlPost_Preview");
+            SetFlagStyle(_preview, _bootstrap?.Session?.World?.Strategic?.PlayerFactionId);
             _preview.transform.SetParent(transform, false);
         }
 
         static GameObject InstantiateBuilding(string name)
         {
-            if (!MapKindCatalog.TryGet("factionControlPost", out var info) ||
-                !MapLayoutPrefabResolver.TryInstantiate(info.Kind, info.PrefabPath, out var go))
-            {
-                go = new GameObject(name);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = HostSpriteFactory.MissingPrefabSprite();
-                sr.sortingOrder = 710;
-            }
-            go.name = name;
+            var go = new GameObject(name);
+            go.AddComponent<SpriteRenderer>();
+            SetFlagStyle(go, null);
             return go;
+        }
+
+        static void SetFlagStyle(GameObject root, string factionId)
+        {
+            var renderer = root.GetComponent<SpriteRenderer>();
+            renderer.sprite = HostStepAArt.FlagSprite(factionId);
+            renderer.color = HostStepAArt.FlagColor(factionId);
         }
 
         static void PositionBuilding(GameObject go, float x, float z, float cellSize)
@@ -390,6 +391,11 @@ namespace XianXia.Unity.Host
                 for (var i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
                 go.transform.position += intended - bounds.center;
             }
+            var geometry = go.GetComponent<HostMapVisualGeometry>() ?? go.AddComponent<HostMapVisualGeometry>();
+            geometry.Configure(intended, HostFactionFlagQuery.FootprintCells * cs,
+                HostFactionFlagQuery.FootprintCells * cs);
+            foreach (var renderer in renderers)
+                renderer.sortingOrder = HostArtDepth.Order(intended.y);
         }
 
         static void Tint(GameObject go, Color color)

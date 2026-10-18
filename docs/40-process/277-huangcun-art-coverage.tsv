@@ -1,0 +1,99 @@
+﻿stableId	kind	status	runtimeAsset	notes	missingRuntimeAsset	pending
+base:site_huangcun:block_supervisor_mansion	controlCore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-008_core_isolated_v03.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_cave_170829991	cave	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-010_cave_entrance_v02.png	已接线；未发现的洞口按既有规则隐藏，非资源缺失	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_cushion_234726740	cushion	旧表现保留		旧蒲团 Prefab	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_cushion_234732596	cushion	旧表现保留		旧蒲团 Prefab	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_cushion_234734971	cushion	旧表现保留		旧蒲团 Prefab	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_cushion_234737587	cushion	旧表现保留		旧蒲团 Prefab	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_grainField_234917059	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_grainField_235504495	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_grainField_235506687	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_grainField_235509329	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_grainField_235512636	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_grainField_235514826	grainField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_herbField_234905155	herbField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_herbField_235721557	herbField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_herbField_235723679	herbField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_herbField_235725691	herbField	旧表现保留		旧地块与颜色阶段刷新；新植物图层待合格	0	新植物图层待合格
+base:site_huangcun:place_ore_233945981	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_233947755	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_233947996	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_233948259	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_233954089	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_233955496	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_234005826	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_234007406	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_ore_234009233	ore	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-009_ore_base_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeL_234950832	treeL	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_large_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeL_234953475	treeL	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_large_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeL_234956228	treeL	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_large_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeL_234957915	treeL	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_large_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeL_235000804	treeL	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_large_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234926838	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234930188	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234932210	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234934628	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234936440	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234942819	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234944567	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234945951	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_234947144	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235004947	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235007367	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235009181	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235011240	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235013384	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235018907	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_treeM_235020365	treeM	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-GROUND-007_tree_medium_v02.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:place_zoneMine_233921010	zoneMine	旧表现保留		旧区域覆盖层	0	无已知接线缺陷；视觉待验
+base:site_huangcun:storage_room	storageRoom	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-007_storage_crates_v03.png	正式 Resources + HostStepAArt.MapSprite 接线	0	无已知接线缺陷；视觉待验
+base:site_huangcun:zone_spring	spring	旧表现保留		旧区域覆盖层	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_01	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_01:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_02	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_02:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_03	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_03:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_04	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_04:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_05	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_05:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_06	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_06:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_07	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_07:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_08	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_08:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_09	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_09:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_10	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_10:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_11	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_11:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_12	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_12:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_13	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_13:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_14	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_14:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_15	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_15:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_16	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_16:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_17	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_17:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_18	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_18:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_19	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_res_19:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_supervisor	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_supervisor:bed	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_residential_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_medical	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_medical:bed_1	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_medical_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_medical:bed_2	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_medical_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_medical:bed_3	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_medical_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_prison	room	旧表现保留		旧程序房间地板与墙体；未接入新房屋模块	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_prison:bed_1	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_prison_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_prison:bed_2	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_prison_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_prison:bed_3	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_prison_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验
+base:site_huangcun:room_prison:bed_4	bed	新美术已接入待视觉验收	Assets/Art/Environment/Resources/ART-ROOM-006_bed_prison_v02.png	用途由真实父房间决定；住宅/医疗/牢床三图均在 Resources	0	无已知接线缺陷；视觉待验

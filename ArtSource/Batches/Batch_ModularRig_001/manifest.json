@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "batch_id": "Batch_ModularRig_001",
+  "date_local": "2026-10-17",
+  "generator": "Codex built-in image_gen; transparent-background output",
+  "canonical_register": "docs/40-process/273-current-art-asset-register.tsv",
+  "technical_route": "Unity Transform + SpriteRenderer HumanCommonRig; no Spine dependency",
+  "visual_reference": "ArtSource/References/ART-REF-001_huangcun_style_reference.png",
+  "runtime_driver": "Assets/Scripts/Unity/Host/HumanCommonRigView.cs",
+  "fallback": "Existing EntityView LegacySprite; no existing runtime PNG or meta deleted",
+  "status": "Implemented/LevelTester producer acceptance pending",
+  "parts_order": [
+    "front_torso",
+    "front_head",
+    "screen_right_arm",
+    "screen_left_arm",
+    "left_leg",
+    "right_leg",
+    "back_torso",
+    "back_head",
+    "side_torso"
+  ],
+  "directions": [
+    "South front",
+    "North back",
+    "East side",
+    "West side mirrored"
+  ],
+  "shared_actions": [
+    "Idle",
+    "Walk",
+    "Work",
+    "Attack",
+    "SleepBed",
+    "SleepGround"
+  ],
+  "entries": [
+    {
+      "asset_ids": [
+        "ART-CHAR-001"
+      ],
+      "skin_or_usage": "Villager",
+      "file": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-CHAR-001_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-001_HumanCommonRig_parts_v01.png",
+      "sha256": "cf21f18048f11b9ceca9de571a5b3a9306ddad3811220452aca28e5fdf999d9c",
+      "bytes": 926326,
+      "size_px": [
+        1254,
+        1254
+      ],
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "status": "Generated and wired as LevelTester sample; Unity visual/build/performance acceptance pending",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_001/Layouts/ART-CHAR-001_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-001_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "aadc1b3b8289f450b5518f0fc18c050ec3407a9c9be824ca78d10dbdb5f9af50"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-002"
+      ],
+      "skin_or_usage": "Protagonist",
+      "file": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-CHAR-002_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-002_HumanCommonRig_parts_v01.png",
+      "sha256": "fafe5a2990e104c670150b5953b0a01638d5ba6167ecfdf7a3f5180bd41ba3e5",
+      "bytes": 1237530,
+      "size_px": [
+        1254,
+        1254
+      ],
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "status": "Generated and wired as LevelTester sample; Unity visual/build/performance acceptance pending",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_001/Layouts/ART-CHAR-002_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-002_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "34cead798208b13fe07373b924a467157fd3c244c4d8743e3edf243d37c0bcf6"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-004"
+      ],
+      "skin_or_usage": "Guard",
+      "file": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-CHAR-004_HumanCommonRig_parts_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-004_HumanCommonRig_parts_v01.png",
+      "sha256": "80179df0b1d226f16bdd64197b7e97b5c2b05a84199a2931e6856db1d88ebab2",
+      "bytes": 988423,
+      "size_px": [
+        1254,
+        1254
+      ],
+      "atlas_layout": "3x3: front torso/head/screen-right arm; screen-left arm/left leg/right leg; back torso/head/side torso; alpha-bound rectangles in layout JSON",
+      "status": "Generated and wired as LevelTester sample; Unity visual/build/performance acceptance pending",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_001/Layouts/ART-CHAR-004_HumanCommonRig_parts_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-004_HumanCommonRig_parts_v01_layout.json",
+      "layout_sha256": "aa94dbd3f1aff1f4d83d326a204caa97b9b129291d598d175e7bd9271acafd50"
+    },
+    {
+      "asset_ids": [
+        "ART-ANIM-002",
+        "ART-ANIM-004"
+      ],
+      "skin_or_usage": "SharedEquipment",
+      "file": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-ANIM-002_004_HumanCommonRig_tools_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-ANIM-002_004_HumanCommonRig_tools_v01.png",
+      "sha256": "1e56f4645c7c408d9519ef5a2654333637d749aadcf3b24e10aa120316bc9361",
+      "bytes": 715530,
+      "size_px": [
+        1254,
+        1254
+      ],
+      "atlas_layout": "3x2: spear/axe/hoe; pick/sickle/back basket",
+      "status": "Generated and wired as LevelTester sample; Unity visual/build/performance acceptance pending",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_001/Layouts/ART-ANIM-002_004_HumanCommonRig_tools_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-ANIM-002_004_HumanCommonRig_tools_v01_layout.json",
+      "layout_sha256": "f82260ea490da28a1009d2e1077f9136d5e9819f89b01951821f6c458f9eefa9"
+    },
+    {
+      "asset_ids": [
+        "ART-CHAR-001",
+        "ART-CHAR-002",
+        "ART-CHAR-004"
+      ],
+      "skin_or_usage": "SharedSideHeads",
+      "file": "ArtSource/Batches/Batch_ModularRig_001/Originals/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01.png",
+      "unity_import_path": "Assets/Art/Characters/Resources/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01.png",
+      "sha256": "d686dda0d0c2b6db4792d24d1b0ef9e258b760f45129c1f05804dc413d03abfe",
+      "bytes": 739626,
+      "size_px": [
+        2172,
+        724
+      ],
+      "atlas_layout": "1x3: villager/protagonist/guard facing east; west mirrored",
+      "status": "Generated and wired as LevelTester sample; Unity visual/build/performance acceptance pending",
+      "layout_file": "ArtSource/Batches/Batch_ModularRig_001/Layouts/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_layout.json",
+      "unity_layout_path": "Assets/Art/Characters/Resources/ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01_layout.json",
+      "layout_sha256": "937e852f26ee30983382fa86bbf88e6762dc5c421147a6962c219cdc968500c2"
+    }
+  ],
+  "known_gaps": [
+    "Normal-scale visual inspection",
+    "joint coverage and asymmetry refinement",
+    "actual performance/GC/Draw Call",
+    "Unity Player Build loading",
+    "Carry and separate Downed/Dead silhouette"
+  ],
+  "layout_generator": "tools/export-human-rig-layouts.py",
+  "layout_status": "Alpha-derived bounds with explicit per-image anatomical joints/sockets, visible body/head meshes and mirrored part aliases; Unity visual acceptance pending",
+  "calibration_source": "ArtSource/BatchInfo/human-common-rig-calibration.json",
+  "calibration_sha256": "9118b256ee37754e3d495bde45692a2f654d2f2e3fb0a5b4ce8bf94017a9b689",
+  "calibration_schema_version": 1
+}

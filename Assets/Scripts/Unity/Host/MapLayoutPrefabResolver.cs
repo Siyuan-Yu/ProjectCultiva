@@ -12,6 +12,15 @@ namespace XianXia.Unity.Host
     public static class MapLayoutPrefabResolver
     {
         static readonly HashSet<string> WarnedPaths = new HashSet<string>();
+        static MapLayoutPrefabCatalog _runtimeCatalog;
+
+        public static bool TryLoadRuntimePrefab(string path, out GameObject prefab)
+        {
+            if (_runtimeCatalog == null)
+                _runtimeCatalog = Resources.Load<MapLayoutPrefabCatalog>("MapLayoutPrefabCatalog");
+            prefab = _runtimeCatalog != null ? _runtimeCatalog.Find(path) : null;
+            return prefab != null;
+        }
 
         public static int MissingCount { get; private set; }
 
@@ -80,7 +89,7 @@ namespace XianXia.Unity.Host
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.HouseFallback);
             return prefab != null;
 #else
-            return false;
+            return TryLoadRuntimePrefab(prefabPath, out prefab);
 #endif
         }
 

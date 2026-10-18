@@ -1,0 +1,17 @@
+{
+  "source": "ArtSource/Batches/Batch_ModularRig_005/Originals/ART-CHAR-006_merchant_HumanCommonRig_sidearm_v01.png",
+  "sourceSha256": "2c8a9ce80bc53bf661ece41993cb88006daec83e4f9024d3e224644438f55c68",
+  "parts": [
+    {
+      "x": 379,
+      "y": 142,
+      "width": 320,
+      "height": 1277,
+      "pivotX": 0.3397,
+      "pivotY": 0.94,
+      "worldHeight": 0.82,
+      "gripX": 0.6164,
+      "gripY": 0.06
+    }
+  ]
+}

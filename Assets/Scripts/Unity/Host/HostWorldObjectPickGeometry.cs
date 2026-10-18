@@ -12,6 +12,15 @@ namespace XianXia.Unity.Host
         {
             bounds = default;
             if (go == null) return false;
+            if (go.TryGetComponent<HostMapVisualGeometry>(out var geometry))
+            {
+                bounds = geometry.WorldRect;
+                bounds.xMin -= ClickPadding;
+                bounds.xMax += ClickPadding;
+                bounds.yMin -= ClickPadding;
+                bounds.yMax += ClickPadding;
+                return true;
+            }
             var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
             var hasBounds = false;
             for (var i = 0; i < renderers.Length; i++)

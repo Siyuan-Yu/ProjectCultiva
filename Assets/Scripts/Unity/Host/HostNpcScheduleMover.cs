@@ -52,6 +52,7 @@ namespace XianXia.Unity.Host
         readonly HashSet<ulong> _deferredPathRequestIds = new HashSet<ulong>();
         readonly HashSet<string> _pathUnavailableReported = new HashSet<string>(System.StringComparer.Ordinal);
         readonly Dictionary<ulong, uint> _issuedIntentRevision = new Dictionary<ulong, uint>();
+        readonly Dictionary<ulong, uint> _issuedHostMovementRevision = new Dictionary<ulong, uint>();
         object _trackedWorld;
 
         /// <summary>本帧真正执行的 NPC A* 请求数（性能诊断）。</summary>
@@ -258,15 +259,25 @@ namespace XianXia.Unity.Host
                         _resolvedSpotGeneration[id] = spotGeneration;
                         continue;
                     }
-                    _resolvedCenter[id] = intent.ArrivalRadiusWorld > 0f
+                    _resolvedCenter[id] = intent.ArrivalRadiusWorld > 0f ||
+                        IsGenericConstructionTarget(session.World, entity.Id, intent)
                         ? rawCenter : SnapGoalToWalkable(grid, rawCenter, goalSnapCells);
                     _resolvedSpotGeneration[id] = spotGeneration;
                 }
 
                 var center = _resolvedCenter[id];
-                if (TryMarkArrivedWithinRadius(intent, pos, center,
-                        ResolveArrivalRadiusPresentation(intent)))
+                if (moveController.IsCharacterStandClear(entity.Id) &&
+                    TryMarkArrivedWithinRadius(intent, pos, center,
+                        ResolveStandingArrivalRadius(session.World, entity.Id, intent)))
                 {
+                    // A valid nearby slot is the stop, not a reason to keep walking to the
+                    // shared center after Core has already accepted arrival.
+                    if (_issuedIntentRevision.TryGetValue(id, out var arrivedRevision) &&
+                        arrivedRevision == intent.Revision &&
+                        _issuedHostMovementRevision.TryGetValue(id, out var arrivedHostRevision))
+                        moveController.CancelPresentationMovementIfRevision(entity.Id, arrivedHostRevision);
+                    _issuedIntentRevision.Remove(id);
+                    _issuedHostMovementRevision.Remove(id);
                     bootstrap.ContinuousOutdoorSurfaceRuntime?.TryCaptureAtSiteAnchor(
                         entity.Id, view.transform.position);
                     _lastTargetKey.Remove(id);
@@ -357,10 +368,13 @@ namespace XianXia.Unity.Host
                 _repathRequestsInWindow++;
 
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            var freeStandRadius = intent.ArrivalRadiusWorld > 0f ? 0f :
+                Mathf.Min(1.25f, ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f);
             var accepted = moveController.OrderEntityToWorldPoint(
                 request.Entity, center, null, issueStop: false,
-                exactGoal: intent.ArrivalRadiusWorld > 0f,
-                speedMultiplier: intent.SpeedMultiplier);
+                exactGoal: intent.ArrivalRadiusWorld > 0f || IsGenericConstructionTarget(world, request.Entity, intent),
+                speedMultiplier: intent.SpeedMultiplier,
+                freeStandRadius: freeStandRadius);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
             LastNpcPathBuildMs = elapsedMs;
@@ -377,6 +391,8 @@ namespace XianXia.Unity.Host
                     center, out var targetInGrid, out var targetWalkable);
                 var reason = !sourceInGrid || !sourceWalkable
                     ? "起点不在可走导航格"
+                    : freeStandRadius > 0f
+                        ? "目标附近没有可达的空闲站位"
                     : !targetInGrid || !targetWalkable
                         ? "目标不在可走导航格"
                         : "WalkGrid 起点与目标路径不连通";
@@ -387,6 +403,7 @@ namespace XianXia.Unity.Host
 
             intent.MarkPathRequested();
             _issuedIntentRevision[id] = intent.Revision;
+            _issuedHostMovementRevision[id] = moveController.GetPresentationMovementRevision(request.Entity);
             _lastProgressAt[id] = now;
             _lastPos[id] = view.transform.position;
         }
@@ -519,8 +536,10 @@ namespace XianXia.Unity.Host
         public void CancelCivilianIntent(EntityId entityId)
         {
             if (entityId.IsNone) return;
-            if (_issuedIntentRevision.Remove(entityId.Value))
-                moveController?.CancelPresentationMovementPublic(entityId);
+            if (_issuedIntentRevision.Remove(entityId.Value) &&
+                _issuedHostMovementRevision.TryGetValue(entityId.Value, out var hostRevision))
+                moveController?.CancelPresentationMovementIfRevision(entityId, hostRevision);
+            _issuedHostMovementRevision.Remove(entityId.Value);
             ClearTracking(entityId.Value);
         }
 
@@ -533,8 +552,10 @@ namespace XianXia.Unity.Host
             if (entityId.IsNone)
                 return;
             var hadIssuedPath = _issuedIntentRevision.Remove(entityId.Value);
-            if (cancelCurrentPath && hadIssuedPath)
-                moveController?.CancelPresentationMovementPublic(entityId);
+            if (cancelCurrentPath && hadIssuedPath &&
+                _issuedHostMovementRevision.TryGetValue(entityId.Value, out var hostRevision))
+                moveController?.CancelPresentationMovementIfRevision(entityId, hostRevision);
+            _issuedHostMovementRevision.Remove(entityId.Value);
             ClearTracking(entityId.Value);
         }
 
@@ -555,6 +576,7 @@ namespace XianXia.Unity.Host
         void ClearTrackingCaches()
         {
             _issuedIntentRevision.Clear();
+            _issuedHostMovementRevision.Clear();
             _lastTargetKey.Clear();
             _resolvedCenter.Clear();
             _resolvedSpotGeneration.Clear();
@@ -577,6 +599,28 @@ namespace XianXia.Unity.Host
             intent.HostArrived = true;
             return true;
         }
+
+        float ResolveStandingArrivalRadius(
+            XianXia.Core.Simulation.SimulationWorld world, EntityId id, MovementIntentComponent intent)
+        {
+            var radius = ResolveArrivalRadiusPresentation(intent);
+            // Construction already checks a 3-world-unit radius in Core. Its generic
+            // (zero-radius) intent must not inherit a larger presentation-only arrival disk.
+            if (!IsGenericConstructionTarget(world, id, intent))
+                return radius;
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (surface == null || !surface.IsActive)
+                return 0f;
+            surface.Mapper.WorldToPresentation(intent.TargetWorldX, intent.TargetWorldY, out var x0, out var y0);
+            surface.Mapper.WorldToPresentation(intent.TargetWorldX + 3f, intent.TargetWorldY, out var x1, out var y1);
+            return Mathf.Min(radius, Vector2.Distance(new Vector2(x0, y0), new Vector2(x1, y1)));
+        }
+
+        static bool IsGenericConstructionTarget(
+            XianXia.Core.Simulation.SimulationWorld world, EntityId id, MovementIntentComponent intent) =>
+            intent != null && intent.HasWorldTarget && intent.ArrivalRadiusWorld <= 0f &&
+            world != null && world.Civilians.TryGet(id, out var civilian) &&
+            (civilian.Activity == MortalActivity.Construction || civilian.Activity == MortalActivity.Haul);
 
         void TrackProgress(EntityId entityId, Vector3 pos, float now)
         {

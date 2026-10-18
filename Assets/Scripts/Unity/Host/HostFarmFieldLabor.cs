@@ -20,7 +20,8 @@ namespace XianXia.Unity.Host
         {
             Idle = 0,
             Move = 1,
-            Work = 2
+            Work = 2,
+            WaitingForStand = 3
         }
 
         sealed class Worker
@@ -35,7 +36,13 @@ namespace XianXia.Unity.Host
             public bool FromPartyFollow;
             public bool RequiresAdministrativeAuthorization;
             public string ActingFactionId;
+            public uint OwnedMovementRevision;
+            public uint WaitingMovementRevision;
+            public float NextMoveRetryAt;
         }
+
+        const float FarmStandRadius = .44f;
+        const float FarmMoveRetrySeconds = .75f;
 
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostMoveController moveController;
@@ -83,12 +90,25 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        /// <summary>Presentation-only query of the existing per-cell work phase.</summary>
-        public bool IsPerformingWork(EntityId id)
+        public bool TryGetWorkVisual(EntityId id, out HostCharacterWorkVisual visual)
         {
+            visual = default;
             for (var i = 0; i < _workers.Count; i++)
-                if (_workers[i].Id == id && _workers[i].Phase == Phase.Work && _workers[i].Cell != null)
-                    return true;
+            {
+                var worker = _workers[i];
+                if (worker.Id != id || worker.Phase != Phase.Work || worker.Cell == null) continue;
+                var cell = worker.Cell;
+                var motion = cell.CropStage == OutdoorFarmCropStage.Empty ? HumanWorkMotion.Sow :
+                    cell.CropStage == OutdoorFarmCropStage.Mature ? HumanWorkMotion.Harvest :
+                    cell.CropStage == OutdoorFarmCropStage.Ruined ? HumanWorkMotion.Soil : HumanWorkMotion.Tend;
+                var tool = motion == HumanWorkMotion.Soil ? HumanCommonRigView.Equipment.Hoe :
+                    motion == HumanWorkMotion.Harvest && cell.Kind == "grainField"
+                        ? HumanCommonRigView.Equipment.Sickle : HumanCommonRigView.Equipment.None;
+                visual = HostCharacterWorkVisual.For(motion, tool);
+                visual.HasTarget = true;
+                visual.Target = cell.transform.position;
+                return true;
+            }
             return false;
         }
 
@@ -143,7 +163,6 @@ namespace XianXia.Unity.Host
                 if (worker.Id != id || !worker.FromNpcSchedule)
                     continue;
                 ReleaseReserve(worker);
-                moveController?.CancelPresentationMovementPublic(worker.Id);
                 ClearActivity(worker.Id);
                 _workers.RemoveAt(i);
                 removed = true;
@@ -257,7 +276,7 @@ namespace XianXia.Unity.Host
                 ActingFactionId = actingFactionId
             };
             _workers.Add(w);
-            if (!AssignNextCell(w))
+            if (!AssignNextCell(w) && w.Phase != Phase.WaitingForStand)
             {
                 if (!fromNpcSchedule)
                     Toast(id, "本区暂无农活", new Color(0.9f, 0.85f, 0.55f));
@@ -289,7 +308,6 @@ namespace XianXia.Unity.Host
                         bootstrap.Session.World, w.Id).IsFailure)
                 {
                     ReleaseReserve(w);
-                    moveController?.CancelPresentationMovementPublic(w.Id);
                     ClearActivity(w.Id);
                     _workers.RemoveAt(i);
                     continue;
@@ -387,7 +405,7 @@ namespace XianXia.Unity.Host
         {
             if (w.Cell == null)
             {
-                if (!AssignNextCell(w))
+                if (!AssignNextCell(w) && w.Phase != Phase.WaitingForStand)
                 {
                     if (!w.FromNpcSchedule)
                         Toast(w.Id, "本区农作完成", new Color(0.55f, 1f, 0.55f));
@@ -403,13 +421,39 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            if (w.Phase == Phase.WaitingForStand)
+            {
+                if (moveController != null &&
+                    moveController.GetPresentationMovementRevision(w.Id) != w.WaitingMovementRevision)
+                {
+                    w.Phase = Phase.Idle;
+                    return;
+                }
+                if (Time.unscaledTime >= w.NextMoveRetryAt)
+                    TryIssueFarmMove(w);
+                return;
+            }
+
             if (w.Phase == Phase.Move)
             {
+                // A later command owns its own path. Never drag the character back to this farm.
+                if (moveController == null || w.OwnedMovementRevision == 0u ||
+                    moveController.GetPresentationMovementRevision(w.Id) != w.OwnedMovementRevision)
+                {
+                    w.Phase = Phase.Idle;
+                    return;
+                }
                 if (!TryGetWorldPos(w.Id, out var pos))
                     return;
                 var dist = HostFarmFieldRules.XyDistance(pos, w.Cell.transform.position);
-                if (dist > HostFarmFieldRules.ArriveEpsilon)
+                if (dist > HostFarmFieldRules.ArriveEpsilon || !moveController.IsCharacterStandClear(w.Id))
+                {
+                    if (!moveController.IsMoving(w.Id) && Time.unscaledTime >= w.NextMoveRetryAt)
+                        TryIssueFarmMove(w);
                     return;
+                }
+                // Work inside the existing arrival disk, without continuing a shared-center path.
+                ReleaseFarmMovement(w);
                 w.Phase = Phase.Work;
                 w.WorkLeft = HostFarmFieldRules.WorkSeconds;
                 SetActivity(w.Id, HostFarmFieldRules.JobVerb(w.Cell.CropStage) + "中");
@@ -427,7 +471,7 @@ namespace XianXia.Unity.Host
                 return;
             ReleaseReserve(w);
             w.Cell = null;
-            if (!AssignNextCell(w))
+            if (!AssignNextCell(w) && w.Phase != Phase.WaitingForStand)
             {
                 if (!w.FromNpcSchedule)
                     Toast(w.Id, "本区农作完成", new Color(0.55f, 1f, 0.55f));
@@ -438,31 +482,59 @@ namespace XianXia.Unity.Host
         bool AssignNextCell(Worker w)
         {
             if (!HostFarmFieldRegistry.TryGetPlots(w.LocationId, out var plots))
+            {
+                w.Phase = Phase.Idle;
                 return false;
+            }
             if (!TryGetWorldPos(w.Id, out var from))
                 from = Vector3.zero;
 
             if (!HostFarmFieldRules.TryPickJobCell(
                     plots, from, _reserved, out var cell,
                     candidate => IsCellAuthorized(w, candidate)))
+            {
+                w.Phase = Phase.Idle;
                 return false;
+            }
 
             w.Cell = cell;
             w.ReservedCellId = cell.GetInstanceID();
             _reserved.Add(w.ReservedCellId);
-            w.Phase = Phase.Move;
             w.WorkLeft = 0f;
-            SetActivity(w.Id, "前往" + HostFarmFieldRules.JobVerb(cell.CropStage));
-
-            if (moveController != null)
+            // A newly reserved farm assignment takes over the current route once. A failed
+            // cell search does not stop it, and later retries cannot erase a newer command.
+            if (w.Phase == Phase.Idle && moveController != null && moveController.IsMoving(w.Id))
             {
-                var dest = cell.transform.position;
-                dest.z = HostPresentationSpace.EntityZ;
-                moveController.OrderEntityToWorldPoint(
-                    w.Id, dest, arriveCommand: null, issueStop: false);
+                var previousRevision = moveController.GetPresentationMovementRevision(w.Id);
+                moveController.CancelPresentationMovementIfRevision(w.Id, previousRevision);
             }
+            return TryIssueFarmMove(w);
+        }
 
-            return true;
+        bool TryIssueFarmMove(Worker w)
+        {
+            w.NextMoveRetryAt = Time.unscaledTime + FarmMoveRetrySeconds;
+            if (moveController != null && w.Cell != null)
+            {
+                var dest = w.Cell.transform.position;
+                dest.z = HostPresentationSpace.EntityZ;
+                if (moveController.OrderEntityToWorldPoint(
+                        w.Id, dest, arriveCommand: null, issueStop: false,
+                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                        exactGoal: true,
+                        freeStandRadius: Mathf.Min(FarmStandRadius, HostFarmFieldRules.ArriveEpsilon * .8f)))
+                {
+                    w.OwnedMovementRevision = moveController.GetPresentationMovementRevision(w.Id);
+                    w.Phase = Phase.Move;
+                    SetActivity(w.Id, "前往" + HostFarmFieldRules.JobVerb(w.Cell.CropStage));
+                    return true;
+                }
+            }
+            w.Phase = Phase.WaitingForStand;
+            w.WaitingMovementRevision = moveController != null
+                ? moveController.GetPresentationMovementRevision(w.Id) : 0u;
+            SetActivity(w.Id, "等待农田空位");
+            return false;
         }
 
         bool IsCellAuthorized(Worker worker, HostMapPlotCell cell)
@@ -490,9 +562,8 @@ namespace XianXia.Unity.Host
             ReleaseReserve(worker);
             worker.Cell = null;
             worker.WorkLeft = 0f;
-            if (AssignNextCell(worker))
+            if (AssignNextCell(worker) || worker.Phase == Phase.WaitingForStand)
                 return;
-            moveController?.CancelPresentationMovementPublic(worker.Id);
             if (!worker.FromNpcSchedule)
                 Toast(worker.Id, "已失去该农田的劳作权限，自动农作停止", new Color(1f, .45f, .35f));
             worker.Phase = Phase.Idle;
@@ -594,9 +665,17 @@ namespace XianXia.Unity.Host
 
         void ReleaseReserve(Worker w)
         {
+            ReleaseFarmMovement(w);
             if (w.ReservedCellId != 0)
                 _reserved.Remove(w.ReservedCellId);
             w.ReservedCellId = 0;
+        }
+
+        void ReleaseFarmMovement(Worker w)
+        {
+            if (w.OwnedMovementRevision != 0u)
+                moveController?.CancelPresentationMovementIfRevision(w.Id, w.OwnedMovementRevision);
+            w.OwnedMovementRevision = 0u;
         }
 
         bool TryGetWorldPos(EntityId id, out Vector3 pos)

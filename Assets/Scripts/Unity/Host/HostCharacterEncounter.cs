@@ -494,22 +494,24 @@ namespace XianXia.Unity.Host
                     world.Entities.TryGet(id, out var actorEntity);
                     _veil.TryAutoActivateForNonPlayer(world, id);
                     _veil.DeactivateIfSpiritEmpty(actorEntity);
-                    if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > _veil.ResolveEngageRange(actorEntity))
+                    var range = _veil.ResolveEngageRange(actorEntity);
+                    if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > range ||
+                        !_host.MoveController.IsCharacterStandClear(id))
                     {
                         if (p.Cooldown <= 0f)
                         {
-                            _host.MoveController.OrderEntityToWorldPoint(id, targetView.transform.position, arriveCommand: null, issueStop: false);
+                            _host.MoveController.OrderCharacterApproach(id, target, range);
                             p.Cooldown = .2f;
                         }
                         continue;
                     }
-                    if (p.Cooldown > 0f || !state.Opposing(id.Value, target.Value)) continue;
                     _host.MoveController.CancelPresentationMovementPublic(id);
+                    if (p.Cooldown > 0f || !state.Opposing(id.Value, target.Value)) continue;
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                     var strike = _melee.ApplyStrike(
                         world, id, target, out _, out var defenderDefeated);
                     if (strike.IsSuccess)
-                        actorView.PlayArtAttack(targetView.transform.position);
+                        actorView.PlayArtAttack(targetView.transform.position, SpiritVeilService.IsActive(actorEntity));
                     if (strike.IsSuccess && defenderDefeated)
                         RefreshDefeatedParticipant(target);
                 }
@@ -567,25 +569,26 @@ namespace XianXia.Unity.Host
                 !_host.ViewSpawner.Registry.TryGet(targetId, out var targetView) || targetView == null)
                 return;
             var range = _veil.ResolveEngageRange(attackerEntity);
-            if (Vector2.Distance(attackerView.transform.position, targetView.transform.position) > range)
+            if (Vector2.Distance(attackerView.transform.position, targetView.transform.position) > range ||
+                !_host.MoveController.IsCharacterStandClear(attackerId))
             {
                 if (attacker.Cooldown <= 0f)
                 {
-                    _host.MoveController.OrderEntityToWorldPoint(
-                        attackerId, targetView.transform.position, arriveCommand: null, issueStop: false,
+                    _host.MoveController.OrderCharacterApproach(
+                        attackerId, targetId, range,
                         completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
                     attacker.Cooldown = .2f;
                 }
                 return;
             }
+            _host.MoveController.CancelPresentationMovementPublic(attackerId);
             if (attacker.Cooldown > 0f)
                 return;
-            _host.MoveController.CancelPresentationMovementPublic(attackerId);
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
             var strike = _melee.ApplyStrike(
                 world, attackerId, targetId, out _, out var defenderDefeated);
             if (strike.IsSuccess)
-                attackerView.PlayArtAttack(targetView.transform.position);
+                attackerView.PlayArtAttack(targetView.transform.position, SpiritVeilService.IsActive(attackerEntity));
             if (strike.IsSuccess && defenderDefeated)
                 RefreshDefeatedParticipant(targetId);
             if (!CombatLifeStateService.CanBeAttacked(targetEntity))

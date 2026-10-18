@@ -61,6 +61,10 @@ namespace XianXia.Unity.Host
         readonly Dictionary<long, ulong> _materializePointUses = new Dictionary<long, ulong>();
         readonly List<EntityId> _sitePopulationScratch = new List<EntityId>();
         readonly List<ulong> _squadMemberScratch = new List<ulong>(16);
+        readonly List<ulong> _squadFormationMembersScratch = new List<ulong>(16);
+        readonly List<Vector3> _squadFormationFootpointsScratch = new List<Vector3>(16);
+        readonly HashSet<string> _crowdedSquadFormationReported =
+            new HashSet<string>(StringComparer.Ordinal);
         readonly HashSet<string> _distantSquadFormationReported =
             new HashSet<string>(StringComparer.Ordinal);
         readonly HashSet<string> _materializedSitePlacementOwners = new HashSet<string>(StringComparer.Ordinal);
@@ -70,6 +74,9 @@ namespace XianXia.Unity.Host
         const float surfaceCellSpacingPresentation = 3f;
         /// <summary>§16：已落入 grid 但格子 blocked 时，优先吸附到附近可走格。</summary>
         const int MaterializeNearestWalkableRadiusCells = 8;
+        // Match .8 local foot spacing at the standard EntityView root scale of 1.15.
+        const float SquadMemberStandSpacingPresentation = .92f;
+        const int SquadFallbackStandSearchRadiusCells = 4;
         enum StreamTransitionPhase
         {
             None,
@@ -566,16 +573,10 @@ namespace XianXia.Unity.Host
         {
             presentation = default;
             if (!IsFieldSquadInLoadedNeighborhood(squad, motion) ||
-                !TryResolveSurface(out var surface) || _compositeWalkGrid == null ||
+                !TryResolveSurface(out _) || _compositeWalkGrid == null ||
                 !TryWorldToPresentation(motion.WorldPosition, out var rawAnchor) ||
                 !TryResolveCompositeWalkableAnchor(rawAnchor, out var anchor))
                 return false;
-
-            if (stableSlot <= 0)
-            {
-                presentation = anchor;
-                return ValidateSquadFormationAnchor(squad, rawAnchor, presentation);
-            }
 
             var world = _bootstrap.Session.World;
             var geography = world.SurfaceGround.TryGet(_surfaceId, out var candidateNavigation) &&
@@ -583,19 +584,115 @@ namespace XianXia.Unity.Host
                                 motion.WorldPosition.X, motion.WorldPosition.Y)
                 ? candidateNavigation
                 : null;
-            var worldSpacing = Mathf.Max(.001f, surface.CellSize * 3f);
-            if (geography != null &&
-                TryWorldToPresentation(SquadContinuousFormationResolver.Resolve(
-                    motion, stableSlot, geography), out var candidate) &&
-                IsCompositeFormationSegmentWalkable(anchor, candidate))
+            // Rebuild the same stable prefix even if a later slot is requested first. This
+            // also reserves earlier feet before their EntityViews exist during materialization.
+            // The list is transient Host geometry, never a new personal/world authority.
+            _squadFormationMembersScratch.Clear();
+            for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
+                _squadFormationMembersScratch.Add(squad.MemberCharacterIds[i]);
+            _squadFormationMembersScratch.Sort();
+            if (stableSlot < 0 || stableSlot >= _squadFormationMembersScratch.Count)
+                return false;
+            _squadFormationFootpointsScratch.Clear();
+            for (var slot = 0; slot <= stableSlot; slot++)
             {
-                presentation = candidate;
+                var member = new EntityId(_squadFormationMembersScratch[slot]);
+                if (!CharacterLifeStateQuery.IsLivingForMacroOrder(world, member)) continue;
+                var selected = anchor;
+                var hasPreferred = slot == 0;
+                if (slot > 0 && geography != null &&
+                    TryWorldToPresentation(SquadContinuousFormationResolver.Resolve(
+                        motion, slot, geography), out var candidate) &&
+                    IsCompositeFormationSegmentWalkable(anchor, candidate) &&
+                    IsSquadFormationFootpointClear(candidate))
+                {
+                    selected = candidate;
+                    hasPreferred = true;
+                }
+                if (!hasPreferred && !TryFindSquadFallbackStandPoint(anchor, slot, out selected))
+                {
+                    // A one-cell pocket cannot fit a whole group. Keep a legal old footpoint,
+                    // or the legal anchor for a first view; never hide a real member to de-stack it.
+                    selected = anchor;
+                    var registry = _bootstrap?.ViewSpawner?.Registry;
+                    if (registry != null && registry.TryGet(member, out var previous) && previous != null &&
+                        IsLegalRetainedSquadFootpoint(rawAnchor, anchor, previous.transform.position))
+                        selected = previous.transform.position;
+                    if (_crowdedSquadFormationReported.Add(squad.SquadId))
+                        Debug.LogWarning("NPC Squad has no separate connected stand point within the local " +
+                            "formation fallback radius; retaining visible members: " + squad.SquadId, this);
+                }
+                _squadFormationFootpointsScratch.Add(selected);
+                if (slot != stableSlot) continue;
+                presentation = selected;
                 return ValidateSquadFormationAnchor(squad, rawAnchor, presentation);
             }
+            return false;
+        }
 
-            // A blocked or unavailable Core formation point falls back to the corrected anchor.
-            presentation = anchor;
-            return ValidateSquadFormationAnchor(squad, rawAnchor, presentation);
+        bool IsSquadFormationFootpointClear(Vector3 candidate)
+        {
+            var spacingSquared = SquadMemberStandSpacingPresentation * SquadMemberStandSpacingPresentation;
+            for (var i = 0; i < _squadFormationFootpointsScratch.Count; i++)
+            {
+                var occupied = _squadFormationFootpointsScratch[i];
+                var dx = candidate.x - occupied.x;
+                var dy = candidate.y - occupied.y;
+                if (dx * dx + dy * dy < spacingSquared) return false;
+            }
+            return true;
+        }
+
+        bool TryFindSquadFallbackStandPoint(Vector3 anchor, int stableSlot, out Vector3 result)
+        {
+            result = anchor;
+            if (_compositeWalkGrid == null ||
+                !_compositeWalkGrid.TryWorldToCell(anchor.x, anchor.y, out var anchorX, out var anchorY))
+                return false;
+            var cellPresentation = Mathf.Max(.01f, _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit);
+            var radius = cellPresentation * SquadFallbackStandSearchRadiusCells;
+            for (var ring = 1; ring <= SquadFallbackStandSearchRadiusCells; ring++)
+            {
+                var edgeLength = ring * 2;
+                var count = ring * 8;
+                for (var ordinal = 0; ordinal < count; ordinal++)
+                {
+                    var index = (ordinal + stableSlot * 3) % count;
+                    var edge = index / edgeLength;
+                    var step = index % edgeLength;
+                    var dx = edge == 0 ? -ring + step : edge == 1 ? ring :
+                        edge == 2 ? ring - step : -ring;
+                    var dy = edge == 0 ? -ring : edge == 1 ? -ring + step :
+                        edge == 2 ? ring : ring - step;
+                    var x = anchorX + dx;
+                    var y = anchorY + dy;
+                    if (!_compositeWalkGrid.IsWalkable(x, y)) continue;
+                    _compositeWalkGrid.CellToWorldCenter(x, y, out var px, out var py);
+                    var candidate = HostPresentationSpace.FromPresentation(px, py);
+                    if ((candidate - anchor).sqrMagnitude > radius * radius ||
+                        !IsSquadFormationFootpointClear(candidate) ||
+                        !IsSquadFootpointInLogicalNeighborhood(candidate) ||
+                        !IsCompositeFormationSegmentWalkable(anchor, candidate)) continue;
+                    result = candidate;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool IsSquadFootpointInLogicalNeighborhood(Vector3 candidate)
+        {
+            _mapper.PresentationToWorld(candidate.x, candidate.y, out var x, out var y);
+            return _loaded.Contains(_mapper.WorldToChunk(x, y));
+        }
+
+        bool IsLegalRetainedSquadFootpoint(Vector3 rawAnchor, Vector3 anchor, Vector3 candidate)
+        {
+            var maxDistance = _mapper.CellSize * _mapper.PresentationUnitsPerWorldUnit * 16f;
+            return (candidate - rawAnchor).sqrMagnitude <= maxDistance * maxDistance &&
+                IsSquadFootpointInLogicalNeighborhood(candidate) &&
+                _compositeWalkGrid.TryWorldToCell(candidate.x, candidate.y, out var x, out var y) &&
+                _compositeWalkGrid.IsWalkable(x, y) && IsCompositeFormationSegmentWalkable(anchor, candidate);
         }
 
         bool ValidateSquadFormationAnchor(SquadState squad, Vector3 expected,
@@ -2211,6 +2308,9 @@ namespace XianXia.Unity.Host
             }
             _continuousSitePopulation.Clear();
             _continuousSquadPopulation.Clear();
+            _squadFormationMembersScratch.Clear();
+            _squadFormationFootpointsScratch.Clear();
+            _crowdedSquadFormationReported.Clear();
             _desiredMaterializedEntities.Clear();
             _sitePopulationScratch.Clear();
             if (pruneViews && _bootstrap?.Session?.IsInitialized == true)

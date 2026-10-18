@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "coordinateSystem": "Original atlas pixels; top-left origin. Export converts points to each alpha-bounded rect, normalized bottom-left origin.",
+  "status": "Source-image joint registration implemented; Unity producer visual acceptance pending.",
+  "notes": [
+    "Points are explicit per source image, visually registered to sleeve openings, palms, chin/nape/neck bases and torso collar openings; they are not inferred from alpha bounding-box ratios.",
+    "Side heads face east. Eleven side torsos face west in the original art; only the protagonist side torso already faces east. mirrorX normalizes only the torso and its sockets.",
+    "Protagonist and guard torso meshes omit baked sleeves/upper arms while retaining shoulder overlap, collar, belt and lower garment. Original PNG pixels and GUIDs remain unchanged.",
+    "Front/back head pivots retain their existing chin/nape registration. Side heads register a short-neck cross-section at the torso collar; explicit visible meshes remove the extra painted collar or lower bare neck while retaining long hair and beard branches. Existing worldHeight values are retained.",
+    "leftShoulderSocket/rightShoulderSocket name the far/near arm for side views, and screen-left/screen-right arm for front/back views. Side socket source points are reflected with mirrorX before assembly.",
+    "The protagonist right-arm logical part 2 explicitly mirrors the calibrated left-arm part 3. The original two PNG arms have the same thumb handedness; aliasing gives symmetric sleeves, pivots and palms without repainting or replacing source pixels."
+  ],
+  "atlases": {
+    "ART-CHAR-001_HumanCommonRig_parts_v01": {
+      "sourceSha256": "cf21f18048f11b9ceca9de571a5b3a9306ddad3811220452aca28e5fdf999d9c",
+      "pieces": {
+        "0": {"neckSocketPx": [233, 61], "leftShoulderSocketPx": [122, 127], "rightShoulderSocketPx": [344, 126]},
+        "1": {"pivotPx": [622, 351]},
+        "2": {"pivotPx": [984, 96], "gripPx": [1105, 360]},
+        "3": {"pivotPx": [274, 494], "gripPx": [149, 763]},
+        "6": {"neckSocketPx": [232, 854], "leftShoulderSocketPx": [112, 920], "rightShoulderSocketPx": [354, 921]},
+        "7": {"pivotPx": [622, 1154]},
+        "8": {"mirrorX": true, "neckSocketPx": [1036, 875], "leftShoulderSocketPx": [1020, 935], "rightShoulderSocketPx": [1054, 985]}
+      }
+    },
+    "ART-CHAR-002_HumanCommonRig_parts_v01": {
+      "sourceSha256": "fafe5a2990e104c670150b5953b0a01638d5ba6167ecfdf7a3f5180bd41ba3e5",
+      "pieces": {
+        "0": {"neckSocketPx": [240, 59], "leftShoulderSocketPx": [145, 108], "rightShoulderSocketPx": [331, 108], "meshPolygonPx": [[196, 41], [280, 41], [347, 84], [331, 140], [317, 204], [326, 232], [371, 367], [292, 392], [228, 402], [140, 374], [105, 350], [160, 234], [170, 204], [157, 140], [124, 84]]},
+        "1": {"pivotPx": [638, 373]},
+        "2": {"copyFromPart": 3, "mirrorX": true},
+        "3": {"pivotPx": [260, 501], "gripPx": [281, 739]},
+        "6": {"neckSocketPx": [229, 854], "leftShoulderSocketPx": [135, 907], "rightShoulderSocketPx": [324, 907], "meshPolygonPx": [[193, 842], [271, 842], [348, 874], [323, 930], [315, 983], [326, 1015], [372, 1170], [283, 1193], [217, 1208], [132, 1173], [103, 1146], [155, 1013], [170, 980], [141, 930], [110, 874]]},
+        "7": {"pivotPx": [644, 1132]},
+        "8": {"mirrorX": false, "neckSocketPx": [1084, 843], "leftShoulderSocketPx": [1110, 902], "rightShoulderSocketPx": [1047, 905], "meshPolygonPx": [[1061, 826], [1121, 852], [1151, 904], [1150, 972], [1159, 1046], [1184, 1164], [1113, 1186], [1068, 1186], [1000, 1149], [1027, 1080], [1051, 1001], [1057, 936], [1027, 888]]}
+      }
+    },
+    "ART-CHAR-004_HumanCommonRig_parts_v01": {
+      "sourceSha256": "80179df0b1d226f16bdd64197b7e97b5c2b05a84199a2931e6856db1d88ebab2",
+      "pieces": {
+        "0": {"neckSocketPx": [250, 43], "leftShoulderSocketPx": [138, 126], "rightShoulderSocketPx": [378, 128], "meshPolygonPx": [[210, 28], [295, 28], [347, 57], [405, 78], [434, 114], [402, 149], [366, 159], [356, 221], [392, 365], [314, 407], [216, 407], [129, 363], [166, 221], [157, 158], [120, 151], [86, 115], [96, 79], [164, 56]]},
+        "1": {"pivotPx": [650, 377]},
+        "2": {"pivotPx": [1009, 100], "gripPx": [1095, 359]},
+        "3": {"pivotPx": [267, 498], "gripPx": [183, 750]},
+        "6": {"neckSocketPx": [254, 853], "leftShoulderSocketPx": [135, 950], "rightShoulderSocketPx": [387, 951], "meshPolygonPx": [[207, 837], [294, 837], [356, 864], [418, 890], [440, 926], [400, 973], [375, 986], [361, 1050], [404, 1189], [313, 1219], [218, 1219], [129, 1187], [162, 1050], [146, 983], [111, 972], [82, 923], [100, 885], [157, 862]]},
+        "7": {"pivotPx": [650, 1152]},
+        "8": {"mirrorX": true, "neckSocketPx": [1042, 864], "leftShoulderSocketPx": [1080, 942], "rightShoulderSocketPx": [1049, 967], "meshPolygonPx": [[1021, 841], [1080, 854], [1120, 898], [1136, 943], [1125, 988], [1112, 1053], [1124, 1140], [1124, 1205], [1057, 1223], [943, 1193], [950, 1142], [980, 1080], [1054, 1035], [1050, 981], [1013, 929], [982, 893]]}
+      }
+    },
+    "ART-CHAR-002_companion_a_HumanCommonRig_parts_v01": {
+      "sourceSha256": "a1779009ca8ce1e5f2211898aa1fa30a90d50d6fe4a76f66e2b4edb176f9878d",
+      "pieces": {
+        "0": {"neckSocketPx": [233, 54], "leftShoulderSocketPx": [120, 124], "rightShoulderSocketPx": [344, 124]},
+        "1": {"pivotPx": [612, 359]},
+        "2": {"pivotPx": [980, 95], "gripPx": [1091, 365]},
+        "3": {"pivotPx": [288, 498], "gripPx": [145, 774]},
+        "6": {"neckSocketPx": [235, 845], "leftShoulderSocketPx": [111, 917], "rightShoulderSocketPx": [356, 918]},
+        "7": {"pivotPx": [621, 1155]},
+        "8": {"mirrorX": true, "neckSocketPx": [1041, 871], "leftShoulderSocketPx": [1028, 933], "rightShoulderSocketPx": [1062, 984]}
+      }
+    },
+    "ART-CHAR-002_companion_b_HumanCommonRig_parts_v01": {
+      "sourceSha256": "d05c19705a161e16cadf4680c89ad6f12ab791d7e88955660142b89734fbdd7d",
+      "pieces": {
+        "0": {"neckSocketPx": [233, 57], "leftShoulderSocketPx": [121, 124], "rightShoulderSocketPx": [345, 125]},
+        "1": {"pivotPx": [625, 372]},
+        "2": {"pivotPx": [982, 94], "gripPx": [1103, 361]},
+        "3": {"pivotPx": [274, 492], "gripPx": [147, 769]},
+        "6": {"neckSocketPx": [235, 852], "leftShoulderSocketPx": [111, 921], "rightShoulderSocketPx": [356, 920]},
+        "7": {"pivotPx": [622, 1154]},
+        "8": {"mirrorX": true, "neckSocketPx": [1034, 871], "leftShoulderSocketPx": [1012, 933], "rightShoulderSocketPx": [1058, 990]}
+      }
+    },
+    "ART-CHAR-003_supervisor_HumanCommonRig_parts_v01": {
+      "sourceSha256": "e62ecd12e9e9815b1abea25acc8fd6dbe295a0f01f7aa59f11aa420734d6d3cf",
+      "pieces": {
+        "0": {"neckSocketPx": [232, 59], "leftShoulderSocketPx": [120, 125], "rightShoulderSocketPx": [344, 125]},
+        "1": {"pivotPx": [619, 371]},
+        "2": {"pivotPx": [982, 96], "gripPx": [1101, 363]},
+        "3": {"pivotPx": [275, 492], "gripPx": [134, 771]},
+        "6": {"neckSocketPx": [233, 853], "leftShoulderSocketPx": [108, 920], "rightShoulderSocketPx": [356, 920]},
+        "7": {"pivotPx": [623, 1150]},
+        "8": {"mirrorX": true, "neckSocketPx": [1049, 868], "leftShoulderSocketPx": [1024, 935], "rightShoulderSocketPx": [1069, 980]}
+      }
+    },
+    "ART-CHAR-005_hoe_HumanCommonRig_parts_v01": {
+      "sourceSha256": "4a24a0351e3967e1a3b436f54750edef4f361f3089d4acac45c0dd576ab7c34a",
+      "pieces": {
+        "0": {"neckSocketPx": [235, 60], "leftShoulderSocketPx": [120, 126], "rightShoulderSocketPx": [354, 125]},
+        "1": {"pivotPx": [622, 355]},
+        "2": {"pivotPx": [979, 94], "gripPx": [1102, 374]},
+        "3": {"pivotPx": [289, 489], "gripPx": [145, 776]},
+        "6": {"neckSocketPx": [235, 852], "leftShoulderSocketPx": [108, 920], "rightShoulderSocketPx": [359, 921]},
+        "7": {"pivotPx": [620, 1155]},
+        "8": {"mirrorX": true, "neckSocketPx": [1044, 877], "leftShoulderSocketPx": [1025, 938], "rightShoulderSocketPx": [1067, 989]}
+      }
+    },
+    "ART-CHAR-005_apron_HumanCommonRig_parts_v01": {
+      "sourceSha256": "cb06df3420714b9c0a665f96dc76c9fc371e5347e687817004a4bea48e0e833e",
+      "pieces": {
+        "0": {"neckSocketPx": [231, 59], "leftShoulderSocketPx": [121, 125], "rightShoulderSocketPx": [344, 126]},
+        "1": {"pivotPx": [610, 360]},
+        "2": {"pivotPx": [981, 94], "gripPx": [1100, 367]},
+        "3": {"pivotPx": [274, 492], "gripPx": [143, 773]},
+        "6": {"neckSocketPx": [232, 852], "leftShoulderSocketPx": [106, 922], "rightShoulderSocketPx": [358, 922]},
+        "7": {"pivotPx": [623, 1160]},
+        "8": {"mirrorX": true, "neckSocketPx": [1057, 874], "leftShoulderSocketPx": [1031, 937], "rightShoulderSocketPx": [1070, 953]}
+      }
+    },
+    "ART-CHAR-005_basket_HumanCommonRig_parts_v01": {
+      "sourceSha256": "d58a92b3895a48f663d3410a71eb1bb0610a694808d3b655577ec3fd1ba159d4",
+      "pieces": {
+        "0": {"neckSocketPx": [234, 60], "leftShoulderSocketPx": [123, 125], "rightShoulderSocketPx": [346, 125]},
+        "1": {"pivotPx": [617, 355]},
+        "2": {"pivotPx": [984, 94], "gripPx": [1097, 359]},
+        "3": {"pivotPx": [274, 497], "gripPx": [151, 768]},
+        "6": {"neckSocketPx": [234, 857], "leftShoulderSocketPx": [111, 924], "rightShoulderSocketPx": [357, 924]},
+        "7": {"pivotPx": [626, 1154]},
+        "8": {"mirrorX": true, "neckSocketPx": [1042, 872], "leftShoulderSocketPx": [1020, 940], "rightShoulderSocketPx": [1075, 989]}
+      }
+    },
+    "ART-CHAR-006_merchant_HumanCommonRig_parts_v01": {
+      "sourceSha256": "f2aa6d5c6821099fe8a52b37bec2eb648fc2dc6a3629411a9951addeb786d0a6",
+      "pieces": {
+        "0": {"neckSocketPx": [232, 58], "leftShoulderSocketPx": [119, 124], "rightShoulderSocketPx": [346, 126]},
+        "1": {"pivotPx": [619, 360]},
+        "2": {"pivotPx": [980, 94], "gripPx": [1100, 366]},
+        "3": {"pivotPx": [275, 493], "gripPx": [129, 772]},
+        "6": {"neckSocketPx": [232, 851], "leftShoulderSocketPx": [105, 917], "rightShoulderSocketPx": [360, 918]},
+        "7": {"pivotPx": [616, 1164]},
+        "8": {"mirrorX": true, "neckSocketPx": [1034, 872], "leftShoulderSocketPx": [1008, 938], "rightShoulderSocketPx": [1060, 989]}
+      }
+    },
+    "ART-CHAR-007_other_HumanCommonRig_parts_v01": {
+      "sourceSha256": "71529c43c928e5a984162ebcdb75875f2bafc81ab633b5ee3f7bf2677c639f87",
+      "pieces": {
+        "0": {"neckSocketPx": [233, 60], "leftShoulderSocketPx": [123, 125], "rightShoulderSocketPx": [345, 125]},
+        "1": {"pivotPx": [613, 362]},
+        "2": {"pivotPx": [984, 94], "gripPx": [1105, 365]},
+        "3": {"pivotPx": [273, 493], "gripPx": [145, 774]},
+        "6": {"neckSocketPx": [233, 852], "leftShoulderSocketPx": [108, 919], "rightShoulderSocketPx": [358, 918]},
+        "7": {"pivotPx": [623, 1155]},
+        "8": {"mirrorX": true, "neckSocketPx": [1042, 872], "leftShoulderSocketPx": [1020, 937], "rightShoulderSocketPx": [1065, 992]}
+      }
+    },
+    "ART-CHAR-007_jiang_lao_HumanCommonRig_parts_v01": {
+      "sourceSha256": "38ddb51e5ba0e507cb97537a9bfce188149c3193d44d77b68dac8e7a1c02aa08",
+      "pieces": {
+        "0": {"neckSocketPx": [234, 59], "leftShoulderSocketPx": [123, 124], "rightShoulderSocketPx": [350, 126]},
+        "1": {"pivotPx": [633, 357]},
+        "2": {"pivotPx": [984, 95], "gripPx": [1109, 366]},
+        "3": {"pivotPx": [275, 490], "gripPx": [130, 776]},
+        "6": {"neckSocketPx": [232, 852], "leftShoulderSocketPx": [108, 919], "rightShoulderSocketPx": [356, 919]},
+        "7": {"pivotPx": [628, 1145]},
+        "8": {"mirrorX": true, "neckSocketPx": [1040, 870], "leftShoulderSocketPx": [1018, 933], "rightShoulderSocketPx": [1069, 982]}
+      }
+    },
+    "ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01": {
+      "sourceSha256": "d686dda0d0c2b6db4792d24d1b0ef9e258b760f45129c1f05804dc413d03abfe",
+      "pieces": {
+        "0": {"pivotPx": [385, 523], "meshPolygonPx": [[157, 124], [577, 124], [577, 546], [443, 546], [302, 490], [157, 490]]},
+        "1": {"pivotPx": [1128, 523], "meshPolygonPx": [[869, 115], [1317, 115], [1317, 541], [1172, 541], [1060, 496], [869, 496]]},
+        "2": {"pivotPx": [1852, 520], "meshPolygonPx": [[1572, 114], [2031, 114], [2031, 546], [1924, 546], [1768, 489], [1572, 489]]}
+      }
+    },
+    "ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01": {
+      "sourceSha256": "03b5dadabc9bdb30b9dc112d99e9799e7e5e6f58bfe63d1b0bc22afbe60040b1",
+      "pieces": {
+        "0": {"pivotPx": [320, 585], "meshPolygonPx": [[10, 124], [541, 124], [541, 686], [384, 686], [384, 585], [360, 585], [339, 584], [338, 616], [343, 645], [351, 664], [375, 686], [310, 686], [294, 659], [286, 633], [288, 588], [262, 574], [240, 604], [237, 686], [10, 686]]},
+        "1": {"pivotPx": [849, 576], "meshPolygonPx": [[558, 115], [1105, 115], [1105, 662], [943, 662], [943, 584], [918, 584], [901, 599], [900, 617], [880, 607], [857, 578], [808, 567], [778, 603], [772, 662], [558, 662]]},
+        "2": {"pivotPx": [1360, 576], "meshPolygonPx": [[1140, 125], [1612, 125], [1612, 666], [1460, 666], [1460, 592], [1425, 594], [1435, 634], [1406, 620], [1387, 585], [1308, 560], [1280, 594], [1272, 666], [1140, 666]]},
+        "3": {"pivotPx": [1918, 574], "meshPolygonPx": [[1654, 133], [2163, 133], [2163, 667], [1994, 667], [1994, 590], [1973, 592], [1966, 618], [1940, 603], [1925, 576], [1868, 562], [1840, 597], [1830, 667], [1654, 667]]}
+      }
+    },
+    "ART-CHAR-005_006_007_HumanCommonRig_sideheads_v01": {
+      "sourceSha256": "02a22751ab1b2e897d56a5bd228ae99b5474fb8357ae0088810f9a0cc31fad88",
+      "pieces": {
+        "0": {"pivotPx": [301, 610], "meshPolygonPx": [[26, 124], [548, 124], [548, 684], [374, 684], [374, 599], [352, 599], [351, 624], [369, 652], [349, 650], [343, 670], [321, 684], [307, 684], [323, 657], [326, 638], [309, 617], [291, 614], [260, 598], [235, 611], [223, 642], [215, 684], [26, 684]]},
+        "1": {"pivotPx": [832, 593], "meshPolygonPx": [[572, 119], [1085, 119], [1085, 662], [925, 662], [925, 592], [903, 600], [904, 624], [893, 648], [881, 660], [852, 660], [865, 639], [873, 615], [862, 607], [844, 595], [796, 584], [774, 610], [764, 640], [749, 654], [739, 662], [572, 662]]},
+        "2": {"pivotPx": [1360, 592], "meshPolygonPx": [[1108, 117], [1628, 117], [1628, 656], [1452, 656], [1452, 596], [1444, 620], [1452, 650], [1425, 642], [1403, 612], [1391, 600], [1310, 580], [1286, 609], [1268, 656], [1108, 656]]},
+        "3": {"pivotPx": [1898, 619], "meshPolygonPx": [[1669, 120], [2144, 120], [2144, 683], [1975, 683], [1975, 607], [1953, 613], [1945, 634], [1944, 665], [1922, 683], [1896, 683], [1916, 654], [1916, 637], [1901, 621], [1850, 605], [1826, 627], [1814, 654], [1797, 683], [1669, 683]]}
+      }
+    },
+    "ART-CHAR-007_jiang_lao_HumanCommonRig_sidehead_v01": {
+      "sourceSha256": "e67cd16d2ca4bfa25cfdc7323d740eff716ff072767ea1bea0150934bda81c01",
+      "pieces": {
+        "0": {"pivotPx": [640, 914], "meshPolygonPx": [[203, 85], [1033, 85], [1033, 1127], [791, 1127], [791, 924], [764, 938], [758, 972], [750, 1007], [728, 1033], [708, 1033], [721, 999], [721, 980], [706, 951], [688, 930], [560, 887], [504, 903], [485, 930], [480, 973], [480, 1127], [203, 1127]]}
+      }
+    }
+  }
+}

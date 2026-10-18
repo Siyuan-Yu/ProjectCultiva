@@ -11,8 +11,9 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceRelative = 'docs/40-process/273-current-art-asset-register.tsv';
 const source = path.join(repo, sourceRelative);
 const destination = source.replace(/\.tsv$/i, '.xlsx');
-const mainHeaders = ['AssetID', '名称', '分类', '优先级', '制作进度', '品质阶段', '接入/验收状态', '简短备注'];
-const required = ['AssetID', '名称', '分类', '优先级', '制作进度', '品质阶段', '接入位置与方式', '验收状态', '备注与替换要求'];
+const mainHeaders = ['AssetID', '名称', '分类', '优先级', '制作进度', '品质阶段', '接入/验收状态', '简短备注', '推荐技术路线'];
+const routeHeaders = ['推荐技术路线', '制作与复用要求', '目标交付文件', '旧素材与迁移规则'];
+const required = ['AssetID', '名称', '分类', '优先级', '制作进度', '品质阶段', '接入位置与方式', '验收状态', '备注与替换要求', ...routeHeaders];
 const dataRow = 9;
 
 function parseTsv(text) {
@@ -55,6 +56,8 @@ function readSource(bytes) {
   const ids = rows.map(r => r[idIndex]);
   if (ids.some(id => !id) || new Set(ids).size !== ids.length) throw new Error('AssetID is empty or duplicated');
   const objects = rows.map(r => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
+  if (objects.some(o => routeHeaders.some(h => !o[h].trim())))
+    throw new Error('An asset is missing a technical-route field');
   const counts = Object.fromEntries(['P0', 'P1', 'P2'].map(p => [p, objects.filter(r => r['优先级'] === p).length]));
   return { headers, rows, objects, counts, hash: createHash('sha256').update(bytes).digest('hex') };
 }
@@ -92,13 +95,17 @@ function styleSheet(sheet, columns, rowCount, isMain) {
   body.format.rowHeight = isMain ? 36 : 44;
   sheet.getRange('A:A').format.columnWidth = 20;
   if (isMain) {
-    [25, 19, 11, 16, 16, 25, 54].forEach((width, i) =>
+    [25, 19, 11, 16, 16, 25, 54, 42].forEach((width, i) =>
       sheet.getRange(`${String.fromCharCode(66 + i)}:${String.fromCharCode(66 + i)}`).format.columnWidth = width);
   } else {
     for (let i = 1; i < columns; i++) {
       const col = String.fromCharCode(65 + i);
       sheet.getRange(`${col}:${col}`).format.columnWidth = [23, 19, 11, 17, 38, 50, 50, 16, 16, 38, 50, 54, 15, 52, 20][i - 1] ?? 24;
     }
+    sheet.getRange('R:R').format.columnWidth = 38;
+    sheet.getRange('S:S').format.columnWidth = 76;
+    sheet.getRange('T:T').format.columnWidth = 68;
+    sheet.getRange('U:U').format.columnWidth = 76;
   }
   sheet.freezePanes.freezeRows(8);
   sheet.freezePanes.freezeColumns(1);
@@ -143,8 +150,11 @@ async function verifyXlsx(filePath, SpreadsheetFile, FileBlob, sourceInfo) {
     }
   }
   const expectedOverview = sourceInfo.objects.map(o => [o.AssetID, o['名称'], o['分类'], o['优先级'], o['制作进度'], o['品质阶段'],
-    `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求']]);
-  const viewMatrix = overview.getRange(`A${dataRow}:H${dataRow + n - 1}`).values;
+    `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求'], o['推荐技术路线']]);
+  const overviewHeaders = overview.getRange('A8:I8').values[0];
+  if (overviewHeaders.some((header, index) => header !== mainHeaders[index]))
+    throw new Error('Overview headers differ from the export configuration');
+  const viewMatrix = overview.getRange(`A${dataRow}:I${dataRow + n - 1}`).values;
   for (let r = 0; r < n; r++) for (let c = 0; c < mainHeaders.length; c++)
     if (readbackText(viewMatrix[r][c], expectedOverview[r][c]) !== expectedOverview[r][c])
       throw new Error(`Overview content mismatch at row ${r + dataRow}, column ${c + 1}`);
@@ -180,15 +190,16 @@ async function main() {
     const overview = wb.worksheets.add('美术清单');
     const detail = wb.worksheets.add('工程明细');
     const viewRows = sourceInfo.objects.map(o => [o.AssetID, o['名称'], o['分类'], o['优先级'], o['制作进度'], o['品质阶段'],
-      `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求']]);
+      `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求'], o['推荐技术路线']]);
     populate(overview, mainHeaders, viewRows, sourceInfo, true);
     populate(detail, sourceInfo.headers, sourceInfo.rows, sourceInfo, false);
     wb.recalculate();
     if (process.env.ART_REGISTER_PREVIEW_DIR) {
       await fs.mkdir(process.env.ART_REGISTER_PREVIEW_DIR, { recursive: true });
       for (const [sheetName, fileName, range] of [
-        ['美术清单', 'art-overview-preview.png', 'A1:H16'],
+        ['美术清单', 'art-overview-preview.png', 'A1:I16'],
         ['工程明细', 'art-detail-preview.png', 'A1:H13'],
+        ['工程明细', 'art-route-preview.png', 'R8:U12'],
       ]) {
         const image = await wb.render({ sheetName, range, scale: 1, format: 'png' });
         await fs.writeFile(path.join(process.env.ART_REGISTER_PREVIEW_DIR, fileName),

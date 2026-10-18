@@ -15,6 +15,14 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class EntityViewSpawner : MonoBehaviour
     {
+        public enum PrototypeVisualDriver { LegacySprite, ModularRig }
+
+        // Production always starts on the common rig. A saved prototypeVisualDriver=0 used to
+        // silently restore the retired frame path even after the source default changed to Rig.
+        // Keep the old sheets only as an explicit, temporary Play Mode preview.
+        [System.NonSerialized] bool _legacySpritePreview;
+        [System.NonSerialized] PrototypeVisualDriver _appliedVisualDriver = PrototypeVisualDriver.ModularRig;
+
         static readonly Color[] CharacterSlotColors =
         {
             new Color(0.25f, 0.75f, 1f),
@@ -37,6 +45,7 @@ namespace XianXia.Unity.Host
 
         readonly EntityViewRegistry _registry = new EntityViewRegistry();
         readonly List<EntityView> _spawned = new List<EntityView>();
+        PlayableHostSession _session;
 
         public EntityViewRegistry Registry => _registry;
 
@@ -44,8 +53,58 @@ namespace XianXia.Unity.Host
 
         public IReadOnlyList<Vector3> SlotPositions => slotPositions;
 
+        public PrototypeVisualDriver VisualDriver => _legacySpritePreview
+            ? PrototypeVisualDriver.LegacySprite : PrototypeVisualDriver.ModularRig;
+
+        void Update()
+        {
+            var driver = VisualDriver;
+            var driverChanged = _appliedVisualDriver != driver;
+            _appliedVisualDriver = driver;
+            if (_session == null || !_session.IsInitialized) return;
+            for (var i = 0; i < _spawned.Count; i++)
+            {
+                var view = _spawned[i];
+                if (view == null || !view.IsBoundTo(_session.World, view.EntityId)) continue;
+                if (driverChanged)
+                    view.SetModularRigMode(driver == PrototypeVisualDriver.ModularRig);
+                EnsureArt(view, _session);
+            }
+        }
+
+        void EnsureArt(EntityView view, PlayableHostSession session)
+        {
+            var modular = VisualDriver == PrototypeVisualDriver.ModularRig;
+            if (view.HasRuntimeArtBinding(session, modular)) return;
+            if (view.HasRuntimeArtConfiguration(session, modular))
+                view.TryRecoverRuntimeArtBinding();
+            else
+                ConfigureArt(view, session);
+        }
+
+        void ConfigureArt(EntityView view, PlayableHostSession session)
+        {
+            if (!session.World.Entities.TryGet(view.EntityId, out var entity)) return;
+            view.ConfigureRuntimeArt(HostStepAArt.ResolveProfile(entity),
+                GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
+                GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
+                GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>(),
+                session, VisualDriver == PrototypeVisualDriver.ModularRig);
+        }
+
+        [ContextMenu("Debug only: toggle legacy frame preview (this Play Mode session)")]
+        public void TogglePrototypeVisualDriver()
+        {
+            if (!Application.isPlaying) return;
+            _legacySpritePreview = !_legacySpritePreview;
+            Debug.LogWarning("[CharacterVisualPreview] Driver=" + VisualDriver +
+                " Temporary debug preview; restarting/rebuilding restores HumanCommonRig.", this);
+        }
+
         public void Rebuild(PlayableHostSession session)
         {
+            _legacySpritePreview = false;
+            _appliedVisualDriver = PrototypeVisualDriver.ModularRig;
             Clear();
 
             if (session == null || !session.IsInitialized)
@@ -53,6 +112,7 @@ namespace XianXia.Unity.Host
                 Debug.LogError("[EntityViewSpawner] Cannot rebuild: session not initialized.", this);
                 return;
             }
+            _session = session;
 
             EnsureRoot();
 
@@ -90,10 +150,7 @@ namespace XianXia.Unity.Host
 
                 view.SetBaseColor(color);
                 ApplyLifeStateVisual(session.World, entity, view);
-                view.ConfigureRuntimeArt(HostStepAArt.ResolveProfile(entity),
-                    GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
-                    GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
-                    GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>());
+                ConfigureArt(view, session);
                 _registry.Register(id, view);
                 _spawned.Add(view);
             }
@@ -101,6 +158,7 @@ namespace XianXia.Unity.Host
 
         public void Clear()
         {
+            _session = null;
             for (var i = 0; i < _spawned.Count; i++)
                 DestroyView(_spawned[i]);
 
@@ -224,6 +282,7 @@ namespace XianXia.Unity.Host
         {
             if (session == null || !session.IsInitialized)
                 return;
+            _session = session;
 
             EnsureRoot();
             var ids = session.ViewableEntityIds;
@@ -231,8 +290,16 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
-                if (_registry.TryGet(id, out _))
+                if (_registry.TryGet(id, out var existing))
+                {
+                    if (!existing.IsBoundTo(session.World, id))
+                    {
+                        if (existing.Bind(session.World, id)) ConfigureArt(existing, session);
+                    }
+                    else
+                        EnsureArt(existing, session);
                     continue;
+                }
                 if (!LocalMapVisibility.IsEntityVisible(session.World, id))
                     continue;
                 if (session.World.Entities.TryGet(id, out var lifeEnt) &&
@@ -262,10 +329,7 @@ namespace XianXia.Unity.Host
 
                 view.SetBaseColor(color);
                 ApplyLifeStateVisual(session.World, entity, view);
-                view.ConfigureRuntimeArt(HostStepAArt.ResolveProfile(entity),
-                    GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
-                    GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
-                    GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>());
+                ConfigureArt(view, session);
                 _registry.Register(id, view);
                 _spawned.Add(view);
             }
@@ -337,9 +401,6 @@ namespace XianXia.Unity.Host
                 view.SetActivityText(string.IsNullOrEmpty(stamped)
                     ? (isCorpse ? "尸体" : "弥留")
                     : stamped);
-                view.SetBaseColor(isCorpse
-                    ? new Color(0.35f, 0.32f, 0.30f, 0.85f)
-                    : new Color(0.72f, 0.45f, 0.42f, 0.92f));
             }
         }
 
