@@ -1,5 +1,7 @@
 # PJCultiva 美术总包｜第一、二批
 
+> 2026-10-18：这是历史压缩包说明。根目录旧 ZIP 指针已退役；项目当前美术真源为 `ArtSource/Batches` 原图/manifest 与 [273 资产登记](docs/40-process/273-current-art-asset-register.tsv)。人物骨架和源文件清理进度见 [297 最新交接](docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。以下旧解压流程只保留背景。
+
 ## 内容
 
 - 素材原图：20张PNG（第一批10张，第二批10张），所有原图均已按现有AssetID命名。

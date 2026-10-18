@@ -4,7 +4,7 @@
   "createdAt": "2026-10-16T11:38:38+08:00",
   "sourceInbox": "ArtSource/Inbox",
   "sourceManifest": "ArtSource/BatchInfo/Batch_20261016_01/asset_manifest.json",
-  "sourceManifestSha256": "a7912da292901648ee81854dbd6e8492acc1a41d928b64fa9bab58b2f5b6cdc4",
+  "sourceManifestSha256": "7a569c5ca7f33d862576777d2ff960ce478662cb8d4525d0a639689e58f7578b",
   "globalRegister": "docs/40-process/273-current-art-asset-register.tsv",
   "authorityNote": "这里只记录文件追溯和候选映射；全局制作、接入与验收进度以 273 TSV 为准。",
   "overviewPreviewPath": "ArtSource/Batches/Batch_20261016_01/Previews/contact-sheet.png",
@@ -24,7 +24,6 @@
     {
       "number": 1,
       "sourceFileName": "ART-CHAR-001_common_villagers_3up_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-001_common_villagers_3up_v01.png",
       "sha256": "ee8e63eaf1c02cf3d8f72f0d5b0613f5f2490eeb0d33bac75d131fd7e13402f6",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png",
       "fileSizeBytes": 1185929,
@@ -108,12 +107,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png"
     },
     {
       "number": 2,
       "sourceFileName": "ART-CHAR-002_protagonist_trio_3up_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-002_protagonist_trio_3up_v01.png",
       "sha256": "198b214752850b9e2db39939897bd2f56b5819d0749ee2235cc3b7ef558df411",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png",
       "fileSizeBytes": 1203094,
@@ -188,12 +187,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png"
     },
     {
       "number": 3,
       "sourceFileName": "ART-CHAR-003_supervisor_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-003_supervisor_v01.png",
       "sha256": "dbe6068fbd4749140ff0f9be83e270e321f3b46f9073f6716938c07fdf0dfb5a",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-003_supervisor_v01.png",
       "fileSizeBytes": 778271,
@@ -253,12 +252,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-003_supervisor_v01.png"
     },
     {
       "number": 4,
       "sourceFileName": "ART-CHAR-004_patrol_guard_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-CHAR-004_patrol_guard_v01.png",
       "sha256": "1e1494b8d28f61d05f6f23996c56d4dfa92f620aa79c4a125c834cedd1c89dbe",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-004_patrol_guard_v01.png",
       "fileSizeBytes": 595424,
@@ -313,12 +312,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-004_patrol_guard_v01.png"
     },
     {
       "number": 5,
       "sourceFileName": "ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
       "sha256": "b075f9160c9ec7eaa9a719fbb1b90b36d5c8a1bf304b93f7f5873a3bc9185aec",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png",
       "fileSizeBytes": 1301648,
@@ -428,12 +427,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png"
     },
     {
       "number": 6,
       "sourceFileName": "ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
       "sha256": "ff94e8f062c1ff5b8f157ca18af953c82da7a5d94f87248e0bf8a408c298c23f",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png",
       "fileSizeBytes": 1565436,
@@ -507,12 +506,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png"
     },
     {
       "number": 7,
       "sourceFileName": "ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
       "sha256": "9d0e225dfdc5756b92e8c3646a5fbc5f02c5c6b3d74046ac7fa51b1a739224c9",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-007_trees_small_medium_large_sheet_v01.png",
       "fileSizeBytes": 1536309,
@@ -582,12 +581,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-007_trees_small_medium_large_sheet_v01.png"
     },
     {
       "number": 8,
       "sourceFileName": "ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
       "sha256": "727b4d0893e64f52421b478587319a1e743c0948385e181d9f00a93c9a944b54",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-009_spirit_ore_blue_crystal_v01.png",
       "fileSizeBytes": 1439957,
@@ -647,12 +646,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-009_spirit_ore_blue_crystal_v01.png"
     },
     {
       "number": 9,
       "sourceFileName": "ART-GROUND-005_grain_field_mature_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-GROUND-005_grain_field_mature_v01.png",
       "sha256": "f0d28cd4675f6dcec502f23073b191665d54f3420c777814357b76008096c6f6",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-005_grain_field_mature_v01.png",
       "fileSizeBytes": 2438466,
@@ -720,12 +719,12 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-005_grain_field_mature_v01.png"
     },
     {
       "number": 10,
       "sourceFileName": "ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
-      "sourceInboxPath": "ArtSource/Inbox/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
       "sha256": "8f3a40b953d5944ce1855131c14f70f1acfaea30226ce125c29d477ca3b130f8",
       "originalPath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png",
       "fileSizeBytes": 1484546,
@@ -806,8 +805,10 @@
         "versions": []
       },
       "technicalCheckStatus": "recorded_review_required",
-      "visualAcceptance": "not_performed"
+      "visualAcceptance": "not_performed",
+      "archivedSourcePath": "ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png"
     }
   ],
-  "skippedDuplicates": []
+  "skippedDuplicates": [],
+  "archiveNote": "2026-10-17: 十张已归档原图与 Inbox 副本 SHA-256 相同；实际文件请用 archivedSourcePath/originalPath。历史 Inbox 路径见 Reports/artsource-slimming-2026-10-17.tsv。"
 }

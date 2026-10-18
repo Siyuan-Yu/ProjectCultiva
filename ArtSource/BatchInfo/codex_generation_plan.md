@@ -1,6 +1,21 @@
-# Codex 美术候选生成计划
+# Codex 美术生成计划与历史批次索引
 
-依据：273 TSV（唯一资产真源）、274 流程、ART-REF-001 及既有两批 manifest。本表只安排图片候选；程序效果与参考图归为静态/非逐帧项，不将其误作可切分 Sprite。第一批按制作人本轮指令执行；方向和帧数均为临时候选规格，非最终运行规格。
+## 当前生产策略：Unity 轻量部件骨骼、静态/状态切图、短逐帧特效
+
+2026-10-18 动画接线修复以 [280](../../docs/40-process/280-animation-binding-audit-and-fix-2026-10-18.md) 为准。新 Skin 或部件图更新后先运行 `python tools/export-human-rig-layouts.py`，导出透明边界、Pivot/握点及归档/运行布局 JSON 并关联 manifest；该步骤不改 PNG 或已有 GUID。工作手势和工具/武器附件独立，不能再靠整身帧换工具；播种/照料默认空手。随后导出文件级清单和项目范围列表。本轮未新增/修改 PNG，未改变273资产族制作/验收状态。
+
+2026-10-18 八向与局部视角返修已新增 `Batch_ModularRig_003` 闭眼差分、`004` 斜向头身、`005` 侧向衣袖。对应导出及校准见 `tools/export-human-rig-diagonal-layouts.py`、`tools/export-human-rig-side-arms.py` 与各批 manifest；最新实施/待验状态见 [297](../../docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。上段“本轮未新增/修改 PNG”特指 280 当轮动画接线，不描述后续 292～295 的新增资源。
+
+2026-10-17 正式人物目标改为 Unity Transform + SpriteRenderer 共用 HumanCommonRig，不依赖 Spine 或额外付费编辑器。详见 [276 技术路线](../../docs/40-process/276-art-tech-route-spine-frame-static-v1-2026-10-16.md)、[278 首批样机](../../docs/40-process/278-human-common-rig-spine-sample-inputs-2026-10-16.md) 与 [279 名录迁移](../../docs/40-process/279-human-common-rig-roster-migration-2026-10-17.md)，[273 TSV](../../docs/40-process/273-current-art-asset-register.tsv)仍为唯一资产族登记真源。
+
+- 首批先生成三套测试 Skin：ART-CHAR-001 普通村民、ART-CHAR-002 一名主角、ART-CHAR-004 巡卫；正/背/侧分层部件、左右镜像、简化衣服与发型，统一 FootAnchor/关节 Pivot 和小尺寸显示比例。新图见 `ArtSource/Batches/Batch_ModularRig_001/Originals/`，运行副本见 `Assets/Art/Characters/Resources/`。
+- 共用 Idle/Walk/Work/Attack/Sleep 参数与工具/长枪独立附件；Walk 相位按实际位移驱动，LegacySprite 同步修复。Core 仍决定移动、命中、工作、睡眠和生命状态。旧高精图仅为 Character Visual Reference，旧逐帧为 Legacy Runtime / Migration Reference，不登记为新部件。
+- 场景、家具和 UI 以静态 Sprite/模块为主；田地与资源按真实状态切图；短打击/灵气特效仍可逐帧或程序实现。旧四方向×四帧大图不再继续为人物骨骼化生产。
+- 制作人本轮要求覆盖所有需要骨骼表现的人物：第二批补两名同伴、主管、三类居民、商店执事、通用劳作者及江老九套部件，合计 12 套 Skin，见 `ArtSource/Batches/Batch_ModularRig_002/`。25 个现有名录身份均有映射，默认 Unity 部件骨骼；新旧驱动仍可切换。Carry 材料/救援姿态、静态倒地/死亡姿态已接线；个人差分、关节遮挡、四方向肢体专图和正常镜头表现待返工或人工验收。任何新素材完成后运行 `python tools/export-art-inventory.py` 交接轻量清单。
+
+## 历史方案：迁移前逐帧候选规格与批次安排
+
+历史依据：273 TSV（唯一资产真源）、274 流程、ART-REF-001 及既有两批 manifest。本表只安排图片候选；程序效果与参考图归为静态/非逐帧项，不将其误作可切分 Sprite。第一批按制作人本轮指令执行；方向和帧数均为临时候选规格，非最终运行规格。
 
 | AssetID | 名称 | 分类 | 计划生成形式 | 已有候选 | 本轮处理 |
 |---|---|---|---|---|---|
@@ -60,7 +75,7 @@
 | ART-REF-002 | 关键人物立绘样本与设定稿 | 静态 | 风格/角色参考图，不作运行 Sprite | 无 | 否 |
 | ART-REF-003 | 正式立绘与剧情插画 | 静态 | 风格/角色参考图，不作运行 Sprite | 无 | 否 |
 
-## 第一批范围
+## 历史第一批范围（保留记录，不再作为Unity轻量部件骨骼生产规格）
 
 - 动画：ART-CHAR-001 的 Idle/Walk/Work；ART-CHAR-004 的 Idle/Walk/Attack。ART-ANIM-001/002/004 是这些动作的共用表现族，记录复用映射，不额外按人头重复生图。
 - 静态：ART-ROOM-006、ART-GROUND-007/010/011/002、ART-ROOM-008/005。若现有候选已覆盖，则本批生成新的可对照版本；不得覆盖原图。

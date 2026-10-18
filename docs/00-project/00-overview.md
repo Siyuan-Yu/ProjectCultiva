@@ -1,5 +1,7 @@
 # 修仙游戏策划案总览
 
+> 2026-10-18 人物表现与美术源文件最新实施/待验状态统一见 [297 当前交接](../40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)；本总览不重复美术实现细节。
+
 ## CIVILIAN-LIFE-01（2026-09-27）
 
 个体凡人、Satiety/Energy、势力职业、战后 Loyalty／Fleeing、Encounter 捕获、真实押送、PrisonerOnly 住房拘留与招募方向已冻结并完成实现，状态 **Implementation Complete / Producer Acceptance Pending**；唯一当前功能与验收状态表见 [267 · 当前功能与验收状态表](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-10)，架构方向见 [ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。每个凡人是持久 Character；匿名人口只可作为派生统计，不再是人物或劳动力 authority。

@@ -17,7 +17,7 @@
       "group": "idle",
       "filename": "ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_idle_4dir_1f_sheet_v01.png",
       "sha256": "c0c775bc0923ed7a795f2469b65db6eb01c4e5a11a68ec005e7e46a64ae488d3",
       "size_px": [
         1774,
@@ -43,12 +43,7 @@
         "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
         "四方向静态姿态可读；与既有三人组合图相比只选了背篓蓝灰服男性作为基础候选，不能代表全部村民变体。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/idle/ART-CHAR-001_idle_east_01_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -57,7 +52,8 @@
       ],
       "frames_per_direction_candidate": 1,
       "frame_edge_review": [],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 4
     },
     {
       "asset_ids": [
@@ -68,7 +64,7 @@
       "group": "walk",
       "filename": "ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_walk_4dir_4f_sheet_v01.png",
       "sha256": "f76b7b1d00c68f460b281d4241c1e80a64ac637e62b7b48b187a9712264bbfc2",
       "size_px": [
         1144,
@@ -95,24 +91,7 @@
         "11/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
         "步态有逐帧差分，但脚底基线和身形宽度尚未统一；机械切片有切边风险。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_south_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_04_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -122,106 +101,107 @@
       "frames_per_direction_candidate": 4,
       "frame_edge_review": [
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 4
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_north_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 13
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_north_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_north_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 11
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_north_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 58
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_west_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 49
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_west_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 56
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_west_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_west_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 58
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_west_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 62,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_east_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 56,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_east_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 60,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_east_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/walk/ART-CHAR-001_walk_east_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 64,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_walk_east_04_v01.png"
         }
       ],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 16
     },
     {
       "asset_ids": [
@@ -232,7 +212,7 @@
       "group": "work",
       "filename": "ART-CHAR-001_work_4dir_4f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_work_4dir_4f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-001_work_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-001_work_4dir_4f_sheet_v01.png",
       "sha256": "52ca5c89408fecc3898b725668984b0d7d411e7de7f5cadec461bbdc867443cb",
       "size_px": [
         1230,
@@ -260,24 +240,7 @@
         "12/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
         "锄具动作可读，但部分工具接近或跨越格边；共用 Work 表现仍需验证不同工种的工具挂接。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_04_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -287,115 +250,116 @@
       "frames_per_direction_candidate": 4,
       "frame_edge_review": [
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 8
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_north_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 54
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_north_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_north_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 26
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_north_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 6
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_south_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_south_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 50,
             "bottom": 72
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_south_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 68
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_west_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 68
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_west_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 72,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_west_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_west_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 44
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_west_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 72,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_east_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 101,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_east_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-001/work/ART-CHAR-001_work_east_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 54,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-001_work_east_04_v01.png"
         }
       ],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 16
     },
     {
       "asset_ids": [
@@ -406,7 +370,7 @@
       "group": "idle",
       "filename": "ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_idle_4dir_1f_sheet_v01.png",
       "sha256": "3e1f0351fea622d80aca4aca506d5062106e7cdb79903945709a51ec84b5385e",
       "size_px": [
         1983,
@@ -433,12 +397,7 @@
         "AI候选按等格机械切帧；帧间形体、装备与网格边界需人工复核",
         "枪杆与人体是合层图，后续武器挂点及遮挡关系待定。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/idle/ART-CHAR-004_idle_east_01_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -447,7 +406,8 @@
       ],
       "frames_per_direction_candidate": 1,
       "frame_edge_review": [],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 4
     },
     {
       "asset_ids": [
@@ -458,7 +418,7 @@
       "group": "walk",
       "filename": "ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_walk_4dir_4f_sheet_v01.png",
       "sha256": "16f5a5ada9f71055d259352ad5630b2ea155ac93d8c8c24a22df9249e37e44ce",
       "size_px": [
         1237,
@@ -486,24 +446,7 @@
         "12/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
         "枪杆与衣袖会靠近格边；部分拆帧触边，需重新排布或人工修切。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_east_04_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -513,115 +456,116 @@
       "frames_per_direction_candidate": 4,
       "frame_edge_review": [
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 48
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_north_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 48
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_north_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 44
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_north_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_north_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 48
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_north_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 46,
             "bottom": 46
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_south_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 47,
             "bottom": 54
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_south_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 41,
             "bottom": 51
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_south_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_south_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 48,
             "bottom": 51
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_south_04_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 38,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_west_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 54,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_west_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_03_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 47,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_west_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/walk/ART-CHAR-004_walk_west_04_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 48,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_walk_west_04_v01.png"
         }
       ],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 16
     },
     {
       "asset_ids": [
@@ -632,7 +576,7 @@
       "group": "attack",
       "filename": "ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-CHAR-004_attack_4dir_4f_sheet_v01.png",
       "sha256": "640d746ef9b8b70aac0097bd2240afe87d2ad4232e61db5dd84b93b3b1e6984a",
       "size_px": [
         1223,
@@ -660,24 +604,7 @@
         "7/16 拆帧子图有可见像素触边，可能被机械切断；需返工或人工重切",
         "长枪动作连续意图可见，但跨帧枪长、握持和身形略有漂移；部分长枪接近/跨越格边，当前切帧不可直接接入。"
       ],
-      "frame_files": [
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_north_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_south_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_04_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_01_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_02_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_03_v01.png",
-        "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_04_v01.png"
-      ],
+      "frame_files": [],
       "direction_order": [
         "north",
         "south",
@@ -687,70 +614,71 @@
       "frames_per_direction_candidate": 4,
       "frame_edge_review": [
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 0,
             "bottom": 44
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_west_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 38,
             "top": 0,
             "bottom": 81
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_west_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_west_03_v01.png",
           "edge_opaque_pixels": {
             "left": 34,
             "right": 0,
             "top": 0,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_west_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_01_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 0,
             "top": 47,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_east_01_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_02_v01.png",
           "edge_opaque_pixels": {
             "left": 0,
             "right": 63,
             "top": 81,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_east_02_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_03_v01.png",
           "edge_opaque_pixels": {
             "left": 67,
             "right": 48,
             "top": 0,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_east_03_v01.png"
         },
         {
-          "frame": "ArtSource/Batches/Batch_Codex_001/Frames/ART-CHAR-004/attack/ART-CHAR-004_attack_east_04_v01.png",
           "edge_opaque_pixels": {
             "left": 46,
             "right": 0,
             "top": 0,
             "bottom": 0
-          }
+          },
+          "retired_frame_name": "ART-CHAR-004_attack_east_04_v01.png"
         }
       ],
-      "review_status": "需人工选图与静态/切片/运行复核"
+      "review_status": "需人工选图与静态/切片/运行复核",
+      "retired_frame_count": 16
     },
     {
       "asset_ids": [
@@ -761,7 +689,7 @@
       "group": "bed_variants",
       "filename": "ART-ROOM-006_bed_variants_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-006_bed_variants_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-006_bed_variants_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-006_bed_variants_sheet_v01.png",
       "sha256": "7d1e621b6c36c4ae81cd0d111ac248e0a773194570c9583d8c9251e5cbf1fd0a",
       "size_px": [
         1774,
@@ -799,7 +727,7 @@
       "group": "trees_s_m_l",
       "filename": "ART-GROUND-007_trees_s_m_l_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-007_trees_s_m_l_sheet_v01.png",
       "sha256": "41a037b512544dc458d769f2f52861ee8b8fb61d3adaaf7736b2fcc9dfe59e89",
       "size_px": [
         1774,
@@ -837,7 +765,7 @@
       "group": "grain_4stage",
       "filename": "ART-GROUND-010_grain_4stage_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-010_grain_4stage_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-010_grain_4stage_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-010_grain_4stage_sheet_v01.png",
       "sha256": "22de7eb838bac5e2d6d770dc988e7a85f14a7f7973dd4760383f3d29c33db8ab",
       "size_px": [
         2172,
@@ -875,7 +803,7 @@
       "group": "herb_4stage",
       "filename": "ART-GROUND-011_herb_4stage_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-011_herb_4stage_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-011_herb_4stage_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-011_herb_4stage_sheet_v01.png",
       "sha256": "0ea587cd27a32fc4b60c990b3ae51f98567658cc3fab0a052503c648b8d7d029",
       "size_px": [
         2172,
@@ -913,7 +841,7 @@
       "group": "road_modules",
       "filename": "ART-GROUND-002_road_modules_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-GROUND-002_road_modules_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-GROUND-002_road_modules_sheet_v01.png",
       "sha256": "db4eec83454959d1945acf68c9a1dd7226553bad33ae43bc45bbd1d66da9ae92",
       "size_px": [
         1536,
@@ -951,7 +879,7 @@
       "group": "flat_core_flags",
       "filename": "ART-ROOM-008_flat_core_flags_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-008_flat_core_flags_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
       "sha256": "8789d9db82c5cf7b6a8463edd589a632d698d28ac02ee5b9d52c627475cf4f6c",
       "size_px": [
         2048,
@@ -989,7 +917,7 @@
       "group": "usage_markers",
       "filename": "ART-ROOM-005_usage_markers_sheet_v01.png",
       "original_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-005_usage_markers_sheet_v01.png",
-      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Candidates/ART-ROOM-005_usage_markers_sheet_v01.png",
+      "candidate_path": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-005_usage_markers_sheet_v01.png",
       "sha256": "46b2a4ffee5f441ac14cabc523201aafa2f7b56245e5ec6b85e2ff3b0c4831ff",
       "size_px": [
         2048,
@@ -1022,5 +950,11 @@
   "notes": [
     "生成工具无 medium quality 参数，使用中等细节提示词；不能声称内置质量档精确设为 medium。",
     "Frames 为按候选网格机械裁切，不表示角色比例、动作连续性或 Unity Pivot 已验收。"
-  ]
+  ],
+  "retirement_2026_10_17": {
+    "candidate_note": "13 Candidates 与 Originals 逐文件 SHA-256 相同；candidate_path 已指向保留原图。",
+    "frame_note": "旧 72 张错误机械切帧已退役；原图、错误测量、contact-sheet 和批次说明保留；新版逐帧见 Batch_Codex_002。",
+    "preview_note": "26 张单图浅/深底预览可由 tools/rebuild-codex001-previews.py 重建。",
+    "deletion_ledger": "ArtSource/Reports/artsource-slimming-2026-10-17.tsv"
+  }
 }

@@ -58,7 +58,7 @@
   "behavior_samples_manifest": "ArtSource/Batches/Batch_Codex_002/behavior_samples_manifest.json",
   "appearance_action_matrix": "ArtSource/Batches/Batch_Codex_002/appearance_action_matrix.md",
   "corrected_core": {
-    "file": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-008_core_isolated_v03.png",
+    "file": "ArtSource/Batches/Batch_Codex_002/Originals/ART-ROOM-008_core_isolated_v03.png",
     "sha256": "1dec467ba1f17d4bdb7f090ed9dab6b3c471fdedb86562292a14883f904c3d3f",
     "source": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-008_flat_core_flags_sheet_v01.png",
     "status": "transparent edited candidate; identity/size not Unity checked"

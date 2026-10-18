@@ -5,7 +5,7 @@
 ## 01 · 共用村民三人（含服装差分）
 
 - 文件名：`ART-CHAR-001_common_villagers_3up_v01.png`
-- 路径：`ArtSource/Inbox/ART-CHAR-001_common_villagers_3up_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-001_common_villagers_3up_v01.png`
 - 对应AssetID：ART-CHAR-001, ART-CHAR-005
 - 批次：Batch_20261016_01
 - 子件：村民男（背篓）；村民女（围裙）；村民男（锄具）
@@ -14,7 +14,7 @@
 ## 02 · 主角三人识别变体
 
 - 文件名：`ART-CHAR-002_protagonist_trio_3up_v01.png`
-- 路径：`ArtSource/Inbox/ART-CHAR-002_protagonist_trio_3up_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-002_protagonist_trio_3up_v01.png`
 - 对应AssetID：ART-CHAR-002
 - 批次：Batch_20261016_01
 - 子件：蓝灰服男；粉白服女；绿服男
@@ -23,7 +23,7 @@
 ## 03 · 主管独特外观
 
 - 文件名：`ART-CHAR-003_supervisor_v01.png`
-- 路径：`ArtSource/Inbox/ART-CHAR-003_supervisor_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-003_supervisor_v01.png`
 - 对应AssetID：ART-CHAR-003
 - 批次：Batch_20261016_01
 - 子件：主管
@@ -32,7 +32,7 @@
 ## 04 · 巡卫持枪外观
 
 - 文件名：`ART-CHAR-004_patrol_guard_v01.png`
-- 路径：`ArtSource/Inbox/ART-CHAR-004_patrol_guard_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-CHAR-004_patrol_guard_v01.png`
 - 对应AssetID：ART-CHAR-004
 - 批次：Batch_20261016_01
 - 子件：巡卫（持长枪）
@@ -41,7 +41,7 @@
 ## 05 · 开面式木质房间：地板、墙段、墙角、门洞
 
 - 文件名：`ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png`
-- 路径：`ArtSource/Inbox/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-001_wood_room_floor_wall_door_sheet_v01.png`
 - 对应AssetID：ART-ROOM-001, ART-ROOM-002, ART-ROOM-003
 - 批次：Batch_20261016_01
 - 子件：木地板；长墙段；左墙角；右墙角；门洞墙段
@@ -50,7 +50,7 @@
 ## 06 · 三种用途共用床
 
 - 文件名：`ART-ROOM-006_beds_residential_medical_prison_3up_v01.png`
-- 路径：`ArtSource/Inbox/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-006_beds_residential_medical_prison_3up_v01.png`
 - 对应AssetID：ART-ROOM-006
 - 批次：Batch_20261016_01
 - 子件：住宅蓝色床；医疗灰色床；囚禁棕色床
@@ -59,7 +59,7 @@
 ## 07 · 小中大树三尺寸候选
 
 - 文件名：`ART-GROUND-007_trees_small_medium_large_sheet_v01.png`
-- 路径：`ArtSource/Inbox/ART-GROUND-007_trees_small_medium_large_sheet_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-007_trees_small_medium_large_sheet_v01.png`
 - 对应AssetID：ART-GROUND-007
 - 批次：Batch_20261016_01
 - 子件：小树；中树；大树
@@ -68,7 +68,7 @@
 ## 08 · 蓝色灵矿岩簇
 
 - 文件名：`ART-GROUND-009_spirit_ore_blue_crystal_v01.png`
-- 路径：`ArtSource/Inbox/ART-GROUND-009_spirit_ore_blue_crystal_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-009_spirit_ore_blue_crystal_v01.png`
 - 对应AssetID：ART-GROUND-009
 - 批次：Batch_20261016_01
 - 子件：灵矿堆
@@ -77,7 +77,7 @@
 ## 09 · 成熟农田（围栏与稻谷合图）
 
 - 文件名：`ART-GROUND-005_grain_field_mature_v01.png`
-- 路径：`ArtSource/Inbox/ART-GROUND-005_grain_field_mature_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-GROUND-005_grain_field_mature_v01.png`
 - 对应AssetID：ART-GROUND-005, ART-GROUND-010
 - 批次：Batch_20261016_01
 - 子件：成熟稻田整体图
@@ -86,7 +86,7 @@
 ## 10 · 控制核心候选与三色旗
 
 - 文件名：`ART-ROOM-008_control_post_and_three_flags_sheet_v01.png`
-- 路径：`ArtSource/Inbox/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png`
+- 路径：`ArtSource/Batches/Batch_20261016_01/Originals/ART-ROOM-008_control_post_and_three_flags_sheet_v01.png`
 - 对应AssetID：ART-ROOM-008
 - 批次：Batch_20261016_01
 - 子件：控制台；蓝旗；红旗；绿旗

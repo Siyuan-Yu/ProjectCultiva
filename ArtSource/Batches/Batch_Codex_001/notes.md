@@ -2,6 +2,8 @@
 
 > 状态：Codex 内置生图 AI 首版候选；未选图、未接入 Unity、未人工验收。
 
+> 2026-10-17 瘦身记录：下文“实际产出”保留生成时的历史口径。13 张 Candidates 与 Originals SHA-256 相同，已只保留 Originals；72 张错误机械切帧及 26 张单图浅/深底预览已退役。原图、contact-sheet 和缺陷测量仍在；删除路径、哈希及替代关系见 `ArtSource/Reports/artsource-slimming-2026-10-17.tsv`。单图预览可用 `python tools/rebuild-codex001-previews.py` 按原图重建视觉检查图，重建文件不保证与历史预览逐字节相同。
+
 ## 实际产出
 
 - 9 个 AssetID，13 张新生成的透明 PNG 图集/组合图：2 个角色各 3 张动作图，7 个静态资产各 1 张。

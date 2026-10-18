@@ -1,5 +1,7 @@
 # PJCultiva 美术素材批次 Batch_20261016_01
 
+> 2026-10-18：这是历史收包说明。根目录旧 ZIP 指针已退役；图片现在以 `ArtSource/Batches` 中的原图及 manifest 为准。当前人物骨架与美术源文件状态见 [297 最新交接](docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。以下旧解压步骤不再作为现行操作指令。
+
 ## 这次已经替你做好的事
 
 - 10 张 ChatGPT 原始生成图已按 **现有 273 的 AssetID** 重命名，**画面像素未更改**（只做了文件复制与命名）。

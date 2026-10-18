@@ -2,6 +2,8 @@
 
 `ArtSource` 保存美术参考、生成原图和批次整理记录。它位于 Unity `Assets` 之外，不是运行资源目录，也不直接参与 Unity 导入。
 
+2026-10-18 当前人物运行路线为 Unity 共用部件骨架，批次源图见 `Batches/Batch_ModularRig_001`～`005`，具体状态见 [297 当前交接](../docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。历史 `Batch_Codex_001` 的重复候选、错误机械切帧和单图预览已按 `Reports/artsource-slimming-2026-10-17.tsv` 清理；生成原图保留。下文是新图片入箱的通用流程，不表示已清理的历史文件仍存在。
+
 ## 日常使用
 
 1. 把 ChatGPT 普通会话生成的 PNG、JPG、JPEG 或 WebP 图片放进 `ArtSource/Inbox/`。
