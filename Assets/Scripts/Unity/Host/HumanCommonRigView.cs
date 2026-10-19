@@ -303,7 +303,7 @@ namespace XianXia.Unity.Host
             {
                 var vertices = new Vector2[part.meshVertices.Length];
                 for (var i = 0; i < vertices.Length; i++)
-                    vertices[i] = SpritePoint(sprite, part.meshVertices[i]);
+                    vertices[i] = SpriteMeshPoint(sprite, part.meshVertices[i]);
                 var triangles = new ushort[part.meshTriangles.Length];
                 for (var i = 0; i < triangles.Length; i++)
                     triangles[i] = (ushort)part.meshTriangles[i];
@@ -439,7 +439,7 @@ namespace XianXia.Unity.Host
                 {
                     var vertices = new Vector2[p.meshVertices.Length];
                     for (var v = 0; v < vertices.Length; v++)
-                        vertices[v] = SpritePoint(result[i], p.meshVertices[v]);
+                        vertices[v] = SpriteMeshPoint(result[i], p.meshVertices[v]);
                     var triangles = new ushort[p.meshTriangles.Length];
                     for (var t = 0; t < triangles.Length; t++) triangles[t] = (ushort)p.meshTriangles[t];
                     result[i].OverrideGeometry(vertices, triangles);
@@ -452,6 +452,9 @@ namespace XianXia.Unity.Host
         static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         static bool IsNormalized(Vector2 point) => IsFinite(point.x) && IsFinite(point.y) &&
             point.x >= 0f && point.x <= 1f && point.y >= 0f && point.y <= 1f;
+        // OverrideGeometry expects pixel positions in the Sprite rect, not pivot-relative world units.
+        static Vector2 SpriteMeshPoint(Sprite sprite, Vector2 point) => new Vector2(
+            point.x * sprite.rect.width, point.y * sprite.rect.height);
         static Vector2 SpritePoint(Sprite sprite, Vector2 point) => new Vector2(
             (point.x * sprite.rect.width - sprite.pivot.x) / sprite.pixelsPerUnit,
             (point.y * sprite.rect.height - sprite.pivot.y) / sprite.pixelsPerUnit);

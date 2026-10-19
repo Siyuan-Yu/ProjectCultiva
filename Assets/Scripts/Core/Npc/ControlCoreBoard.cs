@@ -22,6 +22,12 @@ namespace XianXia.Core.Npc
         /// <summary>由 authored controlCore placement 派生的固定 Site identity binding。</summary>
         public string BoundWorldSiteId { get; internal set; } = string.Empty;
         public bool CaptureAvailable { get; set; }
+        /// <summary>Authored physical footprint in continuous world space; not a mutable Site range.</summary>
+        public float FootprintMinX { get; internal set; }
+        public float FootprintMinY { get; internal set; }
+        public float FootprintMaxX { get; internal set; }
+        public float FootprintMaxY { get; internal set; }
+        public bool HasWorldFootprint => FootprintMaxX > FootprintMinX && FootprintMaxY > FootprintMinY;
         public List<string> GrantsPrivileges { get; } = new List<string>();
     }
 
@@ -185,6 +191,20 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidOperation, "Fixed WorldSite already has another ControlCore.", siteId);
             core.BoundWorldSiteId = siteId;
             _workAreaByWorldSite[siteId] = workAreaId;
+            return Result.Success();
+        }
+
+        public Result BindWorldFootprint(string workAreaId, float minX, float minY, float width, float height)
+        {
+            if (!TryGet(workAreaId, out var core) || !(width > 0f) || !(height > 0f) ||
+                float.IsNaN(minX) || float.IsNaN(minY) || float.IsNaN(width) || float.IsNaN(height) ||
+                float.IsInfinity(minX) || float.IsInfinity(minY) || float.IsInfinity(width) || float.IsInfinity(height) ||
+                float.IsInfinity(minX + width) || float.IsInfinity(minY + height))
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid fixed core world footprint.", workAreaId);
+            core.FootprintMinX = minX;
+            core.FootprintMinY = minY;
+            core.FootprintMaxX = minX + width;
+            core.FootprintMaxY = minY + height;
             return Result.Success();
         }
 

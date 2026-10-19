@@ -33,6 +33,7 @@ namespace XianXia.Data.Serialization
             {
                 ["version"] = JsonValue.FromNumber(state.Version),
                 ["objective"] = WriteObjective(state.Objective),
+                ["councilHallDefense"] = WriteCouncilHallDefense(state.CouncilHallDefense),
                 ["objectiveDefenderSquads"] = JsonValue.FromArray(objectiveSquads),
                 ["id"] = JsonValue.FromString(state.EncounterId),
                 ["sourceSurfaceId"] = JsonValue.FromString(state.SourceSurfaceId),
@@ -86,6 +87,28 @@ namespace XianXia.Data.Serialization
                 RosterVersion = (int)value.GetNumber("rosterVersion", 0),
                 ContinuationUsed = value.GetBool("continuationUsed", false),
             };
+            if (value.TryGetProperty("councilHallDefense", out var wardValue))
+            {
+                if (wardValue.Kind != JsonValueKind.Object)
+                    throw new FormatException("Invalid council hall battle defense.");
+                if (wardValue.Object.Count > 0)
+                {
+                    RequireFields(wardValue, "siteId", "workAreaId", "ownerFactionId",
+                        "minX", "minY", "maxX", "maxY", "cooldown", "disabled");
+                    state.CouncilHallDefense = new EncounterCouncilHallDefense
+                    {
+                        SiteId = wardValue.GetString("siteId", ""),
+                        WorkAreaId = wardValue.GetString("workAreaId", ""),
+                        OwnerFactionId = wardValue.GetString("ownerFactionId", ""),
+                        MinX = (float)wardValue.GetNumber("minX", float.NaN),
+                        MinY = (float)wardValue.GetNumber("minY", float.NaN),
+                        MaxX = (float)wardValue.GetNumber("maxX", float.NaN),
+                        MaxY = (float)wardValue.GetNumber("maxY", float.NaN),
+                        Cooldown = (float)wardValue.GetNumber("cooldown", float.NaN),
+                        Disabled = wardValue.GetBool("disabled", false)
+                    };
+                }
+            }
             if (state.Version == 1)
             {
                 if (value.TryGetProperty("objective", out _) || value.TryGetProperty("objectiveDefenderSquads", out _))
@@ -220,6 +243,24 @@ namespace XianXia.Data.Serialization
                 fields["attackerFactionId"] = JsonValue.FromString(o.AttackerFactionId);
                 fields["defenderFactionId"] = JsonValue.FromString(o.DefenderFactionId);
                 fields["resolved"] = JsonValue.FromBool(o.Resolved);
+            }
+            return JsonValue.FromObject(fields);
+        }
+
+        static JsonValue WriteCouncilHallDefense(EncounterCouncilHallDefense ward)
+        {
+            var fields = new Dictionary<string, JsonValue>();
+            if (ward != null)
+            {
+                fields["siteId"] = JsonValue.FromString(ward.SiteId);
+                fields["workAreaId"] = JsonValue.FromString(ward.WorkAreaId);
+                fields["ownerFactionId"] = JsonValue.FromString(ward.OwnerFactionId);
+                fields["minX"] = JsonValue.FromNumber(ward.MinX);
+                fields["minY"] = JsonValue.FromNumber(ward.MinY);
+                fields["maxX"] = JsonValue.FromNumber(ward.MaxX);
+                fields["maxY"] = JsonValue.FromNumber(ward.MaxY);
+                fields["cooldown"] = JsonValue.FromNumber(ward.Cooldown);
+                fields["disabled"] = JsonValue.FromBool(ward.Disabled);
             }
             return JsonValue.FromObject(fields);
         }

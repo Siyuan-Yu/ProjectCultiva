@@ -1,5 +1,6 @@
 using System;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 
@@ -12,7 +13,7 @@ namespace XianXia.Core.World.Strategic
         Squad = 3
     }
 
-    /// <summary>Read-only normal Surface position, with group motion ahead of personal presence.</summary>
+    /// <summary>Read-only normal Surface position, honoring the active movement owner.</summary>
     public static class ContinuousCharacterSpatialAuthorityResolver
     {
         public static bool TryResolveWorldPosition(SimulationWorld world, EntityId id,
@@ -42,6 +43,14 @@ namespace XianXia.Core.World.Strategic
                 { failure = "PlayerPartyContinuousSpatialInvariant:MemberNotTraveling"; return false; }
                 return true;
             }
+
+            // A stationary NPC Squad is only placement context for a managed mortal's
+            // local work/rest movement. Its captured personal position is the physical point.
+            if (world.Civilians.TryGet(id, out var civilian) &&
+                MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, id, civilian) &&
+                CharacterPersonalSpaceQuery.TryResolveContinuous(
+                    world, id, surfaceId, out position, out _))
+                return true;
 
             if (SquadWorldMotionService.OwnsCharacter(world, id) &&
                 world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&

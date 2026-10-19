@@ -8,6 +8,9 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Attributes;
+using XianXia.Core.Events;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -47,6 +50,14 @@ namespace XianXia.Core.World.Strategic
         public readonly List<EncounterCharacter> Members = new List<EncounterCharacter>();
     }
 
+    /// <summary>One fixed building joined to this battle; never a Character participant.</summary>
+    public sealed class EncounterCouncilHallDefense
+    {
+        public string SiteId = "", WorkAreaId = "", OwnerFactionId = "";
+        public float MinX, MinY, MaxX, MaxY, Cooldown;
+        public bool Disabled;
+    }
+
     public sealed class CharacterEncounterState
     {
         public const int Format = 4;
@@ -59,6 +70,7 @@ namespace XianXia.Core.World.Strategic
         public CharacterEncounterPhase Phase;
         public bool PlayerWon;
         public SiteCoreEncounterObjective Objective;
+        public EncounterCouncilHallDefense CouncilHallDefense;
         public readonly List<string> ObjectiveDefenderSquads = new List<string>();
         public int RosterVersion = 1;
         public bool ContinuationUsed;
@@ -321,6 +333,8 @@ namespace XianXia.Core.World.Strategic
                 state.RelationThreshold < 1 || state.RelationThreshold > 100 || state.ChanceBasisPoints < 0 || state.ChanceBasisPoints > 10000 ||
                 !Finite(state.DecayAccumulator) || state.DecayAccumulator < 0 || state.DecayAccumulator >= 1 || state.RosterVersion < 1)
                 return Fail("Invalid encounter timing or intervention rules.");
+            if (!CouncilHallEncounterDefenseService.ValidateRestored(world, state))
+                return Fail("Invalid council hall battle defense snapshot.");
             var seen = new HashSet<ulong>(); var friendly = 0; var enemy = 0;
             foreach (var p in state.Participants)
             {
@@ -653,8 +667,8 @@ namespace XianXia.Core.World.Strategic
                         }
                     }
                     // Group projection is restored after the encounter lock is released.
-                    // A downed, dead or detached participant returns to its immutable pre-battle
-                    // physical point; tactical battlefield movement never leaks into world state.
+                    // A local-movement civilian, downed, dead or detached participant returns
+                    // to its immutable pre-battle physical point; tactical movement never leaks.
                     presence.Mode = PartyWorldPresenceMode.AtWorldPosition;
                     presence.SiteId = string.Empty;
                     presence.WorldPosX = p.ReturnX; presence.WorldPosY = p.ReturnY;
@@ -682,6 +696,20 @@ namespace XianXia.Core.World.Strategic
                     currentSquad.SquadId, out var currentMotion) ||
                 !SquadWorldMotionService.IsActiveNpcSquadAuthority(
                     world, currentSquad, currentMotion) ||
+                // Battle temporarily masks the civilian movement owner. Once released,
+                // a stationary managed mortal resumes personal work/rest placement;
+                // projecting the Squad assembly point here would teleport sleepers.
+                (world.Civilians.TryGet(id, out var civilian) &&
+                 civilian.Disposition != CivilianDisposition.CapturedEscorted &&
+                 !MortalCivilianMovementAuthority.IsActivelyTravelingNpcSquad(
+                     world, currentSquad, out _) &&
+                 !(currentSquad.MemberCharacterIds.Count > 1 &&
+                   currentSquad.CommandKind == SquadCommandKind.FollowLeader &&
+                   id != (currentSquad.CommandTargetCharacterId.IsNone
+                       ? currentSquad.LeaderCharacterId
+                       : currentSquad.CommandTargetCharacterId)) &&
+                 world.Entities.TryGet(id, out var civilianEntity) &&
+                 MortalCivilianQuery.IsManagedCivilian(world, civilianEntity)) ||
                 !ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
                     world, id, currentMotion.SurfaceId, out var currentPosition,
                     out var owner, out var ownerId, out _) ||
@@ -825,5 +853,152 @@ namespace XianXia.Core.World.Strategic
 
         static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         static Result Fail(string message) => Result.Failure(ErrorCode.InvalidOperation, message);
+    }
+
+    /// <summary>Encounter-owned fixed council hall attack; Host only consumes a successful strike.</summary>
+    public static class CouncilHallEncounterDefenseService
+    {
+        const int Attack = 20;
+        const float IntervalSeconds = 3f;
+        const float RangeFootprintMultiples = 5f;
+
+        public static bool ValidateRestored(SimulationWorld world, CharacterEncounterState state)
+        {
+            var ward = state?.CouncilHallDefense;
+            if (ward == null) return true;
+            if (string.IsNullOrEmpty(ward.SiteId) || string.IsNullOrEmpty(ward.WorkAreaId) ||
+                string.IsNullOrEmpty(ward.OwnerFactionId) || ward.SiteId != state.SourceSiteId ||
+                !Finite(ward.MinX) || !Finite(ward.MinY) || !Finite(ward.MaxX) || !Finite(ward.MaxY) ||
+                !Finite(ward.Cooldown) || ward.Cooldown < 0 || ward.Cooldown > IntervalSeconds ||
+                ward.MinX >= ward.MaxX || ward.MinY >= ward.MaxY ||
+                !state.Contains(ward.MinX, ward.MinY) || !state.Contains(ward.MaxX, ward.MaxY) ||
+                !world.ControlCores.TryGet(ward.WorkAreaId, out var core) ||
+                core.BoundWorldSiteId != ward.SiteId || !core.HasWorldFootprint ||
+                core.FootprintMinX != ward.MinX || core.FootprintMinY != ward.MinY ||
+                core.FootprintMaxX != ward.MaxX || core.FootprintMaxY != ward.MaxY ||
+                !world.Strategic.Sites.TryGet(ward.SiteId, out var site) ||
+                site.CoreIsRemovable || site.CoreSurfaceId != state.SourceSurfaceId)
+                return false;
+            if (!ward.Disabled && (core.CurrentDurability <= 0 || site.OwnerFactionId != ward.OwnerFactionId))
+                return false;
+            return true;
+        }
+
+        public static void Disable(SimulationWorld world, string workAreaId)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || (state.Phase != CharacterEncounterPhase.Active &&
+                                  state.Phase != CharacterEncounterPhase.ReadyToEnd)) return;
+            var ward = state.CouncilHallDefense;
+            if (ward != null)
+            {
+                if (ward.WorkAreaId == workAreaId) ward.Disabled = true;
+                return;
+            }
+            if (!world.ControlCores.TryGet(workAreaId, out var core) || !core.HasWorldFootprint ||
+                core.BoundWorldSiteId != state.SourceSiteId ||
+                !world.Strategic.Sites.TryGet(core.BoundWorldSiteId, out var site) ||
+                site.CoreSurfaceId != state.SourceSurfaceId ||
+                !state.Contains(core.FootprintMinX, core.FootprintMinY) ||
+                !state.Contains(core.FootprintMaxX, core.FootprintMaxY)) return;
+            state.CouncilHallDefense = new EncounterCouncilHallDefense
+            {
+                SiteId = site.SiteId, WorkAreaId = workAreaId,
+                OwnerFactionId = site.OwnerFactionId,
+                MinX = core.FootprintMinX, MinY = core.FootprintMinY,
+                MaxX = core.FootprintMaxX, MaxY = core.FootprintMaxY,
+                Disabled = true
+            };
+        }
+
+        public static bool AdvanceAndStrike(SimulationWorld world, float tacticalSeconds,
+            out EntityId targetId, out bool defeated)
+        {
+            targetId = EntityId.None;
+            defeated = false;
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.Active ||
+                !Finite(tacticalSeconds) || tacticalSeconds <= 0f) return false;
+            TryJoin(world, state);
+            var ward = state.CouncilHallDefense;
+            if (ward == null || ward.Disabled) return false;
+            if (!world.ControlCores.TryGet(ward.WorkAreaId, out var core) ||
+                core.CurrentDurability <= 0 ||
+                !world.Strategic.Sites.TryGet(ward.SiteId, out var site) ||
+                !site.IsCoreActive || site.OwnerFactionId != ward.OwnerFactionId)
+            { ward.Disabled = true; return false; }
+            ward.Cooldown = Math.Max(0f, ward.Cooldown - tacticalSeconds);
+            if (ward.Cooldown > 0f) return false;
+
+            var range = Math.Max(ward.MaxX - ward.MinX, ward.MaxY - ward.MinY) * RangeFootprintMultiples;
+            var bestDistance = (double)range * range;
+            EncounterCharacter best = null;
+            foreach (var person in state.Participants)
+            {
+                if (!TryGetHostileTarget(world, ward, person, out _)) continue;
+                var dx = Math.Max(ward.MinX - person.TacticalX, Math.Max(0f, person.TacticalX - ward.MaxX));
+                var dy = Math.Max(ward.MinY - person.TacticalY, Math.Max(0f, person.TacticalY - ward.MaxY));
+                var distance = (double)dx * dx + (double)dy * dy;
+                if (distance > bestDistance ||
+                    (best != null && distance == bestDistance && person.CharacterId >= best.CharacterId)) continue;
+                bestDistance = distance;
+                best = person;
+            }
+            if (best == null || !TryGetHostileTarget(world, ward, best, out var target)) return false;
+            targetId = new EntityId(best.CharacterId);
+            CombatDamageRules.EnsureVitals(target);
+            var defense = target.TryGet<AttributesComponent>(out var attrs)
+                ? Math.Max(0, attrs.GetFinal(AttributeId.Defense)) : 0;
+            var damage = Math.Max(1, Attack - defense / 2);
+            var applied = CombatDamageRules.ApplyIncoming(target, damage);
+            ward.Cooldown = IntervalSeconds;
+            if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp <= 0)
+            {
+                defeated = CombatLifeStateService.TryEnterIncapacitated(world, target);
+                if (defeated)
+                    world.Events.Publish(EventType.CombatantDefeated, world.Tick,
+                        actor: EntityId.None, target: targetId,
+                        payload: "councilHall:" + ward.SiteId + ";dmg=" + applied);
+            }
+            world.Events.Publish(EventType.ActionCompleted, world.Tick,
+                actor: EntityId.None, target: targetId,
+                payload: "councilHallStrike:" + ward.SiteId + ";dmg=" + applied);
+            return true;
+        }
+
+        static void TryJoin(SimulationWorld world, CharacterEncounterState state)
+        {
+            if (state.CouncilHallDefense != null || string.IsNullOrEmpty(state.SourceSiteId) ||
+                !world.Strategic.Sites.TryGet(state.SourceSiteId, out var site) ||
+                site.CoreIsRemovable || !site.IsCoreActive ||
+                site.CoreSurfaceId != state.SourceSurfaceId || string.IsNullOrEmpty(site.OwnerFactionId) ||
+                !world.ControlCores.TryGetByWorldSite(site.SiteId, out var core) ||
+                core.CurrentDurability <= 0 || !core.HasWorldFootprint ||
+                !state.Contains(core.FootprintMinX, core.FootprintMinY) ||
+                !state.Contains(core.FootprintMaxX, core.FootprintMaxY)) return;
+            var candidate = new EncounterCouncilHallDefense
+            {
+                SiteId = site.SiteId, WorkAreaId = core.WorkAreaId, OwnerFactionId = site.OwnerFactionId,
+                MinX = core.FootprintMinX, MinY = core.FootprintMinY,
+                MaxX = core.FootprintMaxX, MaxY = core.FootprintMaxY
+            };
+            foreach (var person in state.Participants)
+                if (TryGetHostileTarget(world, candidate, person, out _))
+                { state.CouncilHallDefense = candidate; return; }
+        }
+
+        static bool TryGetHostileTarget(SimulationWorld world, EncounterCouncilHallDefense ward,
+            EncounterCharacter person, out Entity target)
+        {
+            target = null;
+            if (person == null || !world.Entities.TryGet(new EntityId(person.CharacterId), out target) ||
+                !CombatLifeStateService.CanFight(target) ||
+                !target.TryGet<FactionMembershipComponent>(out var faction) || !faction.IsAffiliated)
+                return false;
+            return FactionDiplomacyRelationQuery.GetRelation(world, ward.OwnerFactionId, faction.FactionId)
+                   == FactionDiplomacyRelation.War;
+        }
+
+        static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }
 }

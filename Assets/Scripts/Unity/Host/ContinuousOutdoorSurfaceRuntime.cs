@@ -383,6 +383,11 @@ namespace XianXia.Unity.Host
             return !SquadWorldMotionService.OwnsCharacter(world, id);
         }
 
+        bool IsSquadProjectionOwner(SimulationWorld world, EntityId id) =>
+            SquadWorldMotionService.OwnsCharacter(world, id) &&
+            !(world.Civilians.TryGet(id, out var civilian) &&
+              MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, id, civilian));
+
         string DescribeNpcSquadNearField(OutdoorWorldSurfaceDefinition surface)
         {
             var world = _bootstrap?.Session?.World;
@@ -1575,7 +1580,7 @@ namespace XianXia.Unity.Host
                 var presence = pair.Value;
                 if (presence == null || presence.EntityId.IsNone ||
                     (_bootstrap.Session.PlayerParty?.IsMember(presence.EntityId) ?? false) ||
-                    SquadWorldMotionService.OwnsCharacter(world, presence.EntityId))
+                    IsSquadProjectionOwner(world, presence.EntityId))
                     continue;
                 restored++;
                 if (!presence.HasContinuousWorldPosition)
@@ -1705,7 +1710,7 @@ namespace XianXia.Unity.Host
                         location == null || !location.HasPresentationOverride)
                         continue;
                     _desiredMaterializedEntities.Add(id);
-                    if (SquadWorldMotionService.OwnsCharacter(world, id))
+                    if (IsSquadProjectionOwner(world, id))
                         _continuousSquadPopulation.Add(id);
                 }
                 // An escorted captive follows a participant's tactical presentation but is not
@@ -1777,7 +1782,8 @@ namespace XianXia.Unity.Host
                         !CharacterLifeStateQuery.IsLivingForMacroOrder(world, id) ||
                         !world.Entities.TryGet(id, out var entity) ||
                         !world.Strategic.Squads.TryGetForCharacter(id, out var boundSquad) ||
-                        !string.Equals(boundSquad.SquadId, squad.SquadId, StringComparison.Ordinal))
+                        !string.Equals(boundSquad.SquadId, squad.SquadId, StringComparison.Ordinal) ||
+                        !IsSquadProjectionOwner(world, id))
                         continue;
 
                     // Mark every valid moving-group member as Squad-owned even when its Surface,
@@ -1939,7 +1945,7 @@ namespace XianXia.Unity.Host
                 if (id.IsNone || _desiredMaterializedEntities.Contains(id) ||
                     !world.Entities.TryGet(id, out var entity) ||
                     XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity)) continue;
-                if (SquadWorldMotionService.OwnsCharacter(world, id))
+                if (IsSquadProjectionOwner(world, id))
                     continue;
                 if (!string.Equals(presence.PersonalSurfaceId, _surfaceId, StringComparison.Ordinal))
                     continue;
@@ -2066,7 +2072,7 @@ namespace XianXia.Unity.Host
             SimulationWorld world, EntityId id, HostMoveController move) =>
             (move != null && move.IsMoving(id)) ||
             world.BackgroundCharacterTravel.IsTraveling(id) ||
-            SquadWorldMotionService.OwnsCharacter(world, id) ||
+            IsSquadProjectionOwner(world, id) ||
             (_bootstrap?.Session?.PlayerParty?.IsMember(id) ?? false) ||
             ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, id, out _) ||
             world.Strategic.CharacterEncounter?.Find(id.Value) != null;
@@ -2297,7 +2303,7 @@ namespace XianXia.Unity.Host
                 foreach (var id in _continuousSitePopulation)
                 {
                     if (capturePositions && !_continuousSquadPopulation.Contains(id) &&
-                        !SquadWorldMotionService.OwnsCharacter(world, id) &&
+                        !IsSquadProjectionOwner(world, id) &&
                         _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
                         TryCaptureAtSiteAnchor(id, view.transform.position);
                     if (world.Entities.TryGet(id, out var entity) &&

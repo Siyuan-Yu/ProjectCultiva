@@ -245,6 +245,7 @@ namespace XianXia.Core.World.Strategic
             var oldOwner = site.OwnerFactionId ?? string.Empty;
             var transfer = WorldSiteTerritoryTransferService.Transfer(world, site.SiteId, attackerFactionId);
             if (transfer.IsFailure) return transfer;
+            CouncilHallEncounterDefenseService.Disable(world, workAreaId);
             world.ControlCores.ResetAfterCapture(workAreaId, out _);
             SettlementAuthoritySync.Rebuild(world);
             ScenarioProgressionHooks.NotifyWorldSiteCaptured(world, site.SiteId, oldOwner, attackerFactionId, workAreaId);

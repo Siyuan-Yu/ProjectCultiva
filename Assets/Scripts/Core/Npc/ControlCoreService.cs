@@ -87,6 +87,8 @@ namespace XianXia.Core.Npc
         {
             var breached = world.ControlCores.ApplyDamage(
                 workAreaId, damage, out var core, defenseAlreadyApplied);
+            if (breached)
+                CouncilHallEncounterDefenseService.Disable(world, workAreaId);
             world.Events.Publish(
                 EventType.ControlCoreDamaged,
                 world.Tick,

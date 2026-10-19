@@ -477,6 +477,22 @@ namespace XianXia.Unity.Host
                     Debug.Log("[CharacterEncounter] Id=" + state.EncounterId + " tacticalDeltaTime=" + dt);
                     _loggedTacticalClock = true;
                 }
+                if (CouncilHallEncounterDefenseService.AdvanceAndStrike(world, dt,
+                        out var hallTarget, out var hallDefeated))
+                {
+                    var ward = state.CouncilHallDefense;
+                    if (ward != null && _strikeVfx != null &&
+                        _host.ViewSpawner.Registry.TryGet(hallTarget, out var hallTargetView) &&
+                        hallTargetView != null &&
+                        _host.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(
+                            new WorldVec2((ward.MinX + ward.MaxX) * .5f,
+                                (ward.MinY + ward.MaxY) * .5f), out var from))
+                    {
+                        _strikeVfx.PlayProjectile(from + Vector3.up * .35f,
+                            hallTargetView.transform.position + Vector3.up * .35f, hallTargetView);
+                    }
+                    if (hallDefeated) RefreshDefeatedParticipant(hallTarget);
+                }
                 foreach (var p in state.Participants)
                 {
                     if (!CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
@@ -729,6 +745,9 @@ namespace XianXia.Unity.Host
                     " LifeState=" + life +
                     " SourceOwner=" + participant.SourceSpatialOwnerKind +
                     " SquadId=" + squadId +
+                    " FrozenReturnWorldPosition=(" +
+                        participant.ReturnX.ToString("0.###") + "," +
+                        participant.ReturnY.ToString("0.###") + ")" +
                     " ActualMode=" + actualMode +
                     " ActualSiteId=" + (presence?.SiteId ?? string.Empty) +
                     " ActualSurface=" + (presence?.PersonalSurfaceId ?? string.Empty) +

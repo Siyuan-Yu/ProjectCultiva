@@ -77,6 +77,7 @@ Temporary quest companion participates in party travel and combat, but is not a 
 | [0042](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) | Shop 钱包 authority 与 Snapshot v12 | Producer Accepted / Sealed | 三档钱包、指定 TradeProvider、有限店铺状态 |
 | [0043](ADR-0043-auction-house-escrow-and-snapshot-v13.md) | AuctionHouse 托管 authority 与 Snapshot v13 | Producer Accepted / Sealed | 独立拍卖入口、双托管、确定性 Market、Claim |
 | [0044](ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) | 个体凡人、势力劳动、需求与俘虏方向 | Accepted as Design Direction / Implementation Not Started | 真实 Character、需求优先、单职业、战后逃亡、真实押送与住房拘留 |
+| [0045](ADR-0045-council-hall-encounter-defense-authority.md) | 议政厅独立遭遇建筑防御权威 | Producer Accepted／封板授权 | 非 Character 攻击者、参战及停火存档边界 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

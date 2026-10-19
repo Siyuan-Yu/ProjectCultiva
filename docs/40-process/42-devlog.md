@@ -1,5 +1,32 @@
 # 开发日志
 
+## 2026-10-19 — 议政厅、巡卫返场与 Sprite 几何修复制作人验收通过；封板授权
+
+- 制作人明确确认：议政厅战斗内攻击及发射表现、巡卫战后回到入战位置、`HumanCommonRigView` 与 `HostBedVisualLayers` 两处 `Invalid vertex array` 修复，均已在 LevelTester 现场验收成功。此前各条“待现场复验”仅记录当时阶段，以上结论由本条覆写；不延伸到未提及的其他美术或玩法。
+- 制作人随后明确要求“封板并推送”。本批仅选择相关 Core／Data／Host 代码、战斗设计与 ADR、交接和验收文档提交至 `dev_openworld` 并推送，不混入其他内容。开发侧完成 Core／Data／Unity 离线基础编译及静态检查；Unity 人工结论来自制作人，开发侧未自行启动 Unity 或运行自动测试。
+
+## 2026-10-19 — 巡卫战后从小队集结点回跑床位修复（Implemented，待现场复验）
+
+- 本次返场规则是入战时冻结每名参战者的实际位置 (`ReturnX/ReturnY`)，结算后回到该点。原代码虽已从当前 View 冻结此点，静止巡卫小队的存活者却可能在 `RestoreAnchors` 被改写成小队集结位置，普通地图物化还会再次用小队位置覆盖 View；这两个后续覆盖导致从固定点回跑床位，并非应当选择另一个“默认返场位置”。现有 Editor 日志没有本次巡卫的逐人返场记录，结论基于代码路径，待现场复验。
+- `ContinuousCharacterSpatialAuthorityResolver` 让本地凡人入战范围/起点取当前个人实际位置；`CharacterEncounter.RestoreAnchors` 对静止小队凡人恢复已冻结的 `ReturnX/ReturnY`（兼容旧的 Squad 来源战斗）；`ContinuousOutdoorSurfaceRuntime` 阻止普通地图物化、View 对齐再次用静止小队位置覆盖该点。行军小队仍保留原有小队权威。`HostCharacterEncounter` 返场日志增加 `FrozenReturnWorldPosition`，可与实际位置直接对照。未改床位、日程、小队命令、路线和战斗结算。
+- `XianXia.Core/Data/Unity` 离线基础编译 `ALL_OK`，`git diff --check` 无错误；未运行 Unity 或自动测试，LevelTester 连续入战返场和存读档行为待制作人验收。未提交／推送。
+
+## 2026-10-19 — 议政厅出手弹道起点坐标修复（Implemented，待现场复验）
+
+- 制作人独立战场截图的事件栏已出现 `councilHallStrike` 与 `ControlCoreDamaged`：议政厅正式出手和攻方拆耐久均在发生，缺失的是议政厅可辨认的发射表现。`HostCharacterEncounter` 原将 `CouncilHallDefense` 的物理世界占地中心直接传给表现空间，而主连续地图实际按 `1 / CellSize` 换算；弹道从远离议政厅的错误位置发出。
+- 议政厅成功出手后，改走现有 `ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation` 将建筑中心换到当前加载区域的表现坐标，再从该处向正式目标 View 播放共用弹道。只改 Host 表现，不改建筑参战、伤害、冷却、射程、战斗结算或 Content。`XianXia.Core/Data/Unity` 离线基础编译 `ALL_OK`；未启动 Unity、未运行自动测试，LevelTester 弹道可见性与屋顶发射观感待制作人复验；未提交／推送。
+
+## 2026-10-19 — 议政厅战斗内攻击制作人验收通过
+
+- 制作人对上一轮议政厅攻击回复“验收好了”。据此将 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md)、[ADR-0045](43-decisions/ADR-0045-council-hall-encounter-defense-authority.md) 与 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 的本功能状态改为 **Producer Accepted**；不扩展为其他美术、移动或系统的验收。
+- 本轮只更新状态记录，未修改运行代码，未启动 Unity 或自动测试；“验收好了”不等于明确授权 Git 封板，议政厅攻击改动仍在工作区，未提交／推送。
+
+## 2026-10-19 — 议政厅战斗内仙术防御（Implemented；待制作人验收）
+
+- 制作人确认：正式参战的议政厅在附近普通战斗也可攻击与其所属势力敌对的本场目标，不限以议政厅为攻城 Objective；攻击力 20 走人物同类的攻防承伤语义，不是固定扣 20 HP；建筑防御耐久归零即停火，同场接管后不换边重新开火。已更新 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md)。
+- 按制作人后续确认，附近普通战斗同样以当前 Site 的实际固定议政厅、战场包含真实占地及正式参战人物的战争关系决定建筑参战；射程为占地长边 5 倍、Active 阶段每 3 秒至多一次，只打正式参战的存活战争敌人。规则已进入 [23 §12.2.1](../20-systems/23-combat.md) 与 [ADR-0045](43-decisions/ADR-0045-council-hall-encounter-defense-authority.md)。
+- 在 `ControlCore` 绑定作者配置物理占地；`CharacterEncounter` 增加独立建筑参战/攻击力结算与存档字段；破防/接管即本场停火；Host 仅播放正式成功出手的共用弹道。`XianXia.Core/Data/Unity` 基础离线编译 `ALL_OK`，`git diff --check` 无错误；未启动 Unity、未运行自动测试或进行人工游玩，未提交／推送。状态为 Implemented / Producer Acceptance Pending。
+
 ## 2026-10-19 — 黄村环境、弹道与人物穿行工作区封板上传
 
 - 制作人明确要求“全部封板，上传 GitHub”。本次将 298～304 的 Host 代码、美术运行图与源图、资产登记和交接文档同批提交并推送 `dev_openworld`；303 的临时避让策略由 304 替代，301 议政厅攻击 ACR 仍为 Proposed / Gameplay Not Implemented。

@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-19 最新验收与封板授权：制作人明确确认议政厅攻击及弹道、巡卫战后返场、两处 Sprite `Invalid vertex array` 修复在 LevelTester 现场验收通过，并要求将本批改动封板推送。状态为 **Implemented / Producer Accepted / 封板授权**；开发侧仍只做离线编译与静态核对，不声称亲自运行 Unity。下文旧的 Proposed／待验叙述为历史阶段，以本条为准。
+
+> 2026-10-19 最新覆写：议政厅攻击已按制作人确认写入 [战斗 §12.2.1](../20-systems/23-combat.md) 与 [ADR-0045](43-decisions/ADR-0045-council-hall-encounter-defense-authority.md)，并完成 Core／Data／Host 接线，基础离线编译通过。制作人随后明确回复“验收好了”，本功能状态 **Implemented / Producer Accepted / 未提交封板**。下文关于 301 仍 Proposed、符阵不发弹道的陈述只记录当时阶段，已由本条覆写。开发侧未启动 Unity 或运行自动测试；验收结论来自制作人，本轮未提交或推送。
+
 ## 2026-10-18 人物表现与美术源文件最新交接
 
 当前人物骨架、八向移动、睡眠层级、工具/武器及右键改路的代码状态和美术文件清理边界，统一转读 [297 最新交接](297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。它们已实施并获制作人版本封板授权，但侧臂、床上表现及连续改路等现场观感仍待人工验收；不能由 Git 提交或离线编译推定为 Producer Accepted。以下旧段落保留其各阶段历史上下文，不作为 2026-10-18 人物美术现状的唯一入口。

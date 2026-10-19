@@ -202,9 +202,10 @@ namespace XianXia.Unity.Host
             var triangles = new ushort[(upperEdge.Length - 1) * 6];
             for (var i = 0; i < upperEdge.Length; i++)
             {
-                vertices[i * 2] = SourcePoint(source, upperEdge[i]);
-                vertices[i * 2 + 1] = SourcePoint(source,
-                    new Vector2(upperEdge[i].x, source.rect.height));
+                // OverrideGeometry takes Sprite-rect pixels; the registration is top-left source pixels.
+                vertices[i * 2] = new Vector2(upperEdge[i].x,
+                    source.rect.height - upperEdge[i].y);
+                vertices[i * 2 + 1] = new Vector2(upperEdge[i].x, 0f);
                 if (i == upperEdge.Length - 1) continue;
                 var index = i * 6;
                 triangles[index] = (ushort)(i * 2);

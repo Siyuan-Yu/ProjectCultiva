@@ -421,15 +421,21 @@ namespace XianXia.Data.Bootstrap
                 var placement = row.Placement;
                 var site = row.Site;
                 var surface = row.Surface;
-                    site.CoreAssetId = placement.StableId ?? string.Empty;
-                    site.CoreSurfaceId = surface.SurfaceId ?? string.Empty;
-                    site.HasCoreWorldPosition = true;
-                    site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
-                    site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
-                    site.CoreLevel = 1;
-                    registry.SpatialRules.Bind(world, site);
-                    site.IsCoreActive = true;
-                    site.CoreIsRemovable = false;
+                var footprint = world.ControlCores.BindWorldFootprint(
+                    row.WorkAreaId, placement.WorldX, placement.WorldY,
+                    placement.WorldWidth, placement.WorldHeight);
+                if (footprint.IsFailure)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Outdoor controlCore physical footprint is invalid.", footprint.Error.ToString());
+                site.CoreAssetId = placement.StableId ?? string.Empty;
+                site.CoreSurfaceId = surface.SurfaceId ?? string.Empty;
+                site.HasCoreWorldPosition = true;
+                site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
+                site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
+                site.CoreLevel = 1;
+                registry.SpatialRules.Bind(world, site);
+                site.IsCoreActive = true;
+                site.CoreIsRemovable = false;
             }
             return Result.Success();
         }
