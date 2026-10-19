@@ -21,6 +21,8 @@ namespace XianXia.Unity.Host
         static readonly Vector2 FootPivot = new Vector2(0.5f, 48f / FrameHeight);
         static readonly Dictionary<string, Sprite[]> Frames = new Dictionary<string, Sprite[]>();
         static readonly Dictionary<string, Sprite> Props = new Dictionary<string, Sprite>();
+        static readonly Dictionary<string, Sprite> SurfaceTiles = new Dictionary<string, Sprite>();
+        static readonly Dictionary<string, Sprite[]> FarmStages = new Dictionary<string, Sprite[]>();
         static readonly Dictionary<string, Texture2D> Icons = new Dictionary<string, Texture2D>();
         static Sprite _plainFlag;
 
@@ -243,6 +245,10 @@ namespace XianXia.Unity.Host
 
         public static Sprite MapSprite(string kind)
         {
+            if (kind == "road") return SurfaceTile("ART-GROUND-002_road_horizontal_v02", 319f);
+            if (kind == "roadVertical") return SurfaceTile("ART-GROUND-002_road_vertical_v02", 425f);
+            if (kind == "roadCross") return SurfaceTile("ART-GROUND-002_road_cross_v02", 406f);
+            if (kind == "wall") return SolidWallSprite();
             string name;
             switch (kind)
             {
@@ -254,11 +260,75 @@ namespace XianXia.Unity.Host
                 case "ore": name = "ART-GROUND-009_ore_base_v02"; break;
                 case "cave": name = "ART-ROOM-010_cave_entrance_v02"; break;
                 case "storageRoom": name = "ART-ROOM-007_storage_crates_v03"; break;
-                case "controlCore": name = "ART-ROOM-008_core_isolated_v03"; break;
+                case "controlCore": name = "ART-ROOM-008_council_hall_ward_v05"; break;
                 case "factionControlPost": name = "ART-ROOM-008_flag_red_v02"; break;
                 default: return null;
             }
             return LoadProp(name);
+        }
+
+        public static Sprite RoomFloorTile() => SurfaceTile("ART-ROOM-001_floor_interior_v02", 520f);
+
+        public static Sprite FarmStageSprite(string kind, int stage)
+        {
+            var name = kind == "grainField" ? "ART-GROUND-010_grain_4stage_sheet_v01" :
+                kind == "herbField" ? "ART-GROUND-011_herb_4stage_sheet_v01" : null;
+            if (name == null || stage < 0 || stage > 3) return null;
+            if (!FarmStages.TryGetValue(name, out var sprites))
+            {
+                var texture = Resources.Load<Texture2D>(name);
+                if (texture == null || texture.width != 2172 || texture.height != 724)
+                {
+                    Debug.LogWarning("[StepAArt] Missing or invalid four-stage farm sheet: " + name);
+                    return null;
+                }
+                texture.filterMode = FilterMode.Bilinear;
+                texture.wrapMode = TextureWrapMode.Clamp;
+                sprites = new Sprite[4];
+                for (var i = 0; i < 4; i++)
+                    // Use the inner furrow/crop area: the full authored square has a dirt rim.
+                    // Repeating that rim once per logical cell looks like miniature separate plots.
+                    sprites[i] = Sprite.Create(texture, new Rect(i * 543 + 80, 174, 384, 384),
+                        new Vector2(.5f, .5f), 384f, 0, SpriteMeshType.FullRect);
+                FarmStages.Add(name, sprites);
+            }
+            return sprites[stage];
+        }
+
+        static Sprite SolidWallSprite()
+        {
+            const string name = "ART-ROOM-002_wood_wall_solid_v03";
+            if (Props.TryGetValue(name, out var sprite)) return sprite;
+            var texture = Resources.Load<Texture2D>(name);
+            if (texture == null)
+            {
+                Debug.LogWarning("[StepAArt] Missing solid wall texture: " + name);
+                return null;
+            }
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            // The generated cutout has a small transparent margin; use only its opaque square.
+            sprite = Sprite.Create(texture, new Rect(32f, 32f, texture.width - 64f, texture.height - 64f),
+                new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+            Props.Add(name, sprite);
+            return sprite;
+        }
+
+        static Sprite SurfaceTile(string name, float pixelsPerUnit)
+        {
+            if (SurfaceTiles.TryGetValue(name, out var sprite)) return sprite;
+            var texture = Resources.Load<Texture2D>(name);
+            if (texture == null)
+            {
+                Debug.LogWarning("[StepAArt] Missing surface tile: " + name);
+                return null;
+            }
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                new Vector2(.5f, .5f), pixelsPerUnit, 0, SpriteMeshType.FullRect);
+            SurfaceTiles.Add(name, sprite);
+            return sprite;
         }
 
         public static Sprite BedSprite(XianXia.Core.Construction.RoomUsage usage)
@@ -290,7 +360,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Visual child only: original fit, colliders, interaction bounds and root position stay intact.</summary>
-        public static bool ApplyObjectVisual(GameObject root, Sprite sprite, int visualQuarterTurns = 0)
+        public static bool ApplyObjectVisual(GameObject root, Sprite sprite, int visualQuarterTurns = 0,
+            bool preserveAspect = false, bool alignBottom = false)
         {
             if (root == null || sprite == null)
                 return false;
@@ -334,10 +405,20 @@ namespace XianXia.Unity.Host
             var quarter = ((visualQuarterTurns % 4) + 4) % 4;
             overlay.transform.localRotation = Quaternion.Euler(0f, 0f, -90f * quarter);
             var sideways = (quarter & 1) != 0;
+            var visualWidth = sideways ? sprite.bounds.size.y : sprite.bounds.size.x;
+            var visualHeight = sideways ? sprite.bounds.size.x : sprite.bounds.size.y;
+            var fit = preserveAspect
+                ? Mathf.Min(bounds.size.x / Mathf.Max(.0001f, visualWidth),
+                    bounds.size.y / Mathf.Max(.0001f, visualHeight)) : 0f;
+            var targetWidth = preserveAspect ? visualWidth * fit : bounds.size.x;
+            var targetHeight = preserveAspect ? visualHeight * fit : bounds.size.y;
+            if (alignBottom)
+                overlay.transform.position = new Vector3(bounds.center.x,
+                    bounds.min.y + targetHeight * .5f, root.transform.position.z);
             overlay.transform.localScale = new Vector3(
-                (sideways ? bounds.size.y : bounds.size.x) / Mathf.Max(0.0001f,
+                (sideways ? targetHeight : targetWidth) / Mathf.Max(0.0001f,
                     sprite.bounds.size.x * Mathf.Abs(sideways ? root.transform.lossyScale.y : root.transform.lossyScale.x)),
-                (sideways ? bounds.size.x : bounds.size.y) / Mathf.Max(0.0001f,
+                (sideways ? targetWidth : targetHeight) / Mathf.Max(0.0001f,
                     sprite.bounds.size.y * Mathf.Abs(sideways ? root.transform.lossyScale.x : root.transform.lossyScale.y)), 1f);
             for (var i = 0; i < renderers.Length; i++)
                 if (renderers[i] != null && renderers[i] != overlay)

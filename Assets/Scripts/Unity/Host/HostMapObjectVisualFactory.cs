@@ -15,7 +15,7 @@ namespace XianXia.Unity.Host
 
         public static GameObject Create(string kind, string prefabPath, string name, Transform parent,
             Vector3 intendedCenter, float worldWidth, float worldHeight, int sortingOrder,
-            bool disableColliders, out bool usedMissingVisual)
+            bool disableColliders, out bool usedMissingVisual, int visualQuarterTurns = 0)
         {
             GameObject go;
             var missing = false;
@@ -38,7 +38,9 @@ namespace XianXia.Unity.Host
             var geometry = go.GetComponent<HostMapVisualGeometry>() ?? go.AddComponent<HostMapVisualGeometry>();
             geometry.Configure(intendedCenter, worldWidth, worldHeight);
             if (!missing)
-                HostStepAArt.ApplyObjectVisual(go, HostStepAArt.MapSprite(kind));
+                HostStepAArt.ApplyObjectVisual(go, HostStepAArt.MapSprite(kind), visualQuarterTurns,
+                    kind == "wall" || kind == "road" || kind == "controlCore",
+                    kind == "controlCore");
             foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>(true))
                 if (renderer != null) renderer.sortingOrder =
                     HostArtDepth.ObjectOrder(kind, intendedCenter.y, worldHeight, sortingOrder);

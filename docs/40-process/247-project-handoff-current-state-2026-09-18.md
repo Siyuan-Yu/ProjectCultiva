@@ -4,6 +4,22 @@
 
 当前人物骨架、八向移动、睡眠层级、工具/武器及右键改路的代码状态和美术文件清理边界，统一转读 [297 最新交接](297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)。它们已实施并获制作人版本封板授权，但侧臂、床上表现及连续改路等现场观感仍待人工验收；不能由 Git 提交或离线编译推定为 Producer Accepted。以下旧段落保留其各阶段历史上下文，不作为 2026-10-18 人物美术现状的唯一入口。
 
+制作人后续复看动画认为当前观感可继续推进。本阶段新增 [298 黄村环境同屏样板](298-huangcun-environment-visual-slice-2026-10-18.md)：住宅木地板/围墙及道路仅在 Host 表现接线，田地沿用现有状态图，实施完成待制作人现场验收；没有改变 Continuous Surface、建筑或农田 authority。
+
+298 木框墙已被制作人现场截图判定像栅栏；[299 返修](299-solid-wood-wall-and-farm-stage-presentation-2026-10-18.md) 改为封闭实木墙，并让麦田／药田图随现有真实阶段切换。仍为 Host 表现 Implementation Complete / Producer Acceptance Pending；不把 298 的旧墙描述当作当前视觉状态。
+
+制作人新截图指出田地像逐格缩小的方块、固定议政厅仍是圆形占点。按 [300 返修](300-field-scale-and-council-hall-exterior-2026-10-18.md)，田地取四阶段图的内部垄沟/植株区域以去掉每格独立土边；预设 `controlCore` 换为封闭屋顶的议政厅，并按等比例靠南端落地。只属 Host 表现 Implemented / Producer Acceptance Pending；议政厅对敌自动攻击仍为 Proposed，未改战斗规则或 SiteCore authority。
+
+制作人进一步提出议政厅屋顶仙术设施、近距自动单体远程攻击，暂以自身尺寸约 5 倍射程、20 伤害、3 秒间隔为意向。Host 运行图已加静态屋脊符阵；规则、伤害和发射特效**均未实现**。涉及建筑作为攻击者、独立 Encounter 与伤害归责的 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md) 待 Architecture/System Design 定案；不得将美术接线视为功能完成。
+
+制作人已澄清：议政厅**仅在正式加入的战斗场景中**攻击本场敌方；平时不开火，不自行触发战斗。该触发范围已写回 301；建筑参战身份、场内伤害/冷却/存档接口仍待架构定案。
+
+2026-10-19 [302 通用可见弹道](302-unified-visible-ranged-projectile-presentation-2026-10-19.md) 已把现有筑基纱衣远程普攻在独立 Encounter 中接到原通用弹道，并放缓飞行、增加短尾迹；Core 命中时点未改。当前炼气不具备同一远程**普攻**，议政厅静态符阵仍不发射；这些状态不可混写。
+
+制作人再次现场确认议政厅在战场不发弹道，同时截图指出主角右键被同伴卡成慢步。按 [303](303-party-corridor-transit-and-council-hall-attack-status-2026-10-19.md) 查明议政厅并无建筑攻击事件，不能将静态屋脊符阵当功能；移动器的 30% fallback 位于累计穿行分支之前，致可行小步长期吞掉穿行。Host 已调整同队短暂穿行和通用 fallback 顺序，基础编译完成，实际走位待人工验收；301 ACR 仍需 Architecture 定案后才能实施议政厅攻击。
+
+制作人复验 303 后仍被人物卡住，明确要求暂时全部人物互相穿行。[304 最新移动范围](304-unblocked-character-transit-2026-10-19.md) 已移除共用 Host 路径上的人物避让、慢步与终点占位阻塞，只保留 WalkGrid 静态障碍；普通右键下令时仍尽量找空位，任务与战斗本身的站位/合法性不变。状态 Implemented / Producer Acceptance Pending，303 移动策略已被替代；议政厅攻击继续 Proposed / Gameplay Not Implemented。
+
 ## LOCAL-CONTINUITY-FINAL（2026-10-16，待制作人验收）
 
 同势力凡人的本地救援已从“同 Site”改为“同一 Continuous Surface + 精确同 Faction + 有界本地范围 + 真实路线／设施权限”。最紧急伤员先取得唯一救援者与稳定 BedId；医疗床、本人住宅床、空闲公共住宅床依次选择，进行中跨旗帜边界不重选，临时路径未准备有界退避，最终仍必须搬到床边原子安置。职业工区、分配住宅床、附近合法储藏室及指定牢床的发起资格不再错误依赖人物当前 Site；库存仍从锁定的实际来源 Site 扣除，囚犯交接仍以床所属玩家控制 Site 和最终床边到达为准。

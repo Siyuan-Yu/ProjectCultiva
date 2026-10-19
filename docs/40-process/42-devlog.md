@@ -1,5 +1,49 @@
 # 开发日志
 
+## 2026-10-19 — 黄村环境、弹道与人物穿行工作区封板上传
+
+- 制作人明确要求“全部封板，上传 GitHub”。本次将 298～304 的 Host 代码、美术运行图与源图、资产登记和交接文档同批提交并推送 `dev_openworld`；303 的临时避让策略由 304 替代，301 议政厅攻击 ACR 仍为 Proposed / Gameplay Not Implemented。
+- 本次 **Committed / Sealed 只表示版本封板**，不把基础编译或 Git 推送等同制作人对墙、田、议政厅外观、人物弹道及穿行行为的现场验收；相关条目继续 Producer Acceptance Pending。
+
+## 2026-10-19 — 人物行走改为非阻挡穿行（Implemented，待人工验收）
+
+- 制作人复验 303 后仍被同伴/NPC 卡住，明确选择所有人物在寻路途中直接穿过。按 [304](304-unblocked-character-transit-2026-10-19.md) 移除共用 Host 移动链里的人物等待、绕行、30% 慢步及终点占位停止；右键、NPC 与 WASD 仍遵守静态 WalkGrid。普通落点仍在下令时尽量找空位，任务交付与战斗站位检查保留。303 的在途避让实现由本轮替代。
+- 议政厅攻击仍为 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md) 的 Proposed / Gameplay Not Implemented；已有通用人物弹道不能充当建筑参战与伤害结算。本轮不提交/上传，运行效果待制作人验收。
+
+## 2026-10-19 — 同伴窄路慢步卡行与议政厅不攻击定位（移动已实施，议政厅玩法未实施）
+
+- 制作人截图反馈主角右键行经同伴时卡住缓慢蹭行。静态追到 `HostMoveController.CharacterSpacing`：六向绕路失败后若 30% 小步合法即返回，后面的 0.75 秒穿行分支永不可达。按 [303](303-party-corridor-transit-and-council-hall-attack-status-2026-10-19.md) 将同队短暂穿行和通用累计穿行置于慢步之前，仍要求 WalkGrid 连通和最终落点分离，不恢复人物推挤。
+- 同轮核查议政厅不出弹道不是 VFX 漏接：当前只有静态符阵，没有建筑参战者、计时或正式伤害事件；[301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md) 仍为 Proposed / Not Implemented，不能发无伤弹道冒充攻击。`XianXia.Unity` 基础离线编译 `ALL_OK`，未启动 Unity 或运行自动测试；移动现场待制作人验收，本轮不提交／推送。
+
+## 2026-10-19 — 筑基纱衣远程普攻通用可见弹道（Implemented，待人工验收）
+
+- 核查 [23 §6](../20-systems/23-combat.md) 与 `SpiritVeilRules`：当前可用远程普攻为筑基展开斗气纱衣后，主管具备该门槛；炼气的基础灵力攻击仍为设计方向，并非此处可用的远程普攻。既有 `HostMeleeStrikeVfx` 已有程序青色飞行光核，但独立 `HostCharacterEncounter` 的 Active/ReadyToEnd 出手未调用，且原飞行上限偏短。按 [302](302-unified-visible-ranged-projectile-presentation-2026-10-19.md) 补接共用接口、放缓速度并加短尾迹；旧 NPC 对打继续共用同一实现。
+- 只改 Host 表现，不改境界、攻击射程、伤害、命中结算时点、冷却或存档。`XianXia.Unity` 离线基础编译 `ALL_OK`；未启动 Unity、未写/跑自动测试。实际飞行可见度和暂停表现待制作人验收；议政厅仍须 301 ACR 的建筑参战与伤害权威后才能发射。
+
+## 2026-10-18 — 议政厅只在参战场景内攻击（设计澄清，未实施）
+
+- 制作人明确把 301 ACR 的触发范围收窄为：议政厅正式加入一场战斗后，才在该战斗场景攻击本场敌方；平时连续地图不开火，也不主动开启遭遇。`CharacterEncounterState` 现有 Character 参战者与可选 SiteCore Objective，但无建筑参战/攻击者接口；已更新 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md) 的参战身份、tactical cooldown 与存档待决项。此轮只改需求文档，攻击规则/特效仍未实现。
+
+## 2026-10-18 — 议政厅符阵外观与自动攻击 ACR（视觉已实施，玩法待架构）
+
+- 制作人补充议政厅应有仙术防御设施，并希望近距自动单体远程攻击，暂以自身尺寸约五倍、20 伤害、3 秒间隔为基线。封闭议政厅图追加小型屋脊符阵并在 Host 替换，原纯屋顶图与圆盘旧图保留；新图来源、提示及 SHA 见 `Batch_CouncilHall_001/manifest.json`。
+- 核查 `ControlCoreState/Service` 只有受击与接管，人物伤害入口要求 Character 攻击者、独立遭遇确认和敌对参战；在 Host 直接扣血会越过正式权威。按协作规范提交 [301 ACR](301-acr-council-hall-spirit-defense-2026-10-18.md) 供 Architecture/System Design 定义建筑攻击者、目标、计时、伤害和存档。**自动攻击、弹道和扣血未实施**，静态符阵只表达外观；不改 Core／Data／Freeze。基础编译/静态资源核对与 Unity 人工验收状态分别记录，不以图像存在冒充玩法验收。
+
+## 2026-10-18 — 田地重复缩小感与议政厅外观返修（Implemented，待制作人验收）
+
+- 制作人截图指出麦田／药田呈重复微缩小田块、固定议政厅呈圆盘棋子。按 [300](300-field-scale-and-council-hall-exterior-2026-10-18.md) 查到前者是每格重复一张带独立土边的方形图，后者是圆形核心图被按占地宽高拉伸；田地改取内部连续垄沟区，议政厅换封闭瓦顶木构建筑图并保持宽高比、靠原脚印南端对齐。来源记录在 `Batch_CouncilHall_001`，旧圆盘图保留候选。
+- 只改 Host 美术资源与呈现；田地作物状态、各格 ID、SiteCore 占地、碰撞、交互/接管、旗阵营和攻击规则未改。议政厅未来攻击效果仍为 Proposed。`XianXia.Unity` 基础离线编译 `ALL_OK`；未启动 Unity、未编写或运行自动测试，现场视觉/操作待制作人验收；普通实施未自动提交或推送。
+
+## 2026-10-18 — 实木墙返修与麦田／药田阶段图接线（Implemented，待制作人验收）
+
+- 制作人以黄村现场截图指出 298 的木框墙过窄、像栅栏，要求整块木墙并继续下一步。按 [299](299-solid-wood-wall-and-farm-stage-presentation-2026-10-18.md) 单张定向生成封闭实木墙，保留旧候选原图，不改门洞、墙格、碰撞和破坏语义；麦田/药田复用现有四阶段原图，`HostMapPlotCell` 只按真实 `CropStage/Growth01` 选图，不改生长与收获结算。
+- `XianXia.Unity` 离线基础编译 `ALL_OK`。未启动 Unity、未编写或运行自动测试；墙体同屏厚实感、田地阶段和性能待制作人人工验收。普通实施未自动提交／推送。
+
+## 2026-10-18 — 黄村住宅、道路与田地同屏表现样板（Implemented，待制作人验收）
+
+- 制作人复看上一轮人物动画认为“还可以”，同意推进下一步；此反馈只表示当前镜头可进入场景样板，不冒充全部身份/动作/倍率的正式验收。按 [298](298-huangcun-environment-visual-slice-2026-10-18.md) 复用既有候选图，为 baked 住宅接入重复木地板与横纵围墙/墙角视觉，为 Continuous Surface 道路覆盖接入横向、纵向和交叉图，保留田地原有生长表现。
+- 仅改 Unity Host 表现与 Resources 图片；未改 Core／Data／Content、导航、占地、碰撞或交互。`XianXia.Unity` 离线基础编译 `ALL_OK`，未启动 Unity、未编写或运行自动测试。LevelTester 同屏效果与操作仍待制作人现场验收；本轮未获新的封板/上传授权，不自动提交或推送。
+
 ## 2026-10-18 — 全工作区美术源文件整理与最新交接封板授权
 
 - 制作人要求将此前选择性提交之外的工作区改动“全部封板，然后上传”，并更新久未维护的文档。按 [297 当前交接](297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md) 更新 README、247、总览、美术生产计划与文件报告；保留 273 TSV 作为资产族进度真源，不把 Git 封板误写成 Unity 人工视觉验收。

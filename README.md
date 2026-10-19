@@ -8,6 +8,13 @@
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
 2026-10-18 人物美术与移动的最新实施/待验状态见 [297 当前交接](docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)；12 套 Unity 共用骨架 Skin、八向与侧臂、卧姿和右键连续改路已接线，美术源文件清理有独立台账。版本封板不等于制作人人工视觉验收。
+制作人复看人物动画后同意推进；当前黄村住宅—道路—田地同屏表现样板的实施与待验入口见 [298](docs/40-process/298-huangcun-environment-visual-slice-2026-10-18.md)。
+住宅墙面现场反馈及实木墙、麦田／药田阶段图返修见 [299](docs/40-process/299-solid-wood-wall-and-farm-stage-presentation-2026-10-18.md)。
+田地逐格缩小感与议政厅圆盘外观的返修接线见 [300](docs/40-process/300-field-scale-and-council-hall-exterior-2026-10-18.md)，仍待人工验收。
+议政厅屋顶符阵已作静态美术接线；自动攻击的规则边界与待定数值见 [301 ACR](docs/40-process/301-acr-council-hall-spirit-defense-2026-10-18.md)，玩法尚未实施。
+现有筑基纱衣远程普攻的通用可见弹道返修见 [302](docs/40-process/302-unified-visible-ranged-projectile-presentation-2026-10-19.md)；议政厅待正式参战伤害权威接入后复用。
+同伴窄路慢速蹭行的 Host 移动返修及议政厅攻击现状核查见 [303](docs/40-process/303-party-corridor-transit-and-council-hall-attack-status-2026-10-19.md)。
+制作人复验后要求人物行走暂时互相穿过；最新共用移动改动见 [304](docs/40-process/304-unblocked-character-transit-2026-10-19.md)，待现场验收。303 的在途避让现由 304 替代；议政厅攻击仍未实施。
 
 远端：https://github.com/Siyuan-Yu/ProjectCultiva
 

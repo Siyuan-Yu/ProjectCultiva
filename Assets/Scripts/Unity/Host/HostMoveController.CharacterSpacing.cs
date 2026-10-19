@@ -13,22 +13,7 @@ namespace XianXia.Unity.Host
     {
         // Foot-space presentation clearance, deliberately independent of heads, sleeves and tools.
         const float CharacterStandSpacing = .8f;
-        const float CrowdTransitWaitSeconds = .75f;
-        const float StandRetrySeconds = .4f;
-        static readonly float[] AvoidanceAngles = { -30f, 30f, -55f, 55f, -80f, 80f };
-
-        sealed class FreeStandRequest
-        {
-            public Vector3 Center;
-            public float Radius;
-            public float RetryRemaining;
-        }
-
         readonly Dictionary<ulong, Vector3> _characterDestinations = new Dictionary<ulong, Vector3>();
-        readonly Dictionary<ulong, FreeStandRequest> _freeStandRequests =
-            new Dictionary<ulong, FreeStandRequest>();
-        readonly Dictionary<ulong, float> _crowdWait = new Dictionary<ulong, float>();
-        readonly Dictionary<ulong, int> _crowdWaitFrame = new Dictionary<ulong, int>();
         readonly List<EntityView> _characterOccupants = new List<EntityView>(64);
         readonly List<Vector3> _standPathScratch = new List<Vector3>(32);
         int _characterOccupantsFrame = -1;
@@ -182,87 +167,23 @@ namespace XianXia.Unity.Host
             if (!OrderEntityToWorldPoint(actor, stand, null, issueStop,
                     completionPolicy: completionPolicy, exactGoal: true,
                     preserveNpcIntent: preserveNpcIntent)) return false;
-            _freeStandRequests[actor.Value] = new FreeStandRequest
-            { Center = targetView.transform.position, Radius = range };
+            _characterDestinations[actor.Value] = stand;
             return true;
         }
 
-        void ReserveCharacterDestination(EntityId id, Vector3 destination, Vector3 center, float radius)
+        void ReserveCharacterDestination(EntityId id, Vector3 destination)
         {
             _characterDestinations[id.Value] = destination;
-            if (radius > 0f)
-                _freeStandRequests[id.Value] = new FreeStandRequest { Center = center, Radius = radius };
         }
 
-        void RefreshFreeStandDestination(EntityView view, float deltaTime)
-        {
-            var id = view.EntityId.Value;
-            if (!_freeStandRequests.TryGetValue(id, out var request) ||
-                !_characterDestinations.TryGetValue(id, out var destination) ||
-                IsCharacterStandClearAt(view, destination, includeDestinations: true)) return;
-            request.RetryRemaining -= deltaTime;
-            if (request.RetryRemaining > 0f) return;
-            request.RetryRemaining = StandRetrySeconds;
-            if (!TryResolveFreeStandPoint(view.EntityId, request.Center, request.Radius, out var replacement) ||
-                !TryBuildWorldPath(view.transform.position, replacement, _standPathScratch, exactGoal: true)) return;
-            // Preserve command callbacks, completion policy, map binding and the source ownership revision.
-            var path = new List<Vector3>(_standPathScratch);
-            _paths[id] = path;
-            _pathIndex[id] = 0;
-            _targets[view] = path[0];
-            _characterDestinations[id] = path[path.Count - 1];
-        }
-
-        Vector3 FilterCharacterStep(EntityView view, Vector3 from, Vector3 proposed, Vector3 waypoint,
-            float deltaTime, bool settling, bool requireWaypointConnection = true)
+        Vector3 FilterCharacterStep(Vector3 from, Vector3 proposed, Vector3 waypoint,
+            float deltaTime, bool requireWaypointConnection = true)
         {
             if (deltaTime <= 0f) return from;
-            var delta = proposed - from;
-            delta.z = 0f;
-            var length = delta.magnitude;
-            if (length <= .00001f)
-                return !settling || IsCharacterStandClearAt(view, proposed) ? proposed : from;
-            var direction = delta / length;
-            var lookahead = Mathf.Max(length, StandSpacing(view) * .9f);
-            if (requireWaypointConnection)
-                lookahead = Mathf.Min(lookahead, Mathf.Max(length, Vector2.Distance(from, waypoint)));
-            if (IsSpacingStepNavigable(from, proposed, waypoint, requireWaypointConnection) &&
-                IsCharacterStepClear(view, from, proposed, direction * lookahead, settling))
-            {
-                _crowdWait.Remove(view.EntityId.Value);
-                return proposed;
-            }
-            _crowdWait.TryGetValue(view.EntityId.Value, out var waited);
-            // Accumulate once per frame's movement budget, not on every passed path corner.
-            if (!_crowdWaitFrame.TryGetValue(view.EntityId.Value, out var waitFrame) ||
-                waitFrame != Time.frameCount)
-            {
-                if (Time.frameCount - waitFrame > 1) waited = 0f;
-                waited += Mathf.Min(deltaTime, .1f);
-                _crowdWaitFrame[view.EntityId.Value] = Time.frameCount;
-            }
-            _crowdWait[view.EntityId.Value] = waited;
-            if (!settling)
-            {
-                for (var i = 0; i < AvoidanceAngles.Length; i++)
-                {
-                    var turn = Quaternion.Euler(0f, 0f, AvoidanceAngles[i]) * direction;
-                    var candidate = from + turn * length;
-                    if (!IsSpacingStepNavigable(from, candidate, waypoint, requireWaypointConnection) ||
-                        !IsCharacterStepClear(view, from, candidate, turn * lookahead, settling: false)) continue;
-                    _crowdWait.Remove(view.EntityId.Value);
-                    return candidate;
-                }
-                var slow = from + delta * .3f;
-                if (IsSpacingStepNavigable(from, slow, waypoint, requireWaypointConnection) &&
-                    IsCharacterStepClear(view, from, slow, slow - from, settling: false)) return slow;
-                // Soft bodies can cross a narrow corridor after yielding. They still cannot finish overlapped.
-                if (waited >= CrowdTransitWaitSeconds &&
-                    _characterDestinations.TryGetValue(view.EntityId.Value, out var final) &&
-                    Vector2.Distance(proposed, final) > StandSpacing(view) &&
-                    IsSpacingStepNavigable(from, proposed, waypoint, requireWaypointConnection)) return proposed;
-            }
-            return from;
+            // Characters cannot block a path step, including its final landing.
+            // Static WalkGrid clearance remains authoritative for movement.
+            if (!IsSpacingStepNavigable(from, proposed, waypoint, requireWaypointConnection)) return from;
+            return proposed;
         }
 
         bool IsSpacingStepNavigable(Vector3 from, Vector3 candidate, Vector3 waypoint, bool requireConnection)
@@ -273,58 +194,14 @@ namespace XianXia.Unity.Host
                     _walkGrid, candidate.x, candidate.y, waypoint.x, waypoint.y));
         }
 
-        bool IsCharacterStepClear(EntityView actor, Vector3 from, Vector3 to, Vector3 prediction, bool settling)
-        {
-            if (settling && !IsCharacterStandClearAt(actor, to)) return false;
-            RefreshCharacterOccupants();
-            var predicted = from + prediction;
-            for (var i = 0; i < _characterOccupants.Count; i++)
-            {
-                var other = _characterOccupants[i];
-                if (other == null || other == actor || !other.gameObject.activeInHierarchy) continue;
-                var point = other.transform.position;
-                var spacing = (StandSpacing(actor) + StandSpacing(other)) * .5f;
-                var initial = Vector2.Distance(from, point);
-                var next = Vector2.Distance(to, point);
-                // Existing overlaps can only improve through the actor's own legal motion.
-                if (initial < spacing)
-                {
-                    if (next <= initial + .00001f) return false;
-                    continue;
-                }
-                if (PointSegmentDistanceSquared(point, from, predicted) < spacing * spacing - .0001f)
-                    return false;
-            }
-            return true;
-        }
-
-        static float PointSegmentDistanceSquared(Vector3 point, Vector3 from, Vector3 to)
-        {
-            var line = (Vector2)(to - from);
-            var offset = (Vector2)(point - from);
-            var t = line.sqrMagnitude > .0000001f ? Mathf.Clamp01(Vector2.Dot(offset, line) / line.sqrMagnitude) : 0f;
-            return (offset - line * t).sqrMagnitude;
-        }
-
-        void ReleaseCharacterDestination(EntityId id, bool preserveCrowdWait = false)
+        void ReleaseCharacterDestination(EntityId id)
         {
             _characterDestinations.Remove(id.Value);
-            _freeStandRequests.Remove(id.Value);
-            // Repath throttles may be shorter than the transit yield. Replacing the same
-            // actor's path must not reset its wait forever; actual cancellation still does.
-            if (!preserveCrowdWait)
-            {
-                _crowdWait.Remove(id.Value);
-                _crowdWaitFrame.Remove(id.Value);
-            }
         }
 
         void ResetCharacterSpacing()
         {
             _characterDestinations.Clear();
-            _freeStandRequests.Clear();
-            _crowdWait.Clear();
-            _crowdWaitFrame.Clear();
             _characterOccupants.Clear();
             _characterOccupantsFrame = -1;
             _characterOccupantsWorld = null;

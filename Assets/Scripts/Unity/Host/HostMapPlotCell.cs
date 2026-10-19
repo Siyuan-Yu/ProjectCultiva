@@ -183,6 +183,29 @@ namespace XianXia.Unity.Host
             var sr = GetComponentInChildren<SpriteRenderer>();
             if (sr == null)
                 return;
+            var stageIndex = cropStage == OutdoorFarmCropStage.Mature ? 3 :
+                cropStage == OutdoorFarmCropStage.Growing ? (growth01 >= .5f ? 2 : 1) : 0;
+            var stageSprite = HostStepAArt.FarmStageSprite(kind, stageIndex);
+            if (stageSprite != null)
+            {
+                if (sr.sprite != stageSprite)
+                {
+                    var geometry = GetComponent<HostMapVisualGeometry>();
+                    var rect = geometry != null ? geometry.WorldRect :
+                        Rect.MinMaxRect(sr.bounds.min.x, sr.bounds.min.y,
+                            sr.bounds.max.x, sr.bounds.max.y);
+                    sr.transform.localScale = Vector3.one;
+                    sr.sprite = stageSprite;
+                    var scale = sr.transform.lossyScale;
+                    sr.transform.localScale = new Vector3(
+                        rect.width / Mathf.Max(.0001f, stageSprite.bounds.size.x * Mathf.Abs(scale.x)),
+                        rect.height / Mathf.Max(.0001f, stageSprite.bounds.size.y * Mathf.Abs(scale.y)), 1f);
+                    sr.transform.position = new Vector3(rect.center.x, rect.center.y, sr.transform.position.z);
+                }
+                sr.color = cropStage == OutdoorFarmCropStage.Ruined
+                    ? new Color(.55f, .49f, .42f, 1f) : Color.white;
+                return;
+            }
             Color c;
             switch (cropStage)
             {

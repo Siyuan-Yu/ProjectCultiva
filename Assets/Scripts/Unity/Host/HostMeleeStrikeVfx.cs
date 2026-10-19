@@ -11,9 +11,9 @@ namespace XianXia.Unity.Host
     {
         [SerializeField] float lifetime = 0.28f;
         [SerializeField] float hitFlashSeconds = 0.12f;
-        [SerializeField] float projectileSpeed = 16f;
-        [SerializeField] float projectileMinSeconds = 0.12f;
-        [SerializeField] float projectileMaxSeconds = 0.48f;
+        [SerializeField] float projectileSpeed = 8.5f;
+        [SerializeField] float projectileMinSeconds = 0.22f;
+        [SerializeField] float projectileMaxSeconds = 1.1f;
         [SerializeField] float impactLifetime = 0.18f;
         [SerializeField] int poolSize = 16;
 
@@ -28,6 +28,7 @@ namespace XianXia.Unity.Host
         {
             public Transform Root;
             public SpriteRenderer Renderer;
+            public SpriteRenderer Trail;
             public float DieAt;
             public float BornAt;
             public Vector3 From;
@@ -81,7 +82,8 @@ namespace XianXia.Unity.Host
 
             aView.PlayArtAttack(dView.transform.position, ranged, styleOverride);
             if (ranged)
-                PlayProjectile(aView.transform.position, dView.transform.position, dView);
+                PlayProjectile(aView.transform.position + Vector3.up * .35f,
+                    dView.transform.position + Vector3.up * .35f, dView);
             else
             {
                 Play(aView.transform.position, dView.transform.position);
@@ -227,8 +229,9 @@ namespace XianXia.Unity.Host
 
         void AnimateProjectile(Fx s, float t)
         {
-            var ease = t * t * (3f - 2f * t);
-            var pos = Vector3.Lerp(s.From, s.To, ease);
+            // Constant travel speed keeps a short-range bolt readable instead of
+            // lingering at launch and then seeming to jump into the target.
+            var pos = Vector3.Lerp(s.From, s.To, t);
             pos.z = HostPresentationSpace.EntityZ - 0.03f;
             var dir = Flat(s.To - s.From);
             if (dir.sqrMagnitude < 0.0001f)
@@ -248,6 +251,14 @@ namespace XianXia.Unity.Host
                 var c = ProjectileColor;
                 c.a = Mathf.Lerp(0.55f, 0.95f, Mathf.Sin(t * Mathf.PI));
                 s.Renderer.color = c;
+            }
+            if (s.Trail != null)
+            {
+                s.Trail.transform.localPosition = new Vector3(-.53f, 0f, 0f);
+                s.Trail.transform.localScale = new Vector3(.95f, .42f, 1f);
+                var c = ProjectileColor;
+                c.a = .38f * Mathf.Clamp01((1f - t) * 2.5f);
+                s.Trail.color = c;
             }
         }
 
@@ -284,8 +295,13 @@ namespace XianXia.Unity.Host
                     s.Renderer.sprite = BoltSprite();
                     s.Renderer.color = ProjectileColor;
                 }
-
-                    s.Renderer.sortingOrder = 32750;
+                s.Renderer.sortingOrder = 32750;
+            }
+            if (s.Trail != null)
+            {
+                s.Trail.enabled = s.Kind == FxKind.Projectile;
+                s.Trail.sprite = BoltSprite();
+                s.Trail.sortingOrder = 32749;
             }
 
             Animate(s, 0f);
@@ -325,8 +341,15 @@ namespace XianXia.Unity.Host
             sr.sprite = SlashSprite();
             sr.color = new Color(1f, 0.92f, 0.72f, 0.9f);
             sr.sortingOrder = 32750;
+            var trailGo = new GameObject("ProjectileTrail");
+            trailGo.transform.SetParent(go.transform, false);
+            var trail = trailGo.AddComponent<SpriteRenderer>();
+            trail.sprite = BoltSprite();
+            trail.color = ProjectileColor;
+            trail.sortingOrder = 32749;
+            trail.enabled = false;
             go.SetActive(false);
-            return new Fx { Root = go.transform, Renderer = sr };
+            return new Fx { Root = go.transform, Renderer = sr, Trail = trail };
         }
 
         void EnsureRoot()

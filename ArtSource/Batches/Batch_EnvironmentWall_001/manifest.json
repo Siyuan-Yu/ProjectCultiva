@@ -1,0 +1,16 @@
+{
+  "batchId": "Batch_EnvironmentWall_001",
+  "date": "2026-10-18",
+  "purpose": "Replace fence-like residential wall visual with a solid timber wall block",
+  "generator": "Codex built-in image_gen, one targeted transparent PNG",
+  "sourceReferences": [
+    "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-001_floor_interior_v02.png",
+    "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-002_wall_straight_v02.png"
+  ],
+  "prompt": "Use case: stylized-concept. Asset type: single reusable 2D top-down game wall tile for a Chinese cultivation village management game, transparent PNG cutout. Input images: reference 1 is the existing light wooden plank floor for palette and painterly material texture only; reference 2 is the existing failed fence-like wall for overall art style only, NOT for its shape. Create ONE SOLID WOODEN WALL BLOCK tile seen from directly overhead / very slight orthographic top-down angle. The entire square tile must read as a dense, continuous, opaque timber wall made of close-fitted dark warm brown wooden planks; planks fill the entire logical footprint edge to edge. No visible holes, gaps, railings, posts, fence silhouette, plaster openings, door, window, corner cap, grass, floor, cast shadow, environment or text. Top-down 2D game sprite, hand-painted restrained brush texture and moderate contrast compatible with the referenced assets. Square composition, straight edges on all four sides, visually tileable side by side with itself. Transparent outside the square silhouette only; inside must be fully opaque. Prioritize solid wall mass and clean readable silhouette at small zoom.",
+  "original": "ArtSource/Batches/Batch_EnvironmentWall_001/Originals/ART-ROOM-002_wood_wall_solid_v03.png",
+  "runtime": "Assets/Art/Environment/Resources/ART-ROOM-002_wood_wall_solid_v03.png",
+  "originalSha256": "c0d1cae204d4ad3cafd6ad895e50e6fa1aadc6c943ab62e47022dd1776bc6ec1",
+  "runtimeSpriteRectPixels": [32, 32, 1190, 1190],
+  "status": "Implemented / Producer Acceptance Pending"
+}

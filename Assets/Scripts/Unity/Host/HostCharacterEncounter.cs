@@ -27,6 +27,7 @@ namespace XianXia.Unity.Host
         readonly CharacterEncounterStartGate _startGate = new CharacterEncounterStartGate();
         readonly SpiritVeilService _veil = new SpiritVeilService();
         readonly MeleeCombatService _melee = new MeleeCombatService();
+        HostMeleeStrikeVfx _strikeVfx;
         Coroutine _entryRoutine;
         ContinuousOutdoorSurfaceRuntime.PreparedIndependentField _preparedField;
         bool _allowPendingCancel;
@@ -60,7 +61,13 @@ namespace XianXia.Unity.Host
             Phase == PresentationPhase.ReadyToEnd;
         public static bool CanAdvanceTacticalPresentation(PresentationPhase phase, bool isPaused) =>
             phase != PresentationPhase.ReadyToStart && !isPaused;
-        public void Bind(PlayableHostBootstrap host) { _host = host; _world = host.Session.World; }
+        public void Bind(PlayableHostBootstrap host)
+        {
+            _host = host;
+            _world = host.Session.World;
+            _strikeVfx = host.GetComponent<HostMeleeStrikeVfx>() ??
+                         host.gameObject.AddComponent<HostMeleeStrikeVfx>();
+        }
         public bool HasPending => !_pendingTarget.IsNone;
 
         public void Request(
@@ -511,7 +518,8 @@ namespace XianXia.Unity.Host
                     var strike = _melee.ApplyStrike(
                         world, id, target, out _, out var defenderDefeated);
                     if (strike.IsSuccess)
-                        actorView.PlayArtAttack(targetView.transform.position, SpiritVeilService.IsActive(actorEntity));
+                        PlayStrikePresentation(id, target, actorView, targetView,
+                            SpiritVeilService.IsActive(actorEntity));
                     if (strike.IsSuccess && defenderDefeated)
                         RefreshDefeatedParticipant(target);
                 }
@@ -588,11 +596,23 @@ namespace XianXia.Unity.Host
             var strike = _melee.ApplyStrike(
                 world, attackerId, targetId, out _, out var defenderDefeated);
             if (strike.IsSuccess)
-                attackerView.PlayArtAttack(targetView.transform.position, SpiritVeilService.IsActive(attackerEntity));
+                PlayStrikePresentation(attackerId, targetId, attackerView, targetView,
+                    SpiritVeilService.IsActive(attackerEntity));
             if (strike.IsSuccess && defenderDefeated)
                 RefreshDefeatedParticipant(targetId);
             if (!CombatLifeStateService.CanBeAttacked(targetEntity))
                 attacker.TargetId = 0;
+        }
+
+        void PlayStrikePresentation(EntityId attacker, EntityId target,
+            EntityView actorView, EntityView targetView, bool ranged)
+        {
+            if (ranged && _strikeVfx != null)
+            {
+                _strikeVfx.PlayRangedBetween(_host.ViewSpawner, attacker, target);
+                return;
+            }
+            actorView.PlayArtAttack(targetView.transform.position, ranged);
         }
 
         void RefreshDefeatedParticipant(EntityId id)

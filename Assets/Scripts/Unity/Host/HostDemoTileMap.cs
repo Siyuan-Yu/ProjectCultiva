@@ -239,9 +239,30 @@ namespace XianXia.Unity.Host
                         var bottom = chunkY + y * geography.Navigation.CellSize;
                         var top = bottom + geography.Navigation.CellSize;
                         mapper.WorldToPresentation((left + right) * .5f, (bottom + top) * .5f, out var px, out var py);
-                        PlaceZoneOverlay(px, py, "geo_" + ownerChunk + "_" + y + "_" + runStart,
-                            (right - left) * mapper.PresentationUnitsPerWorldUnit,
-                            (top - bottom) * mapper.PresentationUnitsPerWorldUnit, color);
+                        var runWidth = (right - left) * mapper.PresentationUnitsPerWorldUnit;
+                        var runHeight = (top - bottom) * mapper.PresentationUnitsPerWorldUnit;
+                        var runName = "geo_" + ownerChunk + "_" + y + "_" + runStart;
+                        if ((runKind & SurfaceGroundCellKind.Road) != 0 &&
+                            (runKind & (SurfaceGroundCellKind.Solid | SurfaceGroundCellKind.Water |
+                                        SurfaceGroundCellKind.Bridge)) == 0)
+                        {
+                            var roadArt = "road";
+                            if (x - runStart == 1)
+                            {
+                                var cell = geography.Navigation.CellSize;
+                                var centerX = (left + right) * .5f;
+                                var centerY = (bottom + top) * .5f;
+                                var across = IsRoadCell(geography, centerX - cell, centerY) ||
+                                             IsRoadCell(geography, centerX + cell, centerY);
+                                var along = IsRoadCell(geography, centerX, centerY - cell) ||
+                                            IsRoadCell(geography, centerX, centerY + cell);
+                                roadArt = across && along ? "roadCross" : along ? "roadVertical" : "road";
+                            }
+                            PlaceSurfaceArtOverlay(px, py, runName, runWidth, runHeight,
+                                HostStepAArt.MapSprite(roadArt), color, -24);
+                        }
+                        else
+                            PlaceZoneOverlay(px, py, runName, runWidth, runHeight, color);
                     }
                     runKind = kind; runStart = x;
                 }
@@ -270,6 +291,12 @@ namespace XianXia.Unity.Host
             if ((kind & SurfaceGroundCellKind.Road) != 0) { color = new Color(.62f, .50f, .31f, .72f); return true; }
             color = default; return false;
         }
+
+        static bool IsRoadCell(OutdoorSurfaceGeographyDefinition geography, float worldX, float worldY) =>
+            geography.Navigation.TryGetCell(worldX, worldY, out var kind) &&
+            (kind & SurfaceGroundCellKind.Road) != 0 &&
+            (kind & (SurfaceGroundCellKind.Solid | SurfaceGroundCellKind.Water |
+                     SurfaceGroundCellKind.Bridge)) == 0;
 
         public static bool TryEstimateOutdoorRenderedObjectCount(
             OutdoorSurfacePlacementDefinition placement,
@@ -339,9 +366,10 @@ namespace XianXia.Unity.Host
                 {
                     mapper.WorldToPresentation(ix0, iy0, out var fl, out var fb);
                     mapper.WorldToPresentation(ix1, iy1, out var fr, out var ft);
-                    var floor = PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                    var floor = PlaceSurfaceArtOverlay((fl + fr) * .5f, (fb + ft) * .5f,
                         id + ":floor:" + ownerChunk.X + ":" + ownerChunk.Y,
-                        Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), info.FallbackColor);
+                        Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), HostStepAArt.RoomFloorTile(),
+                        info.FallbackColor, -20);
                     if (info.InteractKind.HasValue)
                         AttachPlot(floor, metadata, info, source.SourceGridX, source.SourceGridY,
                             (fl + fr) * .5f, (fb + ft) * .5f, id, lootSpotId);
@@ -361,7 +389,8 @@ namespace XianXia.Unity.Host
                     if (OutdoorStatefulPlacementResolver.IsDestroyed(
                             _session?.World?.OutdoorStatefulObjects, wallId)) continue;
                     var wall = PlacePrefab("wall", MapKindCatalog.Wall, cx, cy, wallId, cellW, cellH,
-                        new Color(.35f, .35f, .38f), sortingOrder: -5);
+                        new Color(.35f, .35f, .38f), sortingOrder: -5,
+                        visualQuarterTurns: gx == 0 || gx == source.SourceCellsW - 1 ? 1 : 0);
                     AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
                     actual++;
                 }
@@ -878,6 +907,25 @@ namespace XianXia.Unity.Host
             return go;
         }
 
+        GameObject PlaceSurfaceArtOverlay(float x, float y, string name, float worldW, float worldH,
+            Sprite tile, Color fallbackColor, int sortingOrder)
+        {
+            if (tile == null)
+                return PlaceZoneOverlay(x, y, name, worldW, worldH, fallbackColor);
+            var go = new GameObject(name);
+            go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
+            go.transform.position = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = tile;
+            renderer.color = Color.white;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(Mathf.Max(.01f, worldW), Mathf.Max(.01f, worldH));
+            renderer.sortingOrder = sortingOrder;
+            TrackBuilt(go);
+            return go;
+        }
+
         void AttachPlot(
             GameObject go,
             MapPlacement p,
@@ -1062,13 +1110,14 @@ namespace XianXia.Unity.Host
             float worldW,
             float worldH,
             Color fallbackColor,
-            int sortingOrder = -30)
+            int sortingOrder = -30,
+            int visualQuarterTurns = 0)
         {
             var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
             var go = HostMapObjectVisualFactory.Create(kind, prefabPath, name,
                 _buildRoot != null ? _buildRoot : mapRoot, intended, worldW, worldH, sortingOrder, false,
-                out var usedMissingVisual);
-            if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall)
+                out var usedMissingVisual, visualQuarterTurns);
+            if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall && HostStepAArt.MapSprite("wall") == null)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
             if (!usedMissingVisual && string.Equals(kind, OutdoorConstructedAssetSemantics.BedKind,
                     System.StringComparison.Ordinal))

@@ -1,0 +1,22 @@
+{
+  "batchId": "Batch_CouncilHall_001",
+  "date": "2026-10-18",
+  "purpose": "Replace round capture-marker visual for fixed council hall with a closed building exterior",
+  "generator": "Codex built-in image_gen, two targeted iterations",
+  "sourceReferences": [
+    "ArtSource/References/ART-REF-001_huangcun_style_reference.png"
+  ],
+  "firstPrompt": "Create one production-ready transparent PNG cutout game building sprite for a Chinese xianxia top-down colony management game. A modest but sturdy village council hall, complete enclosed building rather than a circular capture marker. Weathered dark warm-brown timber walls, grey-blue clay-tile hipped roof, centered south door, no interior, no raised platform, no flag or characters; hand-painted ink outlines and Huangcun palette.",
+  "finalEditPrompt": "Edit the attached council hall sprite into a TRUE HIGH TOP-DOWN 2D colony-management-game building cutout, with camera looking downward approximately 70 degrees from horizontal (almost overhead), matching the supplied Huangcun environment reference. Keep the same complete enclosed grey-blue tiled hipped roof and weathered brown timber hall, but the roof must dominate about 75% of the visible building footprint, front wall/eaves only a thin strip at the lower edge, very small centrally placed south-facing doorway visible as a thin opening/door at bottom. Rectangular 8x8-cell building footprint, grounded in a flat map plane; near-orthographic projection, no exaggerated frontal facade, no large vertical elevation, no steps, no raised plinth. Make all roof top surfaces visible from above with ridges/eaves clearly readable. Clean crisp hand-painted pixel-adjacent 2D game asset, muted earthy tones, subtle ink outline, no scenery, no grass, no characters, no flag, no circular platform, no text or UI. Keep isolated transparent background with no dark shadow haze, no gradient, no floor shadow beyond a very short contact shadow. Compose tightly with minimal transparent margin. Original game art.",
+  "firstIteration": "C:/Users/Pato/.codex/generated_images/01a14da2-8784-7812-812f-4df99669332d/exec-a6c153d1-30e4-4081-8c0b-085721d061d5.png",
+  "original": "ArtSource/Batches/Batch_CouncilHall_001/Originals/ART-ROOM-008_council_hall_closed_v04.png",
+  "baseCandidateRuntime": "Assets/Art/Environment/Resources/ART-ROOM-008_council_hall_closed_v04.png",
+  "originalSha256": "9de8238a8d42843c99efc1c43950510c95cb378eb4b928100f31eb8dc49af06e",
+  "wardEditPrompt": "Edit this exact existing high-top-down closed xianxia council hall game sprite. Preserve the closed rectangular grey-blue tiled roof, low front timber facade, footprint, transparent background, camera angle, palette, and all existing architecture. Add a small elegant CULTIVATION-ERA SPIRIT DEFENSE DEVICE visibly mounted on the upper center of the roof ridge: a compact dark bronze and pale jade talisman housing / circular ward emitter about 12% of the roof width, with two short blue-green luminous rune fins or crystal prongs, subtle cyan aura only immediately around it. It should read as a roof-mounted ranged magical defense facility in a top-down game at small scale, without looking like a modern cannon, antenna, flag, giant statue, shrine, circular capture platform, or open building. Keep the device solidly attached to roof architecture and do not obscure the roof or door. Strong readable silhouette, restrained magical accents; no beam/projectile fired in this static sprite, no characters, grass, ground, text, UI, extra items, or black haze. Transparent isolated PNG, crop close to whole building. Original game art.",
+  "wardOriginal": "ArtSource/Batches/Batch_CouncilHall_001/Originals/ART-ROOM-008_council_hall_ward_v05.png",
+  "wardRuntime": "Assets/Art/Environment/Resources/ART-ROOM-008_council_hall_ward_v05.png",
+  "activeRuntime": "Assets/Art/Environment/Resources/ART-ROOM-008_council_hall_ward_v05.png",
+  "wardSha256": "19c283a45df958e8c1194e33eb5b8331a876fe46efc9e509b86c48207359b1e5",
+  "wardStatus": "Visual Implemented / Attack Gameplay Proposed",
+  "status": "Implemented / Producer Acceptance Pending"
+}

@@ -636,7 +636,7 @@ namespace XianXia.Unity.Host
                 ? 0f : Mathf.Max(0f, freeStandRadius);
             if (freeStandRadius > 0f &&
                 !TryResolveFreeStandPoint(id, requestedCenter, freeStandRadius, out point))
-                return false;
+                point = requestedCenter;
             if (!TryBuildWorldPath(view.transform.position, point, _wpScratch, exactGoal))
                 return false;
 
@@ -654,7 +654,7 @@ namespace XianXia.Unity.Host
             if (issueStop)
                 StopOne(id);
 
-            ClearPath(id, replacingPath: true);
+            ClearPath(id);
             if (preserveNpcIntent)
             {
                 _pendingOnArrive.Remove(id.Value);
@@ -665,7 +665,7 @@ namespace XianXia.Unity.Host
             var path = new List<Vector3>(_wpScratch.Count);
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
-            ReserveCharacterDestination(id, path[path.Count - 1], requestedCenter, freeStandRadius);
+            ReserveCharacterDestination(id, path[path.Count - 1]);
             _pathIndex[id.Value] = 0;
             _moveSpeedMultiplierByEntity[id.Value] = SanitizeSpeedMultiplier(speedMultiplier);
             _completionPolicies[id.Value] = completionPolicy;
@@ -814,8 +814,8 @@ namespace XianXia.Unity.Host
             }
 
             pos.z = HostPresentationSpace.EntityZ;
-            pos = FilterCharacterStep(view, startPos, pos, pos,
-                Mathf.Max(0f, dt), settling: false, requireWaypointConnection: false);
+            pos = FilterCharacterStep(startPos, pos, pos,
+                Mathf.Max(0f, dt), requireWaypointConnection: false);
             view.transform.position = pos;
             view.RecordLocomotion(pos - startPos);
             CaptureIndependentTacticalPosition(view);
@@ -993,9 +993,6 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                RefreshFreeStandDestination(view, dt);
-                if (!_targets.TryGetValue(view, out target)) continue;
-
                 var pos = view.transform.position;
                 if (_walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
                         _walkGrid, pos.x, pos.y, target.x, target.y))
@@ -1031,7 +1028,7 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                if ((next - target).sqrMagnitude > .0001f || !IsCharacterStandClear(view.EntityId))
+                if ((next - target).sqrMagnitude > .0001f)
                     continue;
 
                 done.Add(view);
@@ -1085,18 +1082,14 @@ namespace XianXia.Unity.Host
                 var delta = target - pos;
                 delta.z = 0f;
                 var distance = delta.magnitude;
-                var finalLeg = !_paths.TryGetValue(idv, out var currentPath) ||
-                    !_pathIndex.TryGetValue(idv, out var currentIndex) || currentIndex + 1 >= currentPath.Count;
                 if (distance <= arriveEpsilon)
                 {
                     var nearTarget = Vector3.MoveTowards(pos, target, distanceBudget);
                     var beforeSnap = pos;
-                    pos = FilterCharacterStep(view, pos, ClampToWalkable(pos, nearTarget), target,
-                        deltaTime, settling: finalLeg && distance <= distanceBudget);
+                    pos = FilterCharacterStep(pos, ClampToWalkable(pos, nearTarget), target, deltaTime);
                     distanceBudget -= Vector3.Distance(beforeSnap, pos);
                     if ((pos - target).sqrMagnitude > .0001f)
                         break;
-                    if (finalLeg && !IsCharacterStandClearAt(view, pos)) break;
                     if (_paths.TryGetValue(idv, out var path) &&
                         _pathIndex.TryGetValue(idv, out var index) && index + 1 < path.Count)
                     {
@@ -1110,12 +1103,10 @@ namespace XianXia.Unity.Host
                 var routeStep = Mathf.Min(distanceBudget, distance);
                 var proposed = pos + delta / distance * routeStep;
                 proposed.z = HostPresentationSpace.EntityZ;
-                var moved = FilterCharacterStep(view, pos, ClampToWalkable(pos, proposed), target,
-                    deltaTime, settling: finalLeg && distance <= routeStep + .0001f);
+                var moved = FilterCharacterStep(pos, ClampToWalkable(pos, proposed), target, deltaTime);
                 var consumed = Vector3.Distance(pos, moved);
                 pos = moved;
-                // A slowed/blocked candidate spends this step's budget; never repeat tiny steps
-                // in the same frame until the original full speed has been recovered.
+                // A static obstacle spends this step's budget; do not repeat tiny steps.
                 distanceBudget -= routeStep;
                 if (consumed < .0001f)
                     break;
@@ -1514,7 +1505,7 @@ namespace XianXia.Unity.Host
             _pendingArriveActions.Remove(id.Value);
         }
 
-        void ClearPath(EntityId id, bool replacingPath = false)
+        void ClearPath(EntityId id)
         {
             if (id.IsNone)
                 return;
@@ -1522,7 +1513,7 @@ namespace XianXia.Unity.Host
             _pathIndex.Remove(id.Value);
             _pathLocalMapIds.Remove(id.Value);
             _moveSpeedMultiplierByEntity.Remove(id.Value);
-            ReleaseCharacterDestination(id, preserveCrowdWait: replacingPath);
+            ReleaseCharacterDestination(id);
         }
 
         public float GetMoveSpeedMultiplier(EntityId id) =>
