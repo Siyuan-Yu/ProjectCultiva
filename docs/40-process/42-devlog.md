@@ -1,5 +1,9 @@
 # 开发日志
 
+## 2026-10-19 — 当前工作区剩余改动统一封板授权
+
+- 制作人明确要求“所有的都封板提交并上传”。本批纳入先前未提交的势力旗独立遭遇反击与绿／蓝旗外观、WorldMap 人物标记缩放、逐窗输入门禁及相关文档；此前 ROOM 门柱／用途挂牌已单独封板。`XianXia.Core/Data/Unity` 离线基础编译 `ALL_OK`；未自行运行 Unity 或自动测试。封板不把 Medic、未合格美术或其他待验内容记为完成。
+
 ## 2026-10-19 — ROOM 门框与用途标识显示获制作人确认；本轮封板
 
 - 制作人在修正房间墙块深度排序后复测并确认“这一轮有了”。本轮仅把 LevelTester 中门柱和房间用途挂牌**可见**记为 Producer Accepted；用途切换、通行和全部房型未有单独现场结论，273 的资产族总体验收状态仍保持“未验收”。
@@ -20,6 +24,48 @@
 - `ART-ROOM-003` 新图整张开口仍偏窄，运行时仅切出两门柱和浅横梁，随 `HostDemoTileMap` 的真实双格门洞摆放；不加碰撞、门板或台阶，不改房间格距。`ART-ROOM-005` 三用途透明标识挂于门旁墙格，由正式 `RoomUsage` 选择，并随既有床外观刷新入口同步切换。
 - 原图、切片区域、运行副本哈希与未决视觉问题记于 `ArtSource/Batches/Batch_Codex_004/manifest.json`。273 TSV 仅将这两项记为**已接入待验**，XLSX 按正式脚本单向导出并全字段回读。未修改 Content、房间/床规则或正式场景布局。
 - 离线 Core／Data／Unity 基础编译 `ALL_OK`；未启动 Unity 或执行自动测试，门洞接缝、可读性和排序仍需 LevelTester 人工验收。未提交或推送。
+
+## 2026-10-19 — LevelTester 搜索焦点获制作人验收；房间检视关闭入口确认
+
+- 制作人补充确认：在 LevelTester 开发工具的搜索栏输入字母时没有新弹窗，未改变暂停；截图中的房间检视窗口始终已打开，不是输入 `g` 后弹出。结合此前六张截图中各字母进入搜索栏、最近操作未变化的现场证据，U06 搜索焦点隔离按此次观察范围记 **Producer Accepted**；不外推到其它文本框或未演示的命令流程。
+- 静态核对 `HostFormalHud.DrawInspectShell`：房间检视左上浮窗已有标题右侧 `×`，点击调用 `HostHousingAreaSelection.Clear()`；选中己方角色或点击空地也可收起。开发工具覆盖其上时须先关闭开发工具，才能点击下层 `×`。本次未改运行代码，未提交／推送。
+
+## 2026-10-19 — 绿／蓝势力旗外观获制作人确认；搜索焦点仍待结果确认
+
+- 制作人提供 LevelTester 开发工具搜索栏的六张现场截图，确认找到的是本轮所指的工具搜索框；并明确回复“新的旗外观没有问题”。据此仅将现成绿／蓝旗接入后的外观记为 **Producer Accepted**。不把此结论外推至整项 `ART-ROOM-008` 的全部用途或其它美术。
+- 截图显示字符进入搜索框，但无法从静态图核实输入空格前后的暂停状态，也无法断定最后一张背景中的房间窗口是否早已打开。U06 快捷键隔离维持 **Implemented / Producer Acceptance Pending**，不据截图直接标通过。
+- 本次只更新验收记录；无运行改动、未启动 Unity、未提交或推送。
+
+## 2026-10-19 — WorldMap 标记缩放与逐窗输入锁获制作人验收
+
+- 制作人回复“好的验收了没有问题”，据此仅将上一轮 WorldMap 玩家／NPC 小队标记随缩放、点选区域及窗口输入锁隔离登记为 **Producer Accepted**。这是制作人的 LevelTester 现场结论，开发侧没有自行启动 Unity；不外推至尚未验收的绿／蓝势力旗、美术其余 P0 或 CIVILIAN 分支。
+- 当前工作区改动仍未提交／推送；“可以下一步”不等于封板授权。下一项范围待制作人选择。
+
+## 2026-10-19 — WorldMap 人物标记缩放与逐窗输入锁收口（Implemented，待现场验收）
+
+- 制作人针对 [305](305-system-and-art-closure-audit-2026-10-19.md) 中两项明确要求先做。既有 [2N §5](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) 已确定战略图标与文字随同一 Surface 投影缩放；原 Player 20px、NPC Squad 14px 固定矩形违反该规则。现以 18／14 Surface Cells 投影标记，Player 名称高度及间距、Squad 命中区同步投影；不动位置、占地、旅行或实体身份。
+- `HostInputGate` 改为全模态、仅世界交互及文字输入三类具名 owner；所有 Host 窗口旧共享 bool 赋值与逐窗 `Clear` 已移除。人物页、修炼、斗技、背包、建设、工作、学习确认／结果、交易和对话各自 Acquire／Release；对话、NPC 右键菜单、势力旗放置仍只阻断世界交互，不额外锁相机。会话边界才 `ResetSession`；关闭一窗不释放另一窗的 owner。U06 搜索焦点改动沿用上一条，不扩大快捷键规则。
+- Core／Data／Unity 离线基础编译 `ALL_OK`；未启动 Unity、未写或运行自动测试。LevelTester 的缩放点选、窗口叠开与关闭顺序仍待制作人现场验收；不提交或推送。
+
+## 2026-10-19 — 系统残项与美术接线静态审查；补齐绿／蓝势力旗
+
+- 以当前代码、`273` 资产登记、ArtSource、Assets、`267` 唯一状态表与 `281` 体验审查核对，记录于 [305](305-system-and-art-closure-audit-2026-10-19.md)。区分已接线待验、真缺实现、明确延期与旧文档过时；不因 275 早期报告或单张 PNG 存在而宣称今日全量完成。
+- 使用已有 Batch_Codex_002 绿／蓝独立旗切件，按正式 FactionId 仅给玩家势力与渔村旗运行 View 接线；荒村压迫宗门红旗保留，其他势力继续程序旗回退。核对源图与 Assets 副本哈希、独立 GUID 和透明角；不改旗帜身份、占地、领地、战斗和 Content。ART-ROOM-008 原已是「已接入待验」，没有写成已获视觉验收。
+- `267` 唯一状态表的旧“Captured 食宿早退仍阻断”已与当前 `MortalCivilianService.Tick` 不符，现更正为代码已修、真实食宿及 Proper Care 待人工验收，并把现行 Snapshot 版本标为 v15。Medic 自动治疗仍明确未实施，不在本轮暗加治疗规则。
+- `270` U06 的 LevelTester 搜索焦点快捷键旁路仍可从当前处理器静态复现：工具只取得 TextInput owner，J/B/M/空格/Q/E/G 未查。现由 `HostInputGate` 显式追踪文字输入 owner，工具焦点 acquire/release，相关正式快捷键在文字输入时停止。U08 的 `HostQuestJournal` 不再每帧写可覆盖其它窗口的 aggregate bool，改持有自身 named input owner；其它窗口仍有旧布尔写入，不能凭这项局部修复宣称 U08 全部验收通过。
+- 仅做基础编译／静态资源与引用检查，未启动 Unity、未写或运行自动测试。绿色、蓝色旗外观及各项未验分支等待制作人现场确认；本轮不提交／推送。
+
+## 2026-10-19 — 势力旗战斗内反击获制作人验收（Producer Accepted，未封板）
+
+- 制作人回复“验收通过这个”，据此仅将本轮势力旗独立战场反击及无守军旗单独受攻范围登记为 **Producer Accepted**；不是开发侧自行运行 Unity 的结论，也不外推到其他未说明功能。
+- 工作区仍保留本轮未提交改动；没有明确封板／推送授权，本次只同步状态，不执行 Git 提交或推送。下一项开发范围待制作人选择。
+
+## 2026-10-19 — 势力旗复用议政厅战斗内远程攻击（Implemented，待制作人验收）
+
+- 制作人要求正式势力旗与议政厅拥有相同的战斗内远程攻击能力，并明确无守军旗单独受攻也必须反击。规则写入 [战斗 §12.2.1](../20-systems/23-combat.md)、[ADR-0046](43-decisions/ADR-0046-faction-flag-encounter-defense.md)；议政厅上一轮 Producer Accepted 不外推到本轮旗帜。
+- `CharacterEncounter` 将单一议政厅防御记录泛化为单一 `SiteCoreDefense`，按当前 SourceSite 的有效固定核心或可拆旗绑定实际占地、战时 Owner、20 攻击力／三秒冷却／占地长边五倍射程。沿用正式战争目标筛选、基础攻防和护盾／HP／弥留，Core 产生事件，Host 只播成功攻击的弹道。旗 HP 归零即停火，固定议政厅接管停火仍按旧规则。
+- 无守军旗从原连续地图直拆改为人工确认后的独立遭遇：真实 PlayerParty 人物入场，旗为唯一敌方核心而非伪造 Character；旗仍有效时敌方未清空，击毁正式目标可结束，玩家全员失能则战败。旗拆除执行器仅在本场 Active 且由本场友方人物执行。`siteCoreDefense` 与 `coreOnlyAssault` 写入遭遇 JSON；旧 `councilHallDefense` 读取映射固定核心，不升顶层 Snapshot 版本。作者配置、势力控制范围、旗 HP 和普通世界攻击规则未改。
+- `XianXia.Core/Data/Unity` 离线基础编译 `ALL_OK`；`git diff --check` 无内容错误。按仓库协议未运行自动测试或启动 Unity；LevelTester 旗帜攻击、无守军拆旗、议政厅回归和战中存读档尚待制作人人工验收。本轮未提交／推送。
 
 ## 2026-10-19 — 议政厅、巡卫返场与 Sprite 几何修复制作人验收通过；封板授权
 

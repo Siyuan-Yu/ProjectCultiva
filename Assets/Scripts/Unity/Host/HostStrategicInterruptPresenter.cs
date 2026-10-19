@@ -157,13 +157,18 @@ namespace XianXia.Unity.Host
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
             HostUiHitTest.Block(box);
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), "人物遭遇", _title);
+            var coreOnlyFlag = session.World.Strategic.CharacterEncounter?.CoreOnlyAssault == true ||
+                               (coordinator.HasPending && coordinator.PendingTarget.IsNone);
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f),
+                coreOnlyFlag ? "势力旗防御战" : "人物遭遇", _title);
 
             var phase = coordinator.Phase;
             var preparing = phase == HostCharacterEncounter.PresentationPhase.Preparing ||
                             phase == HostCharacterEncounter.PresentationPhase.ReadyToCommit;
             GUI.Label(new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 22f),
-                preparing ? coordinator.Progress : "初始双方仅为当前两支小队中的存活成员。", _body);
+                preparing ? coordinator.Progress : coreOnlyFlag
+                    ? "敌方没有守军人物；势力旗作为本场防守核心远程还击。"
+                    : "初始双方仅为当前两支小队中的存活成员。", _body);
 
             _friendlyPreview.Clear();
             _enemyPreview.Clear();
@@ -173,7 +178,8 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(box.x + 16f, box.y + 68f, box.width - 32f, 22f),
                 "我方小队 " + _friendlyPreview.Count + " 人 · 战力 " + friendlyPower, _body);
             GUI.Label(new Rect(box.x + 16f, box.y + 90f, box.width - 32f, 22f),
-                "敌方小队 " + _enemyPreview.Count + " 人 · 战力 " + enemyPower, _body);
+                coreOnlyFlag ? "敌方核心：势力旗（无守军）"
+                    : "敌方小队 " + _enemyPreview.Count + " 人 · 战力 " + enemyPower, _body);
             DrawPowerBar(new Rect(box.x + 16f, box.y + 118f, box.width - 32f, 14f),
                 friendlyPower, enemyPower);
 

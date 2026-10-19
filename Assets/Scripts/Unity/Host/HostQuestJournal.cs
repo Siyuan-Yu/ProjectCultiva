@@ -14,6 +14,7 @@ namespace XianXia.Unity.Host
     public sealed class HostQuestJournal : MonoBehaviour
     {
         const string PauseOwner = "QuestJournal";
+        const string InputOwner = "QuestJournal:Input";
         enum Tab
         {
             Offer = 0,
@@ -66,6 +67,7 @@ namespace XianXia.Unity.Host
         void Open()
         {
             open = true;
+            HostInputGate.Acquire(InputOwner);
             if (!_holdingPause && bootstrap?.Session != null)
             {
                 bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -89,6 +91,7 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             ReleasePauseOwnership();
+            HostInputGate.Release(InputOwner);
             open = false;
             _trackedQuestId = string.Empty;
             _suppressAutoTrack = false;
@@ -97,7 +100,6 @@ namespace XianXia.Unity.Host
             _holdingPause = false;
             _toastText = string.Empty;
             _toastUntil = 0f;
-            HostInputGate.Clear();
         }
 
         public void SetTrackedQuest(string questId)
@@ -147,7 +149,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
-            if (Input.GetKeyDown(toggleKey))
+            if (!HostInputGate.TextInputFocused && Input.GetKeyDown(toggleKey))
                 Toggle();
 
             SyncPauseAndInputGate();
@@ -159,16 +161,13 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized)
             {
-                HostInputGate.Clear();
+                HostInputGate.Release(InputOwner);
                 _holdingPause = false;
                 return;
             }
 
-            var invOpen = bootstrap.InventoryPanel != null && bootstrap.InventoryPanel.IsOpen;
-            var constructionOpen = bootstrap.ConstructionPanel != null && bootstrap.ConstructionPanel.IsOpen;
-            var globalModalOpen = open || invOpen || constructionOpen;
-            HostInputGate.BlockWorldCamera = globalModalOpen;
-            HostInputGate.BlockWorldInteraction = globalModalOpen;
+            if (open) HostInputGate.Acquire(InputOwner);
+            else HostInputGate.Release(InputOwner);
 
             if (open)
             {
@@ -184,7 +183,11 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void OnDisable() => ReleasePauseOwnership();
+        void OnDisable()
+        {
+            ReleasePauseOwnership();
+            HostInputGate.Release(InputOwner);
+        }
 
         void ReleasePauseOwnership()
         {

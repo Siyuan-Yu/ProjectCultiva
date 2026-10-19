@@ -1,5 +1,7 @@
 # 270 当前阶段完整人工验收表与下一步建议
 
+> 2026-10-19 制作人验收覆写：WorldMap 玩家／NPC 小队标记缩放与 U08 逐窗输入锁已获“验收了没有问题”；随后提供 U06 搜索输入截图，并确认未新开窗口、未改变暂停、背景房间窗口原本已打开。U06／U08 均在本次观察范围内 Producer Accepted。旧“输入旁路／legacy bool 覆盖”描述是修复前事实。
+
 > 日期：2026-10-11  
 > 用途：制作人填写本轮人工结果，并据此确定返修与封板顺序。  
 > 基线：dev_openworld，HEAD 8ec01d2，加当前未提交的 LevelTester 单功能页、折叠菜单与关闭修复。  
@@ -43,9 +45,9 @@
 | U03 | 记录展开状态；用中文搜索收起组的小功能，选中结果并清空 | 搜索临时显示命中组；原展开集合恢复；右页保留新选择 | 已实现，待人工验；先用中文避免快捷键缺口干扰 | ____ |
 | U04 | 左右分别滚到底；窗口内滚轮、中键、右键；移到窗口外再操作 | 左右滚动独立；窗口内不缩放／平移／选中／命令世界；外部按原规则 | 已实现，待人工验 | ____ |
 | U05 | 搜索框有焦点时分别点关闭按钮中心、文字、边缘；拖标题空白；重开 | 所有按钮位置都可关闭；不拖窗；当帧不穿透、下一帧无幽灵遮挡；重开偏好保留 | DragWindow 已改；外部 Hide 的 GUI 捕获延后清理仍需观察 | ____ |
-| U06 | 新局暂停并选中主控，记录灵草／命令模式；聚焦搜索框，分别输入 j、b、m、空格、q、e、g；每字母独立观察，异常后清场或重开 | 只改变搜索文字；不打开其它窗、不改变暂停、不武装移动／交互、不下发行动 | **已确认输入旁路**：相关快捷键处理器未查文本输入 owner；g 在满足条件时可走实际行动链 | ____ |
+| U06 | 新局暂停并选中主控，记录灵草／命令模式；聚焦搜索框，分别输入 j、b、m、空格、q、e、g；每字母独立观察，异常后清场或重开 | 只改变搜索文字；不打开其它窗、不改变暂停、不武装移动／交互、不下发行动 | **Producer Accepted（本次观察范围）**：制作人截图显示字母进入搜索栏，补充确认无新窗、无暂停变化，房间窗原本已打开；最近操作未见变化。其它文本输入点不外推 | 通过 |
 | U07 | Session Reset、重置凡人验收场景等保留的二次确认进入待确认后，切页、关闭、重开；只按取消 | 待确认全部取消；不自动执行；当前工具／搜索／折叠偏好保留；业务未变 | 已实现，待人工验 | ____ |
-| U08 | 人物页／修炼／工作／对话分别打开时试窗口外滚轮、中键、箭头和选人；若允许叠开，关一窗后继续观察另一窗 | 当前模态仍保护世界输入；关闭仅释放自己的暂停和输入；原手动暂停保持 | **共享 legacy bool 存在覆盖路径**；实际表现依 Update 顺序，优先复现。界面本来互斥而无法叠开时记“不适用”，不制造新规则 | ____ |
+| U08 | 人物页／修炼／工作／对话分别打开时试窗口外滚轮、中键、箭头和选人；若允许叠开，关一窗后继续观察另一窗 | 当前模态仍保护世界输入；关闭仅释放自己的暂停和输入；原手动暂停保持 | **Producer Accepted**：制作人确认本轮输入锁修复验收无问题；未单独声称每一种不可叠开的组合都已实际出现 | 通过 |
 | U09 | 分别从运行／手动暂停两种底层状态打开并关闭普通模态 | 最后窗口关闭回到原底层暂停状态；仍有其它 modal 时不能恢复世界 | Named modal owner 已存在；与 U08 分开判断 | ____ |
 | U10 | 逐窗执行第 7 节的按钮／返回／取消／结果关闭 | 可见状态结束、无自动重开、无续绘误点；已完成事务不回滚 | 入口修复与既有 handler 需真实点击验收 | ____ |
 
@@ -169,8 +171,8 @@ Dialogue 的 CanDismiss 包含 fallback、topic selection、quest discussion。2
 
 - [MortalCivilianSystem](../../Assets/Scripts/Core/Npc/MortalCivilianSystem.cs)：69–75 正式日程；483–490 囚犯早退；736–751 囚犯吃睡；1083 起救援；1638 起 Detain 验证。
 - [LevelTester 主窗口](../../Assets/Scripts/Unity/Host/HostLevelTesterCheatPanel.cs)：88 Hide；145 OnGUI；166 文本焦点 owner；264 折叠目录。
-- [输入门禁](../../Assets/Scripts/Unity/Host/HostInputGate.cs)：共享 bool 与 named owner 并存；Clear 不清 named owner。
-- [QuestJournal](../../Assets/Scripts/Unity/Host/HostQuestJournal.cs)：150 J；168–171 legacy 聚合。[Inventory](../../Assets/Scripts/Unity/Host/HostInventoryPanel.cs)：102 B；142 Clear。[WorldMap](../../Assets/Scripts/Unity/Host/HostWorldMapPanel.cs)：199 M。
+- [输入门禁](../../Assets/Scripts/Unity/Host/HostInputGate.cs)：全模态、仅世界交互和文字焦点 owner 分别持有；只在会话边界 ResetSession 全清。
+- [QuestJournal](../../Assets/Scripts/Unity/Host/HostQuestJournal.cs)：J 与自身 owner；[Inventory](../../Assets/Scripts/Unity/Host/HostInventoryPanel.cs)：B 与自身 owner；[WorldMap](../../Assets/Scripts/Unity/Host/HostWorldMapPanel.cs)：M 与自身 owner。
 - [Bootstrap](../../Assets/Scripts/Unity/Host/PlayableHostBootstrap.cs)：344 Space，现有 session 生命周期；[FormalHud](../../Assets/Scripts/Unity/Host/HostFormalHud.cs)：1625 Q/E/G；1939 IssueFocus。
 - [LevelTester 内容工具](../../Assets/Scripts/Unity/Host/LevelTesterCheatContentSection.cs)：2026-10-13 已删除医疗／囚犯／建设／食宿／主管生命专用准备逻辑；保留独立数值、库存、定位和只读诊断。
 - [WorldSnapshot](../../Assets/Scripts/Core/Persistence/WorldSnapshot.cs)：8 当前 v14；[JsonSnapshotSerializer](../../Assets/Scripts/Data/Serialization/JsonSnapshotSerializer.cs)：85 版本拒绝、114／130／334 新 authority 必填。

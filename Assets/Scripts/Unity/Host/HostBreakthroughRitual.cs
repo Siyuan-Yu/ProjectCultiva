@@ -188,6 +188,7 @@ namespace XianXia.Unity.Host
 
             _report = report;
             _resultOpen = true;
+            HostInputGate.Acquire(PauseOwner);
             if (bootstrap?.Session != null)
             {
                 bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -230,8 +231,7 @@ namespace XianXia.Unity.Host
 
             if (_resultOpen)
             {
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.Acquire(PauseOwner);
                 if (!_holdingPause)
                 {
                     bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -297,6 +297,7 @@ namespace XianXia.Unity.Host
                 _report = resolved.Value;
 
             _resultOpen = true;
+            HostInputGate.Acquire(PauseOwner);
             bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
         }
@@ -470,12 +471,12 @@ namespace XianXia.Unity.Host
 
         void ReleasePause()
         {
+            HostInputGate.Release(PauseOwner);
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(PauseOwner);
-            HostInputGate.Clear();
         }
 
         static string BuildResultText(BreakthroughReport report)

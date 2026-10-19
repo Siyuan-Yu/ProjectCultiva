@@ -112,6 +112,7 @@ XianXia.Tests/       针对 Core 的单元测试
 
 ## 7. 当前 Snapshot 与内容状态边界
 
+- `CharacterEncounter` 仍是独立战场与参战人物的唯一领域 authority。随 [ADR-0046](../40-process/43-decisions/ADR-0046-faction-flag-encounter-defense.md) 增加可选 `siteCoreDefense`（固定议政厅或可拆势力旗身份、占地、冷却、停火）及 `coreOnlyAssault`；旧 `councilHallDefense` 按固定议政厅读取，不提升为另一套战斗 authority，也不改变顶层 Snapshot v14。无守军旗的敌方核心不伪装成 Character，恢复时分别校验正式旗帜绑定与战场目标。
 - Snapshot v14 的势力忠诚 authority 是顶层 `characterFactionLoyalties[]`（CharacterEntityId、FactionId、Loyalty）；`MortalCivilianBoard` 仅存凡人需求、职业及处境。Entity DTO 的 `initialLoyalty` 只是定义种子。Restore 要求每个当前有势力的 Character 恰有一条势力匹配的忠诚记录；未封板 interim v14 缺字段时拒绝，不升级 schema v15。
 - Snapshot v14 不增加 Hospital admission。静态／运行时 `recoverySpot` 投影为稳定物理资产，顶层 `recoverySpotPlacements[]` 保存单点单伤员送达关系；Restore 校验点位、弥留人物和精确 WorldPresence。短期 Rescue carry 不持久化，Load 后安全取消并重新求值。CapturedEscorted、Detained 与 Residence usage 继续使用既有 v14 authority；Detain 以绑定囚室的 `prisonDropOff` 为后端距离基准。
 

@@ -280,7 +280,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null ||
                 !world.Strategic.FactionFlags.Flags.TryGetValue(flagId ?? string.Empty, out var flag) ||
-                flag == null || !world.Strategic.FactionFlags.Remove(flagId))
+                flag == null)
+                return Result.Failure(ErrorCode.NotFound, "阵营旗不存在。");
+            SiteCoreEncounterDefenseService.DisableFlag(world, flagId);
+            if (!world.Strategic.FactionFlags.Remove(flagId))
                 return Result.Failure(ErrorCode.NotFound, "阵营旗不存在。");
             if (!string.IsNullOrEmpty(flag.SiteId) &&
                 world.Strategic.Sites.TryGet(flag.SiteId, out var site) && site != null &&

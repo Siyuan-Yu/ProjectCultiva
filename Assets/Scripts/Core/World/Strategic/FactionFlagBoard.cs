@@ -75,6 +75,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>Formal Core identity query shared by presentation and invariants.</summary>
     public static class FactionFlagSiteCoreQuery
     {
+        public const int FootprintCells = 4;
         public static bool TryResolveFlagForSite(
             SimulationWorld world, WorldSite site, out FactionFlagState flag)
         {

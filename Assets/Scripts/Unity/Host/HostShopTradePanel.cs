@@ -48,7 +48,7 @@ namespace XianXia.Unity.Host
             var d = av.transform.position - bv.transform.position; d.z = 0;
             return d.sqrMagnitude <= HostNpcInteraction.DefaultMeleeEngageRange * HostNpcInteraction.DefaultMeleeEngageRange;
         }
-        void Block() { HostInputGate.BlockWorldInteraction = true; HostInputGate.BlockWorldCamera = true; }
+        void Block() { HostInputGate.Acquire(PauseOwner); }
         void Update()
         {
             if(!IsOpen) return;
@@ -66,7 +66,6 @@ namespace XianXia.Unity.Host
             pausedSession?.ReleaseModalPause(PauseOwner); pausedSession = null; openedWorld = null;
             host?.GetComponent<HostMoveController>()?.ReleaseNpcForInteraction(provider);
             HostInputGate.Release(PauseOwner);
-            HostInputGate.Clear();
         }
         void OnDisable() { if(IsOpen || pausedSession != null) Close(); }
         void OnDestroy() { if(root != null) Destroy(root); }

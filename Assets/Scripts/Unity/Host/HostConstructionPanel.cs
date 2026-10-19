@@ -42,8 +42,7 @@ namespace XianXia.Unity.Host
             open = true;
             bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
-            HostInputGate.BlockWorldCamera = true;
-            HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.Acquire(PauseOwner);
         }
 
         public void Close()
@@ -81,8 +80,7 @@ namespace XianXia.Unity.Host
 
             if (open)
             {
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.Acquire(PauseOwner);
                 if (!_holdingPause)
                 {
                     bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -97,10 +95,10 @@ namespace XianXia.Unity.Host
 
         void ReleasePauseOwnership()
         {
+            HostInputGate.Release(PauseOwner);
             if (_holdingPause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
-            HostInputGate.Clear();
         }
 
         bool OtherBlockingModalOpen()

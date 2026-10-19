@@ -9,7 +9,7 @@ namespace XianXia.Unity.Host
     /// <summary>阵营旗建筑占地、落点、拾取与接近点的 Host 几何真源。</summary>
     public static class HostFactionFlagQuery
     {
-        public const int FootprintCells = 4;
+        public const int FootprintCells = FactionFlagSiteCoreQuery.FootprintCells;
         public const float MeleeMargin = 2f;
 
         public static bool TryGetContinuousFootprint(

@@ -21,6 +21,10 @@ namespace XianXia.Unity.Host
         const float MinimumViewHalf = 1.5f;
         const float CouncilHallMarkerSizeCells = 30f;
         const float FactionFlagMarkerSizeCells = 26f;
+        const float PlayerMarkerSizeCells = 18f;
+        const float SquadMarkerSizeCells = 14f;
+        const float PlayerLabelHeightCells = 12f;
+        const float PlayerLabelGapCells = 4f;
         const float SiteLabelHeightCells = 24f;
         const float SiteLabelGapCells = 5f;
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -196,7 +200,7 @@ namespace XianXia.Unity.Host
             if (open && bootstrap?.Session?.IsInitialized == true &&
                 IsBlockedByBattlefield(bootstrap.Session.World))
                 Close();
-            if (Input.GetKeyDown(toggleKey)) Toggle();
+            if (!HostInputGate.TextInputFocused && Input.GetKeyDown(toggleKey)) Toggle();
         }
 
         void OnDisable()
@@ -300,8 +304,8 @@ namespace XianXia.Unity.Host
             if (_showGeography) DrawGeography(local, projection, nav);
             DrawRoute(projection, world);
             DrawSites(projection, world, nav);
-            DrawSquads(projection, world);
-            DrawPlayer(projection, world);
+            DrawSquads(projection, world, nav);
+            DrawPlayer(projection, world, nav);
         }
 
         void DrawGeography(Rect local, SurfaceWorldMapViewportProjection projection,
@@ -516,28 +520,39 @@ namespace XianXia.Unity.Host
             GUI.color = previous;
         }
 
-        void DrawSquads(SurfaceWorldMapViewportProjection projection, SimulationWorld world)
+        void DrawSquads(SurfaceWorldMapViewportProjection projection, SimulationWorld world,
+            SurfaceGroundNavigation nav)
         {
             _squadHits.Clear();
+            var sizeWorld = nav.CellSize * SquadMarkerSizeCells;
             foreach (var pair in world.Strategic.SquadWorldMotions.Motions)
             {
                 if (!SquadWorldMotionService.TryGetActiveNpcSquadAuthority(
                         world, pair.Key, out _, out var motion)) continue;
-                var p = projection.ProjectWorld(motion.WorldPosition.X, motion.WorldPosition.Y);
-                var rect = new Rect(p.x - 7, p.y - 7, 14, 14);
+                var rect = projection.ProjectWorldRect(new Rect(
+                    motion.WorldPosition.X - sizeWorld * .5f,
+                    motion.WorldPosition.Y - sizeWorld * .5f, sizeWorld, sizeWorld));
                 Fill(rect, string.Equals(_selectedSquadId, pair.Key, StringComparison.Ordinal)
                     ? Color.cyan : new Color(.95f, .32f, .25f));
-                _squadHits.Add((pair.Key, new Rect(p.x - 11, p.y - 11, 22, 22)));
+                _squadHits.Add((pair.Key, rect));
             }
         }
 
-        void DrawPlayer(SurfaceWorldMapViewportProjection projection, SimulationWorld world)
+        void DrawPlayer(SurfaceWorldMapViewportProjection projection, SimulationWorld world,
+            SurfaceGroundNavigation nav)
         {
             if (world.PlayerPartyTravel == null || !world.PlayerPartyTravel.HasPosition) return;
             var pos = world.PlayerPartyTravel.WorldPosition;
-            var p = projection.ProjectWorld(pos.X, pos.Y);
-            Fill(new Rect(p.x - 10, p.y - 10, 20, 20), new Color(.25f, 1f, .36f));
-            GUI.Label(new Rect(p.x + 12, p.y - 9, 120, 24), "玩家小队", _body);
+            var sizeWorld = nav.CellSize * PlayerMarkerSizeCells;
+            var marker = projection.ProjectWorldRect(new Rect(
+                pos.X - sizeWorld * .5f, pos.Y - sizeWorld * .5f, sizeWorld, sizeWorld));
+            Fill(marker, new Color(.25f, 1f, .36f));
+            var fontWorld = nav.CellSize * PlayerLabelHeightCells;
+            var label = projection.ProjectWorldRect(new Rect(
+                pos.X + sizeWorld * .5f + nav.CellSize * PlayerLabelGapCells,
+                pos.Y - fontWorld * .5f, fontWorld * 5f, fontWorld));
+            GUI.Label(label, "玩家小队", SiteLabelStyle(
+                Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 1, 128)));
         }
 
         void DrawRoute(SurfaceWorldMapViewportProjection projection, SimulationWorld world)

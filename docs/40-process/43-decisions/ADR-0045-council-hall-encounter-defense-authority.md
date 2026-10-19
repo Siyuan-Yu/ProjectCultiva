@@ -2,6 +2,8 @@
 
 > 状态：已采纳、已实施、Producer Accepted / 封板授权（制作人 2026-10-19 确认议政厅攻击及弹道现场验收通过并要求推送）。范围仅为固定议政厅，不扩展为通用建筑武器系统。
 
+> 后续扩展：[ADR-0046](ADR-0046-faction-flag-encounter-defense.md) 在相同的单 `SourceSiteId` 防御权威下接入势力旗。议政厅既有验收不等于势力旗已获人工验收。
+
 ## 背景
 
 `CharacterEncounter` 的 `Participants` 只保存真实人物。议政厅既是固定 SiteCore，又能在战场被攻破和接管；不能给它捏造 Character 身份，或让 Host 根据可见 Sprite 自行扣人物 HP。制作人规则见 [301 ACR](../301-acr-council-hall-spirit-defense-2026-10-18.md) 和 [战斗 §12.2.1](../../20-systems/23-combat.md)。

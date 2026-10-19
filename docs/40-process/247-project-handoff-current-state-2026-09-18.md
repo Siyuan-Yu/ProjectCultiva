@@ -1,5 +1,13 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-19 最新封板授权：制作人明确要求将当前工作区剩余改动全部提交并上传。势力旗战斗反击、WorldMap 图标缩放、窗口输入隔离及绿／蓝旗外观仅按已反馈的现场范围记 Producer Accepted；封板不扩大 Medic、其他系统和美术残项的验收范围。下方“未提交／未封板”为各实施当时记录。
+
+> 2026-10-19 系统／美术静态审查入口：[305](305-system-and-art-closure-audit-2026-10-19.md)。本轮只补现成绿／蓝势力旗运行图并校正 `267` 过时状态；未将 Medic、新物流或有质量问题的旧图伪装成已完成。
+
+> 2026-10-19 势力旗验收覆写：制作人已明确确认本轮势力旗战斗内反击验收通过，状态 **Implemented / Producer Accepted / 未封板**。下文“待验收”仅为实施时记录；本轮尚未提交或推送。
+
+> 2026-10-19 势力旗后续扩展：按制作人确认，势力旗复用议政厅的独立战场远程攻击规则；无守军旗单独受攻也进入以旗为唯一敌方核心的独立遭遇。Core／Data／Host 已接线，状态 **Implemented / Producer Acceptance Pending / 未提交**；规则与范围见 [ADR-0046](43-decisions/ADR-0046-faction-flag-encounter-defense.md) 和 [战斗 §12.2.1](../20-systems/23-combat.md)。议政厅上一轮的人工验收不能代替本轮势力旗验收。
+
 > 2026-10-19 最新验收与封板授权：制作人明确确认议政厅攻击及弹道、巡卫战后返场、两处 Sprite `Invalid vertex array` 修复在 LevelTester 现场验收通过，并要求将本批改动封板推送。状态为 **Implemented / Producer Accepted / 封板授权**；开发侧仍只做离线编译与静态核对，不声称亲自运行 Unity。下文旧的 Proposed／待验叙述为历史阶段，以本条为准。
 
 > 2026-10-19 最新覆写：议政厅攻击已按制作人确认写入 [战斗 §12.2.1](../20-systems/23-combat.md) 与 [ADR-0045](43-decisions/ADR-0045-council-hall-encounter-defense-authority.md)，并完成 Core／Data／Host 接线，基础离线编译通过。制作人随后明确回复“验收好了”，本功能状态 **Implemented / Producer Accepted / 未提交封板**。下文关于 301 仍 Proposed、符阵不发弹道的陈述只记录当时阶段，已由本条覆写。开发侧未启动 Unity 或运行自动测试；验收结论来自制作人，本轮未提交或推送。
@@ -271,7 +279,7 @@ V2.4 删除“状态对话/特殊对话/普通对话”等伪类型，只保留�
 | 范围 | 当前能做什么／authority | 持久化与主要入口 | 状态／不能做什么／待讨论 |
 |---|---|---|---|
 | Continuous Surface 与 Runtime Chunk | `OutdoorSurfaceSpatialAuthority`、`SurfaceGroundNavigation` 与 exact `WorldPosition` 承载户外地形、通行、道路／桥／森林输入和 chunk materialization；`SimulationWorld.ContinuousWorldMovementScale` 由 opening `outdoorSurface.movementScale` 注入 | `Assets/Scripts/Core/World/Surface/`；`Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json`；动态状态进 `WorldSnapshot`，静态地理留在 Content | Implemented / Accepted / Sealed。自动水文、道路 A*、detail scatter、完整大陆内容覆盖与 Runtime Chunk profiling 仍是 Future |
-| WorldMap | `HostWorldMapPanel` 查看同源 Surface、exact 选点、缩放／平移、Site／Flag／Party／NPC Squad／控制范围；Site／Flag 图标和标签随 world projection 缩放，Header／Flyout 固定屏幕空间；打开时只规划，关闭后恢复 Surface travel | `Assets/Scripts/Unity/Host/HostWorldMapPanel.cs`；不保存第二套地图位置，只提交 `PlayerPartyWorldMotion` 旅行计划 | MAP-02/03 Accepted / Sealed；但当前 Player 为固定 20×20 px、NPC Squad 为固定 14×14 px，与“图标／标签随地图缩放”的确认规则不一致，须另行定范围修正 |
+| WorldMap | `HostWorldMapPanel` 查看同源 Surface、exact 选点、缩放／平移、Site／Flag／Party／NPC Squad／控制范围；Site／Flag／Party／NPC Squad 图标按同一 world projection 缩放，Header／Flyout 固定屏幕空间；打开时只规划，关闭后恢复 Surface travel | `Assets/Scripts/Unity/Host/HostWorldMapPanel.cs`；不保存第二套地图位置，只提交 `PlayerPartyWorldMotion` 旅行计划 | MAP-02/03 Accepted / Sealed；2026-10-19 Player／NPC Squad 固定像素图标差异修正获制作人现场验收，状态 Producer Accepted、尚未封板提交 |
 | PlayerParty 移动与同行 | 单 `ActiveControlledCharacter`；PlayerParty 上限 6；Followers 为 AI；`PlayerPartySurfaceTravelService`／`PlayerPartyWorldMotion` 以 Surface route 移动；取消保留位置，重放置清旧 Site，到达保留目的 Site | `Assets/Scripts/Core/World/Strategic/PlayerPartyWorldMotion.cs`、`PlayerPartySurfaceTravelService.cs`；Snapshot 保存位置、目的地、计划语义并在 Surface shell 后恢复 route | Implemented / Accepted / Sealed。飞舟、跨大陆新能力与完整继承终局未实现 |
 | NPC Squad 与独立人物后台移动 | 正常 group = `Squad + SquadWorldMotion`；独立人物可由 background travel authority 移动；loaded/unloaded 只改变表现与 LOD，不改身份／位置 authority | `SquadState.cs`、`SquadWorldMotion.cs`、`BackgroundCharacterTravelService.cs`；Snapshot + Content-dependent phase-two restore | Hex／Army retirement seal 已覆盖。完整战略 AI／NPC 主动战争仍 Future |
 | 表现物化与刷新 | Host 只根据 presentation scope materialize；`OutdoorEntityReconcileGate` 合并为 `None`／`RefreshViewsOnly`／`ReconcileAndRefresh`，避免静止 tick 重扫并保留真实 scope 变化 | `Assets/Scripts/Unity/Host/OutdoorEntityReconcileGate.cs`、`PlayableHostBootstrap.cs`；运行 generation 不作为磁盘 authority | Implemented；021915 统一收尾 Accepted / Sealed。性能 profiling 未核实，不作为当前 bug |

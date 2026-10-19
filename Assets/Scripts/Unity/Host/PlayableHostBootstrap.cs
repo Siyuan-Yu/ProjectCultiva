@@ -341,7 +341,7 @@ namespace XianXia.Unity.Host
 
 
             // Phase 5R-B6.5-B：Modal 强制暂停期间 Space 不能切换（ModalHardPaused 分层）。
-            if (Input.GetKeyDown(togglePauseKey) &&
+            if (!HostInputGate.TextInputFocused && Input.GetKeyDown(togglePauseKey) &&
                 !_session.ModalHardPaused &&
                 (questJournal == null || !questJournal.IsOpen) &&
                 (inventoryPanel == null || !inventoryPanel.IsOpen) &&
@@ -1131,8 +1131,6 @@ namespace XianXia.Unity.Host
         {
             if (!_session.IsInitialized)
                 return;
-
-            HostInputGate.Clear();
 
             var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
             if (selectionController != null && entityViewSpawner != null)

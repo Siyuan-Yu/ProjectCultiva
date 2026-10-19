@@ -52,7 +52,6 @@ namespace XianXia.Unity.Host
             _breakConfirmOpen = false;
             _subject = EntityId.None;
             _status = string.Empty;
-            HostInputGate.Clear();
         }
 
         public void OpenFor(EntityId id)
@@ -65,6 +64,8 @@ namespace XianXia.Unity.Host
             _breakConfirmOpen = false;
             _status = string.Empty;
             _scrollManualDetail = Vector2.zero;
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
+                HostInputGate.Acquire(PauseOwner);
             if (!_holdingPause && bootstrap?.Session != null)
             {
                 bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -119,8 +120,7 @@ namespace XianXia.Unity.Host
 
             if (open)
             {
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.Acquire(PauseOwner);
                 if (!_holdingPause)
                 {
                     bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -139,11 +139,11 @@ namespace XianXia.Unity.Host
 
         void ReleasePause()
         {
+            HostInputGate.Release(PauseOwner);
             if (!_holdingPause)
                 return;
             bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
-            HostInputGate.Clear();
         }
 
         void OnGUI()

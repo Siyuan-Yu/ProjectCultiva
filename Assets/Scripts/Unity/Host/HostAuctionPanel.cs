@@ -37,14 +37,14 @@ namespace XianXia.Unity.Host
             if(host?.ViewSpawner==null || !host.ViewSpawner.Registry.TryGet(a,out var av) || av==null || !host.ViewSpawner.Registry.TryGet(b,out var bv) || bv==null) return false;
             var d=av.transform.position-bv.transform.position; d.z=0; return d.sqrMagnitude<=HostNpcInteraction.DefaultMeleeEngageRange*HostNpcInteraction.DefaultMeleeEngageRange;
         }
-        void Block(){HostInputGate.BlockWorldInteraction=true;HostInputGate.BlockWorldCamera=true;}
+        void Block(){HostInputGate.Acquire(PauseOwner);}
         void Update()
         {
             if(!IsOpen)return;
             if(host?.Session!=pausedSession || host.Session.World!=openedWorld || Input.GetKeyDown(KeyCode.Escape) || host.InventoryPanel.IsOpen || host.WorldMapPanel.IsOpen || host.ConstructionPanel.IsOpen ||
                 host.GetComponent<HostShopTradePanel>()?.IsOpen==true || host.GetComponent<HostLevelTesterCheatPanel>()?.IsVisible==true){Close();return;} Block();
         }
-        public void Close(){if(root!=null)root.SetActive(false);pausedSession?.ReleaseModalPause(PauseOwner);pausedSession=null;openedWorld=null;host?.GetComponent<HostMoveController>()?.ReleaseNpcForInteraction(provider);HostInputGate.Release(PauseOwner);HostInputGate.Clear();}
+        public void Close(){if(root!=null)root.SetActive(false);pausedSession?.ReleaseModalPause(PauseOwner);pausedSession=null;openedWorld=null;host?.GetComponent<HostMoveController>()?.ReleaseNpcForInteraction(provider);HostInputGate.Release(PauseOwner);}
         void OnDisable(){if(IsOpen||pausedSession!=null)Close();} void OnDestroy(){if(root!=null)Destroy(root);}
 
         void Refresh()

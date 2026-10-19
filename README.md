@@ -7,6 +7,14 @@
 **Architecture Freeze v0.2＋ADR-0038 最终冻结。** Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C，以及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已完成制作人验收并封板。封板提交为 `9b32fe0`。正常 Outdoor authority、合法 compatibility 边界和新会话唯一恢复摘要见 [247 交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)。
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
+2026-10-19 当前工作区剩余改动获制作人明确“全部封板提交并上传”授权。势力旗反击、WorldMap 图标缩放及窗口输入隔离按制作人已确认范围记 Producer Accepted；提交和推送不代表 Medic、其他系统残项或未现场验收的美术已完成。
+
+系统残项与现有美术接线最新静态核对见 [305](docs/40-process/305-system-and-art-closure-audit-2026-10-19.md)；已补齐玩家／渔村两种现成旗帜 View，其他待验与真缺口分开记录，不代表全项目系统或美术已封板。
+
+2026-10-19 势力旗验收覆写：制作人已确认独立战场反击功能验收通过；本轮状态为 Implemented / Producer Accepted / 未封板，尚未提交或推送。实施时的待验收描述以本条和 [ADR-0046](docs/40-process/43-decisions/ADR-0046-faction-flag-encounter-defense.md) 当前状态为准。
+
+2026-10-19 势力旗后续扩展：已按制作人确认接入与议政厅同规则的独立战场远程攻击，无守军旗单独受攻也进入独立战场；当前为 Implemented / Producer Acceptance Pending，尚未提交，未进行 Unity 现场验收。见 [ADR-0046](docs/40-process/43-decisions/ADR-0046-faction-flag-encounter-defense.md)。
+
 2026-10-19 最新覆写：议政厅独立战斗攻击及弹道、巡卫战后按入战位置返场、人物骨架与床层的两处 Sprite 顶点越界修复均已由制作人在 LevelTester 现场验收；本批获明确封板推送授权。议政厅正式规则见 [战斗 §12.2.1](docs/20-systems/23-combat.md)、[ADR-0045](docs/40-process/43-decisions/ADR-0045-council-hall-encounter-defense-authority.md)，本批状态与范围见 [247 最新交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md) 及 [开发日志](docs/40-process/42-devlog.md)。下方“议政厅尚未实施／待验”相关段落属于当时阶段，不代表当前状态。
 
 2026-10-18 人物美术与移动的最新实施/待验状态见 [297 当前交接](docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)；12 套 Unity 共用骨架 Skin、八向与侧臂、卧姿和右键连续改路已接线，美术源文件清理有独立台账。版本封板不等于制作人人工视觉验收。

@@ -35,6 +35,16 @@ namespace XianXia.Unity.Host
                 var red = MapSprite("factionControlPost");
                 if (red != null) return red;
             }
+            if (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.PlayerFactionId)
+            {
+                var green = LoadProp("ART-ROOM-008_flag_green_v02");
+                if (green != null) return green;
+            }
+            if (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.FisherVillageId)
+            {
+                var blue = LoadProp("ART-ROOM-008_flag_blue_v02");
+                if (blue != null) return blue;
+            }
             if (_plainFlag != null) return _plainFlag;
             var texture = new Texture2D(32, 48, TextureFormat.RGBA32, false);
             texture.name = "FactionFlagFallback";
@@ -49,8 +59,12 @@ namespace XianXia.Unity.Host
 
         public static Color FlagColor(string factionId)
         {
-            if (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.HuangcunLaborId &&
-                MapSprite("factionControlPost") != null) return Color.white;
+            if ((factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.HuangcunLaborId &&
+                 MapSprite("factionControlPost") != null) ||
+                (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.PlayerFactionId &&
+                 LoadProp("ART-ROOM-008_flag_green_v02") != null) ||
+                (factionId == XianXia.Core.World.Strategic.StrategicFactionCatalog.FisherVillageId &&
+                 LoadProp("ART-ROOM-008_flag_blue_v02") != null)) return Color.white;
             XianXia.Core.World.Strategic.StrategicFactionCatalog.MapTint(factionId, out var red, out var green, out var blue);
             return new Color(red, green, blue);
         }

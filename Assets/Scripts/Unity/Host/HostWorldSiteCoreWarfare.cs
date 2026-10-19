@@ -60,6 +60,9 @@ namespace XianXia.Unity.Host
                             surface.PresentJoinedParticipants(previous);
                         ContinueAssault(host, siteId);
                     });
+            else if (target.CoreIsRemovable)
+                host.GetComponent<HostCharacterEncounter>().RequestWorldSiteAssault(
+                    attacker, EntityId.None, siteId, () => ContinueAssault(host, siteId));
             else ContinueAssault(host, siteId);
         }
 

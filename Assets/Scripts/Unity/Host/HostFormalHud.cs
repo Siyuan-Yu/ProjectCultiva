@@ -1714,6 +1714,7 @@ namespace XianXia.Unity.Host
 
         void HandleActionHotkeys(PlayableHostSession session)
         {
+            if (HostInputGate.TextInputFocused) return;
             var focus = ResolveFocus(session);
             if (focus.IsNone || selectionController == null || !session.PlayerParty.IsActive(focus))
                 return;

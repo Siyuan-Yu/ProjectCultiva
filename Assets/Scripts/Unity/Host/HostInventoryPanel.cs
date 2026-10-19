@@ -67,10 +67,9 @@ namespace XianXia.Unity.Host
                 _viewMode = ViewMode.Party;
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
+                HostInputGate.Acquire(PauseOwner);
                 bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
             }
         }
 
@@ -100,7 +99,7 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
 
-            if (Input.GetKeyDown(toggleKey))
+            if (!HostInputGate.TextInputFocused && Input.GetKeyDown(toggleKey))
                 Toggle();
 
             var journal = bootstrap.QuestJournal;
@@ -121,8 +120,7 @@ namespace XianXia.Unity.Host
 
             if (open)
             {
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.Acquire(PauseOwner);
                 if (!_holdingPause)
                 {
                     bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -137,10 +135,10 @@ namespace XianXia.Unity.Host
 
         void ReleasePauseOwnership()
         {
+            HostInputGate.Release(PauseOwner);
             if (_holdingPause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
-            HostInputGate.Clear();
         }
 
         void OnGUI()

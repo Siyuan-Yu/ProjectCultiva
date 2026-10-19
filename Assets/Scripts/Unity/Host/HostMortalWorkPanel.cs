@@ -39,7 +39,7 @@ namespace XianXia.Unity.Host
             open = true;
             bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
-            HostInputGate.BlockWorldCamera = HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.Acquire(PauseOwner);
         }
 
         public void Close() { open = false; ReleasePause(); }
@@ -49,7 +49,7 @@ namespace XianXia.Unity.Host
         {
             if (_holdingPause && bootstrap?.Session != null) bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
-            HostInputGate.Clear();
+            HostInputGate.Release(PauseOwner);
         }
 
         void Update()
@@ -58,7 +58,7 @@ namespace XianXia.Unity.Host
             if (bootstrap.InventoryPanel?.IsOpen == true || bootstrap.ConstructionPanel?.IsOpen == true ||
                 bootstrap.WorldMapPanel?.IsOpen == true || bootstrap.QuestJournal?.IsOpen == true)
             { Close(); return; }
-            HostInputGate.BlockWorldCamera = HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.Acquire(PauseOwner);
             if (!_holdingPause && bootstrap?.Session != null)
             { bootstrap.Session.AcquireModalPause(PauseOwner); _holdingPause = true; }
         }

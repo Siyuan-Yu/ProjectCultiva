@@ -18,6 +18,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
+        const string InputOwner = "NpcContextMenu:Interaction";
         const string DismantlePauseOwner = "NpcContext.DismantleConfirm";
         enum Phase
         {
@@ -158,7 +159,7 @@ namespace XianXia.Unity.Host
                 _targetLabel = ResolveDisplayName(npc);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.AcquireInteraction(InputOwner);
                 return true;
             }
 
@@ -191,7 +192,7 @@ namespace XianXia.Unity.Host
                 _targetLabel = string.IsNullOrEmpty(entrance.Name) ? "洞府入口" : entrance.Name;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.AcquireInteraction(InputOwner);
                 return true;
             }
 
@@ -210,7 +211,7 @@ namespace XianXia.Unity.Host
                 SetWorldObjectTarget(objectTarget);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.AcquireInteraction(InputOwner);
                 return true;
             }
 
@@ -238,9 +239,11 @@ namespace XianXia.Unity.Host
             TickPendingPrisonBedCommand();
             if (_phase == Phase.Closed)
             {
+                HostInputGate.ReleaseInteraction(InputOwner);
                 TryReleaseInteractionNpc();
                 return;
             }
+            HostInputGate.AcquireInteraction(InputOwner);
 
             if (_worldObjectTarget.IsValid &&
                 !HostWorldObjectPicker.IsTargetLocallyVisible(bootstrap, _worldObjectTarget))
@@ -1570,7 +1573,7 @@ namespace XianXia.Unity.Host
             _confirmCallback = afterCommit;
             _phase = Phase.StrategicAggressionConfirm;
             bootstrap.Session.AcquireModalPause(AggressionPauseOwner);
-            HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.AcquireInteraction(InputOwner);
             return false;
         }
 
@@ -1849,7 +1852,7 @@ namespace XianXia.Unity.Host
             _aggressionAttackerFactionId = string.Empty;
             _aggressionDefenderFactionId = string.Empty;
             _dismantleStatus = string.Empty;
-            HostInputGate.BlockWorldInteraction = false;
+            HostInputGate.ReleaseInteraction(InputOwner);
             if (_holdingDismantlePause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);
             _holdingDismantlePause = false;
@@ -1857,6 +1860,7 @@ namespace XianXia.Unity.Host
 
         void OnDisable()
         {
+            HostInputGate.ReleaseInteraction(InputOwner);
             CancelRecruitInteraction();
             CancelPendingPrisonBedCommand(true, "界面生命周期结束");
             bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);

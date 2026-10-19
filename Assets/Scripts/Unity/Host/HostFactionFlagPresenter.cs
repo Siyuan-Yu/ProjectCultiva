@@ -12,6 +12,7 @@ namespace XianXia.Unity.Host
     /// <summary>FactionFlag visual, footprint geometry and construction placement interaction.</summary>
     public sealed class HostFactionFlagPresenter : MonoBehaviour
     {
+        const string InputOwner = "FactionFlagPlacement";
         PlayableHostBootstrap _bootstrap;
         sealed class FlagVisual
         {
@@ -31,7 +32,8 @@ namespace XianXia.Unity.Host
         float _previewZ;
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
-        void OnDestroy() { DestroyAllVisuals(); DestroyPreview(); }
+        void OnDestroy() { CancelPlacement(); DestroyAllVisuals(); }
+        void OnDisable() => CancelPlacement();
 
         public Result BeginConstructionPlacement(string buildingId)
         {
@@ -44,7 +46,7 @@ namespace XianXia.Unity.Host
             _buildingId = buildingId;
             _placing = true;
             _status = "移动鼠标选择位置；左键建造，Esc／右键取消。";
-            HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.AcquireInteraction(InputOwner);
             return Result.Success();
         }
 
@@ -64,7 +66,10 @@ namespace XianXia.Unity.Host
             SyncVisuals(world, continuous);
 
             if (_placing)
+            {
+                HostInputGate.AcquireInteraction(InputOwner);
                 UpdatePlacementPreview();
+            }
             else
                 DestroyPreview();
         }
@@ -86,8 +91,7 @@ namespace XianXia.Unity.Host
 
         public void CancelPlacement()
         {
-            if (_placing)
-                HostInputGate.BlockWorldInteraction = false;
+            HostInputGate.ReleaseInteraction(InputOwner);
             _placing = false;
             _buildingId = string.Empty;
             _status = string.Empty;

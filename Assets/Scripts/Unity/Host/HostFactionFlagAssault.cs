@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>无守军时，靠近阵营旗建筑并按正式近战节奏持续拆除。</summary>
+    /// <summary>在正式独立遭遇中靠近势力旗，并按既有近战节奏拆除。</summary>
     public sealed class HostFactionFlagAssault : MonoBehaviour
     {
         PlayableHostBootstrap _bootstrap;
@@ -44,8 +44,9 @@ namespace XianXia.Unity.Host
                 return;
             if (!ReferenceEquals(_world, world)) { Clear(); return; }
             var encounter = world.Strategic.CharacterEncounter;
-            if (encounter != null && (encounter.Phase == CharacterEncounterPhase.Committed ||
-                encounter.Find(session.PlayerParty.ActiveCharacterId.Value)?.TargetId != ulong.MaxValue)) { Clear(); return; }
+            if (encounter == null || encounter.Phase != CharacterEncounterPhase.Active ||
+                encounter.Find(session.PlayerParty.ActiveCharacterId.Value)?.TargetId != ulong.MaxValue)
+            { Clear(); return; }
             if (!world.Strategic.FactionFlags.Flags.TryGetValue(_flagId, out var flag) || flag == null)
             {
                 Clear();
@@ -105,7 +106,11 @@ namespace XianXia.Unity.Host
 
         void Add(EntityId id, EntityViewSpawner spawner)
         {
-            if (!CharacterEncounterService.IsLiving(_bootstrap.Session.World, id.Value)) return;
+            var world = _bootstrap.Session.World;
+            var encounter = world.Strategic.CharacterEncounter;
+            var participant = encounter?.Find(id.Value);
+            if (encounter != null && (participant == null || participant.Enemy)) return;
+            if (!CharacterEncounterService.IsLiving(world, id.Value)) return;
             if (id.IsNone || spawner == null || !spawner.Registry.TryGet(id, out var view) || view == null)
                 return;
             var p = HostPresentationSpace.ToPresentation(view.transform.position);

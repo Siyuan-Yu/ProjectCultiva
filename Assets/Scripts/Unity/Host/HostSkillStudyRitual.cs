@@ -417,14 +417,14 @@ namespace XianXia.Unity.Host
                 _holdingPause = true;
             }
 
-            HostInputGate.BlockWorldCamera = true;
-            HostInputGate.BlockWorldInteraction = true;
+            HostInputGate.Acquire(PauseOwner);
         }
 
         void OnDisable() => ReleasePause();
 
         void ReleasePause()
         {
+            HostInputGate.Release(PauseOwner);
             if (_holdingPause && bootstrap?.Session != null)
             {
                 bootstrap.Session.ReleaseModalPause(PauseOwner);
@@ -438,7 +438,6 @@ namespace XianXia.Unity.Host
             _report = null;
             _subject = EntityId.None;
             ReleasePause();
-            HostInputGate.Clear();
         }
 
         void OnGUI()

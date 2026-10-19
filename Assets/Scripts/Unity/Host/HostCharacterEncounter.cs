@@ -68,7 +68,8 @@ namespace XianXia.Unity.Host
             _strikeVfx = host.GetComponent<HostMeleeStrikeVfx>() ??
                          host.gameObject.AddComponent<HostMeleeStrikeVfx>();
         }
-        public bool HasPending => !_pendingTarget.IsNone;
+        public bool HasPending => !_pendingAttacker.IsNone &&
+            (!_pendingTarget.IsNone || !string.IsNullOrEmpty(_assaultSiteId));
 
         public void Request(
             EntityId attacker,
@@ -119,6 +120,10 @@ namespace XianXia.Unity.Host
                     if (CharacterEncounterService.IsLiving(requestWorld, id))
                         (friendly ? _previewEnemy : _previewFriendly).Add(new EntityId(id));
             }
+            else if (target.IsNone && requestWorld.Strategic.Squads.TryGetForCharacter(attacker, out var playerSquad))
+                foreach (var id in playerSquad.MemberCharacterIds)
+                    if (CharacterEncounterService.IsLiving(requestWorld, id))
+                        _previewFriendly.Add(new EntityId(id));
             Phase = PresentationPhase.Pending;
             HostInputGate.EncounterModalLock = true;
             _host.Session.AcquireModalPause(PauseOwner);
@@ -137,7 +142,9 @@ namespace XianXia.Unity.Host
         {
             if (HasPending) return;
             Request(attacker, defender, onEntered: onEntered, allowPendingCancel: true);
-            _assaultSiteId = siteId;
+            if (Phase == PresentationPhase.Pending && _pendingAttacker == attacker &&
+                _pendingTarget == defender)
+                _assaultSiteId = siteId;
         }
 
         void LogStage(string stage)
@@ -265,8 +272,9 @@ namespace XianXia.Unity.Host
                 yield break;
             }
             _host.GetComponent<HostNpcMeleeAssault>()?.Clear();
-            _startGate.Stage(world, state.EncounterId, attacker, target, _onEntered, isRestore: false,
-                recordCharacterAttack: true);
+            _startGate.Stage(world, state.EncounterId,
+                target.IsNone ? EntityId.None : attacker, target, _onEntered, isRestore: false,
+                recordCharacterAttack: !target.IsNone);
             _onEntered = null;
             _pendingAttacker = _pendingTarget = EntityId.None;
             _preparedField = null; Phase = PresentationPhase.ReadyToStart; _progress = "战场已就绪 · 当前全场暂停";
@@ -349,7 +357,9 @@ namespace XianXia.Unity.Host
             if (_entryRoutine != null) StopCoroutine(_entryRoutine);
             _entryRoutine = null;
             _host.ContinuousOutdoorSurfaceRuntime.CancelPreparedIndependentField();
-            _host.Session.World.Strategic.SuppressedCharacterContacts.Add(CharacterEncounterService.ContactKey(_pendingAttacker, _pendingTarget));
+            if (!_pendingTarget.IsNone)
+                _host.Session.World.Strategic.SuppressedCharacterContacts.Add(
+                    CharacterEncounterService.ContactKey(_pendingAttacker, _pendingTarget));
             _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null;
             _allowPendingCancel = false; _assaultSiteId = null; _startGate.Clear();
             _preparedField = null; _failure = ""; _progress = string.Empty; Phase = PresentationPhase.None;
@@ -477,21 +487,21 @@ namespace XianXia.Unity.Host
                     Debug.Log("[CharacterEncounter] Id=" + state.EncounterId + " tacticalDeltaTime=" + dt);
                     _loggedTacticalClock = true;
                 }
-                if (CouncilHallEncounterDefenseService.AdvanceAndStrike(world, dt,
-                        out var hallTarget, out var hallDefeated))
+                if (SiteCoreEncounterDefenseService.AdvanceAndStrike(world, dt,
+                        out var coreTarget, out var coreDefeated))
                 {
-                    var ward = state.CouncilHallDefense;
+                    var ward = state.SiteCoreDefense;
                     if (ward != null && _strikeVfx != null &&
-                        _host.ViewSpawner.Registry.TryGet(hallTarget, out var hallTargetView) &&
-                        hallTargetView != null &&
+                        _host.ViewSpawner.Registry.TryGet(coreTarget, out var coreTargetView) &&
+                        coreTargetView != null &&
                         _host.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(
                             new WorldVec2((ward.MinX + ward.MaxX) * .5f,
                                 (ward.MinY + ward.MaxY) * .5f), out var from))
                     {
                         _strikeVfx.PlayProjectile(from + Vector3.up * .35f,
-                            hallTargetView.transform.position + Vector3.up * .35f, hallTargetView);
+                            coreTargetView.transform.position + Vector3.up * .35f, coreTargetView);
                     }
-                    if (hallDefeated) RefreshDefeatedParticipant(hallTarget);
+                    if (coreDefeated) RefreshDefeatedParticipant(coreTarget);
                 }
                 foreach (var p in state.Participants)
                 {

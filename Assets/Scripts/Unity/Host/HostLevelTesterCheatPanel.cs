@@ -93,7 +93,7 @@ namespace XianXia.Unity.Host
             _content.CancelPendingConfirmation();
             _clearOwnedGuiStateRequested = true;
             HostUiHitTest.UnregisterPersistent(PersistentOwner, retireForCurrentFrame: true);
-            HostInputGate.Release(TextInputOwner);
+            HostInputGate.ReleaseTextInput(TextInputOwner);
         }
 
         void OnEnable()
@@ -119,7 +119,7 @@ namespace XianXia.Unity.Host
             _content.CancelPendingConfirmation();
             _clearOwnedGuiStateRequested = true;
             HostUiHitTest.UnregisterPersistent(PersistentOwner);
-            HostInputGate.Release(TextInputOwner);
+            HostInputGate.ReleaseTextInput(TextInputOwner);
         }
 
         void Update()
@@ -166,9 +166,9 @@ namespace XianXia.Unity.Host
             _textInputFocused = !string.IsNullOrEmpty(focused) &&
                                 focused.StartsWith("LevelTester.", System.StringComparison.Ordinal);
             if (_textInputFocused)
-                HostInputGate.Acquire(TextInputOwner);
+                HostInputGate.AcquireTextInput(TextInputOwner);
             else
-                HostInputGate.Release(TextInputOwner);
+                HostInputGate.ReleaseTextInput(TextInputOwner);
         }
 
         void ClearOwnedGuiStateIfRequested()

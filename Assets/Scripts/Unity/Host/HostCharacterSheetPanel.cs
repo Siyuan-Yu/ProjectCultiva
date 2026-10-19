@@ -84,7 +84,6 @@ namespace XianXia.Unity.Host
             open = false;
             _subject = EntityId.None;
             _relatedSelection = EntityId.None;
-            HostInputGate.Clear();
         }
 
         public void OpenFor(EntityId id) => OpenFor(id, CharacterProfilePage.Attributes);
@@ -101,6 +100,8 @@ namespace XianXia.Unity.Host
             }
             _page = page;
             open = true;
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
+                HostInputGate.Acquire(PauseOwner);
             if (!_holdingPause && bootstrap?.Session != null)
             {
                 bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -140,8 +141,7 @@ namespace XianXia.Unity.Host
             if (open && Input.GetKeyDown(KeyCode.Escape)) Close();
             if (open)
             {
-                HostInputGate.BlockWorldCamera = true;
-                HostInputGate.BlockWorldInteraction = true;
+                HostInputGate.Acquire(PauseOwner);
                 if (!_holdingPause)
                 {
                     bootstrap.Session.AcquireModalPause(PauseOwner);
@@ -155,10 +155,10 @@ namespace XianXia.Unity.Host
 
         void ReleasePause()
         {
+            HostInputGate.Release(PauseOwner);
             if (!_holdingPause) return;
             _holdingPause = false;
             if (bootstrap?.Session != null) bootstrap.Session.ReleaseModalPause(PauseOwner);
-            HostInputGate.Clear();
         }
 
         void OnGUI()

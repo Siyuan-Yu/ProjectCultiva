@@ -33,7 +33,7 @@ namespace XianXia.Data.Serialization
             {
                 ["version"] = JsonValue.FromNumber(state.Version),
                 ["objective"] = WriteObjective(state.Objective),
-                ["councilHallDefense"] = WriteCouncilHallDefense(state.CouncilHallDefense),
+                ["siteCoreDefense"] = WriteSiteCoreDefense(state.SiteCoreDefense),
                 ["objectiveDefenderSquads"] = JsonValue.FromArray(objectiveSquads),
                 ["id"] = JsonValue.FromString(state.EncounterId),
                 ["sourceSurfaceId"] = JsonValue.FromString(state.SourceSurfaceId),
@@ -46,6 +46,7 @@ namespace XianXia.Data.Serialization
                 ["decayAccumulator"] = JsonValue.FromNumber(state.DecayAccumulator),
                 ["phase"] = JsonValue.FromNumber((int)state.Phase),
                 ["playerWon"] = JsonValue.FromBool(state.PlayerWon),
+                ["coreOnlyAssault"] = JsonValue.FromBool(state.CoreOnlyAssault),
                 ["rosterVersion"] = JsonValue.FromNumber(state.RosterVersion),
                 ["continuationUsed"] = JsonValue.FromBool(state.ContinuationUsed),
                 ["decisionAt"] = JsonValue.FromNumber(state.DecisionAt),
@@ -84,21 +85,31 @@ namespace XianXia.Data.Serialization
                 DecayAccumulator = (float)value.GetNumber("decayAccumulator", 0),
                 Phase = (CharacterEncounterPhase)value.GetNumber("phase", 0),
                 PlayerWon = value.GetBool("playerWon", false),
+                CoreOnlyAssault = value.GetBool("coreOnlyAssault", false),
                 RosterVersion = (int)value.GetNumber("rosterVersion", 0),
                 ContinuationUsed = value.GetBool("continuationUsed", false),
             };
-            if (value.TryGetProperty("councilHallDefense", out var wardValue))
+            var hasCoreDefense = value.TryGetProperty("siteCoreDefense", out var wardValue);
+            var hasLegacyDefense = value.TryGetProperty("councilHallDefense", out var legacyWardValue);
+            if (hasCoreDefense && hasLegacyDefense)
+                throw new FormatException("Duplicate SiteCore battle defense fields.");
+            if (hasCoreDefense || hasLegacyDefense)
             {
+                if (!hasCoreDefense) wardValue = legacyWardValue;
                 if (wardValue.Kind != JsonValueKind.Object)
-                    throw new FormatException("Invalid council hall battle defense.");
+                    throw new FormatException("Invalid SiteCore battle defense.");
                 if (wardValue.Object.Count > 0)
                 {
-                    RequireFields(wardValue, "siteId", "workAreaId", "ownerFactionId",
+                    RequireFields(wardValue, "siteId", hasCoreDefense ? "assetId" : "workAreaId", "ownerFactionId",
                         "minX", "minY", "maxX", "maxY", "cooldown", "disabled");
-                    state.CouncilHallDefense = new EncounterCouncilHallDefense
+                    if (hasCoreDefense) RequireFields(wardValue, "coreKind");
+                    state.SiteCoreDefense = new EncounterSiteCoreDefense
                     {
+                        CoreKind = hasCoreDefense
+                            ? (WorldSiteCoreKind)(int)wardValue.GetNumber("coreKind", -1)
+                            : WorldSiteCoreKind.FixedControlCore,
                         SiteId = wardValue.GetString("siteId", ""),
-                        WorkAreaId = wardValue.GetString("workAreaId", ""),
+                        AssetId = wardValue.GetString(hasCoreDefense ? "assetId" : "workAreaId", ""),
                         OwnerFactionId = wardValue.GetString("ownerFactionId", ""),
                         MinX = (float)wardValue.GetNumber("minX", float.NaN),
                         MinY = (float)wardValue.GetNumber("minY", float.NaN),
@@ -247,13 +258,14 @@ namespace XianXia.Data.Serialization
             return JsonValue.FromObject(fields);
         }
 
-        static JsonValue WriteCouncilHallDefense(EncounterCouncilHallDefense ward)
+        static JsonValue WriteSiteCoreDefense(EncounterSiteCoreDefense ward)
         {
             var fields = new Dictionary<string, JsonValue>();
             if (ward != null)
             {
+                fields["coreKind"] = JsonValue.FromNumber((int)ward.CoreKind);
                 fields["siteId"] = JsonValue.FromString(ward.SiteId);
-                fields["workAreaId"] = JsonValue.FromString(ward.WorkAreaId);
+                fields["assetId"] = JsonValue.FromString(ward.AssetId);
                 fields["ownerFactionId"] = JsonValue.FromString(ward.OwnerFactionId);
                 fields["minX"] = JsonValue.FromNumber(ward.MinX);
                 fields["minY"] = JsonValue.FromNumber(ward.MinY);

@@ -1,17 +1,37 @@
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 模态 UI（任务日志等）打开时阻断相机缩放／平移与 RTS 世界操作。
+    /// 每个模态界面只持有自己的输入锁；关闭界面不得解除其它界面的锁。
     /// </summary>
     public static class HostInputGate
     {
-        static bool _blockWorldCamera;
-        static bool _blockWorldInteraction;
-
-        /// <summary>Encounter owns this independently of other panels' per-frame bool writes.</summary>
+        /// <summary>Full modal owners block both camera and world interaction.</summary>
         static readonly System.Collections.Generic.HashSet<string> _owners = new System.Collections.Generic.HashSet<string>();
+        static readonly System.Collections.Generic.HashSet<string> _interactionOwners = new System.Collections.Generic.HashSet<string>();
+        static readonly System.Collections.Generic.HashSet<string> _textInputOwners = new System.Collections.Generic.HashSet<string>();
         public static void Acquire(string owner) { if (!string.IsNullOrEmpty(owner)) _owners.Add(owner); }
         public static void Release(string owner) { if (!string.IsNullOrEmpty(owner)) _owners.Remove(owner); }
+        public static void AcquireInteraction(string owner)
+        {
+            if (!string.IsNullOrEmpty(owner)) _interactionOwners.Add(owner);
+        }
+        public static void ReleaseInteraction(string owner)
+        {
+            if (!string.IsNullOrEmpty(owner)) _interactionOwners.Remove(owner);
+        }
+        public static void AcquireTextInput(string owner)
+        {
+            if (string.IsNullOrEmpty(owner)) return;
+            _textInputOwners.Add(owner);
+            Acquire(owner);
+        }
+        public static void ReleaseTextInput(string owner)
+        {
+            if (string.IsNullOrEmpty(owner)) return;
+            _textInputOwners.Remove(owner);
+            Release(owner);
+        }
+        public static bool TextInputFocused => _textInputOwners.Count > 0;
         public static bool EncounterModalLock
         {
             get => _owners.Contains("CharacterEncounterUI");
@@ -20,28 +40,20 @@ namespace XianXia.Unity.Host
 
         public static bool BlockWorldCamera
         {
-            get => _blockWorldCamera || _owners.Count > 0;
-            set => _blockWorldCamera = value;
+            get => _owners.Count > 0;
         }
 
         public static bool BlockWorldInteraction
         {
-            get => _blockWorldInteraction || _owners.Count > 0;
-            set => _blockWorldInteraction = value;
+            get => _owners.Count > 0 || _interactionOwners.Count > 0;
         }
 
-        public static void Clear()
-        {
-            _blockWorldCamera = false;
-            _blockWorldInteraction = false;
-        }
-
-        // Only the explicit session boundary may clear other owners. Ordinary panel Close
-        // still calls Clear(), which clears its legacy aggregate without touching named locks.
+        // Only the explicit session boundary may clear all owners.
         public static void ResetSession()
         {
-            Clear();
             _owners.Clear();
+            _interactionOwners.Clear();
+            _textInputOwners.Clear();
         }
     }
 }
