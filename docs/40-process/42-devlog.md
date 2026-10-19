@@ -1,5 +1,26 @@
 # 开发日志
 
+## 2026-10-19 — ROOM 门框与用途标识显示获制作人确认；本轮封板
+
+- 制作人在修正房间墙块深度排序后复测并确认“这一轮有了”。本轮仅把 LevelTester 中门柱和房间用途挂牌**可见**记为 Producer Accepted；用途切换、通行和全部房型未有单独现场结论，273 的资产族总体验收状态仍保持“未验收”。
+- 封板范围为 Batch_Codex_004 原图／运行 PNG、门饰运行切片与排序接线、相关登记及开发日志；不把工作区其它未封板系统改动混入本次提交。
+
+## 2026-10-19 — ROOM 门饰第二次现场仍被墙遮挡（待复验）
+
+- 制作人第二次 LevelTester 截图仍看不到门柱和挂牌。本机 Unity Editor.log 此次不再有 `HostStepAArt` 资源尺寸警告；静态核对发现 `HostMapObjectVisualFactory` 给墙块使用 `HostArtDepth.ObjectOrder`，会覆盖传入的 `-5`，而新增门饰仍固定 `-4/-3`，因此排在墙后。改用门旁墙格的实际深度排序值，再将门柱/横梁排在墙前一层、用途标识前两层。
+- 六个运行切片区域均有非透明内容；Core／Data／Unity 离线编译 `ALL_OK`。未自行运行 Unity，仍须制作人在 LevelTester 现场复验；未提交或推送。
+
+## 2026-10-19 — ROOM 门框／用途标识首次现场未显示的修复（待复验）
+
+- 制作人截图中门柱与挂牌均未出现；本机 Unity `Editor.log` 确认新图 GUID 已导入且 `HostStepAArt` 对两图均报 “Missing or invalid”。根因是本轮新增 PNG 的简化 `.meta` 未显式保持 NPOT 原尺寸，而运行切片写死原图像素尺寸，导入尺寸不一致即整体跳过。修正导入设置为 Sprite／不缩放 NPOT，并按实际导入纹理尺寸换算切片区域。
+- 门洞位置、排序、房间与床的正式规则未改；离线基础编译 `ALL_OK`。尚未在 Unity 重新进入 LevelTester 复验，不能记为视觉通过；未提交或推送。
+
+## 2026-10-19 — 房间门框与用途标识运行样本（待制作人验收）
+
+- `ART-ROOM-003` 新图整张开口仍偏窄，运行时仅切出两门柱和浅横梁，随 `HostDemoTileMap` 的真实双格门洞摆放；不加碰撞、门板或台阶，不改房间格距。`ART-ROOM-005` 三用途透明标识挂于门旁墙格，由正式 `RoomUsage` 选择，并随既有床外观刷新入口同步切换。
+- 原图、切片区域、运行副本哈希与未决视觉问题记于 `ArtSource/Batches/Batch_Codex_004/manifest.json`。273 TSV 仅将这两项记为**已接入待验**，XLSX 按正式脚本单向导出并全字段回读。未修改 Content、房间/床规则或正式场景布局。
+- 离线 Core／Data／Unity 基础编译 `ALL_OK`；未启动 Unity 或执行自动测试，门洞接缝、可读性和排序仍需 LevelTester 人工验收。未提交或推送。
+
 ## 2026-10-19 — 议政厅、巡卫返场与 Sprite 几何修复制作人验收通过；封板授权
 
 - 制作人明确确认：议政厅战斗内攻击及发射表现、巡卫战后回到入战位置、`HumanCommonRigView` 与 `HostBedVisualLayers` 两处 `Invalid vertex array` 修复，均已在 LevelTester 现场验收成功。此前各条“待现场复验”仅记录当时阶段，以上结论由本条覆写；不延伸到未提及的其他美术或玩法。

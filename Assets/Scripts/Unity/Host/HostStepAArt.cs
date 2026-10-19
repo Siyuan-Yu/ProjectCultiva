@@ -23,6 +23,8 @@ namespace XianXia.Unity.Host
         static readonly Dictionary<string, Sprite> Props = new Dictionary<string, Sprite>();
         static readonly Dictionary<string, Sprite> SurfaceTiles = new Dictionary<string, Sprite>();
         static readonly Dictionary<string, Sprite[]> FarmStages = new Dictionary<string, Sprite[]>();
+        static Sprite[] _roomDoorParts;
+        static Sprite[] _roomUsageMarkers;
         static readonly Dictionary<string, Texture2D> Icons = new Dictionary<string, Texture2D>();
         static Sprite _plainFlag;
 
@@ -268,6 +270,59 @@ namespace XianXia.Unity.Host
         }
 
         public static Sprite RoomFloorTile() => SurfaceTile("ART-ROOM-001_floor_interior_v02", 520f);
+
+        // Source artwork is split at runtime so the visual opening follows the real two-cell doorway.
+        // 0/1 are the posts and 2 is the shallow lintel; none carries collision authority.
+        public static Sprite RoomDoorPart(int part)
+        {
+            if (part < 0 || part > 2) return null;
+            if (_roomDoorParts == null)
+            {
+                var texture = Resources.Load<Texture2D>("ART-ROOM-003_door_frame_source_v03");
+                _roomDoorParts = new Sprite[3];
+                if (texture == null)
+                {
+                    Debug.LogWarning("[StepAArt] Missing room door frame source.");
+                    return null;
+                }
+                texture.filterMode = FilterMode.Bilinear;
+                texture.wrapMode = TextureWrapMode.Clamp;
+                var sx = texture.width / 1991f;
+                var sy = texture.height / 790f;
+                _roomDoorParts[0] = Sprite.Create(texture, new Rect(565 * sx, 0, 145 * sx, 655 * sy),
+                    new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+                _roomDoorParts[1] = Sprite.Create(texture, new Rect(1275 * sx, 0, 155 * sx, 655 * sy),
+                    new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+                _roomDoorParts[2] = Sprite.Create(texture, new Rect(610 * sx, 625 * sy, 780 * sx, 160 * sy),
+                    new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+            }
+            return _roomDoorParts[part];
+        }
+
+        public static Sprite RoomUsageMarker(XianXia.Core.Construction.RoomUsage usage)
+        {
+            var index = usage == XianXia.Core.Construction.RoomUsage.Medical ? 1 :
+                usage == XianXia.Core.Construction.RoomUsage.Prison ? 2 : 0;
+            if (_roomUsageMarkers == null)
+            {
+                var texture = Resources.Load<Texture2D>("ART-ROOM-005_usage_markers_v02");
+                _roomUsageMarkers = new Sprite[3];
+                if (texture == null)
+                {
+                    Debug.LogWarning("[StepAArt] Missing room usage markers.");
+                    return null;
+                }
+                texture.filterMode = FilterMode.Bilinear;
+                texture.wrapMode = TextureWrapMode.Clamp;
+                var sx = texture.width / 2048f;
+                var sy = texture.height / 768f;
+                var starts = new[] { 260f, 790f, 1350f };
+                for (var i = 0; i < 3; i++)
+                    _roomUsageMarkers[i] = Sprite.Create(texture, new Rect(starts[i] * sx, 0, 450f * sx, 768f * sy),
+                        new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+            }
+            return _roomUsageMarkers[index];
+        }
 
         public static Sprite FarmStageSprite(string kind, int stage)
         {

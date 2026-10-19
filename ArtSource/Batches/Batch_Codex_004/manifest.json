@@ -1,0 +1,34 @@
+{
+  "batch": "Batch_Codex_004",
+  "created": "2026-10-19",
+  "source": "Codex built-in image generation, edited with earlier local candidates as visual references",
+  "scope": "ART-ROOM-003 and ART-ROOM-005 presentation only; LevelTester runtime integration pending visual acceptance",
+  "assets": [
+    {
+      "assetId": "ART-ROOM-003",
+      "original": "ArtSource/Batches/Batch_Codex_004/Originals/ART-ROOM-003_door_frame_source_v03.png",
+      "runtimeCopy": "Assets/Art/Environment/Resources/ART-ROOM-003_door_frame_source_v03.png",
+      "sha256": "7b6ef38ae19d36acf666a330d54954fdb0c55d916535298b125890da175fced1",
+      "sizePixels": [1991, 790],
+      "reference": "ArtSource/Batches/Batch_Codex_002/Static/ART-ROOM-003_door_open_v02.png",
+      "runtimeRectsBottomOrigin": [[565, 0, 145, 655], [1275, 0, 155, 655], [610, 625, 780, 160]],
+      "runtimePlacement": "Two posts outside the two-cell walkway; shallow lintel at the opening's upper edge. Pivot center, source PPU 100, fitted to room cell dimensions. Runtime crop rectangles are proportional to imported texture dimensions.",
+      "remainingIssue": "The full generated image has an undersized opening and is NOT used as a single sprite. Only the three documented cutouts are used. Unity visual scale/seams not yet accepted."
+    },
+    {
+      "assetId": "ART-ROOM-005",
+      "original": "ArtSource/Batches/Batch_Codex_004/Originals/ART-ROOM-005_usage_markers_v02.png",
+      "runtimeCopy": "Assets/Art/Environment/Resources/ART-ROOM-005_usage_markers_v02.png",
+      "sha256": "a2795c4125006f3902ccd5aa044903f383f25699da539d305effc92bf43fb8d2",
+      "sizePixels": [2048, 768],
+      "reference": "ArtSource/Batches/Batch_Codex_001/Originals/ART-ROOM-005_usage_markers_sheet_v01.png",
+      "runtimeRectsBottomOrigin": [[260, 0, 450, 768], [790, 0, 450, 768], [1350, 0, 450, 768]],
+      "runtimeMapping": ["Residential", "Medical", "Prison"],
+      "runtimePlacement": "On the wall cell immediately left of the doorway; pivot center, source PPU 100, fitted to room cell dimensions. Runtime crop rectangles are proportional to imported texture dimensions.",
+      "remainingIssue": "Small-scale legibility and sorting not yet checked in Unity."
+    }
+  ],
+  "runtimeCode": ["Assets/Scripts/Unity/Host/HostStepAArt.cs", "Assets/Scripts/Unity/Host/HostDemoTileMap.cs", "Assets/Scripts/Unity/Host/HostMapPlotCell.cs"],
+  "contentOrGameplayChanged": false,
+  "status": "Door-frame and usage-sign visibility Producer Accepted in LevelTester; purpose switching, passage and all-room coverage not individually accepted"
+}

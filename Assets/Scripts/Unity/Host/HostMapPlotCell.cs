@@ -363,6 +363,43 @@ namespace XianXia.Unity.Host
                     !string.Equals(bed.ParentRoomId, roomId, System.StringComparison.Ordinal)) continue;
                 Apply(plot.gameObject, world, plot.StableCellId);
             }
+            var markers = Object.FindObjectsOfType<HostRoomUsageMarker>();
+            for (var i = 0; i < markers.Length; i++)
+                if (markers[i] != null && markers[i].RoomId == roomId)
+                    markers[i].Refresh(world);
+        }
+    }
+
+    /// <summary>Presentation-only room sign. RoomUsage on the constructed room remains authoritative.</summary>
+    public sealed class HostRoomUsageMarker : MonoBehaviour
+    {
+        string _roomId;
+        float _width;
+        float _height;
+        SpriteRenderer _renderer;
+
+        public string RoomId => _roomId;
+
+        public void Configure(SimulationWorld world, string roomId, float width, float height)
+        {
+            _roomId = roomId;
+            _width = width;
+            _height = height;
+            _renderer = GetComponent<SpriteRenderer>();
+            Refresh(world);
+        }
+
+        public void Refresh(SimulationWorld world)
+        {
+            if (_renderer == null) _renderer = GetComponent<SpriteRenderer>();
+            if (_renderer == null) return;
+            _renderer.sprite = world != null && world.OutdoorConstructedAssets.Assets.TryGetValue(
+                _roomId, out var room) && RoomBedGeometry.IsRoom(room)
+                ? HostStepAArt.RoomUsageMarker(room.RoomUsage) : null;
+            if (_renderer.sprite != null)
+                transform.localScale = new Vector3(
+                    _width / Mathf.Max(.0001f, _renderer.sprite.bounds.size.x),
+                    _height / Mathf.Max(.0001f, _renderer.sprite.bounds.size.y), 1f);
         }
     }
 }

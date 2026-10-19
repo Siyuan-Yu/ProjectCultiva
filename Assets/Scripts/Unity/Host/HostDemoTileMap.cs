@@ -394,6 +394,30 @@ namespace XianXia.Unity.Host
                     AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
                     actual++;
                 }
+                // Decoration follows the same two-cell opening as RoomBedGeometry. It never
+                // creates a blocker or changes the room/door interaction footprint.
+                var doorCenterX = minX + (doorLeft + 1f) * cellW;
+                var doorCenterY = minY + .5f * cellH;
+                mapper.PresentationToWorld(doorCenterX, doorCenterY, out var doorWorldX, out var doorWorldY);
+                if (mapper.WorldToChunk(doorWorldX, doorWorldY) == ownerChunk)
+                {
+                    var leftEdge = minX + doorLeft * cellW;
+                    var rightEdge = leftEdge + 2f * cellW;
+                    // Wall prefabs use depth-sorted orders (~HostArtDepth.Order), not their
+                    // -5 fallback. Match that layer so the posts and sign are not hidden by walls.
+                    var wallOrder = HostArtDepth.ObjectOrder("wall", doorCenterY, cellH, -5);
+                    PlaceRoomDecoration(id + ":door-post-left", HostStepAArt.RoomDoorPart(0),
+                        leftEdge - .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
+                    PlaceRoomDecoration(id + ":door-post-right", HostStepAArt.RoomDoorPart(1),
+                        rightEdge + .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
+                    PlaceRoomDecoration(id + ":door-lintel", HostStepAArt.RoomDoorPart(2),
+                        doorCenterX, minY + cellH, 2f * cellW, .20f * cellH, wallOrder + 1);
+                    var sign = PlaceRoomDecoration(id + ":usage-marker", null,
+                        leftEdge - .5f * cellW, doorCenterY, .55f * cellW, .90f * cellH, wallOrder + 2);
+                    if (sign != null)
+                        sign.AddComponent<HostRoomUsageMarker>().Configure(_session?.World, id,
+                            .55f * cellW, .90f * cellH);
+                }
                 expectedForOwner = actual;
             }
             else if (!stateful && info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
@@ -922,6 +946,23 @@ namespace XianXia.Unity.Host
             renderer.tileMode = SpriteTileMode.Continuous;
             renderer.size = new Vector2(Mathf.Max(.01f, worldW), Mathf.Max(.01f, worldH));
             renderer.sortingOrder = sortingOrder;
+            TrackBuilt(go);
+            return go;
+        }
+
+        GameObject PlaceRoomDecoration(string name, Sprite sprite, float x, float y,
+            float width, float height, int sortingOrder)
+        {
+            if (sprite == null && !name.EndsWith(":usage-marker", System.StringComparison.Ordinal)) return null;
+            var go = new GameObject(name);
+            go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
+            go.transform.position = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = sortingOrder;
+            if (sprite != null)
+                go.transform.localScale = new Vector3(width / Mathf.Max(.0001f, sprite.bounds.size.x),
+                    height / Mathf.Max(.0001f, sprite.bounds.size.y), 1f);
             TrackBuilt(go);
             return go;
         }
