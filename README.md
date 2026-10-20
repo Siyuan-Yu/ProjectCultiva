@@ -4,6 +4,10 @@
 
 ## 当前阶段
 
+2026-10-20 世界物件选中反馈见 [307](docs/40-process/307-world-object-selection-feedback-2026-10-20.md)：房间蓝色 Gizmos 调试圈已替换为正式选中细框，床、门、木墙等按各自范围显示；离线编译通过，待制作人现场验收，未提交。
+
+2026-10-19 当前推进：[306 正式试玩与历史Demo构建分离](docs/40-process/306-formal-player-and-demo-build-separation-2026-10-19.md)。正式Windows入口为 `XianXia/Build/Formal Windows x64`（仅LevelTester），历史Demo使用独立菜单/产品名/输出/存档；内容随包加载与普通会话菜单已接线。制作人确认可打包、运行且打包后基本存读档未见问题；Formal／Demo／Editor 槽位隔离未逐项记录。[CIVILIAN-LIFE-01](docs/40-process/267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-19-制作人反馈覆写)已获制作人整体人工验收，尚未封板；Medic 等延期功能不在范围。本轮没有改变参考开局经济或开始新玩法。以下历史段落以247最新覆写、267唯一状态表和306为准。
+
 **Architecture Freeze v0.2＋ADR-0038 最终冻结。** Continuous Outdoor、统一 Squad／CharacterEncounter、Actual Administrative Control、MAP-01～04、SPACE-01、LEGACY-FINAL-A／B／C，以及 Hex／Army 正式运行依赖退役与 021915 统一收尾均已完成制作人验收并封板。封板提交为 `9b32fe0`。正常 Outdoor authority、合法 compatibility 边界和新会话唯一恢复摘要见 [247 交接](docs/40-process/247-project-handoff-current-state-2026-09-18.md)。
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 

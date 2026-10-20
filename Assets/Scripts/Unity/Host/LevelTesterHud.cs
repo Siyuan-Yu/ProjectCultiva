@@ -29,6 +29,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) return;
             if (bootstrap == null)
                 return;
 

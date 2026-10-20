@@ -13,7 +13,7 @@ namespace XianXia.Unity.Host
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
         Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8,
-        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12
+        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12, Door = 13
     }
 
     public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
@@ -61,6 +61,7 @@ namespace XianXia.Unity.Host
                     case WorldObjectTargetKind.PrisonDropOff: return "prisonDropOff";
                     case WorldObjectTargetKind.Bed: return "bed";
                     case WorldObjectTargetKind.Room: return "room";
+                    case WorldObjectTargetKind.Door: return "roomDoor";
                     default: return string.Empty;
                 }
             }
@@ -69,7 +70,8 @@ namespace XianXia.Unity.Host
             Kind == WorldObjectTargetKind.FactionFlag ? FactionFlagId :
             Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot ||
             Kind == WorldObjectTargetKind.StorageRoom || Kind == WorldObjectTargetKind.PrisonDropOff ||
-            Kind == WorldObjectTargetKind.Bed || Kind == WorldObjectTargetKind.Room
+            Kind == WorldObjectTargetKind.Bed || Kind == WorldObjectTargetKind.Room ||
+            Kind == WorldObjectTargetKind.Door
                 ? Plot != null ? Plot.StableCellId : string.Empty :
             Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
             Kind == WorldObjectTargetKind.OpportunityObject ? OpportunityObject?.WorldObjectInstanceId ?? string.Empty :
@@ -129,7 +131,8 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (HostControlCoreQuery.TryPickAtWorld(world, layout, continuous, point, out var coreId) &&
+            if ((TryPickVisibleControlCore(host, point, out var coreId) ||
+                 HostControlCoreQuery.TryPickAtWorld(world, layout, continuous, point, out coreId)) &&
                 world.ControlCores.TryGet(coreId, out var core))
             {
                 if (!HostControlCoreQuery.TryGetApproachPoint(world, layout, continuous, core, out var approach))
@@ -165,6 +168,22 @@ namespace XianXia.Unity.Host
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Bed, plot: plot,
                     displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.IsDoor)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Door, plot: plot,
+                    displayLabel: "房门");
+                return true;
+            }
+
+            // Narrow walls must win over a room's broad floor interaction bounds.
+            if (plot != null && plot.IsRoom &&
+                HostMapObjectRegistry.TryPickDestructible(point, out var roomWall))
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Destructible,
+                    destructible: roomWall, displayLabel: roomWall.DisplayName);
                 return true;
             }
 
@@ -218,6 +237,24 @@ namespace XianXia.Unity.Host
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.WorkArea, workAreaId,
                     displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
+                return true;
+            }
+            return false;
+        }
+
+        static bool TryPickVisibleControlCore(PlayableHostBootstrap host, Vector3 point,
+            out string coreId)
+        {
+            coreId = string.Empty;
+            var world = host?.Session?.World;
+            var tileMap = host != null ? host.GetComponent<HostDemoTileMap>() : null;
+            if (world == null || tileMap == null) return false;
+            foreach (var pair in world.ControlCores.All)
+            {
+                var core = pair.Value;
+                if (core == null || !tileMap.TryGetCoreVisualBounds(core.LocationId, out var visual) ||
+                    !visual.Contains(new Vector2(point.x, point.y))) continue;
+                coreId = core.WorkAreaId;
                 return true;
             }
             return false;

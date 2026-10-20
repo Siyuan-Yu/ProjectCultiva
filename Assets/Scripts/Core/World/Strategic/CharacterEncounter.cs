@@ -924,7 +924,7 @@ namespace XianXia.Core.World.Strategic
         static Result Fail(string message) => Result.Failure(ErrorCode.InvalidOperation, message);
     }
 
-    /// <summary>Encounter-owned SiteCore attack; Host only consumes a successful strike.</summary>
+    /// <summary>Encounter-owned SiteCore launch and impact; damage is resolved at visible arrival.</summary>
     public static class SiteCoreEncounterDefenseService
     {
         const int Attack = 20;
@@ -1023,11 +1023,10 @@ namespace XianXia.Core.World.Strategic
             };
         }
 
-        public static bool AdvanceAndStrike(SimulationWorld world, float tacticalSeconds,
-            out EntityId targetId, out bool defeated)
+        public static bool AdvanceAndLaunch(SimulationWorld world, float tacticalSeconds,
+            out EntityId targetId)
         {
             targetId = EntityId.None;
-            defeated = false;
             var state = world?.Strategic?.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.Active ||
                 !Finite(tacticalSeconds) || tacticalSeconds <= 0f) return false;
@@ -1056,12 +1055,28 @@ namespace XianXia.Core.World.Strategic
             }
             if (best == null || !TryGetHostileTarget(world, ward, best, out var target)) return false;
             targetId = new EntityId(best.CharacterId);
+            ward.Cooldown = IntervalSeconds;
+            return true;
+        }
+
+        public static bool ResolveImpact(SimulationWorld world, string encounterId,
+            string assetId, EntityId targetId, out bool defeated)
+        {
+            defeated = false;
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.Active ||
+                state.EncounterId != encounterId || targetId.IsNone) return false;
+            var ward = state.SiteCoreDefense;
+            if (ward == null || ward.Disabled || ward.AssetId != assetId ||
+                !world.Strategic.Sites.TryGet(ward.SiteId, out var site) ||
+                !IsCoreStillActive(world, site, ward) ||
+                !TryGetHostileTarget(world, ward, state.Find(targetId.Value), out var target))
+                return false;
             CombatDamageRules.EnsureVitals(target);
             var defense = target.TryGet<AttributesComponent>(out var attrs)
                 ? Math.Max(0, attrs.GetFinal(AttributeId.Defense)) : 0;
             var damage = Math.Max(1, Attack - defense / 2);
             var applied = CombatDamageRules.ApplyIncoming(target, damage);
-            ward.Cooldown = IntervalSeconds;
             var source = ward.CoreKind == WorldSiteCoreKind.RemovableFactionFlag
                 ? "factionFlag" : "councilHall";
             if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp <= 0)

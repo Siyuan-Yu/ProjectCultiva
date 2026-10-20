@@ -79,6 +79,7 @@ Temporary quest companion participates in party travel and combat, but is not a 
 | [0044](ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) | 个体凡人、势力劳动、需求与俘虏方向 | Accepted as Design Direction / Implementation Not Started | 真实 Character、需求优先、单职业、战后逃亡、真实押送与住房拘留 |
 | [0045](ADR-0045-council-hall-encounter-defense-authority.md) | 议政厅独立遭遇建筑防御权威 | Producer Accepted／封板授权 | 非 Character 攻击者、参战及停火存档边界 |
 | [0046](ADR-0046-faction-flag-encounter-defense.md) | 势力旗复用独立遭遇核心防御 | Implemented／Producer Accepted／未封板 | 同攻击规则、4×4 格占地、无守军独立拆旗、击毁停火及存档兼容 |
+| [0047](ADR-0047-visible-ranged-impact-damage-timing.md) | 可见远程弹体命中时结算伤害 | Implemented／Committed·Sealed／待制作人验收 | 人物及 SiteCore 远程攻击在可见命中后结算，未命中不扣血 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

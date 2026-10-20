@@ -32,6 +32,8 @@ namespace XianXia.Unity.Host
             new Dictionary<string, List<GameObject>>(System.StringComparer.Ordinal);
         readonly Dictionary<string, List<Mesh>> _meshesByInstance =
             new Dictionary<string, List<Mesh>>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, GameObject> _coreVisualsByLocation =
+            new Dictionary<string, GameObject>(System.StringComparer.Ordinal);
         readonly List<CompactGrassLayer> _compactGrassLayers = new List<CompactGrassLayer>();
         bool _compactGrassTemplateResolved;
         Transform _buildRoot;
@@ -64,6 +66,18 @@ namespace XianXia.Unity.Host
         public IReadOnlyDictionary<string, SurfacePresentationInstance> LoadedInstances => _instances;
 
         public int MissingPrefabCount => MapLayoutPrefabResolver.MissingCount;
+
+        /// <summary>Visible art bounds only; gameplay footprint remains in HostControlCoreQuery.</summary>
+        public bool TryGetCoreVisualBounds(string locationId, out Rect rect)
+        {
+            rect = default;
+            if (string.IsNullOrEmpty(locationId) ||
+                !_coreVisualsByLocation.TryGetValue(locationId, out var go) ||
+                go == null || !go.activeInHierarchy ||
+                !HostMapObjectVisualFactory.TryGetRendererBounds(go, out var bounds)) return false;
+            rect = Rect.MinMaxRect(bounds.min.x, bounds.min.y, bounds.max.x, bounds.max.y);
+            return rect.width > 0f && rect.height > 0f;
+        }
 
         public void Rebuild() => Rebuild(null);
 
@@ -410,8 +424,17 @@ namespace XianXia.Unity.Host
                         leftEdge - .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
                     PlaceRoomDecoration(id + ":door-post-right", HostStepAArt.RoomDoorPart(1),
                         rightEdge + .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
-                    PlaceRoomDecoration(id + ":door-lintel", HostStepAArt.RoomDoorPart(2),
+                    var door = PlaceRoomDecoration(id + ":door-lintel", HostStepAArt.RoomDoorPart(2),
                         doorCenterX, minY + cellH, 2f * cellW, .20f * cellH, wallOrder + 1);
+                    if (door != null)
+                    {
+                        var doorPlot = door.AddComponent<HostMapPlotCell>();
+                        doorPlot.Configure(_session?.World, id + ":door", metadata.BoundLocationId,
+                            HostInteractSpotKind.Room, "房门", source.SourceGridX + doorLeft,
+                            source.SourceGridY, "roomDoor");
+                        doorPlot.ConfigureInteractionBounds(new Rect(leftEdge,
+                            minY, 2f * cellW, cellH));
+                    }
                     var sign = PlaceRoomDecoration(id + ":usage-marker", null,
                         leftEdge - .5f * cellW, doorCenterY, .55f * cellW, .90f * cellH, wallOrder + 2);
                     if (sign != null)
@@ -449,6 +472,8 @@ namespace XianXia.Unity.Host
                         return;
                     var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, id, width, height,
                         info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12);
+                    if (info.Kind == "controlCore" && !string.IsNullOrEmpty(source.BoundLocationId))
+                        _coreVisualsByLocation[source.BoundLocationId] = go;
                     if (info.InteractKind.HasValue)
                         AttachPlot(go, metadata, info, source.SourceGridX, source.SourceGridY, cx, cy, id,
                             lootSpotId);
@@ -517,6 +542,13 @@ namespace XianXia.Unity.Host
             HostInteractSpots.RemoveOwner(instanceKey);
             HostMapObjectRegistry.RemoveOwner(instanceKey);
             HostFarmFieldRegistry.RemoveOwner(instanceKey);
+            var coreLocations = new List<string>();
+            foreach (var pair in _coreVisualsByLocation)
+                if (pair.Value == null || instance.Root != null &&
+                    pair.Value.transform.IsChildOf(instance.Root))
+                    coreLocations.Add(pair.Key);
+            for (var i = 0; i < coreLocations.Count; i++)
+                _coreVisualsByLocation.Remove(coreLocations[i]);
             if (instance.Root != null)
                 DestroyBuilt(instance.Root.gameObject);
             if (_meshesByInstance.TryGetValue(instanceKey, out var meshes))
@@ -829,6 +861,8 @@ namespace XianXia.Unity.Host
                 var path = info.PrefabPath;
                 var go = PlacePrefab(kind, path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
                     sortingOrder: kind == "controlCore" || kind == "roadHub" ? -8 : -12);
+                if (info.Kind == "controlCore" && !string.IsNullOrEmpty(p.BoundLocationId))
+                    _coreVisualsByLocation[p.BoundLocationId] = go;
                 if (info.InteractKind.HasValue)
                     AttachPlot(go, p, info, p.X, p.Y, cx, cy, id, lootSpotId);
                 AttachDestructibleIfNeeded(go, p, info.Kind, id);
@@ -1087,6 +1121,7 @@ namespace XianXia.Unity.Host
 
         public void Clear()
         {
+            _coreVisualsByLocation.Clear();
             var keys = new List<string>(_instances.Keys);
             for (var i = 0; i < keys.Count; i++)
                 RemoveLayoutInstance(keys[i]);

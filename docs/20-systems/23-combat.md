@@ -135,6 +135,8 @@
 
 **已落地竖切（2026-08-16／17）：** 见 [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md)。筑基 **F2**／底栏「纱衣」召唤（固定灵力开销）；空灵力／交战结束自动卸下；远程普攻用**统一青色弹道**（飞行光核→命中爆闪）。
 
+2026-10-20 命中时点修订：已有可见弹体的普通远程攻击（含纱衣人物普攻与本场 SiteCore 防御）只在弹体实际抵达有效目标时结算伤害；出手占用冷却但不预扣 HP。飞行超时、目标失效、战斗结束、建筑停火等取消未命中攻击。详见 [ADR-0047](../40-process/43-decisions/ADR-0047-visible-ranged-impact-damage-timing.md)。
+
 **已落地竖切（2026-08-20）：** 见 [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md)。HP 归零→**弥留**（`Incapacitated`）；再受击或超时→死亡+**尸体**。当前 `CombatLifeStateService` 的弥留与尸体寿命均为 200 runtime ticks（注释口径为现实秒，1x 下约 200 秒）；`DefaultCorpseGameDays=2` 只保留旧内容接口，不是当前 decay authority。底栏／详情 UI 显示弥留／尸体与倒计时。
 
 CIVILIAN-LIFE-01 P1 的荒村医疗点只是伤员投送区域。所有正常可工作的 PlayerFaction 凡人均可把同势力弥留 Character 实际搬到该区域并放下；送达不恢复 Lifecycle 或 HP，不触发 Medic 自动治疗，也不建立床位、收治或出院 authority。

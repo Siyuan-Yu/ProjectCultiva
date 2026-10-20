@@ -81,6 +81,13 @@ namespace XianXia.Unity.Host
         int _sleepQuarterTurns;
         HostBedVisualLayers _bedVisual;
         bool _usingBedFrame;
+        bool _lastUsingBedFrame;
+        bool _hasAppliedFrame;
+        bool _bedEntryActive;
+        float _bedEntryElapsed;
+        Vector3 _bedEntryOrigin;
+        Quaternion _bedEntryRotation;
+        const float BedEntrySeconds = .42f;
         int _bedSortingLayerId, _bedBaseOrder;
         enum RestPose { None, Sleeping, Downed, Dead, Carried }
         RestPose _lastRestPose;
@@ -103,7 +110,7 @@ namespace XianXia.Unity.Host
         public bool TryGetBedDepth(out int sortingLayerId, out int order)
         {
             sortingLayerId = _bedSortingLayerId;
-            order = _bedBaseOrder + 1;
+            order = _bedBaseOrder + (_bedEntryActive ? 3 : 1);
             return _usingBedFrame && !_deadPose && !_carriedPose && _bedVisual != null;
         }
 
@@ -526,6 +533,15 @@ namespace XianXia.Unity.Host
             _usingBedFrame = resting && _sleepPose && _sleepOnBed && !_deadPose && !_carriedPose &&
                 _bedVisual != null && _bedVisual.TryGetSleepFrame(
                     out pillowWorld, out bedRotation, out _bedSortingLayerId, out _bedBaseOrder);
+            if (_usingBedFrame && !_lastUsingBedFrame && _hasAppliedFrame)
+            {
+                _bedEntryActive = true;
+                _bedEntryElapsed = 0f;
+                _bedEntryOrigin = transform.position;
+                _bedEntryRotation = transform.rotation;
+            }
+            else if (!_usingBedFrame)
+                _bedEntryActive = false;
             if (resting)
                 direction = _usingBedFrame ? HostStepAArt.Direction.South : HostStepAArt.Direction.East;
             // The previous frame's bed/ground alignment must never feed back into this frame's
@@ -795,11 +811,22 @@ namespace XianXia.Unity.Host
             {
                 ApplyRestPose(restPose, _usingBedFrame, leftShoulder, rightShoulder);
                 PlaceRestPose(restPose, pillowWorld, bedRotation);
+                if (_bedEntryActive)
+                {
+                    _bedEntryElapsed = Mathf.Min(BedEntrySeconds,
+                        _bedEntryElapsed + Mathf.Max(0f, deltaTime));
+                    var entryBlend = Smooth(_bedEntryElapsed / BedEntrySeconds);
+                    transform.position = Vector3.Lerp(_bedEntryOrigin, transform.position, entryBlend);
+                    transform.rotation = Quaternion.Slerp(_bedEntryRotation, transform.rotation, entryBlend);
+                    if (_bedEntryElapsed >= BedEntrySeconds) _bedEntryActive = false;
+                }
             }
             _lastAction = action;
             _lastWorkMotion = workMotion;
             _lastDirection = direction;
             _lastRestPose = restPose;
+            _lastUsingBedFrame = _usingBedFrame;
+            _hasAppliedFrame = true;
         }
 
         void RestoreUprightBones()

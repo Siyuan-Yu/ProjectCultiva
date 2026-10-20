@@ -1,12 +1,12 @@
 # CIVILIAN-LIFE-01 — Mortal Needs, Faction Work, Occupation, Captivity & Recruitment V1
 
-**Implementation Complete / Producer Acceptance Pending（2026-09-27）。** Rescue / Haul / Construction 缺口及 P1 通用 Character 势力忠诚 authority 已接线，等待制作人人工验收。
+**Implementation Complete / Producer Accepted（2026-10-19 制作人总体确认）/ Committed·Sealed（2026-10-20）。** 制作人明确表示“这些验过了，这一套民生是验过了的”。此结论覆盖已实施的 CIVILIAN-LIFE-01 民生范围，不把明确延期的 Medic 治疗、Repair、普通建筑拆除、装备制造或跨 Site 物流算入验收；未提供逐分支记录的历史清单仍保留为追溯，不要求重复整套验收。
 
 ## Product Goal
 
 让据点里的凡人由真实、可持续追踪的人物承担生活、劳动与战后命运。玩家能回答“谁在劳动、谁逃走、谁被俘、谁后来加入”，同时以需求优先级、职业单选和离屏 LOD 控制操作量与运行成本。
 
-Core/Data/Host/Content 已接通本轮 V1；§89 的可操作闭环等待制作人人工验收。未修改既有 AUCTION-01 规则。
+Core/Data/Host/Content 已接通本轮 V1；制作人已确认现有民生整体通过，细项范围以本页唯一状态表及明确延期边界为准。未修改既有 AUCTION-01 规则。
 
 ### LOCAL-CONTINUITY-FINAL 修订（2026-10-16）
 
@@ -204,32 +204,32 @@ ROOM-01 已实现并保持 **Producer Acceptance Pending**：旧 `WorkArea.Capac
 
 荒村三组旧住房、旧医疗／囚室、四个遗留设施、15 段旧墙及五个住房 WorkArea 已从 Content 删除，新 22 房／27 床紧凑迁回原区域并由正式作者发布链生成 runtime。状态仍为 **Implementation Complete / Producer Acceptance Pending**；未启动 Unity 或执行人工验收。
 
-### 当前功能与验收状态表（唯一维护点，2026-10-19 静态复核）
+### 当前功能与验收状态表（唯一维护点，2026-10-19 制作人反馈覆写）
 
-> 本表是 CIVILIAN-LIFE-01 当前功能与人工验收状态的唯一清单。`114`、`247`、总览与 Devlog 只链接本节，不复制第二份状态矩阵。工具准备成功、离线编译通过均不等于制作人人工验收通过。
+> 本表是 CIVILIAN-LIFE-01 当前功能与人工验收状态的唯一清单。制作人于 2026-10-19 明确确认“这一套民生是验过了的”，已实施的整体范围记 **Producer Accepted / Committed·Sealed（2026-10-20）**。下方逐项原待验内容与动作保留为历史验收目录；制作人未另给逐项记录，不据此重新要求全部验收。有具体复现时只返修对应问题。LevelTester 工具重组及未实施的 Medic 治疗不随民生总体确认自动验收。`114`、`247`、总览与 Devlog 只链接本节，不复制第二份状态矩阵。
 
-| 能力名称 | 当前代码入口 | 正式 UI / 玩家入口 | Content 前置 | 制作人已确认范围 | 仍待验收分支 | 已知阻塞 | 下一步动作 |
+| 能力名称 | 当前代码入口 | 正式 UI / 玩家入口 | Content 前置 | 制作人已确认范围 | 原验收项目（历史目录） | 已知阻塞 / 延期 | 原计划动作（历史） |
 |---|---|---|---|---|---|---|---|
-| 食宿与 Needs | `MortalCivilianService.Tick` / `ApplyActivity` | 自动生活；正式速度栏 | StorageRoom、Site PublicStock、Normal Residence | 规则与实现范围已确认 | 有粮取食、回床、紧急地睡、无粮低精力、Detained 食宿、Save/Load | 旧 Captured 早退已修；上述行为仍待人工验收 | LevelTester A 卡按 1x/2x/5x/20x 人工验收 |
+| 食宿与 Needs | `MortalCivilianService.Tick` / `ApplyActivity` | 自动生活；正式速度栏 | StorageRoom、Site PublicStock、Normal Residence | 制作人总体确认已验收 | 有粮取食、回床、紧急地睡、无粮低精力、Detained 食宿、Save/Load | 旧 Captured 早退已修 | LevelTester A 卡按 1x/2x/5x/20x 人工验收 |
 | 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 同 Site/owner 的专业 WorkArea | 单选职业、九名劳工初始分组、通用救援/建设范围已确认 | Farmer/HerbFarmer/Logger、日程边界、职业切换与存档 | Medic 治疗延期 | 用正式工作面板逐项人工验收 |
 | 建设与搬运 | `CivilianConstructionJobService`、`ConstructionService` | 正式建设 UI | 己方 Site、公共木材、合法工人 | 工具只准备人物/材料，正式 UI 发起 | 取材、搬运、施工、读档续作 | Repair 与普通建筑拆除明确延期 | B 卡准备后从正式建设 UI 落点 |
 | 占领、驻军与追击 | `WorldSiteTerritoryTransferService`、`SquadState.DefendedSiteId`、Flee MovementIntent | SiteCore 战争、人物右键交互 | 主管显式驻军；巡卫独立 patrol squad | 显式驻军、0.2 逃亡、真实追击、Displaced 范围已确认 | 全链与 Save/Load | 无工具阻塞；业务仍待人工确认 | C 卡观察实际名单、速度、位置与身份 |
-| 医疗搬运 | `MortalCivilianService` Rescue、`RecoverySpotDeliveries` | 自动发现与真实搬运 | 同势力弥留者、空闲 recoverySpot | 只搬到具体恢复点并放下 | 自动发现、搬起、送达/占用、中断、Save/Load | 自动治疗、入院、出院、Medic 治疗均明确延期 | D 卡二次确认准备；不得用预填 RescueTarget 冒充发现 |
-| 囚犯押送与交接 | `RequestCapture` / `CanDetain` / `Detain` | 正式 Capture Encounter、囚犯交接点 | CapturedEscorted、真实 Carrier、PrisonerOnly、显式 `prisonDropOff` | 真实押送、到点后安置范围已确认 | 运输中断、容量、Save/Load | 旧“缺少 PrisonDropOff”在最新 Content 中已消失 | E 卡强制准备只验押送/交接；俘虏战另走正式流程 |
-| 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低 Loyalty | Proper Care 与招降权限规则已确认 | 食宿、照料日、忠诚下降、招降后权限/入队 | 旧缺口 A 已修，未取得整条行为人工验收 | 执行 F 卡人工验收，不把静态修复当作通过 |
-| CIVILIAN Snapshot v15 | `SnapshotService` / `HostLevelTesterSnapshotOps` | LevelTester“存档与会话” | 各分支已建立真实运行状态 | 当前 schema v15 与持久字段范围已确认 | 工作、送达、押送、关押、Fleeing/Displaced | 无工具自动验收；每条需人工对照 | G 卡逐状态保存/读取并核 EntityId/owner/target |
+| 医疗搬运 | `MortalCivilianService` Rescue、`RoomBedFacilityService.TryPlaceCarriedOccupant` | 自动发现、真实搬运到实际床边 | 同势力弥留者；医疗床→本人住宅床→未分配住宅床 | 通用救援与医疗床稳定范围已确认 | 自动发现、预约、搬起、床边安置/占用、跨旗帜、中断、Save/Load | Medic真实治疗仍明确延期；床位稳定不等于治疗 | 以306床位清单为现行验收，270 D卡只作历史工具准备参考 |
+| 囚犯押送与交接 | `RequestCapture`、`ValidateDetainAtBed`、`DetainAtBed` | 正式Capture Encounter、人物/牢床交互 | CapturedEscorted、真实Carrier、玩家控制Site内Prison房间及合法空牢床 | 真实押送、床边交接、实际床位占用已实现 | 预约/占用冲突、运输中断、床用途改变、Save/Load | 旧PrisonerOnly WorkArea/显式prisonDropOff不是当前交接authority | 按306真实房间/床StableId验收，禁止只验旧点位到达 |
+| 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低 Loyalty | 民生整体已获制作人验收；细项结果未单独登记 | 食宿、照料日、忠诚下降、招降后权限/入队 | 旧缺口 A 已修；Medic 治疗仍延期 | 有具体复现才定向返修；F 卡保留作历史目录 |
+| CIVILIAN Snapshot v15 | `SnapshotService` / `HostLevelTesterSnapshotOps` | LevelTester“存档与会话” | 各分支已建立真实运行状态 | 民生整体已获制作人验收；打包后基本存读档另获正面反馈 | 工作、送达、押送、关押、Fleeing/Displaced | 逐状态结果未单独登记 | 有具体复现才核对应 EntityId/owner/target；G 卡保留作历史目录 |
 | 历史回归：SHOP/AUCTION/SOCIAL/DYNAMIC | 各已封板 service / Host panel | 各正式 UI | BaseGame 对应对象 | **历史已封板（Producer Accepted / Sealed）** | 本轮不重开 | 无 | 仅在“世界与内容”保留折叠/滚动入口 |
 | LevelTester 独立小功能页重组 | `HostLevelTesterCheatPanel`、`LevelTesterToolCatalog`、各 Cheat section、`HostUiHitTest` | `` ` `` / 顶栏作弊工具 | LevelTester Scene | 五大聚合页签方案已 Superseded | 74 个具体 ToolId、九组二级折叠菜单、搜索临时展开、单功能页、双滚动区、关闭生命周期 | 等待制作人人工验收；完整迁移表见 [268](268-level-tester-direct-tool-pages-2026-10-10.md)，关闭核查见 [269](269-ui-foldout-and-close-audit-2026-10-11.md) | **Implementation Complete / Producer Acceptance Pending** |
 
-状态词解释：历史已封板＝已有明确 Producer Acceptance；已实现待验收＝代码完成但没有人工结论；部分路径已人工通过必须有单独证据才可写；已确认缺陷见下表；明确延期不纳入当前通过条件；旧设想若被后续决定取代只保留 Historical / Superseded 标记。
+状态词解释：当前 CIVILIAN-LIFE-01 已实施整体范围由制作人确认 Producer Accepted，但尚无封板提交；历史已封板＝已有明确 Producer Acceptance 和封板记录；逐项已验只在有单独证据时写，未列细项不触发重验；明确延期不纳入当前通过条件；旧设想若被后续决定取代只保留 Historical / Superseded 标记。
 
 ### 历史业务缺口追踪（以本节当前状态表覆写旧结论）
 
 | 缺口 | 当前文件 / 函数 | 对玩家操作的影响 | 复核结论 | 建议下一轮 |
 |---|---|---|---|---|
-| A. 囚犯食宿早退（历史） | `Assets/Scripts/Core/Npc/MortalCivilianSystem.cs`，`MortalCivilianService.Tick` | 旧实现的 Captured 早退阻断 Detained 食宿 | **已实施修复，待制作人完整验收**：当前 Tick 允许 Captured 继续进入活动评估和执行，仅 CapturedEscorted 单独交给押送分支 | 不把 Captured 改 Alive；按 A／F 卡复验真实食宿与 Proper Care 日 |
-| B. 两套日程 | `HostFormalHud`、`FactionMortalSchedule.Current`、`MortalActivityEvaluator` 共读角色绑定 `ScheduleDefinition` | 右栏编辑会直接改变受管凡人的实际阶段；受管凡人编辑只循环 Rest/Labor/Idle | **已实现修复，待制作人验收** | 在 59/60、263/264 边界与三日循环中人工确认 |
-| C. 普通住房转囚室后缺交接点 | `MortalCivilianService.TryResolvePrisonDropOff` / `ValidateDetain`；`Content/BaseGame/Data/Worlds/main_wilderness_surface_v1.json` 的 `base:site_huangcun:prison_dropoff` | 旧版本会因没有显式点而无法安置；当前荒村 PrisonerOnly 囚室已有绑定 `base:loc_ref_huangcun_prison` 的 `prisonDropOff` | **最新仓库已不存在**（保留显式交接要求） | 不改回住房中心 fallback；继续人工验收到点距离、容量和存读档 |
+| A. 囚犯食宿早退（历史） | `Assets/Scripts/Core/Npc/MortalCivilianSystem.cs`，`MortalCivilianService.Tick` | 旧实现的 Captured 早退阻断 Detained 食宿 | **已实施修复；民生整体已获制作人验收**：当前 Tick 允许 Captured 继续进入活动评估和执行，仅 CapturedEscorted 单独交给押送分支 | 不把 Captured 改 Alive；有具体复现才定向核对食宿与 Proper Care 日 |
+| B. 两套日程 | `HostFormalHud`、`FactionMortalSchedule.Current`、`MortalActivityEvaluator` 共读角色绑定 `ScheduleDefinition` | 右栏编辑会直接改变受管凡人的实际阶段；受管凡人编辑只循环 Rest/Labor/Idle | **已实现修复；民生整体已获制作人验收** | 有具体复现才核对日程边界与三日循环 |
+| C. 普通住房转囚室后缺交接点（历史） | `ValidateDetainAtBed`、`RoomBedFacilityService` | 当前必须是实际Prison房间、有效牢床与床边到达；旧点位不能替代床 | **历史问题已被真实牢床交接取代**；不重建旧中心fallback，不因旧point缺失另造一套交接规则 | 核对真实BedId、预约/Occupant、用途/权限与中途存读档 |
 
 旧“架构冻结不编码”与“不切独立战斗”等提案均为 **Historical / Superseded**；现行实现与验收规则以本页、ADR-0044、当前 CharacterEncounter / Continuous Surface 代码和 [247 当前交接](247-project-handoff-current-state-2026-09-18.md) 为准，不删除历史记录，也不把代码改回旧方案。
 

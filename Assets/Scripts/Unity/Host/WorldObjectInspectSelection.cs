@@ -13,7 +13,8 @@ namespace XianXia.Unity.Host
         StorageRoom = 8,
         PrisonDropOff = 9,
         Room = 10,
-        Bed = 11
+        Bed = 11,
+        Door = 12
     }
 
     /// <summary>左键点空后的世界物检视目标（只读况栏；无指令球）。</summary>
@@ -110,6 +111,15 @@ namespace XianXia.Unity.Host
             AssetId = plot.StableCellId ?? string.Empty;
         }
 
+        public void SetDoor(HostMapPlotCell plot)
+        {
+            Clear();
+            if (plot == null) return;
+            Kind = WorldObjectInspectKind.Door;
+            Plot = plot;
+            AssetId = plot.StableCellId ?? string.Empty;
+        }
+
         public void SetDestructible(HostMapDestructible d)
         {
             Clear();
@@ -139,6 +149,7 @@ namespace XianXia.Unity.Host
                 case WorldObjectTargetKind.PrisonDropOff: SetPrisonDropOff(target.Plot); break;
                 case WorldObjectTargetKind.Room: SetRoom(target.Plot); break;
                 case WorldObjectTargetKind.Bed: SetBed(target.Plot); break;
+                case WorldObjectTargetKind.Door: SetDoor(target.Plot); break;
                 case WorldObjectTargetKind.Destructible: SetDestructible(target.Destructible); break;
                 case WorldObjectTargetKind.Housing: SetHousing(target.WorkAreaId); break;
                 case WorldObjectTargetKind.WorkArea: SetWorkArea(target.WorkAreaId); break;

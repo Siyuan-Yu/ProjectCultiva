@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-20 最新封板：制作人要求将当前工作区所有内容统一中文提交并上传 GitHub。此次覆盖 [306 正式／Demo 构建分离](306-formal-player-and-demo-build-separation-2026-10-19.md)、[307 物件选中与蓝点返修](307-world-object-selection-feedback-2026-10-20.md)、[308 床／搬运／卧姿返修](308-bed-entry-and-rescue-pickup-2026-10-20.md)、[310 可见远程命中时扣血](310-visible-ranged-hit-damage-timing-2026-10-20.md)及同期民生状态、静态准备度文档。CIVILIAN-LIFE-01 整体与正式包打包／运行／基本存档沿用制作人已给的验收反馈；307、308、310 的具体运行观感仍为 Producer Acceptance Pending。下方未提交／未封板仅保留历史时点记录，以本条和各最新文档为准。
+
+> 2026-10-19 当前新实施：[306 正式试玩与Demo分离](306-formal-player-and-demo-build-separation-2026-10-19.md)。制作人授权后，正式LevelTester与历史Demo使用独立Windows构建入口、产品名、内容路径和Player存档；普通会话菜单已接线，Editor旧存档保留。制作人确认可打包、运行且打包后基本存读档未见问题；Formal／Demo／Editor 分项隔离尚未逐项记录，未提交/推送。制作人已明确确认现有 CIVILIAN-LIFE-01 整体民生验收通过，详见 267 唯一状态表；Medic 和新内容不在该范围。路线图/267/305已增量修正旧口径；下方封板记录只对应先前962542c及其范围。
+
 > 2026-10-19 最新封板授权：制作人明确要求将当前工作区剩余改动全部提交并上传。势力旗战斗反击、WorldMap 图标缩放、窗口输入隔离及绿／蓝旗外观仅按已反馈的现场范围记 Producer Accepted；封板不扩大 Medic、其他系统和美术残项的验收范围。下方“未提交／未封板”为各实施当时记录。
 
 > 2026-10-19 系统／美术静态审查入口：[305](305-system-and-art-closure-audit-2026-10-19.md)。本轮只补现成绿／蓝势力旗运行图并校正 `267` 过时状态；未将 Medic、新物流或有质量问题的旧图伪装成已完成。
@@ -58,7 +62,7 @@ LevelTester 保留 74 个稳定 ToolId 与单功能页，左侧九组现以稳�
 
 ## CIVILIAN-LIFE-01 当前交接（2026-09-27）
 
-**Implementation Complete / Producer Acceptance Pending。** 已按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 接入真实个体凡人、Needs、Work/OffDuty、职业、人事、占领与俘虏招募；最终缺口已以真实 Character 搬运、Site 内资源托运及正式建筑／势力旗拆除工单接通。静态编译通过，运行效果待制作人人工验收。
+**Implementation Complete / Producer Accepted（整体范围）/ 未封板。** 已按 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 接入真实个体凡人、Needs、Work/OffDuty、职业、人事、占领与俘虏招募；最终缺口已以真实 Character 搬运、Site 内资源托运及正式建筑／势力旗拆除工单接通。制作人已确认整套民生验收；历史逐项清单不再要求重复执行。
 
 P1 忠诚修正：Runtime Loyalty 已从 MortalCivilianState 移至通用 `CharacterFactionLoyaltyLedger`，凡当前有 FactionMembership 的 Character 均按 CharacterId + 当前 FactionId 持有值；无势力显示“—”。人物概况、人事页、LevelTester、占领／拘留／招募共用该 authority。Snapshot 仍为未封板 v14，新增独立 loyalty entries，缺少新字段的 interim v14 拒绝；制作人尚未完成整轮验收。
 
@@ -78,7 +82,7 @@ P1 恢复点／囚犯交接：Rescue 只向同 Site／Surface 的空闲 `recover
 
 实现复用现有 NPC movement/work、LocationLabor、Site PublicStock、injury/recovery、CharacterEncounter、housing、FactionMembership、玩家永久 roster 与 PlayerParty 边界，以及正式 Site transfer。当前 Snapshot schema v14；住房保持现有可见表现，不引入 private presence／房屋黑箱。
 
-状态链：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Implementation Complete / Producer Acceptance Pending**。
+状态链：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 为 **Implementation Complete / Producer Accepted / Committed·Sealed（2026-10-20）**。
 
 ## AUCTION-01 最终交接（2026-09-27）
 

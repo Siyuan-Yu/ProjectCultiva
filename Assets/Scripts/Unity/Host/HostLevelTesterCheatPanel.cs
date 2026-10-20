@@ -79,6 +79,7 @@ namespace XianXia.Unity.Host
 
         public void Show()
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) return;
             visible = true;
             EnsurePanelRect();
             ClampPanelRect();
@@ -124,6 +125,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) { if (visible) Hide(); return; }
             if (Input.GetKeyDown(toggleKey) && !_textInputFocused)
                 ToggleVisible();
             if (!visible)
@@ -144,6 +146,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) return;
             if (!visible)
                 return;
 
@@ -817,6 +820,7 @@ namespace XianXia.Unity.Host
 
         public static void DrawTopBarEntryButton(PlayableHostBootstrap bootstrap, float x)
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) return;
             if (bootstrap == null)
                 return;
 

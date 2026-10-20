@@ -487,8 +487,8 @@ namespace XianXia.Unity.Host
                     Debug.Log("[CharacterEncounter] Id=" + state.EncounterId + " tacticalDeltaTime=" + dt);
                     _loggedTacticalClock = true;
                 }
-                if (SiteCoreEncounterDefenseService.AdvanceAndStrike(world, dt,
-                        out var coreTarget, out var coreDefeated))
+                if (SiteCoreEncounterDefenseService.AdvanceAndLaunch(world, dt,
+                        out var coreTarget))
                 {
                     var ward = state.SiteCoreDefense;
                     if (ward != null && _strikeVfx != null &&
@@ -498,10 +498,28 @@ namespace XianXia.Unity.Host
                             new WorldVec2((ward.MinX + ward.MaxX) * .5f,
                                 (ward.MinY + ward.MaxY) * .5f), out var from))
                     {
+                        var encounterId = state.EncounterId;
+                        var assetId = ward.AssetId;
+                        var shotTarget = coreTarget;
                         _strikeVfx.PlayProjectile(from + Vector3.up * .35f,
-                            coreTargetView.transform.position + Vector3.up * .35f, coreTargetView);
+                            coreTargetView.transform.position + Vector3.up * .35f,
+                            coreTargetView, () =>
+                            {
+                                if (!ReferenceEquals(_host?.Session?.World, world) ||
+                                    !_host.ViewSpawner.Registry.TryGet(shotTarget, out var currentView) ||
+                                    currentView != coreTargetView) return false;
+                                var hit = SiteCoreEncounterDefenseService.ResolveImpact(
+                                    world, encounterId, assetId, shotTarget, out var defeated);
+                                if (hit && defeated) RefreshDefeatedParticipant(shotTarget);
+                                if (hit)
+                                {
+                                    _host.GetComponent<HostPlayerPartyController>()
+                                        ?.RefreshActiveControlAfterLifeStateChange();
+                                    _host.DispatchDrainedEvents();
+                                }
+                                return hit;
+                            });
                     }
-                    if (coreDefeated) RefreshDefeatedParticipant(coreTarget);
                 }
                 foreach (var p in state.Participants)
                 {
@@ -541,13 +559,17 @@ namespace XianXia.Unity.Host
                     _host.MoveController.CancelPresentationMovementPublic(id);
                     if (p.Cooldown > 0f || !state.Opposing(id.Value, target.Value)) continue;
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
-                    var strike = _melee.ApplyStrike(
-                        world, id, target, out _, out var defenderDefeated);
-                    if (strike.IsSuccess)
-                        PlayStrikePresentation(id, target, actorView, targetView,
-                            SpiritVeilService.IsActive(actorEntity));
-                    if (strike.IsSuccess && defenderDefeated)
-                        RefreshDefeatedParticipant(target);
+                    if (SpiritVeilService.IsActive(actorEntity))
+                        LaunchCharacterProjectile(world, state, id, target);
+                    else
+                    {
+                        var strike = _melee.ApplyStrike(
+                            world, id, target, out _, out var defenderDefeated);
+                        if (strike.IsSuccess)
+                            PlayStrikePresentation(actorView, targetView);
+                        if (strike.IsSuccess && defenderDefeated)
+                            RefreshDefeatedParticipant(target);
+                    }
                 }
                 var previousCount = state.Participants.Count;
                 CharacterEncounterService.Advance(
@@ -619,26 +641,52 @@ namespace XianXia.Unity.Host
             if (attacker.Cooldown > 0f)
                 return;
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
-            var strike = _melee.ApplyStrike(
-                world, attackerId, targetId, out _, out var defenderDefeated);
-            if (strike.IsSuccess)
-                PlayStrikePresentation(attackerId, targetId, attackerView, targetView,
-                    SpiritVeilService.IsActive(attackerEntity));
-            if (strike.IsSuccess && defenderDefeated)
-                RefreshDefeatedParticipant(targetId);
+            if (SpiritVeilService.IsActive(attackerEntity))
+                LaunchCharacterProjectile(world, state, attackerId, targetId);
+            else
+            {
+                var strike = _melee.ApplyStrike(
+                    world, attackerId, targetId, out _, out var defenderDefeated);
+                if (strike.IsSuccess)
+                    PlayStrikePresentation(attackerView, targetView);
+                if (strike.IsSuccess && defenderDefeated)
+                    RefreshDefeatedParticipant(targetId);
+            }
             if (!CombatLifeStateService.CanBeAttacked(targetEntity))
                 attacker.TargetId = 0;
         }
 
-        void PlayStrikePresentation(EntityId attacker, EntityId target,
-            EntityView actorView, EntityView targetView, bool ranged)
+        void PlayStrikePresentation(EntityView actorView, EntityView targetView)
         {
-            if (ranged && _strikeVfx != null)
+            actorView.PlayArtAttack(targetView.transform.position, false);
+        }
+
+        void LaunchCharacterProjectile(SimulationWorld world, CharacterEncounterState state,
+            EntityId attacker, EntityId target)
+        {
+            if (_strikeVfx == null) return;
+            var encounterId = state.EncounterId;
+            _strikeVfx.PlayRangedBetween(_host.ViewSpawner, attacker, target, () =>
             {
-                _strikeVfx.PlayRangedBetween(_host.ViewSpawner, attacker, target);
-                return;
-            }
-            actorView.PlayArtAttack(targetView.transform.position, ranged);
+                var current = _host?.Session?.World?.Strategic?.CharacterEncounter;
+                if (!ReferenceEquals(_host?.Session?.World, world) ||
+                    current == null || current.EncounterId != encounterId ||
+                    (current.Phase != CharacterEncounterPhase.Active &&
+                     current.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                    !current.Opposing(attacker.Value, target.Value) ||
+                    !CharacterEncounterService.IsLiving(world, target.Value) ||
+                    !_host.ViewSpawner.Registry.TryGet(target, out var currentView) ||
+                    currentView == null)
+                    return false;
+                var strike = _melee.ApplyStrike(world, attacker, target,
+                    out _, out var defeated);
+                if (strike.IsFailure) return false;
+                if (defeated) RefreshDefeatedParticipant(target);
+                _host.GetComponent<HostPlayerPartyController>()
+                    ?.RefreshActiveControlAfterLifeStateChange();
+                _host.DispatchDrainedEvents();
+                return true;
+            });
         }
 
         void RefreshDefeatedParticipant(EntityId id)

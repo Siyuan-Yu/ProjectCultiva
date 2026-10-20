@@ -60,6 +60,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed) return;
             if (!visible)
                 return;
 

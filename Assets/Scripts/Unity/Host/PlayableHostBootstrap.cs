@@ -22,7 +22,7 @@ namespace XianXia.Unity.Host
     public sealed class PlayableHostBootstrap : MonoBehaviour
     {
         [Header("Content")]
-        [Tooltip("Optional override. Empty = Editor repo Content/BaseGame.")]
+        [Tooltip("Optional explicit override. Empty = Editor repo Content/BaseGame, or Player bundled BaseGame.")]
         [SerializeField] string contentPackageDirectoryOverride = "";
 
         [Header("Level Tester · 关卡地图")]
@@ -240,6 +240,8 @@ namespace XianXia.Unity.Host
 
         void Start()
         {
+            if (HostPlayerPaths.IsFormalPlayer && GetComponent<HostGameSessionMenu>() == null)
+                gameObject.AddComponent<HostGameSessionMenu>();
             EnsureLevelTesterComponents();
             if (initializeOnPlay)
                 TryInitialize();
@@ -247,7 +249,7 @@ namespace XianXia.Unity.Host
 
         void EnsureLevelTesterComponents()
         {
-            if (!IsLevelTesterContext())
+            if (!HostPlayerPaths.DevelopmentToolsAllowed || !IsLevelTesterContext())
                 return;
 
             if (GetComponent<LevelTesterHud>() == null)
@@ -539,7 +541,7 @@ namespace XianXia.Unity.Host
 
         void EnsureLevelTesterCheatPanel()
         {
-            if (!IsLevelTesterContext())
+            if (!HostPlayerPaths.DevelopmentToolsAllowed || !IsLevelTesterContext())
                 return;
             levelTesterCheatPanel = GetComponent<HostLevelTesterCheatPanel>() ??
                                     gameObject.AddComponent<HostLevelTesterCheatPanel>();
@@ -2246,7 +2248,11 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
+#if UNITY_EDITOR
             return TryResolveEditorBaseGamePath(out path, out error);
+#else
+            return HostPlayerPaths.TryResolvePackageDirectory(out path, out error);
+#endif
         }
 
         /// <summary>Editor-only default: repository Content/BaseGame next to Assets/.</summary>

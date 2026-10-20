@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -56,6 +57,9 @@ namespace XianXia.Unity.Host
         SpriteRenderer _sleepRenderer;
         HostBedVisualLayers _restBedVisual;
         float _nextBedVisualRetryTime;
+        float _sleepEntryElapsed;
+        Vector3 _sleepEntryOrigin;
+        const float SleepEntrySeconds = .42f;
         SpriteRenderer _attackRenderer;
         Sprite _fallbackSprite;
         HumanCommonRigView _modularRig;
@@ -77,8 +81,17 @@ namespace XianXia.Unity.Host
         HostCharacterWorkVisual _workContactVisual;
         float _workContactRemaining;
         bool _pendingWorkContact;
+        int _carriedPresentationOrder;
+        bool _hasCarriedPresentationOrder;
 
         public HumanCommonRigEquipment EquipmentVisual => _equipmentVisual;
+        public Vector3 CarryFacing => ArtDirectionVector(_artDirection);
+
+        public void SetCarriedPresentationOrder(int order)
+        {
+            _carriedPresentationOrder = order;
+            _hasCarriedPresentationOrder = true;
+        }
 
         /// <summary>Only locomotion executors call this; placement, separation and transport do not.</summary>
         public void RecordLocomotion(Vector3 displacement)
@@ -450,6 +463,7 @@ namespace XianXia.Unity.Host
             _farmLabor = null;
             _destructibleAssault = null;
             _useModularRig = false;
+            _hasCarriedPresentationOrder = false;
             if (_modularRig != null) _modularRig.gameObject.SetActive(false);
         }
 
@@ -522,6 +536,13 @@ namespace XianXia.Unity.Host
         void ApplyDepthSort()
         {
             var order = HostArtDepth.Order(transform.position.y);
+            if (_hasCarriedPresentationOrder && _world != null)
+            {
+                HostCharacterVisualContext.ResolveCarry(_world, _entityId,
+                    out _, out _, out var beingCarried);
+                if (beingCarried) order = _carriedPresentationOrder;
+                else _hasCarriedPresentationOrder = false;
+            }
             if (bodyRenderer != null)
                 bodyRenderer.sortingOrder = order;
             if (_modularRig != null && _useModularRig)
@@ -537,7 +558,8 @@ namespace XianXia.Unity.Host
                         out _, out _, out var layer, out var bedOrder))
                 {
                     _sleepRenderer.sortingLayerID = layer;
-                    _sleepRenderer.sortingOrder = bedOrder + 1;
+                    _sleepRenderer.sortingOrder = bedOrder +
+                        (_sleepEntryElapsed < SleepEntrySeconds ? 3 : 1);
                 }
                 else
                 {
@@ -800,8 +822,21 @@ namespace XianXia.Unity.Host
             bodyRenderer.enabled = false;
         }
 
+        bool IsActiveCombatParticipant(Entity entity)
+        {
+            if (_world == null || !CombatLifeStateService.CanFight(entity)) return false;
+            var encounter = _world.Strategic.CharacterEncounter;
+            return encounter != null &&
+                   (encounter.Phase == CharacterEncounterPhase.Active ||
+                    encounter.Phase == CharacterEncounterPhase.ReadyToEnd) &&
+                   encounter.Find(_entityId.Value) != null;
+        }
+
         bool IsSleeping(Entity entity)
         {
+            // A live encounter participant must stand and play its real attack frames even
+            // before the next civilian tick releases a stale bed/sleep state.
+            if (IsActiveCombatParticipant(entity)) return false;
             if (_world.Civilians.TryGet(_entityId, out var civilian) &&
                 (civilian.SleepPhase == CivilianSleepPhase.SleepingOnGround ||
                  civilian.SleepPhase == CivilianSleepPhase.SleepingAtResidence)) return true;
@@ -821,6 +856,11 @@ namespace XianXia.Unity.Host
             }
             HostCharacterVisualContext.ResolveCarry(_world, _entityId, out _, out _, out var beingCarried);
             if (beingCarried)
+            {
+                SetSleepVisual(null, transform.position);
+                return;
+            }
+            if (IsActiveCombatParticipant(entity))
             {
                 SetSleepVisual(null, transform.position);
                 return;
@@ -917,6 +957,7 @@ namespace XianXia.Unity.Host
             }
             if (sprite == null)
             {
+                _sleepEntryElapsed = 0f;
                 if (_sleepRenderer != null) _sleepRenderer.enabled = false;
                 if (bodyRenderer != null) bodyRenderer.enabled = true;
                 if (label != null) label.transform.localPosition = new Vector3(0f, 0.95f, -0.1f);
@@ -927,9 +968,26 @@ namespace XianXia.Unity.Host
                 var child = new GameObject("SleepVisual");
                 child.transform.SetParent(transform, false);
                 _sleepRenderer = child.AddComponent<SpriteRenderer>();
+                _sleepRenderer.enabled = false;
             }
+            if (onBed && !_sleepRenderer.enabled)
+            {
+                _sleepEntryOrigin = transform.position;
+                _sleepEntryElapsed = 0f;
+            }
+            else if (!onBed)
+                _sleepEntryElapsed = SleepEntrySeconds;
             _sleepRenderer.sprite = sprite;
-            _sleepRenderer.transform.position = new Vector3(position.x, position.y, transform.position.z);
+            var sleepTarget = new Vector3(position.x, position.y, transform.position.z);
+            if (onBed && _sleepEntryElapsed < SleepEntrySeconds)
+            {
+                _sleepEntryElapsed = Mathf.Min(SleepEntrySeconds, _sleepEntryElapsed +
+                    (_artSession != null && _artSession.IsPaused ? 0f : Time.unscaledDeltaTime));
+                var t = Mathf.Clamp01(_sleepEntryElapsed / SleepEntrySeconds);
+                t = t * t * (3f - 2f * t);
+                sleepTarget = Vector3.Lerp(_sleepEntryOrigin, sleepTarget, t);
+            }
+            _sleepRenderer.transform.position = sleepTarget;
             _sleepRenderer.enabled = true;
             if (label != null)
                 label.transform.position = new Vector3(position.x, position.y + 0.72f,

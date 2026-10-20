@@ -136,28 +136,24 @@ namespace XianXia.Unity.Host
 
         void BuildZoneLabel(WorldLocationState loc)
         {
+            var labelY = loc.PresentationZ + patchRadius * tileWorldSize * 0.55f;
+            var tileMap = GetComponent<HostDemoTileMap>();
+            if (tileMap != null && tileMap.TryGetCoreVisualBounds(loc.Id, out var coreVisual))
+                labelY = coreVisual.yMax + 0.55f;
             var go = new GameObject("Label_" + loc.Id);
             go.transform.SetParent(mapRoot, false);
             go.transform.position = HostPresentationSpace.FromPresentation(
-                loc.PresentationX, loc.PresentationZ + patchRadius * tileWorldSize * 0.55f, -0.2f);
+                loc.PresentationX, labelY, -0.2f);
             var text = go.AddComponent<TextMesh>();
             text.text = string.IsNullOrEmpty(loc.Name) ? loc.Id : loc.Name;
             text.characterSize = 0.12f;
             text.anchor = TextAnchor.MiddleCenter;
             text.fontSize = 40;
             text.color = Color.white;
-            var marker = HostStepAArt.SiteMarkerSprite();
-            if (marker != null)
-            {
-                var markerObject = new GameObject("SiteMarkerArt");
-                markerObject.transform.SetParent(go.transform, false);
-                markerObject.transform.localPosition = new Vector3(0f, 0f, 0.02f);
-                var spriteRenderer = markerObject.AddComponent<SpriteRenderer>();
-                spriteRenderer.sprite = marker;
-                spriteRenderer.sortingOrder = 498;
-                var textRenderer = go.GetComponent<MeshRenderer>();
-                if (textRenderer != null) textRenderer.sortingOrder = 499;
-            }
+            // A generic stone plaque on every location obscures buildings and room interiors.
+            // Keep the location name; site presentation belongs in the WorldMap UI.
+            var textRenderer = go.GetComponent<MeshRenderer>();
+            if (textRenderer != null) textRenderer.sortingOrder = 499;
             _built.Add(go);
         }
     }

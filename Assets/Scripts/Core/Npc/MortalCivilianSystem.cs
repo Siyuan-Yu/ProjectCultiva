@@ -1646,8 +1646,11 @@ namespace XianXia.Core.Npc
             if (!state.RescueCarrying)
             {
                 state.RescueStatus = "前往伤员";
+                var pickupRange = world.SurfaceSpatial.TryGet(surfaceId, out var pickupMetric) && pickupMetric != null
+                    ? pickupMetric.CellSize * 1.5f : .1f;
                 MoveToWorldPoint(rescuer, targetPresence.SurfaceId, targetPresence.WorldPosition,
-                    destinationKey: "rescue-target:" + target.Id.Value);
+                    destinationKey: "rescue-target:" + target.Id.Value,
+                    arrivalRadiusWorld: pickupRange);
                 if (rescuer.TryGet<MovementIntentComponent>(out var failedApproach) &&
                     failedApproach.HostPathState == MovementHostPathState.RetryablePathUnavailable)
                 {
@@ -1665,13 +1668,16 @@ namespace XianXia.Core.Npc
                     DropRescue(world, rescuer, state, preserveRetry: true);
                     return;
                 }
-                var pickupRange = world.SurfaceSpatial.TryGet(surfaceId, out var pickupMetric) && pickupMetric != null
-                    ? pickupMetric.CellSize * 1.5f : .1f;
                 if (rescuer.TryGet<MovementIntentComponent>(out var approach) && approach.HostArrived &&
                     DistanceSquared(rescuerPresence.WorldPosition, targetPresence.WorldPosition) <= pickupRange * pickupRange)
-                { state.RescueCarrying = true; state.RescueStatus = "正在搬往床位"; approach.Clear(); }
-                return;
+                {
+                    state.RescueCarrying = true;
+                    state.RescueStatus = "正在搬往床位";
+                    approach.Clear();
+                }
+                else return;
             }
+            // Pickup has no work duration: issue the bed-bound intent in this same update.
             world.WorldPresence.SetAtWorldPosition(target.Id, rescuerPresence.WorldPosition, surfaceId);
             MoveToWorldPoint(rescuer, surfaceId, destination, destinationKey: destinationId,
                 arrivalRadiusWorld: deliveryRange);

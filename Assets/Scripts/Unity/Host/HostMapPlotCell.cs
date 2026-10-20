@@ -64,6 +64,7 @@ namespace XianXia.Unity.Host
             string.Equals(kind, "bed", System.StringComparison.OrdinalIgnoreCase);
         public bool IsRoom => interactKind == HostInteractSpotKind.Room ||
             string.Equals(kind, "room", System.StringComparison.OrdinalIgnoreCase);
+        public bool IsDoor => string.Equals(kind, "roomDoor", System.StringComparison.OrdinalIgnoreCase);
 
         public void Configure(
             SimulationWorld world,

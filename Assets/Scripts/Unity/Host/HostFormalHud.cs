@@ -475,7 +475,12 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, 8f, 44f, 32f), "20x"))
                 SetHostSpeed(20);
             x += 44f;
-            HostLevelTesterCheatPanel.DrawTopBarEntryButton(bootstrap, x + 4f);
+            if (HostPlayerPaths.IsFormalPlayer)
+            {
+                if (GUI.Button(new Rect(x + 4f, 8f, 80f, 32f), "游戏菜单"))
+                    bootstrap.GetComponent<HostGameSessionMenu>()?.Open();
+            }
+            else HostLevelTesterCheatPanel.DrawTopBarEntryButton(bootstrap, x + 4f);
             var bag = session.World.Inventory;
             var network = PlayerStrategicResourceService.CanAccessSiteStorageNetwork(session.World);
             var wood = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_rough_wood");
@@ -571,6 +576,11 @@ namespace XianXia.Unity.Host
                     break;
                 case WorldObjectInspectKind.Bed:
                     DrawInspectBed(session, inspect.Plot);
+                    break;
+                case WorldObjectInspectKind.Door:
+                    DrawInspectShell(68f, "房门", () =>
+                        GUI.Label(new Rect(Pad + 10f, TopH + 76f, 300f, 24f),
+                            "此处是房间的通行开口。", _body));
                     break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);

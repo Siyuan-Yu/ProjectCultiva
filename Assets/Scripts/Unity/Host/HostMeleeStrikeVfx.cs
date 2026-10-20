@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
@@ -33,9 +34,11 @@ namespace XianXia.Unity.Host
             public float BornAt;
             public Vector3 From;
             public Vector3 To;
+            public float Speed;
             public FxKind Kind;
             public EntityView HitTarget;
             public bool HitApplied;
+            public Func<bool> ResolveHit;
         }
 
         readonly List<Fx> _live = new List<Fx>(24);
@@ -57,38 +60,42 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>统一远程弹道：飞行体从攻方到守方，抵达后再受击闪白。</summary>
-        public void PlayRangedBetween(
+        public bool PlayRangedBetween(
             EntityViewSpawner spawner,
             EntityId attacker,
-            EntityId defender)
+            EntityId defender,
+            Func<bool> resolveHit = null)
         {
-            PlayBetween(spawner, attacker, defender, ranged: true);
+            return PlayBetween(spawner, attacker, defender, ranged: true,
+                resolveHit: resolveHit);
         }
 
         /// <summary>Current active arts are unarmed fist/claw; a held weapon must not select their gesture.</summary>
         public void PlaySkillBetween(EntityViewSpawner spawner, EntityId attacker, EntityId defender) =>
             PlayBetween(spawner, attacker, defender, ranged: false, styleOverride: HumanAttackStyle.Unarmed);
 
-        void PlayBetween(
+        bool PlayBetween(
             EntityViewSpawner spawner,
             EntityId attacker,
             EntityId defender,
-            bool ranged, HumanAttackStyle? styleOverride = null)
+            bool ranged, HumanAttackStyle? styleOverride = null,
+            Func<bool> resolveHit = null)
         {
             if (spawner == null ||
                 !spawner.Registry.TryGet(attacker, out var aView) || aView == null ||
                 !spawner.Registry.TryGet(defender, out var dView) || dView == null)
-                return;
+                return false;
 
             aView.PlayArtAttack(dView.transform.position, ranged, styleOverride);
             if (ranged)
                 PlayProjectile(aView.transform.position + Vector3.up * .35f,
-                    dView.transform.position + Vector3.up * .35f, dView);
+                    dView.transform.position + Vector3.up * .35f, dView, resolveHit);
             else
             {
                 Play(aView.transform.position, dView.transform.position);
                 dView.PlayHitFlash(hitFlashSeconds);
             }
+            return true;
         }
 
         public void Play(Vector3 from, Vector3 to) =>
@@ -102,23 +109,27 @@ namespace XianXia.Unity.Host
                 Play(from, to);
         }
 
-        public void PlayProjectile(Vector3 from, Vector3 to, EntityView hitTarget)
+        public void PlayProjectile(Vector3 from, Vector3 to, EntityView hitTarget,
+            Func<bool> resolveHit = null)
         {
             from.z = HostPresentationSpace.EntityZ - 0.02f;
             to.z = HostPresentationSpace.EntityZ - 0.02f;
-            SpawnFx(from, to, FxKind.Projectile, hitTarget);
+            SpawnFx(from, to, FxKind.Projectile, hitTarget, resolveHit);
         }
 
-        void SpawnFx(Vector3 from, Vector3 to, FxKind kind, EntityView hitTarget)
+        void SpawnFx(Vector3 from, Vector3 to, FxKind kind, EntityView hitTarget,
+            Func<bool> resolveHit = null)
         {
             EnsureRoot();
             var fx = Rent();
             fx.BornAt = _clock;
             fx.From = from;
             fx.To = to;
+            fx.Speed = 0f;
             fx.Kind = kind;
             fx.HitTarget = hitTarget;
             fx.HitApplied = false;
+            fx.ResolveHit = resolveHit;
 
             if (kind == FxKind.Projectile)
             {
@@ -127,13 +138,16 @@ namespace XianXia.Unity.Host
                     dist / Mathf.Max(1f, projectileSpeed),
                     projectileMinSeconds,
                     projectileMaxSeconds);
-                fx.DieAt = fx.BornAt + travel;
+                fx.Speed = Mathf.Max(.1f, dist / travel);
+                // A moving target can extend the flight; expiry is a visible miss, never a hit.
+                fx.DieAt = fx.BornAt + Mathf.Max(projectileMaxSeconds + .9f, travel * 2f);
             }
             else if (kind == FxKind.Impact)
                 fx.DieAt = fx.BornAt + impactLifetime;
             else
                 fx.DieAt = fx.BornAt + lifetime;
 
+            if (fx.Root != null) fx.Root.position = from;
             Place(fx);
             _live.Add(fx);
         }
@@ -157,14 +171,33 @@ namespace XianXia.Unity.Host
 
                 var span = Mathf.Max(0.01f, s.DieAt - s.BornAt);
                 var t = Mathf.Clamp01((now - s.BornAt) / span);
-                Animate(s, t);
-
-                if (s.Kind == FxKind.Projectile && t >= 1f && !s.HitApplied)
+                if (s.Kind == FxKind.Projectile && !s.HitApplied)
                 {
-                    s.HitApplied = true;
-                    ApplyProjectileHit(s);
-                    _live[i] = s;
+                    var target = s.HitTarget;
+                    if (target != null && target.gameObject.activeInHierarchy)
+                    {
+                        s.To = target.transform.position + Vector3.up * .35f;
+                        s.To.z = HostPresentationSpace.EntityZ - 0.02f;
+                    }
+                    else if (s.ResolveHit != null)
+                    {
+                        Return(s);
+                        _live.RemoveAt(i);
+                        continue;
+                    }
+                    var step = s.Speed * Time.unscaledDeltaTime;
+                    s.Root.position = Vector3.MoveTowards(s.Root.position, s.To, step);
+                    Animate(s, t);
+                    if (Flat(s.Root.position - s.To).sqrMagnitude <= .01f)
+                    {
+                        s.HitApplied = true;
+                        ApplyProjectileHit(s);
+                        Return(s);
+                        _live.RemoveAt(i);
+                        continue;
+                    }
                 }
+                else Animate(s, t);
 
                 if (now >= s.DieAt)
                 {
@@ -176,6 +209,7 @@ namespace XianXia.Unity.Host
 
         void ApplyProjectileHit(Fx s)
         {
+            if (s.ResolveHit != null && !s.ResolveHit()) return;
             if (s.HitTarget != null)
                 s.HitTarget.PlayHitFlash(hitFlashSeconds);
             SpawnFx(s.To, s.To, FxKind.Impact, null);
@@ -231,9 +265,9 @@ namespace XianXia.Unity.Host
         {
             // Constant travel speed keeps a short-range bolt readable instead of
             // lingering at launch and then seeming to jump into the target.
-            var pos = Vector3.Lerp(s.From, s.To, t);
+            var pos = s.Root.position;
             pos.z = HostPresentationSpace.EntityZ - 0.03f;
-            var dir = Flat(s.To - s.From);
+            var dir = Flat(s.To - pos);
             if (dir.sqrMagnitude < 0.0001f)
                 dir = Vector3.right;
             else
@@ -328,6 +362,7 @@ namespace XianXia.Unity.Host
                 return;
             s.HitTarget = null;
             s.HitApplied = false;
+            s.ResolveHit = null;
             s.Root.gameObject.SetActive(false);
             _pool.Push(s);
         }

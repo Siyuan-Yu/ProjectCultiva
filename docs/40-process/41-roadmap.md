@@ -1,18 +1,24 @@
 # 路线图
 
-## 美术筹备／美术样机（2026-10-16，盘点完成、规格待确认）
+> 2026-10-20 当前封板：[306 正式／Demo 构建分离](306-formal-player-and-demo-build-separation-2026-10-19.md)、[307 物件选中](307-world-object-selection-feedback-2026-10-20.md)、[308 床与搬运表现](308-bed-entry-and-rescue-pickup-2026-10-20.md)、[310 远程命中](310-visible-ranged-hit-damage-timing-2026-10-20.md)及已获整体验收的 CIVILIAN-LIFE-01 统一提交。已实施但未获现场反馈的细项仍待验收。[309 内容制作前准备度](309-pre-content-readiness-audit-2026-10-20.md)是静态建议，不因封板自动实施 Medic 或新美术；已验的民生与基本出包不重复验收。
 
-工程资产盘点、规格与接入追踪已建立；[当前唯一资产总表](273-current-art-asset-register.tsv)和[阶段/规格/生产替换流程](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)继续为准。制作人已授权 Codex 直接分批生成候选；第一优先批次见 `ArtSource/Batches/Batch_Codex_001/`，生成后停止。后续仍需选图、LevelTester 少量样本接入验证、实际游戏人工验收，再考虑批量接入与人工外包替换。当前已生候选、未接入、未视觉验收；CIVILIAN-LIFE-01 及 LOCAL-CONTINUITY-FINAL 等近期玩法工作仍保持各自待制作人验收状态，不能因为美术筹备而标为封板。
+> 2026-10-20 静态复核：[309 内容制作前准备度](309-pre-content-readiness-audit-2026-10-20.md) 将最近 307／308 现场返修、Medic 正式面板假功能、P0 美术样本与 273 台账滞后分开列明。当前均为 Proposed／待人工反馈，不因审查自动启动新系统；已验的民生与基本出包不重复验收。
 
-风格方向已确认：**正俯视、国风修仙村落**，场景/建筑/地表采用平涂、轻纹理、清晰轮廓和概括笔触；房屋全部开面、默认可见室内，不用完整遮挡屋顶或明显抬高入口。村落生活感与灵泉、灵药田、灵矿、修仙旗帜等修仙氛围结合；未有正式定义的石碑/法阵等仍只是风格候选。实时人物简化且强复用，角色立绘采用更高精度。Codex 第一优先批次的方向数与帧数只是制作人指定的**临时候选规格**；下一步由制作人选图并决定返工范围，再安排 LevelTester 一小片场景的实际接入核对。运行密度、搬运轻差分、最终方向/帧数仍待样本验证。
+## 当前推进：正式试玩交付与 P0 美术收口（2026-10-19）
 
-## CIVILIAN-LIFE-01 实施完成待验收（2026-09-27）
+制作人确认Demo与正式版本拆开。本轮[306](306-formal-player-and-demo-build-separation-2026-10-19.md)分离正式LevelTester试玩与历史Demo的构建入口、内容包、产品名与Player存档，正式包设计为不显示开发作弊工具。制作人已确认可正常打包、运行且打包后基本存读档未见问题；各profile的工具/内容/存档隔离仍待逐项记录。CIVILIAN-LIFE-01 已获制作人整体人工验收，不再要求重复完整民生清单；Medic 等延期功能不在此次范围。
 
-**Implementation Complete / Producer Acceptance Pending。** 已接入 Satiety/Energy、Work/OffDuty、职业、人事、占领／俘虏／招募，以及真实 Rescue 搬运、Site 内物资 Haul、正式建筑工单与势力旗拆除劳动；静态编译通过，运行行为待制作人验收。完整范围见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。
+人物当前是Unity Transform/SpriteRenderer共用HumanCommonRig，12套部件Skin覆盖25名录身份；Spine不是必需依赖。房间、田地和旗帜已有后续接入与局部现场反馈，现状以[297](297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)、[247最新交接](247-project-handoff-current-state-2026-09-18.md)、[273唯一资产表](273-current-art-asset-register.tsv)和[274制作规范](274-art-preparation-scope-spec-and-handoff-2026-10-16.md)为准，不继续引用“仅生成未接入”的筹备旧状态。
 
-P1 已补普通自由凡人的 StorageRoom 物理取食、到达时公粮扣除、统一 Activity 展示、正式“工作”面板与当前 Site 职业路由；Snapshot v14 不变，等待制作人人工验收。
+下一步顺序：记录正式包剩余分项结果并收口 P0 美术中有明确素材／表现缺口的项目 → 根据实际失败定向修复 → 再单独设计20～30分钟内容体验小段。现有参考开局、钱包、倍率与验收夹具保留，不擅自改经济或延长修炼读条；Medic、装备/制造、跨Site物流不是本轮暗含授权。
 
-当前顺序：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 状态 **Implementation Complete / Producer Acceptance Pending**。Generic Knowledge、Weapon/Equipment、Crafting/Alchemy、Workshop Production 与 Logistics 继续跳过／延期；NPC Strategic Autonomy 保持 Future。
+## CIVILIAN-LIFE-01 已获制作人总体验收（2026-10-19）
+
+**Implementation Complete / Producer Accepted（总体范围）/ Committed·Sealed（2026-10-20）。** 已接入 Satiety/Energy、Work/OffDuty、职业、人事、占领／俘虏／招募，以及真实 Rescue 搬运、Site 内物资 Haul、正式建筑工单与势力旗拆除劳动；制作人明确确认整套民生已验收。完整范围与历史分支目录见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)／[ADR-0044](43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md)。
+
+P1 已补普通自由凡人的StorageRoom物理取食、到达时公粮扣除、统一Activity与工作面板；当前Snapshot为v15。真实房间/床位、跨旗帜救援与囚床交接的历史分支目录见267唯一表；若有具体复现再定向返修。
+
+当前顺序：SHOP-TRADE-01 与 AUCTION-01 均为 **Producer Accepted / Sealed**；CIVILIAN-LIFE-01 状态 **Implementation Complete / Producer Accepted / Committed·Sealed**。Generic Knowledge、Weapon/Equipment、Crafting/Alchemy、Workshop Production 与 Logistics 继续跳过／延期；NPC Strategic Autonomy 保持 Future。
 
 ## AUCTION-01 最终封板（2026-09-27）
 
@@ -88,10 +94,10 @@ Temporary quest companion participates in party travel and combat, but is not a 
 - **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
 - **前轮：** DELAYED-EVENT-01，Implementation Complete / Producer Acceptance Pending；见 [263](263-delayed-event-01-content-event-scheduling-2026-09-25.md)。
 - **最近封板：** SOCIAL-QUEST-01 — Secret-Realm Quest Social Topic + Temporary Quest Companion，Producer Accepted / Sealed；见 [264](264-social-quest-01-secret-realm-social-topic-and-temporary-companion-2026-09-25.md)。
-- **当前实现基线：** CIVILIAN-LIFE-01，Implementation Complete / Producer Acceptance Pending；见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)。
+- **当前实现基线：** CIVILIAN-LIFE-01，Implementation Complete / Producer Accepted / Committed·Sealed；见 [267](267-civilian-life-01-design-freeze-2026-09-27.md)。
 - **Knowledge / Rumor / Information Propagation：** Future / Only if gameplay later proves it necessary，非近期必做、非 Delayed Event 依赖。
-- **当前待定缺口：** WorldMap Player／NPC marker world-space scaling 仍未授权。Separate Space JSON wire 和 restore 后 Quest／Event／Chapter definitions shell 继续沿用既有实现。
-- **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；CIVILIAN-LIFE-01 已接通当前 V1 闭环，尚待人工验收，不属于既有 Final Seal。
+- **地图标记与输入：** WorldMap Player/NPC标记同源缩放与逐窗输入锁已于2026-10-19获局部制作人验收；不再列为未授权缺口。Separate Space JSON wire及读档后的内容definitions shell继续沿用既有实现。
+- **未来范围：** 更完整仓储物流、税赋、跨 Site 运输、离屏生产、飞舟、自动攻城、NPC 对 NPC 战斗等继续作为 Future / Not Implemented；CIVILIAN-LIFE-01 当前 V1 闭环已获制作人整体验收并于 2026-10-20 封板，延期事项仍不属于 V1。
 
 - **Future backlog：** Level 2／3、Encounter 介入参数调优、飞舟、NPC 自动攻城与普通建筑战争。FormalArmy／BattleOffer／Hex 字样若属于 ADR-0038 的合法兼容边界，不再仅凭名称进入清理 backlog。
 - **路线（现行）：** SHOP-TRADE-01 与 AUCTION-01 已封板；CIVILIAN-LIFE-01 实施完成，等待制作人人工验收。Auction-02、Generic Knowledge、Equipment/Crafting、Production/Logistics 均未启动；NPC Strategic Autonomy 仍为 Future。小游戏中途保存作为独立正确性待办。
@@ -332,7 +338,7 @@ Temporary quest companion participates in party travel and combat, but is not a 
 - [x] **MAP-COORD-01 — WorldMap World Coordinate Readout**：2026-09-24 **Producer Accepted / Sealed**。
 - [ ] 前轮：**DELAYED-EVENT-01**（Implementation Complete / Producer Acceptance Pending）。
 - [x] **SOCIAL-QUEST-01**（Producer Accepted / Sealed）。
-- [x] 当前实现基线：**CIVILIAN-LIFE-01**（Implementation Complete / Producer Acceptance Pending）。
+- [x] 当前实现基线：**CIVILIAN-LIFE-01**（Implementation Complete / Producer Accepted / Committed·Sealed）。
 - [ ] 下一阶段 3：Full trading。
 - [ ] 下一阶段 4：Equipment / crafting。
 - [ ] 下一阶段 5：Production / logistics。

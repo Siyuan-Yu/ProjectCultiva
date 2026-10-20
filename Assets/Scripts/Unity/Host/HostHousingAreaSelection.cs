@@ -83,7 +83,8 @@ namespace XianXia.Unity.Host
                     _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
                     _inspect.Kind == WorldObjectInspectKind.PrisonDropOff ||
                     _inspect.Kind == WorldObjectInspectKind.Room ||
-                    _inspect.Kind == WorldObjectInspectKind.Bed)
+                    _inspect.Kind == WorldObjectInspectKind.Bed ||
+                    _inspect.Kind == WorldObjectInspectKind.Door)
                     _inspect.Clear();
             }
 
@@ -96,7 +97,8 @@ namespace XianXia.Unity.Host
                  _inspect.Kind == WorldObjectInspectKind.StorageRoom ||
                  _inspect.Kind == WorldObjectInspectKind.PrisonDropOff ||
                  _inspect.Kind == WorldObjectInspectKind.Room ||
-                 _inspect.Kind == WorldObjectInspectKind.Bed) && _inspect.Plot == null)
+                 _inspect.Kind == WorldObjectInspectKind.Bed ||
+                 _inspect.Kind == WorldObjectInspectKind.Door) && _inspect.Plot == null)
                 _inspect.Clear();
         }
 
@@ -169,63 +171,108 @@ namespace XianXia.Unity.Host
             else Clear();
         }
 
-        void OnDrawGizmos()
+        void OnGUI()
         {
-            if (bootstrap?.Session?.World == null || !_inspect.HasTarget)
+            if (Event.current.type != EventType.Repaint || !_inspect.HasTarget ||
+                selectionController != null && selectionController.State.Count > 0 ||
+                worldCamera == null || !TryGetSelectionBounds(out var bounds))
                 return;
+            var a = worldCamera.WorldToScreenPoint(new Vector3(bounds.xMin, bounds.yMin,
+                HostPresentationSpace.GroundZ));
+            var b = worldCamera.WorldToScreenPoint(new Vector3(bounds.xMax, bounds.yMax,
+                HostPresentationSpace.GroundZ));
+            if (a.z <= 0f || b.z <= 0f) return;
+            var frame = Rect.MinMaxRect(Mathf.Min(a.x, b.x) - 2f,
+                Screen.height - Mathf.Max(a.y, b.y) - 2f,
+                Mathf.Max(a.x, b.x) + 2f,
+                Screen.height - Mathf.Min(a.y, b.y) + 2f);
+            if (frame.width < 2f || frame.height < 2f) return;
+            var previous = GUI.color;
+            DrawFrame(frame, new Color(.07f, .13f, .14f, .95f), 4f);
+            DrawFrame(frame, new Color(.32f, .92f, .94f, 1f), 2f);
+            GUI.color = previous;
+        }
 
-            if (_inspect.Kind == WorldObjectInspectKind.ControlCore &&
-                bootstrap.Session.World.ControlCores.TryGet(_inspect.WorkAreaId, out var core))
+        static void DrawFrame(Rect r, Color color, float thickness)
+        {
+            GUI.color = color;
+            var pixel = Texture2D.whiteTexture;
+            GUI.DrawTexture(new Rect(r.xMin, r.yMin, r.width, thickness), pixel);
+            GUI.DrawTexture(new Rect(r.xMin, r.yMax - thickness, r.width, thickness), pixel);
+            GUI.DrawTexture(new Rect(r.xMin, r.yMin, thickness, r.height), pixel);
+            GUI.DrawTexture(new Rect(r.xMax - thickness, r.yMin, thickness, r.height), pixel);
+        }
+
+        bool TryGetSelectionBounds(out Rect bounds)
+        {
+            bounds = default;
+            if (_inspect.Plot != null && _inspect.Plot.HasInteractionBounds)
             {
-                MapLayoutDefinition layout = null;
-                if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
-                    !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
-                    MapLayoutPick.TryGet(bootstrap.Session, out layout);
-                if (HostControlCoreQuery.TryGetCenter(
-                        bootstrap.Session.World, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var center))
+                bounds = _inspect.Plot.InteractionBounds;
+                if (_inspect.Kind == WorldObjectInspectKind.Room)
                 {
-                    Gizmos.color = new Color(0.95f, 0.35f, 0.3f, 0.9f);
-                    Gizmos.DrawWireSphere(center, 2.4f);
+                    var plots = HostMapObjectRegistry.AllPlots;
+                    for (var i = 0; i < plots.Count; i++)
+                    {
+                        var piece = plots[i];
+                        if (piece == null || !piece.IsRoom || piece.IsDoor ||
+                            !piece.HasInteractionBounds ||
+                            !string.Equals(piece.StableCellId, _inspect.Plot.StableCellId,
+                                System.StringComparison.Ordinal)) continue;
+                        var r = piece.InteractionBounds;
+                        bounds = Rect.MinMaxRect(Mathf.Min(bounds.xMin, r.xMin),
+                            Mathf.Min(bounds.yMin, r.yMin), Mathf.Max(bounds.xMax, r.xMax),
+                            Mathf.Max(bounds.yMax, r.yMax));
+                    }
                 }
-
-                return;
+                return true;
             }
-
-            if (_inspect.Kind == WorldObjectInspectKind.Destructible && _inspect.Destructible != null)
+            if (_inspect.Destructible != null && _inspect.Destructible.HasInteractionBounds)
             {
-                Gizmos.color = new Color(0.35f, 0.85f, 0.45f, 0.9f);
-                Gizmos.DrawWireSphere(_inspect.Destructible.transform.position, 1.6f);
-                return;
+                bounds = _inspect.Destructible.InteractionBounds;
+                return true;
             }
-
-            if (_inspect.Kind == WorldObjectInspectKind.Plot && _inspect.Plot != null)
+            var world = bootstrap?.Session?.World;
+            if (world == null) return false;
+            if (_inspect.Kind == WorldObjectInspectKind.ControlCore &&
+                world.ControlCores.TryGet(_inspect.WorkAreaId, out var core))
             {
-                Gizmos.color = new Color(0.85f, 0.75f, 0.25f, 0.9f);
-                Gizmos.DrawWireSphere(_inspect.Plot.transform.position, 0.9f);
-                return;
+                var tileMap = bootstrap.GetComponent<HostDemoTileMap>();
+                if (tileMap != null && tileMap.TryGetCoreVisualBounds(core.LocationId, out bounds))
+                    return true;
+                MapLayoutDefinition layout = null;
+                var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+                if (continuous == null || !continuous.IsActive)
+                    MapLayoutPick.TryGet(bootstrap.Session, out layout);
+                if (HostControlCoreQuery.TryGetFootprint(world, layout, continuous, core,
+                        out var coreMinX, out var coreMaxX, out var coreMinY, out var coreMaxY,
+                        out _, out _))
+                {
+                    bounds = Rect.MinMaxRect(coreMinX, coreMinY, coreMaxX, coreMaxY);
+                    return true;
+                }
             }
-
-            if ((_inspect.Kind == WorldObjectInspectKind.Room || _inspect.Kind == WorldObjectInspectKind.Bed) &&
-                _inspect.Plot != null)
+            if (_inspect.Kind == WorldObjectInspectKind.FactionFlag &&
+                world.Strategic.FactionFlags.Flags.TryGetValue(_inspect.FactionFlagId, out var flag) &&
+                HostFactionFlagQuery.TryGetContinuousFootprint(flag,
+                    bootstrap.ContinuousOutdoorSurfaceRuntime,
+                    out var minX, out var maxX, out var minY, out var maxY))
             {
-                Gizmos.color = _inspect.Kind == WorldObjectInspectKind.Room
-                    ? new Color(0.35f, 0.75f, 1f, 0.9f) : new Color(0.75f, 0.55f, 1f, 0.9f);
-                Gizmos.DrawWireSphere(_inspect.Plot.transform.position, 0.9f);
-                return;
+                bounds = Rect.MinMaxRect(minX, minY, maxX, maxY);
+                return true;
             }
-
             if ((_inspect.Kind == WorldObjectInspectKind.Housing ||
                  _inspect.Kind == WorldObjectInspectKind.WorkArea) &&
-                bootstrap.Session.World.TryGetWorkArea(_inspect.WorkAreaId, out var area) &&
-                (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) ||
-                 bootstrap.Session.World.LocalPlaces.TryGet(area.LocationId, out loc)))
+                world.TryGetWorkArea(_inspect.WorkAreaId, out var area) && area != null &&
+                (world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) ||
+                 world.LocalPlaces.TryGet(area.LocationId, out loc)))
             {
-                var houseCenter = HostPresentationSpace.FromPresentation(
-                    loc.PresentationX + area.OffsetX,
-                    loc.PresentationZ + area.OffsetZ);
-                Gizmos.color = new Color(0.35f, 0.75f, 1f, 0.85f);
-                Gizmos.DrawWireSphere(houseCenter, 2.2f);
+                var center = HostPresentationSpace.FromPresentation(
+                    loc.PresentationX + area.OffsetX, loc.PresentationZ + area.OffsetZ);
+                bounds = new Rect(center.x - 2.2f, center.y - 2.2f, 4.4f, 4.4f);
+                return true;
             }
+            return false;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace XianXia.Unity.Host
         public static int SchemaVersion => XianXia.Core.Persistence.WorldSnapshot.CurrentSchemaVersion;
 
         public static string SlotPath =>
-            Path.Combine(Application.persistentDataPath, DefaultFileName);
+            HostPlayerPaths.SavePath;
 
         public sealed class SnapshotOpResult
         {
@@ -46,7 +46,10 @@ namespace XianXia.Unity.Host
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(SlotPath) ?? Application.persistentDataPath);
-                File.WriteAllText(SlotPath, captured.Value);
+                var pending = SlotPath + ".pending";
+                File.WriteAllText(pending, captured.Value);
+                if (File.Exists(SlotPath)) File.Replace(pending, SlotPath, SlotPath + ".previous");
+                else File.Move(pending, SlotPath);
                 HostLevelTesterSnapshotSummary.RecordSavedFromJson(captured.Value);
                 HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
                 result.Success = true;

@@ -33,6 +33,7 @@ namespace XianXia.Unity.Host
         float _nextStrikeFailToast;
         float _defenderCooldown;
         int _counterFocus;
+        int _fightRevision;
 
         public bool IsFighting => _attackers.Count > 0 && !_defender.IsNone;
         /// <summary>主攻方（名单首位）；兼容旧调用。</summary>
@@ -306,6 +307,16 @@ namespace XianXia.Unity.Host
 
                 _cooldownByAttacker[atkId.Value] = MeleeCombatService.DefaultMeleeIntervalSeconds;
                 var atkRanged = SpiritVeilService.IsActive(atkEnt);
+                if (atkRanged)
+                {
+                    var shotTarget = _defender;
+                    var shotAttacker = atkId;
+                    var revision = _fightRevision;
+                    strikeVfx?.PlayRangedBetween(viewSpawner, shotAttacker, shotTarget,
+                        () => ResolveRangedImpact(world, shotAttacker, shotTarget, false,
+                            revision));
+                    continue;
+                }
                 var hit = _melee.ApplyStrike(world, atkId, _defender, out var dmg, out var defeated);
                 if (hit.IsSuccess)
                 {
@@ -374,6 +385,16 @@ namespace XianXia.Unity.Host
                 _counterFocus = (idx + 1) % Mathf.Max(1, _attackers.Count);
                 _defenderCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                 var defRanged = SpiritVeilService.IsActive(defEnt);
+                if (defRanged)
+                {
+                    var shotAttacker = _defender;
+                    var shotTarget = atkId;
+                    var revision = _fightRevision;
+                    strikeVfx?.PlayRangedBetween(viewSpawner, shotAttacker, shotTarget,
+                        () => ResolveRangedImpact(world, shotAttacker, shotTarget, true,
+                            revision));
+                    return;
+                }
                 var back = _melee.ApplyStrike(world, _defender, atkId, out var backDmg, out var atkDown);
                 if (back.IsSuccess)
                 {
@@ -393,6 +414,42 @@ namespace XianXia.Unity.Host
 
                 return;
             }
+        }
+
+        bool ResolveRangedImpact(XianXia.Core.Simulation.SimulationWorld world,
+            EntityId attacker, EntityId target, bool counter, int revision)
+        {
+            if (!ReferenceEquals(bootstrap?.Session?.World, world) || !IsFighting ||
+                revision != _fightRevision ||
+                world.Strategic.CharacterEncounter != null ||
+                (counter ? attacker != _defender || !IsAttacker(target)
+                         : target != _defender || !IsAttacker(attacker)) ||
+                !world.Entities.TryGet(target, out var targetEntity) ||
+                !CombatLifeStateService.CanFight(targetEntity)) return false;
+
+            var hit = _melee.ApplyStrike(world, attacker, target, out var damage, out var defeated);
+            if (hit.IsFailure) return false;
+            Toast(target, "-" + damage, counter
+                ? new Color(1f, 0.35f, 0.4f) : new Color(1f, 0.55f, 0.35f));
+            NotifyVeilSpiritEmpty(targetEntity);
+            if (defeated)
+            {
+                ApplyDownPresentation(target);
+                if (counter)
+                {
+                    Toast(target, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
+                    RemoveAttacker(target, null);
+                }
+                else
+                {
+                    var name = string.IsNullOrEmpty(targetEntity.DisplayName)
+                        ? target.ToString() : targetEntity.DisplayName;
+                    Toast(attacker, name + " 弥留", new Color(1f, 0.72f, 0.45f));
+                    ClearInternal(null);
+                }
+            }
+            bootstrap.DispatchDrainedEvents();
+            return true;
         }
 
         void OnGUI()
@@ -459,6 +516,7 @@ namespace XianXia.Unity.Host
 
         void ClearInternal(string toast)
         {
+            _fightRevision++;
             if (!string.IsNullOrEmpty(toast) && _attackers.Count > 0)
                 Toast(AttackerId, toast, new Color(0.85f, 0.85f, 0.75f));
 

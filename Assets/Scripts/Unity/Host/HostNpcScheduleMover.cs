@@ -246,11 +246,11 @@ namespace XianXia.Unity.Host
                         continue;
                     }
 
-                    if (intent.ArrivalRadiusWorld > 0f &&
+                    if (intent.ArrivalRadiusWorld > 0f && !IsRescuePickupIntent(intent) &&
                         TryRetargetUnreachableBedAccess(session.World, entity.Id, intent, pos, rawCenter))
                         continue;
 
-                    if (intent.ArrivalRadiusWorld > 0f && grid != null &&
+                    if (intent.ArrivalRadiusWorld > 0f && !IsRescuePickupIntent(intent) && grid != null &&
                         (!grid.TryWorldToCell(rawCenter.x, rawCenter.y, out var exactX, out var exactY) ||
                          !grid.IsWalkable(exactX, exactY)))
                     {
@@ -368,11 +368,15 @@ namespace XianXia.Unity.Host
                 _repathRequestsInWindow++;
 
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
-            var freeStandRadius = intent.ArrivalRadiusWorld > 0f ? 0f :
-                Mathf.Min(1.25f, ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f);
+            var rescuePickup = IsRescuePickupIntent(intent);
+            var freeStandRadius = rescuePickup
+                ? ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f
+                : intent.ArrivalRadiusWorld > 0f ? 0f :
+                    Mathf.Min(1.25f, ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f);
             var accepted = moveController.OrderEntityToWorldPoint(
                 request.Entity, center, null, issueStop: false,
-                exactGoal: intent.ArrivalRadiusWorld > 0f || IsGenericConstructionTarget(world, request.Entity, intent),
+                exactGoal: !rescuePickup && (intent.ArrivalRadiusWorld > 0f ||
+                    IsGenericConstructionTarget(world, request.Entity, intent)),
                 speedMultiplier: intent.SpeedMultiplier,
                 freeStandRadius: freeStandRadius);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
@@ -480,6 +484,10 @@ namespace XianXia.Unity.Host
             (intent.TargetWorkAreaId ?? string.Empty) + "|" +
             (intent.TargetLocationId ?? string.Empty) + "|" + intent.SlotIndex;
 
+        static bool IsRescuePickupIntent(MovementIntentComponent intent) =>
+            intent != null && (intent.DestinationKey ?? string.Empty).StartsWith(
+                "rescue-target:", System.StringComparison.Ordinal);
+
         void SyncCarriedCharacters(XianXia.Core.Simulation.SimulationWorld world)
         {
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
@@ -493,7 +501,10 @@ namespace XianXia.Unity.Host
                 if (targetId.IsNone || carrierId.IsNone ||
                     !viewSpawner.Registry.TryGet(carrierId, out var carrier) || carrier == null ||
                     !viewSpawner.Registry.TryGet(targetId, out var target) || target == null) continue;
-                target.transform.position = carrier.transform.position + new Vector3(-.28f, -.16f, 0f);
+                // The transported body stays in front of the carrier in every facing.
+                // This is only a View offset; WorldPresence remains at the carrier's feet.
+                target.transform.position = carrier.transform.position + carrier.CarryFacing * .38f;
+                target.SetCarriedPresentationOrder(HostArtDepth.Order(carrier.transform.position.y) + 1);
                 surface.Mapper.PresentationToWorld(carrier.transform.position.x,
                     carrier.transform.position.y, out var wx, out var wy);
                 var encounter = world.Strategic.CharacterEncounter;
