@@ -15,6 +15,7 @@ namespace XianXia.Unity.Host
         [SerializeField] float projectileSpeed = 8.5f;
         [SerializeField] float projectileMinSeconds = 0.22f;
         [SerializeField] float projectileMaxSeconds = 1.1f;
+        [SerializeField] float projectileHitRadius = 0.42f;
         [SerializeField] float impactLifetime = 0.18f;
         [SerializeField] int poolSize = 16;
 
@@ -34,6 +35,9 @@ namespace XianXia.Unity.Host
             public float BornAt;
             public Vector3 From;
             public Vector3 To;
+            public Vector3 Direction;
+            public float MaxRange;
+            public float Traveled;
             public float Speed;
             public FxKind Kind;
             public EntityView HitTarget;
@@ -59,7 +63,7 @@ namespace XianXia.Unity.Host
             PlayBetween(spawner, attacker, defender, ranged: false);
         }
 
-        /// <summary>统一远程弹道：飞行体从攻方到守方，抵达后再受击闪白。</summary>
+        /// <summary>统一远程弹道：沿发射方向直线飞行，进入命中半径后结算并受击闪白。</summary>
         public bool PlayRangedBetween(
             EntityViewSpawner spawner,
             EntityId attacker,
@@ -125,6 +129,9 @@ namespace XianXia.Unity.Host
             fx.BornAt = _clock;
             fx.From = from;
             fx.To = to;
+            fx.Direction = Vector3.right;
+            fx.MaxRange = 0f;
+            fx.Traveled = 0f;
             fx.Speed = 0f;
             fx.Kind = kind;
             fx.HitTarget = hitTarget;
@@ -133,14 +140,27 @@ namespace XianXia.Unity.Host
 
             if (kind == FxKind.Projectile)
             {
-                var dist = Vector3.Distance(Flat(from), Flat(to));
+                var flatDelta = Flat(to) - Flat(from);
+                var dist = flatDelta.magnitude;
+                if (dist < 0.0001f)
+                {
+                    flatDelta = Vector3.right;
+                    dist = 0.5f;
+                }
+                else
+                    flatDelta /= dist;
+
+                fx.Direction = flatDelta;
+                fx.MaxRange = dist;
+                fx.To = from + fx.Direction * dist;
+                fx.To.z = from.z;
+
                 var travel = Mathf.Clamp(
                     dist / Mathf.Max(1f, projectileSpeed),
                     projectileMinSeconds,
                     projectileMaxSeconds);
                 fx.Speed = Mathf.Max(.1f, dist / travel);
-                // A moving target can extend the flight; expiry is a visible miss, never a hit.
-                fx.DieAt = fx.BornAt + Mathf.Max(projectileMaxSeconds + .9f, travel * 2f);
+                fx.DieAt = fx.BornAt + travel + 0.08f;
             }
             else if (kind == FxKind.Impact)
                 fx.DieAt = fx.BornAt + impactLifetime;
@@ -174,24 +194,40 @@ namespace XianXia.Unity.Host
                 if (s.Kind == FxKind.Projectile && !s.HitApplied)
                 {
                     var target = s.HitTarget;
-                    if (target != null && target.gameObject.activeInHierarchy)
-                    {
-                        s.To = target.transform.position + Vector3.up * .35f;
-                        s.To.z = HostPresentationSpace.EntityZ - 0.02f;
-                    }
-                    else if (s.ResolveHit != null)
+                    if (target == null && s.ResolveHit != null)
                     {
                         Return(s);
                         _live.RemoveAt(i);
                         continue;
                     }
+
                     var step = s.Speed * Time.unscaledDeltaTime;
-                    s.Root.position = Vector3.MoveTowards(s.Root.position, s.To, step);
-                    Animate(s, t);
-                    if (Flat(s.Root.position - s.To).sqrMagnitude <= .01f)
+                    var pos = s.Root.position + s.Direction * step;
+                    pos.z = HostPresentationSpace.EntityZ - 0.02f;
+                    s.Root.position = pos;
+                    s.Traveled += step;
+
+                    var travelT = Mathf.Clamp01(s.Traveled / Mathf.Max(0.01f, s.MaxRange));
+                    Animate(s, travelT);
+
+                    if (target != null && target.gameObject.activeInHierarchy)
                     {
-                        s.HitApplied = true;
-                        ApplyProjectileHit(s);
+                        var targetPos = target.transform.position + Vector3.up * .35f;
+                        targetPos.z = HostPresentationSpace.EntityZ - 0.02f;
+                        var hitRadius = Mathf.Max(0.08f, projectileHitRadius);
+                        if (Flat(pos - targetPos).sqrMagnitude <= hitRadius * hitRadius)
+                        {
+                            s.To = targetPos;
+                            s.HitApplied = true;
+                            ApplyProjectileHit(s);
+                            Return(s);
+                            _live.RemoveAt(i);
+                            continue;
+                        }
+                    }
+
+                    if (s.Traveled >= s.MaxRange)
+                    {
                         Return(s);
                         _live.RemoveAt(i);
                         continue;
@@ -267,11 +303,7 @@ namespace XianXia.Unity.Host
             // lingering at launch and then seeming to jump into the target.
             var pos = s.Root.position;
             pos.z = HostPresentationSpace.EntityZ - 0.03f;
-            var dir = Flat(s.To - pos);
-            if (dir.sqrMagnitude < 0.0001f)
-                dir = Vector3.right;
-            else
-                dir.Normalize();
+            var dir = s.Direction.sqrMagnitude < 0.0001f ? Vector3.right : s.Direction;
 
             var angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             s.Root.position = pos;
@@ -363,6 +395,9 @@ namespace XianXia.Unity.Host
             s.HitTarget = null;
             s.HitApplied = false;
             s.ResolveHit = null;
+            s.Direction = Vector3.right;
+            s.MaxRange = 0f;
+            s.Traveled = 0f;
             s.Root.gameObject.SetActive(false);
             _pool.Push(s);
         }

@@ -1,5 +1,7 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-20 直线弹道验收覆写：制作人确认远程普通攻击现为发射后固定方向的直线弹道、不要追踪，并明确表示“现在这样挺好的”。[310](310-visible-ranged-hit-damage-timing-2026-10-20.md)／[ADR-0047](43-decisions/ADR-0047-visible-ranged-impact-damage-timing.md) 状态更新为 **Implemented / Producer Accepted / 直线修正待提交封板**；下方 310 待验收仅保留历史时点记录。
+
 > 2026-10-20 最新封板：制作人要求将当前工作区所有内容统一中文提交并上传 GitHub。此次覆盖 [306 正式／Demo 构建分离](306-formal-player-and-demo-build-separation-2026-10-19.md)、[307 物件选中与蓝点返修](307-world-object-selection-feedback-2026-10-20.md)、[308 床／搬运／卧姿返修](308-bed-entry-and-rescue-pickup-2026-10-20.md)、[310 可见远程命中时扣血](310-visible-ranged-hit-damage-timing-2026-10-20.md)及同期民生状态、静态准备度文档。CIVILIAN-LIFE-01 整体与正式包打包／运行／基本存档沿用制作人已给的验收反馈；307、308、310 的具体运行观感仍为 Producer Acceptance Pending。下方未提交／未封板仅保留历史时点记录，以本条和各最新文档为准。
 
 > 2026-10-19 当前新实施：[306 正式试玩与Demo分离](306-formal-player-and-demo-build-separation-2026-10-19.md)。制作人授权后，正式LevelTester与历史Demo使用独立Windows构建入口、产品名、内容路径和Player存档；普通会话菜单已接线，Editor旧存档保留。制作人确认可打包、运行且打包后基本存读档未见问题；Formal／Demo／Editor 分项隔离尚未逐项记录，未提交/推送。制作人已明确确认现有 CIVILIAN-LIFE-01 整体民生验收通过，详见 267 唯一状态表；Medic 和新内容不在该范围。路线图/267/305已增量修正旧口径；下方封板记录只对应先前962542c及其范围。
