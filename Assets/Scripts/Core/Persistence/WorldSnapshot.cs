@@ -5,7 +5,9 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 15;
+        public const int CurrentSchemaVersion = 17;
+        public const int PreMedicalSchemaVersion = 15;
+        public const int PreGroundLootSchemaVersion = 16;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves lack current spatial authority.</summary>
@@ -68,6 +70,7 @@ namespace XianXia.Core.Persistence
         /// <summary>字段出现即表示 persistent world loot taken set 完整 authoritative。</summary>
         public bool HasTakenWorldLootSnapshotAuthority { get; set; }
         public List<string> TakenWorldLootSpotIds { get; set; } = new List<string>();
+        public List<XianXia.Core.Content.GroundLootState> GroundLoot { get; set; } = new List<XianXia.Core.Content.GroundLootState>();
 
         /// <summary>RelationshipLedger 事件流（v6 optional；旧档缺省＝空）。</summary>
         public List<RelationshipEventSnapshotDto> RelationshipEvents { get; set; } =
@@ -860,6 +863,22 @@ namespace XianXia.Core.Persistence
 
         /// <summary>Lifecycle 弥留到期 tick；0＝未计时。</summary>
         public ulong BleedOutAfterTick { get; set; }
+        public bool HasMedicalProgress { get; set; }
+        public ulong IncapacitatedAtTick { get; set; }
+        public int DyingReserveMilli { get; set; }
+        public int HerbDoses { get; set; }
+        public bool Convalescing { get; set; }
+        public int RecoveryHpMilli { get; set; }
+        public ulong MedicTargetId { get; set; }
+        public bool MedicCarryingHerb { get; set; }
+        public string MedicSourceSiteId { get; set; } = string.Empty;
+        public string MedicSourceRoomId { get; set; } = string.Empty;
+        public ulong MedicSourcePartyMemberId { get; set; }
+        public int MedicTreatmentSeconds { get; set; }
+        public ulong MedicLastTreatmentTick { get; set; }
+        public ulong MedicRetryAfterTick { get; set; }
+        public string MedicStatus { get; set; } = string.Empty;
+
 
         /// <summary>尸体留存；HasCorpse=false 时不恢复 CorpseComponent。</summary>
         public bool HasCorpse { get; set; }

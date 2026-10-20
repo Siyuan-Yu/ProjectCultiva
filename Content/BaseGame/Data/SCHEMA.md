@@ -1,5 +1,11 @@
 # BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready / Chapter Production)
 
+> 2026-10-20 后续：[313](../../../docs/40-process/313-medical-closure-and-ground-loot-2026-10-20.md)将当前Snapshot升级为v17；新增顶层`groundLoot[]`，每项`id/itemId/count/surfaceId/worldX/worldY`，与既有`TakenWorldLootSpotIds`共同保存数量与已拾取事实。v15/v16读入补为空列表，原医疗状态保留；v17缺少地面物品列表应拒绝，不能静默丢掉掉落物。Content地图既有`lootItemId`、位置和稳定ID不变。下方v16为初次医疗实施历史记录。
+
+> 2026-10-20 医疗增量：Snapshot当前为v16，规则见[312](../../../docs/40-process/312-medic-bedside-treatment-2026-10-20.md)与[ADR-0048](../../../docs/40-process/43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)。v15 JSON在读取时内存补齐医疗状态，v1～v14按既有房间/床位边界拒绝，不删除旧档。新增医者仍由既有`character.initialMortalProfession=Medic`设置；本轮只调整3个职业种子，不修改人物ID、位置、住宅或床位。新增`HealthRecoveryRateMilli`为Modifier管线属性，单位千分之一HP/秒。
+
+医疗Entity DTO新增`hasMedicalProgress/dyingReserveMilli/herbDoses/convalescing/recoveryHpMilli/incapacitatedAtTick`；医者的`medicTargetId/medicCarryingHerb/medicSourceSiteId/medicSourceRoomId/medicSourcePartyMemberId/medicTreatmentSeconds/medicLastTreatmentTick/medicRetryAfterTick/medicStatus`保存未施用药物、真实目标和施药时钟。核心状态与JSON读写双向接线；库存仍保存在原SitePublicStock和PartyInventory中，持有药物不会在读档重新扣除。
+
 Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not runtime).
 
 ## File layout

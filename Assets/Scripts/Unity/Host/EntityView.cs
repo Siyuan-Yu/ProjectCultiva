@@ -689,11 +689,31 @@ namespace XianXia.Unity.Host
             }
             else if (_lifeTint)
             {
+                if (life.State == LifecycleState.Alive && life.LastLifeTransitionReason == "Recovery")
+                    SyncRecoveredStandingPosition();
                 _lifeTint = false;
                 if (activityText == _lifeActivity) activityText = string.Empty;
                 _lifeActivity = null;
                 ApplyVisualState();
             }
+        }
+
+        void SyncRecoveredStandingPosition()
+        {
+            // Core has stood the patient at a real bed access point. Consume that exact position
+            // once, before a new civilian path starts from the obsolete bed-centre view position.
+            var host = _moveController != null ? _moveController.GetComponent<PlayableHostBootstrap>() : null;
+            var surface = host?.ContinuousOutdoorSurfaceRuntime;
+            if (surface == null || !surface.IsActive ||
+                !CharacterWorldPresenceQuery.TryResolve(_world, _entityId, out var presence) ||
+                !presence.HasWorldPosition || presence.SurfaceId != surface.ActiveSurfaceId) return;
+            _moveController.CancelPresentationMovementPublic(_entityId);
+            var mover = host.GetComponent<HostNpcScheduleMover>();
+            mover?.CancelCivilianIntent(_entityId);
+            surface.Mapper.WorldToPresentation(presence.WorldPosition.X, presence.WorldPosition.Y, out var x, out var y);
+            transform.position = new Vector3(x, y, transform.position.z);
+            _artLastPosition = transform.position;
+            mover?.NotifyNpcReleased(_entityId);
         }
 
         void UpdateRuntimeArt(Entity entity)

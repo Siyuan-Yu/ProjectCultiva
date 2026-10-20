@@ -82,7 +82,7 @@ namespace XianXia.Core.Combat
             if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                 return null;
             if (life.IsIncapacitated)
-                return "弥留";
+                return life.Convalescing ? "恢复中·昏迷" : "弥留";
             if (life.State == LifecycleState.Captured)
                 return "被俘";
             if (life.IsDead && entity.TryGet<CorpseComponent>(out _))
@@ -108,10 +108,13 @@ namespace XianXia.Core.Combat
                 return false;
 
             var now = world.Tick.Value;
-            if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
+            if (life.IsDying && life.BleedOutAfterTick > 0)
             {
-                label = IsMedicallyStabilized(world, entity, out _) ? "弥留·医疗稳定" : "弥留";
-                remainingSeconds = (int)Math.Max(0L, (long)life.BleedOutAfterTick - (long)now);
+                label = "弥留";
+                var rate = MedicalRecoveryService.ResolveRateMilli(world, entity);
+                if (life.HasMedicalProgress && rate >= 0) return false;
+                remainingSeconds = life.HasMedicalProgress ? (life.DyingReserveMilli - rate - 1) / -rate
+                    : (int)Math.Max(0L, (long)life.BleedOutAfterTick - (long)now);
                 return true;
             }
 
@@ -131,8 +134,14 @@ namespace XianXia.Core.Combat
         /// <summary>如「弥留 42s」「尸体 12s」；无倒计时则退回纯标签。</summary>
         public static string FormatLifeStateWithCountdown(SimulationWorld world, Entity entity)
         {
+            if (entity != null && entity.TryGet<LifecycleComponent>(out var progress) && progress.IsDying && progress.HasMedicalProgress)
+                return "弥留 " + (progress.DyingReserveMilli / 1000f).ToString("0.0") + "/200 · " +
+                    (MedicalRecoveryService.ResolveRateMilli(world, entity) / 1000f).ToString("+0.0;-0.0;0.0") + "/s";
             if (TryGetLifeStateCountdown(world, entity, out var label, out var sec))
                 return label + " " + sec + "s";
+            if (entity != null && entity.TryGet<LifecycleComponent>(out var medicalLife) && medicalLife.IsIncapacitated)
+                return ResolveLifeStateLabel(entity) + " " +
+                    (MedicalRecoveryService.ResolveRateMilli(world, entity) / 1000f).ToString("+0.0;-0.0;0.0") + "/s";
             return ResolveLifeStateLabel(entity);
         }
 
@@ -174,11 +183,15 @@ namespace XianXia.Core.Combat
 
             var previous = life.State;
             life.State = LifecycleState.Incapacitated;
+            life.ResetMedicalProgress();
+            life.HasMedicalProgress = true;
+            life.DyingReserveMilli = BleedOutRealSeconds * 1000;
             life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
             life.IncapacitatedAtTick = world.Tick.Value;
             life.LastDeathConfirmationReason = DeathConfirmationReason.Unknown;
             life.RecordTransition(previous, LifecycleState.Incapacitated, "Damage");
             AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
+            if (entity.TryGet<MovementIntentComponent>(out var interruptedMove)) interruptedMove.Clear();
             if (!responsibleAttackerId.IsNone)
             {
                 if (!entity.TryGet<CombatDeathAttributionComponent>(out var attribution))
@@ -207,7 +220,8 @@ namespace XianXia.Core.Combat
 
             ReleaseRecoveryBed(world, entity.Id);
             life.State = LifecycleState.Captured;
-            life.ClearBleedOut();
+            // Capture changes custody, never heals the wound or cancels dying progression.
+            if (!life.HasMedicalProgress) life.ClearBleedOut();
             ClearDeathAttribution(entity);
             return true;
         }
@@ -230,14 +244,30 @@ namespace XianXia.Core.Combat
             if (!life.IsIncapacitated)
                 return false;
 
+            if (!entity.TryGet<AttributesComponent>(out var attributes) ||
+                (long)restoreHp * 2 <= Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)))
+                return false;
+
+            var recoveredState = life.State == LifecycleState.Captured ? LifecycleState.Captured : LifecycleState.Alive;
+            // Carried patients were placed at the bed centre, which is a furniture blocker.
+            // Stand up at the bed's legal access point before releasing its physical occupancy.
+            if (recoveredState == LifecycleState.Alive &&
+                MedicalRecoveryService.TryGetPatientBed(world, entity, out var recoveryBed) &&
+                RoomBedFacilityService.TryResolveAccessPoint(world, recoveryBed, out var standingPoint) &&
+                (!world.SurfaceGround.TryGet(recoveryBed.SurfaceId, out var ground) ||
+                 ground.IsWalkable(standingPoint.X, standingPoint.Y)))
+                world.WorldPresence.SetAtWorldPosition(entity.Id, standingPoint, recoveryBed.SurfaceId);
             ReleaseRecoveryBed(world, entity.Id);
-            life.State = LifecycleState.Alive;
+            life.State = recoveredState;
             life.ClearBleedOut();
-            life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Alive, "Recovery");
+            life.ResetMedicalProgress();
+            life.RecordTransition(LifecycleState.Incapacitated, recoveredState, "Recovery");
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
-                vitals.CurrentHp = Math.Max(1, restoreHp);
+                vitals.CurrentHp = Math.Min(Math.Max(1, restoreHp), Math.Max(1,
+                    attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)));
             ClearDeathAttribution(entity);
+            MortalCivilianService.ResumeAfterMedicalRecovery(world, entity);
             if (!rescuerId.IsNone && rescuerId != entity.Id)
                 new SocialEventService().RecordCharacterRescued(world, rescuerId, entity.Id);
             return true;
@@ -277,9 +307,19 @@ namespace XianXia.Core.Combat
                 responsibleAttackerId = attribution.ResponsibleAttackerId;
 
             life.State = LifecycleState.Dead;
+            if (world.Civilians.TryGet(target.Id, out var medicState))
+                MortalCivilianService.SettleCarriedMedicine(world, target, medicState);
             life.ClearBleedOut();
+            life.ResetMedicalProgress();
             life.LastDeathConfirmationReason = reason;
             life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Dead, reason.ToString());
+            if (world.Civilians.TryGet(target.Id, out var custody) &&
+                (custody.Disposition == CivilianDisposition.CapturedEscorted || custody.Disposition == CivilianDisposition.Detained))
+            {
+                custody.CarrierId = EntityId.None;
+                custody.Disposition = CivilianDisposition.Normal;
+                custody.DetainedResidenceWorkAreaId = string.Empty;
+            }
             AutonomousActionContinuationService.CancelInvalid(world, target.Id);
             EnsureCorpse(world, target);
 
@@ -342,7 +382,6 @@ namespace XianXia.Core.Combat
 
             var now = world.Tick.Value;
             // 先收集再改，避免枚举中途改集合
-            var bleedOut = new System.Collections.Generic.List<Entity>(8);
             var rotAway = new System.Collections.Generic.List<Entity>(8);
 
             foreach (var entity in world.Entities.All)
@@ -350,23 +389,7 @@ namespace XianXia.Core.Combat
                 if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                     continue;
 
-                if (life.IsIncapacitated &&
-                    life.BleedOutAfterTick > 0 &&
-                    IsMedicallyStabilized(world, entity, out _))
-                {
-                    // Preserve the exact remaining duration while a real medical bed is
-                    // occupied. This is not healing and never changes HP/lifecycle.
-                    if (life.BleedOutAfterTick < ulong.MaxValue) life.BleedOutAfterTick++;
-                    continue;
-                }
-
-                if (life.IsIncapacitated &&
-                    life.BleedOutAfterTick > 0 &&
-                    life.BleedOutAfterTick <= now)
-                {
-                    bleedOut.Add(entity);
-                    continue;
-                }
+                MedicalRecoveryService.AdvanceSecond(world, entity);
 
                 if (life.IsDead &&
                     entity.TryGet<CorpseComponent>(out var corpse) &&
@@ -375,9 +398,6 @@ namespace XianXia.Core.Combat
                     rotAway.Add(entity);
                 }
             }
-
-            for (var i = 0; i < bleedOut.Count; i++)
-                TryConfirmDeath(world, EntityId.None, bleedOut[i], DeathConfirmationReason.BleedOut, out _);
 
             for (var i = 0; i < rotAway.Count; i++)
                 FinalizeRemoval(world, rotAway[i]);
@@ -391,14 +411,8 @@ namespace XianXia.Core.Combat
             {
                 if (!world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) ||
                     !entity.TryGet<LifecycleComponent>(out var life)) continue;
-                if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
-                {
-                    if (IsMedicallyStabilized(world, entity, out _)) continue;
-                    if (life.BleedOutAfterTick <= world.Tick.Value + 1)
-                        TryConfirmDeath(world, EntityId.None, entity, DeathConfirmationReason.BleedOut, out _);
-                    else life.BleedOutAfterTick--;
-                }
-                else if (life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))
+                MedicalRecoveryService.AdvanceSecond(world, entity);
+                if (life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))
                 {
                     if (corpse.RemoveAfterTick <= world.Tick.Value + 1) FinalizeRemoval(world, entity);
                     else corpse.RemoveAfterTick--;
@@ -418,6 +432,7 @@ namespace XianXia.Core.Combat
             var removalSpatialBefore = FormatRemovalSpatial(world, entity.Id);
 #endif
             life.State = LifecycleState.Removed;
+            life.ResetMedicalProgress();
             ReleaseRecoveryBed(world, entity.Id);
             life.ClearBleedOut();
             AutonomousActionContinuationService.CancelInvalid(world, entity.Id);
@@ -461,19 +476,8 @@ namespace XianXia.Core.Combat
             if (world == null || entity == null ||
                 !entity.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated)
                 return false;
-            foreach (var pair in world.RecoverySpotDeliveries.Placements)
-            {
-                if (pair.Value != entity.Id ||
-                    !world.OutdoorConstructedAssets.Assets.TryGetValue(pair.Key, out var candidate) ||
-                    !RoomBedFacilityService.BedHasUsage(world, candidate, RoomUsage.Medical) ||
-                    !RoomBedFacilityService.IsValidOccupiedBed(
-                        world, entity.Id, RoomUsage.Medical, out var occupied) ||
-                    !string.Equals(occupied.StableAssetId, candidate.StableAssetId, StringComparison.Ordinal))
-                    continue;
-                bed = candidate;
-                return true;
-            }
-            return false;
+            return MedicalRecoveryService.TryGetPatientBed(world, entity, out bed) &&
+                MedicalRecoveryService.ResolveRateMilli(world, entity) >= 0;
         }
 
         static void ReleaseRecoveryBed(SimulationWorld world, EntityId characterId)

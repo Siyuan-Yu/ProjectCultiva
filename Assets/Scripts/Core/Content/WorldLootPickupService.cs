@@ -76,8 +76,10 @@ namespace XianXia.Core.Content
                 return Result.Failure(ErrorCode.InvalidArgument, "Loot spot id required.");
             if (string.IsNullOrWhiteSpace(itemId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Item id required.");
-            if (!world.Entities.TryGet(subject, out _))
+            if (!world.Entities.TryGet(subject, out var actor))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
+            if (!XianXia.Core.Combat.CombatLifeStateService.CanFight(actor))
+                return Result.Failure(ErrorCode.InvalidOperation, "失能人物不能拾取物品。");
 
             var flag = FlagId(lootSpotId);
             if (StoryFlagService.Has(world, flag))
@@ -86,11 +88,29 @@ namespace XianXia.Core.Content
             if (!world.InventoryCatalog.TryGet(itemId.Trim(), out _))
                 return Result.Failure(ErrorCode.NotFound, "Item not in catalog.", itemId);
 
-            var added = world.Inventory.TryAdd(itemId.Trim(), 1);
+            world.GroundLoot.TryGetValue(lootSpotId, out var drop);
+            if (drop != null)
+            {
+                if (drop.ItemId != itemId ||
+                    !XianXia.Core.World.Strategic.CharacterWorldPresenceQuery.TryResolve(world, subject, out var presence) ||
+                    !presence.HasWorldPosition || presence.SurfaceId != drop.SurfaceId ||
+                    !world.SurfaceSpatial.TryGet(drop.SurfaceId, out var metric))
+                    return Result.Failure(ErrorCode.InvalidOperation, "掉落物与人物不在同一可拾取空间。");
+                var dx = presence.WorldPosition.X - drop.WorldX;
+                var dy = presence.WorldPosition.Y - drop.WorldY;
+                if (dx * dx + dy * dy > metric.CellSize * metric.CellSize * 9f)
+                    return Result.Failure(ErrorCode.InvalidOperation, "请先走近掉落物。");
+            }
+            var added = world.Inventory.TryAdd(itemId.Trim(), drop?.Count ?? 1);
             if (added <= 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Inventory full or rejected.", itemId);
 
-            StoryFlagService.Set(world, flag, subject);
+            if (drop != null) drop.Count -= added;
+            if (drop == null || drop.Count == 0)
+            {
+                world.GroundLoot.Remove(lootSpotId);
+                StoryFlagService.Set(world, flag, subject);
+            }
             world.Events.Publish(
                 EventType.PartyInventoryChanged,
                 world.Tick,

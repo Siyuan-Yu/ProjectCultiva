@@ -101,6 +101,13 @@ namespace XianXia.Core.Persistence
                 {
                     dto.Lifecycle = (int)life.State;
                     dto.BleedOutAfterTick = life.BleedOutAfterTick;
+                    dto.IncapacitatedAtTick = life.IncapacitatedAtTick;
+                    dto.HasMedicalProgress = life.HasMedicalProgress;
+                    dto.DyingReserveMilli = life.DyingReserveMilli;
+                    dto.HerbDoses = life.HerbDoses;
+                    dto.Convalescing = life.Convalescing;
+                    dto.RecoveryHpMilli = life.RecoveryHpMilli;
+
                 }
 
                 if (entity.TryGet<AttributesComponent>(out var attrs))
@@ -268,6 +275,16 @@ namespace XianXia.Core.Persistence
                     dto.MortalCarrierId = civilian.CarrierId.Value;
                     dto.MortalDetainedResidenceWorkAreaId = civilian.DetainedResidenceWorkAreaId;
                     dto.MortalRescueTargetId = civilian.RescueTargetId.Value;
+                    dto.MedicTargetId = civilian.MedicTargetId.Value;
+                    dto.MedicCarryingHerb = civilian.MedicCarryingHerb;
+                    dto.MedicSourceSiteId = civilian.MedicSourceSiteId;
+                    dto.MedicSourceRoomId = civilian.MedicSourceRoomId;
+                    dto.MedicSourcePartyMemberId = civilian.MedicSourcePartyMemberId.Value;
+                    dto.MedicTreatmentSeconds = civilian.MedicTreatmentSeconds;
+                    dto.MedicLastTreatmentTick = civilian.MedicLastTreatmentTick;
+                    dto.MedicRetryAfterTick = civilian.MedicRetryAfterTick;
+                    dto.MedicStatus = civilian.MedicStatus;
+
                     dto.MortalRescueCarrying = civilian.RescueCarrying;
                     dto.MortalRescueDestinationId = civilian.RescueDestinationId;
                     dto.MortalRescueRejectedDestinationIds = civilian.RescueRejectedDestinationId;
@@ -403,6 +420,8 @@ namespace XianXia.Core.Persistence
             CapturePartyInventory(world, snap);
             snap.HasTakenWorldLootSnapshotAuthority = true;
             WorldLootPickupService.CaptureTakenSpotIds(world, snap.TakenWorldLootSpotIds);
+            var dropIds = new List<string>(world.GroundLoot.Keys); dropIds.Sort(StringComparer.Ordinal);
+            foreach (var id in dropIds) snap.GroundLoot.Add(world.GroundLoot[id].Copy());
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
             CaptureOutdoorStatefulObjects(world, snap);
@@ -626,7 +645,7 @@ namespace XianXia.Core.Persistence
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v14 saves lack ROOM-01 room/bed authority. Start a new game (schema v15 required).",
+                    "Schema v1-v14 saves lack ROOM-01 room/bed authority. Start a new game (schema v17 required; v15/v16 JSON can be upgraded on load).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -647,6 +666,15 @@ namespace XianXia.Core.Persistence
                         ErrorCode.SnapshotInvalid,
                         "Snapshot lacks current EntityLocation authority and requires offline conversion.",
                         "EntityIndex=" + i + " EntityId=" + (entity?.Id ?? 0UL));
+                if (entity.DyingReserveMilli < 0 || entity.DyingReserveMilli > 200000 ||
+                    entity.HerbDoses < 0 || entity.HerbDoses > 1000000 ||
+                    entity.RecoveryHpMilli < 0 || entity.RecoveryHpMilli >= 1000 ||
+                    entity.Convalescing && (!entity.HasMedicalProgress || entity.Lifecycle != (int)LifecycleState.Incapacitated && entity.Lifecycle != (int)LifecycleState.Captured) ||
+                    entity.MedicTreatmentSeconds < 0 || entity.MedicTreatmentSeconds >= MedicalRecoveryService.TreatmentSeconds ||
+                    entity.MedicTargetId != 0 && !snapshotEntityIds.Contains(entity.MedicTargetId) ||
+                    entity.MedicSourcePartyMemberId != 0 && !snapshotEntityIds.Contains(entity.MedicSourcePartyMemberId))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid,
+                        "Invalid medical recovery or carried-medicine state.");
                 if (entity.HasMortalCivilian &&
                     (entity.MortalSatiety < 0 || entity.MortalSatiety > 100 ||
                      entity.MortalEnergy < 0 || entity.MortalEnergy > 100 ||
@@ -810,7 +838,13 @@ namespace XianXia.Core.Persistence
                 entity.AddComponent(attrs);
                 var life = new LifecycleComponent((LifecycleState)e.Lifecycle)
                 {
-                    BleedOutAfterTick = e.BleedOutAfterTick
+                    BleedOutAfterTick = e.BleedOutAfterTick,
+                    IncapacitatedAtTick = e.IncapacitatedAtTick,
+                    HasMedicalProgress = e.HasMedicalProgress,
+                    DyingReserveMilli = e.DyingReserveMilli,
+                    HerbDoses = e.HerbDoses,
+                    Convalescing = e.Convalescing,
+                    RecoveryHpMilli = e.RecoveryHpMilli
                 };
                 entity.AddComponent(life);
                 var actionState = new ActionStateComponent
@@ -1013,6 +1047,16 @@ namespace XianXia.Core.Persistence
                     civilian.CarrierId = new EntityId(e.MortalCarrierId);
                     civilian.DetainedResidenceWorkAreaId = e.MortalDetainedResidenceWorkAreaId ?? string.Empty;
                     civilian.RescueTargetId = new EntityId(e.MortalRescueTargetId);
+                    civilian.MedicTargetId = new EntityId(e.MedicTargetId);
+                    civilian.MedicCarryingHerb = e.MedicCarryingHerb;
+                    civilian.MedicSourceSiteId = e.MedicSourceSiteId ?? string.Empty;
+                    civilian.MedicSourceRoomId = e.MedicSourceRoomId ?? string.Empty;
+                    civilian.MedicSourcePartyMemberId = new EntityId(e.MedicSourcePartyMemberId);
+                    civilian.MedicTreatmentSeconds = e.MedicTreatmentSeconds;
+                    civilian.MedicLastTreatmentTick = e.MedicLastTreatmentTick;
+                    civilian.MedicRetryAfterTick = e.MedicRetryAfterTick;
+                    civilian.MedicStatus = e.MedicStatus ?? string.Empty;
+
                     civilian.RescueCarrying = e.MortalRescueCarrying;
                     civilian.RescueDestinationId = e.MortalRescueDestinationId ?? string.Empty;
                     civilian.RescueRejectedDestinationId = e.MortalRescueRejectedDestinationIds ?? string.Empty;
@@ -1190,6 +1234,14 @@ namespace XianXia.Core.Persistence
                 WorldLootPickupService.RestoreTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
+            if (snap.GroundLoot == null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Ground loot authority missing.");
+            foreach (var drop in snap.GroundLoot)
+            {
+                if (drop == null || !drop.IsValid || world.GroundLoot.ContainsKey(drop.Id) || WorldLootPickupService.IsTaken(world, drop.Id))
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid or duplicate ground loot.");
+                world.GroundLoot.Add(drop.Id, drop.Copy());
+            }
             var recoveryRestore = RestoreRecoverySpotPlacements(world, snap);
             if (recoveryRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(recoveryRestore.Error);
             var recoveryPhysical = XianXia.Core.Npc.MortalCivilianService

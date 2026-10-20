@@ -1,5 +1,9 @@
 # CIVILIAN-LIFE-01 — Mortal Needs, Faction Work, Occupation, Captivity & Recruitment V1
 
+> **医疗后续收尾：** [313](313-medical-closure-and-ground-loot-2026-10-20.md)已接通床上精力恢复、旧零血囚犯兼容、携药归还/落地及地面显示。当前Snapshot v17，读取v15/v16补齐；待现场验收，未提交。下方首次医疗v16为历史实施记录。
+
+> **2026-10-20 医疗当前覆写：** 制作人已授权并实施[312](312-medic-bedside-treatment-2026-10-20.md)与[ADR-0048](43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)。Medic床边治疗、药草持续药效、医疗床+0.2/s及超过50%HP苏醒、Snapshot v16均为Implemented / Producer Acceptance Pending，未提交。下方“Medic延期/没有医疗AI/床位永久稳定”为历史范围，不覆盖本次新功能；旧民生验收不自动覆盖医疗。
+
 **Implementation Complete / Producer Accepted（2026-10-19 制作人总体确认）/ Committed·Sealed（2026-10-20）。** 制作人明确表示“这些验过了，这一套民生是验过了的”。此结论覆盖已实施的 CIVILIAN-LIFE-01 民生范围，不把明确延期的 Medic 治疗、Repair、普通建筑拆除、装备制造或跨 Site 物流算入验收；未提供逐分支记录的历史清单仍保留为追溯，不要求重复整套验收。
 
 ## Product Goal
@@ -211,13 +215,14 @@ ROOM-01 已实现并保持 **Producer Acceptance Pending**：旧 `WorkArea.Capac
 | 能力名称 | 当前代码入口 | 正式 UI / 玩家入口 | Content 前置 | 制作人已确认范围 | 原验收项目（历史目录） | 已知阻塞 / 延期 | 原计划动作（历史） |
 |---|---|---|---|---|---|---|---|
 | 食宿与 Needs | `MortalCivilianService.Tick` / `ApplyActivity` | 自动生活；正式速度栏 | StorageRoom、Site PublicStock、Normal Residence | 制作人总体确认已验收 | 有粮取食、回床、紧急地睡、无粮低精力、Detained 食宿、Save/Load | 旧 Captured 早退已修 | LevelTester A 卡按 1x/2x/5x/20x 人工验收 |
-| 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 同 Site/owner 的专业 WorkArea | 单选职业、九名劳工初始分组、通用救援/建设范围已确认 | Farmer/HerbFarmer/Logger、日程边界、职业切换与存档 | Medic 治疗延期 | 用正式工作面板逐项人工验收 |
+| 职业与工作 | `MortalActivityEvaluator`、`HostMortalWorkPanel` | HUD“工作”面板 | 专业WorkArea/合法床位/实际供药点 | 原职业、救援/建设范围已确认；新增Medic未验收 | 六名生产劳工+阿禾/阿杏/阿枝三名医者，原身份/住宅不变 | 医者取药/床边施药已实施待验，见312 | 原验收保留，仅追加312医疗人工验收 |
 | 建设与搬运 | `CivilianConstructionJobService`、`ConstructionService` | 正式建设 UI | 己方 Site、公共木材、合法工人 | 工具只准备人物/材料，正式 UI 发起 | 取材、搬运、施工、读档续作 | Repair 与普通建筑拆除明确延期 | B 卡准备后从正式建设 UI 落点 |
 | 占领、驻军与追击 | `WorldSiteTerritoryTransferService`、`SquadState.DefendedSiteId`、Flee MovementIntent | SiteCore 战争、人物右键交互 | 主管显式驻军；巡卫独立 patrol squad | 显式驻军、0.2 逃亡、真实追击、Displaced 范围已确认 | 全链与 Save/Load | 无工具阻塞；业务仍待人工确认 | C 卡观察实际名单、速度、位置与身份 |
-| 医疗搬运 | `MortalCivilianService` Rescue、`RoomBedFacilityService.TryPlaceCarriedOccupant` | 自动发现、真实搬运到实际床边 | 同势力弥留者；医疗床→本人住宅床→未分配住宅床 | 通用救援与医疗床稳定范围已确认 | 自动发现、预约、搬起、床边安置/占用、跨旗帜、中断、Save/Load | Medic真实治疗仍明确延期；床位稳定不等于治疗 | 以306床位清单为现行验收，270 D卡只作历史工具准备参考 |
+| 医疗搬运与治疗 | Rescue、`MortalMedicCare`、`MedicalRecoveryService` | 自动救援优先，随后医者实际取药及床边治疗 | 公库储藏室或附近Party灵药；医疗/住宅/囚徒实占床 | 原真实搬运已验收；新治疗与医疗床效果待验 | 200储备−1/s、每药+0.4/s、医疗床+0.2/s、恢复HP超过50%苏醒 | 灵力疗伤与手动工作优先级延期 | 按312人工验收；空地不得施药 |
 | 囚犯押送与交接 | `RequestCapture`、`ValidateDetainAtBed`、`DetainAtBed` | 正式Capture Encounter、人物/牢床交互 | CapturedEscorted、真实Carrier、玩家控制Site内Prison房间及合法空牢床 | 真实押送、床边交接、实际床位占用已实现 | 预约/占用冲突、运输中断、床用途改变、Save/Load | 旧PrisonerOnly WorkArea/显式prisonDropOff不是当前交接authority | 按306真实房间/床StableId验收，禁止只验旧点位到达 |
-| 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低 Loyalty | 民生整体已获制作人验收；细项结果未单独登记 | 食宿、照料日、忠诚下降、招降后权限/入队 | 旧缺口 A 已修；Medic 治疗仍延期 | 有具体复现才定向返修；F 卡保留作历史目录 |
+| 囚犯照料与招降 | `MortalCivilianService.Tick` / `Recruit` | 人物交互、人员管理、加入小队 | Detained、食物、合法囚室、低Loyalty；受伤囚犯需实际治疗 | 原民生已获验收；新伤势保留/牢床施药待验 | 食宿、照料日、忠诚、招降权限；捕获不消除伤势、苏醒不解除拘押 | 灵力疗伤未实施 | 仅追加312牢床及中断/存档验收 |
 | CIVILIAN Snapshot v15 | `SnapshotService` / `HostLevelTesterSnapshotOps` | LevelTester“存档与会话” | 各分支已建立真实运行状态 | 民生整体已获制作人验收；打包后基本存读档另获正面反馈 | 工作、送达、押送、关押、Fleeing/Displaced | 逐状态结果未单独登记 | 有具体复现才核对应 EntityId/owner/target；G 卡保留作历史目录 |
+| 医疗Snapshot v16 | `SnapshotService` / `JsonSnapshotSerializer` | 正常保存/读取 | v15 JSON可内存补齐；v16必须含关键医疗字段 | 2026-10-20新增，未人工验收 | 弥留储备、药效、小数HP、昏迷及携药/途中/施药进度；原身份与床位保留 | 不能向旧程序回读v16 | 按312分别在取药后、施药中、恢复中存读档 |
 | 历史回归：SHOP/AUCTION/SOCIAL/DYNAMIC | 各已封板 service / Host panel | 各正式 UI | BaseGame 对应对象 | **历史已封板（Producer Accepted / Sealed）** | 本轮不重开 | 无 | 仅在“世界与内容”保留折叠/滚动入口 |
 | LevelTester 独立小功能页重组 | `HostLevelTesterCheatPanel`、`LevelTesterToolCatalog`、各 Cheat section、`HostUiHitTest` | `` ` `` / 顶栏作弊工具 | LevelTester Scene | 五大聚合页签方案已 Superseded | 74 个具体 ToolId、九组二级折叠菜单、搜索临时展开、单功能页、双滚动区、关闭生命周期 | 等待制作人人工验收；完整迁移表见 [268](268-level-tester-direct-tool-pages-2026-10-10.md)，关闭核查见 [269](269-ui-foldout-and-close-audit-2026-10-11.md) | **Implementation Complete / Producer Acceptance Pending** |
 

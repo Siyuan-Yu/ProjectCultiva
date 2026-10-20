@@ -13,7 +13,7 @@ namespace XianXia.Unity.Host
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
         Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8,
-        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12, Door = 13
+        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12, Door = 13, Loot = 14
     }
 
     public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
@@ -62,6 +62,7 @@ namespace XianXia.Unity.Host
                     case WorldObjectTargetKind.Bed: return "bed";
                     case WorldObjectTargetKind.Room: return "room";
                     case WorldObjectTargetKind.Door: return "roomDoor";
+                    case WorldObjectTargetKind.Loot: return "loot";
                     default: return string.Empty;
                 }
             }
@@ -71,7 +72,7 @@ namespace XianXia.Unity.Host
             Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot ||
             Kind == WorldObjectTargetKind.StorageRoom || Kind == WorldObjectTargetKind.PrisonDropOff ||
             Kind == WorldObjectTargetKind.Bed || Kind == WorldObjectTargetKind.Room ||
-            Kind == WorldObjectTargetKind.Door
+            Kind == WorldObjectTargetKind.Door || Kind == WorldObjectTargetKind.Loot
                 ? Plot != null ? Plot.StableCellId : string.Empty :
             Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
             Kind == WorldObjectTargetKind.OpportunityObject ? OpportunityObject?.WorldObjectInstanceId ?? string.Empty :
@@ -168,6 +169,12 @@ namespace XianXia.Unity.Host
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Bed, plot: plot,
                     displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.InteractKind == HostInteractSpotKind.Loot)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Loot, plot: plot, displayLabel: plot.Label);
                 return true;
             }
 
@@ -321,7 +328,8 @@ namespace XianXia.Unity.Host
             {
                 var plot = plots[i];
                 if (plot == null || !string.Equals(plot.StableCellId, stableId, StringComparison.Ordinal)) continue;
-                var plotKind = plot.IsRecoverySpot ? WorldObjectTargetKind.RecoverySpot :
+                var plotKind = plot.InteractKind == HostInteractSpotKind.Loot ? WorldObjectTargetKind.Loot :
+                    plot.IsRecoverySpot ? WorldObjectTargetKind.RecoverySpot :
                     plot.IsPrisonDropOff ? WorldObjectTargetKind.PrisonDropOff :
                     plot.IsStorageRoom ? WorldObjectTargetKind.StorageRoom :
                     plot.IsPlantableField ? WorldObjectTargetKind.FarmPlot : WorldObjectTargetKind.None;

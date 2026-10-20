@@ -846,6 +846,16 @@ namespace XianXia.Unity.Host
             if (ShouldHideTakenLoot(p, lootSpotId))
                 return;
 
+            // Cave chamber ground is authored as non-blocking rock. It is a surface,
+            // not a tall rock prop: foot-depth sorting would cover loot and actors' legs.
+            if (!p.BlocksMovement && string.Equals(kind, "rock", System.StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(layout.SpaceKind, "cave", System.StringComparison.OrdinalIgnoreCase))
+            {
+                PlaceSurfaceArtOverlay(ox + (p.X + pw * .5f) * cs, oy + (p.Y + ph * .5f) * cs,
+                    id, pw * cs, ph * cs, HostSpriteFactory.CaveFloorSprite(), Color.gray, -30);
+                return;
+            }
+
             if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
             {
                 var cx = ox + (p.X + pw * 0.5f) * cs;
@@ -1034,6 +1044,8 @@ namespace XianXia.Unity.Host
                 info.Kind,
                 lootSpotId,
                 lootItemId);
+            if (info.InteractKind == HostInteractSpotKind.Loot && !string.IsNullOrEmpty(lootItemId))
+                HostGroundLootVisual.Apply(go, _session?.World, lootItemId, label, 1f);
             if (HostWorldObjectPickGeometry.TryGetInteractionBounds(go, out var interactionBounds))
                 plot.ConfigureInteractionBounds(interactionBounds);
 

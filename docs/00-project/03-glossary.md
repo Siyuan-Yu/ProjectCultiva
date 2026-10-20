@@ -1,5 +1,16 @@
 # 术语表
 
+## 医疗恢复（2026-10-20）
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 弥留储备 | DyingReserveMilli | 本次伤势距死亡的储备，200000千分单位起步；不是HP或剩余现实秒 |
+| 恢复中昏迷 | Convalescing | 净恢复率转正后停止弥留，仍失能，HP超过最大值50%才苏醒 |
+| 统一恢复加成 | HealthRecoveryRateMilli | AttributeModifier管线中的千分之一HP/秒加成，可供功法、装备和环境扩展 |
+| 医者携药 | MedicCarryingHerb | 已从公库/附近Party领取但尚未施用的一份灵药；由人物存档持有 |
+
+规则与数值见[312](../40-process/312-medic-bedside-treatment-2026-10-20.md)。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

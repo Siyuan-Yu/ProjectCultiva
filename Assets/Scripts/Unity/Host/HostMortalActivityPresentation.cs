@@ -15,6 +15,8 @@ namespace XianXia.Unity.Host
             SimulationWorld world, Entity entity, MortalCivilianState state, bool isMoving = false)
         {
             if (state == null) return "待命";
+            if (state.Activity == MortalActivity.MedicCare && !string.IsNullOrEmpty(state.MedicStatus))
+                return state.MedicStatus;
             if (state.SleepPhase == CivilianSleepPhase.TravelingToResidence) return "前往床位";
             if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence) return "睡眠";
             if (state.SleepPhase == CivilianSleepPhase.SleepingOnGround) return "就地休息";

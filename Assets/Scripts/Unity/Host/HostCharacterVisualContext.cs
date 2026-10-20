@@ -88,6 +88,9 @@ namespace XianXia.Unity.Host
                     return HostCharacterWorkVisual.For(HumanWorkMotion.Eat);
                 switch (civilian.Activity)
                 {
+                    case MortalActivity.MedicCare:
+                        return civilian.MedicTreatmentSeconds > 0 && civilian.MedicLastTreatmentTick == world.Tick.Value
+                            ? HostCharacterWorkVisual.For(HumanWorkMotion.Generic) : default;
                     case MortalActivity.FarmerWork:
                     case MortalActivity.HerbFarmerWork:
                         // Managed farm movement has no WorkAction. Only an arrived farm intent is evidence.

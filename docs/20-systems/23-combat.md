@@ -1,5 +1,7 @@
 # 战斗
 
+> 2026-10-20 医疗定向覆写：以[312](../40-process/312-medic-bedside-treatment-2026-10-20.md)和[ADR-0048](../40-process/43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)为准。弥留储备200、基础−1/s，每份药草+0.4/s，当前医疗床+0.2/s；净率转正后以同率恢复HP，超过最大HP50%才苏醒。Captured不取消伤势，牢床可治疗。下方旧倒计时/医疗床临时稳定描述不再代表正式当前行为。
+
 > **2026-09-21 LEGACY-FINAL-C Seal：** 现代 CharacterEncounter 已与旧 `StrategicEncounterRuntime`、`RetreatingArmyBoard`、`LingeringBattlefieldRegistry` 解耦；战斗只保存真实 Character／Squad、精确 Surface anchor、生命周期与现代 settlement／participant state。旧 active battle 仅作严格 one-way migration input。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。
 
 > **2026-09-21 现行边界：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 的 Squad／CharacterEncounter 路线及 ReadyToEnd／settlement／presentation 已验收封板；玩家 WorldMap Army／AttackArmy 产品入口已退休。

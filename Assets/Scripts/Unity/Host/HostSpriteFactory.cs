@@ -15,6 +15,29 @@ namespace XianXia.Unity.Host
         static Sprite _bed;
         static Sprite _meleeSlash;
         static Sprite _rangedBolt;
+        static Sprite _caveFloor;
+
+        /// <summary>Neutral stone fallback for cave ground; avoids the legacy RockTile road placeholder.</summary>
+        public static Sprite CaveFloorSprite()
+        {
+            if (_caveFloor != null) return _caveFloor;
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            { name = "HostCaveStoneFloor", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Repeat };
+            var colors = new Color[size * size];
+            for (var y = 0; y < size; y++) for (var x = 0; x < size; x++)
+            {
+                // Periodic low-contrast stone grain; no opaque prop outline or repeating road stripes.
+                var broad = Mathf.Sin(x * Mathf.PI * 2f / size) * Mathf.Cos(y * Mathf.PI * 2f / size);
+                var grain = ((x * 37 + y * 53 + x * y * 7) % 17) / 16f - .5f;
+                var shade = .34f + broad * .025f + grain * .025f;
+                colors[y * size + x] = new Color(shade * .94f, shade, shade * .98f, 1f);
+            }
+            texture.SetPixels(colors); texture.Apply(false, true);
+            _caveFloor = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f), 32f,
+                0, SpriteMeshType.FullRect);
+            return _caveFloor;
+        }
 
         public static Sprite UnitSprite()
         {

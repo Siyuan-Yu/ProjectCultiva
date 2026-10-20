@@ -139,6 +139,15 @@ namespace XianXia.Core.Npc
         public EntityId RescueRejectedTargetId { get; set; }
         public ulong RescueRetryAfterTick { get; set; }
         public string RescueStatus { get; set; } = string.Empty;
+        public EntityId MedicTargetId { get; set; }
+        public bool MedicCarryingHerb { get; set; }
+        public string MedicSourceSiteId { get; set; } = string.Empty;
+        public string MedicSourceRoomId { get; set; } = string.Empty;
+        public EntityId MedicSourcePartyMemberId { get; set; }
+        public int MedicTreatmentSeconds { get; set; }
+        public ulong MedicLastTreatmentTick { get; set; }
+        public ulong MedicRetryAfterTick { get; set; }
+        public string MedicStatus { get; set; } = string.Empty;
         // Session-only food trip. Stock remains SitePublicStock authority and is removed only on arrival.
         public string FoodFetchStorageRoomId { get; set; } = string.Empty;
         public string FoodFetchSourceSiteId { get; set; } = string.Empty;
@@ -479,6 +488,9 @@ namespace XianXia.Core.Npc
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                 MortalCivilianService.ShouldRetryFood(world, entity, state))
                 return MortalActivity.FetchFood;
+            if (state.Profession == MortalProfession.Medic &&
+                MortalCivilianService.HasMedicTarget(world, entity, state))
+                return MortalActivity.MedicCare;
             var validResidenceSleep =
                 RoomBedFacilityService.IsValidOccupiedBed(
                     world, entity.Id, RoomUsage.Residential, out _);
@@ -518,7 +530,7 @@ namespace XianXia.Core.Npc
                     state.ScheduleStatus = "工作受阻：无合法伐木工区";
                     break;
                 case MortalProfession.Medic:
-                    state.ScheduleStatus = "专职行为尚未接入受管凡人执行：Medic";
+                    state.ScheduleStatus = "医者待命：无可治疗床上伤员或等待补药";
                     break;
                 default:
                     state.ScheduleStatus = "工作受阻：未分配职业";
@@ -538,7 +550,7 @@ namespace XianXia.Core.Npc
         }
     }
 
-    public static class MortalCivilianService
+    public static partial class MortalCivilianService
     {
         public const string GrainResourceId = "base:resource_grain";
         public const string HerbResourceId = "base:resource_spirit_herb";
@@ -566,7 +578,37 @@ namespace XianXia.Core.Npc
             world.Entities.TryGet(id, out var entity);
             var state = Ensure(world, entity);
             state.Profession = profession;
+            if (profession != MortalProfession.Medic) SettleCarriedMedicine(world, entity, state);
             return Result.Success();
+        }
+
+        /// <summary>Wake-up handoff: keep persistent assignments, rebuild transient work from the current schedule.</summary>
+        public static void ResumeAfterMedicalRecovery(SimulationWorld world, Entity entity)
+        {
+            var state = Ensure(world, entity);
+            if (state == null || !entity.TryGet<LifecycleComponent>(out var life) || life.State != LifecycleState.Alive)
+                return;
+            ClearCivilianMovement(entity);
+            ClearFoodTrip(entity, state);
+            ClearSleep(state);
+            InterruptMedic(state);
+            world.WorkAreaOccupancy.Release(entity.Id);
+            world.GetOrCreateOrderQueue(entity.Id).RemoveWhere(order => order.Source == OrderSource.Schedule);
+            if (entity.TryGet<ActionStateComponent>(out var actionState) && actionState.HasActiveAction &&
+                (!world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var active) ||
+                 active.Status == ActionStatus.Cancelled || active.Status == ActionStatus.Completed ||
+                 active.Status == ActionStatus.Failed))
+            {
+                actionState.ActiveActionId = ActionId.None;
+                actionState.ActiveClock = null;
+            }
+            state.Activity = MortalActivity.Idle;
+            state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
+            state.ScheduleStatus = string.Empty;
+            // Party and battle orders retain authority; only autonomous residents resume work here.
+            if (!MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, entity.Id, state)) return;
+            state.Activity = MortalActivityEvaluator.Evaluate(world, entity, state);
+            ApplyActivity(world, entity, state);
         }
 
         public static bool CanSetProfession(SimulationWorld world, EntityId id, out string reason)
@@ -597,8 +639,16 @@ namespace XianXia.Core.Npc
             {
                 var state = Ensure(world, entity);
                 if (state == null) continue;
+                ReconcileMedicAssignment(world, entity, state);
                 if (!entity.TryGet<LifecycleComponent>(out var life) || life.State == LifecycleState.Dead || life.State == LifecycleState.Removed)
-                { EndCivilianSleep(world, entity.Id, state); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
+                {
+                    EndCivilianSleep(world, entity.Id, state); DropRescue(world, entity, state);
+                    state.CarrierId = EntityId.None;
+                    state.Disposition = CivilianDisposition.Normal;
+                    state.DetainedResidenceWorkAreaId = string.Empty;
+                    CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
+                    state.Activity = MortalActivity.Idle; continue;
+                }
                 AdvanceDayCare(world, entity.Id, state, world.Tick.Value / WorldTick.TicksPerDay);
                 state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
                 if (life.State == LifecycleState.Alive &&
@@ -609,7 +659,8 @@ namespace XianXia.Core.Npc
                     continue;
                 }
                 AdvanceNeeds(world, entity, state);
-                if (life.State != LifecycleState.Alive && life.State != LifecycleState.Captured)
+                if (life.IsIncapacitated && state.Disposition != CivilianDisposition.CapturedEscorted ||
+                    life.State != LifecycleState.Alive && life.State != LifecycleState.Captured)
                 {
                     EndCivilianSleep(world, entity.Id, state);
                     DropRescue(world, entity, state);
@@ -659,6 +710,8 @@ namespace XianXia.Core.Npc
                     ClearFoodTrip(entity, state);
                 if (state.Activity != MortalActivity.Rescue)
                     DropRescue(world, entity, state);
+                if (state.Activity != MortalActivity.MedicCare)
+                    InterruptMedic(state);
                 if (state.Activity != MortalActivity.Haul)
                     CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
                 ApplyActivity(world, entity, state);
@@ -686,11 +739,13 @@ namespace XianXia.Core.Npc
             if (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence && !validResidenceSleep)
                 EndCivilianSleep(world, entity.Id, state);
             var actionBedSleep = IsRunningBedRestAction(world, entity.Id);
-            var sleeping = validResidenceSleep || actionBedSleep ||
+            var medicalBedRest = entity.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated &&
+                MedicalRecoveryService.TryGetPatientBed(world, entity, out _);
+            var sleeping = medicalBedRest || validResidenceSleep || actionBedSleep ||
                            state.SleepPhase == CivilianSleepPhase.SleepingOnGround;
             if (sleeping)
             {
-                var interval = state.SleepPhase == CivilianSleepPhase.SleepingOnGround
+                var interval = !medicalBedRest && state.SleepPhase == CivilianSleepPhase.SleepingOnGround
                     ? MortalCivilianTuning.GroundSleepRestoreEveryTicks
                     : MortalCivilianTuning.BedSleepRestoreEveryTicks;
                 if (now % (ulong)interval == 0) { state.Energy++; state.SleptToday = true; }
@@ -883,7 +938,7 @@ namespace XianXia.Core.Npc
                 case MortalActivity.Logging:
                     Work(world, entity, "wood"); break;
                 case MortalActivity.MedicCare:
-                    break;
+                    TreatAtBed(world, entity, state); break;
                 case MortalActivity.Rescue:
                     RescueOneAlly(world, entity); break;
                 case MortalActivity.Haul:
@@ -1322,7 +1377,9 @@ namespace XianXia.Core.Npc
             if (string.IsNullOrEmpty(areaId) || !world.TryGetWorkArea(areaId, out var area)) return;
             if (!entity.TryGet<MovementIntentComponent>(out var intent))
             { intent = new MovementIntentComponent(); entity.AddComponent(intent); }
-            if (!intent.Active || !string.Equals(intent.TargetWorkAreaId, area.Id, StringComparison.Ordinal))
+            var arrivedAtOldPosition = intent.HostArrived && !MortalCivilianQuery.IsAtWorkArea(
+                world, entity.Id, MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id), area);
+            if (!intent.Active || arrivedAtOldPosition || !string.Equals(intent.TargetWorkAreaId, area.Id, StringComparison.Ordinal))
                 intent.Begin(area.LocationId, area.Id, 0);
         }
 
@@ -1378,6 +1435,7 @@ namespace XianXia.Core.Npc
                     !string.Equals(presence.SurfaceId, rescuerPresence.SurfaceId, StringComparison.Ordinal) ||
                     !MortalCivilianQuery.IsWithinLocalContinuity(world, rescuerPresence.SurfaceId,
                         rescuerPresence.WorldPosition, presence.WorldPosition) ||
+                    MedicalRecoveryService.TryGetPatientBed(world, other, out _) ||
                     world.RecoverySpotDeliveries.ContainsInjured(other.Id) ||
                     IsRescueReserved(world, other.Id)) continue;
                 injured.Add(other);
@@ -1758,7 +1816,8 @@ namespace XianXia.Core.Npc
                 if (!world.OutdoorConstructedAssets.Assets.TryGetValue(pair.Key, out var spot) ||
                     !(RoomBedGeometry.IsBed(spot) &&
                       (RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical) ||
-                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential))) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Prison))) ||
                     !world.Entities.TryGet(pair.Value, out var injured) ||
                     !injured.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
                     spot.OccupantCharacterId != pair.Value ||
@@ -1997,7 +2056,8 @@ namespace XianXia.Core.Npc
             if (!entity.TryGet<FactionMembershipComponent>(out var membership)) { membership = new FactionMembershipComponent(); entity.AddComponent(membership); }
             membership.Assign(world.Strategic.PlayerFactionId, FactionRoleKind.Member);
             CharacterFactionLoyaltyService.SetLoyalty(world, target, CharacterFactionLoyaltyService.DefaultLoyalty);
-            if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured) life.State = LifecycleState.Alive;
+            if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured)
+                life.State = life.IsIncapacitated ? LifecycleState.Incapacitated : LifecycleState.Alive;
             state.Profession = MortalProfession.Unassigned;
             state.Disposition = CivilianDisposition.Normal; state.CarrierId = EntityId.None;
             state.DetainedResidenceWorkAreaId = string.Empty; state.PendingCaptureCarrierId = EntityId.None;
@@ -2008,7 +2068,8 @@ namespace XianXia.Core.Npc
         public static Result Release(SimulationWorld world, EntityId target)
         {
             if (!TryInteractive(world, target, out var entity, out var state)) return Invalid("Target is not an interactive mortal civilian.");
-            if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured) life.State = LifecycleState.Alive;
+            if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured)
+                life.State = life.IsIncapacitated ? LifecycleState.Incapacitated : LifecycleState.Alive;
             state.DetainedResidenceWorkAreaId = string.Empty; state.CarrierId = EntityId.None;
             state.Disposition = CivilianDisposition.Fleeing;
             RoomBedFacilityService.Release(world, target);
@@ -2226,7 +2287,7 @@ namespace XianXia.Core.Npc
         {
             DropEscort(world, entity, state);
             if (entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured)
-                life.State = LifecycleState.Alive;
+                life.State = life.IsIncapacitated ? LifecycleState.Incapacitated : LifecycleState.Alive;
             state.DetainedResidenceWorkAreaId = string.Empty;
             state.Disposition = CivilianDisposition.Fleeing;
             BeginFlee(world, entity, state, MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id));

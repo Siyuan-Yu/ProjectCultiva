@@ -433,7 +433,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿禾",
-      "initialMortalProfession": "Farmer",
+      "initialMortalProfession": "Medic",
       "baseAttributes": {
         "MaxHp": 88,
         "Physique": 8,
@@ -650,7 +650,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿杏",
-      "initialMortalProfession": "HerbFarmer",
+      "initialMortalProfession": "Medic",
       "baseAttributes": {
         "MaxHp": 91,
         "Physique": 9,
@@ -866,7 +866,7 @@
       "defaultFactionId": "base:sect_huangcun_labor",
       "defaultFactionRole": "LaborDisciple",
       "name": "阿枝",
-      "initialMortalProfession": "Logger",
+      "initialMortalProfession": "Medic",
       "baseAttributes": {
         "MaxHp": 96,
         "Physique": 9,

@@ -107,7 +107,10 @@ namespace XianXia.Data.Content
                 CellSize = (float)item.GetNumber("cellSize", 1),
                 Width = (int)item.GetNumber("width", 0),
                 Height = (int)item.GetNumber("height", 0),
-                ExitTriggerDepth = (float)item.GetNumber("exitTriggerDepth", 0)
+                ExitTriggerDepth = (float)item.GetNumber("exitTriggerDepth", 0),
+                // Editor file/text overrides replace the package definition, so preserve the
+                // same space semantics the package loader reads (including cave floor rendering).
+                SpaceKind = item.GetString("spaceKind", string.Empty)
             };
 
             if (layout.Width <= 0 || layout.Height <= 0 || layout.CellSize <= 0f)

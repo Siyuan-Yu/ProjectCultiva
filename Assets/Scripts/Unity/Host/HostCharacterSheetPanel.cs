@@ -341,6 +341,8 @@ namespace XianXia.Unity.Host
                                    bootstrap.Session.World, entity.Id, civilian) +
                                "\n救援：" + rescue + " · " + civilian.RescueStatus + " · 医疗稳定 " + stabilized +
                                "\n押送：" + escort +
+                               (civilian.Profession == MortalProfession.Medic
+                                   ? "\n医者：" + civilian.MedicStatus + " · 携药 " + (civilian.MedicCarryingHerb ? "1" : "0") : string.Empty) +
                                "\n阻断：" + (string.IsNullOrEmpty(civilian.ScheduleStatus)
                                    ? scheduleReason : civilian.ScheduleStatus) +
                                (string.IsNullOrEmpty(loggingStatus) ? string.Empty :
@@ -353,6 +355,9 @@ namespace XianXia.Unity.Host
             var text = "势力：" + (info?.FactionName ?? "无") + "\n身份：" + (info?.FactionRole ?? "无") +
                        "\n忠诚：" + loyalty + "\n境界：" + realm + "\n当前位置：" + (info?.Location ?? "未知") +
                        "\n当前状态：" + actualActivity + "\n日程：" + scheduleText + civilianText;
+            if (entity.TryGet<LifecycleComponent>(out var medicalLife) && medicalLife.IsIncapacitated)
+                text += "\n伤势：" + CombatLifeStateService.FormatLifeStateWithCountdown(bootstrap.Session.World, entity) +
+                    " · 已用灵药 " + medicalLife.HerbDoses;
             GUI.Label(new Rect(rect.x + 14f, rect.y + 38f, rect.width - 28f, rect.height - 46f), text, _body);
         }
 

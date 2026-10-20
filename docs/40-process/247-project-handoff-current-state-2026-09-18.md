@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-20 后续医疗收尾与地面显示：[313](313-medical-closure-and-ground-loot-2026-10-20.md)已接线，待人工验收、未提交。实际卧床恢复精力、旧v15零HP囚犯兼容、转职归还/死亡落地及洞府功法/斗技显形均已实施；当前Snapshot v17支持读取v15/v16。下方初次医疗v16记录保留历史时点含义。
+
+> 2026-10-20 医疗覆写：[312](312-medic-bedside-treatment-2026-10-20.md)与[ADR-0048](43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)已按制作人授权实施。Medic不再延期；公库/附近Party取药、床边施药、弥留及超过50%HP苏醒、Snapshot v16（v15读取时补齐）待现场验收。新开局阿禾、阿杏、阿枝为医者；既有房屋与床位不变。未提交；不继承旧民生整体验收状态。
+
 > 2026-10-20 直线弹道验收覆写：制作人确认远程普通攻击现为发射后固定方向的直线弹道、不要追踪，并明确表示“现在这样挺好的”。[310](310-visible-ranged-hit-damage-timing-2026-10-20.md)／[ADR-0047](43-decisions/ADR-0047-visible-ranged-impact-damage-timing.md) 状态更新为 **Implemented / Producer Accepted / 直线修正待提交封板**；下方 310 待验收仅保留历史时点记录。
 
 > 2026-10-20 最新封板：制作人要求将当前工作区所有内容统一中文提交并上传 GitHub。此次覆盖 [306 正式／Demo 构建分离](306-formal-player-and-demo-build-separation-2026-10-19.md)、[307 物件选中与蓝点返修](307-world-object-selection-feedback-2026-10-20.md)、[308 床／搬运／卧姿返修](308-bed-entry-and-rescue-pickup-2026-10-20.md)、[310 可见远程命中时扣血](310-visible-ranged-hit-damage-timing-2026-10-20.md)及同期民生状态、静态准备度文档。CIVILIAN-LIFE-01 整体与正式包打包／运行／基本存档沿用制作人已给的验收反馈；307、308、310 的具体运行观感仍为 Producer Acceptance Pending。下方未提交／未封板仅保留历史时点记录，以本条和各最新文档为准。

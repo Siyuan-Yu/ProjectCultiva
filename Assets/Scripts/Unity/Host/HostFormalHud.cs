@@ -1031,7 +1031,7 @@ namespace XianXia.Unity.Host
                 {
                     GUI.Label(
                         new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 40f),
-                        "交互：" + plot.InteractKind +
+                        (plot.InteractKind == HostInteractSpotKind.Loot ? "右键走近拾取" : "交互：" + plot.InteractKind) +
                         (string.IsNullOrEmpty(plot.Label) ? "" : " · " + plot.Label),
                         _body);
                 }

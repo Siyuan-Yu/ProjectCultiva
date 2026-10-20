@@ -713,6 +713,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostFarmFieldConstructionPresenter>();
             if (GetComponent<HostRecoverySpotConstructionPresenter>() == null)
                 gameObject.AddComponent<HostRecoverySpotConstructionPresenter>();
+            if (GetComponent<HostGroundLootPresenter>() == null)
+                gameObject.AddComponent<HostGroundLootPresenter>();
             if (GetComponent<HostFactionFlagPresenter>() == null)
                 gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)
@@ -2214,6 +2216,7 @@ namespace XianXia.Unity.Host
             Debug.Log(
                 "[PlayableHost] mapLayout override → " + loaded.Value.Id +
                 " " + loaded.Value.Width + "x" + loaded.Value.Height +
+                " spaceKind=" + loaded.Value.SpaceKind +
                 " placements=" + (loaded.Value.Placements?.Count ?? 0),
                 this);
             return true;

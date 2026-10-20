@@ -14,6 +14,23 @@ namespace XianXia.Core.Entities
         /// </summary>
         public ulong BleedOutAfterTick { get; set; }
 
+        // Fixed-point thousandths: keep fractional decay/healing across save/load.
+        public bool HasMedicalProgress { get; set; }
+        public int DyingReserveMilli { get; set; }
+        public int HerbDoses { get; set; }
+        public bool Convalescing { get; set; }
+        public int RecoveryHpMilli { get; set; }
+        public bool IsDying => IsIncapacitated && !Convalescing;
+
+        public void ResetMedicalProgress()
+        {
+            HasMedicalProgress = false;
+            DyingReserveMilli = 0;
+            HerbDoses = 0;
+            Convalescing = false;
+            RecoveryHpMilli = 0;
+        }
+
         public ulong IncapacitatedAtTick { get; set; }
         public LifecycleState LastTransitionFrom { get; set; } = LifecycleState.Alive;
         public LifecycleState LastTransitionTo { get; set; } = LifecycleState.Alive;
@@ -24,7 +41,8 @@ namespace XianXia.Core.Entities
 
         public bool IsRemoved => State == LifecycleState.Removed;
 
-        public bool IsIncapacitated => State == LifecycleState.Incapacitated;
+        public bool IsIncapacitated => State == LifecycleState.Incapacitated ||
+            State == LifecycleState.Captured && HasMedicalProgress && (DyingReserveMilli > 0 || Convalescing);
 
         public void ClearBleedOut() => BleedOutAfterTick = 0;
 

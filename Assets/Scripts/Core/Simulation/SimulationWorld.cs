@@ -233,6 +233,8 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Shared party backpack (session-only; not in Snapshot v1).</summary>
         public PartyInventory Inventory { get; }
+        public Dictionary<string, XianXia.Core.Content.GroundLootState> GroundLoot { get; } =
+            new Dictionary<string, XianXia.Core.Content.GroundLootState>(System.StringComparer.Ordinal);
         public CommerceState Commerce { get; set; } = new CommerceState();
 
         /// <summary>Static building definitions rehydrated from content; never Snapshot authority.</summary>

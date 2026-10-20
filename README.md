@@ -4,6 +4,12 @@
 
 ## 当前阶段
 
+2026-10-21 当前工作区获制作人明确封板上传授权：[312医疗](docs/40-process/312-medic-bedside-treatment-2026-10-20.md)、[313医疗收尾与地面物品](docs/40-process/313-medical-closure-and-ground-loot-2026-10-20.md)、苏醒返工及洞府地面排序/spaceKind文件加载修复统一提交上传。8程序集离线编译通过；未逐项确认的Unity视觉与边界验收保持原状态，下文“未提交”为此前实施时点记录。
+
+2026-10-20 医疗收尾与地面物品显示见[313](docs/40-process/313-medical-closure-and-ground-loot-2026-10-20.md)：卧床恢复精力、旧档零血囚犯补齐、携药转职归还/死亡落地，以及洞府功法/斗技按物品显示已接线，待现场验收。当前Snapshot为v17，正常读取v15/v16补齐，不覆盖旧档；下面v16记录为医疗初次实施时点。未提交。
+
+2026-10-20 医者床边治疗已接线、待制作人现场验收，见[312](docs/40-process/312-medic-bedside-treatment-2026-10-20.md)与[ADR-0048](docs/40-process/43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)。公库/附近Party供药、持续药效、中级医疗床减缓弥留、HP超过50%苏醒及Snapshot v16已实施；新开局阿禾、阿杏、阿枝为医者。此前“Medic延期/医疗床永久稳定”以本条与267现行覆写为准，未提交。
+
 2026-10-20 世界物件选中反馈见 [307](docs/40-process/307-world-object-selection-feedback-2026-10-20.md)：房间蓝色 Gizmos 调试圈已替换为正式选中细框，床、门、木墙等按各自范围显示；离线编译通过，待制作人现场验收，未提交。
 
 2026-10-19 当前推进：[306 正式试玩与历史Demo构建分离](docs/40-process/306-formal-player-and-demo-build-separation-2026-10-19.md)。正式Windows入口为 `XianXia/Build/Formal Windows x64`（仅LevelTester），历史Demo使用独立菜单/产品名/输出/存档；内容随包加载与普通会话菜单已接线。制作人确认可打包、运行且打包后基本存读档未见问题；Formal／Demo／Editor 槽位隔离未逐项记录。[CIVILIAN-LIFE-01](docs/40-process/267-civilian-life-01-design-freeze-2026-09-27.md#当前功能与验收状态表唯一维护点2026-10-19-制作人反馈覆写)已获制作人整体人工验收，尚未封板；Medic 等延期功能不在范围。本轮没有改变参考开局经济或开始新玩法。以下历史段落以247最新覆写、267唯一状态表和306为准。

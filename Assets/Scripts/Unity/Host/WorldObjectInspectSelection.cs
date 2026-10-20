@@ -144,6 +144,7 @@ namespace XianXia.Unity.Host
                 case WorldObjectTargetKind.ControlCore: SetControlCore(target.WorkAreaId); break;
                 case WorldObjectTargetKind.FactionFlag: SetFactionFlag(target.FactionFlagId); break;
                 case WorldObjectTargetKind.FarmPlot: SetPlot(target.Plot); break;
+                case WorldObjectTargetKind.Loot: SetPlot(target.Plot); break;
                 case WorldObjectTargetKind.RecoverySpot: SetRecoverySpot(target.Plot); break;
                 case WorldObjectTargetKind.StorageRoom: SetStorageRoom(target.Plot); break;
                 case WorldObjectTargetKind.PrisonDropOff: SetPrisonDropOff(target.Plot); break;

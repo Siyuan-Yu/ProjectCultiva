@@ -76,10 +76,10 @@ namespace XianXia.Unity.Host
         {
             if (plot == null)
                 return;
+            OwnerByObject[plot] = ownerKey ?? string.Empty;
             if (!PlotIds.Add(plot.GetInstanceID()))
                 return;
             Plots.Add(plot);
-            OwnerByObject[plot] = ownerKey ?? string.Empty;
         }
 
         public static void Register(HostMapDestructible d)

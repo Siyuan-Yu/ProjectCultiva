@@ -54,6 +54,7 @@ namespace XianXia.Unity.Host
                 case "civilian.energy": y = DrawCivilianNeedTool(world, selection, false, x, y, width, body); break;
                 case "civilian.detained-loyalty": y = DrawDetainedLoyaltyTool(world, selection, x, y, width, body); break;
                 case "civilian.grain-add": y = DrawGrainTool(world, true, x, y, width, body); break;
+                case "civilian.herb-add": y = DrawHerbTool(world, x, y, width, body); break;
                 case "civilian.grain-clear": y = DrawGrainTool(world, false, x, y, width, body); break;
                 case "civilian.reset": y = DrawConfirmedTool(toolId, "影响全部救援绑定、恢复点占用、建设工单、凡人状态、荒村 owner、粮食及验收人物 Faction。", () => ExecuteCivilianReset(host), x, y, width, body); break;
                 case "focus.huangcun": y = DrawFocusHuangcun(host, x, y, width, body); break;
@@ -141,6 +142,20 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, y, width, 26f), "忠诚设为 10"))
             { XianXia.Core.Social.CharacterFactionLoyaltyService.SetLoyalty(world, selection.State.SelectedIds[0], 10); _sectionStatus = "成功：囚犯忠诚已设为 10。"; }
             GUI.enabled = true; return DrawResult(x, y + 34f, width, body);
+        }
+
+        float DrawHerbTool(XianXia.Core.Simulation.SimulationWorld world,
+            float x, float y, float width, GUIStyle body)
+        {
+            var siteId = ResolveAcceptanceSite(world);
+            var count = WorldSitePublicStockService.GetCount(world, siteId, MortalCivilianService.HerbResourceId);
+            GUI.Label(new Rect(x, y, width, 22f), "实际对象：" + siteId + "　当前灵药=" + count, body); y += 28f;
+            if (GUI.Button(new Rect(x, y, width, 26f), "公库灵药 +20"))
+            {
+                var result = WorldSitePublicStockService.TryAdd(world, siteId, MortalCivilianService.HerbResourceId, 20);
+                _sectionStatus = result.IsSuccess ? "成功：已加入灵药20份。" : "失败：" + result.Error;
+            }
+            return DrawResult(x, y + 34f, width, body);
         }
 
         float DrawGrainTool(XianXia.Core.Simulation.SimulationWorld world, bool add,

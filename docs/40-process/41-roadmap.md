@@ -1,5 +1,7 @@
 # 路线图
 
+> 2026-10-20 医疗推进覆写：[312](312-medic-bedside-treatment-2026-10-20.md)与[313](313-medical-closure-and-ground-loot-2026-10-20.md)已获制作人授权并实施。医生实际取药/床边治疗、恢复苏醒返工、卧床精力、药品归还/落地和洞府物品显示待现场验收；当前Snapshot v17兼容读取v15/v16。此前“Medic未实施/延期”不再代表当前状态；本轮未提交，也未自动开始装备制造或正式章节内容生产。
+
 > 2026-10-20 直线弹道验收：远程普通攻击已由跟踪弹修正为发射后固定方向的直线弹道，制作人确认通过；[310](310-visible-ranged-hit-damage-timing-2026-10-20.md) 直线修正待提交封板，后续不得恢复追踪。
 
 > 2026-10-20 当前封板：[306 正式／Demo 构建分离](306-formal-player-and-demo-build-separation-2026-10-19.md)、[307 物件选中](307-world-object-selection-feedback-2026-10-20.md)、[308 床与搬运表现](308-bed-entry-and-rescue-pickup-2026-10-20.md)、[310 远程命中](310-visible-ranged-hit-damage-timing-2026-10-20.md)及已获整体验收的 CIVILIAN-LIFE-01 统一提交。已实施但未获现场反馈的细项仍待验收。[309 内容制作前准备度](309-pre-content-readiness-audit-2026-10-20.md)是静态建议，不因封板自动实施 Medic 或新美术；已验的民生与基本出包不重复验收。

@@ -40,6 +40,7 @@ namespace XianXia.Unity.Host
             E("combat.party-refill", "恢复我方生命与灵力", "人物与战斗", "Party 回满", "恢复 PlayerParty 存活成员的生命与灵力。"),
 
             E("civilian.grain-add", "添加公库粗粮", "资源与场景准备", "公共库存 粗粮 20", "向当前验收 Site 公库加入粗粮。"),
+            E("civilian.herb-add", "添加公库灵药", "资源与场景准备", "公共库存 灵药 医者 治疗 20", "向当前验收 Site 公库加入灵药20份，供医者从储藏室领取。"),
             E("civilian.grain-clear", "清空公库粗粮", "资源与场景准备", "公共库存 无粮", "清空当前验收 Site 的粗粮。"),
             E("civilian.reset", "重置凡人验收场景", "资源与场景准备", "CIVILIAN Reset", "重置 CIVILIAN-LIFE-01 全局验收前置。"),
 

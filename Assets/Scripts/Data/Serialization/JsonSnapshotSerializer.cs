@@ -33,6 +33,7 @@ namespace XianXia.Data.Serialization
                 ["nextActionId"] = U(snapshot.NextActionId),
                 ["nextModifierId"] = U(snapshot.NextModifierId),
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
+                ["groundLoot"] = WriteGroundLoot(snapshot.GroundLoot),
                 ["characterFactionLoyalties"] = JsonValue.FromArray(SerializeCharacterFactionLoyalties(snapshot.CharacterFactionLoyalties)),
                 ["civilianResidenceUsages"] = JsonValue.FromArray(SerializeCivilianResidenceUsages(snapshot.CivilianResidenceUsages)),
                 ["nextCivilianConstructionJobSequence"] = JsonValue.FromString(snapshot.NextCivilianConstructionJobSequence.ToString(CultureInfo.InvariantCulture)),
@@ -74,6 +75,17 @@ namespace XianXia.Data.Serialization
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
         }
 
+        static JsonValue WriteGroundLoot(List<XianXia.Core.Content.GroundLootState> drops)
+        {
+            var values = new List<JsonValue>();
+            if (drops != null) foreach (var drop in drops)
+                values.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                    ["id"] = JsonValue.FromString(drop.Id), ["itemId"] = JsonValue.FromString(drop.ItemId),
+                    ["count"] = JsonValue.FromNumber(drop.Count), ["surfaceId"] = JsonValue.FromString(drop.SurfaceId),
+                    ["worldX"] = JsonValue.FromNumber(drop.WorldX), ["worldY"] = JsonValue.FromNumber(drop.WorldY) }));
+            return JsonValue.FromArray(values);
+        }
+
         public Result<WorldSnapshot> Deserialize(string json)
         {
             if (string.IsNullOrEmpty(json))
@@ -82,12 +94,14 @@ namespace XianXia.Data.Serialization
             try
             {
                 var root = SimpleJson.Parse(json);
-                if (root.GetNumber("schemaVersion") != WorldSnapshot.CurrentSchemaVersion)
+                var sourceSchema = (int)root.GetNumber("schemaVersion");
+                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "Schema v14 required; v1-v13 lack current civilian-life authority. Start a new game.");
+                        "支持v15/v16/v17存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
                 var snapshot = new WorldSnapshot
                 {
-                    SchemaVersion = (int)root.GetNumber("schemaVersion"),
+                    // v15/v16 -> v17 adds medical/ground-loot state in memory; never rewrites the source file on load.
+                    SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
                     SnapshotId = ReadU(root, "snapshotId"),
                     WorldTick = ReadU(root, "worldTick"),
                     RegionId = ReadU(root, "regionId"),
@@ -104,10 +118,42 @@ namespace XianXia.Data.Serialization
                     NextModifierId = ReadU(root, "nextModifierId")
                 };
 
+                if (root.TryGetProperty("groundLoot", out var groundLoot) && groundLoot.Kind == JsonValueKind.Array)
+                {
+                    foreach (var value in groundLoot.Array)
+                        snapshot.GroundLoot.Add(new XianXia.Core.Content.GroundLootState {
+                            Id = value.GetString("id"), ItemId = value.GetString("itemId"), Count = (int)value.GetNumber("count"),
+                            SurfaceId = value.GetString("surfaceId"), WorldX = (float)value.GetNumber("worldX"), WorldY = (float)value.GetNumber("worldY") });
+                }
+                else if (sourceSchema == WorldSnapshot.CurrentSchemaVersion)
+                    return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "Ground loot authority missing or invalid.");
                 if (root.TryGetProperty("entities", out var entities) && entities.Kind == JsonValueKind.Array)
                 {
                     foreach (var e in entities.Array)
-                        snapshot.Entities.Add(ReadEntity(e));
+                    {
+                        if (sourceSchema >= WorldSnapshot.PreGroundLootSchemaVersion)
+                            foreach (var key in new[] { "hasMedicalProgress", "dyingReserveMilli", "herbDoses", "convalescing",
+                                "recoveryHpMilli", "medicTargetId", "medicCarryingHerb", "medicTreatmentSeconds", "medicLastTreatmentTick" })
+                                if (!e.TryGetProperty(key, out _))
+                                    return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少医疗状态字段：" + key);
+                        var restoredEntity = ReadEntity(e);
+                        if (sourceSchema == WorldSnapshot.PreMedicalSchemaVersion &&
+                            restoredEntity.Lifecycle == (int)XianXia.Core.Entities.LifecycleState.Incapacitated)
+                        {
+                            restoredEntity.HasMedicalProgress = true;
+                            var remaining = restoredEntity.BleedOutAfterTick > snapshot.WorldTick
+                                ? System.Math.Min(200UL, restoredEntity.BleedOutAfterTick - snapshot.WorldTick) : 0UL;
+                            restoredEntity.DyingReserveMilli = (int)remaining * 1000;
+                        }
+                        if (sourceSchema == WorldSnapshot.PreMedicalSchemaVersion && restoredEntity.HasCombatVitals &&
+                            restoredEntity.CurrentHp <= 0 && restoredEntity.Lifecycle == (int)XianXia.Core.Entities.LifecycleState.Captured)
+                        {
+                            restoredEntity.HasMedicalProgress = true;
+                            restoredEntity.DyingReserveMilli = 200000;
+                            restoredEntity.BleedOutAfterTick = snapshot.WorldTick + 200;
+                        }
+                        snapshot.Entities.Add(restoredEntity);
+                    }
                 }
                 if (!root.TryGetProperty("characterFactionLoyalties", out var factionLoyalties) ||
                     factionLoyalties.Kind != JsonValueKind.Array)
@@ -824,6 +870,21 @@ namespace XianXia.Data.Serialization
                     ["currentSpiritPower"] = JsonValue.FromNumber(e.CurrentSpiritPower),
                     ["vitalsPoolsInitialized"] = JsonValue.FromBool(e.VitalsPoolsInitialized),
                     ["bleedOutAfterTick"] = U(e.BleedOutAfterTick),
+                    ["incapacitatedAtTick"] = U(e.IncapacitatedAtTick),
+                    ["hasMedicalProgress"] = JsonValue.FromBool(e.HasMedicalProgress),
+                    ["dyingReserveMilli"] = JsonValue.FromNumber(e.DyingReserveMilli),
+                    ["herbDoses"] = JsonValue.FromNumber(e.HerbDoses),
+                    ["convalescing"] = JsonValue.FromBool(e.Convalescing),
+                    ["recoveryHpMilli"] = JsonValue.FromNumber(e.RecoveryHpMilli),
+                    ["medicTargetId"] = U(e.MedicTargetId),
+                    ["medicCarryingHerb"] = JsonValue.FromBool(e.MedicCarryingHerb),
+                    ["medicSourceSiteId"] = JsonValue.FromString(e.MedicSourceSiteId ?? string.Empty),
+                    ["medicSourceRoomId"] = JsonValue.FromString(e.MedicSourceRoomId ?? string.Empty),
+                    ["medicSourcePartyMemberId"] = U(e.MedicSourcePartyMemberId),
+                    ["medicTreatmentSeconds"] = JsonValue.FromNumber(e.MedicTreatmentSeconds),
+                    ["medicLastTreatmentTick"] = U(e.MedicLastTreatmentTick),
+                    ["medicRetryAfterTick"] = U(e.MedicRetryAfterTick),
+                    ["medicStatus"] = JsonValue.FromString(e.MedicStatus ?? string.Empty),
                     ["hasCorpse"] = JsonValue.FromBool(e.HasCorpse),
                     ["corpseRemoveAfterTick"] = U(e.CorpseRemoveAfterTick),
                     ["hasResponsibleAttacker"] = JsonValue.FromBool(e.HasResponsibleAttacker),
@@ -1268,6 +1329,21 @@ namespace XianXia.Data.Serialization
                                          vpi.Kind == JsonValueKind.Boolean &&
                                          vpi.Bool,
                 BleedOutAfterTick = ReadU(e, "bleedOutAfterTick"),
+                IncapacitatedAtTick = ReadU(e, "incapacitatedAtTick"),
+                HasMedicalProgress = e.TryGetProperty("hasMedicalProgress", out var medicalHasMedicalProgress) && medicalHasMedicalProgress.Kind == JsonValueKind.Boolean && medicalHasMedicalProgress.Bool,
+                DyingReserveMilli = (int)e.GetNumber("dyingReserveMilli"),
+                HerbDoses = (int)e.GetNumber("herbDoses"),
+                Convalescing = e.TryGetProperty("convalescing", out var medicalConvalescing) && medicalConvalescing.Kind == JsonValueKind.Boolean && medicalConvalescing.Bool,
+                RecoveryHpMilli = (int)e.GetNumber("recoveryHpMilli"),
+                MedicTargetId = ReadU(e, "medicTargetId"),
+                MedicCarryingHerb = e.TryGetProperty("medicCarryingHerb", out var medicalMedicCarryingHerb) && medicalMedicCarryingHerb.Kind == JsonValueKind.Boolean && medicalMedicCarryingHerb.Bool,
+                MedicSourceSiteId = e.GetString("medicSourceSiteId", string.Empty),
+                MedicSourceRoomId = e.GetString("medicSourceRoomId", string.Empty),
+                MedicSourcePartyMemberId = ReadU(e, "medicSourcePartyMemberId"),
+                MedicTreatmentSeconds = (int)e.GetNumber("medicTreatmentSeconds"),
+                MedicLastTreatmentTick = ReadU(e, "medicLastTreatmentTick"),
+                MedicRetryAfterTick = ReadU(e, "medicRetryAfterTick"),
+                MedicStatus = e.GetString("medicStatus", string.Empty),
                 HasCorpse = e.TryGetProperty("hasCorpse", out var hco) &&
                             hco.Kind == JsonValueKind.Boolean &&
                             hco.Bool,

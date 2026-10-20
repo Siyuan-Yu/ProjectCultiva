@@ -20,6 +20,8 @@ namespace XianXia.Core.Attributes
         // Cultivation resources (not spirit-root affinities)
         SpiritPower = 20,
         Cultivation = 21,
-        MindState = 22
+        MindState = 22,
+        /// <summary>统一持续恢复加成，单位为千分之一HP/秒；功法、装备、环境复用Modifier管线。</summary>
+        HealthRecoveryRateMilli = 23
     }
 }
