@@ -98,6 +98,7 @@ namespace XianXia.Unity.Host
             {
                 Play(aView.transform.position, dView.transform.position);
                 dView.PlayHitFlash(hitFlashSeconds);
+                HostAudioFeedback.Play(gameObject, HostAudioFeedback.Cue.Hit);
             }
             return true;
         }
@@ -248,6 +249,7 @@ namespace XianXia.Unity.Host
             if (s.ResolveHit != null && !s.ResolveHit()) return;
             if (s.HitTarget != null)
                 s.HitTarget.PlayHitFlash(hitFlashSeconds);
+            HostAudioFeedback.Play(gameObject, HostAudioFeedback.Cue.Hit);
             SpawnFx(s.To, s.To, FxKind.Impact, null);
         }
 

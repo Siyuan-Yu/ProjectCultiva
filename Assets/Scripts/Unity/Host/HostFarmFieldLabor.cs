@@ -610,6 +610,7 @@ namespace XianXia.Unity.Host
                     {
                         cell.SetCropStage(OutdoorFarmCropStage.Empty);
                         cell.RefreshCropVisual();
+                        if (!isNpc) HostAudioFeedback.Play(bootstrap.gameObject, HostAudioFeedback.Cue.Harvest);
                     }
                     Toast(w.Id,
                         added > 0 ? ("收获 · " + ShortItem(itemId)) : "收获失败",

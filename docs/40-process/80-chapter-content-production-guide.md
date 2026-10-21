@@ -1,5 +1,7 @@
 # 第一章内容制作流程指南
 
+> **现行入口（2026-10-21）**：下文保留 Chapter Production Framework 建立时的历史操作示例，含 F3／F4、Y／T、普通 worldRegion 外出制作和“会话态即可”等已过时内容。新内容请先按 [315 内容生产接线与短流程](315-content-production-prep-implementation-2026-10-21.md) 制作；普通 Outdoor 使用 Continuous Surface／WorldComposer／FineEditor，室内与洞府才使用 MapEditor／LocalPlaceEditor。当前通用内容状态已进入 Snapshot，不能按旧说明忽略存档影响。
+
 > 适用：Chapter Production Framework 已就绪后  
 > 目标：制作人按本流程在 **Data JSON** 中制作第一章（不改 Core 规则代码）  
 > 骨架样例：`base:chapter_scaffold_01`（非正式剧情）

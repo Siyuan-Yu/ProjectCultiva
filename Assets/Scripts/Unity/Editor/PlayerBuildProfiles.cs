@@ -8,6 +8,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using XianXia.Unity.Content;
 using XianXia.Unity.Host;
 
 namespace XianXia.Unity.EditorTools
@@ -74,6 +75,26 @@ namespace XianXia.Unity.EditorTools
             public string[] contentFolders;
         }
 
+        [Serializable]
+        sealed class FormalOpeningSelection
+        {
+            public string openingScenarioId;
+            public string characterRosterId;
+            public string preferredMapLayoutId;
+        }
+
+        static FormalOpeningSelection ReadFormalOpening(string packageRoot)
+        {
+            var path = Path.Combine(packageRoot, "formal-opening.json");
+            if (!File.Exists(path)) throw new BuildFailedException("缺少正式开局绑定：" + path);
+            var selection = JsonUtility.FromJson<FormalOpeningSelection>(File.ReadAllText(path));
+            if (selection == null) throw new BuildFailedException("正式开局绑定无效：空配置");
+            if (!ContentPackageValidationFacade.TryValidateOpeningSelection(packageRoot,
+                    selection.openingScenarioId, selection.characterRosterId, selection.preferredMapLayoutId, out var message))
+                throw new BuildFailedException("正式开局绑定无效：" + message);
+            return selection;
+        }
+
         internal static void ValidatePackage()
         {
             var root = Path.Combine(ProjectRoot, "Content", "BaseGame");
@@ -84,6 +105,12 @@ namespace XianXia.Unity.EditorTools
             if (manifest == null || manifest.modId != "base" || string.IsNullOrEmpty(manifest.version) ||
                 manifest.contentFolders == null || manifest.contentFolders.Length != 1 || manifest.contentFolders[0] != "Data")
                 throw new BuildFailedException("当前 BaseGame 构建仅接收 manifest 指定的 Data；不打包作者源或备份。");
+            if (ActiveFlavor == "Formal")
+            {
+                if (!ContentPackageValidationFacade.TryValidateDirectory(root, out var validationMessage))
+                    throw new BuildFailedException("BaseGame 内容加载或引用校验失败：" + validationMessage);
+                ReadFormalOpening(root);
+            }
             if (AssetDatabase.LoadAssetAtPath<MapLayoutPrefabCatalog>("Assets/Resources/MapLayoutPrefabCatalog.asset") == null)
                 throw new BuildFailedException("缺少正式 Resources Prefab 引用表。");
             var missing = MapLayoutPrefabResolver.ValidateCatalogPrefabs();
@@ -138,6 +165,16 @@ namespace XianXia.Unity.EditorTools
             };
             File.WriteAllText(Path.Combine(playerRoot, "build-identity.json"), JsonUtility.ToJson(identity, true));
         }
+
+        internal static void ApplyFormalOpening(PlayableHostBootstrap host)
+        {
+            var selection = ReadFormalOpening(Path.Combine(ProjectRoot, "Content", "BaseGame"));
+            var serialized = new SerializedObject(host);
+            serialized.FindProperty("openingScenarioId").stringValue = selection.openingScenarioId;
+            serialized.FindProperty("characterRosterId").stringValue = selection.characterRosterId ?? string.Empty;
+            serialized.FindProperty("preferredMapLayoutId").stringValue = selection.preferredMapLayoutId ?? string.Empty;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 
     public sealed class PlayerBuildPackageHook : IPreprocessBuildWithReport, IPostprocessBuildWithReport, IProcessSceneWithReport
@@ -167,6 +204,7 @@ namespace XianXia.Unity.EditorTools
                     serialized.FindProperty("mapLayoutFilePath").stringValue = string.Empty;
                     serialized.FindProperty("mapLayoutJsonOverride").objectReferenceValue = null;
                     serialized.ApplyModifiedPropertiesWithoutUndo();
+                    PlayerBuildProfiles.ApplyFormalOpening(host);
                 }
                 foreach (var component in root.GetComponentsInChildren<HostLevelTesterCheatPanel>(true))
                     UnityEngine.Object.DestroyImmediate(component);

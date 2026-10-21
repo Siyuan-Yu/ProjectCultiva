@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
+using XianXia.Core.Schedule;
 using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 
@@ -73,6 +74,7 @@ namespace XianXia.Unity.Host
             var window = new Rect((Screen.width - width) * .5f, (Screen.height - height) * .5f, width, height);
             HostUiHitTest.Block(window);
             GUI.Box(window, GUIContent.none);
+            HostImguiStyles.DrawPanelFrame(window);
             GUI.Label(new Rect(window.x + 18f, window.y + 12f, width - 120f, 30f), "工作", _title);
             if (GUI.Button(new Rect(window.xMax - 94f, window.y + 10f, 76f, 30f), "关闭")) { Close(); return; }
 
@@ -130,23 +132,24 @@ namespace XianXia.Unity.Host
             var loyalty = CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out var value) ? value.ToString() : "—";
             var manageable = MortalCivilianService.CanSetProfession(world, entity.Id, out var reason);
             var activity = HostMortalActivityPresentation.Describe(world, entity, state);
-            var phase = FactionMortalSchedule.Current(world, entity, out var scheduleId, out var scheduleBlock, out var scheduleReason);
-            var targetWork = entity.TryGet<MovementIntentComponent>(out var movement) && !string.IsNullOrEmpty(movement.TargetWorkAreaId)
-                ? movement.TargetWorkAreaId : "—";
-            var targetBed = RoomBedFacilityService.TryGetAssignedBed(world, entity.Id, out var assignedBed)
-                ? assignedBed.StableAssetId : "—";
-            var movementOwner = MortalCivilianMovementAuthority.Resolve(world, entity.Id, state);
+            FactionMortalSchedule.Current(world, entity, out _, out var scheduleBlock, out var scheduleReason);
+            var targetWork = "暂无指定工区";
+            if (entity.TryGet<MovementIntentComponent>(out var movement) &&
+                !string.IsNullOrEmpty(movement.TargetWorkAreaId) &&
+                world.TryGetWorkArea(movement.TargetWorkAreaId, out var targetArea))
+                targetWork = string.IsNullOrWhiteSpace(targetArea.Name) ? "已指定工区" : targetArea.Name;
+            var targetBed = RoomBedFacilityService.TryGetAssignedBed(world, entity.Id, out _)
+                ? "已分配" : "未分配";
             GUI.Label(new Rect(card.x + 10f, card.y + 7f, card.width - 20f, 22f),
                 name + " · 凡人 · " + faction + " · " + siteName, _body);
             GUI.Label(new Rect(card.x + 10f, card.y + 30f, card.width - 20f, 20f),
                 "职业：" + HostMortalActivityPresentation.Profession(state.Profession) +
-                "    实际活动：" + activity + "    日程：" + scheduleId + " / " +
-                (scheduleBlock == null ? phase.ToString() : scheduleBlock.Activity.ToString()), _small);
+                "    当前行动：" + activity + "    当前时段：" + ScheduleName(scheduleBlock?.Activity), _small);
             GUI.Label(new Rect(card.x + 10f, card.y + 51f, card.width - 20f, 20f),
                 "饱食 " + state.Satiety + "    精力 " + state.Energy + "    忠诚 " + loyalty +
                 "    可管理：" + (manageable ? "是" : "否 · " + reason), _small);
             GUI.Label(new Rect(card.x + 10f, card.y + 72f, card.width - 20f, 20f),
-                "目标工区：" + targetWork + "    床位：" + targetBed + "    移动控制：" + movementOwner, _small);
+                "前往地点：" + targetWork + "    住处床位：" + targetBed, _small);
             GUI.Label(new Rect(card.x + 10f, card.y + 92f, card.width - 20f, 20f),
                 "状态：" + (string.IsNullOrEmpty(state.ScheduleStatus) ? scheduleReason : state.ScheduleStatus), _small);
             var professions = (MortalProfession[])Enum.GetValues(typeof(MortalProfession));
@@ -158,8 +161,25 @@ namespace XianXia.Unity.Host
                 {
                     var result = MortalCivilianService.SetProfession(world, entity.Id, professions[p]);
                     _status = result.IsSuccess ? name + "的职业已更新。" : result.Error.Message;
+                    if (result.IsSuccess) HostAudioFeedback.Play(bootstrap.gameObject, HostAudioFeedback.Cue.Confirm);
                 }
             GUI.enabled = true;
+        }
+
+        static string ScheduleName(ScheduleActivity? activity)
+        {
+            switch (activity)
+            {
+                case ScheduleActivity.Labor: return "工作";
+                case ScheduleActivity.Rest: return "休息";
+                case ScheduleActivity.Eat: return "用餐";
+                case ScheduleActivity.Cultivate: return "修炼";
+                case ScheduleActivity.Explore: return "外出";
+                case ScheduleActivity.Patrol: return "巡逻";
+                case ScheduleActivity.Inspect: return "巡视";
+                case ScheduleActivity.Idle: return "自由活动";
+                default: return "暂无日程";
+            }
         }
 
         void EnsureStyles()

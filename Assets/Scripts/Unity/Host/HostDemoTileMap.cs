@@ -852,7 +852,7 @@ namespace XianXia.Unity.Host
                 string.Equals(layout.SpaceKind, "cave", System.StringComparison.OrdinalIgnoreCase))
             {
                 PlaceSurfaceArtOverlay(ox + (p.X + pw * .5f) * cs, oy + (p.Y + ph * .5f) * cs,
-                    id, pw * cs, ph * cs, HostSpriteFactory.CaveFloorSprite(), Color.gray, -30);
+                    id, pw * cs, ph * cs, HostStepAArt.StoneFloorTile() ?? HostSpriteFactory.CaveFloorSprite(), Color.gray, -30);
                 return;
             }
 
@@ -860,7 +860,11 @@ namespace XianXia.Unity.Host
             {
                 var cx = ox + (p.X + pw * 0.5f) * cs;
                 var cy = oy + (p.Y + ph * 0.5f) * cs;
-                PlaceZoneOverlay(cx, cy, id + "_zone", pw * cs, ph * cs, info.FallbackColor);
+                if (kind == "zoneMine")
+                    PlaceSurfaceArtOverlay(cx, cy, id + "_zone", pw * cs, ph * cs,
+                        HostStepAArt.MapSprite("zoneMine"), info.FallbackColor, -30);
+                else
+                    PlaceZoneOverlay(cx, cy, id + "_zone", pw * cs, ph * cs, info.FallbackColor);
                 return;
             }
 

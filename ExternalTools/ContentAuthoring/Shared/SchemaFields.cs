@@ -10,7 +10,9 @@ public static class SchemaFields
             "personalityTags", "backgroundTags", "talentTags",
             "spiritRootPlaceholder", "initialRealmPlaceholder",
             "activityCapabilities", "activityPriorities", "preferredWorkAreaIds", "homeWorkAreaId",
-            "spiritRoots", "hometown", "reputation", "goals", "desires", "playerControllable"
+            "spiritRoots", "hometown", "reputation", "goals", "desires", "playerControllable",
+            "defaultFactionId", "defaultFactionRole", "initialMortalProfession", "initialLoyalty",
+            "tradeProviderShopId", "auctionProviderHouseId", "defeatEncounterId"
         },
         ["cultivation"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -27,7 +29,7 @@ public static class SchemaFields
         ["item"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "displayNameKey", "nameKey", "maxStack",
-            "teachesManualId", "teachesArtId", "tags"
+            "teachesManualId", "teachesArtId", "tags", "baseTradePrice", "tradeCategory"
         },
         ["opportunitySite"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -36,7 +38,9 @@ public static class SchemaFields
         ["openingScenario"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId",
-            "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
+            "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations",
+            "openingSurfaceId", "startingWallet", "startingInventory", "strategicOpening",
+            "initialNpcSquadIds", "openingBonds"
         },
         ["characterRoster"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -90,7 +94,7 @@ public static class SchemaFields
         },
         ["mapLayout"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "worldRegionId",
+            "id", "type", "name", "worldRegionId", "spaceKind",
             "originX", "originY", "cellSize", "width", "height", "placements"
         },
         ["spawnTable"] = new HashSet<string>(StringComparer.Ordinal)
@@ -108,6 +112,58 @@ public static class SchemaFields
             "worldObjectKind", "worldObjectLabel", "worldObjectWorldWidth", "worldObjectWorldHeight",
             "publicNoticeTitle", "publicNoticeText", "publicNoticeRevealExactLocation",
             "discoveryRadiusWorld", "discoveryNoticeTitle", "discoveryNoticeText", "conditions", "expireOutcomes"
+        },
+        ["outdoorSurface"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "cellSize", "chunkHeight", "chunkWidth", "chunks", "factionFlags",
+            "movementScale", "openingEntityAnchors", "originWorldX", "originWorldY",
+            "sitePlacements", "sitePlaces", "siteRegions"
+        },
+        ["outdoorSurfaceGeography"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "cellSize", "chunkRows", "coverageChunks", "height", "hexSummary",
+            "landmarks", "mapPrimitives", "originWorldX", "originWorldY", "rows", "sourceHash",
+            "sourceRevision", "sourceSchemaVersion", "surfaceId", "width"
+        },
+        ["continuousSurfaceWorldMap"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "baseTerrainRows", "cellSize", "compositionId", "forestRows",
+            "heightCells", "originWorldX", "originWorldY", "sourceHash", "surfaceId", "widthCells"
+        },
+        ["npcSquad"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "assemblySiteId", "defendedSiteId", "factionId", "initialSurfaceDeployment",
+            "initialSurfacePosition", "members", "squadId"
+        },
+        ["strategicFaction"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "mapColor", "sortOrder", "territorySelectable"
+        },
+        ["building"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "description", "constructionLabor", "costs", "createdSiteName",
+            "createdSiteType", "createsWorldSite", "defaultRoomUsage", "dismantleRefundRate",
+            "doorWidthCells", "footprintCellsH", "footprintCellsW", "initialSiteLevel", "materialKind",
+            "outdoorKind", "placementKind", "roomTier", "structureDurability", "unlockedByDefault"
+        },
+        ["realmLadder"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "steps"
+        },
+        ["shop"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "displayName", "acceptedTradeCategories", "buybackMultiplier", "initialStock", "initialWallet"
+        },
+        ["auctionHouse"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "displayName", "durationDays", "feePercent", "initialListings",
+            "marketReviewIntervalDays", "minimumIncrements"
+        },
+        ["worldSpatialRules"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "coreLevels", "interventionArrivalSeconds", "interventionChanceBasisPoints",
+            "interventionDecisionSeconds", "interventionRelationThreshold", "wildernessEncounterHeightCells",
+            "wildernessEncounterWidthCells"
         }
     };
 

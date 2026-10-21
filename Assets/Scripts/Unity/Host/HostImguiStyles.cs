@@ -9,6 +9,7 @@ namespace XianXia.Unity.Host
     {
         static GUIStyle _parchmentButton;
         static GUIStyle _sideTab;
+        static GUIStyle _panelFrame;
 
         static Texture2D _face;
         static Texture2D _faceHover;
@@ -82,6 +83,31 @@ namespace XianXia.Unity.Host
                 Ensure();
                 return _sideTab;
             }
+        }
+
+        /// <summary>Shared decorative frame; the caller draws its readable panel fill first.</summary>
+        public static GUIStyle PanelFrame
+        {
+            get
+            {
+                if (_panelFrame != null) return _panelFrame;
+                var texture = Resources.Load<Texture2D>("ART-UI-001_hud_frame_v01");
+                _panelFrame = new GUIStyle(GUIStyle.none);
+                if (texture != null)
+                {
+                    _panelFrame.normal.background = texture;
+                    _panelFrame.border = new RectOffset(140, 140, 125, 125);
+                }
+                return _panelFrame;
+            }
+        }
+
+        public static void DrawPanelFrame(Rect rect)
+        {
+            var previous = GUI.color;
+            GUI.color = new Color(previous.r, previous.g, previous.b, previous.a * .24f);
+            GUI.Box(rect, GUIContent.none, PanelFrame);
+            GUI.color = previous;
         }
 
         static void Ensure()

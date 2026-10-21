@@ -50,9 +50,10 @@ namespace XianXia.Unity.Host
             }
             var texture = new Texture2D(32, 32, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, name = "GroundItem_" + id };
             var pixels = new Color[32 * 32];
-            var scroll = id.Contains("_art_") || id.Contains("combat");
-            var book = id.Contains("manual") || id.Contains("technique");
-            var herb = id.Contains("herb") || id.Contains("medicine");
+            var kind = HostStepAArt.ItemGroundKind(id);
+            var scroll = kind == "scroll";
+            var book = kind == "book";
+            var herb = kind == "herb";
             for (var y = 0; y < 32; y++) for (var x = 0; x < 32; x++)
             {
                 Color c = Color.clear;

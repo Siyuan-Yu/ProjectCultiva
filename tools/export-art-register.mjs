@@ -15,6 +15,7 @@ const mainHeaders = ['AssetID', '名称', '分类', '优先级', '制作进度',
 const routeHeaders = ['推荐技术路线', '制作与复用要求', '目标交付文件', '旧素材与迁移规则'];
 const required = ['AssetID', '名称', '分类', '优先级', '制作进度', '品质阶段', '接入位置与方式', '验收状态', '备注与替换要求', ...routeHeaders];
 const dataRow = 9;
+const briefNote = text => text.length > 52 ? text.slice(0, 52) + '…（详见工程明细）' : text;
 
 function parseTsv(text) {
   const records = [];
@@ -92,7 +93,7 @@ function styleSheet(sheet, columns, rowCount, isMain) {
   const body = sheet.getRange(`A${dataRow}:${last}${dataRow + rowCount - 1}`);
   body.format.verticalAlignment = 'center';
   body.format.wrapText = true;
-  body.format.rowHeight = isMain ? 36 : 44;
+  body.format.rowHeight = isMain ? 58 : 78;
   sheet.getRange('A:A').format.columnWidth = 20;
   if (isMain) {
     [25, 19, 11, 16, 16, 25, 54, 42].forEach((width, i) =>
@@ -150,7 +151,7 @@ async function verifyXlsx(filePath, SpreadsheetFile, FileBlob, sourceInfo) {
     }
   }
   const expectedOverview = sourceInfo.objects.map(o => [o.AssetID, o['名称'], o['分类'], o['优先级'], o['制作进度'], o['品质阶段'],
-    `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求'], o['推荐技术路线']]);
+    `${o['制作进度']} / ${o['验收状态']}`, briefNote(o['备注与替换要求']), o['推荐技术路线']]);
   const overviewHeaders = overview.getRange('A8:I8').values[0];
   if (overviewHeaders.some((header, index) => header !== mainHeaders[index]))
     throw new Error('Overview headers differ from the export configuration');
@@ -190,7 +191,7 @@ async function main() {
     const overview = wb.worksheets.add('美术清单');
     const detail = wb.worksheets.add('工程明细');
     const viewRows = sourceInfo.objects.map(o => [o.AssetID, o['名称'], o['分类'], o['优先级'], o['制作进度'], o['品质阶段'],
-      `${o['制作进度']} / ${o['验收状态']}`, o['备注与替换要求'], o['推荐技术路线']]);
+      `${o['制作进度']} / ${o['验收状态']}`, briefNote(o['备注与替换要求']), o['推荐技术路线']]);
     populate(overview, mainHeaders, viewRows, sourceInfo, true);
     populate(detail, sourceInfo.headers, sourceInfo.rows, sourceInfo, false);
     wb.recalculate();

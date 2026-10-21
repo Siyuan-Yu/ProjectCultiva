@@ -161,7 +161,7 @@ namespace XianXia.Unity.Host
             var h = Mathf.Min(560f, Screen.height - 40f);
             var rect = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             GUI.Box(rect, GUIContent.none);
-            GUI.Box(rect, GUIContent.none);
+            HostImguiStyles.DrawPanelFrame(rect);
 
             var x = rect.x + 16f;
             var y = rect.y + 12f;

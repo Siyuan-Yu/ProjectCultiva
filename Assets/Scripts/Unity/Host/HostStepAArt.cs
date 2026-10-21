@@ -26,7 +26,30 @@ namespace XianXia.Unity.Host
         static Sprite[] _roomDoorParts;
         static Sprite[] _roomUsageMarkers;
         static readonly Dictionary<string, Texture2D> Icons = new Dictionary<string, Texture2D>();
+        [Serializable] sealed class AppearanceTable { public CharacterAppearance[] characters; public ItemAppearance[] items; }
+        [Serializable] sealed class CharacterAppearance { public string id; public string profile; }
+        [Serializable] sealed class ItemAppearance { public string id; public string icon; public string groundKind; }
+        static Dictionary<string, Profile> _characterProfiles;
+        static Dictionary<string, ItemAppearance> _itemAppearances;
         static Sprite _plainFlag;
+
+        static void EnsureAppearanceTable()
+        {
+            if (_characterProfiles != null) return;
+            _characterProfiles = new Dictionary<string, Profile>(StringComparer.Ordinal);
+            _itemAppearances = new Dictionary<string, ItemAppearance>(StringComparer.Ordinal);
+            var source = Resources.Load<TextAsset>("HostAppearanceMappings");
+            if (source == null) return;
+            var table = JsonUtility.FromJson<AppearanceTable>(source.text);
+            if (table?.characters != null)
+                foreach (var entry in table.characters)
+                    if (entry != null && !string.IsNullOrWhiteSpace(entry.id) &&
+                        Enum.TryParse(entry.profile, false, out Profile profile) && profile != Profile.None)
+                        _characterProfiles[entry.id] = profile;
+            if (table?.items != null)
+                foreach (var entry in table.items)
+                    if (entry != null && !string.IsNullOrWhiteSpace(entry.id)) _itemAppearances[entry.id] = entry;
+        }
 
         public static Sprite FlagSprite(string factionId)
         {
@@ -71,17 +94,16 @@ namespace XianXia.Unity.Host
 
         public static Texture2D ItemIcon(string itemId)
         {
-            string name;
-            switch (itemId)
-            {
-                case "base:item_rough_wood": name = "ART-UI-003_rough_wood_v01"; break;
-                case "base:item_manual_jiang_lao_legacy": name = "ART-UI-003_jiang_manual_v01"; break;
-                case "base:item_manual_dongfu_secret": name = "ART-UI-003_dongfu_manual_v01"; break;
-                case "base:item_art_liezhao_claw": name = "ART-UI-003_liezhao_art_v01"; break;
-                case "base:item_art_kaishan_fist": name = "ART-UI-003_kaishan_art_v01"; break;
-                default: return null;
-            }
-            return LoadIcon(name);
+            EnsureAppearanceTable();
+            return itemId != null && _itemAppearances.TryGetValue(itemId, out var appearance) &&
+                !string.IsNullOrWhiteSpace(appearance.icon) ? LoadIcon(appearance.icon) : null;
+        }
+
+        public static string ItemGroundKind(string itemId)
+        {
+            EnsureAppearanceTable();
+            return itemId != null && _itemAppearances.TryGetValue(itemId, out var appearance) &&
+                !string.IsNullOrWhiteSpace(appearance.groundKind) ? appearance.groundKind : "bundle";
         }
 
         public static Texture2D StatusIcon(string label)
@@ -115,40 +137,9 @@ namespace XianXia.Unity.Host
         {
             if (entity == null || !entity.TryGet<IdentityComponent>(out var identity))
                 return Profile.None;
-            switch (identity.DefinitionId.ToString())
-            {
-                case "base:character_ch01_ref_guard_a":
-                case "base:character_ch01_ref_guard_b":
-                case "base:character_ch01_ref_guard_c":
-                    return Profile.Guard;
-                // Explicit identities keep their reviewed skin; other people share the common rig skin.
-                case "base:character_ch01_ref_mortal_a":
-                case "base:character_village_recruit":
-                    return Profile.Villager;
-                case "base:character_protagonist": return Profile.Protagonist;
-                case "base:character_companion_a": return Profile.CompanionA;
-                case "base:character_companion_b": return Profile.CompanionB;
-                case "base:character_ch01_ref_supervisor": return Profile.Supervisor;
-                case "base:character_ch01_ref_farmer_b": return Profile.FarmerHoe;
-                case "base:character_ch01_ref_farmer_c": return Profile.FarmerApron;
-                case "base:character_ch01_ref_mortal_b": return Profile.ResidentBasket;
-                case "base:character_qingshi_shopkeeper":
-                case "base:character_qingshi_auction_attendant": return Profile.Merchant;
-                case "base:character_jiang_lao": return Profile.JiangLao;
-                case "base:character_ch01_ref_herb_b":
-                case "base:character_ch01_ref_herb_c":
-                case "base:character_ch01_ref_woodcutter":
-                case "base:character_ch01_ref_wood_b":
-                case "base:character_ch01_ref_wood_c":
-                case "base:character_qingshi_acceptance_unaffiliated_a":
-                case "base:character_qingshi_acceptance_unaffiliated_b":
-                case "base:character_qingshi_acceptance_unaffiliated_hostile":
-                case "base:character_qingshi_acceptance_shuofeng_civilian_a":
-                case "base:character_qingshi_acceptance_shuofeng_civilian_b": return Profile.Other;
-                default:
-                    return (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0
-                        ? Profile.Other : Profile.None;
-            }
+            EnsureAppearanceTable();
+            return _characterProfiles.TryGetValue(identity.DefinitionId.ToString(), out var profile)
+                ? profile : (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 ? Profile.Other : Profile.None;
         }
 
         public static Sprite CharacterFrame(Profile profile, Action action, Direction direction, int frame)
@@ -261,6 +252,7 @@ namespace XianXia.Unity.Host
 
         public static Sprite MapSprite(string kind)
         {
+            if (kind == "zoneMine") return StoneFloorTile();
             if (kind == "road") return SurfaceTile("ART-GROUND-002_road_horizontal_v02", 319f);
             if (kind == "roadVertical") return SurfaceTile("ART-GROUND-002_road_vertical_v02", 425f);
             if (kind == "roadCross") return SurfaceTile("ART-GROUND-002_road_cross_v02", 406f);
@@ -275,6 +267,7 @@ namespace XianXia.Unity.Host
                 case "mine":
                 case "ore": name = "ART-GROUND-009_ore_base_v02"; break;
                 case "cave": name = "ART-ROOM-010_cave_entrance_v02"; break;
+                case "recoverySpot": name = "ART-ROOM-009_recovery_cushion_v01"; break;
                 case "storageRoom": name = "ART-ROOM-007_storage_crates_v03"; break;
                 case "controlCore": name = "ART-ROOM-008_council_hall_ward_v05"; break;
                 case "factionControlPost": name = "ART-ROOM-008_flag_red_v02"; break;
@@ -284,6 +277,8 @@ namespace XianXia.Unity.Host
         }
 
         public static Sprite RoomFloorTile() => SurfaceTile("ART-ROOM-001_floor_interior_v02", 520f);
+
+        public static Sprite StoneFloorTile() => SurfaceTile("ART-GROUND-004_stone_mine_floor_v01", 512f);
 
         // Source artwork is split at runtime so the visual opening follows the real two-cell doorway.
         // 0/1 are the posts and 2 is the shallow lintel; none carries collision authority.
@@ -422,7 +417,11 @@ namespace XianXia.Unity.Host
             }
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
-            sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+            var squareRecovery = name == "ART-ROOM-009_recovery_cushion_v01";
+            var rect = squareRecovery
+                ? new Rect((texture.width - texture.height) * .5f, 0f, texture.height, texture.height)
+                : new Rect(0, 0, texture.width, texture.height);
+            sprite = Sprite.Create(texture, rect,
                 new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
             Props.Add(name, sprite);
             return sprite;

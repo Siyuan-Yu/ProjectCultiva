@@ -52,6 +52,11 @@ foreach ($name in $sourceMap.Keys) {
 
   $lines = Get-Content $rsp
   $options = $lines | Where-Object { $_ -notmatch '^"' }
+  if ($name -eq "XianXia.Unity") {
+    # Bee's saved response predates the first AudioSource usage; Unity regenerates this module ref on import.
+    $audioModule = "D:/UnityEditor/2022.3.6f1/Editor/Data/Managed/UnityEngine/UnityEngine.AudioModule.dll"
+    if (Test-Path $audioModule) { $options += '-r:"' + $audioModule + '"' }
+  }
   if ($DropUnityEditor -and $name -eq "XianXia.Tests") {
     # Headless NUnit runs outside Unity: the UNITY_EDITOR branch reaches
     # UnityEngine.Application.dataPath (an internal call) and the #else branch reads

@@ -179,6 +179,7 @@ namespace XianXia.Unity.Host
             HostCharacterRelationUi.Fill(new Rect(0f, 0f, Screen.width, Screen.height), Backdrop, _px);
             HostCharacterRelationUi.Fill(rect, Panel, _px);
             HostCharacterRelationUi.Stroke(rect, Border, _px);
+            HostImguiStyles.DrawPanelFrame(rect);
 
             var railW = Mathf.Clamp(rect.width * 0.235f, 220f, 330f);
             var rail = new Rect(rect.x, rect.y, railW, rect.height);

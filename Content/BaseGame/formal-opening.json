@@ -1,0 +1,5 @@
+{
+  "openingScenarioId": "base:scenario_ch01_reference",
+  "characterRosterId": "base:roster_level_tester",
+  "preferredMapLayoutId": "base:map_ch01_cave"
+}
