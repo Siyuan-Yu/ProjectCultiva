@@ -31,14 +31,24 @@ namespace XianXia.Unity.Host
         public static bool TryFindWorkSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
             HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out spot, 3.5f, world);
 
+        /// <summary>
+        /// 拾取物／蒲团都是 1×1 的小物件：右键命中半径必须贴近物体本身。
+        /// 旧实现统一用 3.5，洞府内室只有 24×16 格，点到物品 3.5 格内的任何空地都会被吸去拾取或打坐。
+        /// 1.0＝半格对角线(≈0.71)＋名字标签／边缘的少量容差，且小于洞府内相邻物品的间距(≥2 格)。
+        /// </summary>
+        public const float LootPickRadius = 1.0f;
+        public const float CultivateSpotPickRadius = 1.5f;
+
         public static bool TryFindCultivateSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot, 3.5f, world);
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot,
+                CultivateSpotPickRadius, world);
 
         public static bool TryFindExploreSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
             HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Explore, out spot, 3.5f, world);
 
         public static bool TryFindLootSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Loot, out spot, 3.5f, world);
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Loot, out spot,
+                LootPickRadius, world);
 
         /// <summary>
         /// 右键用：只认工区圆心附近，不用大色带（否则整片农田右键都会被吸去劳动中心，像粘住）。

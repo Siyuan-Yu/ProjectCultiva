@@ -23,6 +23,9 @@ namespace XianXia.Unity.Host
             Cultivate = 4
         }
 
+        /// <summary>到站拾取的最大允许距离（寻路 arriveEpsilon≈0.2，留出碰撞挤让余量）。</summary>
+        const float PickupReachDistance = 1.5f;
+
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
@@ -94,11 +97,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (HostZoneQuery.TryFindLootSpot(point, out var loot, world))
-            {
-                IssueLootAtSpot(loot);
-                return true;
-            }
+            // 地上物不在此直接拾取：右键统一由 HostNpcContextMenu 弹出“拾取”菜单（见 TryPickupLootTarget）。
 
             if (HostZoneQuery.TryFindExploreSpot(point, out var explore, world))
             {
@@ -113,6 +112,18 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        /// <summary>右键菜单“拾取”：主控走近物品后拾取（到站才结算）。</summary>
+        public bool TryPickupLootTarget(WorldObjectInteractionTarget target)
+        {
+            if (target.Kind != WorldObjectTargetKind.Loot || target.Plot == null)
+                return false;
+            var spot = target.Plot.ToInteractSpot();
+            if (string.IsNullOrEmpty(spot.LootItemId) || string.IsNullOrEmpty(spot.LootSpotId))
+                return false;
+            IssueLootAtSpot(spot);
+            return true;
         }
 
         public bool TryHandleContextTarget(WorldObjectInteractionTarget target)
@@ -244,10 +255,10 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostZoneQuery.TryFindLootSpot(point, out var loot, world))
+            if (target.Kind == WorldObjectTargetKind.Loot && target.Plot != null)
             {
                 _idleHoverInteractable = true;
-                _hoverHint = "右键拾取·" + loot.Label;
+                _hoverHint = "右键·拾取 " + target.DisplayLabel;
                 ApplyCursor(true);
                 return;
             }
@@ -682,7 +693,13 @@ namespace XianXia.Unity.Host
             {
                 if (commandBridge == null)
                     return;
-                var ok = commandBridge.IssuePickupLoot(actor, spot.LootSpotId, spot.LootItemId) > 0;
+                // 到站回调只在“确实走到物品身边”时才拾取；寻路被截断／停在远处不得隔空拾取。
+                var farAway = bootstrap != null && bootstrap.ViewSpawner != null &&
+                              bootstrap.ViewSpawner.Registry.TryGet(actor, out var actorView) && actorView != null &&
+                              ((Vector2)actorView.transform.position - (Vector2)spot.WorldPosition).sqrMagnitude >
+                              PickupReachDistance * PickupReachDistance;
+                var ok = !farAway &&
+                         commandBridge.IssuePickupLoot(actor, spot.LootSpotId, spot.LootItemId) > 0;
                 var overlay = bootstrap != null ? bootstrap.GetComponent<HostFeedbackOverlay>() : null;
                 if (overlay != null)
                 {

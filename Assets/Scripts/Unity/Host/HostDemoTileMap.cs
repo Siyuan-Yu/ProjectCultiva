@@ -354,6 +354,8 @@ namespace XianXia.Unity.Host
                 string.Empty, source.StableId);
             if (ShouldHideHiddenEntrance(metadata) || ShouldHideTakenLoot(metadata, lootSpotId))
                 return;
+            if (IsLogicOnlyZone(source.Kind))
+                return;
 
             mapper.WorldToPresentation(source.WorldX, source.WorldY, out var left, out var bottom);
             mapper.WorldToPresentation(source.WorldX + source.WorldWidth, source.WorldY + source.WorldHeight,
@@ -845,6 +847,9 @@ namespace XianXia.Unity.Host
             // 已拾取的地上物：不刷。
             if (ShouldHideTakenLoot(p, lootSpotId))
                 return;
+            // 刷怪区只是逻辑标记（SpawnZoneApplier 读数据），正式游玩不画红色调试色块。
+            if (IsLogicOnlyZone(kind))
+                return;
 
             // Cave chamber ground is authored as non-blocking rock. It is a surface,
             // not a tall rock prop: foot-depth sorting would cover loot and actors' legs.
@@ -935,6 +940,14 @@ namespace XianXia.Unity.Host
             if (isTree && d.ResolveWoodYield() <= 0)
                 Debug.LogWarning("[MapLayout] 树产量为 0：kind=" + kind + " id=" + instanceId);
         }
+
+        /// <summary>
+        /// 仅作数据标记的区域（目前＝spawnZone）。有 Session 的真实游玩不渲染；
+        /// 编辑器预览（_session == null）仍显示，方便作者看刷怪范围。
+        /// </summary>
+        bool IsLogicOnlyZone(string kind) =>
+            _session != null &&
+            string.Equals(kind, "spawnZone", System.StringComparison.OrdinalIgnoreCase);
 
         bool ShouldHideTakenLoot(MapPlacement p, string lootSpotId)
         {

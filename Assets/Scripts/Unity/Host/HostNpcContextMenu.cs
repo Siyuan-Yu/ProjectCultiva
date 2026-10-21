@@ -91,6 +91,7 @@ namespace XianXia.Unity.Host
                              _worldObjectTarget.Plot != null;
         bool IsPrisonDropOffTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.PrisonDropOff &&
                                       _worldObjectTarget.Plot != null;
+        bool IsLootMenuTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Loot;
         bool IsReadOnlyWorldObjectTarget =>
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea ||
@@ -278,6 +279,8 @@ namespace XianXia.Unity.Host
                         DrawFactionFlagMenu();
                     else if (IsDestructibleTarget)
                         DrawDestructibleMenu();
+                    else if (IsLootMenuTarget)
+                        DrawLootMenu();
                     else if (IsBedTarget)
                         DrawBedMenu();
                     else if (IsRecoverySpotTarget)
@@ -1085,6 +1088,39 @@ namespace XianXia.Unity.Host
                 ShowWorldObjectDetails();
             var actionY = y + 60f;
             DrawInspectButton(x, ref actionY, w, itemH);
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        /// <summary>
+        /// 所有可拾取物（地图作者放置的功法/斗技、运行时掉落）右键统一弹“拾取”：
+        /// 点击后由主控走近到物品身边再拾取，不再落到 NPC 的“对话”菜单。
+        /// </summary>
+        void DrawLootMenu()
+        {
+            const float w = 168f; const float itemH = 30f;
+            var plot = _worldObjectTarget.Plot;
+            if (plot == null)
+            {
+                // 物品已被拾取／回收（plot 被销毁）。
+                CloseAll();
+                return;
+            }
+
+            var h = itemH * 2f + 34f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(x, y, w, h); HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), _targetLabel, _label);
+            if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "拾取", _button))
+            {
+                var target = _worldObjectTarget;
+                CloseAll();
+                bootstrap?.WorkTargetMode?.TryPickupLootTarget(target);
+                return;
+            }
+            if (GUI.Button(new Rect(x + 8f, y + 60f, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 

@@ -253,6 +253,7 @@ namespace XianXia.Unity.Host
         public static Sprite MapSprite(string kind)
         {
             if (kind == "zoneMine") return StoneFloorTile();
+            if (kind == "cushion") return CultivateCushionSprite();
             if (kind == "road") return SurfaceTile("ART-GROUND-002_road_horizontal_v02", 319f);
             if (kind == "roadVertical") return SurfaceTile("ART-GROUND-002_road_vertical_v02", 425f);
             if (kind == "roadCross") return SurfaceTile("ART-GROUND-002_road_cross_v02", 406f);
@@ -403,6 +404,30 @@ namespace XianXia.Unity.Host
                     ? "ART-ROOM-006_bed_medical_v02"
                     : "ART-ROOM-006_bed_residential_v02";
             return LoadProp(name);
+        }
+
+        /// <summary>
+        /// 修炼蒲团（kind=cushion，1×1）：复用现有蒲团原画，但裁到蒲团本体。
+        /// 原图四周留白很大，若沿用恢复点的整幅方形裁切，缩进 1×1 格后蒲团只剩半格大小。
+        /// 只换 Sprite 选择，不改占地、交互范围与碰撞。
+        /// </summary>
+        static Sprite CultivateCushionSprite()
+        {
+            const string key = "ART-ROOM-009_recovery_cushion_v01#cultivate";
+            if (Props.TryGetValue(key, out var cached)) return cached;
+            var texture = Resources.Load<Texture2D>("ART-ROOM-009_recovery_cushion_v01");
+            if (texture == null)
+            {
+                Debug.LogWarning("[StepAArt] Missing cushion texture for cultivate cushion.");
+                return null;
+            }
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            var side = Mathf.Min(texture.width * .48f, texture.height * .74f);
+            var rect = new Rect(texture.width * .5f - side * .5f, texture.height * .515f - side * .5f, side, side);
+            var sprite = Sprite.Create(texture, rect, new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
+            Props.Add(key, sprite);
+            return sprite;
         }
 
         static Sprite LoadProp(string name)
