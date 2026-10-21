@@ -99,8 +99,11 @@ public partial class MainWindow : Window
             {
                 DeliveryItemBox.Text = JsonEdit.GetString(req, "itemId");
                 DeliveryAmountBox.Text = JsonEdit.GetInt(req, "amount", 1).ToString();
+                AdditionalDeliveryBox.Text = string.Join(Environment.NewLine,
+                    delivery.Skip(1).OfType<JsonObject>().Select(item =>
+                        JsonEdit.GetString(item, "itemId") + "," + JsonEdit.GetInt(item, "amount", 1)));
             }
-            else { DeliveryItemBox.Text = ""; DeliveryAmountBox.Text = "1"; }
+            else { DeliveryItemBox.Text = ""; DeliveryAmountBox.Text = "1"; AdditionalDeliveryBox.Text = ""; }
 
             OfferEditor.LoadFrom(_quest.Raw["offerConditions"]);
             CompleteEditor.LoadFrom(_quest.Raw["completeConditions"]);
@@ -452,9 +455,21 @@ public partial class MainWindow : Window
         var deliveryItem = DeliveryItemBox.Text?.Trim() ?? "";
         if (!int.TryParse(DeliveryAmountBox.Text?.Trim(), out var deliveryAmount) || deliveryAmount <= 0)
         { err = "交付数量必须为正整数"; return false; }
-        _quest.Raw["deliveryRequirements"] = string.IsNullOrEmpty(deliveryItem)
-            ? new JsonArray()
-            : new JsonArray(new JsonObject { ["itemId"] = deliveryItem, ["amount"] = deliveryAmount });
+        var deliveries = new JsonArray();
+        if (!string.IsNullOrEmpty(deliveryItem))
+            deliveries.Add(new JsonObject { ["itemId"] = deliveryItem, ["amount"] = deliveryAmount });
+        var additionalLines = (AdditionalDeliveryBox.Text ?? "").Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        for (var i = 0; i < additionalLines.Length; i++)
+        {
+            var line = additionalLines[i].Trim();
+            if (line.Length == 0) continue;
+            var fields = line.Split(',');
+            if (fields.Length != 2 || string.IsNullOrWhiteSpace(fields[0]) ||
+                !int.TryParse(fields[1].Trim(), out var amount) || amount <= 0)
+            { err = $"其余交付物品第 {i + 1} 行应为 itemId,正整数数量"; return false; }
+            deliveries.Add(new JsonObject { ["itemId"] = fields[0].Trim(), ["amount"] = amount });
+        }
+        _quest.Raw["deliveryRequirements"] = deliveries;
         if (!int.TryParse(DeadlineDaysBox.Text?.Trim(), out var deadlineDays) || deadlineDays < 0)
         {
             err = "deadlineDays 需为非负整数";

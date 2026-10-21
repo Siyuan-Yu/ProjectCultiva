@@ -14,14 +14,26 @@ namespace XianXia.Unity.Content
             var loaded = new ContentPackageLoader().Load(new[] { packageDirectory });
             if (loaded.IsFailure) { message = loaded.Error.ToString(); return false; }
             var registry = loaded.Value.Registry;
-            if (!DefinitionId.TryParse(scenario, out var scenarioId) || !registry.OpeningScenarios.ContainsKey(scenarioId))
+            if (!DefinitionId.TryParse(scenario, out var scenarioId) ||
+                !registry.TryGetOpeningScenario(scenarioId, out var opening))
             { message = "Scenario 不存在：" + scenario; return false; }
-            if (!string.IsNullOrWhiteSpace(roster) &&
-                (!DefinitionId.TryParse(roster, out var rosterId) || !registry.CharacterRosters.ContainsKey(rosterId)))
-            { message = "Roster 不存在：" + roster; return false; }
+            System.Collections.Generic.IList<OpeningSpawnEntry> spawns = opening.Spawns;
+            if (!string.IsNullOrWhiteSpace(roster))
+            {
+                if (!DefinitionId.TryParse(roster, out var rosterId) ||
+                    !registry.TryGetCharacterRoster(rosterId, out var selectedRoster))
+                { message = "Roster 不存在：" + roster; return false; }
+                spawns = selectedRoster.Entries;
+            }
             if (!string.IsNullOrWhiteSpace(map) &&
                 (!DefinitionId.TryParse(map, out var mapId) || !registry.MapLayouts.ContainsKey(mapId)))
             { message = "MapLayout 不存在：" + map; return false; }
+            var selected = new ContentReferenceValidator().ValidateSelectedOpening(registry, opening, spawns);
+            if (!selected.IsValid)
+            {
+                message = "正式开局与名册不一致：" + selected.Errors[0];
+                return false;
+            }
             message = "OK";
             return true;
         }

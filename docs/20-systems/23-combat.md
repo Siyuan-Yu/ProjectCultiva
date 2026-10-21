@@ -1,5 +1,9 @@
 # 战斗
 
+> **2026-10-21 NPC AI 当前覆写：** 自主行为覆盖我方、敌方、中立及凡人；洞府 Separate Space 中敌对双方直接多目标交战。加载现场的自动发现、真实近场伤害与双方均离屏的 NPC 冲突已接线；离屏冲突可造成真实弥留/死亡，但不得凭低好感自动攻击、自动宣战或夺取 Site。NPC 独立战场劣势退出已接线，投降不自动变俘虏。仍未完成人工战斗/冷热切换验收，状态 **Design Confirmed / Partial Implementation / Producer Acceptance Pending**；见 [317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)、[ADR-0049](../40-process/43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)。
+
+> **2026-10-21 撤退方向确认与部分实施：** 普通独立战场开始战斗后累计约 300 战术秒开放玩家逃跑尝试，双方可战斗者神识总和转为成功率（等值约 50%，限于 10%–90%）；失败后需再等 60 战术秒。成功须作为独立撤退结局，能行动者离场，失能者留下且尝试前明确警告。洞府 Separate Space 暂不做逃跑。按钮／判定／战报已接线、离线编译完成，待制作人现场验收；其它 NPC AI 仍未实现。见 [317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)。状态 **Partial Implementation / Producer Acceptance Pending**。
+
 > 2026-10-20 医疗定向覆写：以[312](../40-process/312-medic-bedside-treatment-2026-10-20.md)和[ADR-0048](../40-process/43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)为准。弥留储备200、基础−1/s，每份药草+0.4/s，当前医疗床+0.2/s；净率转正后以同率恢复HP，超过最大HP50%才苏醒。Captured不取消伤势，牢床可治疗。下方旧倒计时/医疗床临时稳定描述不再代表正式当前行为。
 
 > **2026-09-21 LEGACY-FINAL-C Seal：** 现代 CharacterEncounter 已与旧 `StrategicEncounterRuntime`、`RetreatingArmyBoard`、`LingeringBattlefieldRegistry` 解耦；战斗只保存真实 Character／Squad、精确 Surface anchor、生命周期与现代 settlement／participant state。旧 active battle 仅作严格 one-way migration input。状态：**Producer Accepted / Sealed**，见 [250](../40-process/250-legacy-final-c-final-strategic-runtime-retirement-2026-09-21.md)。

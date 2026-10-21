@@ -18,6 +18,8 @@ namespace XianXia.Core.Social
         public Result ApplyCharacterAttacked(
             SimulationWorld world, EntityId attacker, EntityId victim, EventId cause)
         {
+            // The assault itself is an explicit hostile fact; mere dislike/grudge is not.
+            XianXia.Core.Npc.NpcHostilityService.SetPrivateHostility(world, victim, attacker, true);
             var affection = Record(world, victim, attacker, SocialAttitudeAxis.Affection, -10,
                 "character_attacked_reaction", cause, victim);
             if (affection.result.IsFailure)

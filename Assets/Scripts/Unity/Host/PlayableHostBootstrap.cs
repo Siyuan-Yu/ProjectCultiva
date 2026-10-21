@@ -613,6 +613,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostFarmFieldLabor>();
             if (GetComponent<HostNpcMeleeAssault>() == null)
                 gameObject.AddComponent<HostNpcMeleeAssault>();
+            if (GetComponent<HostNpcAutonomousCombat>() == null)
+                gameObject.AddComponent<HostNpcAutonomousCombat>();
             if (GetComponent<HostMeleeStrikeVfx>() == null)
                 gameObject.AddComponent<HostMeleeStrikeVfx>();
             if (GetComponent<HostSpiritVeilController>() == null)
@@ -896,6 +898,7 @@ namespace XianXia.Unity.Host
             var npcMelee = GetComponent<HostNpcMeleeAssault>();
             if (npcMelee != null)
                 npcMelee.Bind(this);
+            GetComponent<HostNpcAutonomousCombat>()?.Bind(this);
             var spiritVeil = GetComponent<HostSpiritVeilController>();
             if (spiritVeil != null)
                 spiritVeil.Bind(this);

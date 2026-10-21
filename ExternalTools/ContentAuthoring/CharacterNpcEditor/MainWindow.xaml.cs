@@ -276,6 +276,7 @@ public partial class MainWindow : Window
 
         ReadAttr("MaxHp", AttrHpBox);
         ReadAttr("Stamina", AttrStaminaBox);
+        ReadAttr("Physique", AttrPhysiqueBox);
         ReadAttr("Attack", AttrAtkBox);
         ReadAttr("Defense", AttrDefBox);
         ReadAttr("Speed", AttrSpdBox);
@@ -473,6 +474,7 @@ public partial class MainWindow : Window
             {
                 ["MaxHp"] = 100,
                 ["Stamina"] = 50,
+                ["Physique"] = 10,
                 ["Attack"] = 8,
                 ["Defense"] = 5,
                 ["Speed"] = 8,
@@ -563,19 +565,19 @@ public partial class MainWindow : Window
         _character.Raw["desires"] = LinesToArray(DesiresBox.Text);
         _character.Raw["preferredWorkAreaIds"] = LinesToArray(PreferredWaBox.Text);
         _character.Raw["homeWorkAreaId"] = HomeWaBox.Text?.Trim() ?? "";
-        _character.Raw["baseAttributes"] = new JsonObject
-        {
-            ["MaxHp"] = ParseInt(AttrHpBox.Text, 100),
-            ["Stamina"] = ParseInt(AttrStaminaBox.Text, 50),
-            ["Attack"] = ParseInt(AttrAtkBox.Text, 8),
-            ["Defense"] = ParseInt(AttrDefBox.Text, 5),
-            ["Speed"] = ParseInt(AttrSpdBox.Text, 8),
-            ["SpiritSense"] = ParseInt(AttrSenseBox.Text, 5),
-            ["Comprehension"] = ParseInt(AttrCompBox.Text, 5),
-            ["SpiritPower"] = ParseInt(AttrSpiritPowerBox.Text, 0),
-            ["Cultivation"] = ParseInt(AttrCultBox.Text, 0),
-            ["MindState"] = ParseInt(AttrMindBox.Text, 50)
-        };
+        var attributes = _character.Raw["baseAttributes"] as JsonObject ?? new JsonObject();
+        attributes["MaxHp"] = ParseInt(AttrHpBox.Text, 100);
+        attributes["Stamina"] = ParseInt(AttrStaminaBox.Text, 50);
+        attributes["Physique"] = ParseInt(AttrPhysiqueBox.Text, 10);
+        attributes["Attack"] = ParseInt(AttrAtkBox.Text, 8);
+        attributes["Defense"] = ParseInt(AttrDefBox.Text, 5);
+        attributes["Speed"] = ParseInt(AttrSpdBox.Text, 8);
+        attributes["SpiritSense"] = ParseInt(AttrSenseBox.Text, 5);
+        attributes["Comprehension"] = ParseInt(AttrCompBox.Text, 5);
+        attributes["SpiritPower"] = ParseInt(AttrSpiritPowerBox.Text, 0);
+        attributes["Cultivation"] = ParseInt(AttrCultBox.Text, 0);
+        attributes["MindState"] = ParseInt(AttrMindBox.Text, 50);
+        _character.Raw["baseAttributes"] = attributes;
         var roots = new JsonObject();
         foreach (var row in _roots)
             roots[row.Key] = Math.Clamp(ParseInt(row.ValueBox?.Text, 0), 0, 30);
@@ -776,7 +778,6 @@ public partial class MainWindow : Window
 
             ApplySpawnsToScenario();
             WriteDefinitionToPath(_package, _scenario, targetPath);
-            ExportLevelTesterRoster(quiet: true, targetPath: null);
             var keep = CharList.SelectedItem is CharListItem c ? c.Id : null;
             RefreshCharList(keep);
             StatusText.Text = "已保存场景出场 → " + targetPath;

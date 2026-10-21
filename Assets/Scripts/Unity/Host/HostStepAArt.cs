@@ -27,9 +27,20 @@ namespace XianXia.Unity.Host
         static Sprite[] _roomUsageMarkers;
         static readonly Dictionary<string, Texture2D> Icons = new Dictionary<string, Texture2D>();
         [Serializable] sealed class AppearanceTable { public CharacterAppearance[] characters; public ItemAppearance[] items; }
-        [Serializable] sealed class CharacterAppearance { public string id; public string profile; }
+        [Serializable] sealed class CharacterAppearance { public string id; public string profile; public RigSkin rig; }
+        [Serializable] public sealed class RigSkin
+        {
+            public string partsBase;
+            public string sideHeadAtlas;
+            public int sideHeadColumns;
+            public int sideHeadIndex;
+            public bool basket;
+            public string staticSprite;
+            public string sleepSprite;
+        }
         [Serializable] sealed class ItemAppearance { public string id; public string icon; public string groundKind; }
         static Dictionary<string, Profile> _characterProfiles;
+        static Dictionary<string, RigSkin> _rigSkins;
         static Dictionary<string, ItemAppearance> _itemAppearances;
         static Sprite _plainFlag;
 
@@ -37,6 +48,7 @@ namespace XianXia.Unity.Host
         {
             if (_characterProfiles != null) return;
             _characterProfiles = new Dictionary<string, Profile>(StringComparer.Ordinal);
+            _rigSkins = new Dictionary<string, RigSkin>(StringComparer.Ordinal);
             _itemAppearances = new Dictionary<string, ItemAppearance>(StringComparer.Ordinal);
             var source = Resources.Load<TextAsset>("HostAppearanceMappings");
             if (source == null) return;
@@ -45,10 +57,89 @@ namespace XianXia.Unity.Host
                 foreach (var entry in table.characters)
                     if (entry != null && !string.IsNullOrWhiteSpace(entry.id) &&
                         Enum.TryParse(entry.profile, false, out Profile profile) && profile != Profile.None)
+                    {
                         _characterProfiles[entry.id] = profile;
+                        if (entry.rig != null && !string.IsNullOrWhiteSpace(entry.rig.partsBase))
+                            _rigSkins[entry.id] = entry.rig;
+                    }
             if (table?.items != null)
                 foreach (var entry in table.items)
                     if (entry != null && !string.IsNullOrWhiteSpace(entry.id)) _itemAppearances[entry.id] = entry;
+        }
+
+        public static List<string> ValidateAppearanceMappings()
+        {
+            var errors = new List<string>();
+            var source = Resources.Load<TextAsset>("HostAppearanceMappings");
+            if (source == null)
+            {
+                errors.Add("缺少 HostAppearanceMappings TextAsset。");
+                return errors;
+            }
+            AppearanceTable table;
+            try { table = JsonUtility.FromJson<AppearanceTable>(source.text); }
+            catch (Exception error)
+            {
+                errors.Add("HostAppearanceMappings JSON 无效：" + error.Message);
+                return errors;
+            }
+            if (table == null || table.characters == null || table.items == null)
+            {
+                errors.Add("HostAppearanceMappings 缺少 characters 或 items 列表。");
+                return errors;
+            }
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in table.characters)
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.id))
+                {
+                    errors.Add("角色外观映射含空 ID。");
+                    continue;
+                }
+                if (!ids.Add("character:" + entry.id)) errors.Add("角色外观重复 ID：" + entry.id);
+                if (!Enum.TryParse(entry.profile, false, out Profile profile) ||
+                    !Enum.IsDefined(typeof(Profile), profile) || profile == Profile.None)
+                    errors.Add("角色外观无效 profile：" + entry.id + " / " + entry.profile);
+                var rig = entry.rig;
+                if (rig == null) continue;
+                if (string.IsNullOrWhiteSpace(rig.partsBase) || string.IsNullOrWhiteSpace(rig.sideHeadAtlas) ||
+                    string.IsNullOrWhiteSpace(rig.staticSprite) || rig.sideHeadColumns < 1 ||
+                    rig.sideHeadIndex < 0 || rig.sideHeadIndex >= rig.sideHeadColumns)
+                {
+                    errors.Add("角色自定义 rig 字段不完整：" + entry.id);
+                    continue;
+                }
+                RequireTexture(rig.partsBase + "_HumanCommonRig_parts_v01", entry.id, errors);
+                RequireLayout(rig.partsBase + "_HumanCommonRig_parts_v01_layout", entry.id, errors);
+                RequireTexture(rig.sideHeadAtlas, entry.id, errors);
+                RequireLayout(rig.sideHeadAtlas + "_layout", entry.id, errors);
+                RequireTexture(rig.staticSprite, entry.id, errors);
+                if (!string.IsNullOrWhiteSpace(rig.sleepSprite)) RequireTexture(rig.sleepSprite, entry.id, errors);
+            }
+            foreach (var entry in table.items)
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.id))
+                {
+                    errors.Add("物品外观映射含空 ID。");
+                    continue;
+                }
+                if (!ids.Add("item:" + entry.id)) errors.Add("物品外观重复 ID：" + entry.id);
+                if (!string.IsNullOrWhiteSpace(entry.groundKind) && entry.groundKind != "bundle" &&
+                    entry.groundKind != "book" && entry.groundKind != "scroll" && entry.groundKind != "herb")
+                    errors.Add("物品地面表现类型无效：" + entry.id + " / " + entry.groundKind);
+                if (!string.IsNullOrWhiteSpace(entry.icon)) RequireTexture(entry.icon, entry.id, errors);
+            }
+            return errors;
+        }
+
+        static void RequireTexture(string key, string owner, List<string> errors)
+        {
+            if (Resources.Load<Texture2D>(key) == null) errors.Add(owner + " 缺少 Texture2D：" + key);
+        }
+
+        static void RequireLayout(string key, string owner, List<string> errors)
+        {
+            if (Resources.Load<TextAsset>(key) == null) errors.Add(owner + " 缺少布局 TextAsset：" + key);
         }
 
         public static Sprite FlagSprite(string factionId)
@@ -142,6 +233,25 @@ namespace XianXia.Unity.Host
                 ? profile : (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 ? Profile.Other : Profile.None;
         }
 
+        public static RigSkin ResolveRigSkin(Entity entity)
+        {
+            if (entity == null || !entity.TryGet<IdentityComponent>(out var identity)) return null;
+            EnsureAppearanceTable();
+            return _rigSkins.TryGetValue(identity.DefinitionId.ToString(), out var skin) ? skin : null;
+        }
+
+        public static Sprite CustomStaticSprite(RigSkin skin)
+        {
+            if (skin == null || string.IsNullOrWhiteSpace(skin.staticSprite)) return null;
+            if (Props.TryGetValue(skin.staticSprite, out var cached)) return cached;
+            var texture = Resources.Load<Texture2D>(skin.staticSprite);
+            if (texture == null) return null;
+            var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                new Vector2(.5f, .035f), texture.height / 1.18f, 0, SpriteMeshType.FullRect);
+            Props.Add(skin.staticSprite, sprite);
+            return sprite;
+        }
+
         public static Sprite CharacterFrame(Profile profile, Action action, Direction direction, int frame)
         {
             if (profile == Profile.None)
@@ -196,8 +306,18 @@ namespace XianXia.Unity.Host
             return sprites[(int)legacyDirection * framesPerDirection + Mathf.Clamp(frame, 0, framesPerDirection - 1)];
         }
 
-        public static Sprite SleepSprite(Profile profile)
+        public static Sprite SleepSprite(Profile profile, RigSkin skin = null)
         {
+            if (skin != null && !string.IsNullOrWhiteSpace(skin.sleepSprite))
+            {
+                if (Props.TryGetValue(skin.sleepSprite, out var custom)) return custom;
+                var image = Resources.Load<Texture2D>(skin.sleepSprite);
+                if (image == null) return null;
+                custom = Sprite.Create(image, new Rect(0, 0, image.width, image.height),
+                    new Vector2(.5f, .5f), CharacterPixelsPerUnit, 0, SpriteMeshType.FullRect);
+                Props.Add(skin.sleepSprite, custom);
+                return custom;
+            }
             string name;
             switch (profile)
             {

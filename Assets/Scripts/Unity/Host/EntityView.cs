@@ -43,6 +43,7 @@ namespace XianXia.Unity.Host
         bool _highlight;
         float _hitFlashRemaining;
         HostStepAArt.Profile _artProfile;
+        HostStepAArt.RigSkin _artSkin;
         HostStepAArt.Direction _artDirection = HostStepAArt.Direction.South;
         HostStepAArt.Action _artAction = HostStepAArt.Action.Idle;
         HostMoveController _moveController;
@@ -273,9 +274,10 @@ namespace XianXia.Unity.Host
 
         public void ConfigureRuntimeArt(HostStepAArt.Profile profile, HostMoveController moveController,
             HostFarmFieldLabor farmLabor, HostDestructibleAssault destructibleAssault,
-            PlayableHostSession session = null, bool useModularRig = true)
+            PlayableHostSession session = null, bool useModularRig = true,
+            HostStepAArt.RigSkin skin = null)
         {
-            if (_modularRig != null && _artProfile != profile)
+            if (_modularRig != null && (_artProfile != profile || _artSkin != skin))
             {
                 _modularRig.gameObject.name = "RetiredHumanCommonRig";
                 _modularRig.gameObject.SetActive(false);
@@ -284,6 +286,7 @@ namespace XianXia.Unity.Host
                 _useModularRig = false;
             }
             _artProfile = profile;
+            _artSkin = skin;
             EnsureVisualParts();
             _equipmentVisual = GetComponent<HumanCommonRigEquipment>() ?? gameObject.AddComponent<HumanCommonRigEquipment>();
             _equipmentVisual.ConfigureDefault(profile);
@@ -347,7 +350,7 @@ namespace XianXia.Unity.Host
                 var go = new GameObject("HumanCommonRig");
                 go.transform.SetParent(transform, false);
                 var rig = go.AddComponent<HumanCommonRigView>();
-                if (!rig.Initialize(_artProfile, _equipmentVisual))
+                if (!rig.Initialize(_artProfile, _equipmentVisual, _artSkin))
                 {
                     _useModularRig = false;
                     _nextRigRetryAt = Time.realtimeSinceStartup + RigRetrySeconds;
@@ -382,8 +385,9 @@ namespace XianXia.Unity.Host
         void ApplyLegacyFrame()
         {
             if (bodyRenderer == null || _artProfile == HostStepAArt.Profile.None) return;
-            var frame = HostStepAArt.CharacterFrame(_artProfile, _artAction, _artDirection,
-                _artState != null ? _artState.Frame : 0);
+            var frame = HostStepAArt.CustomStaticSprite(_artSkin) ??
+                HostStepAArt.CharacterFrame(_artProfile, _artAction, _artDirection,
+                    _artState != null ? _artState.Frame : 0);
             if (frame != null) bodyRenderer.sprite = frame;
         }
 
@@ -451,6 +455,7 @@ namespace XianXia.Unity.Host
             _hitFlashRemaining = 0f;
             activityText = string.Empty;
             _artProfile = HostStepAArt.Profile.None;
+            _artSkin = null;
             _artSession = null;
             _runtimeArtConfigured = false;
             _workContactRemaining = 0f;
@@ -788,7 +793,8 @@ namespace XianXia.Unity.Host
                 !canAct ? "Life state" : sleeping ? "Sleeping" : string.Empty;
             if (!_useModularRig)
             {
-                var sprite = HostStepAArt.CharacterFrame(_artProfile, _artAction, _artDirection, _artState.Frame);
+                var sprite = HostStepAArt.CustomStaticSprite(_artSkin) ??
+                    HostStepAArt.CharacterFrame(_artProfile, _artAction, _artDirection, _artState.Frame);
                 if (sprite != null && bodyRenderer.sprite != sprite)
                     bodyRenderer.sprite = sprite;
             }
@@ -862,7 +868,11 @@ namespace XianXia.Unity.Host
                  civilian.SleepPhase == CivilianSleepPhase.SleepingAtResidence)) return true;
             return entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
                 _world.ActiveActions.TryGetValue(state.ActiveActionId, out var active) &&
-                active is BedRestAction rest && rest.Status == ActionStatus.Running;
+                (active is BedRestAction rest && rest.Status == ActionStatus.Running ||
+                 active is RestAction ground && ground.Status == ActionStatus.Running &&
+                 state.ActiveOrderSource == XianXia.Core.Orders.OrderSource.Ai &&
+                 entity.TryGet<PersonalLifeComponent>(out var personal) &&
+                 personal.Activity == PersonalLifeActivity.Resting);
         }
 
         void UpdateSleepVisual(Entity entity)
@@ -885,7 +895,7 @@ namespace XianXia.Unity.Host
                 SetSleepVisual(null, transform.position);
                 return;
             }
-            var sprite = _useModularRig ? null : HostStepAArt.SleepSprite(_artProfile);
+            var sprite = _useModularRig ? null : HostStepAArt.SleepSprite(_artProfile, _artSkin);
             if (life.IsIncapacitated)
             {
                 // Rescue can legally place an incapacitated person in an ordinary bed too.
@@ -899,9 +909,16 @@ namespace XianXia.Unity.Host
                 civilian.SleepPhase == CivilianSleepPhase.SleepingOnGround;
             var residence = civilian != null &&
                 civilian.SleepPhase == CivilianSleepPhase.SleepingAtResidence;
-            var bedAction = entity.TryGet<ActionStateComponent>(out var state) &&
-                state.HasActiveAction && _world.ActiveActions.TryGetValue(state.ActiveActionId, out var active) &&
-                active is BedRestAction rest && rest.Status == ActionStatus.Running;
+            var bedAction = false;
+            if (entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
+                _world.ActiveActions.TryGetValue(state.ActiveActionId, out var active))
+            {
+                bedAction = active is BedRestAction rest && rest.Status == ActionStatus.Running;
+                ground |= active is RestAction restGround && restGround.Status == ActionStatus.Running &&
+                    state.ActiveOrderSource == XianXia.Core.Orders.OrderSource.Ai &&
+                    entity.TryGet<PersonalLifeComponent>(out var personal) &&
+                    personal.Activity == PersonalLifeActivity.Resting;
+            }
             if (!ground && !residence && !bedAction)
             {
                 SetSleepVisual(null, transform.position);

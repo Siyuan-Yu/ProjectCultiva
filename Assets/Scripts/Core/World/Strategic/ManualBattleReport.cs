@@ -42,6 +42,7 @@ namespace XianXia.Core.World.Strategic
         readonly List<ManualBattleReportParticipant> _participants = new List<ManualBattleReportParticipant>();
         public string OfferId { get; internal set; } = string.Empty;
         public bool PlayerWon { get; internal set; }
+        public bool Retreated { get; internal set; }
         public string ResultReason { get; internal set; } = string.Empty;
         public IReadOnlyList<ManualBattleReportParticipant> Participants => _participants;
         internal void Add(ManualBattleReportParticipant participant) => _participants.Add(participant);

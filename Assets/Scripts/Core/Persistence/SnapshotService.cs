@@ -256,6 +256,23 @@ namespace XianXia.Core.Persistence
                         dto.PersonalityTags.Add(tag);
                 }
 
+                if (entity.TryGet<PersonalLifeComponent>(out var personalLife))
+                {
+                    dto.HasPersonalLife = true;
+                    dto.PersonalLifePreference = (int)personalLife.Preference;
+                    dto.PersonalLifeActivity = (int)personalLife.Activity;
+                    dto.PersonalSatiety = personalLife.Satiety;
+                    dto.PersonalEnergy = personalLife.Energy;
+                    dto.PersonalCurrentMood = personalLife.CurrentMood;
+                    dto.PersonalLastProcessedTick = personalLife.LastProcessedTick;
+                    dto.PersonalLastCultivationTick = personalLife.LastCultivationTick;
+                    dto.PersonalLastRecreationTick = personalLife.LastRecreationTick;
+                    dto.PersonalFoodRoomId = personalLife.FoodRoomId ?? string.Empty;
+                    dto.PersonalFoodAccessAttempt = personalLife.FoodAccessAttempt;
+                    dto.PersonalFoodRetryAfterTick = personalLife.FoodRetryAfterTick;
+                    dto.PersonalBedRetryAfterTick = personalLife.BedRetryAfterTick;
+                }
+
                 if (world.Civilians.TryGet(entity.Id, out var civilian))
                 {
                     dto.HasMortalCivilian = true;
@@ -1008,6 +1025,29 @@ namespace XianXia.Core.Persistence
                     personality.SetTags(e.PersonalityTags);
                 entity.AddComponent(personality);
 
+                if (e.HasPersonalLife)
+                {
+                    var personalLife = new PersonalLifeComponent
+                    {
+                        Preference = System.Enum.IsDefined(typeof(PersonalLifePreference), e.PersonalLifePreference)
+                            ? (PersonalLifePreference)e.PersonalLifePreference : PersonalLifePreference.Balanced,
+                        Activity = System.Enum.IsDefined(typeof(PersonalLifeActivity), e.PersonalLifeActivity)
+                            ? (PersonalLifeActivity)e.PersonalLifeActivity : PersonalLifeActivity.None,
+                        Satiety = e.PersonalSatiety,
+                        Energy = e.PersonalEnergy,
+                        CurrentMood = e.PersonalCurrentMood,
+                        LastProcessedTick = e.PersonalLastProcessedTick,
+                        LastCultivationTick = e.PersonalLastCultivationTick,
+                        LastRecreationTick = e.PersonalLastRecreationTick,
+                        FoodRoomId = e.PersonalFoodRoomId ?? string.Empty,
+                        FoodAccessAttempt = Math.Max(0, e.PersonalFoodAccessAttempt),
+                        FoodRetryAfterTick = e.PersonalFoodRetryAfterTick,
+                        BedRetryAfterTick = e.PersonalBedRetryAfterTick
+                    };
+                    personalLife.Clamp();
+                    entity.AddComponent(personalLife);
+                }
+
                 if (e.HasEntityLocation)
                 {
                     entity.AddComponent(new EntityLocationComponent
@@ -1027,6 +1067,8 @@ namespace XianXia.Core.Persistence
 
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
+                if (!e.HasPersonalLife)
+                    PersonalLifeService.Ensure(world, entity);
                 if (e.HasMortalCivilian)
                 {
                     var civilian = world.Civilians.GetOrCreate(entity.Id);

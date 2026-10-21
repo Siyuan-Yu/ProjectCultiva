@@ -1,5 +1,19 @@
 # 术语表
 
+## NPC 自主生活（2026-10-21，Design Confirmed / Partial Implementation）
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 生活倾向 | `PersonalLifePreference` | 玩家可为我方非凡人设置的长期自主行为方向：修炼为主／平衡／娱乐为主；不等于固定日程或队伍 Follow。 |
+| 当前心境 | `PersonalLifeComponent.CurrentMood` | 随修炼、娱乐变化的当前状态；与 `AttributeId.MindState` 基础属性分离。 |
+| 娱乐行动 | `PersonalLifeActivity.Recreational` | 消耗真实 WorldTick、在安全且可访问的位置恢复当前心境的非战斗行动。 |
+| 显式私人敌对 | `NpcHostilityService.SetPrivateHostility` | 写入 RelationshipLedger 的定向敌对事实；不从五维态度分数推断。 |
+| NPC 战术退出 | `EncounterCharacter.Withdrawn` | NPC 因劣势在独立战场停止参战并随现有返场权威离开；投降不等于自动被俘。 |
+| 模拟精度 | CharacterLOD | 对同一个持久 Character 采用现场或低频／事件驱动推进；不是相机视野内外两种身份。 |
+| 独立战场撤退 | EncounterRetreat | 普通户外 CharacterEncounter 交战达到门槛后尝试离场的独立结局；不是战胜／战败，也不适用于洞府 Separate Space。 |
+
+规则范围见[317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)。
+
 ## 医疗恢复（2026-10-20）
 
 | 中文 | Code | 含义 |

@@ -866,6 +866,10 @@ namespace XianXia.Unity.Host
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
                 {
+                    (hostBootstrap != null
+                        ? hostBootstrap.GetComponent<HostNpcAutonomousCombat>()
+                        : GetComponent<HostNpcAutonomousCombat>())?.SetExplicitStop(
+                            id, kind == PlayerCommandKind.Stop);
                     _lastSuccessCount++;
                     NotifyFeedback(id, kind);
                     if (kind == PlayerCommandKind.Labor || kind == PlayerCommandKind.Cultivate)

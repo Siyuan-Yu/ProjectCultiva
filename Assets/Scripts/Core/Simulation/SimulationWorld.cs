@@ -66,6 +66,7 @@ namespace XianXia.Core.Simulation
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             SurfaceGround = new SurfaceGroundAuthority();
             SurfaceSpatial = new OutdoorSurfaceSpatialAuthority();
+            MeditationSpots = new MeditationSpotBoard();
             WorldPresence = new WorldPresenceBoard();
             OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
             PartyWorld = new PartyWorldPresence();
@@ -141,6 +142,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Complete Outdoor Surface identity/metric/chunk coverage; never a walkability authority.</summary>
         public OutdoorSurfaceSpatialAuthority SurfaceSpatial { get; }
+
+        /// <summary>Content-backed physical places for autonomous cultivation.</summary>
+        public MeditationSpotBoard MeditationSpots { get; }
 
         /// <summary>Explicit administrative asset identity to canonical management position.</summary>
         public OutdoorAdministrativeAssetAnchorBoard OutdoorAdministrativeAssetAnchors { get; }

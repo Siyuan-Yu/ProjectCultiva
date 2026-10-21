@@ -21,6 +21,8 @@ namespace XianXia.Core.World.Strategic
         public ulong CharacterId;
         public string SquadId = "";
         public bool Enemy;
+        public bool Withdrawn;
+        public string WithdrawalKind = "";
         public string SourceSiteId = "";
         public int SourceMode;
         public EncounterSpatialOwnerKind SourceSpatialOwnerKind;
@@ -68,6 +70,8 @@ namespace XianXia.Core.World.Strategic
         public string SourceSiteId = "";
         public float CenterX, CenterY, Width, Height;
         public float ElapsedSeconds, DecayAccumulator;
+        public float NextRetreatAttemptAt;
+        public bool Retreated;
         public CharacterEncounterPhase Phase;
         public bool PlayerWon;
         public bool CoreOnlyAssault;
@@ -82,7 +86,8 @@ namespace XianXia.Core.World.Strategic
         public readonly List<EncounterCharacter> Participants = new List<EncounterCharacter>();
         public bool Contains(float x, float y) => Math.Abs(x - CenterX) <= Width * .5f && Math.Abs(y - CenterY) <= Height * .5f;
         public EncounterCharacter Find(ulong id) => Participants.Find(p => p.CharacterId == id);
-        public bool Opposing(ulong a, ulong b) => Find(a) != null && Find(b) != null && Find(a).Enemy != Find(b).Enemy;
+        public bool Opposing(ulong a, ulong b) => Find(a) != null && Find(b) != null &&
+            !Find(a).Withdrawn && !Find(b).Withdrawn && Find(a).Enemy != Find(b).Enemy;
     }
 
     /// <summary>One real Character per participant. Only space is restored on return.</summary>
@@ -383,6 +388,8 @@ namespace XianXia.Core.World.Strategic
                 string.IsNullOrWhiteSpace(state.SourceSurfaceId) || !Finite(state.CenterX) || !Finite(state.CenterY) ||
                 !Finite(state.Width) || !Finite(state.Height) || state.Width <= 0f || state.Height <= 0f ||
                 !Finite(state.ElapsedSeconds) || state.ElapsedSeconds < 0f ||
+                !Finite(state.NextRetreatAttemptAt) || state.NextRetreatAttemptAt < 0f ||
+                (state.Retreated && state.Phase != CharacterEncounterPhase.ReadyToEnd) ||
                 (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return Fail("Invalid independent encounter snapshot.");
             if (!Finite(state.DecisionAt) || state.DecisionAt < 0 || !Finite(state.ArrivalDelay) || state.ArrivalDelay < 0 ||
                 state.RelationThreshold < 1 || state.RelationThreshold > 100 || state.ChanceBasisPoints < 0 || state.ChanceBasisPoints > 10000 ||
@@ -629,7 +636,8 @@ namespace XianXia.Core.World.Strategic
                 state.SiteCoreDefense.CoreKind == WorldSiteCoreKind.RemovableFactionFlag &&
                 !state.SiteCoreDefense.Disabled && state.Objective?.Resolved != true;
             foreach (var p in state.Participants)
-                if (IsLiving(world, p.CharacterId)) { if (p.Enemy) enemy = true; else friendly = true; }
+                if (!p.Withdrawn && IsLiving(world, p.CharacterId))
+                { if (p.Enemy) enemy = true; else friendly = true; }
             if (!friendly || !enemy)
             {
                 var pendingArrival = state.Candidates.Exists(c => c.Phase == EncounterCandidatePhase.Announced &&
@@ -666,6 +674,63 @@ namespace XianXia.Core.World.Strategic
                 participant.Cooldown = Math.Max(0, participant.Cooldown - tacticalSeconds);
         }
 
+        public const float RetreatUnlockSeconds = 300f;
+        public const float RetreatRetrySeconds = 60f;
+
+        public static bool CanAttemptRetreat(SimulationWorld world)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.Active ||
+                state.ElapsedSeconds < Math.Max(RetreatUnlockSeconds, state.NextRetreatAttemptAt))
+                return false;
+            var party = world.Strategic.PlayerPartyContext;
+            if (party == null) return false;
+            foreach (var p in state.Participants)
+                if (!p.Enemy && party.IsMember(new EntityId(p.CharacterId)) &&
+                    world.Entities.TryGet(new EntityId(p.CharacterId), out var e) &&
+                    CombatLifeStateService.CanFight(e)) return true;
+            return false;
+        }
+
+        public static int RetreatChancePercent(SimulationWorld world)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null) return 0;
+            long friendly = 0, enemy = 0;
+            foreach (var p in state.Participants)
+            {
+                if (!world.Entities.TryGet(new EntityId(p.CharacterId), out var e) ||
+                    !CombatLifeStateService.CanFight(e)) continue;
+                var sense = e.TryGet<AttributesComponent>(out var attrs)
+                    ? Math.Max(0, attrs.GetFinal(AttributeId.SpiritSense)) : 0;
+                if (p.Enemy) enemy += sense; else friendly += sense;
+            }
+            var larger = Math.Max(friendly, enemy);
+            var difference = larger == 0 ? 0d : (double)(friendly - enemy) / larger;
+            return Math.Max(10, Math.Min(90, 50 + (int)Math.Round(40d * difference)));
+        }
+
+        /// <summary>One persisted tactical attempt; a failed roll cannot be spammed or reset by save/load.</summary>
+        public static Result AttemptRetreat(SimulationWorld world, out bool succeeded)
+        {
+            succeeded = false;
+            if (!CanAttemptRetreat(world)) return Fail("逃跑尚不可用，或我方已无人能够行动。");
+            var state = world.Strategic.CharacterEncounter;
+            var chance = RetreatChancePercent(world);
+            state.NextRetreatAttemptAt = state.ElapsedSeconds + RetreatRetrySeconds;
+            succeeded = world.Random.NextInt(0, 100) < chance;
+            if (!succeeded) return Result.Success();
+            state.Retreated = true;
+            state.PlayerWon = false;
+            foreach (var candidate in state.Candidates)
+                if (candidate.Phase == EncounterCandidatePhase.Undecided ||
+                    candidate.Phase == EncounterCandidatePhase.Announced)
+                    candidate.Phase = EncounterCandidatePhase.Closed;
+            state.Phase = CharacterEncounterPhase.ReadyToEnd;
+            world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.PostBattle;
+            return Result.Success();
+        }
+
         static void AdvanceTacticalTime(
             SimulationWorld world,
             CharacterEncounterState state,
@@ -695,8 +760,14 @@ namespace XianXia.Core.World.Strategic
             var coreOnlyFlagWon = state.CoreOnlyAssault && state.PlayerWon &&
                 state.Objective?.Kind == SiteCoreObjectiveKind.RemovableFactionFlagDestruction &&
                 state.Objective.Resolved;
+            var withdrawals = 0;
+            foreach (var p in state.Participants) if (p.Withdrawn) withdrawals++;
             var report = ManualBattleReportBuilder.CaptureFinal(world, settlement.Draft,
-                state.PlayerWon, coreOnlyFlagWon ? "敌方势力旗已摧毁。" : "");
+                state.PlayerWon, state.Retreated
+                    ? "我方已撤出战场；失能成员留在交战地点，伤亡与物资变化保留。"
+                    : coreOnlyFlagWon ? "敌方势力旗已摧毁。" :
+                    withdrawals > 0 ? "本场有" + withdrawals + "名 NPC 撤离／投降；未自动俘虏。" : "");
+            if (report != null) report.Retreated = state.Retreated;
             if (!settlement.Commit(report)) return Fail("Encounter report was already committed.");
             RestoreAnchors(world, state);
             XianXia.Core.Npc.MortalCivilianService.ResolvePendingCaptureAfterEncounter(world, state);

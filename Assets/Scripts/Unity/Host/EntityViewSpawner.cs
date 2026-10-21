@@ -89,7 +89,7 @@ namespace XianXia.Unity.Host
                 GetComponent<HostMoveController>() ?? GetComponentInParent<HostMoveController>(),
                 GetComponent<HostFarmFieldLabor>() ?? GetComponentInParent<HostFarmFieldLabor>(),
                 GetComponent<HostDestructibleAssault>() ?? GetComponentInParent<HostDestructibleAssault>(),
-                session, VisualDriver == PrototypeVisualDriver.ModularRig);
+                session, VisualDriver == PrototypeVisualDriver.ModularRig, HostStepAArt.ResolveRigSkin(entity));
         }
 
         [ContextMenu("Debug only: toggle legacy frame preview (this Play Mode session)")]

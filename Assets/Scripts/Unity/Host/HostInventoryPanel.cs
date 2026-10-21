@@ -151,11 +151,16 @@ namespace XianXia.Unity.Host
             var inv = world.Inventory;
             var catalog = world.InventoryCatalog;
             var canAccessWarehouse = PlayerStrategicResourceService.CanAccessSiteStorageNetwork(world);
+            var overlordWarehouse = canAccessWarehouse &&
+                PlayerStrategicResourceService.TryResolveCurrentAccessibleStorageSite(world, out var storageSite) &&
+                !string.Equals(storageSite.OwnerFactionId, world.Strategic.PlayerFactionId,
+                    StringComparison.Ordinal);
+            var warehouseLabel = overlordWarehouse ? "宗主仓库" : "势力仓库";
             if (_viewMode == ViewMode.Warehouse && !canAccessWarehouse)
             {
                 _viewMode = ViewMode.Party;
                 _selectedWarehouseResourceId = string.Empty;
-                _status = "仅在己方实际控制范围内可访问势力仓库。";
+                _status = "仅在己方或直接宗主的有效据点内可访问势力仓库。";
             }
             var w = Mathf.Min(720f, Screen.width - 40f);
             var h = Mathf.Min(560f, Screen.height - 40f);
@@ -169,11 +174,11 @@ namespace XianXia.Unity.Host
                 new Rect(x, y, w - 32f, 28f),
                 (_viewMode == ViewMode.Party
                     ? "小队背包  " + inv.UsedSlotCount + "/" + inv.SlotCapacity
-                    : "势力仓库 · 战略资源") + "  （B 关闭）",
+                    : warehouseLabel + " · 战略资源") + "  （B 关闭）",
                 _title);
             y += 32f;
 
-            DrawViewTabs(x, y, w, canAccessWarehouse);
+            DrawViewTabs(x, y, w, canAccessWarehouse, warehouseLabel);
             y += 36f;
 
             if (_viewMode == ViewMode.Warehouse)
@@ -306,7 +311,8 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void DrawViewTabs(float x, float y, float width, bool canAccessWarehouse)
+        void DrawViewTabs(float x, float y, float width, bool canAccessWarehouse,
+            string warehouseLabel)
         {
             if (_viewMode == ViewMode.Party)
                 GUI.color = new Color(0.95f, 0.85f, 0.55f);
@@ -322,7 +328,7 @@ namespace XianXia.Unity.Host
             GUI.enabled = enabled && canAccessWarehouse;
             if (_viewMode == ViewMode.Warehouse)
                 GUI.color = new Color(0.95f, 0.85f, 0.55f);
-            if (GUI.Button(new Rect(x + 110f, y, 100f, 28f), "势力仓库"))
+            if (GUI.Button(new Rect(x + 110f, y, 100f, 28f), warehouseLabel))
             {
                 _viewMode = ViewMode.Warehouse;
                 _selectedWarehouseResourceId = string.Empty;
@@ -333,7 +339,7 @@ namespace XianXia.Unity.Host
             GUI.enabled = enabled;
             if (!canAccessWarehouse)
                 GUI.Label(new Rect(x + 220f, y + 3f, width - 236f, 24f),
-                    "仅在己方实际控制范围内可访问势力仓库。", _small);
+                    "仅在己方或直接宗主的有效据点内可访问势力仓库。", _small);
         }
 
         void DrawWarehouse(

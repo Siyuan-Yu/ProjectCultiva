@@ -1,5 +1,7 @@
 # 角色、修士与凡人人口
 
+> **2026-10-21 NPC 自主生活当前覆写：** 我方非凡人长期生活倾向为“修炼为主／平衡／娱乐为主”，未入队同伴也适用；当前心境与基础属性分离，修炼降低、娱乐恢复，需求和危险优先，自主修炼不自主突破。自主修炼须先到同 Site 可达蒲团，到位后才得修为；疲劳中断修炼并优先返已分配住宅床，受阻则就地休息。凡人继续按现行需求／日程／职业规则。三档 HUD 与非凡人个人状态/行动/存档已接线；近场、离屏仅改变模拟精度，不改变 Character 身份。仍有队内需求交接、内容热区验收等缺口，状态 **Design Confirmed / Partial Implementation / Producer Acceptance Pending**，详细边界见 [317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)、[ADR-0049](../40-process/43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)。
+
 > **2026-09-27 CIVILIAN-LIFE-01 修订：** 普通凡人现确认为持久真实 Character；匿名 `MortalPopulation`／岗位组不再是人物或劳动 authority。下文旧“四层”历史框架中凡人聚合、关注后实体化与归并方向均由 [ADR-0044](../40-process/43-decisions/ADR-0044-individual-mortal-faction-work-needs-and-captivity-direction.md) 取代。当前状态为 **Implementation Complete / Producer Acceptance Pending**；完整实现记录见 [267](../40-process/267-civilian-life-01-design-freeze-2026-09-27.md)。
 
 > **P1 物理取食与工作管理：** 普通自由凡人必须到当前合法 Site 的启用 StorageRoom 取 food，到达时才从 SitePublicStock 扣除；囚犯照料与 PlayerParty 供给保持既有规则。职业工区按当前 Site、实际所属势力和 tag 共同筛选。正式 HUD“工作”面板显示当前 Site 凡人的真实 Activity 与独立 Schedule Phase，并只允许玩家势力永久可管理、Normal 的凡人修改职业。

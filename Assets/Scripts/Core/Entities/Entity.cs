@@ -28,6 +28,7 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Exploration.EntityLocationSnapshotAuthorityComponent),
             typeof(XianXia.Core.Npc.JobComponent),
             typeof(XianXia.Core.Npc.ActivityTendencyComponent),
+            typeof(XianXia.Core.Npc.PersonalLifeComponent),
             typeof(XianXia.Core.Npc.MovementIntentComponent),
             // 战斗：未进白名单时 AddComponent 静默失败 → 互砍无伤害／无特效／斗技装不上
             typeof(XianXia.Core.Combat.CombatVitalsComponent),

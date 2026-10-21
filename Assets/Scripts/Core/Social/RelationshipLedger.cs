@@ -9,6 +9,8 @@ namespace XianXia.Core.Social
     public sealed class RelationshipLedger
     {
         readonly List<RelationshipEvent> _events = new List<RelationshipEvent>();
+        readonly Dictionary<(ulong, ulong), bool> _privateHostility =
+            new Dictionary<(ulong, ulong), bool>();
 
         public int EventCount => _events.Count;
 
@@ -19,6 +21,19 @@ namespace XianXia.Core.Social
             if (evt == null)
                 throw new System.ArgumentNullException(nameof(evt));
             _events.Add(evt);
+            IndexPrivateHostility(evt);
+        }
+
+        public bool HasPrivateHostility(EntityId from, EntityId to) =>
+            !from.IsNone && !to.IsNone &&
+            _privateHostility.TryGetValue((from.Value, to.Value), out var active) && active;
+
+        void IndexPrivateHostility(RelationshipEvent evt)
+        {
+            if (evt.ReasonTag == "private_hostility_start")
+                _privateHostility[(evt.From.Value, evt.To.Value)] = true;
+            else if (evt.ReasonTag == "private_hostility_end")
+                _privateHostility[(evt.From.Value, evt.To.Value)] = false;
         }
 
         /// <summary>兼容 API：Score 正式等于 Affection。</summary>
@@ -52,13 +67,18 @@ namespace XianXia.Core.Social
         public void Clear()
         {
             _events.Clear();
+            _privateHostility.Clear();
         }
 
         internal void Truncate(int eventCount)
         {
             if (eventCount < 0) eventCount = 0;
             if (eventCount < _events.Count)
+            {
                 _events.RemoveRange(eventCount, _events.Count - eventCount);
+                _privateHostility.Clear();
+                for (var i = 0; i < _events.Count; i++) IndexPrivateHostility(_events[i]);
+            }
         }
     }
 }

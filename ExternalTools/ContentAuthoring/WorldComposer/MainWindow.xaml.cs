@@ -150,7 +150,7 @@ public partial class MainWindow:Window
             if(_path==null||_dirty){MessageBox.Show("发布前请先保存当前 WorldComposition。","WorldComposer");return;}
             var contentRoot=FindContentRoot(_path);if(contentRoot==null){MessageBox.Show("无法从当前世界组合路径定位 Content 根目录。","WorldComposer");return;}
             _linked=LinkedSourceLoader.Load(_document,_path);var summary=CompatibilityPublisher.Prepare(_document,_linked,contentRoot);
-            var message=$"当前 Composition：{summary.CompositionId}\nSurface 尺寸：{summary.WidthCells}×{summary.HeightCells}\nChunk 数量：{summary.ChunkCount}\nWater 格：{summary.WaterCells}\nRiver：{summary.RiverCount}\nRoad：{summary.RoadCount}\nBridge：{summary.BridgeCount}\nWorldObject：{summary.WorldObjectCount}\nHuangcun Blueprint 对象：{summary.HuangcunObjectCount}\n\n将替换：\n{summary.MainRuntimePath}\n{summary.GeographyRuntimePath}\n\n备份位置：\n{summary.BackupRoot}\n\n确认发布到当前项目 Runtime Content？";
+            var message=$"当前 Composition：{summary.CompositionId}\nSurface 尺寸：{summary.WidthCells}×{summary.HeightCells}\nChunk 数量：{summary.ChunkCount}\nWater 格：{summary.WaterCells}\nRiver：{summary.RiverCount}\nRoad：{summary.RoadCount}\nBridge：{summary.BridgeCount}\nWorldObject：{summary.WorldObjectCount}\n已链接蓝图对象：{summary.BlueprintObjectCount}\n\n将替换：\n{summary.MainRuntimePath}\n{summary.GeographyRuntimePath}\n\n备份位置：\n{summary.BackupRoot}\n\n确认发布到当前项目 Runtime Content？";
             if(MessageBox.Show(message,"发布到当前项目",MessageBoxButton.OKCancel,MessageBoxImage.Warning)!=MessageBoxResult.OK)return;
             CompatibilityPublisher.Publish(_document,_linked,contentRoot);
             MessageBox.Show("发布完成。请在项目中执行 Content Validation。","WorldComposer");

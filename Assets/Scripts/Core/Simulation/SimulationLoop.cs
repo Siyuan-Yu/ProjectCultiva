@@ -159,6 +159,7 @@ namespace XianXia.Core.Simulation
             ProcessDayBoundary(previous, _world.Tick);
             CharacterFactionLoyaltyService.EnsureAll(_world);
             MortalCivilianService.Tick(_world);
+            PersonalLifeService.Drive(_world, this);
             _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
 
@@ -201,6 +202,7 @@ namespace XianXia.Core.Simulation
             }
 
             _npcActivityDriver.Drive(_world, this);
+            PersonalLifeService.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
@@ -208,6 +210,7 @@ namespace XianXia.Core.Simulation
             // Strategic Squad/background state advances on WorldTick; PlayerParty
             // SurfaceVisible movement remains Host/presentation driven.
             StrategicTravelDriver.AfterTravelTick(_world, 1);
+            BackgroundNpcConflictService.Tick(_world);
             CombatLifeStateService.TickCorpseDecay(_world);
             _worldOpportunityDriver.Tick(_world);
             _worldOpportunityDiscoveryService.Tick(_world);

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -10,6 +11,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Results;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
 {
@@ -521,21 +523,34 @@ namespace XianXia.Unity.Host
                             });
                     }
                 }
+                EvaluateNpcWithdrawals(world, state);
                 foreach (var p in state.Participants)
                 {
-                    if (!CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
+                    if (p.Withdrawn || !CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
                     var id = new EntityId(p.CharacterId);
                     p.Cooldown = Mathf.Max(0f, p.Cooldown - dt);
                     if (MortalTransportConstraintService.ValidateAttack(world, id).IsFailure)
                     { p.TargetId = 0; continue; }
-                    if (p.TargetId == ulong.MaxValue && _host.Session.PlayerParty.ActiveCharacterId == id) continue;
+                    if (p.TargetId == ulong.MaxValue && _host.Session.PlayerParty.IsMember(id)) continue;
                     if (!state.Opposing(p.CharacterId, p.TargetId) || !CharacterEncounterService.IsLiving(world, p.TargetId))
                     {
                         p.TargetId = 0; var nearest = float.PositiveInfinity;
+                        var protectsActive = !p.Enemy && _host.Session.PlayerParty.IsFollower(id);
+                        var active = protectsActive ? state.Find(_host.Session.PlayerParty.ActiveCharacterId.Value) : null;
+                        var activeTarget = active != null &&
+                            state.Opposing(p.CharacterId, active.TargetId) &&
+                            CharacterEncounterService.IsLiving(world, active.TargetId)
+                            ? active.TargetId : 0UL;
                         foreach (var other in state.Participants)
-                            if (other.Enemy != p.Enemy && CharacterEncounterService.IsLiving(world, other.CharacterId))
+                            if (!other.Withdrawn && other.Enemy != p.Enemy &&
+                                CharacterEncounterService.IsLiving(world, other.CharacterId))
                             {
+                                // The player-owned follower defaults to supporting the Active character:
+                                // share its target first, then answer enemies threatening it, then nearest.
                                 var distance = Mathf.Abs(other.TacticalX - p.TacticalX) + Mathf.Abs(other.TacticalY - p.TacticalY);
+                                if (protectsActive && activeTarget == other.CharacterId) distance -= 10000f;
+                                else if (protectsActive && active != null && other.TargetId == active.CharacterId)
+                                    distance -= 1000f;
                                 if (distance < nearest) { nearest = distance; p.TargetId = other.CharacterId; }
                             }
                     }
@@ -558,6 +573,9 @@ namespace XianXia.Unity.Host
                     }
                     _host.MoveController.CancelPresentationMovementPublic(id);
                     if (p.Cooldown > 0f || !state.Opposing(id.Value, target.Value)) continue;
+                    if (_host.Session.PlayerParty.ActiveCharacterId != id &&
+                        TryCastAutonomousArt(world, p, id, target, actorView, targetView))
+                        continue;
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                     if (SpiritVeilService.IsActive(actorEntity))
                         LaunchCharacterProjectile(world, state, id, target);
@@ -579,6 +597,72 @@ namespace XianXia.Unity.Host
                     _host.ContinuousOutdoorSurfaceRuntime.PresentJoinedParticipants(previousCount);
                 _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
                 _host.DispatchDrainedEvents();
+            }
+        }
+
+        bool TryCastAutonomousArt(SimulationWorld world, EncounterCharacter participant,
+            EntityId caster, EntityId target, EntityView casterView, EntityView targetView)
+        {
+            if (world == null || participant?.ArtCooldowns == null ||
+                !world.Entities.TryGet(caster, out var entity) ||
+                !entity.TryGet<CombatArtsComponent>(out var arts) ||
+                Vector2.Distance(casterView.transform.position, targetView.transform.position) > 3.5f)
+                return false;
+            for (var slot = 0; slot < CombatArtsComponent.MaxEquippedSlots; slot++)
+            {
+                if (participant.ArtCooldowns[slot] > .05f) continue;
+                var artId = arts.GetEquipped(slot);
+                if (!artId.HasValue || !world.TryGetCombatArt(artId.Value, out var art) ||
+                    art == null || !art.IsActiveSkill) continue;
+                var cast = _melee.CastEquippedArt(world, caster, target, slot,
+                    out _, out _, out var defeated);
+                if (cast.IsFailure) continue;
+                participant.ArtCooldowns[slot] = art.CooldownSeconds > 0f ? art.CooldownSeconds : 2f;
+                participant.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
+                _strikeVfx?.PlaySkillBetween(_host.ViewSpawner, caster, target);
+                if (defeated) RefreshDefeatedParticipant(target);
+                return true;
+            }
+            return false;
+        }
+
+        void EvaluateNpcWithdrawals(SimulationWorld world, CharacterEncounterState state)
+        {
+            var party = world.Strategic.PlayerPartyContext;
+            foreach (var p in state.Participants)
+            {
+                if (p.Withdrawn || party?.IsMember(new EntityId(p.CharacterId)) == true ||
+                    !world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) ||
+                    !CombatLifeStateService.CanFight(entity) ||
+                    !entity.TryGet<AttributesComponent>(out var attrs)) continue;
+                if (entity.TryGet<PersonalityProfileComponent>(out var profile) &&
+                    (profile.HasTag("fanatic") || profile.HasTag("fight_to_death"))) continue;
+                CombatDamageRules.EnsureVitals(entity);
+                if (!entity.TryGet<CombatVitalsComponent>(out var vitals)) continue;
+                var maxHp = Math.Max(1, attrs.GetFinal(AttributeId.MaxHp));
+                if (vitals.CurrentHp * 100 > maxHp * 30) continue;
+                var ownPower = 0; var enemyPower = 0;
+                foreach (var other in state.Participants)
+                {
+                    if (other.Withdrawn || !world.Entities.TryGet(new EntityId(other.CharacterId), out var member) ||
+                        !CombatLifeStateService.CanFight(member)) continue;
+                    CombatDamageRules.EnsureVitals(member);
+                    var hp = member.TryGet<CombatVitalsComponent>(out var pool) ? pool.CurrentHp : 1;
+                    var attack = member.TryGet<AttributesComponent>(out var memberAttrs)
+                        ? Math.Max(1, memberAttrs.GetFinal(AttributeId.Attack)) : 1;
+                    if (other.Enemy == p.Enemy) ownPower += hp + attack * 2;
+                    else enemyPower += hp + attack * 2;
+                }
+                if (ownPower * 3 >= enemyPower * 2 || enemyPower <= 0) continue;
+                p.Withdrawn = true;
+                p.WithdrawalKind = vitals.CurrentHp * 100 <= maxHp * 10 ||
+                    (profile != null && profile.HasTag("surrender_prone"))
+                    ? "Surrender" : "Flee";
+                p.TargetId = 0;
+                _host.MoveController.CancelPresentationMovementPublic(entity.Id);
+                var label = p.WithdrawalKind == "Surrender" ? "投降（待接管）" : "撤离战场";
+                _host.GetComponent<HostFeedbackOverlay>()?.SpawnAtEntity(
+                    _host.ViewSpawner, entity.Id, label, new Color(.95f, .8f, .45f));
             }
         }
 
@@ -745,6 +829,23 @@ namespace XianXia.Unity.Host
             // A party with no eligible controller may only transfer authority after
             // CommitAndReturn and after the independent field has released the old battlefield.
             _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
+            return true;
+        }
+
+        public bool TryRetreat(out bool succeeded)
+        {
+            succeeded = false;
+            var world = _host?.Session?.World;
+            if (world == null || Phase != PresentationPhase.Active)
+            { _failure = "当前不在可撤退的独立战场。"; return false; }
+            var attempt = CharacterEncounterService.AttemptRetreat(world, out succeeded);
+            if (attempt.IsFailure)
+            { _failure = attempt.Error.Message; return false; }
+            if (!succeeded)
+            { _failure = "撤退失败；继续交战，60 战术秒后可再试。"; return true; }
+            Phase = PresentationPhase.ReadyToEnd;
+            if (!TryFinishBattle()) return false;
+            _failure = string.Empty;
             return true;
         }
 

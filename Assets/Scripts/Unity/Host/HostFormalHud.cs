@@ -64,6 +64,7 @@ namespace XianXia.Unity.Host
         bool _stylesReady;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
+        EntityId _personalLifeDropdown = EntityId.None;
         // 左上角头像：双击左键 -> 镜头立即定位到当前 Active（不切换主控、不 Cancel Travel）。
         EntityId _partyBarLastClickId = EntityId.None;
         float _partyBarLastClickTime = float.MinValue;
@@ -1607,16 +1608,19 @@ namespace XianXia.Unity.Host
                 spiritSense, Mathf.Max(100, spiritSense), BarViolet);
             y += 22f;
             var mindState = hasAttributes ? attrs.GetFinal(AttributeId.MindState) : 0;
-            DrawOptionalStatBar(area.x, y, leftW, "心境", hasAttributes,
-                mindState, Mathf.Max(100, mindState), BarBlue);
+            var hasPersonalLife = entity.TryGet<PersonalLifeComponent>(out var personalLife);
+            DrawOptionalStatBar(area.x, y, leftW, "心境", hasPersonalLife || hasAttributes,
+                hasPersonalLife ? personalLife.CurrentMood : mindState, 100, BarBlue);
             y += 22f;
 
             var hasMortalNeeds = session.World.Civilians.TryGet(focus, out var mortalNeeds);
-            DrawOptionalStatBar(area.x, y, leftW, "饱食", hasMortalNeeds,
-                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Satiety, 0, 100) : 0, 100, BarOrange);
+            DrawOptionalStatBar(area.x, y, leftW, "饱食", hasMortalNeeds || hasPersonalLife,
+                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Satiety, 0, 100) :
+                hasPersonalLife ? personalLife.Satiety : 0, 100, BarOrange);
             y += 22f;
-            DrawOptionalStatBar(area.x, y, leftW, "精力", hasMortalNeeds,
-                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Energy, 0, 100) : 0, 100, BarBlue);
+            DrawOptionalStatBar(area.x, y, leftW, "精力", hasMortalNeeds || hasPersonalLife,
+                hasMortalNeeds ? Mathf.Clamp(mortalNeeds.Energy, 0, 100) :
+                hasPersonalLife ? personalLife.Energy : 0, 100, BarBlue);
 
             var ry = area.y;
             var hasCultivation = cult != null;
@@ -1653,6 +1657,22 @@ namespace XianXia.Unity.Host
                     : "斗气纱衣：未展开 · F2 召唤（耗灵力 " +
                       SpiritVeilRules.FoundationActivateSpiritCost + "）";
             GUI.Label(new Rect(rightX, ry, rightW, 20f), veilText, _parchmentBody);
+            ry += 22f;
+            if (hasPersonalLife)
+            {
+                if (PersonalLifeService.CanEditPreference(session.World, entity))
+                {
+                    var dropdown = new Rect(rightX, ry, rightW, 21f);
+                    HostUiHitTest.Block(dropdown);
+                    if (GUI.Button(dropdown, "生活倾向：" + PersonalLifePreferenceLabel(personalLife.Preference) + "  ▾"))
+                        _personalLifeDropdown = _personalLifeDropdown == focus ? EntityId.None : focus;
+                }
+                else GUI.Label(new Rect(rightX, ry, rightW, 20f),
+                    "生活：" + (string.IsNullOrEmpty(personalLife.Status) ? "平衡" : personalLife.Status), _parchmentBody);
+                GUI.Label(new Rect(rightX, ry + 22f, rightW, 18f),
+                    "当前：" + (string.IsNullOrEmpty(personalLife.Status) ? "待命" : personalLife.Status) +
+                    " · 基础心境 " + mindState, _small);
+            }
 
             var factsY = area.y + 154f;
             HostCharacterPresentationResolver.TryBuild(session, focus, out var presentation,
@@ -1670,6 +1690,31 @@ namespace XianXia.Unity.Host
                 " · 身份：" + (presentation?.FactionRole ?? "无") +
                 " · 忠诚：" + loyalty,
                 _parchmentBody);
+            if (_personalLifeDropdown == focus && hasPersonalLife &&
+                PersonalLifeService.CanEditPreference(session.World, entity))
+            {
+                var menu = new Rect(rightX, ry + 22f, rightW, 72f);
+                HostUiHitTest.Block(menu);
+                Fill(menu, Parchment);
+                DrawFrame(menu, Ink);
+                for (var i = 0; i < 3; i++)
+                    if (GUI.Button(new Rect(menu.x + 2f, menu.y + i * 24f, menu.width - 4f, 23f),
+                        PersonalLifePreferenceLabel((PersonalLifePreference)i)))
+                    {
+                        personalLife.Preference = (PersonalLifePreference)i;
+                        _personalLifeDropdown = EntityId.None;
+                    }
+            }
+        }
+
+        static string PersonalLifePreferenceLabel(PersonalLifePreference preference)
+        {
+            switch (preference)
+            {
+                case PersonalLifePreference.Cultivation: return "修炼为主";
+                case PersonalLifePreference.Recreation: return "娱乐为主";
+                default: return "平衡";
+            }
         }
 
         void DrawOptionalStatBar(

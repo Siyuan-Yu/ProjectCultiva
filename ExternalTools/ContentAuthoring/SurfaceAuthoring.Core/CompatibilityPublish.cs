@@ -12,7 +12,7 @@ public sealed record CompatibilityPublishSummary(
     int RoadCount,
     int BridgeCount,
     int WorldObjectCount,
-    int HuangcunObjectCount,
+    int BlueprintObjectCount,
     string MainRuntimePath,
     string GeographyRuntimePath,
     string WorldMapRuntimePath,
@@ -33,11 +33,12 @@ public static class CompatibilityPublisher
         for (var y = 0; y < composition.SurfaceHeightCells; y++)
         for (var x = 0; x < composition.SurfaceWidthCells; x++)
             if (engine.Resolve(x, y).BaseTerrain == BaseTerrain.Water) water++;
-        var huangcun = linked.Blueprints.TryGetValue("huangcun", out var blueprint) ? blueprint.ObjectPlacements.Count : 0;
+        var blueprintObjectCount = composition.WorldSiteBlueprintPlacements.Sum(p =>
+            linked.Blueprints.TryGetValue(p.PlacementId, out var blueprint) ? blueprint.ObjectPlacements.Count : 0);
         return new(composition.CompositionId, composition.SurfaceWidthCells, composition.SurfaceHeightCells,
             composition.SurfaceWidthCells / 50 * (composition.SurfaceHeightCells / 50), water, composition.Rivers.Count,
             composition.Roads.Count, composition.WorldObjectPlacements.Count(x => x.KindId == "bridge"),
-            composition.WorldObjectPlacements.Count, huangcun, main, geography, worldMap,
+            composition.WorldObjectPlacements.Count, blueprintObjectCount, main, geography, worldMap,
             Path.Combine(contentRoot, "BaseGame", "_backups", "continuous-surface-authoring"));
     }
 

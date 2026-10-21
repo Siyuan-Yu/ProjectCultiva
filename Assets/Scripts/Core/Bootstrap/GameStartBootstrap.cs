@@ -121,6 +121,7 @@ namespace XianXia.Core.Bootstrap
             ApplyBio(entity, spawn);
             ApplyEncounterLink(entity, spawn);
             ApplyInitialRealm(entity, spawn);
+            PersonalLifeService.Ensure(world, entity);
             if (entity.TryGet<FactionMembershipComponent>(out var factionMembership))
                 factionMembership.InitialLoyalty = Math.Max(0, Math.Min(100, spawn.InitialLoyalty));
             if (MortalCivilianQuery.IsManagedCivilian(world, entity))

@@ -891,6 +891,21 @@ namespace XianXia.Core.Persistence
         /// <summary>PersonalityProfile tags（若运行中可变）。旧档缺省＝空。</summary>
         public List<string> PersonalityTags { get; set; } = new List<string>();
 
+        /// <summary>Optional v17 extension; old saves seed default personal needs.</summary>
+        public bool HasPersonalLife { get; set; }
+        public int PersonalLifePreference { get; set; }
+        public int PersonalLifeActivity { get; set; }
+        public int PersonalSatiety { get; set; }
+        public int PersonalEnergy { get; set; }
+        public int PersonalCurrentMood { get; set; }
+        public ulong PersonalLastProcessedTick { get; set; }
+        public ulong PersonalLastCultivationTick { get; set; }
+        public ulong PersonalLastRecreationTick { get; set; }
+        public string PersonalFoodRoomId { get; set; } = string.Empty;
+        public int PersonalFoodAccessAttempt { get; set; }
+        public ulong PersonalFoodRetryAfterTick { get; set; }
+        public ulong PersonalBedRetryAfterTick { get; set; }
+
         public bool HasMortalCivilian { get; set; }
         public int MortalSatiety { get; set; }
         public int MortalEnergy { get; set; }

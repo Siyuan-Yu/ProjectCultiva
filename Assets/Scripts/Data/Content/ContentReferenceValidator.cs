@@ -64,6 +64,83 @@ namespace XianXia.Data.Content
             return report;
         }
 
+        /// <summary>Validates the effective New Game spawn list after an optional roster override.</summary>
+        public ValidationReport ValidateSelectedOpening(DefinitionRegistry registry,
+            OpeningScenarioDefinition scenario, IList<OpeningSpawnEntry> entries)
+        {
+            var report = new ValidationReport();
+            if (registry == null || scenario == null || entries == null || entries.Count == 0)
+            {
+                report.Add(ErrorCode.InvalidArgument, "Selected opening scenario or spawn list is empty.");
+                return report;
+            }
+
+            OutdoorWorldSurfaceDefinition surface = null;
+            if (!DefinitionId.TryParse(scenario.OpeningSurfaceId, out var surfaceId) ||
+                !registry.TryGetOutdoorSurface(surfaceId, out surface) || surface == null || surface.AcceptanceOnly ||
+                !registry.TryGetOutdoorSurfaceGeography(scenario.OpeningSurfaceId, out var geography) ||
+                geography?.Navigation == null)
+            {
+                report.Add(ErrorCode.NotFound, "Selected opening requires a normal Surface and navigation geography.",
+                    scenario.Id + ".openingSurfaceId:" + scenario.OpeningSurfaceId);
+                return report;
+            }
+
+            var siteIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var site in surface.SiteRegions)
+                if (site != null && !string.IsNullOrWhiteSpace(site.SiteId)) siteIds.Add(site.SiteId);
+            var locations = CollectLocationIds(registry);
+            var ordinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            var spawnedIds = new HashSet<string>(StringComparer.Ordinal);
+            var hasPlayer = false;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var spawn = entries[i];
+                var context = scenario.Id + ".selectedSpawn[" + i + "]";
+                if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "Selected opening spawn definitionId missing.", context);
+                    continue;
+                }
+                var id = spawn.DefinitionId.Trim();
+                spawnedIds.Add(id);
+                ordinals.TryGetValue(id, out var ordinal);
+                ordinals[id] = ordinal + 1;
+                RequireDef(registry, id, "character", context, report);
+                ValidateSpawnMembership(registry, spawn, context, report);
+                if (!string.IsNullOrWhiteSpace(spawn.JobId))
+                    RequireDef(registry, spawn.JobId, "job", context + ".jobId", report);
+                if (!string.IsNullOrWhiteSpace(spawn.LocalLocationId) && !locations.Contains(spawn.LocalLocationId))
+                    report.Add(ErrorCode.NotFound, "Selected spawn localLocationId missing.", context + ":" + spawn.LocalLocationId);
+                var key = OpeningSpawnIdentityBoard.BuildStableKey(id, ordinal);
+                if (!ContinuousOutdoorOpeningAnchorResolver.TryFindOpeningEntityAnchor(
+                        surface, key, id, out var anchor, out var reason))
+                    report.Add(ErrorCode.InvalidArgument, "Selected spawn requires one Surface anchor: " + reason,
+                        context + ":" + key);
+                else if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId) &&
+                         !string.Equals(spawn.WorldSiteId.Trim(), anchor.SiteId, StringComparison.Ordinal))
+                    report.Add(ErrorCode.InvalidArgument, "Selected spawn Site differs from Surface anchor.", context + ":" + key);
+                if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId) && !siteIds.Contains(spawn.WorldSiteId))
+                    report.Add(ErrorCode.NotFound, "Selected spawn WorldSite missing on Surface.", context + ":" + spawn.WorldSiteId);
+                if (string.IsNullOrWhiteSpace(spawn.EntityKind) ||
+                    string.Equals(spawn.EntityKind, "character", StringComparison.OrdinalIgnoreCase))
+                    hasPlayer = true;
+            }
+            if (!hasPlayer)
+                report.Add(ErrorCode.MissingRequiredField, "Selected opening has no player character.", scenario.Id.ToString());
+            if (scenario.OpeningRelations != null)
+                foreach (var edge in scenario.OpeningRelations)
+                    if (edge != null && (!spawnedIds.Contains(edge.FromDefinitionId) || !spawnedIds.Contains(edge.ToDefinitionId)))
+                        report.Add(ErrorCode.NotFound, "Opening relation endpoint is absent from selected roster.",
+                            (edge.FromDefinitionId ?? "?") + "→" + (edge.ToDefinitionId ?? "?"));
+            if (scenario.OpeningBonds != null)
+                foreach (var edge in scenario.OpeningBonds)
+                    if (edge != null && (!spawnedIds.Contains(edge.FromDefinitionId) || !spawnedIds.Contains(edge.ToDefinitionId)))
+                        report.Add(ErrorCode.NotFound, "Opening bond endpoint is absent from selected roster.",
+                            (edge.FromDefinitionId ?? "?") + "→" + (edge.ToDefinitionId ?? "?"));
+            return report;
+        }
+
         static void ValidateOutdoorSurfaceMetrics(DefinitionRegistry registry, ValidationReport report)
         {
             foreach (var pair in registry.OutdoorSurfaces)

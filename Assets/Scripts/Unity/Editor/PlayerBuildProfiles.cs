@@ -76,14 +76,14 @@ namespace XianXia.Unity.EditorTools
         }
 
         [Serializable]
-        sealed class FormalOpeningSelection
+        internal sealed class FormalOpeningSelection
         {
             public string openingScenarioId;
             public string characterRosterId;
             public string preferredMapLayoutId;
         }
 
-        static FormalOpeningSelection ReadFormalOpening(string packageRoot)
+        internal static FormalOpeningSelection ReadFormalOpening(string packageRoot)
         {
             var path = Path.Combine(packageRoot, "formal-opening.json");
             if (!File.Exists(path)) throw new BuildFailedException("缺少正式开局绑定：" + path);
@@ -111,6 +111,9 @@ namespace XianXia.Unity.EditorTools
                     throw new BuildFailedException("BaseGame 内容加载或引用校验失败：" + validationMessage);
                 ReadFormalOpening(root);
             }
+            var appearanceErrors = HostStepAArt.ValidateAppearanceMappings();
+            if (appearanceErrors.Count > 0)
+                throw new BuildFailedException("外观映射无效：" + string.Join("; ", appearanceErrors));
             if (AssetDatabase.LoadAssetAtPath<MapLayoutPrefabCatalog>("Assets/Resources/MapLayoutPrefabCatalog.asset") == null)
                 throw new BuildFailedException("缺少正式 Resources Prefab 引用表。");
             var missing = MapLayoutPrefabResolver.ValidateCatalogPrefabs();

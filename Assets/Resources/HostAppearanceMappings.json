@@ -8,7 +8,10 @@
     { "id": "base:character_protagonist", "profile": "Protagonist" },
     { "id": "base:character_companion_a", "profile": "CompanionA" },
     { "id": "base:character_companion_b", "profile": "CompanionB" },
-    { "id": "base:character_ch01_ref_supervisor", "profile": "Supervisor" },
+    { "id": "base:character_ch01_ref_supervisor", "profile": "Supervisor",
+      "rig": { "partsBase": "ART-CHAR-003_supervisor", "sideHeadAtlas": "ART-CHAR-002_003_005_HumanCommonRig_sideheads_v01",
+        "sideHeadColumns": 4, "sideHeadIndex": 2, "staticSprite": "ART-CHAR-003_supervisor_idle_south_v02",
+        "sleepSprite": "ART-CHAR-003_supervisor_sleep_v03" } },
     { "id": "base:character_ch01_ref_farmer_b", "profile": "FarmerHoe" },
     { "id": "base:character_ch01_ref_farmer_c", "profile": "FarmerApron" },
     { "id": "base:character_ch01_ref_mortal_b", "profile": "ResidentBasket" },
@@ -21,6 +24,7 @@
     { "id": "base:item_manual_jiang_lao_legacy", "icon": "ART-UI-003_jiang_manual_v01", "groundKind": "book" },
     { "id": "base:item_manual_dongfu_secret", "icon": "ART-UI-003_dongfu_manual_v01", "groundKind": "book" },
     { "id": "base:item_art_liezhao_claw", "icon": "ART-UI-003_liezhao_art_v01", "groundKind": "scroll" },
-    { "id": "base:item_art_kaishan_fist", "icon": "ART-UI-003_kaishan_art_v01", "groundKind": "scroll" }
+    { "id": "base:item_art_kaishan_fist", "icon": "ART-UI-003_kaishan_art_v01", "groundKind": "scroll" },
+    { "id": "base:resource_spirit_herb", "groundKind": "herb" }
   ]
 }

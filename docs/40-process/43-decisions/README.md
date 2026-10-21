@@ -1,5 +1,8 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0050：直接附庸访问宗主势力仓库](ADR-0050-direct-vassal-overlord-storage-access.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-21）；定向覆写 VASSAL-WORK-01 的仓储隔离。
+- [ADR-0049：NPC 个体生活与冷热战斗权威](ADR-0049-npc-personal-life-and-cold-conflict-authority.md) — Design Confirmed / Partial Implementation / Producer Acceptance Pending（2026-10-21）。
+
 - [ADR-0043：AuctionHouse 托管 authority 与 Snapshot v13](ADR-0043-auction-house-escrow-and-snapshot-v13.md) — Producer Accepted / Sealed（2026-09-27）。
 - [ADR-0042：Shop 钱包 authority 与 Snapshot v12](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) — Producer Accepted / Sealed（2026-09-25）。
 

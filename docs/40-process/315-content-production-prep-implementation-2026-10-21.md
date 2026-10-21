@@ -1,5 +1,7 @@
 # 内容生产接线收口与现行短流程（2026-10-21）
 
+> 2026-10-21 后续作者工具、正式生效名册、WorldComposer 非荒村蓝图与自定义 Rig 配置修复见 [316](316-content-production-readiness-repair-2026-10-21.md)；本页记录第一轮实施时点，艺术素材仍待现场验收。
+
 > 状态：Design Confirmed（制作人授权 2026-10-21）／Implemented／Producer Acceptance Pending；制作人已另行明确要求全部提交并上传，Git 结果以仓库历史为准。对应静态审查：[314](314-pre-content-production-readiness-review-2026-10-21.md)。本轮只修 Host、作者工具、构建入口、表现和入口文档；不改 Core／Data 规则、Freeze、Packages 或 ProjectSettings。
 
 ## 已接线

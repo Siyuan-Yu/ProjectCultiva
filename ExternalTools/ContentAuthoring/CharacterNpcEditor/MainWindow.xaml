@@ -100,6 +100,7 @@
               <UniformGrid Columns="2">
                 <DockPanel Margin="0,0,8,6"><TextBlock Text="生命 MaxHp" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrHpBox"/></DockPanel>
                 <DockPanel Margin="0,0,0,6"><TextBlock Text="体力 Stamina" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrStaminaBox"/></DockPanel>
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="体魄 Physique" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrPhysiqueBox"/></DockPanel>
                 <DockPanel Margin="0,0,8,6"><TextBlock Text="攻击 Attack" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrAtkBox"/></DockPanel>
                 <DockPanel Margin="0,0,0,6"><TextBlock Text="防御 Defense" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrDefBox"/></DockPanel>
                 <DockPanel Margin="0,0,8,6"><TextBlock Text="速度 Speed" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrSpdBox"/></DockPanel>

@@ -1,5 +1,7 @@
 # VASSAL-WORK-01 — Direct Vassal Labor Access
 
+> **2026-10-21 定向覆写：** 制作人后续明确开放直接附庸对宗主势力仓库的完整取用，见 [ADR-0050](43-decisions/ADR-0050-direct-vassal-overlord-storage-access.md)。本文下方“宗主仓储隔离”保留为 VASSAL-WORK-01 封板时的历史规则；农作、建造和行政权限未改变。
+
 > 状态：Producer Accepted / Sealed
 > 日期：2026-09-24
 > Snapshot：v8 unchanged

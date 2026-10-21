@@ -1,5 +1,6 @@
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Npc;
 using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 
@@ -129,6 +130,11 @@ namespace XianXia.Unity.Host
             if (!session.World.Entities.TryGet(npcId, out var entity))
                 return false;
             if (CharacterEncounterHostilityService.IsHostileEncounterParticipant(session.World, entity))
+                return true;
+
+            var active = session.PlayerParty?.ActiveCharacterId ?? EntityId.None;
+            if (!active.IsNone && (NpcHostilityService.CanAutoAttack(session.World, active, npcId) ||
+                                   NpcHostilityService.CanAutoAttack(session.World, npcId, active)))
                 return true;
 
             if (!HostileActionClassificationService.TryClassifyTarget(

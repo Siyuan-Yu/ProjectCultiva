@@ -10,6 +10,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.Opportunity;
+using XianXia.Core.Npc;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -277,10 +278,28 @@ namespace XianXia.Data.Bootstrap
             OpeningScenarioDefinition openingScenario = null)
         {
             world.SurfaceSpatial.Clear();
+            world.MeditationSpots.Clear();
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
                 if (surface == null || surface.AcceptanceOnly) continue;
+                if (surface.SitePlacements != null)
+                    for (var i = 0; i < surface.SitePlacements.Count; i++)
+                    {
+                        var placement = surface.SitePlacements[i];
+                        if (placement == null || !string.Equals(placement.Kind, "cushion", StringComparison.Ordinal))
+                            continue;
+                        if (!world.MeditationSpots.Register(new MeditationSpot
+                        {
+                            Id = placement.StableId,
+                            SiteId = placement.SiteId,
+                            SurfaceId = surface.SurfaceId,
+                            Position = new WorldVec2(placement.WorldX + placement.WorldWidth * .5f,
+                                placement.WorldY + placement.WorldHeight * .5f)
+                        }))
+                            return Result.Failure(ErrorCode.ContentLoadFailed,
+                                "Invalid or duplicate meditation cushion.", placement.StableId);
+                    }
                 var chunks = new List<SurfaceChunkCoord>();
                 if (surface.Chunks != null)
                     for (var i = 0; i < surface.Chunks.Count; i++)

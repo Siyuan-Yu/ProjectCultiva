@@ -20,4 +20,11 @@ if not exist "%EXE%" (
   pause
   exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%Test-EditorBuildFreshness.ps1" -EditorName "%APP%"
+if errorlevel 1 (
+  echo [ContentAuthoring] 当前 Apps 版本早于源码，未启动 %APP%。
+  echo 请先双击「编译-所有编辑器.cmd」重新发布全部编辑器。
+  pause
+  exit /b 1
+)
 start "" "%EXE%"

@@ -1,5 +1,9 @@
 # Project Handoff — Continuous World Current State
 
+> 2026-10-21 NPC 自主生活／战斗与打坐返床返修入口：[317](317-npc-autonomy-design-confirmation-2026-10-21.md)、[ADR-0049](43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)、[ADR-0050](43-decisions/ADR-0050-direct-vassal-overlord-storage-access.md)。未入队非凡人三档倾向、合法取食、蒲团到位后修炼、疲劳返床与保底休息、洞府近场和 NPC 离屏交战均有代码接线；仍有队内统一睡眠、遮挡感知、正式俘虏处理及完整现场验收缺口。静态编译不等于制作人验收，当前 **Partial Implementation / Producer Acceptance Pending**。本页下方历史“未实现／未提交”须按最新 317 与 devlog 解释。
+
+> 2026-10-21 内容生产前修复入口：[316](316-content-production-readiness-repair-2026-10-21.md)。正式开局已用独立参考名册，作者工具保存与非荒村蓝图导出接缝已修，外观映射可配置 Rig 且构建校验资源；代码已实现、人工画面验收待做。后续制作人授权与 NPC AI 返修一并提交上传；实际 Git 状态以仓库历史为准。本页下方早期“未提交”文字保留历史时点，以最新 devlog 为准。
+
 > 2026-10-20 后续医疗收尾与地面显示：[313](313-medical-closure-and-ground-loot-2026-10-20.md)已接线，待人工验收、未提交。实际卧床恢复精力、旧v15零HP囚犯兼容、转职归还/死亡落地及洞府功法/斗技显形均已实施；当前Snapshot v17支持读取v15/v16。下方初次医疗v16记录保留历史时点含义。
 
 > 2026-10-20 医疗覆写：[312](312-medic-bedside-treatment-2026-10-20.md)与[ADR-0048](43-decisions/ADR-0048-medical-recovery-and-carried-medicine.md)已按制作人授权实施。Medic不再延期；公库/附近Party取药、床边施药、弥留及超过50%HP苏醒、Snapshot v16（v15读取时补齐）待现场验收。新开局阿禾、阿杏、阿枝为医者；既有房屋与床位不变。未提交；不继承旧民生整体验收状态。

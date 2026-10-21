@@ -137,13 +137,22 @@ namespace XianXia.Unity.Host
             _hasPendingWorkContact = true;
         }
 
-        public bool Initialize(HostStepAArt.Profile profile, HumanCommonRigEquipment equipmentBinding = null)
+        public bool Initialize(HostStepAArt.Profile profile, HumanCommonRigEquipment equipmentBinding = null,
+            HostStepAArt.RigSkin skin = null)
         {
             InitializationFailureReason = string.Empty;
             _equipmentBinding = equipmentBinding;
+            _hasBasket = false;
             string id, sideAtlas;
             int sideIndex;
-            switch (profile)
+            if (skin != null)
+            {
+                id = skin.partsBase;
+                sideAtlas = skin.sideHeadAtlas;
+                sideIndex = skin.sideHeadIndex;
+                _hasBasket = skin.basket;
+            }
+            else switch (profile)
             {
                 case HostStepAArt.Profile.Villager: id = "ART-CHAR-001"; sideAtlas = "ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01"; sideIndex = 0; break;
                 case HostStepAArt.Profile.Protagonist: id = "ART-CHAR-002"; sideAtlas = "ART-CHAR-001_002_004_HumanCommonRig_sideheads_v01"; sideIndex = 1; break;
@@ -225,7 +234,8 @@ namespace XianXia.Unity.Host
             {
                 var texture = Resources.Load<Texture2D>(sideAtlas);
                 if (texture == null) return InitializationFailed("Missing Texture2D resource: " + sideAtlas + ".");
-                var sideColumns = profile == HostStepAArt.Profile.JiangLao ? 1 :
+                var sideColumns = skin != null ? skin.sideHeadColumns :
+                    profile == HostStepAArt.Profile.JiangLao ? 1 :
                     profile == HostStepAArt.Profile.Villager ||
                     profile == HostStepAArt.Profile.Protagonist || profile == HostStepAArt.Profile.Guard ? 3 : 4;
                 sideHeads = LayoutSprites(texture, sideAtlas, sideColumns, out var failure);
@@ -694,7 +704,14 @@ namespace XianXia.Unity.Host
                         reach = WorkKey(phase, .01f, 0f, .06f);
                         break;
                     case HumanWorkMotion.Meditate:
-                        leftArm = 25f; rightArm = -25f; bodyDrop = .035f;
+                        // Seated cushion pose: lower the torso and fold both legs outward.
+                        // The autonomous AI only enters this motion after physical arrival.
+                        leftArm = 25f; rightArm = -25f; bodyDrop = .23f;
+                        _leftLeg.localPosition = new Vector3(-.08f, .43f, 0f);
+                        _rightLeg.localPosition = new Vector3(.08f, .43f, 0f);
+                        _leftLeg.localRotation = Quaternion.Euler(0f, 0f, -67f);
+                        _rightLeg.localRotation = Quaternion.Euler(0f, 0f, 67f);
+                        _leftLeg.localScale = _rightLeg.localScale = new Vector3(1f, .82f, 1f);
                         break;
                     case HumanWorkMotion.Eat:
                         leftArm = 10f; rightArm = WorkKey(phase, -20f, -45f, -50f);

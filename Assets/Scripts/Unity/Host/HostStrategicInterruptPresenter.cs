@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
@@ -14,6 +15,7 @@ namespace XianXia.Unity.Host
     public sealed class HostStrategicInterruptPresenter : MonoBehaviour
     {
         const string ManualBattleReportPauseOwner = "ManualBattleReport";
+        const string RetreatConfirmationPauseOwner = "EncounterRetreatConfirmation";
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         readonly List<EntityId> _friendlyPreview = new List<EntityId>(8);
@@ -22,6 +24,8 @@ namespace XianXia.Unity.Host
         ManualBattleReport _manualBattleReport;
         PlayableHostSession _reportOwnerSession;
         bool _reportHolding;
+        bool _retreatConfirm;
+        PlayableHostSession _retreatOwnerSession;
         Vector2 _reportScroll;
         Vector2 _offerScroll;
         string _toast = string.Empty;
@@ -38,7 +42,7 @@ namespace XianXia.Unity.Host
         {
             get
             {
-                if (_manualBattleReport != null || _reportHolding)
+                if (_manualBattleReport != null || _reportHolding || _retreatConfirm)
                     return true;
                 var encounter = ResolveCoordinator();
                 if (encounter == null)
@@ -62,6 +66,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            CloseRetreatConfirmation();
             ReleaseManualBattleReportPause();
             _manualBattleReport = null;
             _reportScroll = Vector2.zero;
@@ -76,7 +81,11 @@ namespace XianXia.Unity.Host
             _toastUntil = Time.unscaledTime + 4f;
         }
 
-        void OnDisable() => ReleaseManualBattleReportPause();
+        void OnDisable()
+        {
+            CloseRetreatConfirmation();
+            ReleaseManualBattleReportPause();
+        }
 
         void OnGUI()
         {
@@ -88,6 +97,9 @@ namespace XianXia.Unity.Host
 
             var coordinator = ResolveCoordinator();
             SyncCommittedReport(session);
+            if (_retreatConfirm && (coordinator == null ||
+                coordinator.Phase != HostCharacterEncounter.PresentationPhase.Active))
+                CloseRetreatConfirmation();
             if (_manualBattleReport != null)
             {
                 DrawManualBattleReport(session, coordinator);
@@ -109,7 +121,75 @@ namespace XianXia.Unity.Host
                 case HostCharacterEncounter.PresentationPhase.ReadyToEnd:
                     DrawCharacterEncounterEndBar(coordinator);
                     break;
+                case HostCharacterEncounter.PresentationPhase.Active:
+                    DrawRetreatControl(session, coordinator);
+                    break;
             }
+        }
+
+        void OpenRetreatConfirmation(PlayableHostSession session)
+        {
+            if (_retreatConfirm) return;
+            _retreatConfirm = true;
+            _retreatOwnerSession = session;
+            session.AcquireModalPause(RetreatConfirmationPauseOwner);
+            HostInputGate.Acquire(RetreatConfirmationPauseOwner);
+        }
+
+        void CloseRetreatConfirmation()
+        {
+            _retreatOwnerSession?.ReleaseModalPause(RetreatConfirmationPauseOwner);
+            HostInputGate.Release(RetreatConfirmationPauseOwner);
+            _retreatOwnerSession = null;
+            _retreatConfirm = false;
+        }
+
+        void DrawRetreatControl(PlayableHostSession session, HostCharacterEncounter coordinator)
+        {
+            var state = session.World.Strategic.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.Active) return;
+            GUI.depth = -40;
+            if (_retreatConfirm)
+            {
+                GUI.depth = -100;
+                DrawDim();
+                var confirm = new Rect(Screen.width * .5f - 240f, Screen.height * .5f - 105f, 480f, 210f);
+                Fill(confirm, Parchment);
+                DrawFrame(confirm, ParchmentDark);
+                HostUiHitTest.Block(confirm);
+                var stranded = 0;
+                foreach (var p in state.Participants)
+                    if (!p.Enemy && session.World.Entities.TryGet(new EntityId(p.CharacterId), out var entity) &&
+                        CombatLifeStateService.IsDown(entity)) stranded++;
+                GUI.Label(new Rect(confirm.x + 16f, confirm.y + 12f, 448f, 28f), "确认尝试撤退？", _title);
+                GUI.Label(new Rect(confirm.x + 16f, confirm.y + 47f, 448f, 82f),
+                    "成功率 " + CharacterEncounterService.RetreatChancePercent(session.World) + "% · 失败后继续交战，60 战术秒后可再试。\n" +
+                    (stranded > 0 ? "警告：" + stranded + " 名失能／阵亡成员将留在交战地点，可能被俘或死亡。"
+                        : "若撤退前有成员失能，他们不会被免费带走。"), _body);
+                if (GUI.Button(new Rect(confirm.x + 16f, confirm.yMax - 48f, 212f, 32f), "取消"))
+                    CloseRetreatConfirmation();
+                if (GUI.Button(new Rect(confirm.xMax - 228f, confirm.yMax - 48f, 212f, 32f), "确认逃跑"))
+                {
+                    var handled = coordinator.TryRetreat(out var succeeded);
+                    var message = handled && succeeded ? "撤退成功。" : coordinator.Failure;
+                    CloseRetreatConfirmation();
+                    if (!string.IsNullOrEmpty(message)) ShowTransientToast(message);
+                }
+                return;
+            }
+            var remaining = Mathf.Max(0f, Mathf.Max(CharacterEncounterService.RetreatUnlockSeconds,
+                state.NextRetreatAttemptAt) - state.ElapsedSeconds);
+            var bar = new Rect(Screen.width - 216f, Screen.height - 125f, 200f, 54f);
+            Fill(bar, Parchment);
+            DrawFrame(bar, ParchmentDark);
+            HostUiHitTest.Block(bar);
+            var available = CharacterEncounterService.CanAttemptRetreat(session.World);
+            GUI.enabled = available;
+            if (GUI.Button(new Rect(bar.x + 8f, bar.y + 7f, bar.width - 16f, 38f),
+                available ? "逃跑 · " + CharacterEncounterService.RetreatChancePercent(session.World) + "%"
+                    : remaining > 0f ? "逃跑 · " + Mathf.CeilToInt(remaining) + " 秒后" : "当前无法撤退"))
+                OpenRetreatConfirmation(session);
+            GUI.enabled = true;
         }
 
         HostCharacterEncounter ResolveCoordinator() =>
@@ -262,10 +342,11 @@ namespace XianXia.Unity.Host
             DrawFrame(box, ParchmentDark);
             HostUiHitTest.Block(box);
             GUI.Label(new Rect(box.x + 18f, box.y + 14f, box.width - 36f, 30f),
-                report.PlayerWon ? "战斗胜利" : "战斗失败", _title);
+                report.Retreated ? "已撤离战场" : report.PlayerWon ? "战斗胜利" : "战斗失败", _title);
             GUI.Label(new Rect(box.x + 18f, box.y + 48f, box.width - 36f, 42f),
                 string.IsNullOrWhiteSpace(report.ResultReason)
-                    ? report.PlayerWon ? "本次有效敌方已失去战斗能力。" : "我方参战者已失去战斗能力。"
+                    ? report.Retreated ? "我方已撤离，失能成员留在交战地点。"
+                        : report.PlayerWon ? "本次有效敌方已失去战斗能力。" : "我方参战者已失去战斗能力。"
                     : report.ResultReason, _body);
             GUI.Label(new Rect(box.x + 18f, box.y + 92f, box.width - 36f, 46f),
                 BuildReportSummary(report), _body);

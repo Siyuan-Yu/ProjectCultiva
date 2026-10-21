@@ -64,6 +64,9 @@
                 <TextBlock Text="数量" Margin="10,0,6,0" VerticalAlignment="Center"/>
                 <TextBox x:Name="DeliveryAmountBox" Text="1" Width="60"/>
               </DockPanel>
+              <TextBlock Text="其余交付物品：每行填写 itemId,数量；留空则只交上方物品" Margin="0,6,0,2"/>
+              <TextBox x:Name="AdditionalDeliveryBox" AcceptsReturn="True" Height="62" TextWrapping="NoWrap"
+                       VerticalScrollBarVisibility="Auto"/>
               <CheckBox x:Name="AbandonableBox" Content="允许玩家放弃 (abandonable)" Margin="0,8,0,0"/>
               <DockPanel Margin="0,8,0,0">
                 <TextBlock Text="deadlineDays" Width="90" VerticalAlignment="Center"

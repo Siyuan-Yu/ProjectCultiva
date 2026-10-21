@@ -164,10 +164,12 @@ namespace XianXia.Unity.Host
 
             foreach (var entity in session.World.Entities.All)
             {
-                if ((entity.Tags & EntityTag.Character) != 0)
+                if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
                     continue;
-                if ((entity.Tags & EntityTag.Npc) == 0)
-                    continue;
+                if ((entity.Tags & EntityTag.Character) != 0 &&
+                    !entity.TryGet<PersonalLifeComponent>(out _)) continue;
+                if ((entity.Tags & EntityTag.Character) != 0 &&
+                    session.World.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true) continue;
                 // A valid civilian logging session owns the tree approach and chopping loop.
                 // Do not reconcile its old Core intent revision here: that would cancel the
                 // newly-issued tree path and send the logger back to the work-area center.
@@ -694,8 +696,11 @@ namespace XianXia.Unity.Host
                 return false;
             var key = intent.DestinationKey ?? string.Empty;
             const string sleepPrefix = "sleep-bed:";
+            const string personalPrefix = "personal-bed:";
             var bedId = key.StartsWith(sleepPrefix, System.StringComparison.Ordinal)
-                ? key.Substring(sleepPrefix.Length) : key;
+                ? key.Substring(sleepPrefix.Length) :
+                key.StartsWith(personalPrefix, System.StringComparison.Ordinal)
+                    ? key.Substring(personalPrefix.Length) : key;
             if (!world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
                 !RoomBedGeometry.IsBed(bed))
                 return false;

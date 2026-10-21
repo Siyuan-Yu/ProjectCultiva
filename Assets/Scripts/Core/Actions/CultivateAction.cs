@@ -84,6 +84,12 @@ namespace XianXia.Core.Actions
                 ? cultivation.CultivationSpeed
                 : CultivationProgressRules.BaseProgressPerTick;
             gain += talentBonus;
+            if (entity.TryGet<PersonalLifeComponent>(out var personalLife))
+            {
+                personalLife.Energy--;
+                personalLife.CurrentMood--;
+                personalLife.Clamp();
+            }
             var cap = cultivation.BreakthroughProgressRequired;
             if (cap > 0 && cultivation.Progress + gain > cap)
                 cultivation.Progress = cap;

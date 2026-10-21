@@ -217,7 +217,7 @@ namespace XianXia.Data.Bootstrap
                     return Result.Fail<PlayableDayBootstrapResult>(openingValid.Error);
             }
 
-            var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup);
+            var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup, spawnEntries);
             if (chapter.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
 
@@ -225,13 +225,6 @@ namespace XianXia.Data.Bootstrap
             MortalCivilianService.SeedContentResidenceUsages(world);
 
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup, spawnEntries);
-            if (recruitableId.IsNone)
-            {
-                return Result.Fail<PlayableDayBootstrapResult>(
-                    ErrorCode.NotFound,
-                    "Opening scenario has no recruitable spawn.",
-                    DefaultScenarioId.ToString());
-            }
 
             if (options.ObservationDiscoverChancePercent.HasValue)
             {

@@ -45,7 +45,32 @@ namespace XianXia.Core.Inventory
     public static class PlayerStrategicResourceService
     {
         public static bool CanAccessSiteStorageNetwork(SimulationWorld world) =>
-            TryResolveCurrentManagingSite(world, out _) && EligibleStorageSiteIds(world).Count > 0;
+            TryResolveCurrentAccessibleStorageSite(world, out _) && EligibleStorageSiteIds(world).Count > 0;
+
+        /// <summary>Storage access may be granted to a direct vassal; this is not management authority.</summary>
+        public static bool TryResolveCurrentAccessibleStorageSite(SimulationWorld world, out WorldSite site)
+        {
+            site = null;
+            var motion = world?.PlayerPartyTravel;
+            var sites = world?.Strategic?.Sites;
+            var playerFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
+            if (motion == null || sites == null || string.IsNullOrEmpty(playerFactionId)) return false;
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                if (!motion.HasPosition || string.IsNullOrEmpty(motion.SurfaceId) ||
+                    !WorldSiteAdministrativeControlResolver.TryResolve(
+                        world, motion.SurfaceId, motion.WorldPosition.X, motion.WorldPosition.Y,
+                        out var controlled, out _)) return false;
+                return IsAccessibleStorageSite(world, sites, controlled.SiteId, playerFactionId, out site);
+            }
+            var currentOutdoorSiteId = motion.CurrentOutdoorWorldSiteId ?? string.Empty;
+            if (!string.IsNullOrEmpty(currentOutdoorSiteId))
+                return IsAccessibleStorageSite(world, sites, currentOutdoorSiteId, playerFactionId, out site);
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite || string.IsNullOrEmpty(motion.SiteId))
+                return false;
+            return IsAccessibleStorageSite(world, sites, motion.SiteId, playerFactionId, out site);
+        }
 
         public static bool TryResolveCurrentManagingSite(SimulationWorld world, out WorldSite site)
         {
@@ -90,7 +115,7 @@ namespace XianXia.Core.Inventory
                 ? GetAvailableCount(world, itemId)
                 : world?.Inventory?.GetCount(itemId) ?? 0;
 
-        /// <summary>Accessible player-owned public storage only; excludes PartyInventory.</summary>
+        /// <summary>Accessible current-owner storage network; excludes PartyInventory.</summary>
         public static int GetAccessibleStorageCount(SimulationWorld world, string resourceId)
         {
             if (!IsResource(world, resourceId) || !CanAccessSiteStorageNetwork(world)) return 0;
@@ -135,7 +160,7 @@ namespace XianXia.Core.Inventory
                     "Warehouse withdrawal requires a resource and positive amount.");
             if (!CanAccessSiteStorageNetwork(world))
                 return Result.Failure(ErrorCode.InvalidOperation,
-                    "仅在己方实际控制范围内可访问势力仓库。");
+                    "仅在己方或直接宗主的有效据点内可访问势力仓库。");
             if (GetAccessibleStorageCount(world, resourceId) < amount)
                 return Result.Failure(ErrorCode.InvalidOperation, "势力仓库库存不足。", resourceId);
             if (world.Inventory.GetAddCapacity(resourceId) < amount)
@@ -143,7 +168,7 @@ namespace XianXia.Core.Inventory
 
             var plan = new List<StrategicResourceWithdrawal>();
             var remaining = amount;
-            TryResolveCurrentManagingSite(world, out var current);
+            TryResolveCurrentAccessibleStorageSite(world, out var current);
             if (current != null && world.SiteStorageRooms.HasActiveStorageForSite(world, current.SiteId))
                 AddSiteWithdrawal(world, current.SiteId, resourceId, ref remaining, plan);
             var siteIds = EligibleStorageSiteIds(world);
@@ -195,7 +220,7 @@ namespace XianXia.Core.Inventory
 
             var plan = receipt.MutableWithdrawals;
             var remaining = amount;
-            if (TryResolveCurrentManagingSite(world, out var current))
+            if (TryResolveCurrentAccessibleStorageSite(world, out var current))
             {
                 if (world.SiteStorageRooms.HasActiveStorageForSite(world, current.SiteId))
                     AddSiteWithdrawal(world, current.SiteId, resourceId, ref remaining, plan);
@@ -270,13 +295,12 @@ namespace XianXia.Core.Inventory
         static List<string> EligibleStorageSiteIds(SimulationWorld world)
         {
             var ids = new List<string>();
-            var playerFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
-            if (string.IsNullOrEmpty(playerFactionId)) return ids;
+            if (!TryResolveCurrentAccessibleStorageSite(world, out var current)) return ids;
             foreach (var pair in world.Strategic.Sites.Sites)
             {
                 var site = pair.Value;
                 if (site != null && site.IsCoreActive &&
-                    string.Equals(site.OwnerFactionId, playerFactionId, StringComparison.Ordinal) &&
+                    string.Equals(site.OwnerFactionId, current.OwnerFactionId, StringComparison.Ordinal) &&
                     world.SiteStorageRooms.TryGetBySite(site.SiteId, out _)) ids.Add(site.SiteId);
             }
             ids.Sort(StringComparer.Ordinal);
@@ -292,6 +316,14 @@ namespace XianXia.Core.Inventory
             site = null;
             return sites.TryGet(siteId, out site) && site != null && site.IsCoreActive &&
                    string.Equals(site.OwnerFactionId, playerFactionId, StringComparison.Ordinal);
+        }
+
+        static bool IsAccessibleStorageSite(SimulationWorld world, WorldSiteBoard sites,
+            string siteId, string actingFactionId, out WorldSite site)
+        {
+            site = null;
+            return sites.TryGet(siteId, out site) &&
+                   WorldSiteStorageAccessPolicy.CanFactionUse(world, actingFactionId, site);
         }
     }
 }

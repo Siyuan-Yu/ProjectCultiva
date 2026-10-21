@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Data.Content;
+using System.Collections.Generic;
 
 namespace XianXia.Data.Bootstrap
 {
@@ -48,7 +49,8 @@ namespace XianXia.Data.Bootstrap
             SimulationWorld world,
             DefinitionRegistry registry,
             OpeningScenarioDefinition scenario,
-            GameStartLookup lookup)
+            GameStartLookup lookup,
+            IList<OpeningSpawnEntry> spawnEntries)
         {
             var registered = ApplyDefinitions(world, registry);
             if (registered.IsFailure)
@@ -60,14 +62,18 @@ namespace XianXia.Data.Bootstrap
             var subject = EntityId.None;
             if (lookup != null)
             {
-                foreach (var spawn in scenario.Spawns)
+                foreach (var spawn in spawnEntries ?? scenario.Spawns)
                 {
+                    if (spawn == null) continue;
                     if (string.Equals(spawn.EntityKind, "npc", System.StringComparison.OrdinalIgnoreCase))
                         continue;
                     if (lookup.TryGetEntity(spawn.DefinitionId, out subject))
                         break;
                 }
             }
+            if (subject.IsNone)
+                return Result.Failure(ErrorCode.ContentLoadFailed,
+                    "Opening chapter has no spawned player character.", scenario.OpeningChapterId);
 
             var day = world.Tick.Value / (ulong)WorldTick.TicksPerDay;
             return new ChapterService().Activate(world, scenario.OpeningChapterId, subject, day);

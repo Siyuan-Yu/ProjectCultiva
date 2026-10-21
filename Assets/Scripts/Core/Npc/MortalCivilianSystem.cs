@@ -1074,7 +1074,7 @@ namespace XianXia.Core.Npc
                     allowed = !string.IsNullOrEmpty(civilian.DetainedResidenceWorkAreaId) &&
                               string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal);
                 else if (entity.TryGet<FactionMembershipComponent>(out var membership) && membership.IsAffiliated)
-                    allowed = string.Equals(membership.FactionId, site.OwnerFactionId, StringComparison.Ordinal);
+                    allowed = CanAffiliatedUseSiteFood(world, membership.FactionId, site);
                 else
                     allowed = HasLocalResidentialFoodRight(world, eater, civilian, siteId);
                 if (allowed)
@@ -1285,9 +1285,14 @@ namespace XianXia.Core.Npc
         static bool CanUseSiteFood(SimulationWorld world, Entity entity, MortalCivilianState state, WorldSite site)
         {
             if (entity.TryGet<FactionMembershipComponent>(out var membership) && membership.IsAffiliated)
-                return string.Equals(membership.FactionId, site.OwnerFactionId, StringComparison.Ordinal);
+                return CanAffiliatedUseSiteFood(world, membership.FactionId, site);
             return HasLocalResidentialFoodRight(world, entity.Id, state, site.SiteId);
         }
+
+        static bool CanAffiliatedUseSiteFood(SimulationWorld world, string factionId, WorldSite site) =>
+            WorldSiteStorageAccessPolicy.CanFactionUse(world, factionId, site) &&
+            (string.Equals(factionId, site.OwnerFactionId, StringComparison.Ordinal) ||
+             world.SiteStorageRooms.HasActiveStorageForSite(world, site.SiteId));
 
         static bool HasLocalResidentialFoodRight(
             SimulationWorld world, EntityId characterId, MortalCivilianState state, string siteId)
@@ -1941,6 +1946,32 @@ namespace XianXia.Core.Npc
             }
         }
 
+        /// <summary>Threat reaction without conquest/capture: unarmed managed mortals flee or wait to surrender.</summary>
+        public static bool ReactToHostileContact(SimulationWorld world, EntityId civilianId)
+        {
+            if (world == null || !world.Entities.TryGet(civilianId, out var entity) ||
+                !MortalCivilianQuery.IsManagedCivilian(world, entity) ||
+                !world.Civilians.TryGet(civilianId, out var state) ||
+                state.Disposition != CivilianDisposition.Normal ||
+                !CombatLifeStateService.CanFight(entity) ||
+                entity.TryGet<PersonalityProfileComponent>(out var profile) && profile.HasTag("hostile"))
+                return false;
+            if (CharacterFactionLoyaltyService.TryGetLoyalty(world, civilianId, out var loyalty) &&
+                loyalty < MortalCivilianTuning.SurrenderLoyaltyThreshold ||
+                SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, civilianId))
+            {
+                state.Disposition = CivilianDisposition.SurrenderWaiting;
+                state.ScheduleStatus = "遭遇敌对者，等待投降处理";
+                return true;
+            }
+            var siteId = MortalCivilianQuery.ResolveCurrentSiteId(world, civilianId);
+            if (string.IsNullOrEmpty(siteId)) return false;
+            state.Disposition = CivilianDisposition.Fleeing;
+            BeginFlee(world, entity, state, siteId);
+            state.ScheduleStatus = "遭遇敌对者，逃离";
+            return true;
+        }
+
         static void BeginFlee(SimulationWorld world, Entity entity, MortalCivilianState state, string siteId)
         {
             if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null || !site.HasContinuousCore) return;
@@ -1974,6 +2005,15 @@ namespace XianXia.Core.Npc
                 return;
             }
             if (!state.HasFleeTarget) SetFleeCandidate(world, sourceSite, state);
+            // The Host consumes MovementIntent only for materialized characters. Cold residents
+            // must advance their own real WorldPresence, or an offscreen escape stalls forever.
+            if (!world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+            {
+                if (entity.TryGet<MovementIntentComponent>(out var staleIntent) && staleIntent.Active)
+                    staleIntent.Clear();
+                AdvanceColdFlee(world, entity, state, sourceSite, current.WorldPosition);
+                return;
+            }
             MoveToWorldPoint(entity, sourceSite.CoreSurfaceId,
                 new WorldVec2(state.FleeTargetX, state.FleeTargetY),
                 MortalCivilianTuning.FleeMoveSpeedMultiplier);
@@ -2000,6 +2040,49 @@ namespace XianXia.Core.Npc
                 return;
             }
             state.FleeStatus = intent.HostPathRequested ? "逃离中" : "等待逃离路径";
+        }
+
+        static void AdvanceColdFlee(SimulationWorld world, Entity entity,
+            MortalCivilianState state, WorldSite sourceSite, WorldVec2 start)
+        {
+            if (world.Tick.Value % 8UL != entity.Id.Value % 8UL) return;
+            var goal = new WorldVec2(state.FleeTargetX, state.FleeTargetY);
+            var route = new List<WorldVec2>(32);
+            if (!world.SurfaceGround.TryGet(sourceSite.CoreSurfaceId, out var navigation) ||
+                navigation == null ||
+                navigation.TryFindRoute(start, goal, route) != SurfaceGroundRouteStatus.Found)
+            {
+                state.FleeAttemptCount++;
+                state.FleeCandidateIndex =
+                    (state.FleeCandidateIndex + 1) % MortalCivilianTuning.FleeCandidateCount;
+                if (state.FleeAttemptCount >= MortalCivilianTuning.FleeCandidateCount)
+                {
+                    state.FleeAttemptCount = 0;
+                    state.HasFleeTarget = false;
+                    state.FleeStartedTick = world.Tick.Value + MortalCivilianTuning.FleeRetryDelayTicks;
+                    state.FleeStatus = "离屏逃离受阻：等待重试";
+                }
+                else SetFleeCandidate(world, sourceSite, state);
+                return;
+            }
+            var position = start;
+            var remaining = MortalCivilianTuning.FleeMoveSpeedMultiplier * 8f;
+            for (var i = 1; i < route.Count && remaining > 0f; i++)
+            {
+                var waypoint = route[i];
+                var distance = WorldVec2.Distance(position, waypoint);
+                if (distance <= remaining)
+                { position = waypoint; remaining -= distance; }
+                else
+                {
+                    var ratio = remaining / distance;
+                    position = new WorldVec2(position.X + (waypoint.X - position.X) * ratio,
+                        position.Y + (waypoint.Y - position.Y) * ratio);
+                    remaining = 0f;
+                }
+            }
+            world.WorldPresence.SetAtWorldPosition(entity.Id, position, sourceSite.CoreSurfaceId);
+            state.FleeStatus = "离屏逃离中";
         }
 
         static void SetFleeCandidate(SimulationWorld world, WorldSite site, MortalCivilianState state)

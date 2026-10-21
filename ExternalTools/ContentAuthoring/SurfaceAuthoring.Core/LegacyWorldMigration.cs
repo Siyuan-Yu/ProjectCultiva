@@ -117,8 +117,98 @@ public static class LegacyWorldMigration
             var placements=main["sitePlacements"]!.AsArray();foreach(var old in placements.OfType<JsonObject>().Where(x=>Text(x,"siteId")=="base:site_huangcun").ToList())placements.Remove(old);
             foreach(var o in bp.ObjectPlacements.OrderBy(x=>x.PlacementId,StringComparer.Ordinal)){var wx=binding.OriginWorldX+(placement.SurfaceCellX+o.LocalSurfaceX)*binding.SurfaceCellWorldSize;var wy=binding.OriginWorldY+(placement.SurfaceCellY+o.LocalSurfaceY)*binding.SurfaceCellWorldSize;var item=new JsonObject{{"stableId",o.PlacementId},{"siteId","base:site_huangcun"},{"worldX",wx},{"worldY",wy},{"worldWidth",o.WidthCells*binding.SurfaceCellWorldSize},{"worldHeight",o.HeightCells*binding.SurfaceCellWorldSize},{"kind",o.KindId},{"blocksMovement",o.Metadata.TryGetValue("blocksMovement",out var blocked)&&bool.TryParse(blocked,out var b)&&b}};foreach(var key in new[]{"boundLocationId","label","sourceGridX","sourceGridY","sourceCellsW","sourceCellsH","chunkX","chunkY","buildingId","quarterTurns","parentRoomId","roomUsage","initialAssigneeSpawnKey","structureDurability"})if(o.Metadata.TryGetValue(key,out var value))item[key]=int.TryParse(value,out var n)?JsonValue.Create(n):JsonValue.Create(value);item["chunkX"]=(int)Math.Floor((placement.SurfaceCellX+o.LocalSurfaceX)/50);item["chunkY"]=(int)Math.Floor((placement.SurfaceCellY+o.LocalSurfaceY)/50);placements.Add(item);}SynchronizeHuangcunSitePlaces(bp,placement,binding,main);ValidateBlueprintGeometryFidelity(bp,main["sitePlacements"]!.AsArray());
         }
+        PublishAdditionalBlueprints(composition, linked, main);
         var terrainRows=new JsonArray();var forestRows=new JsonArray();for(var y=0;y<height;y++){var terrain=new char[width];var forest=new char[width];for(var x=0;x<width;x++){var c=engine.Resolve(x,y);terrain[x]=c.BaseTerrain==BaseTerrain.Water?'W':c.BaseTerrain==BaseTerrain.Mountain?'M':'P';forest[x]=c.Feature==TerrainFeature.Forest?(char)('0'+Math.Clamp((int)Math.Round(c.FeatureDensity*9d),1,9)):'0';}terrainRows.Add(new string(terrain));forestRows.Add(new string(forest));}var mapRoot=new JsonObject{{"schemaVersion",1},{"definitions",new JsonArray{new JsonObject{{"id","base:main_world_surface_map_v1"},{"type","continuousSurfaceWorldMap"},{"name","主世界连续地图表现缓存"},{"compositionId",composition.CompositionId},{"surfaceId",binding.SurfaceId},{"sourceHash",ContinuousSurfaceBaker.SourceHash(composition,linked)},{"originWorldX",binding.OriginWorldX},{"originWorldY",binding.OriginWorldY},{"cellSize",binding.SurfaceCellWorldSize},{"widthCells",width},{"heightCells",height},{"baseTerrainRows",terrainRows},{"forestRows",forestRows}}}}};
         var mainOut=Path.Combine(outputDirectory,"main_wilderness_surface_v1.candidate.json");var geoOut=Path.Combine(outputDirectory,"w2a_surface_geography_baked_v1.candidate.json");var mapOut=Path.Combine(outputDirectory,"main_world_surface_map_v1.candidate.json");File.WriteAllText(mainOut,mainRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(geoOut,geoRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(mapOut,mapRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));return[mainOut,geoOut,mapOut];
+    }
+
+    private static void PublishAdditionalBlueprints(WorldCompositionDocument composition, LinkedSourceSet linked, JsonObject main)
+    {
+        var binding = composition.RuntimeSurface!;
+        var placements = main["sitePlacements"]!.AsArray();
+        var places = main["sitePlaces"]!.AsArray();
+        var sites = main["siteRegions"]!.AsArray();
+        var authoredSites = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var placed in composition.WorldSiteBlueprintPlacements.OrderBy(x => x.PlacementId, StringComparer.Ordinal))
+        {
+            if (placed.PlacementId == "huangcun") continue; // Imported exact geometry remains on its sealed path.
+            if (!linked.Blueprints.TryGetValue(placed.PlacementId, out var blueprint))
+                throw new InvalidDataException("缺少已链接的据点蓝图：" + placed.PlacementId);
+            var siteId = blueprint.BlueprintId;
+            if (!authoredSites.Add(siteId))
+                throw new InvalidDataException("同一 Site 有多个运行时蓝图：" + siteId);
+            if (!sites.OfType<JsonObject>().Any(x => Text(x, "siteId") == siteId))
+                throw new InvalidDataException("蓝图缺少 RuntimeLayout.siteRegions：" + siteId);
+            foreach (var old in placements.OfType<JsonObject>().Where(x => Text(x, "siteId") == siteId).ToList())
+                placements.Remove(old);
+
+            var published = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+            foreach (var item in blueprint.ObjectPlacements.OrderBy(x => x.PlacementId, StringComparer.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(item.AssetRef))
+                    throw new InvalidDataException("当前运行时 sitePlacements 不支持蓝图 assetRef：" + item.PlacementId);
+                if (!string.IsNullOrWhiteSpace(item.ContentRef) && item.KindId != "loot" && item.KindId != "spawnZone")
+                    throw new InvalidDataException("当前运行时对象无法使用 contentRef：" + item.PlacementId);
+                if (placements.OfType<JsonObject>().Any(x => Text(x, "stableId") == item.PlacementId))
+                    throw new InvalidDataException("蓝图对象 stableId 已占用：" + item.PlacementId);
+                var rect = ContinuousSurfaceBaker.RotateObjectRect(item.LocalSurfaceX, item.LocalSurfaceY,
+                    item.WidthCells, item.HeightCells, blueprint.WidthCells, blueprint.HeightCells,
+                    placed.RotationQuarterTurns);
+                var x = placed.SurfaceCellX + rect.X;
+                var y = placed.SurfaceCellY + rect.Y;
+                var runtime = new JsonObject
+                {
+                    ["stableId"] = item.PlacementId, ["siteId"] = siteId, ["kind"] = item.KindId,
+                    ["worldX"] = binding.OriginWorldX + x * binding.SurfaceCellWorldSize,
+                    ["worldY"] = binding.OriginWorldY + y * binding.SurfaceCellWorldSize,
+                    ["worldWidth"] = rect.Width * binding.SurfaceCellWorldSize,
+                    ["worldHeight"] = rect.Height * binding.SurfaceCellWorldSize,
+                    ["chunkX"] = (int)Math.Floor(x / 50d), ["chunkY"] = (int)Math.Floor(y / 50d),
+                    ["quarterTurns"] = (item.RotationQuarterTurns + placed.RotationQuarterTurns) % 4,
+                    ["blocksMovement"] = item.Metadata.TryGetValue("blocksMovement", out var blocked) &&
+                                         bool.TryParse(blocked, out var isBlocked) && isBlocked
+                };
+                if (!string.IsNullOrWhiteSpace(item.ContentRef))
+                    runtime[item.KindId == "loot" ? "lootItemId" : "spawnTableId"] = item.ContentRef;
+                foreach (var key in new[] { "boundLocationId", "label", "sourceGridX", "sourceGridY",
+                             "sourceCellsW", "sourceCellsH", "buildingId", "parentRoomId", "roomUsage",
+                             "initialAssigneeSpawnKey", "structureDurability", "lootItemId", "spawnTableId", "spawnCount" })
+                    if (item.Metadata.TryGetValue(key, out var value))
+                        runtime[key] = int.TryParse(value, out var number) ? JsonValue.Create(number) : JsonValue.Create(value);
+                placements.Add(runtime);
+                published.Add(item.PlacementId, runtime);
+            }
+
+            foreach (var group in blueprint.ObjectPlacements.Where(x =>
+                         x.Metadata.TryGetValue("boundLocationId", out var id) && !string.IsNullOrWhiteSpace(id))
+                     .GroupBy(x => x.Metadata["boundLocationId"], StringComparer.Ordinal))
+            {
+                var ids = group.Select(x => published[x.PlacementId]).ToList();
+                var minX = ids.Min(x => Number(x, "worldX"));
+                var maxX = ids.Max(x => Number(x, "worldX") + Number(x, "worldWidth"));
+                var minY = ids.Min(x => Number(x, "worldY"));
+                var maxY = ids.Max(x => Number(x, "worldY") + Number(x, "worldHeight"));
+                var existing = places.OfType<JsonObject>().FirstOrDefault(x => Text(x, "locationId") == group.Key);
+                if (existing != null && Text(existing, "siteId") != siteId)
+                    throw new InvalidDataException("蓝图地点 ID 已属于其他 Site：" + group.Key);
+                if (existing == null)
+                {
+                    existing = new JsonObject { ["siteId"] = siteId, ["locationId"] = group.Key,
+                        ["name"] = group.Key, ["kind"] = "Village", ["adjacentIds"] = new JsonArray(),
+                        ["tags"] = new JsonArray(), ["allowedActivities"] = new JsonArray() };
+                    places.Add(existing);
+                }
+                existing["worldX"] = (minX + maxX) * .5d;
+                existing["worldY"] = (minY + maxY) * .5d;
+                var source = group.First();
+                if (source.Metadata.TryGetValue("localPlaceName", out var name) && !string.IsNullOrWhiteSpace(name))
+                    existing["name"] = name;
+                if (source.Metadata.TryGetValue("localPlaceKind", out var kind) && !string.IsNullOrWhiteSpace(kind))
+                    existing["kind"] = kind;
+                if (source.Metadata.TryGetValue("localPlaceTags", out var tags) && JsonNode.Parse(tags) is JsonArray parsed)
+                    existing["tags"] = parsed;
+            }
+        }
     }
 
     private static JsonObject Primitive(string id,string kind,List<PathControlPoint> points,double width,RuntimeSurfaceBinding b){var values=new JsonArray();foreach(var p in points){values.Add(b.OriginWorldX+p.X*b.SurfaceCellWorldSize);values.Add(b.OriginWorldY+p.Y*b.SurfaceCellWorldSize);}return new(){{"stableId",id},{"kind",kind},{"worldX",0},{"worldY",0},{"worldWidth",0},{"worldHeight",0},{"strokeWidth",width*b.SurfaceCellWorldSize},{"points",values}};}

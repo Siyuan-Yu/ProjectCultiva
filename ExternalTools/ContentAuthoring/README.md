@@ -11,7 +11,7 @@
 1. `启动-<Editor>.cmd` 快捷脚本；
 2. `Apps/<EditorName>.exe`，例如 `Apps/MapEditor.exe`。
 
-若启动脚本报告 exe 不存在，请先运行 `编译-所有编辑器.cmd`。启动器不会自行触发隐藏的完整编译。
+若启动脚本报告 exe 不存在或版本早于源码，请先运行 `编译-所有编辑器.cmd`。启动器不会自行触发隐藏的完整编译；直接双击 `Apps/*.exe` 不做版本检查。
 
 如果 WorldComposer 或 FineEditor 双击后立即退出，请提供 `Apps/WorldComposer-crash.log` 或 `Apps/FineEditor-crash.log`。日志只会在发生未处理错误时创建或覆盖，正常启动不会生成。
 

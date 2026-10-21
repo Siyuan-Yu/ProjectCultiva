@@ -250,6 +250,8 @@ CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。
 
 `WorldAdministrativeAssetAuthorizationService` 继续只回答严格管理权；`WorldAdministrativeAssetWorkAuthorizationService` 在其上增加直接附庸对宗主劳动资产的单向使用许可。结果保留真实 `ManagingFactionId`，并区分己方管理与附庸劳作。当前只有药田／粮田的手动劳动、逐格复核、NPC WorkArea 候选和 NPC 收获提交接入该许可。
 
+> **2026-10-21 仓储定向覆写：** 制作人随后明确允许直接附庸完整取用宗主势力仓库，权限和当地区位见 [ADR-0050](../40-process/43-decisions/ADR-0050-direct-vassal-overlord-storage-access.md)。下句的仓储隔离仅是 VASSAL-WORK-01 的历史实施状态；建造、拆除及其他行政权限仍严格隔离。
+
 附庸劳动不会开放宗主仓库、建造范围、拆除或其它行政能力。玩家手控收获仍进 PartyInventory；NPC 日程收获仍进真实 Managing Site 公库。解除附庸或进入战争后，持续复核会停止原有农作。详见 [VASSAL-WORK-01](../40-process/260-vassal-work-01-direct-vassal-labor-access-2026-09-24.md)。
 
 正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
