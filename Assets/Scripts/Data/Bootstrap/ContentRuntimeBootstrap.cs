@@ -1,4 +1,4 @@
-using XianXia.Core.World;
+﻿using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Content;
@@ -279,6 +279,7 @@ namespace XianXia.Data.Bootstrap
         {
             world.SurfaceSpatial.Clear();
             world.MeditationSpots.Clear();
+            world.ChessBoards.Clear();
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
@@ -287,6 +288,20 @@ namespace XianXia.Data.Bootstrap
                     for (var i = 0; i < surface.SitePlacements.Count; i++)
                     {
                         var placement = surface.SitePlacements[i];
+                        if (placement != null && placement.Kind == "chessBoard")
+                        {
+                            var center = new WorldVec2(placement.WorldX+placement.WorldWidth*.5f,
+                                placement.WorldY+placement.WorldHeight*.5f);
+                            var axisX = placement.QuarterTurns % 2 == 0;
+                            var offset = surface.CellSize * 1.15f;
+                            if (world.ChessBoards.ContainsKey(placement.StableId))
+                                return Result.Failure(ErrorCode.ContentLoadFailed, "Duplicate chess board.", placement.StableId);
+                            world.ChessBoards.Add(placement.StableId, new ChessBoardSpot {
+                                Id=placement.StableId, SiteId=placement.SiteId, SurfaceId=surface.SurfaceId,
+                                Center=center, ArrivalRadius=surface.CellSize*.3f,
+                                SeatA=new WorldVec2(center.X-(axisX?offset:0),center.Y-(axisX?0:offset)),
+                                SeatB=new WorldVec2(center.X+(axisX?offset:0),center.Y+(axisX?0:offset)) });
+                        }
                         if (placement == null || !string.Equals(placement.Kind, "cushion", StringComparison.Ordinal))
                             continue;
                         if (!world.MeditationSpots.Register(new MeditationSpot

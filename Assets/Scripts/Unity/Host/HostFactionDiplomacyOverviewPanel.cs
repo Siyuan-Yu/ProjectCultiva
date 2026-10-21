@@ -17,6 +17,7 @@ namespace XianXia.Unity.Host
         readonly GUIStyle _body;
         readonly GUIStyle _title;
 
+        readonly HostPeaceNegotiationPanel _peace = new HostPeaceNegotiationPanel();
         bool _open;
         string _selectedFactionId = string.Empty;
         Vector2 _listScroll;
@@ -155,8 +156,11 @@ namespace XianXia.Unity.Host
                 _personnel.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             }
             var viewport = new Rect(detailRect.x, detailRect.y + 24f, detailRect.width, detailRect.height - 24f);
+            var prisoners = 0;
+            foreach (var entity in world.Entities.All)
+                if (!string.IsNullOrEmpty(PeaceNegotiationService.CustodianFaction(world, entity.Id))) prisoners++;
             var contentHeight = Mathf.Max(viewport.height,
-                180f + _factionIds.Count * 26f + (showingPlayerPersonnel ? 60f + _personnel.Count * 94f : 0f));
+                (showingPlayerPersonnel ? 180f : 900f + prisoners * 27f) + _factionIds.Count * 26f + (showingPlayerPersonnel ? 60f + _personnel.Count * 94f : 0f));
             _detailScroll = GUI.BeginScrollView(
                 viewport,
                 _detailScroll,
@@ -179,6 +183,7 @@ namespace XianXia.Unity.Host
             if (_vassalIds.Count > 0)
                 y = DrawLine(viewport.width, y, "附庸：" + JoinFactionNames(_vassalIds), _body, 20f);
 
+            y = _peace.Draw(viewport.width, y + 8f, world, _selectedFactionId, _body, _partyController?.Host);
             y += 8f;
             y = DrawLine(viewport.width, y, "外交关系", _title, 22f);
             for (var i = 0; i < _factionIds.Count; i++)

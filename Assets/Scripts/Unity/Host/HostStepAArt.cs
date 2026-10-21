@@ -374,6 +374,7 @@ namespace XianXia.Unity.Host
         {
             if (kind == "zoneMine") return StoneFloorTile();
             if (kind == "cushion") return CultivateCushionSprite();
+            if (kind == "chessBoard") return LoadProp("ART-ROOM-011_weiqi_board_v01");
             if (kind == "road") return SurfaceTile("ART-GROUND-002_road_horizontal_v02", 319f);
             if (kind == "roadVertical") return SurfaceTile("ART-GROUND-002_road_vertical_v02", 425f);
             if (kind == "roadCross") return SurfaceTile("ART-GROUND-002_road_cross_v02", 406f);

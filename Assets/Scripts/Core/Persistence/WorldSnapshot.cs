@@ -32,7 +32,10 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV13 = 13;
         public const int LegacySchemaVersionV14 = 14;
 
+        public List<XianXia.Core.Npc.ChessGameState> ChessGames { get; set; } = new List<XianXia.Core.Npc.ChessGameState>();
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+        public List<XianXia.Core.World.Strategic.PeaceNegotiation> PeaceNegotiations { get; set; } =
+            new List<XianXia.Core.World.Strategic.PeaceNegotiation>();
         public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
         public XianXia.Core.World.Strategic.CharacterEncounterState CharacterEncounter { get; set; }
         public ulong SnapshotId { get; set; }
@@ -892,6 +895,21 @@ namespace XianXia.Core.Persistence
         public List<string> PersonalityTags { get; set; } = new List<string>();
 
         /// <summary>Optional v17 extension; old saves seed default personal needs.</summary>
+        public bool HasNpcAutonomy { get; set; }
+        public float NpcStrikeCooldown { get; set; }
+        public float NpcArt0 { get; set; }
+        public float NpcArt1 { get; set; }
+        public float NpcArt2 { get; set; }
+        public float NpcArt3 { get; set; }
+        public float NpcArt4 { get; set; }
+        public float NpcArt5 { get; set; }
+        public bool NpcRetreating { get; set; }
+        public string NpcRetreatSurface { get; set; } = string.Empty;
+        public float NpcRetreatX { get; set; }
+        public float NpcRetreatY { get; set; }
+        public ulong NpcLastMoveTick { get; set; }
+        public bool NpcExhausted { get; set; }
+        public bool NpcDetachedByExhaustion { get; set; }
         public bool HasPersonalLife { get; set; }
         public int PersonalLifePreference { get; set; }
         public int PersonalLifeActivity { get; set; }
@@ -905,6 +923,8 @@ namespace XianXia.Core.Persistence
         public int PersonalFoodAccessAttempt { get; set; }
         public ulong PersonalFoodRetryAfterTick { get; set; }
         public ulong PersonalBedRetryAfterTick { get; set; }
+        public string PersonalMeditationSpotId { get; set; } = string.Empty;
+        public bool PersonalMeditationTraveling { get; set; }
 
         public bool HasMortalCivilian { get; set; }
         public int MortalSatiety { get; set; }

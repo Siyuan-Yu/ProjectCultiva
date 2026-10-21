@@ -259,6 +259,15 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
+                if (atkEnt.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var attackerFaction) &&
+                    defEnt.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var defenderFaction) &&
+                    PeaceNegotiationService.HasPeace(world, attackerFaction.FactionId, defenderFaction.FactionId))
+                {
+                    bootstrap.MoveController?.CancelPresentationMovementPublic(atkId);
+                    RemoveAttacker(atkId, null);
+                    continue;
+                }
+
                 if (atkLife.IsIncapacitated)
                 {
                     Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));

@@ -21,6 +21,9 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid Surface travel args.");
+            if (world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity) &&
+                XianXia.Core.Npc.PartyRestService.BlocksMovement(activeEntity))
+                return Result.Failure(ErrorCode.InvalidOperation, "主控精力耗尽，恢复后才能行军。");
             var motion = world.PlayerPartyTravel;
             if (motion == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "Surface travel state is unavailable.");

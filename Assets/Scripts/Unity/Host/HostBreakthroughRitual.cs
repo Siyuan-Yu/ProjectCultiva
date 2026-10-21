@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
@@ -401,31 +401,37 @@ namespace XianXia.Unity.Host
         {
             if (!_resultOpen || _report == null)
                 return;
-            EnsureStyles();
+            var previousDepth = GUI.depth;
+            GUI.depth = -200;
+            try
+            {
+                EnsureStyles();
 
-            var dim = new Rect(0f, 0f, Screen.width, Screen.height);
-            Fill(dim, new Color(0f, 0f, 0f, 0.45f));
-            HostUiHitTest.Block(dim);
+                var dim = new Rect(0f, 0f, Screen.width, Screen.height);
+                Fill(dim, new Color(0f, 0f, 0f, 0.45f));
+                HostUiHitTest.Block(dim);
 
-            var w = Mathf.Min(480f, Screen.width - 40f);
-            var h = Mathf.Min(360f, Screen.height - 40f);
-            var rect = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
-            HostUiHitTest.Block(rect);
-            Fill(rect, Parchment);
-            DrawFrame(rect, ParchmentDark);
+                var w = Mathf.Min(480f, Screen.width - 40f);
+                var h = Mathf.Min(360f, Screen.height - 40f);
+                var rect = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+                HostUiHitTest.Block(rect);
+                Fill(rect, Parchment);
+                DrawFrame(rect, ParchmentDark);
 
-            var headline = _report.Succeeded ? "突破成功" : "突破失败";
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 32f, 28f), headline, _title);
+                var headline = _report.Succeeded ? "突破成功" : "突破失败";
+                GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 32f, 28f), headline, _title);
 
-            var body = new Rect(rect.x + 16f, rect.y + 48f, rect.width - 32f, rect.height - 100f);
-            var text = BuildResultText(_report);
-            var viewH = Mathf.Max(body.height, _body.CalcHeight(new GUIContent(text), body.width - 18f) + 8f);
-            _scroll = GUI.BeginScrollView(body, _scroll, new Rect(0f, 0f, body.width - 18f, viewH));
-            GUI.Label(new Rect(0f, 0f, body.width - 18f, viewH), text, _body);
-            GUI.EndScrollView();
+                var body = new Rect(rect.x + 16f, rect.y + 48f, rect.width - 32f, rect.height - 100f);
+                var text = BuildResultText(_report);
+                var viewH = Mathf.Max(body.height, _body.CalcHeight(new GUIContent(text), body.width - 18f) + 8f);
+                _scroll = GUI.BeginScrollView(body, _scroll, new Rect(0f, 0f, body.width - 18f, viewH));
+                GUI.Label(new Rect(0f, 0f, body.width - 18f, viewH), text, _body);
+                GUI.EndScrollView();
 
-            if (HostImguiStyles.ParchmentBtn(new Rect(rect.x + (rect.width - 120f) * 0.5f, rect.yMax - 44f, 120f, 32f), "知道了"))
-                CloseResult();
+                if (HostImguiStyles.ParchmentBtn(new Rect(rect.x + (rect.width - 120f) * 0.5f, rect.yMax - 44f, 120f, 32f), "知道了"))
+                    CloseResult();
+            }
+            finally { GUI.depth = previousDepth; }
         }
 
         public void DrawChannelBarAbove(Rect statusPanel)

@@ -13222,6 +13222,22 @@
           "chunkY": 17
         },
         {
+          "stableId": "base:site_huangcun:chess_board_01",
+          "siteId": "base:site_huangcun",
+          "worldX": 14.728,
+          "worldY": 23.212000000000003,
+          "worldWidth": 0.028,
+          "worldHeight": 0.028,
+          "kind": "chessBoard",
+          "blocksMovement": false,
+          "label": "双人围棋",
+          "sourceCellsW": 1,
+          "sourceCellsH": 1,
+          "quarterTurns": 0,
+          "chunkX": 11,
+          "chunkY": 17
+        },
+        {
           "stableId": "base:site_huangcun:place_cave_170829991",
           "siteId": "base:site_huangcun",
           "worldX": 15.287999999999998,

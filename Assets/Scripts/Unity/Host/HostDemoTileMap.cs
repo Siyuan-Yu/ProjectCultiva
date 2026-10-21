@@ -1068,7 +1068,7 @@ namespace XianXia.Unity.Host
 
             // 药田／农田：只进 HostFarmFieldRegistry，点中格才交互。
             // 树：只走可破坏物砍伐，勿注册 Work 热点（否则右键会当成林区劳动、不掉树产木材）。
-            if (info.Plantable)
+            if (info.Plantable || info.InteractKind == HostInteractSpotKind.Inspect)
                 return;
             if (IsTreeKind(info.Kind))
                 return;

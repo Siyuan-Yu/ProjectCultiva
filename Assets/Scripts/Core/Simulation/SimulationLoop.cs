@@ -159,6 +159,7 @@ namespace XianXia.Core.Simulation
             ProcessDayBoundary(previous, _world.Tick);
             CharacterFactionLoyaltyService.EnsureAll(_world);
             MortalCivilianService.Tick(_world);
+            ChessRecreationService.Drive(_world, this);
             PersonalLifeService.Drive(_world, this);
             _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);

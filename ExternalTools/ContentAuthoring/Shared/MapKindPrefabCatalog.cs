@@ -42,6 +42,7 @@ public static class MapKindPrefabCatalog
         new("treeM", "Assets/Prefabs/Environment/Props/TreeMid.prefab", KindMode.Placeable),
         new("treeL", "Assets/Prefabs/Environment/Props/TreeLarge.prefab", KindMode.Placeable),
         new("ore", "Assets/Prefabs/Environment/Props/OrePile.prefab", KindMode.Placeable),
+        new("chessBoard", "Assets/Prefabs/Environment/Props/ChessBoard.prefab", KindMode.Placeable),
         new("cushion", "Assets/Prefabs/Environment/Props/Cushion.prefab", KindMode.Placeable),
         new("rock", "Assets/Prefabs/Environment/Tiles/RockTile.prefab", KindMode.Placeable),
         new("cave", "Assets/Prefabs/Environment/Buildings/Warehouse.prefab", KindMode.Placeable),

@@ -16,7 +16,8 @@ namespace XianXia.Unity.Host
         Storage = 5,
         PrisonDropOff = 6,
         Bed = 7,
-        Room = 8
+        Room = 8,
+        Inspect = 9
     }
 
     /// <summary>表现层可交互点（多点／同地点）；不进 Core Freeze。</summary>

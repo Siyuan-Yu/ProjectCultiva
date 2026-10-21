@@ -65,6 +65,7 @@ namespace XianXia.Unity.Host
                 case MortalActivity.Flee: return "逃亡";
                 case MortalActivity.Escorted: return "押送中";
                 case MortalActivity.Detained: return "囚禁";
+                case MortalActivity.Chess: return state.ScheduleStatus ?? "下棋";
                 case MortalActivity.DedicatedDuty: return "待命";
                 default:
                     return state.ScheduleStatus != null && state.ScheduleStatus.Contains("自由活动")

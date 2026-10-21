@@ -6,6 +6,7 @@ using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
+using XianXia.Core.Navigation;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
 
@@ -22,7 +23,6 @@ namespace XianXia.Unity.Host
         readonly List<EntityId> _visible = new List<EntityId>(64);
         readonly Dictionary<ulong, EntityId> _targets = new Dictionary<ulong, EntityId>();
         readonly Dictionary<ulong, float> _strikeCooldown = new Dictionary<ulong, float>();
-        readonly Dictionary<ulong, float[]> _artCooldown = new Dictionary<ulong, float[]>();
         readonly HashSet<ulong> _explicitStop = new HashSet<ulong>();
         readonly Dictionary<ulong, float> _retreatingUntil = new Dictionary<ulong, float>();
         readonly MeleeCombatService _melee = new MeleeCombatService();
@@ -42,7 +42,7 @@ namespace XianXia.Unity.Host
             if (_host?.Session?.World == null || _host.Session.IsPaused) return;
             var world = _host.Session.World;
             if (!ReferenceEquals(_trackedWorld, world))
-            { _trackedWorld = world; _targets.Clear(); _strikeCooldown.Clear(); _artCooldown.Clear(); _explicitStop.Clear(); _retreatingUntil.Clear(); _nextScan = 0f; }
+            { _trackedWorld = world; _targets.Clear(); _strikeCooldown.Clear(); _explicitStop.Clear(); _retreatingUntil.Clear(); _nextScan = 0f; }
             if (world.Strategic.CharacterEncounter != null ||
                 world.Strategic.ContinuousManualCombat?.IsActive == true) return;
             var spawner = _host.ViewSpawner;
@@ -51,9 +51,9 @@ namespace XianXia.Unity.Host
             var ids = new List<ulong>(_strikeCooldown.Keys);
             for (var i = 0; i < ids.Count; i++)
                 _strikeCooldown[ids[i]] = Mathf.Max(0f, _strikeCooldown[ids[i]] - dt);
-            foreach (var pair in _artCooldown)
-                for (var i = 0; i < pair.Value.Length; i++)
-                    pair.Value[i] = Mathf.Max(0f, pair.Value[i] - dt);
+            foreach (var e in world.Entities.All)
+                if (e.TryGet<NpcAutonomyState>(out var clocks) &&
+                    LocalMapVisibility.IsEntityVisible(world, e.Id)) clocks.AdvanceCooldowns(dt);
             if (Time.unscaledTime >= _nextScan)
             {
                 _nextScan = Time.unscaledTime + ScanInterval;
@@ -70,11 +70,13 @@ namespace XianXia.Unity.Host
                     !world.Entities.TryGet(actor, out var actorEntity) ||
                     !world.Entities.TryGet(target, out var targetEntity) ||
                     !CombatLifeStateService.CanFight(actorEntity) ||
+                    (actorEntity.TryGet<NpcAutonomyState>(out var retreatState) && retreatState.Retreating) ||
                     !CombatLifeStateService.CanFight(targetEntity) ||
                     !IsLegalTarget(world, actor, target) ||
                     !spawner.Registry.TryGet(actor, out var actorView) || actorView == null ||
                     !spawner.Registry.TryGet(target, out var targetView) || targetView == null) continue;
-                if (!SameBattleSpace(world, actor, target)) continue;
+                if (!SameBattleSpace(world, actor, target) || PartyRestService.BlocksMovement(actorEntity) ||
+                    !HasClearSight(actorView.transform.position, targetView.transform.position)) continue;
                 if (world.Strategic.PlayerPartyContext?.IsMember(actor) == true ||
                     world.Strategic.PlayerPartyContext?.IsMember(target) == true)
                 {
@@ -106,9 +108,10 @@ namespace XianXia.Unity.Host
                     continue;
                 }
                 _host.MoveController.CancelPresentationMovementPublic(actor);
-                if (_strikeCooldown.TryGetValue(actor.Value, out var cooldown) && cooldown > 0f) continue;
+                var persistent = NpcAutonomyState.Ensure(actorEntity);
+                if (persistent.StrikeCooldown > 0f) continue;
                 if (TryCastArt(world, actor, target, actorView, targetView)) continue;
-                _strikeCooldown[actor.Value] = MeleeCombatService.DefaultMeleeIntervalSeconds;
+                persistent.StrikeCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                 if (SpiritVeilService.IsActive(actorEntity))
                 {
                     var shotWorld = world;
@@ -141,6 +144,10 @@ namespace XianXia.Unity.Host
 
         void Scan(SimulationWorld world, EntityViewSpawner spawner)
         {
+            foreach (var previous in _targets)
+                if (!IsLegalTarget(world, new EntityId(previous.Key), previous.Value) &&
+                    !HasPlayerAction(world, new EntityId(previous.Key)))
+                    _host.MoveController.CancelPresentationMovementPublic(new EntityId(previous.Key));
             _visible.Clear(); _targets.Clear();
             foreach (var view in spawner.Registry.All)
                 if (view != null && LocalMapVisibility.IsEntityVisible(world, view.EntityId) &&
@@ -169,7 +176,8 @@ namespace XianXia.Unity.Host
                          CharacterEncounterService.IsContactSuppressed(world, actor, target)) ||
                         !spawner.Registry.TryGet(target, out var targetView)) continue;
                     var dist = (actorView.transform.position - targetView.transform.position).sqrMagnitude;
-                    if (dist > NoticeRange * NoticeRange) continue;
+                    if (dist > NoticeRange * NoticeRange ||
+                        !HasClearSight(actorView.transform.position, targetView.transform.position)) continue;
                     var priority = dist;
                     if (world.Strategic.PlayerPartyContext?.IsMember(actor) == true &&
                         manual != null && manual.IsAttacker(active) && manual.DefenderId == target)
@@ -226,6 +234,8 @@ namespace XianXia.Unity.Host
         {
             if (SeparateSpaceCombatPolicy.IsInPlaceCombatSpace(world) ||
                 world.Strategic.PlayerPartyContext?.IsMember(actor) == true ||
+                SquadCommandService.OwnsIndividualSchedule(world, actor) ||
+                SquadWorldMotionService.OwnsCharacter(world, actor) ||
                 !actorEntity.TryGet<AttributesComponent>(out var attrs) ||
                 actorEntity.TryGet<XianXia.Core.Social.PersonalityProfileComponent>(out var profile) &&
                 (profile.HasTag("fanatic") || profile.HasTag("fight_to_death"))) return false;
@@ -246,6 +256,16 @@ namespace XianXia.Unity.Host
             if (!_host.MoveController.OrderEntityToWorldPoint(actor, destination, null,
                     issueStop: false, completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
                 return false;
+            var surface = _host.ContinuousOutdoorSurfaceRuntime;
+            if (surface != null && surface.IsActive &&
+                CharacterWorldPresenceQuery.TryResolve(world, actor, out var presence) && presence.HasWorldPosition)
+            {
+                surface.Mapper.PresentationToWorld(destination.x, destination.y, out var rx, out var ry);
+                var state = NpcAutonomyState.Ensure(actorEntity);
+                state.Retreating = true; state.RetreatSurface = presence.SurfaceId;
+                state.RetreatX = rx; state.RetreatY = ry;
+                PersonalLifeService.Ensure(world, actorEntity);
+            }
             _retreatingUntil[actor.Value] = Time.unscaledTime + 10f;
             world.Strategic.SuppressedCharacterContacts.Add(CharacterEncounterService.ContactKey(actor, target));
             if (actorEntity.TryGet<PersonalLifeComponent>(out var personal))
@@ -260,24 +280,29 @@ namespace XianXia.Unity.Host
                 !entity.TryGet<CombatArtsComponent>(out var arts) ||
                 Vector2.Distance(actorView.transform.position, targetView.transform.position) > 3.5f)
                 return false;
-            if (!_artCooldown.TryGetValue(actor.Value, out var cooldowns))
-            { cooldowns = new float[CombatArtsComponent.MaxEquippedSlots]; _artCooldown[actor.Value] = cooldowns; }
-            for (var slot = 0; slot < cooldowns.Length; slot++)
+            var cooldowns = NpcAutonomyState.Ensure(entity);
+            for (var slot = 0; slot < CombatArtsComponent.MaxEquippedSlots; slot++)
             {
-                if (cooldowns[slot] > .05f) continue;
+                if (cooldowns.GetArt(slot) > .05f) continue;
                 var id = arts.GetEquipped(slot);
                 if (!id.HasValue || !world.TryGetCombatArt(id.Value, out var art) ||
                     art == null || !art.IsActiveSkill) continue;
                 var cast = _melee.CastEquippedArt(world, actor, target, slot, out _, out _, out var defeated);
                 if (cast.IsFailure) continue;
-                cooldowns[slot] = art.CooldownSeconds > 0f ? art.CooldownSeconds : 2f;
-                _strikeCooldown[actor.Value] = MeleeCombatService.DefaultMeleeIntervalSeconds;
+                cooldowns.SetArt(slot, art.CooldownSeconds > 0f ? art.CooldownSeconds : 2f);
+                cooldowns.StrikeCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                 _host.GetComponent<HostMeleeStrikeVfx>()?.PlaySkillBetween(_host.ViewSpawner, actor, target);
                 if (defeated) RefreshDown(target);
                 _host.DispatchDrainedEvents();
                 return true;
             }
             return false;
+        }
+
+        bool HasClearSight(Vector3 from, Vector3 to)
+        {
+            var grid = _host?.MoveController?.WalkGrid;
+            return grid != null && GridPathfinder.IsWorldSegmentWalkable(grid, from.x, from.y, to.x, to.y);
         }
 
         void RefreshDown(EntityId id) => HostLifeStatePresentationSync.RefreshDownedOrDead(

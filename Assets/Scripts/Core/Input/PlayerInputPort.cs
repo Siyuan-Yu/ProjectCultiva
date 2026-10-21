@@ -50,6 +50,12 @@ namespace XianXia.Core.Input
                 !XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(_loop.World,request.Subject))
                 return Result.Failure(ErrorCode.InvalidOperation,"该角色不可接受玩家手动指令。");
 
+            if (_loop.World.Entities.TryGet(request.Subject, out var tired) &&
+                XianXia.Core.Npc.PartyRestService.BlocksMovement(tired) &&
+                request.Kind != PlayerCommandKind.Rest && request.Kind != PlayerCommandKind.RestAtBed && request.Kind != PlayerCommandKind.Stop)
+                return Result.Failure(ErrorCode.ActionCannotStart, "精力耗尽，请先休息恢复。");
+
+            XianXia.Core.Npc.ChessRecreationService.Interrupt(_loop.World, _loop, request.Subject);
             if (request.IsSocialIntent)
                 return SubmitSocial(request);
 
@@ -68,6 +74,11 @@ namespace XianXia.Core.Input
                 if (prepared.IsFailure)
                     return Result.Failure(prepared.Error);
             }
+
+            if ((request.Kind == PlayerCommandKind.Rest || request.Kind == PlayerCommandKind.RestAtBed) &&
+                _loop.World.Strategic.PlayerPartyContext?.IsMember(request.Subject) == true)
+                return XianXia.Core.Npc.PartyRestService.Begin(_loop, request.Subject, request.DurationTicks,
+                    request.Kind == PlayerCommandKind.RestAtBed ? request.TargetLocationId : null);
 
             var orderId = _loop.AllocateOrderId();
             var created = _factory.Create(orderId, request);

@@ -92,6 +92,8 @@ namespace XianXia.Core.World.Strategic
         public CharacterEncounterState CharacterEncounter { get; set; }
         public FactionDiplomacyBoard Diplomacy { get; } = new FactionDiplomacyBoard();
         public WarBoard Wars { get; } = new WarBoard();
+        public System.Collections.Generic.List<PeaceNegotiation> PeaceNegotiations { get; } =
+            new System.Collections.Generic.List<PeaceNegotiation>();
         public AllianceBoard Alliances { get; } = new AllianceBoard();
         public VassalageBoard Vassalages { get; } = new VassalageBoard();
         /// <summary>Unified persistent action-group membership authority.</summary>

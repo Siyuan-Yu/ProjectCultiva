@@ -40,6 +40,7 @@ namespace XianXia.Core.Npc
             var af = am?.FactionId ?? string.Empty;
             var bf = bm?.FactionId ?? string.Empty;
             if (!string.IsNullOrEmpty(af) && string.Equals(af, bf, StringComparison.Ordinal)) return false;
+            if (PeaceNegotiationService.HasPeace(world, af, bf)) return false;
             var contentHostile = a.TryGet<PersonalityProfileComponent>(out var ap) && ap.HasTag("hostile");
             if (MortalCivilianQuery.IsManagedCivilian(world, a) && !contentHostile) return false;
             if (HasPrivateHostility(world, attacker, target)) return true;

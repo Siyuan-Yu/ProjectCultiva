@@ -154,6 +154,12 @@ namespace XianXia.Core.Combat
             if (transportPermission.IsFailure) return transportPermission;
             if (!world.Entities.TryGet(defenderId, out var defender))
                 return Result.Failure(ErrorCode.EntityNotFound, "Defender missing.");
+            if (attacker.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var af) &&
+                defender.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var df) &&
+                PeaceNegotiationService.HasPeace(world, af.FactionId, df.FactionId))
+                return Result.Failure(ErrorCode.InvalidOperation, "双方已签订停战；重新宣战后才能攻击。");
+            if (PartyRestService.BlocksMovement(attacker))
+                return Result.Failure(ErrorCode.InvalidOperation, "精力耗尽，无法攻击。");
             if (!CombatLifeStateService.CanFight(attacker))
                 return Result.Failure(ErrorCode.InvalidOperation, "Attacker cannot fight.");
             if (!CombatLifeStateService.CanBeAttacked(defender))

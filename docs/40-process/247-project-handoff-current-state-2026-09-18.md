@@ -1,6 +1,12 @@
-# Project Handoff — Continuous World Current State
+﻿# Project Handoff — Continuous World Current State
 
-> 2026-10-21 NPC 自主生活／战斗与打坐返床返修入口：[317](317-npc-autonomy-design-confirmation-2026-10-21.md)、[ADR-0049](43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)、[ADR-0050](43-decisions/ADR-0050-direct-vassal-overlord-storage-access.md)。未入队非凡人三档倾向、合法取食、蒲团到位后修炼、疲劳返床与保底休息、洞府近场和 NPC 离屏交战均有代码接线；仍有队内统一睡眠、遮挡感知、正式俘虏处理及完整现场验收缺口。静态编译不等于制作人验收，当前 **Partial Implementation / Producer Acceptance Pending**。本页下方历史“未实现／未提交”须按最新 317 与 devlog 解释。
+> 2026-10-21 最新下棋规则：左右两个独立座位，一人到位即娱乐；个人心境、进度与退出互不依赖，取消等棋友／双人开局。棋盘与蒲团补齐左键检视和选框，突破结果置于普通 HUD 上层。见 [319](../40-process/319-two-npc-chess-recreation-2026-10-21.md)。
+
+> 2026-10-22 棋盘娱乐与脚点避让返修见 [319](319-two-npc-chess-recreation-2026-10-21.md)：荒村四蒲团左侧增加 1×1 棋盘；左右两个独立座位，一人到位即开始自身娱乐，不等棋友。棋盘／蒲团占位、人物短步避让与设施空闲脚点已接线；身份一致的坐姿／落子、中断与棋局存档保留。原将老井字棋保留。美术登记新增 ART-ROOM-011 后共 56 项。实施范围获制作人封板授权，视觉与运行行为仍待现场验收；Git 结果以仓库为准。
+
+> 2026-10-21 NPC AI 闭环与多轮停战谈判见 [318](318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)、[ADR-0051](43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。离屏返床／接敌／撤离、遮挡、六槽冷却与个人需求 JSON wire、全队主动休息／力竭留地及外交谈判已接线，待制作人 LevelTester 逐项验收；该实施时点尚未提交，现以 2026-10-22 封板记录及 Git 为准。谈判只释放实际俘虏，不交易自由人物；支持多轮还价、附庸及战争级停战。
+
+> NPC 自主生活／战斗入口：[317](317-npc-autonomy-design-confirmation-2026-10-21.md)、[318](318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)、[ADR-0049](43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)。三档倾向、合法取食、蒲团到位修炼、疲劳返床、洞府近场和 NPC 离屏交战均已接线；318 后续补齐队伍主动全员休息、现场保守遮挡、非独立现场斗技冷却保存。自主投降后的实际捕获押送、NPC-NPC 专门战报／掠取／增援及完整现场验收仍未闭环。静态编译与 Git 封板不等于制作人逐项验收，当前 **Partial Implementation / Producer Acceptance Pending**。本页下方历史状态须按最新 318／319 与 devlog 解释。
 
 > 2026-10-21 内容生产前修复入口：[316](316-content-production-readiness-repair-2026-10-21.md)。正式开局已用独立参考名册，作者工具保存与非荒村蓝图导出接缝已修，外观映射可配置 Rig 且构建校验资源；代码已实现、人工画面验收待做。后续制作人授权与 NPC AI 返修一并提交上传；实际 Git 状态以仓库历史为准。本页下方早期“未提交”文字保留历史时点，以最新 devlog 为准。
 

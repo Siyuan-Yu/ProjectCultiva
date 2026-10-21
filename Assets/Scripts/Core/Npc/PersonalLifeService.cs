@@ -53,6 +53,66 @@ namespace XianXia.Core.Npc
                 var personal = Ensure(world, entity);
                 if (personal == null) continue;
                 AdvanceNeeds(world, entity, personal);
+                var partyMember = world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true;
+                if (!string.IsNullOrEmpty(personal.MeditationSpotId) &&
+                    (!world.MeditationSpots.Spots.ContainsKey(personal.MeditationSpotId) ||
+                     !CombatLifeStateService.CanFight(entity) || partyMember ||
+                     CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) ||
+                     SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, entity.Id) ||
+                     world.BackgroundCharacterTravel.IsTraveling(entity.Id) ||
+                     entity.TryGet<NpcAutonomyState>(out var meditationAutonomy) && meditationAutonomy.Retreating ||
+                     personal.Energy <= ExhaustionThreshold || personal.Satiety <= HungerThreshold ||
+                     world.GetOrCreateOrderQueue(entity.Id).HasSource(OrderSource.Player) ||
+                     world.GetOrCreateOrderQueue(entity.Id).HasSource(OrderSource.Event) ||
+                     !CanSpendFreeTime(world, entity) ||
+                     (!personal.MeditationTraveling && personal.Activity != PersonalLifeActivity.Cultivating)))
+                    ReleaseMeditation(personal);
+                var needsState = NpcAutonomyState.Ensure(entity);
+                if (partyMember && CombatLifeStateService.CanFight(entity) &&
+                    !CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id))
+                {
+                    if (personal.Energy == 0) PartyRestService.EnterExhaustion(world, entity);
+                    if (needsState.Exhausted && personal.Energy >= PartyRestService.ExhaustionRecoveryThreshold)
+                        needsState.Exhausted = false;
+                    if (needsState.Exhausted)
+                    {
+                        personal.Activity = PersonalLifeActivity.Resting;
+                        personal.Status = "精力耗尽：原地休息";
+                        if (!PartyRestService.IsResting(world, entity))
+                        {
+                            loop.StopSubject(entity.Id);
+                            if (entity.TryGet<MovementIntentComponent>(out var tiredMove)) tiredMove.Clear();
+                            loop.EnqueueOrder(new Order(loop.AllocateOrderId(), entity.Id, OrderType.Rest,
+                                OrderSource.Ai, waitTicks: SessionTicks));
+                        }
+                        continue;
+                    }
+                }
+                if (entity.TryGet<NpcAutonomyState>(out var autonomy) && autonomy.Retreating)
+                {
+                    if (!CombatLifeStateService.CanFight(entity)) { autonomy.Retreating = false; continue; }
+                    var goal = new WorldVec2(autonomy.RetreatX, autonomy.RetreatY);
+                    if (!world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+                    {
+                        if (!NpcColdMovement.Advance(world, entity, autonomy.RetreatSurface, goal,
+                                SpotRadius(world, autonomy.RetreatSurface), out var arrived) || arrived)
+                            autonomy.Retreating = false;
+                    }
+                    else
+                    {
+                        if (!entity.TryGet<MovementIntentComponent>(out var retreat))
+                        { retreat = new MovementIntentComponent(); entity.AddComponent(retreat); }
+                        if (retreat.Active && retreat.DestinationKey == "personal-retreat" &&
+                            (retreat.HostArrived || retreat.HostPathState == MovementHostPathState.PermanentFailure ||
+                             retreat.HostPathState == MovementHostPathState.RetryablePathUnavailable))
+                        { retreat.Clear(); autonomy.Retreating = false; }
+                        else if (!retreat.Active || retreat.DestinationKey != "personal-retreat")
+                            retreat.BeginWorldPoint(autonomy.RetreatSurface, goal.X, goal.Y,
+                                destinationKey: "personal-retreat", arrivalRadiusWorld: SpotRadius(world, autonomy.RetreatSurface));
+                    }
+                    personal.Status = "负伤撤离";
+                    if (autonomy.Retreating) continue;
+                }
                 if (world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true &&
                     personal.Satiety <= HungerThreshold &&
                     !CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) &&
@@ -62,6 +122,13 @@ namespace XianXia.Core.Npc
                     personal.Clamp();
                     personal.Status = "随队取食";
                 }
+                if (partyMember && !needsState.Exhausted && needsState.DetachedByExhaustion &&
+                    world.Strategic.PlayerPartyContext.ActiveCharacterId == entity.Id)
+                {
+                    needsState.DetachedByExhaustion = false;
+                    PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, world.Strategic.PlayerPartyContext);
+                }
+                if (partyMember && PartyRestService.IsResting(world, entity)) continue;
                 if (!CombatLifeStateService.CanFight(entity) ||
                     CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) ||
                     SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, entity.Id) ||
@@ -78,6 +145,11 @@ namespace XianXia.Core.Npc
                         loop.CancelOrdersFromSource(entity.Id, OrderSource.Ai);
                     personal.Activity = PersonalLifeActivity.None;
                     continue;
+                }
+                if (ChessRecreationService.Owns(world, entity.Id))
+                {
+                    if (ChessRecreationService.CanParticipate(world, entity)) continue;
+                    ChessRecreationService.Interrupt(world, loop, entity.Id);
                 }
                 if (!entity.TryGet<ActionStateComponent>(out var action)) continue;
                 var queue = world.GetOrCreateOrderQueue(entity.Id);
@@ -140,6 +212,8 @@ namespace XianXia.Core.Npc
                     }
                     else if (!arrived) continue;
                 }
+                if (!wantCultivate) ReleaseMeditation(personal);
+                if (!wantCultivate && ChessRecreationService.TryJoin(world, loop, entity)) continue;
                 if (!wantCultivate && TryReachLeisureArea(world, entity, personal)) continue;
                 personal.Activity = wantCultivate ? PersonalLifeActivity.Cultivating : PersonalLifeActivity.Recreational;
                 personal.Status = wantCultivate ? "自主修炼" : meditationBlocked
@@ -218,6 +292,12 @@ namespace XianXia.Core.Npc
             return false;
         }
 
+        static void ReleaseMeditation(PersonalLifeComponent personal)
+        {
+            personal.MeditationSpotId = string.Empty;
+            personal.MeditationTraveling = false;
+        }
+
         /// <summary>Do not grant AI cultivation progress until physical cushion arrival.</summary>
         static bool TryPrepareMeditation(SimulationWorld world, Entity entity,
             PersonalLifeComponent personal, out bool arrived)
@@ -235,6 +315,9 @@ namespace XianXia.Core.Npc
                     candidates.Add(spot);
             candidates.Sort((a, b) =>
             {
+                if (a.Id == b.Id) return 0;
+                if (a.Id == personal.MeditationSpotId) return -1;
+                if (b.Id == personal.MeditationSpotId) return 1;
                 var d = WorldVec2.Distance(presence.WorldPosition, a.Position).CompareTo(
                     WorldVec2.Distance(presence.WorldPosition, b.Position));
                 return d != 0 ? d : string.CompareOrdinal(a.Id, b.Id);
@@ -249,6 +332,8 @@ namespace XianXia.Core.Npc
                 var radius = SpotRadius(world, spot.SurfaceId);
                 if (WorldVec2.Distance(presence.WorldPosition, spot.Position) <= radius)
                 {
+                    personal.MeditationSpotId = spot.Id;
+                    personal.MeditationTraveling = false;
                     if (entity.TryGet<MovementIntentComponent>(out var atSpot) &&
                         atSpot.DestinationKey == "personal-meditation:" + spot.Id) atSpot.Clear();
                     arrived = true;
@@ -256,28 +341,12 @@ namespace XianXia.Core.Npc
                 }
                 personal.Activity = PersonalLifeActivity.None;
                 personal.Status = "前往蒲团打坐";
+                personal.MeditationSpotId = spot.Id;
+                personal.MeditationTraveling = true;
                 if (!world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
                 {
-                    // Cold characters advance the same persisted position along the real route.
-                    if (world.Tick.Value % 8UL == entity.Id.Value % 8UL)
-                    {
-                        var position = presence.WorldPosition;
-                        var remaining = radius * 4f;
-                        for (var j = 1; j < route.Count && remaining > 0f; j++)
-                        {
-                            var next = route[j];
-                            var distance = WorldVec2.Distance(position, next);
-                            if (distance <= remaining) { position = next; remaining -= distance; }
-                            else
-                            {
-                                var part = remaining / distance;
-                                position = new WorldVec2(position.X + (next.X - position.X) * part,
-                                    position.Y + (next.Y - position.Y) * part);
-                                remaining = 0f;
-                            }
-                        }
-                        world.WorldPresence.SetAtSiteWithAnchor(entity.Id, siteId, position, spot.SurfaceId);
-                    }
+                    if (!NpcColdMovement.Advance(world, entity, spot.SurfaceId, spot.Position, radius, out _))
+                    { ReleaseMeditation(personal); continue; }
                     return true;
                 }
                 if (!entity.TryGet<MovementIntentComponent>(out var intent))
@@ -288,10 +357,11 @@ namespace XianXia.Core.Npc
                         destinationKey: key, arrivalRadiusWorld: radius);
                 if (intent.HostPathState == MovementHostPathState.PermanentFailure ||
                     intent.HostPathState == MovementHostPathState.RetryablePathUnavailable)
-                { intent.Clear(); continue; }
+                { intent.Clear(); ReleaseMeditation(personal); continue; }
                 return true;
             }
             personal.Status = "修炼受阻：没有可达蒲团";
+            ReleaseMeditation(personal);
             return false;
         }
 
@@ -301,6 +371,8 @@ namespace XianXia.Core.Npc
             foreach (var other in world.Entities.All)
             {
                 if (other.Id == seeker || !other.TryGet<PersonalLifeComponent>(out var life)) continue;
+                if (life.MeditationSpotId == spot.Id &&
+                    (life.MeditationTraveling || life.Activity == PersonalLifeActivity.Cultivating)) return true;
                 if (other.TryGet<MovementIntentComponent>(out var intent) && intent.Active &&
                     intent.DestinationKey == key) return true;
                 if (life.Activity != PersonalLifeActivity.Cultivating ||
@@ -363,6 +435,18 @@ namespace XianXia.Core.Npc
             {
                 if (!RoomBedFacilityService.IsAtAccessPoint(world, bed, entity.Id))
                 {
+                    if (!world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+                    {
+                        personal.Activity = PersonalLifeActivity.Resting;
+                        personal.Status = "前往床铺休息";
+                        if (!NpcColdMovement.Advance(world, entity, bed.SurfaceId, access,
+                                SpotRadius(world, bed.SurfaceId), out _))
+                        {
+                            personal.BedRetryAfterTick = world.Tick.Value + 8UL;
+                            return StartGroundRest(world, entity, personal, loop);
+                        }
+                        return true;
+                    }
                     if (!entity.TryGet<MovementIntentComponent>(out var intent))
                     { intent = new MovementIntentComponent(); entity.AddComponent(intent); }
                     var key = "personal-bed:" + bed.StableAssetId;

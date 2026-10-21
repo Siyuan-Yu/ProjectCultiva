@@ -616,7 +616,7 @@ namespace XianXia.Unity.Host
             // 弥留／死亡／已移除：LocalMap 禁止移动（大地图宏观令另有门禁）
             if (bootstrap?.Session?.World != null &&
                 bootstrap.Session.World.Entities.TryGet(id, out var lifeEnt) &&
-                !CombatLifeStateService.CanFight(lifeEnt))
+                (!CombatLifeStateService.CanFight(lifeEnt) || PartyRestService.BlocksMovement(lifeEnt)))
             {
                 CancelPresentationMovement(id);
                 return false;
@@ -779,8 +779,13 @@ namespace XianXia.Unity.Host
 
             if (bootstrap?.Session?.World != null &&
                 bootstrap.Session.World.Entities.TryGet(id, out var ent) &&
-                !CombatLifeStateService.CanFight(ent))
+                (!CombatLifeStateService.CanFight(ent) || PartyRestService.BlocksMovement(ent)))
                 return;
+
+            if (bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(id, out var resting) &&
+                PartyRestService.IsResting(bootstrap.Session.World, resting))
+                bootstrap.Session.Loop.StopSubject(id);
 
             if (_paths.ContainsKey(id.Value) || _targets.ContainsKey(view) ||
                 _pendingNpcIntent.ContainsKey(id.Value) || _pendingOnArrive.ContainsKey(id.Value) ||
@@ -814,7 +819,7 @@ namespace XianXia.Unity.Host
             }
 
             pos.z = HostPresentationSpace.EntityZ;
-            pos = FilterCharacterStep(startPos, pos, pos,
+            pos = FilterCharacterStep(view, startPos, pos, pos,
                 Mathf.Max(0f, dt), requireWaypointConnection: false);
             view.transform.position = pos;
             view.RecordLocomotion(pos - startPos);
@@ -974,7 +979,8 @@ namespace XianXia.Unity.Host
                 // 途中倒下：立刻停
                 if (bootstrap?.Session?.World != null &&
                     bootstrap.Session.World.Entities.TryGet(view.EntityId, out var movingEnt) &&
-                    !CombatLifeStateService.CanFight(movingEnt))
+                    (!CombatLifeStateService.CanFight(movingEnt) || PartyRestService.BlocksMovement(movingEnt) ||
+                     PartyRestService.IsResting(bootstrap.Session.World, movingEnt)))
                 {
                     done.Add(view);
                     ClearPending(view.EntityId);
@@ -1086,7 +1092,7 @@ namespace XianXia.Unity.Host
                 {
                     var nearTarget = Vector3.MoveTowards(pos, target, distanceBudget);
                     var beforeSnap = pos;
-                    pos = FilterCharacterStep(pos, ClampToWalkable(pos, nearTarget), target, deltaTime);
+                    pos = FilterCharacterStep(view, pos, ClampToWalkable(pos, nearTarget), target, deltaTime);
                     distanceBudget -= Vector3.Distance(beforeSnap, pos);
                     if ((pos - target).sqrMagnitude > .0001f)
                         break;
@@ -1103,7 +1109,7 @@ namespace XianXia.Unity.Host
                 var routeStep = Mathf.Min(distanceBudget, distance);
                 var proposed = pos + delta / distance * routeStep;
                 proposed.z = HostPresentationSpace.EntityZ;
-                var moved = FilterCharacterStep(pos, ClampToWalkable(pos, proposed), target, deltaTime);
+                var moved = FilterCharacterStep(view, pos, ClampToWalkable(pos, proposed), target, deltaTime);
                 var consumed = Vector3.Distance(pos, moved);
                 pos = moved;
                 // A static obstacle spends this step's budget; do not repeat tiny steps.

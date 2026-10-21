@@ -23,6 +23,8 @@ namespace XianXia.Core.Npc
         public int FoodAccessAttempt { get; set; }
         public ulong FoodRetryAfterTick { get; set; }
         public ulong BedRetryAfterTick { get; set; }
+        public string MeditationSpotId { get; set; } = string.Empty;
+        public bool MeditationTraveling { get; set; }
         public string Status { get; set; } = string.Empty;
 
         public void Clamp()

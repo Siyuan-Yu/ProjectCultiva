@@ -210,6 +210,10 @@ namespace XianXia.Core.Simulation
         public HousingAssignmentBoard HousingAssignments { get; }
 
         /// <summary>CIVILIAN-LIFE-01 mortal needs, work and captivity authority.</summary>
+        public System.Collections.Generic.Dictionary<string, ChessBoardSpot> ChessBoards { get; } =
+            new System.Collections.Generic.Dictionary<string, ChessBoardSpot>(System.StringComparer.Ordinal);
+        public System.Collections.Generic.Dictionary<string, ChessGameState> ChessGames { get; } =
+            new System.Collections.Generic.Dictionary<string, ChessGameState>(System.StringComparer.Ordinal);
         public MortalCivilianBoard Civilians { get; }
         public CivilianConstructionJobBoard CivilianConstructionJobs { get; }
 

@@ -1,5 +1,7 @@
 # 战斗
 
+> **2026-10-21 当前追加规则与实施：** 多轮谈判支持实际资源赔偿、双方释放俘虏及整个对方势力附庸；不交易自由人物，不新增押送。成交结束既有双方战争，非一次接触停火。冷区接敌／撤离、现场遮挡及六槽冷却存档已补齐，仍待人工验收。见 [318](../40-process/318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)／[ADR-0051](../40-process/43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。下文赎金／谈判暂缓为旧阶段记录。
+
 > **2026-10-21 NPC AI 当前覆写：** 自主行为覆盖我方、敌方、中立及凡人；洞府 Separate Space 中敌对双方直接多目标交战。加载现场的自动发现、真实近场伤害与双方均离屏的 NPC 冲突已接线；离屏冲突可造成真实弥留/死亡，但不得凭低好感自动攻击、自动宣战或夺取 Site。NPC 独立战场劣势退出已接线，投降不自动变俘虏。仍未完成人工战斗/冷热切换验收，状态 **Design Confirmed / Partial Implementation / Producer Acceptance Pending**；见 [317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)、[ADR-0049](../40-process/43-decisions/ADR-0049-npc-personal-life-and-cold-conflict-authority.md)。
 
 > **2026-10-21 撤退方向确认与部分实施：** 普通独立战场开始战斗后累计约 300 战术秒开放玩家逃跑尝试，双方可战斗者神识总和转为成功率（等值约 50%，限于 10%–90%）；失败后需再等 60 战术秒。成功须作为独立撤退结局，能行动者离场，失能者留下且尝试前明确警告。洞府 Separate Space 暂不做逃跑。按钮／判定／战报已接线、离线编译完成，待制作人现场验收；其它 NPC AI 仍未实现。见 [317](../40-process/317-npc-autonomy-design-confirmation-2026-10-21.md)。状态 **Partial Implementation / Producer Acceptance Pending**。

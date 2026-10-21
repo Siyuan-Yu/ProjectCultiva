@@ -703,10 +703,14 @@ namespace XianXia.Unity.Host
                         lean = WorkKey(phase, 3f, 0f, 6f);
                         reach = WorkKey(phase, .01f, 0f, .06f);
                         break;
+                    case HumanWorkMotion.BoardThink:
+                    case HumanWorkMotion.BoardPlace:
                     case HumanWorkMotion.Meditate:
                         // Seated cushion pose: lower the torso and fold both legs outward.
                         // The autonomous AI only enters this motion after physical arrival.
                         leftArm = 25f; rightArm = -25f; bodyDrop = .23f;
+                        if (workMotion == HumanWorkMotion.BoardPlace)
+                        { rightArm = WorkKey(phase, -25f, -55f, -30f); reach = WorkKey(phase, 0f, .08f, 0f); }
                         _leftLeg.localPosition = new Vector3(-.08f, .43f, 0f);
                         _rightLeg.localPosition = new Vector3(.08f, .43f, 0f);
                         _leftLeg.localRotation = Quaternion.Euler(0f, 0f, -67f);

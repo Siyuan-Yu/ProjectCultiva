@@ -13,7 +13,7 @@ namespace XianXia.Unity.Host
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
         Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8,
-        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12, Door = 13, Loot = 14
+        OpportunityObject = 9, PrisonDropOff = 10, Bed = 11, Room = 12, Door = 13, Loot = 14, Furniture = 15
     }
 
     public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
@@ -63,6 +63,7 @@ namespace XianXia.Unity.Host
                     case WorldObjectTargetKind.Room: return "room";
                     case WorldObjectTargetKind.Door: return "roomDoor";
                     case WorldObjectTargetKind.Loot: return "loot";
+                    case WorldObjectTargetKind.Furniture: return Plot != null ? Plot.Kind : "furniture";
                     default: return string.Empty;
                 }
             }
@@ -72,7 +73,7 @@ namespace XianXia.Unity.Host
             Kind == WorldObjectTargetKind.FarmPlot || Kind == WorldObjectTargetKind.RecoverySpot ||
             Kind == WorldObjectTargetKind.StorageRoom || Kind == WorldObjectTargetKind.PrisonDropOff ||
             Kind == WorldObjectTargetKind.Bed || Kind == WorldObjectTargetKind.Room ||
-            Kind == WorldObjectTargetKind.Door || Kind == WorldObjectTargetKind.Loot
+            Kind == WorldObjectTargetKind.Door || Kind == WorldObjectTargetKind.Loot || Kind == WorldObjectTargetKind.Furniture
                 ? Plot != null ? Plot.StableCellId : string.Empty :
             Kind == WorldObjectTargetKind.Destructible ? Destructible != null ? Destructible.PlacementId : string.Empty :
             Kind == WorldObjectTargetKind.OpportunityObject ? OpportunityObject?.WorldObjectInstanceId ?? string.Empty :
@@ -161,6 +162,13 @@ namespace XianXia.Unity.Host
             if (HostMapObjectRegistry.TryPickPlot(point, out var plot) && plot.IsRecoverySpot)
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.RecoverySpot, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.IsLeisureFurniture && purpose == WorldObjectPickPurpose.PlayerInteraction)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Furniture, plot: plot,
                     displayLabel: plot.KindDisplayName());
                 return true;
             }
@@ -328,7 +336,7 @@ namespace XianXia.Unity.Host
             {
                 var plot = plots[i];
                 if (plot == null || !string.Equals(plot.StableCellId, stableId, StringComparison.Ordinal)) continue;
-                var plotKind = plot.InteractKind == HostInteractSpotKind.Loot ? WorldObjectTargetKind.Loot :
+                var plotKind = plot.IsLeisureFurniture ? WorldObjectTargetKind.Furniture : plot.InteractKind == HostInteractSpotKind.Loot ? WorldObjectTargetKind.Loot :
                     plot.IsRecoverySpot ? WorldObjectTargetKind.RecoverySpot :
                     plot.IsPrisonDropOff ? WorldObjectTargetKind.PrisonDropOff :
                     plot.IsStorageRoom ? WorldObjectTargetKind.StorageRoom :

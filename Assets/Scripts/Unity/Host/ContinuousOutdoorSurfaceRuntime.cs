@@ -24,6 +24,7 @@ namespace XianXia.Unity.Host
     public sealed partial class ContinuousOutdoorSurfaceRuntime : MonoBehaviour
     {
         string _surfaceId = string.Empty;
+        readonly HashSet<EntityId> _domainRelocations = new HashSet<EntityId>();
         readonly HashSet<SurfaceChunkCoord> _loaded = new HashSet<SurfaceChunkCoord>();
         // Presentation may temporarily contain the old logical neighborhood plus staged incoming
         // chunks. Gameplay scope remains exactly _loaded (the shared player-centered policy).
@@ -203,6 +204,7 @@ namespace XianXia.Unity.Host
 
         public bool CommitContinuousNpcPosition(EntityId id, Vector3 presentationPosition)
         {
+            if (_domainRelocations.Contains(id)) return false;
             var world = _bootstrap?.Session?.World;
             if (_isSnapshotPresentationRebuild || !IsActive || world == null || _mapper == null ||
                 !ReferenceEquals(_navigationStateWorld, world) ||
@@ -228,6 +230,30 @@ namespace XianXia.Unity.Host
                 entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location))
                 location.SetPresentationOverride(presentationPosition.x, presentationPosition.y);
             return true;
+        }
+
+        /// <summary>Apply a synchronous Core transfer before an old View can write its former position back.</summary>
+        public void SynchronizeDomainRelocations(IReadOnlyList<ulong> ids)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (!IsActive || world == null || _mapper == null || ids == null) return;
+            try
+            {
+                foreach (var value in ids)
+                {
+                    var id = new EntityId(value);
+                    _domainRelocations.Add(id);
+                    _bootstrap.MoveController?.CancelPresentationMovementPublic(id);
+                    if (!CharacterWorldPresenceQuery.TryResolve(world, id, out var at) || !at.HasWorldPosition ||
+                        at.SurfaceId != _surfaceId || !world.Entities.TryGet(id, out var entity)) continue;
+                    _mapper.WorldToPresentation(at.WorldPosition.X, at.WorldPosition.Y, out var px, out var py);
+                    if (_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                        view.transform.position = new Vector3(px, py, view.transform.position.z);
+                    if (entity.TryGet<EntityLocationComponent>(out var loc)) loc.SetPresentationOverride(px, py);
+                }
+                ReconcileOutdoorEntityMaterializationForScopeChange();
+            }
+            finally { _domainRelocations.Clear(); }
         }
 
         /// <summary>Explicit scope-change hook for domain arrivals/departures, death/removal and

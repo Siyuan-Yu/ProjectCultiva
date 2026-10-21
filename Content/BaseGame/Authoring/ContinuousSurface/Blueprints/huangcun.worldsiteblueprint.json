@@ -6131,6 +6131,24 @@
         "chunkX": "11",
         "chunkY": "18"
       }
+    },
+    {
+      "placementId": "base:site_huangcun:chess_board_01",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 90,
+      "localSurfaceY": 35,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "双人围棋",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "quarterTurns": "0"
+      }
     }
   ]
 }

@@ -87,6 +87,8 @@ namespace XianXia.Core.Persistence
                 ObservationDiscoverChancePercent = world.ObservationDiscoverChancePercent
             };
 
+            snap.ChessGames = world.ChessGames.Values.Select(g => g.Copy()).ToList();
+            snap.PeaceNegotiations = world.Strategic.PeaceNegotiations.Select(n => n.Copy()).ToList();
             foreach (var entity in world.Entities.All)
             {
                 var dto = new EntitySnapshotDto
@@ -256,6 +258,25 @@ namespace XianXia.Core.Persistence
                         dto.PersonalityTags.Add(tag);
                 }
 
+                if (entity.TryGet<NpcAutonomyState>(out var autonomy))
+                {
+                    dto.HasNpcAutonomy = true;
+                    dto.NpcStrikeCooldown = autonomy.StrikeCooldown;
+                    dto.NpcArt0 = autonomy.Art0;
+                    dto.NpcArt1 = autonomy.Art1;
+                    dto.NpcArt2 = autonomy.Art2;
+                    dto.NpcArt3 = autonomy.Art3;
+                    dto.NpcArt4 = autonomy.Art4;
+                    dto.NpcArt5 = autonomy.Art5;
+                    dto.NpcRetreating = autonomy.Retreating;
+                    dto.NpcRetreatSurface = autonomy.RetreatSurface;
+                    dto.NpcRetreatX = autonomy.RetreatX;
+                    dto.NpcRetreatY = autonomy.RetreatY;
+                    dto.NpcLastMoveTick = autonomy.LastMoveTick;
+                    dto.NpcExhausted = autonomy.Exhausted;
+                    dto.NpcDetachedByExhaustion = autonomy.DetachedByExhaustion;
+                }
+
                 if (entity.TryGet<PersonalLifeComponent>(out var personalLife))
                 {
                     dto.HasPersonalLife = true;
@@ -271,6 +292,8 @@ namespace XianXia.Core.Persistence
                     dto.PersonalFoodAccessAttempt = personalLife.FoodAccessAttempt;
                     dto.PersonalFoodRetryAfterTick = personalLife.FoodRetryAfterTick;
                     dto.PersonalBedRetryAfterTick = personalLife.BedRetryAfterTick;
+                    dto.PersonalMeditationSpotId = personalLife.MeditationSpotId ?? string.Empty;
+                    dto.PersonalMeditationTraveling = personalLife.MeditationTraveling;
                 }
 
                 if (world.Civilians.TryGet(entity.Id, out var civilian))
@@ -1025,6 +1048,25 @@ namespace XianXia.Core.Persistence
                     personality.SetTags(e.PersonalityTags);
                 entity.AddComponent(personality);
 
+                if (e.HasNpcAutonomy)
+                    entity.AddComponent(new NpcAutonomyState
+                    {
+                        StrikeCooldown = Math.Max(0, e.NpcStrikeCooldown) ,
+                        Art0 = Math.Max(0, e.NpcArt0) ,
+                        Art1 = Math.Max(0, e.NpcArt1) ,
+                        Art2 = Math.Max(0, e.NpcArt2) ,
+                        Art3 = Math.Max(0, e.NpcArt3) ,
+                        Art4 = Math.Max(0, e.NpcArt4) ,
+                        Art5 = Math.Max(0, e.NpcArt5) ,
+                        Retreating = e.NpcRetreating ,
+                        RetreatSurface = e.NpcRetreatSurface ,
+                        RetreatX = e.NpcRetreatX ,
+                        RetreatY = e.NpcRetreatY ,
+                        LastMoveTick = e.NpcLastMoveTick ,
+                        Exhausted = e.NpcExhausted ,
+                        DetachedByExhaustion = e.NpcDetachedByExhaustion ,
+                    });
+
                 if (e.HasPersonalLife)
                 {
                     var personalLife = new PersonalLifeComponent
@@ -1042,7 +1084,9 @@ namespace XianXia.Core.Persistence
                         FoodRoomId = e.PersonalFoodRoomId ?? string.Empty,
                         FoodAccessAttempt = Math.Max(0, e.PersonalFoodAccessAttempt),
                         FoodRetryAfterTick = e.PersonalFoodRetryAfterTick,
-                        BedRetryAfterTick = e.PersonalBedRetryAfterTick
+                        BedRetryAfterTick = e.PersonalBedRetryAfterTick,
+                        MeditationSpotId = e.PersonalMeditationSpotId ?? string.Empty,
+                        MeditationTraveling = e.PersonalMeditationTraveling
                     };
                     personalLife.Clamp();
                     entity.AddComponent(personalLife);
@@ -1255,6 +1299,10 @@ namespace XianXia.Core.Persistence
                     if (identities.IsFailure)
                         return Result.Fail<(SimulationWorld, SimulationLoop)>(identities.Error);
                 }
+                world.ChessGames.Clear();
+                foreach (var game in snap.ChessGames) world.ChessGames.Add(game.BoardId, game.Copy());
+                world.Strategic.PeaceNegotiations.Clear();
+                world.Strategic.PeaceNegotiations.AddRange(snap.PeaceNegotiations.Select(n => n.Copy()));
                 var strategicRestore = StrategicSnapshotHelper.Restore(world, snap.Strategic);
                 if (strategicRestore.IsFailure)
                     return Result.Fail<(SimulationWorld, SimulationLoop)>(strategicRestore.Error);

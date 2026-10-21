@@ -373,14 +373,24 @@ namespace XianXia.Unity.Host
             var rescuePickup = IsRescuePickupIntent(intent);
             var freeStandRadius = rescuePickup
                 ? ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f
-                : intent.ArrivalRadiusWorld > 0f ? 0f :
+                : intent.ArrivalRadiusWorld > 0f
+                    ? ResolveStandingArrivalRadius(world, request.Entity, intent) * .95f :
                     Mathf.Min(1.25f, ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f);
+            var standPoint = center;
+            if (intent.ArrivalRadiusWorld > 0f && !rescuePickup &&
+                !moveController.TryResolveFreeStandPoint(request.Entity, center, freeStandRadius, out standPoint))
+            {
+                intent.MarkRetryablePathUnavailable("目标到达范围内没有可达的空闲站位");
+                _nextRepathAt[id] = now + repathInterval;
+                ReportPathUnavailableOnce(entity, intent, request.TargetKey, view.transform.position, center);
+                return;
+            }
             var accepted = moveController.OrderEntityToWorldPoint(
-                request.Entity, center, null, issueStop: false,
+                request.Entity, standPoint, null, issueStop: false,
                 exactGoal: !rescuePickup && (intent.ArrivalRadiusWorld > 0f ||
                     IsGenericConstructionTarget(world, request.Entity, intent)),
                 speedMultiplier: intent.SpeedMultiplier,
-                freeStandRadius: freeStandRadius);
+                freeStandRadius: rescuePickup || intent.ArrivalRadiusWorld <= 0f ? freeStandRadius : 0f);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
             LastNpcPathBuildMs = elapsedMs;

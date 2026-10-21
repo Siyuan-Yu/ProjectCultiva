@@ -11,7 +11,7 @@ using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
-    public enum HumanWorkMotion { None, Generic, Soil, Sow, Tend, Harvest, Chop, Mine, Build, Meditate, Eat }
+    public enum HumanWorkMotion { None, Generic, Soil, Sow, Tend, Harvest, Chop, Mine, Build, Meditate, Eat, BoardThink, BoardPlace }
     public enum HumanAttackStyle { Unarmed, Swing, Thrust, Cast }
 
     public struct HostCharacterWorkVisual
@@ -72,6 +72,8 @@ namespace XianXia.Unity.Host
             var traveling = entity.TryGet<MovementIntentComponent>(out var intent) &&
                 intent.Active && !intent.HostArrived;
             if (traveling) return default;
+            if (ChessRecreationService.IsPlaying(world, entity.Id, out var placing, out _))
+                return HostCharacterWorkVisual.For(placing ? HumanWorkMotion.BoardPlace : HumanWorkMotion.BoardThink);
             IAction active = null;
             if (entity.TryGet<ActionStateComponent>(out var actionState) && actionState.HasActiveAction &&
                 world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var running) &&

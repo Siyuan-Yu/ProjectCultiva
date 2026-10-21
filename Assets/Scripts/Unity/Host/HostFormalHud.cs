@@ -240,6 +240,14 @@ namespace XianXia.Unity.Host
                     }
                 }
 
+                var energy = ent.TryGet<PersonalLifeComponent>(out var needs) ? needs.Energy :
+                    session.World.Civilians.TryGet(id, out var mortalNeeds) ? mortalNeeds.Energy : 100;
+                var food = needs != null ? needs.Satiety :
+                    session.World.Civilians.TryGet(id, out var mortalFood) ? mortalFood.Satiety : 100;
+                if (energy <= PartyRestService.WarningThreshold || food <= PartyRestService.WarningThreshold)
+                    GUI.Label(new Rect(rect.x, rect.yMax + 2f, size + 12f, 42f),
+                        (energy == 0 ? "力竭躺下" : energy <= PartyRestService.WarningThreshold ? "精力低" : "") +
+                        (food <= PartyRestService.WarningThreshold ? "\n饱食低" : ""), _small);
                 x += size + gap;
             }
 
@@ -1027,6 +1035,12 @@ namespace XianXia.Unity.Host
                         DescribeFarmAdministration(session.World, plot),
                         _body);
                     GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 20f), "右键农作", _body);
+                }
+                else if (plot.IsLeisureFurniture)
+                {
+                    GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 60f),
+                        plot.Kind == "chessBoard" ? "休闲棋盘：左右各一座，独自入座即可娱乐；两人可同时使用。" :
+                        "修炼蒲团：供人物打坐修炼。", _body);
                 }
                 else
                 {

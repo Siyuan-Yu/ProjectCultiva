@@ -26,7 +26,7 @@ namespace XianXia.Core.Npc
         Idle = 0, Eat = 1, SleepAtResidence = 2, SleepOnGround = 3,
         FarmerWork = 4, HerbFarmerWork = 5, Logging = 6, MedicCare = 7,
         Rescue = 8, Haul = 9, Construction = 10, Flee = 11,
-        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15
+        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15, Chess = 16
     }
     public enum CivilianDisposition
     {
@@ -509,7 +509,8 @@ namespace XianXia.Core.Npc
             // During planned rest a failed food trip yields to sleep until its retry cooldown.
             if (state.Satiety <= MortalCivilianTuning.HungerThreshold) return MortalActivity.Idle;
             if (schedulePhase == FactionMortalSchedulePhase.Free)
-            { state.ScheduleStatus = scheduleId + " · 自由活动"; return MortalActivity.Idle; }
+            { state.ScheduleStatus = scheduleId + " · 自由活动";
+              return ChessRecreationService.Owns(world, entity.Id) ? MortalActivity.Chess : MortalActivity.Idle; }
             if (schedulePhase == FactionMortalSchedulePhase.DedicatedDuty)
                 return MortalActivity.DedicatedDuty;
             if (schedulePhase == FactionMortalSchedulePhase.Missing) return MortalActivity.Idle;
@@ -684,7 +685,7 @@ namespace XianXia.Core.Npc
                 // Party control owns movement and work. Civilian needs remain persistent while enlisted.
                 if (movementOwner == CivilianMovementOwner.PlayerParty)
                 {
-                    EndCivilianSleep(world, entity.Id, state);
+                    if (!PartyRestService.BlocksMovement(entity)) EndCivilianSleep(world, entity.Id, state);
                     ClearFoodTrip(entity, state);
                     ClearCivilianMovement(entity);
                     DropRescue(world, entity, state);
@@ -692,7 +693,28 @@ namespace XianXia.Core.Npc
                     if (state.Satiety <= MortalCivilianTuning.HungerThreshold &&
                         TryConsumeFoodAbstract(world, entity.Id, state.CurrentSiteId))
                     { state.Satiety += MortalCivilianTuning.MealRestore; state.AteToday = true; state.Clamp(); }
-                    state.Activity = MortalActivity.Idle;
+                    var tired = NpcAutonomyState.Ensure(entity);
+                    if (state.Energy == 0) PartyRestService.EnterExhaustion(world, entity);
+                    if (state.Energy >= PartyRestService.ExhaustionRecoveryThreshold) tired.Exhausted = false;
+                    if (!tired.Exhausted && tired.DetachedByExhaustion &&
+                        world.Strategic.PlayerPartyContext?.ActiveCharacterId == entity.Id)
+                    {
+                        tired.DetachedByExhaustion = false;
+                        PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, world.Strategic.PlayerPartyContext);
+                    }
+                    if (tired.Exhausted && !PartyRestService.IsResting(world, entity))
+                    {
+                        world.GetOrCreateOrderQueue(entity.Id).Clear();
+                        if (entity.TryGet<ActionStateComponent>(out var current) && current.HasActiveAction &&
+                            world.ActiveActions.TryGetValue(current.ActiveActionId, out var running)) running.Cancel();
+                    }
+                    if (tired.Exhausted && !PartyRestService.IsResting(world, entity))
+                    {
+                        // Core does not own a SimulationLoop here: forced rest restoration is driven by the same needs Tick.
+                        state.SleepPhase = CivilianSleepPhase.SleepingOnGround;
+                    }
+                    state.Activity = tired.Exhausted || PartyRestService.IsResting(world, entity)
+                        ? MortalActivity.SleepOnGround : MortalActivity.Idle;
                     state.LastUpdateTick = world.Tick.Value;
                     continue;
                 }
@@ -741,7 +763,7 @@ namespace XianXia.Core.Npc
             var actionBedSleep = IsRunningBedRestAction(world, entity.Id);
             var medicalBedRest = entity.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated &&
                 MedicalRecoveryService.TryGetPatientBed(world, entity, out _);
-            var sleeping = medicalBedRest || validResidenceSleep || actionBedSleep ||
+            var sleeping = PartyRestService.IsResting(world, entity) || medicalBedRest || validResidenceSleep || actionBedSleep ||
                            state.SleepPhase == CivilianSleepPhase.SleepingOnGround;
             if (sleeping)
             {
@@ -914,6 +936,8 @@ namespace XianXia.Core.Npc
                 EndCivilianSleep(world, entity.Id, state);
             switch (state.Activity)
             {
+                case MortalActivity.Chess:
+                    break; // Chess owns its two exact seat intents; never clear them as idle.
                 case MortalActivity.Idle:
                     if (entity.TryGet<MovementIntentComponent>(out var idleIntent)) idleIntent.Clear();
                     break;
@@ -1066,7 +1090,7 @@ namespace XianXia.Core.Npc
             if (!world.Entities.TryGet(eater, out var entity) || !world.Civilians.TryGet(eater, out var civilian)) return false;
             var inParty = world.Strategic.PlayerPartyContext?.IsMember(eater) == true &&
                           PlayerPartyRuntime.CanPlayerControlCharacter(world, eater);
-            if (!string.IsNullOrEmpty(siteId) && world.Strategic.SitePublicStocks.TryGet(siteId, out var stock) &&
+            if (!inParty && !string.IsNullOrEmpty(siteId) && world.Strategic.SitePublicStocks.TryGet(siteId, out var stock) &&
                 world.Strategic.Sites.TryGet(siteId, out var site))
             {
                 var allowed = false;

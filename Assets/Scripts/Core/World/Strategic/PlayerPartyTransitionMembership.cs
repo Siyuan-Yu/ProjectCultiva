@@ -29,7 +29,8 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return world.Entities.TryGet(characterId, out var entity) &&
                    entity != null &&
-                   CombatLifeStateService.CanFight(entity);
+                   CombatLifeStateService.CanFight(entity) && !XianXia.Core.Npc.PartyRestService.BlocksMovement(entity) &&
+                   !XianXia.Core.Npc.PartyRestService.HasIndependentPosition(entity);
         }
 
         public static void CaptureTravelingMembersForPartyTransition(

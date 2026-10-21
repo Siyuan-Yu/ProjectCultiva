@@ -764,6 +764,9 @@ namespace XianXia.Unity.Host
             if (!canAct || sleeping) ClearProjectedLocomotion();
             var moved = !paused && canAct && !sleeping && distance > .0001f && IsFinite(movement);
             var work = HostCharacterVisualContext.ResolveWork(_world, entity, _farmLabor, _destructibleAssault);
+            if ((work.Motion == HumanWorkMotion.BoardPlace || work.Motion == HumanWorkMotion.BoardThink) &&
+                ChessRecreationService.IsPlaying(_world, _entityId, out _, out var boardDirection))
+            { work.HasTarget = true; work.Target = transform.position + new Vector3(boardDirection.X, boardDirection.Y, 0).normalized; }
             if (!canAct || sleeping || carryingCargo || carryingPerson || moved && !_pendingWorkContact)
             {
                 _workContactRemaining = 0f;
@@ -869,10 +872,7 @@ namespace XianXia.Unity.Host
             return entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
                 _world.ActiveActions.TryGetValue(state.ActiveActionId, out var active) &&
                 (active is BedRestAction rest && rest.Status == ActionStatus.Running ||
-                 active is RestAction ground && ground.Status == ActionStatus.Running &&
-                 state.ActiveOrderSource == XianXia.Core.Orders.OrderSource.Ai &&
-                 entity.TryGet<PersonalLifeComponent>(out var personal) &&
-                 personal.Activity == PersonalLifeActivity.Resting);
+                 active is RestAction ground && ground.Status == ActionStatus.Running);
         }
 
         void UpdateSleepVisual(Entity entity)
@@ -914,10 +914,7 @@ namespace XianXia.Unity.Host
                 _world.ActiveActions.TryGetValue(state.ActiveActionId, out var active))
             {
                 bedAction = active is BedRestAction rest && rest.Status == ActionStatus.Running;
-                ground |= active is RestAction restGround && restGround.Status == ActionStatus.Running &&
-                    state.ActiveOrderSource == XianXia.Core.Orders.OrderSource.Ai &&
-                    entity.TryGet<PersonalLifeComponent>(out var personal) &&
-                    personal.Activity == PersonalLifeActivity.Resting;
+                ground |= active is RestAction restGround && restGround.Status == ActionStatus.Running;
             }
             if (!ground && !residence && !bedAction)
             {

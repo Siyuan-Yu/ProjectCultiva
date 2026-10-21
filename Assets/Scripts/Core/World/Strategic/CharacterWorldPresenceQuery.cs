@@ -70,7 +70,8 @@ namespace XianXia.Core.World.Strategic
 
             var partyMotion = world.PlayerPartyTravel;
             if (partyMotion != null && partyMotion.HasPosition &&
-                IsTravelingMember(partyMotion, characterId))
+                IsTravelingMember(partyMotion, characterId) &&
+                !(world.Entities.TryGet(characterId, out var tiredEntity) && (PartyRestService.BlocksMovement(tiredEntity) || PartyRestService.HasIndependentPosition(tiredEntity))))
             {
                 resolved = new ResolvedPresence(
                     PresenceState.AtWorldPosition,

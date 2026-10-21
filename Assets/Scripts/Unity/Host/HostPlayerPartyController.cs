@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using XianXia.Core.Actions;
+using XianXia.Core.Npc;
 using XianXia.Core.Content;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -117,6 +118,8 @@ namespace XianXia.Unity.Host
 
         public EntityId ActiveCharacterId =>
             Party != null ? Party.ActiveCharacterId : EntityId.None;
+
+        public PlayableHostBootstrap Host => bootstrap;
 
         public void Bind(PlayableHostBootstrap host)
         {
@@ -429,6 +432,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
+                    (PartyRestService.BlocksMovement(restEntity) || PartyRestService.IsResting(bootstrap.Session.World, restEntity)))
                     continue;
                 if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
                         bootstrap.Session.World, Party, id))
@@ -1336,9 +1342,30 @@ namespace XianXia.Unity.Host
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
                     continue;
+                if (bootstrap.Session.World.Entities.TryGet(id, out var recovering) &&
+                    PartyRestService.HasIndependentPosition(recovering) &&
+                    _spawner.Registry.TryGet(id, out var recoveringView) && recoveringView != null)
+                {
+                    var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+                    if (surface != null && surface.PresentationToWorld(recoveringView.transform.position.x,
+                            recoveringView.transform.position.y, out var wx, out var wy))
+                        bootstrap.Session.World.WorldPresence.SetAtWorldPosition(id,
+                            new WorldVec2(wx, wy), surface.ActiveSurfaceId);
+                    if (!PartyRestService.BlocksMovement(recovering) &&
+                        Vector2.Distance(recoveringView.transform.position, activePos) <= followStopDistance + followerSpreadRadius)
+                    {
+                        NpcAutonomyState.Ensure(recovering).DetachedByExhaustion = false;
+                        PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(bootstrap.Session.World, Party);
+                    }
+                }
+                if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
+                    (PartyRestService.BlocksMovement(restEntity) || PartyRestService.IsResting(bootstrap.Session.World, restEntity)))
+                    continue;
 
                 if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
-                        bootstrap.Session.World, Party, id))
+                        bootstrap.Session.World, Party, id) &&
+                    !(bootstrap.Session.World.Entities.TryGet(id, out var detached) &&
+                      PartyRestService.HasIndependentPosition(detached) && !PartyRestService.BlocksMovement(detached)))
                     continue;
 
                 // Formation slot 按 Party.Members 稳定顺序分配：每遇到一个非 Active follower
@@ -1469,6 +1496,9 @@ namespace XianXia.Unity.Host
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
                     continue;
+                if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
+                    (PartyRestService.BlocksMovement(restEntity) || PartyRestService.IsResting(bootstrap.Session.World, restEntity)))
+                    continue;
                 if (bootstrap?.Session?.World != null &&
                     !PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
                         bootstrap.Session.World, Party, id))
@@ -1573,6 +1603,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
+                    (PartyRestService.BlocksMovement(restEntity) || PartyRestService.IsResting(bootstrap.Session.World, restEntity)))
                     continue;
                 if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
                         bootstrap.Session.World, Party, id))
@@ -1686,6 +1719,9 @@ namespace XianXia.Unity.Host
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
+                    continue;
+                if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
+                    (PartyRestService.BlocksMovement(restEntity) || PartyRestService.IsResting(bootstrap.Session.World, restEntity)))
                     continue;
                 if (_followerSharedActivity.ContainsKey(id.Value) ||
                     (_farm != null && _farm.IsPartyDerivedFarming(id)) ||

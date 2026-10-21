@@ -176,14 +176,55 @@ namespace XianXia.Unity.Host
             _characterDestinations[id.Value] = destination;
         }
 
-        Vector3 FilterCharacterStep(Vector3 from, Vector3 proposed, Vector3 waypoint,
+        Vector3 FilterCharacterStep(EntityView actor, Vector3 from, Vector3 proposed, Vector3 waypoint,
             float deltaTime, bool requireWaypointConnection = true)
         {
             if (deltaTime <= 0f) return from;
-            // Characters cannot block a path step, including its final landing.
-            // Static WalkGrid clearance remains authoritative for movement.
             if (!IsSpacingStepNavigable(from, proposed, waypoint, requireWaypointConnection)) return from;
-            return proposed;
+            if (actor == null || !IsCharacterOccupant(actor) ||
+                IsCharacterStepClear(actor, from, proposed)) return proposed;
+            var delta = proposed - from;
+            delta.z = 0f;
+            if (delta.sqrMagnitude < .000001f) return from;
+            // A bounded side step lets two opposing walkers pass without claiming a
+            // facility slot or changing the static route. The next frame resumes the route.
+            var side = new Vector3(-delta.y, delta.x, 0f);
+            var first = actor.EntityId.Value % 2 == 0 ? 1f : -1f;
+            for (var i = 0; i < 2; i++)
+            {
+                var candidate = from + side * (i == 0 ? first : -first);
+                candidate.z = HostPresentationSpace.EntityZ;
+                if (IsSpacingStepNavigable(from, candidate, waypoint, requireWaypointConnection) &&
+                    IsCharacterStepClear(actor, from, candidate)) return candidate;
+            }
+            return from;
+        }
+
+        bool IsCharacterStepClear(EntityView actor, Vector3 from, Vector3 to)
+        {
+            RefreshCharacterOccupants();
+            var travel = to - from;
+            travel.z = 0f;
+            var lengthSquared = travel.sqrMagnitude;
+            for (var i = 0; i < _characterOccupants.Count; i++)
+            {
+                var other = _characterOccupants[i];
+                if (other == null || other == actor || !other.gameObject.activeInHierarchy) continue;
+                var spacing = (StandSpacing(actor) + StandSpacing(other)) * .5f;
+                var start = from - other.transform.position;
+                var end = to - other.transform.position;
+                start.z = end.z = 0f;
+                // If a save or spawn already overlaps, allow a step out, never deeper in.
+                if (start.sqrMagnitude < spacing * spacing - .0001f)
+                {
+                    if (end.sqrMagnitude <= start.sqrMagnitude + .0001f) return false;
+                    continue;
+                }
+                var t = lengthSquared > .000001f
+                    ? Mathf.Clamp01(-Vector3.Dot(start, travel) / lengthSquared) : 0f;
+                if ((start + travel * t).sqrMagnitude < spacing * spacing - .0001f) return false;
+            }
+            return true;
         }
 
         bool IsSpacingStepNavigable(Vector3 from, Vector3 candidate, Vector3 waypoint, bool requireConnection)

@@ -1,0 +1,18 @@
+{
+  "batchId": "Batch_Chess_20261021_001",
+  "assetId": "ART-ROOM-011",
+  "tool": "built-in imagegen",
+  "generatedSource": "C:\\Users\\Pato\\.codex\\generated_images\\01a139ed-54b8-7b53-a232-42de9f015ff8\\exec-d5435e0b-e5bf-4ae1-b2ca-0cfc5277f6fe.png",
+  "original": "Originals/ART-ROOM-011_weiqi_board_v01.png",
+  "runtime": "Assets/Art/Environment/Resources/ART-ROOM-011_weiqi_board_v01.png",
+  "sha256": "3faf3d5503200969ed5b5333d9a11d52e3fc0e2bb17112e483e718a37018ed3e",
+  "width": 1254,
+  "height": 1254,
+  "mode": "RGBA",
+  "runtimeFootprintCells": [
+    1,
+    1
+  ],
+  "status": "Integrated / Producer Acceptance Pending",
+  "notes": "No image edits; source alpha preserved. Static board, shared identity-preserving seated poses. No prior art removed."
+}

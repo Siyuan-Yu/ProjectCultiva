@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
@@ -33,6 +33,8 @@ namespace XianXia.Data.Serialization
                 ["nextActionId"] = U(snapshot.NextActionId),
                 ["nextModifierId"] = U(snapshot.NextModifierId),
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
+                ["chessGames"] = WriteChessGames(snapshot.ChessGames),
+                ["peaceNegotiations"] = WritePeaceNegotiations(snapshot.PeaceNegotiations),
                 ["groundLoot"] = WriteGroundLoot(snapshot.GroundLoot),
                 ["characterFactionLoyalties"] = JsonValue.FromArray(SerializeCharacterFactionLoyalties(snapshot.CharacterFactionLoyalties)),
                 ["civilianResidenceUsages"] = JsonValue.FromArray(SerializeCivilianResidenceUsages(snapshot.CivilianResidenceUsages)),
@@ -462,6 +464,9 @@ namespace XianXia.Data.Serialization
                 snapshot.Commerce = snapshot.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion
                     ? CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"))
                     : new XianXia.Core.Inventory.CommerceState();
+                if (root.TryGetProperty("chessGames", out var games)) snapshot.ChessGames = ReadChessGames(games);
+                if (root.TryGetProperty("peaceNegotiations", out var offers))
+                    snapshot.PeaceNegotiations = ReadPeaceNegotiations(offers);
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)
@@ -783,6 +788,108 @@ namespace XianXia.Data.Serialization
             return result;
         }
 
+        static JsonValue WriteChessGames(List<XianXia.Core.Npc.ChessGameState> games)
+        {
+            var result = new List<JsonValue>();
+            foreach (var g in games) result.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                    ["boardId"] = JsonValue.FromString(g.BoardId),
+                    ["playerA"] = U(g.PlayerA),
+                    ["playerB"] = U(g.PlayerB),
+                    ["waitingSinceTick"] = U(g.WaitingSinceTick),
+                    ["lastProcessedTick"] = U(g.LastProcessedTick),
+                    ["cooldownUntilTick"] = U(g.CooldownUntilTick),
+                    ["playedTicks"] = JsonValue.FromNumber(g.PlayedTicks),
+                    ["playedTicksB"] = JsonValue.FromNumber(g.PlayedTicksB),
+                    ["startedTickB"] = U(g.StartedTickB),
+                    ["cooldownUntilTickB"] = U(g.CooldownUntilTickB),
+                    ["playing"] = JsonValue.FromBool(g.Playing),
+            }));
+            return JsonValue.FromArray(result);
+        }
+
+        static List<XianXia.Core.Npc.ChessGameState> ReadChessGames(JsonValue games)
+        {
+            if (games.Kind != JsonValueKind.Array) throw new System.FormatException("Invalid chess game state.");
+            var result = new List<XianXia.Core.Npc.ChessGameState>();
+            var boards = new HashSet<string>(); var actors = new HashSet<ulong>();
+            foreach (var v in games.Array)
+            {
+                var g = new XianXia.Core.Npc.ChessGameState {
+                    BoardId = v.GetString("boardId", string.Empty),
+                    PlayerA = ReadU(v,"playerA"),
+                    PlayerB = ReadU(v,"playerB"),
+                    WaitingSinceTick = ReadU(v,"waitingSinceTick"),
+                    LastProcessedTick = ReadU(v,"lastProcessedTick"),
+                    CooldownUntilTick = ReadU(v,"cooldownUntilTick"),
+                    PlayedTicks = (int)v.GetNumber("playedTicks"),
+                    PlayedTicksB = v.TryGetProperty("playedTicksB", out _) ? (int)v.GetNumber("playedTicksB") : (int)v.GetNumber("playedTicks"),
+                    StartedTickB = v.TryGetProperty("startedTickB", out _) ? ReadU(v,"startedTickB") : ReadU(v,"waitingSinceTick"),
+                    CooldownUntilTickB = v.TryGetProperty("cooldownUntilTickB", out _) ? ReadU(v,"cooldownUntilTickB") : ReadU(v,"cooldownUntilTick"),
+                    Playing = v.TryGetProperty("playing", out var playing) && playing.Kind == JsonValueKind.Boolean && playing.Bool,
+                };
+                if (string.IsNullOrEmpty(g.BoardId) || !boards.Add(g.BoardId) || g.PlayedTicks < 0 ||
+                    g.PlayedTicks > XianXia.Core.Npc.ChessRecreationService.GameTicks ||
+                    g.PlayedTicksB < 0 || g.PlayedTicksB > XianXia.Core.Npc.ChessRecreationService.GameTicks ||
+                    g.PlayerA != 0 && !actors.Add(g.PlayerA) || g.PlayerB != 0 && !actors.Add(g.PlayerB))
+                    throw new System.FormatException("Invalid or duplicate chess seat reservation.");
+                result.Add(g);
+            }
+            return result;
+        }
+
+        static JsonValue WritePeaceNegotiations(List<XianXia.Core.World.Strategic.PeaceNegotiation> offers)
+        {
+            var result = new List<JsonValue>();
+            foreach (var n in offers)
+            {
+                var releases = new List<JsonValue>();
+                foreach (var id in n.ReleasePrisoners)
+                    releases.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> { ["id"] = U(id) }));
+                result.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["otherFaction"] = JsonValue.FromString(n.OtherFaction ?? string.Empty),
+                    ["status"] = JsonValue.FromNumber((int)n.Status),
+                    ["round"] = JsonValue.FromNumber(n.Round),
+                    ["vassalage"] = JsonValue.FromBool(n.Vassalage),
+                    ["resourceId"] = JsonValue.FromString(n.ResourceId ?? string.Empty),
+                    ["playerSite"] = JsonValue.FromString(n.PlayerSite ?? string.Empty),
+                    ["otherSite"] = JsonValue.FromString(n.OtherSite ?? string.Empty),
+                    ["amount"] = JsonValue.FromNumber(n.Amount),
+                    ["message"] = JsonValue.FromString(n.Message ?? string.Empty),
+                    ["releasePrisoners"] = JsonValue.FromArray(releases)
+                }));
+            }
+            return JsonValue.FromArray(result);
+        }
+
+        static List<XianXia.Core.World.Strategic.PeaceNegotiation> ReadPeaceNegotiations(JsonValue values)
+        {
+            if (values.Kind != JsonValueKind.Array) throw new System.FormatException("Invalid peace negotiation state.");
+            var result = new List<XianXia.Core.World.Strategic.PeaceNegotiation>();
+            foreach (var v in values.Array)
+            {
+                var n = new XianXia.Core.World.Strategic.PeaceNegotiation
+                {
+                    OtherFaction = v.GetString("otherFaction", string.Empty),
+                    Status = (XianXia.Core.World.Strategic.PeaceOfferStatus)(int)v.GetNumber("status"),
+                    Round = (int)v.GetNumber("round"),
+                    Vassalage = v.TryGetProperty("vassalage", out var flag) && flag.Kind == JsonValueKind.Boolean && flag.Bool,
+                    ResourceId = v.GetString("resourceId", string.Empty),
+                    PlayerSite = v.GetString("playerSite", string.Empty),
+                    OtherSite = v.GetString("otherSite", string.Empty),
+                    Amount = (int)v.GetNumber("amount"),
+                    Message = v.GetString("message", string.Empty),
+                };
+                if (string.IsNullOrEmpty(n.OtherFaction) || n.Round < 0 || n.Amount == int.MinValue ||
+                    !System.Enum.IsDefined(typeof(XianXia.Core.World.Strategic.PeaceOfferStatus), n.Status))
+                    throw new System.FormatException("Invalid peace offer.");
+                if (v.TryGetProperty("releasePrisoners", out var ids) && ids.Kind == JsonValueKind.Array)
+                    foreach (var id in ids.Array) n.ReleasePrisoners.Add(ReadU(id, "id"));
+                result.Add(n);
+            }
+            return result;
+        }
+
         static List<JsonValue> SerializeEntities(List<EntitySnapshotDto> entities)
         {
             var list = new List<JsonValue>();
@@ -890,6 +997,36 @@ namespace XianXia.Data.Serialization
                     ["hasResponsibleAttacker"] = JsonValue.FromBool(e.HasResponsibleAttacker),
                     ["responsibleAttackerEntityId"] = U(e.ResponsibleAttackerEntityId),
                     ["personalityTags"] = JsonValue.FromArray(SerializeStringList(e.PersonalityTags))
+                    ,["hasNpcAutonomy"] = JsonValue.FromBool(e.HasNpcAutonomy)
+                    ,["npcStrikeCooldown"] = JsonValue.FromNumber(e.NpcStrikeCooldown)
+                    ,["npcArt0"] = JsonValue.FromNumber(e.NpcArt0)
+                    ,["npcArt1"] = JsonValue.FromNumber(e.NpcArt1)
+                    ,["npcArt2"] = JsonValue.FromNumber(e.NpcArt2)
+                    ,["npcArt3"] = JsonValue.FromNumber(e.NpcArt3)
+                    ,["npcArt4"] = JsonValue.FromNumber(e.NpcArt4)
+                    ,["npcArt5"] = JsonValue.FromNumber(e.NpcArt5)
+                    ,["npcRetreating"] = JsonValue.FromBool(e.NpcRetreating)
+                    ,["npcRetreatSurface"] = JsonValue.FromString(e.NpcRetreatSurface ?? string.Empty)
+                    ,["npcRetreatX"] = JsonValue.FromNumber(e.NpcRetreatX)
+                    ,["npcRetreatY"] = JsonValue.FromNumber(e.NpcRetreatY)
+                    ,["npcLastMoveTick"] = U(e.NpcLastMoveTick)
+                    ,["npcExhausted"] = JsonValue.FromBool(e.NpcExhausted)
+                    ,["npcDetachedByExhaustion"] = JsonValue.FromBool(e.NpcDetachedByExhaustion)
+                    ,["hasPersonalLife"] = JsonValue.FromBool(e.HasPersonalLife)
+                    ,["personalLifePreference"] = JsonValue.FromNumber(e.PersonalLifePreference)
+                    ,["personalLifeActivity"] = JsonValue.FromNumber(e.PersonalLifeActivity)
+                    ,["personalSatiety"] = JsonValue.FromNumber(e.PersonalSatiety)
+                    ,["personalEnergy"] = JsonValue.FromNumber(e.PersonalEnergy)
+                    ,["personalCurrentMood"] = JsonValue.FromNumber(e.PersonalCurrentMood)
+                    ,["personalLastProcessedTick"] = U(e.PersonalLastProcessedTick)
+                    ,["personalLastCultivationTick"] = U(e.PersonalLastCultivationTick)
+                    ,["personalLastRecreationTick"] = U(e.PersonalLastRecreationTick)
+                    ,["personalFoodRoomId"] = JsonValue.FromString(e.PersonalFoodRoomId ?? string.Empty)
+                    ,["personalFoodAccessAttempt"] = JsonValue.FromNumber(e.PersonalFoodAccessAttempt)
+                    ,["personalFoodRetryAfterTick"] = U(e.PersonalFoodRetryAfterTick)
+                    ,["personalBedRetryAfterTick"] = U(e.PersonalBedRetryAfterTick)
+                    ,["personalMeditationSpotId"] = JsonValue.FromString(e.PersonalMeditationSpotId ?? string.Empty)
+                    ,["personalMeditationTraveling"] = JsonValue.FromBool(e.PersonalMeditationTraveling)
                     ,["hasMortalCivilian"] = JsonValue.FromBool(e.HasMortalCivilian)
                     ,["mortalSatiety"] = JsonValue.FromNumber(e.MortalSatiety)
                     ,["mortalEnergy"] = JsonValue.FromNumber(e.MortalEnergy)
@@ -1351,6 +1488,36 @@ namespace XianXia.Data.Serialization
                 HasResponsibleAttacker = e.TryGetProperty("hasResponsibleAttacker", out var hra) &&
                                          hra.Kind == JsonValueKind.Boolean && hra.Bool,
                 ResponsibleAttackerEntityId = ReadU(e, "responsibleAttackerEntityId")
+                ,HasNpcAutonomy = e.TryGetProperty("hasNpcAutonomy", out var vHasNpcAutonomy) && vHasNpcAutonomy.Kind == JsonValueKind.Boolean && vHasNpcAutonomy.Bool
+                ,NpcStrikeCooldown = (float)e.GetNumber("npcStrikeCooldown")
+                ,NpcArt0 = (float)e.GetNumber("npcArt0")
+                ,NpcArt1 = (float)e.GetNumber("npcArt1")
+                ,NpcArt2 = (float)e.GetNumber("npcArt2")
+                ,NpcArt3 = (float)e.GetNumber("npcArt3")
+                ,NpcArt4 = (float)e.GetNumber("npcArt4")
+                ,NpcArt5 = (float)e.GetNumber("npcArt5")
+                ,NpcRetreating = e.TryGetProperty("npcRetreating", out var vNpcRetreating) && vNpcRetreating.Kind == JsonValueKind.Boolean && vNpcRetreating.Bool
+                ,NpcRetreatSurface = e.GetString("npcRetreatSurface", string.Empty)
+                ,NpcRetreatX = (float)e.GetNumber("npcRetreatX")
+                ,NpcRetreatY = (float)e.GetNumber("npcRetreatY")
+                ,NpcLastMoveTick = ReadU(e, "npcLastMoveTick")
+                ,NpcExhausted = e.TryGetProperty("npcExhausted", out var vNpcExhausted) && vNpcExhausted.Kind == JsonValueKind.Boolean && vNpcExhausted.Bool
+                ,NpcDetachedByExhaustion = e.TryGetProperty("npcDetachedByExhaustion", out var nde) && nde.Kind == JsonValueKind.Boolean && nde.Bool
+                ,HasPersonalLife = e.TryGetProperty("hasPersonalLife", out var vHasPersonalLife) && vHasPersonalLife.Kind == JsonValueKind.Boolean && vHasPersonalLife.Bool
+                ,PersonalLifePreference = (int)e.GetNumber("personalLifePreference")
+                ,PersonalLifeActivity = (int)e.GetNumber("personalLifeActivity")
+                ,PersonalSatiety = (int)e.GetNumber("personalSatiety")
+                ,PersonalEnergy = (int)e.GetNumber("personalEnergy")
+                ,PersonalCurrentMood = (int)e.GetNumber("personalCurrentMood")
+                ,PersonalLastProcessedTick = ReadU(e, "personalLastProcessedTick")
+                ,PersonalLastCultivationTick = ReadU(e, "personalLastCultivationTick")
+                ,PersonalLastRecreationTick = ReadU(e, "personalLastRecreationTick")
+                ,PersonalFoodRoomId = e.GetString("personalFoodRoomId", string.Empty)
+                ,PersonalFoodAccessAttempt = (int)e.GetNumber("personalFoodAccessAttempt")
+                ,PersonalFoodRetryAfterTick = ReadU(e, "personalFoodRetryAfterTick")
+                ,PersonalBedRetryAfterTick = ReadU(e, "personalBedRetryAfterTick")
+                ,PersonalMeditationSpotId = e.GetString("personalMeditationSpotId", string.Empty)
+                ,PersonalMeditationTraveling = e.TryGetProperty("personalMeditationTraveling", out var pmt) && pmt.Kind == JsonValueKind.Boolean && pmt.Bool
                 ,HasMortalCivilian = e.TryGetProperty("hasMortalCivilian", out var hmc) && hmc.Kind == JsonValueKind.Boolean && hmc.Bool
                 ,MortalSatiety = (int)e.GetNumber("mortalSatiety")
                 ,MortalEnergy = (int)e.GetNumber("mortalEnergy")

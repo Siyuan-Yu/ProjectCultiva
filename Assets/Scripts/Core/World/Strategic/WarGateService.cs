@@ -77,6 +77,31 @@ namespace XianXia.Core.World.Strategic
             return IsAtWar(world, attackerFaction, defenderFaction);
         }
 
+        /// <summary>End the existing wars containing these opposing factions, including their bound war sides.</summary>
+        public static void MakePeace(SimulationWorld world, string a, string b)
+        {
+            foreach (var war in world.Strategic.Wars.All.Values)
+            {
+                if (!war.Active || !war.Involves(a) || !war.Involves(b) || war.IsAttacker(a) == war.IsAttacker(b)) continue;
+                war.Active = false;
+                foreach (var left in war.Attackers)
+                    foreach (var right in war.Defenders)
+                        if (!IsAtWar(world, left, right)) world.Strategic.Diplomacy.SetStance(left, right, FactionStance.Neutral);
+            }
+            world.Strategic.Diplomacy.SetStance(a, b, FactionStance.Neutral);
+            // Keep opinion history; only cease the explicit personal first-strike facts between the signatories.
+            foreach (var left in world.Entities.All)
+                if (left.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var lm) && lm.FactionId == a)
+                    foreach (var right in world.Entities.All)
+                        if (right.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var rm) && rm.FactionId == b)
+                        {
+                            if (XianXia.Core.Npc.NpcHostilityService.HasPrivateHostility(world, left.Id, right.Id))
+                                XianXia.Core.Npc.NpcHostilityService.SetPrivateHostility(world, left.Id, right.Id, false);
+                            if (XianXia.Core.Npc.NpcHostilityService.HasPrivateHostility(world, right.Id, left.Id))
+                                XianXia.Core.Npc.NpcHostilityService.SetPrivateHostility(world, right.Id, left.Id, false);
+                        }
+        }
+
         public static bool CanMilitaryCapture(
             SimulationWorld world,
             string attackerFaction,

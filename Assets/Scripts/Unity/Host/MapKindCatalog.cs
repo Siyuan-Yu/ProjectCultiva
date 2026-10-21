@@ -32,6 +32,7 @@ namespace XianXia.Unity.Host
         public const string TreeM = "Assets/Prefabs/Environment/Props/TreeMid.prefab";
         public const string TreeL = "Assets/Prefabs/Environment/Props/TreeLarge.prefab";
         public const string Ore = "Assets/Prefabs/Environment/Props/OrePile.prefab";
+        public const string ChessBoard = "Assets/Prefabs/Environment/Props/ChessBoard.prefab";
         public const string Cushion = "Assets/Prefabs/Environment/Props/Cushion.prefab";
         public const string MissingPrefab = "Assets/Prefabs/Environment/Tiles/MissingPrefabPlaceholder.prefab";
 
@@ -166,6 +167,8 @@ namespace XianXia.Unity.Host
 
             new("cave", Cave, StampMode.SingleCentered, 4, 4, false, HostInteractSpotKind.Explore,
                 new UnityEngine.Color(0.42f, 0.36f, 0.40f)),
+            new("chessBoard", ChessBoard, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(.65f,.46f,.25f)),
             new("loot", Cushion, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Loot,
                 new UnityEngine.Color(0.85f, 0.72f, 0.28f)),
             new("controlCore", Hub, StampMode.SingleCentered, 8, 8, false, null,
