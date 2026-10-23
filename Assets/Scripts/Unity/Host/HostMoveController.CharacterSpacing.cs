@@ -6,13 +6,13 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
 using XianXia.Core.Npc;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Unity.Host
 {
     public sealed partial class HostMoveController
     {
         // Foot-space presentation clearance, deliberately independent of heads, sleeves and tools.
-        const float CharacterStandSpacing = .8f;
         readonly Dictionary<ulong, Vector3> _characterDestinations = new Dictionary<ulong, Vector3>();
         readonly List<EntityView> _characterOccupants = new List<EntityView>(64);
         readonly List<Vector3> _standPathScratch = new List<Vector3>(32);
@@ -27,8 +27,7 @@ namespace XianXia.Unity.Host
 
         float StandSpacing(EntityView view)
         {
-            var scale = view.transform.lossyScale;
-            return CharacterStandSpacing * Mathf.Max(.25f, Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)));
+            return (_walkGrid != null ? _walkGrid.CellSize : 1f) * SurfaceCellGeometry.CharacterWidthCells;
         }
 
         bool IsCharacterSleeping(EntityId id)
@@ -88,12 +87,12 @@ namespace XianXia.Unity.Host
                 var spacing = (actorSpacing + StandSpacing(other)) * .5f;
                 var delta = point - other.transform.position;
                 delta.z = 0f;
-                if (delta.sqrMagnitude < spacing * spacing - .0001f) return false;
+                if (FeetOverlap(delta, spacing)) return false;
                 if (!includeDestinations ||
                     !_characterDestinations.TryGetValue(other.EntityId.Value, out var destination)) continue;
                 delta = point - destination;
                 delta.z = 0f;
-                if (delta.sqrMagnitude < spacing * spacing - .0001f) return false;
+                if (FeetOverlap(delta, spacing)) return false;
             }
             return true;
         }
@@ -205,7 +204,6 @@ namespace XianXia.Unity.Host
             RefreshCharacterOccupants();
             var travel = to - from;
             travel.z = 0f;
-            var lengthSquared = travel.sqrMagnitude;
             for (var i = 0; i < _characterOccupants.Count; i++)
             {
                 var other = _characterOccupants[i];
@@ -215,16 +213,31 @@ namespace XianXia.Unity.Host
                 var end = to - other.transform.position;
                 start.z = end.z = 0f;
                 // If a save or spawn already overlaps, allow a step out, never deeper in.
-                if (start.sqrMagnitude < spacing * spacing - .0001f)
+                if (FeetOverlap(start, spacing))
                 {
-                    if (end.sqrMagnitude <= start.sqrMagnitude + .0001f) return false;
+                    if (Mathf.Max(Mathf.Abs(end.x), Mathf.Abs(end.y)) <=
+                        Mathf.Max(Mathf.Abs(start.x), Mathf.Abs(start.y)) + .0001f) return false;
                     continue;
                 }
-                var t = lengthSquared > .000001f
-                    ? Mathf.Clamp01(-Vector3.Dot(start, travel) / lengthSquared) : 0f;
-                if ((start + travel * t).sqrMagnitude < spacing * spacing - .0001f) return false;
+                var enter = 0f; var exit = 1f;
+                var extent = spacing - .0001f;
+                if (ClipFootAxis(start.x, travel.x, extent, ref enter, ref exit) &&
+                    ClipFootAxis(start.y, travel.y, extent, ref enter, ref exit)) return false;
             }
             return true;
+        }
+
+        static bool FeetOverlap(Vector3 delta, float width) =>
+            Mathf.Abs(delta.x) < width - .0001f && Mathf.Abs(delta.y) < width - .0001f;
+
+        static bool ClipFootAxis(float start, float delta, float extent, ref float enter, ref float exit)
+        {
+            if (Mathf.Abs(delta) < .000001f) return Mathf.Abs(start) < extent;
+            var a = (-extent - start) / delta;
+            var b = (extent - start) / delta;
+            enter = Mathf.Max(enter, Mathf.Min(a, b));
+            exit = Mathf.Min(exit, Mathf.Max(a, b));
+            return enter <= exit;
         }
 
         bool IsSpacingStepNavigable(Vector3 from, Vector3 candidate, Vector3 waypoint, bool requireConnection)

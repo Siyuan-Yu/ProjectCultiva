@@ -16,9 +16,13 @@ namespace XianXia.Unity.Host
     public sealed class HostMortalWorkPanel : MonoBehaviour
     {
         const string PauseOwner = "MortalWorkPanel";
+        static readonly MortalProfession[] Professions = (MortalProfession[])Enum.GetValues(typeof(MortalProfession));
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] bool open;
         readonly List<Entity> _people = new List<Entity>();
+        SimulationWorld _peopleWorld;
+        string _peopleSiteId;
+        int _peopleFrame = -1;
         Vector2 _scroll;
         bool _holdingPause;
         string _status = string.Empty;
@@ -38,13 +42,18 @@ namespace XianXia.Unity.Host
             bootstrap.WorldMapPanel?.Close();
             bootstrap.QuestJournal?.Close();
             open = true;
+            _peopleFrame = -1;
             bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
             HostInputGate.Acquire(PauseOwner);
         }
 
         public void Close() { open = false; ReleasePause(); }
-        public void ClearSessionState() { Close(); _scroll = Vector2.zero; _status = string.Empty; }
+        public void ClearSessionState()
+        {
+            Close(); _scroll = Vector2.zero; _status = string.Empty;
+            _people.Clear(); _peopleWorld = null; _peopleSiteId = null; _peopleFrame = -1;
+        }
         void OnDisable() => ReleasePause();
         void ReleasePause()
         {
@@ -91,7 +100,10 @@ namespace XianXia.Unity.Host
             var contentHeight = Mathf.Max(view.height, _people.Count * cardStride + 12f);
             _scroll = GUI.BeginScrollView(view, _scroll, new Rect(0f, 0f, view.width - 18f, contentHeight));
             if (_people.Count == 0) GUI.Label(new Rect(8f, 8f, view.width - 28f, 26f), "当前聚落没有可显示的凡人人员。", _body);
-            for (var i = 0; i < _people.Count; i++) DrawPerson(world, _people[i], i * cardStride + 4f, view.width - 32f);
+            // Fixed-height cards use absolute rects, so offscreen rows need no queries or controls.
+            var first = Mathf.Max(0, Mathf.FloorToInt(_scroll.y / cardStride) - 1);
+            var end = Mathf.Min(_people.Count, Mathf.CeilToInt((_scroll.y + view.height) / cardStride) + 1);
+            for (var i = first; i < end; i++) DrawPerson(world, _people[i], i * cardStride + 4f, view.width - 32f);
             GUI.EndScrollView();
         }
 
@@ -110,6 +122,11 @@ namespace XianXia.Unity.Host
 
         void Collect(SimulationWorld world, string siteId)
         {
+            if (_peopleFrame == Time.frameCount && ReferenceEquals(_peopleWorld, world) &&
+                string.Equals(_peopleSiteId, siteId, StringComparison.Ordinal)) return;
+            _peopleFrame = Time.frameCount;
+            _peopleWorld = world;
+            _peopleSiteId = siteId;
             _people.Clear();
             if (string.IsNullOrEmpty(siteId)) return;
             foreach (var pair in world.Civilians.All)
@@ -152,14 +169,13 @@ namespace XianXia.Unity.Host
                 "前往地点：" + targetWork + "    住处床位：" + targetBed, _small);
             GUI.Label(new Rect(card.x + 10f, card.y + 92f, card.width - 20f, 20f),
                 "状态：" + (string.IsNullOrEmpty(state.ScheduleStatus) ? scheduleReason : state.ScheduleStatus), _small);
-            var professions = (MortalProfession[])Enum.GetValues(typeof(MortalProfession));
-            var buttonW = Mathf.Min(112f, (card.width - 20f) / professions.Length);
+            var buttonW = Mathf.Min(112f, (card.width - 20f) / Professions.Length);
             GUI.enabled = manageable;
-            for (var p = 0; p < professions.Length; p++)
+            for (var p = 0; p < Professions.Length; p++)
                 if (GUI.Button(new Rect(card.x + 10f + p * buttonW, card.y + 122f, buttonW - 4f, 28f),
-                    HostMortalActivityPresentation.Profession(professions[p])))
+                    HostMortalActivityPresentation.Profession(Professions[p])))
                 {
-                    var result = MortalCivilianService.SetProfession(world, entity.Id, professions[p]);
+                    var result = MortalCivilianService.SetProfession(world, entity.Id, Professions[p]);
                     _status = result.IsSuccess ? name + "的职业已更新。" : result.Error.Message;
                     if (result.IsSuccess) HostAudioFeedback.Play(bootstrap.gameObject, HostAudioFeedback.Cue.Confirm);
                 }

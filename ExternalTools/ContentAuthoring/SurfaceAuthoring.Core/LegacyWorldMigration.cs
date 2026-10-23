@@ -118,8 +118,21 @@ public static class LegacyWorldMigration
             foreach(var o in bp.ObjectPlacements.OrderBy(x=>x.PlacementId,StringComparer.Ordinal)){var wx=binding.OriginWorldX+(placement.SurfaceCellX+o.LocalSurfaceX)*binding.SurfaceCellWorldSize;var wy=binding.OriginWorldY+(placement.SurfaceCellY+o.LocalSurfaceY)*binding.SurfaceCellWorldSize;var item=new JsonObject{{"stableId",o.PlacementId},{"siteId","base:site_huangcun"},{"worldX",wx},{"worldY",wy},{"worldWidth",o.WidthCells*binding.SurfaceCellWorldSize},{"worldHeight",o.HeightCells*binding.SurfaceCellWorldSize},{"kind",o.KindId},{"blocksMovement",o.Metadata.TryGetValue("blocksMovement",out var blocked)&&bool.TryParse(blocked,out var b)&&b}};foreach(var key in new[]{"boundLocationId","label","sourceGridX","sourceGridY","sourceCellsW","sourceCellsH","chunkX","chunkY","buildingId","quarterTurns","parentRoomId","roomUsage","initialAssigneeSpawnKey","structureDurability"})if(o.Metadata.TryGetValue(key,out var value))item[key]=int.TryParse(value,out var n)?JsonValue.Create(n):JsonValue.Create(value);item["chunkX"]=(int)Math.Floor((placement.SurfaceCellX+o.LocalSurfaceX)/50);item["chunkY"]=(int)Math.Floor((placement.SurfaceCellY+o.LocalSurfaceY)/50);placements.Add(item);}SynchronizeHuangcunSitePlaces(bp,placement,binding,main);ValidateBlueprintGeometryFidelity(bp,main["sitePlacements"]!.AsArray());
         }
         PublishAdditionalBlueprints(composition, linked, main);
+        FinalizeGridPlacements(main, binding);
         var terrainRows=new JsonArray();var forestRows=new JsonArray();for(var y=0;y<height;y++){var terrain=new char[width];var forest=new char[width];for(var x=0;x<width;x++){var c=engine.Resolve(x,y);terrain[x]=c.BaseTerrain==BaseTerrain.Water?'W':c.BaseTerrain==BaseTerrain.Mountain?'M':'P';forest[x]=c.Feature==TerrainFeature.Forest?(char)('0'+Math.Clamp((int)Math.Round(c.FeatureDensity*9d),1,9)):'0';}terrainRows.Add(new string(terrain));forestRows.Add(new string(forest));}var mapRoot=new JsonObject{{"schemaVersion",1},{"definitions",new JsonArray{new JsonObject{{"id","base:main_world_surface_map_v1"},{"type","continuousSurfaceWorldMap"},{"name","主世界连续地图表现缓存"},{"compositionId",composition.CompositionId},{"surfaceId",binding.SurfaceId},{"sourceHash",ContinuousSurfaceBaker.SourceHash(composition,linked)},{"originWorldX",binding.OriginWorldX},{"originWorldY",binding.OriginWorldY},{"cellSize",binding.SurfaceCellWorldSize},{"widthCells",width},{"heightCells",height},{"baseTerrainRows",terrainRows},{"forestRows",forestRows}}}}};
         var mainOut=Path.Combine(outputDirectory,"main_wilderness_surface_v1.candidate.json");var geoOut=Path.Combine(outputDirectory,"w2a_surface_geography_baked_v1.candidate.json");var mapOut=Path.Combine(outputDirectory,"main_world_surface_map_v1.candidate.json");File.WriteAllText(mainOut,mainRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(geoOut,geoRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(mapOut,mapRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));return[mainOut,geoOut,mapOut];
+    }
+
+    private static void FinalizeGridPlacements(JsonObject main, RuntimeSurfaceBinding binding)
+    {
+        foreach (var item in main["sitePlacements"]!.AsArray().OfType<JsonObject>())
+        {
+            var w = (int)Math.Round(Number(item,"worldWidth")/binding.SurfaceCellWorldSize);
+            var h = (int)Math.Round(Number(item,"worldHeight")/binding.SurfaceCellWorldSize);
+            item["sourceCellsW"] = w; item["sourceCellsH"] = h;
+            item["chunkX"] = (int)Math.Floor(((Number(item,"worldX")-binding.OriginWorldX)/binding.SurfaceCellWorldSize+w*.5)/50);
+            item["chunkY"] = (int)Math.Floor(((Number(item,"worldY")-binding.OriginWorldY)/binding.SurfaceCellWorldSize+h*.5)/50);
+        }
     }
 
     private static void PublishAdditionalBlueprints(WorldCompositionDocument composition, LinkedSourceSet linked, JsonObject main)

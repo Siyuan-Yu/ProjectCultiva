@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, float> _strikeCooldown = new Dictionary<ulong, float>();
         readonly HashSet<ulong> _explicitStop = new HashSet<ulong>();
         readonly Dictionary<ulong, float> _retreatingUntil = new Dictionary<ulong, float>();
+        readonly List<EntityId> _previousAutonomousActors = new List<EntityId>(64);
         readonly MeleeCombatService _melee = new MeleeCombatService();
         readonly SpiritVeilService _veil = new SpiritVeilService();
 
@@ -121,7 +122,8 @@ namespace XianXia.Unity.Host
                             !shotWorld.Entities.TryGet(actor, out var shooter) ||
                             !shotWorld.Entities.TryGet(target, out var victim) ||
                             !CombatLifeStateService.CanFight(shooter) ||
-                            !CombatLifeStateService.CanBeAttacked(victim) ||
+                            !CombatLifeStateService.CanFight(victim) ||
+                            !IsLegalTarget(shotWorld, actor, target) ||
                             !SameBattleSpace(shotWorld, actor, target)) return false;
                         var hit = _melee.ApplyStrike(shotWorld, actor, target, out _, out var defeated);
                         if (hit.IsSuccess && defeated) RefreshDown(target);
@@ -144,10 +146,9 @@ namespace XianXia.Unity.Host
 
         void Scan(SimulationWorld world, EntityViewSpawner spawner)
         {
+            _previousAutonomousActors.Clear();
             foreach (var previous in _targets)
-                if (!IsLegalTarget(world, new EntityId(previous.Key), previous.Value) &&
-                    !HasPlayerAction(world, new EntityId(previous.Key)))
-                    _host.MoveController.CancelPresentationMovementPublic(new EntityId(previous.Key));
+                _previousAutonomousActors.Add(new EntityId(previous.Key));
             _visible.Clear(); _targets.Clear();
             foreach (var view in spawner.Registry.All)
                 if (view != null && LocalMapVisibility.IsEntityVisible(world, view.EntityId) &&
@@ -190,6 +191,15 @@ namespace XianXia.Unity.Host
                 }
                 if (!best.IsNone) _targets[actor.Value] = best;
             }
+            // Once the scan loses contact, the old chase must not keep walking on its own.
+            // Explicit player actions and ongoing retreat/manual combat retain their movement.
+            foreach (var actor in _previousAutonomousActors)
+                if (!_targets.ContainsKey(actor.Value) && actor != active &&
+                    !HasPlayerAction(world, actor) && manual?.IsInFight(actor) != true &&
+                    (!_retreatingUntil.TryGetValue(actor.Value, out var until) || Time.unscaledTime >= until) &&
+                    (!world.Entities.TryGet(actor, out var entity) ||
+                     !entity.TryGet<NpcAutonomyState>(out var state) || !state.Retreating))
+                    _host.MoveController.CancelPresentationMovementPublic(actor);
         }
 
         static bool SameBattleSpace(SimulationWorld world, EntityId a, EntityId b)

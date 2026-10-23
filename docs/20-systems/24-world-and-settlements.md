@@ -1,5 +1,7 @@
 # 世界与据点
 
+> **2026-10-23 世界尺寸更新：** 主连续世界为 **7600×3400 Surface Cells**，荒村蓝图为 **240×200 格**，分别为此前长宽的 2 倍。议政厅／势力旗的一级控制范围为 **225×225 格**，此前长宽的 1.5 倍。道路、河流、桥梁及建筑／家具尺寸保留，世界坐标与作者源同源展开。内容版本为 `0.0.5-world-expand-05`，旧布局存档不隐式迁移；新开局验收见 [320](../40-process/320-world-expand-05-7600x3400-2026-10-23.md)。下文旧坐标只保留历史记录含义。
+
 ## AUCTION-01 世界入口（2026-09-25）
 
 仅显式 `auctionProviderHouseId` 的固定 NPC 提供“拍卖”，与 `tradeProviderShopId` 分离。青石坊市·拍卖行执事位于黄村主 Surface `(5.30,11.10)`；AuctionHouse runtime 属于 HouseId，不随执事生命周期重置。状态 **Producer Accepted / Sealed**；详见 process 266。

@@ -62,6 +62,9 @@ public partial class MainWindow : Window
     }
 
     private void NewSet_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建地点表失败", CreateSet);
+
+    private void CreateSet()
     {
         if (_package == null)
         {
@@ -80,27 +83,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        var root = new JsonObject
+        var raw = new JsonObject
         {
-            ["schemaVersion"] = 1,
-            ["definitions"] = new JsonArray
-            {
-                new JsonObject
-                {
-                    ["id"] = id,
-                    ["type"] = "localPlaceSet",
-                    ["name"] = "新场景地点表",
-                    ["mapLayoutId"] = "",
-                    ["startLocationId"] = "",
-                    ["locations"] = new JsonArray()
-                }
-            }
+            ["id"] = id,
+            ["type"] = "localPlaceSet",
+            ["name"] = "新场景地点表",
+            ["mapLayoutId"] = "",
+            ["startLocationId"] = "",
+            ["locations"] = new JsonArray()
         };
-        File.WriteAllText(
-            path,
-            root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) +
-            Environment.NewLine,
-            new System.Text.UTF8Encoding(false));
+        PackageStore.AppendDefinition(_package, "LocalPlaces/places_new.json", raw);
         LoadRoot(_package.Root);
         SetCombo.SelectedItem = id;
         StatusText.Text = "已新建 " + path;
@@ -154,14 +146,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        _set.Raw["name"] = NameBox.Text ?? "";
-        JsonEdit.SetString(_set.Raw, "mapLayoutId", MapCombo.Text);
-        JsonEdit.SetString(_set.Raw, "startLocationId", StartBox.Text);
-        var arr = new JsonArray();
-        foreach (var row in _rows) arr.Add(row.ToJson());
-        _set.Raw["locations"] = arr;
         try
         {
+            if (!LocGrid.CommitEdit(System.Windows.Controls.DataGridEditingUnit.Cell, true) ||
+                !LocGrid.CommitEdit(System.Windows.Controls.DataGridEditingUnit.Row, true))
+                throw new InvalidOperationException("表格中有未完成或格式错误的输入，请修正后保存。");
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var row in _rows)
+                if (string.IsNullOrWhiteSpace(row.Id) || !ids.Add(row.Id.Trim()))
+                    throw new InvalidOperationException("地点 ID 不能为空或重复：" + row.Id);
+            var start = StartBox.Text.Trim();
+            if (start.Length > 0 && !ids.Contains(start))
+                throw new InvalidOperationException("起始地点不在当前地点表中：" + start);
+            _set.Raw["name"] = NameBox.Text ?? "";
+            JsonEdit.SetString(_set.Raw, "mapLayoutId", MapCombo.Text);
+            JsonEdit.SetString(_set.Raw, "startLocationId", start);
+            var arr = new JsonArray();
+            foreach (var row in _rows) arr.Add(row.ToJson());
+            _set.Raw["locations"] = arr;
             PackageStore.SaveDefinition(_package, _set);
             StatusText.Text = "已保存: " + Path.GetFileName(_set.FilePath);
             var keep = _set.Id;
@@ -177,6 +179,7 @@ public partial class MainWindow : Window
 
 public sealed class PlaceRow : INotifyPropertyChanged
 {
+    private JsonObject _source = new();
     private string _id = "";
     private string _name = "";
     private string _kind = "野外";
@@ -219,6 +222,7 @@ public sealed class PlaceRow : INotifyPropertyChanged
 
     public static PlaceRow FromJson(JsonObject loc) => new()
     {
+        _source = (JsonObject)loc.DeepClone(),
         Id = JsonEdit.GetString(loc, "id"),
         Name = JsonEdit.GetString(loc, "name"),
         Kind = UiLabels.ToLabel(UiLabels.LocationKinds, JsonEdit.GetString(loc, "kind", "Wild"), "野外"),
@@ -240,16 +244,19 @@ public sealed class PlaceRow : INotifyPropertyChanged
 
     public JsonObject ToJson()
     {
-        var o = new JsonObject
-        {
-            ["id"] = Id,
-            ["name"] = Name,
-            ["kind"] = UiLabels.ToKey(UiLabels.LocationKinds, Kind, "Wild"),
-            ["tags"] = JsonEdit.ParseStringList(Tags),
-            ["adjacentIds"] = JsonEdit.ParseStringList(AdjacentIds),
-            ["presentationX"] = PresentationX,
-            ["presentationZ"] = PresentationZ
-        };
+        // Preserve enterConditions and other runtime fields that this table does not edit.
+        var o = (JsonObject)_source.DeepClone();
+        o["id"] = Id.Trim();
+        o["name"] = Name;
+        o["kind"] = UiLabels.ToKey(UiLabels.LocationKinds, Kind, "Wild");
+        o["tags"] = JsonEdit.ParseStringList(Tags);
+        o["adjacentIds"] = JsonEdit.ParseStringList(AdjacentIds);
+        o["presentationX"] = PresentationX;
+        o["presentationZ"] = PresentationZ;
+        foreach (var key in new[] { "allowedActivities", "resourceOnExploreId", "resourceOnExploreAmount",
+                     "residentNpcDefinitionId", "opportunitySiteId", "questOfferIds", "localMapId",
+                     "enterLocalMapId", "enterSpawnLocationId", "surveySenseRequired" })
+            o.Remove(key);
         var acts = UiLabels.ActivitiesCsvToKeys(AllowedActivities);
         if (!string.IsNullOrWhiteSpace(acts))
             o["allowedActivities"] = JsonEdit.ParseStringList(acts);

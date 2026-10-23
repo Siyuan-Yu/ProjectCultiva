@@ -4,6 +4,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Npc;
 
 namespace XianXia.Core.Combat
 {
@@ -55,6 +56,10 @@ namespace XianXia.Core.Combat
         {
             if (entity == null)
                 return Result.Failure(ErrorCode.EntityNotFound, "Entity missing.");
+            if (!CombatLifeStateService.CanFight(entity))
+                return Result.Failure(ErrorCode.InvalidOperation, "当前人物失能，无法召唤斗气纱衣。");
+            if (PartyRestService.BlocksMovement(entity))
+                return Result.Failure(ErrorCode.InvalidOperation, "精力耗尽，恢复后才能召唤斗气纱衣。");
             if (!entity.TryGet<CultivationComponent>(out var cult) ||
                 !SpiritVeilRules.CanUseRealm(cult.Realm))
                 return Result.Failure(ErrorCode.InvalidOperation, "筑基后方可召唤斗气纱衣。");

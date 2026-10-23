@@ -42,6 +42,14 @@ public static class RuntimeLayoutPublication
                     (!Number(item, "widthCells", out var w) || !Number(item, "heightCells", out var h) ||
                      w <= 0 || h <= 0 || x + w > source.SurfaceWidthCells || y + h > source.SurfaceHeightCells))
                     yield return Error($"业务布局物件 {value} 尺寸无效或超出世界。");
+                if (key == "sitePlacements" &&
+                    (!SurfaceAuthoringValidation.GridInteger(x) || !SurfaceAuthoringValidation.GridInteger(y) ||
+                     !Number(item, "widthCells", out var width) || !SurfaceAuthoringValidation.GridInteger(width) ||
+                     !Number(item, "heightCells", out var height) || !SurfaceAuthoringValidation.GridInteger(height)))
+                    yield return Error($"业务布局物件 {value} 的坐标和占地必须为整数格。");
+                if (key == "factionFlags" &&
+                    (!SurfaceAuthoringValidation.GridInteger(x) || !SurfaceAuthoringValidation.GridInteger(y)))
+                    yield return Error($"势力旗 {value} 的 4×4 占地须对齐网格。");
             }
         }
     }
@@ -81,7 +89,10 @@ public static class RuntimeLayoutPublication
     private static bool Number(JsonObject item, string key, out double value)
     {
         value = 0;
-        return item[key] is JsonValue scalar && scalar.TryGetValue<double>(out value) && double.IsFinite(value);
+        if (item[key] is not JsonValue scalar) return false;
+        if (scalar.TryGetValue<double>(out value)) return double.IsFinite(value);
+        if (scalar.TryGetValue<int>(out var integer)) { value = integer; return true; }
+        return false;
     }
     private static SurfaceAuthoringValidationIssue Error(string message) => new(ValidationSeverity.Error, message);
 }

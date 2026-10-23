@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_huangcun_settle",
+      "type": "quest",
+      "name": "荒村见闻·先认人",
+      "description": "可选引导，没有时限。与杂役主管谈谈村内规矩，再与阿石、阿木或阿杏中的任意一人交谈。旁人的小事不等于每日劳役配额，也不强迫你接受委托。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_rules_heard"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_neighbor_met"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_settled"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_practice",
+      "type": "quest",
+      "name": "修行札记·从吐纳开始",
+      "description": "可选引导。向将老请教吐纳，或询问阿木林边的见闻，了解村内的打坐处。感应境无需先得功法；实际修炼必须走到可用蒲团，不会因完成此记录自动涨修为。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_practice_advice"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_practice_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_first_qi",
+      "type": "quest",
+      "name": "修行札记·叩开炼气",
+      "description": "可选长期目标。到蒲团修炼，照顾饱食、精力与心境；感应境各阶段修为满后需主动尝试突破。当前查阅任务的人实际达到炼气境即可完成，不要求先赢棋或探索洞府。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "realmAtLeast",
+          "realm": "炼气"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_first_qi"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_cave",
+      "type": "quest",
+      "name": "山中旧迹·废弃洞府",
+      "description": "可选探索。根据灵泉附近的气息提示，使用神识勘查寻找入口，进入并探索洞府内室。先恢复状态、查看周围敌我；不要求击败主管，也不因接取任务生成敌人。",
+      "questKind": "secretRealm",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_cave_hint"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_cave_chamber"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_cave_explored"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_road",
+      "type": "quest",
+      "name": "出村见闻·青石镇",
+      "description": "可选远行。准备食物与队伍，沿世界地图前往青石镇入口。此目标只记录实际到达，不赠送传送或强制发动战斗。遇到危险可以先退回村内。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_road_hint"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "characterAtLocation",
+          "id": "base:loc_site_chengzhen_start"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_town_reached"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_grain",
+      "type": "quest",
+      "name": "阿石·锅里留一口",
+      "description": "自愿帮阿石凑 2 份粮食，交给本人。没有时限，不替代劳役配额。交付会真实消耗可取用物资；可先准备背包物资，资源不足时不会部分扣除。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_grain",
+          "amount": 2
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:resource_rough_wood",
+          "amount": 2
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        },
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_helped_grain"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_medicine",
+      "type": "quest",
+      "name": "阿杏·把药备上",
+      "description": "自愿为阿杏补 2 份灵药，交给本人。没有时限。完成后在任务日志领取她备下的 3 份粮食，并增进与她的关系；不凭任务文本替代实际医治。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_spirit_herb",
+          "amount": 2
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:resource_grain",
+          "amount": 3
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 6
+        },
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_helped_medicine"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_wood",
+      "type": "quest",
+      "name": "阿木·修好背筐",
+      "description": "自愿给阿木找 3 份粗木补背筐，交给本人。没有时限，物资实际扣除。回报是 1 份灵药和一点交情；林边的线索也可直接询问，不以交物资锁住探索。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "amount": 3
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:resource_spirit_herb",
+          "amount": 1
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 5
+        },
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_helped_wood"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

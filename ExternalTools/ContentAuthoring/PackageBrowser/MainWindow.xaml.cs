@@ -36,7 +36,9 @@ public partial class MainWindow : Window
                 .Select(g => $"{g.Key} ({g.Count()})")
                 .ToList();
             if (TypeList.Items.Count > 0) TypeList.SelectedIndex = 0;
-            IssueList.ItemsSource = null;
+            ShowIssues(_package.LoadIssues);
+            if (_package.LoadIssues.Count > 0)
+                StatusText.Text += $" · {_package.LoadIssues.Count} 个加载错误（修复后重新加载）";
         }
         catch (Exception ex)
         {
@@ -63,9 +65,17 @@ public partial class MainWindow : Window
     {
         if (_package == null) return;
         var issues = PackageValidator.Validate(_package);
-        IssueList.ItemsSource = issues.Select(i => $"[{i.Level}] {i.Message}").ToList();
-        StatusText.Text = issues.Count == 0 ? "校验通过" : $"校验完成：{issues.Count} 条问题";
+        ShowIssues(issues);
+        StatusText.Text = issues.Count == 0
+            ? "作者工具检查通过；进入游戏前仍需运行 Unity 完整内容引用校验。"
+            : $"校验完成：{issues.Count} 条问题";
     }
+
+    private void ShowIssues(IEnumerable<ValidationIssue> issues) =>
+        IssueList.ItemsSource = issues.Select(issue =>
+            $"[{issue.Level}] {issue.Message}" +
+            (string.IsNullOrWhiteSpace(issue.FilePath) ? "" : $"\n文件：{issue.FilePath}"))
+            .ToList();
 
     private void Reload_Click(object sender, RoutedEventArgs e)
     {

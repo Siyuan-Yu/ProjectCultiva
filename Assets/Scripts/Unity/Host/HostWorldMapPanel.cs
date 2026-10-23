@@ -209,6 +209,8 @@ namespace XianXia.Unity.Host
             HostInputGate.Release(InputOwner);
         }
 
+        void OnDestroy() => _renderer.Clear();
+
         void OnGUI()
         {
             if (!open) return;
@@ -316,28 +318,11 @@ namespace XianXia.Unity.Host
             {
                 _roadCacheIdentity = identity;
                 _roadRects.Clear();
-                for (var y = 0; y < nav.Height; y++)
+                foreach (var span in nav.RoadSpans)
                 {
-                    var runStart = -1;
-                    for (var x = 0; x <= nav.Width; x++)
-                    {
-                        var road = false;
-                        if (x < nav.Width)
-                        {
-                            nav.WalkGrid.CellToWorldCenter(x, y, out var wx, out var wy);
-                            if (nav.TryGetCell(wx, wy, out var kind))
-                                road = (kind & SurfaceGroundCellKind.Road) != 0 &&
-                                       (kind & (SurfaceGroundCellKind.Water |
-                                                SurfaceGroundCellKind.Bridge |
-                                                SurfaceGroundCellKind.Solid)) == 0;
-                        }
-                        if (road && runStart < 0) runStart = x;
-                        if (road || runStart < 0) continue;
-                        _roadRects.Add(new Rect(nav.OriginX + runStart * nav.CellSize,
-                            nav.OriginY + y * nav.CellSize, (x - runStart) * nav.CellSize,
-                            nav.CellSize));
-                        runStart = -1;
-                    }
+                    _roadRects.Add(new Rect(nav.OriginX + span.X * nav.CellSize,
+                        nav.OriginY + span.Y * nav.CellSize, span.Length * nav.CellSize,
+                        nav.CellSize));
                 }
             }
             foreach (var road in _roadRects)

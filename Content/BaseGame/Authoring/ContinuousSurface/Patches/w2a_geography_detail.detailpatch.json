@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "patchId": "w2a_geography_detail",
   "displayName": "W2A 地理精修",
-  "widthCells": 500,
-  "heightCells": 500,
+  "widthCells": 1000,
+  "heightCells": 1000,
   "fineTerrainOverrides": []
 }

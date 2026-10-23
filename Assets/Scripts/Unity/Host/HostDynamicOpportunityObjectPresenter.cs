@@ -46,9 +46,9 @@ namespace XianXia.Unity.Host
             var center = HostPresentationSpace.FromPresentation(px, py, HostPresentationSpace.GroundZ);
             var view = HostMapObjectVisualFactory.Create(kind.Kind, kind.PrefabPath,
                 "DynamicOpportunity_" + instance.WorldObjectInstanceId, _root, center,
-                spec.WorldObjectWorldWidth, spec.WorldObjectWorldHeight, -18, true);
+                spec.WorldObjectWidthCells, spec.WorldObjectHeightCells, -18, true);
             var bounds = new Bounds(center, new Vector3(
-                Mathf.Max(.2f, spec.WorldObjectWorldWidth), Mathf.Max(.2f, spec.WorldObjectWorldHeight), 1f));
+                spec.WorldObjectWidthCells, spec.WorldObjectHeightCells, 1f));
             var entry = new HostDynamicWorldObjectEntry
             {
                 WorldObjectInstanceId = instance.WorldObjectInstanceId,

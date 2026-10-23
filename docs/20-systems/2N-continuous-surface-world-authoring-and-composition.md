@@ -45,11 +45,17 @@
 | Detail Patch（精修块） | 任意 Surface Cell 尺寸 | 局部覆盖与手工修饰 | 不是 chunk |
 | Final Continuous Surface | 一大陆一张 | runtime 户外地理唯一真源 | 不保留 source authoring pieces |
 
-例：主要 Surface 为 1900×850 cells 时，Composer 为 190×85 World Editor Cells；边缘使用 ceil(dimension / 10)，允许最后一格为 partial。当前 50×50 Chunk 等于 5×5 World Editor Cells。
+当前主 Surface 为 7600×3400 cells，Composer 为 760×340 World Editor Cells；边缘使用 ceil(dimension / 10)，允许最后一格为 partial。当前 50×50 Chunk 等于 5×5 World Editor Cells。
 
-150×150 Surface Cells 仅表示一级 SiteCore 的理论行政控制范围；不是 Chunk、Blueprint、World Editor Cell、Natural Region 或 authoring 最小尺寸。
+2026-10-23 制作人确认主 Surface 长宽从 3800×1700 扩到 7600×3400，荒村蓝图从 120×100 扩到 240×200；道路／河流只展开路径和长度，保持原宽度，人物／建筑／床及 CellSize 保持原尺寸。作者源和三个运行时产物同源重发，实施及验收见 [320](../40-process/320-world-expand-05-7600x3400-2026-10-23.md)。
+
+一级 SiteCore 的理论行政控制范围按制作人本轮指令从 150×150 改为 **225×225 Surface Cells**；不是 Chunk、Blueprint、World Editor Cell、Natural Region 或 authoring 最小尺寸。
 
 ## 3. Authoring 与 bake
+
+2026-10-23 荒村紧凑住宿与木围墙见 [322](../40-process/322-huangcun-compact-housing-and-cell-wood-walls-2026-10-23.md)：240×200 村域保留，住宅／床／住户锚点成组移动；村界沿边界逐格放置 844 段 1×1 木墙，四边各留 8 格常开通路。作者源与生成产物分离不变；墙的导航／逐格破坏身份仍走既有链，Host 木墙 prefab 单渲染层、无物理组件，保留 Chunk 加载／卸载，不以视觉合并覆盖格身份。
+
+2026-10-23 制作人确认静态建筑／场景物件采用整数 Surface Cell 占地和网格落点；物件中心可以位于半格，WorldPosition 仍是经 CellSize 换算的连续坐标。人物采用独立于美术缩放的 1×1 格站位，并保持连续移动。棋盘本体和两侧独立使用格均为 1×1，脚印提示须与真实到位目标同源。旧导入比例、作者工具门禁及全部现行内容核查见 [321](../40-process/321-integer-grid-footprints-and-use-cells-2026-10-23.md)。
 
 制作人手工绘制大陆的宏观地形与关键地理。Terrain/Detail Deterministic Expansion 只把已选择的宏观意图展开为 10×10 cell 细节，例如地表、树木散布、空地及自然边缘；它不是 runtime procedural world generation。
 

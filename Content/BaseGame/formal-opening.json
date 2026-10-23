@@ -1,5 +1,5 @@
 {
-  "openingScenarioId": "base:scenario_ch01_reference",
-  "characterRosterId": "base:roster_formal_reference",
+  "openingScenarioId": "base:scenario_huangcun_life",
+  "characterRosterId": "base:roster_huangcun_life",
   "preferredMapLayoutId": "base:map_ch01_cave"
 }

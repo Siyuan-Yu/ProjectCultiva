@@ -4,6 +4,8 @@
 
 ## 日常编译与启动
 
+2026-10-23 整数格规则：FineEditor 物件左下角坐标与宽高只接受整数格，蒲团／棋盘固定 1×1；旋转／改尺寸同步更新 sourceCells 元数据。WorldComposer 的业务物件及 4×4 势力旗也必须对齐网格。发布器将实际整数占地写入 sourceCellsW/H，并以物件中心所属 Chunk 发布。连续人物锚点、道路河流曲线不受物件网格限制。规则见 [321](../../docs/40-process/321-integer-grid-footprints-and-use-cells-2026-10-23.md)。
+
 制作人日常只需双击 `编译-所有编辑器.cmd`。它会用 Release、win-x64、self-contained、single-file 构建 manifest 中全部默认编辑器；无需直接运行 PowerShell，也无需去 `.build/` 或工程 `bin/` 找 exe。
 
 成功后，从以下任一入口启动：

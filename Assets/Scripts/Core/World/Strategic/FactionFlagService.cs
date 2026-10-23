@@ -76,6 +76,9 @@ namespace XianXia.Core.World.Strategic
                 !world.SurfaceSpatial.TryGet(request.SurfaceId, out var surface) || surface == null ||
                 !surface.ContainsWorldPosition(request.WorldPosition.X, request.WorldPosition.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, "当前位置不属于有效Continuous Surface。");
+            if (!Surface.SurfaceCellGeometry.IsInteger((request.WorldPosition.X-surface.OriginWorldX)/surface.CellSize) ||
+                !Surface.SurfaceCellGeometry.IsInteger((request.WorldPosition.Y-surface.OriginWorldY)/surface.CellSize))
+                return Result.Failure(ErrorCode.InvalidArgument, "势力旗的 4×4 占地必须对齐 Surface 网格。");
 
             foreach (var pair in world.Strategic.Sites.Sites)
             {

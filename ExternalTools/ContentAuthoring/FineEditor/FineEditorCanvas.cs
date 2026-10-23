@@ -110,7 +110,7 @@ public sealed class FineEditorCanvas:SurfaceCanvasBase
     private static PixelRect Union(PixelRect a,PixelRect b){var x=Math.Min(a.X,b.X);var y=Math.Min(a.Y,b.Y);var right=Math.Max(a.X+a.Width,b.X+b.Width);var top=Math.Max(a.Y+a.Height,b.Y+b.Height);return new(x,y,right-x,top-y);}
     private static long Key(int x,int y)=>((long)y<<32)|(uint)x;
     private static string? Blank(string?s)=>string.IsNullOrWhiteSpace(s)?null:s;
-    private static void MarkGeometryEdited(BlueprintObjectPlacement item){if(item.Metadata.ContainsKey("legacyGeometryState"))item.Metadata["legacyGeometryState"]="edited";}
+    private static void MarkGeometryEdited(BlueprintObjectPlacement item){item.Metadata["legacyGeometryState"]="edited";item.Metadata["sourceCellsW"]=Math.Round(item.WidthCells).ToString(System.Globalization.CultureInfo.InvariantCulture);item.Metadata["sourceCellsH"]=Math.Round(item.HeightCells).ToString(System.Globalization.CultureInfo.InvariantCulture);}
     private static string Unique(string p,IEnumerable<string>ids){var set=ids.ToHashSet(StringComparer.Ordinal);if(!set.Contains(p))return p;for(var i=2;;i++)if(!set.Contains(p+"_"+i))return p+"_"+i;}
     private static Brush FrozenBrush(Color color){var b=new SolidColorBrush(color);b.Freeze();return b;}
     private static Pen FrozenPen(Brush brush,double width){var p=new Pen(brush,width);p.Freeze();return p;}

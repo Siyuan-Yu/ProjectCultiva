@@ -458,6 +458,9 @@ public partial class MainWindow : Window
     }
 
     void NewCharacter_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建人物失败", CreateCharacter);
+
+    void CreateCharacter()
     {
         if (_package == null) return;
         var id = $"base:character_npc_{DateTime.Now:yyyyMMddHHmmss}";
@@ -530,6 +533,15 @@ public partial class MainWindow : Window
     };
 
     void SaveCharacter_Click(object sender, RoutedEventArgs e)
+    {
+        try { SaveCharacter(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    void SaveCharacter()
     {
         if (_package == null || _character == null)
         {

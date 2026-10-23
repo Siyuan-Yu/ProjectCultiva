@@ -4,6 +4,8 @@
 
 ## 制作人反馈与范围
 
+2026-10-23 后续复用见 [322](322-huangcun-compact-housing-and-cell-wood-walls-2026-10-23.md)：沿用本页 ART-ROOM-002 贴图，新增 `Assets/Prefabs/Environment/Tiles/WoodWallTile.prefab`，由 `MapKindCatalog.wall` 及木材质运行时墙段使用，打包目录同步。该 prefab 单 SpriteRenderer、无旧占位行为／物理组件，Host 直接裁框适配而不创建第二覆盖层；本轮村界使用 844 段一格墙，仍待视觉及性能人工验收。旧 WallTile 保留供原入口使用，不宣称石墙美术已完成。
+
 制作人提供 298 实际运行截图：旧 `ART-ROOM-002_wall_straight_v02` 是狭窄的木框浅墙段，逐格组合呈栅栏感；目标是整块、封闭的木墙。制作人同时同意继续下一步。本轮针对这一明确画面反馈替换墙面视觉图，保持旧候选在 ArtSource 中；不重开人物动画。随后把黄村既有麦田、药田的四阶段图片接到真实农作物状态，使上一轮同屏样板中的田地不再只有旧色块。
 
 ## 表现边界

@@ -120,8 +120,8 @@
       "costs": [{"itemId":"base:resource_rough_wood","count":6}]
     },
     {
-      "id": "base:wall_segment_wood", "type": "building", "name": "木墙段", "description": "自由墙段；成本与工时为首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "wallSegment", "outdoorKind": "wallSegment", "footprintCellsW": 1, "footprintCellsH": 4, "constructionLabor": 8,
+      "id": "base:wall_segment_wood", "type": "building", "name": "木墙", "description": "1×1 格实木墙，可逐格连接；成本与工时沿用首轮暂定值。", "unlockedByDefault": true,
+      "placementKind": "wallSegment", "outdoorKind": "wallSegment", "footprintCellsW": 1, "footprintCellsH": 1, "constructionLabor": 8,
       "materialKind": "wood", "structureDurability": 70, "createsWorldSite": false, "dismantleRefundRate": 0.5,
       "costs": [{"itemId":"base:resource_rough_wood","count":4}]
     },

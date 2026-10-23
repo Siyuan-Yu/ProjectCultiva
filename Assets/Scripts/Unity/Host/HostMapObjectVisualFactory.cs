@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace XianXia.Unity.Host
 {
@@ -33,27 +35,50 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(parent, false);
             go.transform.localScale = Vector3.one;
             go.transform.position = intendedCenter;
-            Fit(go, Mathf.Max(.01f, worldWidth), Mathf.Max(.01f, worldHeight));
-            Align(go, intendedCenter);
-            var geometry = go.GetComponent<HostMapVisualGeometry>() ?? go.AddComponent<HostMapVisualGeometry>();
-            geometry.Configure(intendedCenter, worldWidth, worldHeight);
-            if (!missing)
-                HostStepAArt.ApplyObjectVisual(go, HostStepAArt.MapSprite(kind), visualQuarterTurns,
-                    kind == "wall" || kind == "road" || kind == "controlCore",
-                    kind == "controlCore");
-            foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>(true))
-                if (renderer != null) renderer.sortingOrder =
-                    HostArtDepth.ObjectOrder(kind, intendedCenter.y, worldHeight, sortingOrder);
+            // Cell wood walls use one renderer, not a placeholder plus disabled overlay.
+            var directWoodWall = !missing && prefabPath == MapKindCatalog.WoodWall;
+            if (directWoodWall)
+            {
+                var renderer = go.GetComponentInChildren<SpriteRenderer>();
+                var sprite = HostStepAArt.MapSprite("wall");
+                if (renderer != null)
+                {
+                    if (sprite != null) renderer.sprite = sprite;
+                    renderer.transform.localRotation = Quaternion.Euler(0, 0, -90f * (visualQuarterTurns % 4));
+                }
+            }
+            using (ListPool<SpriteRenderer>.Get(out var renderers))
+            {
+                go.GetComponentsInChildren(true, renderers);
+                Fit(go, renderers, Mathf.Max(.01f, worldWidth), Mathf.Max(.01f, worldHeight));
+                Align(go, renderers, intendedCenter);
+                var geometry = go.GetComponent<HostMapVisualGeometry>() ?? go.AddComponent<HostMapVisualGeometry>();
+                geometry.Configure(intendedCenter, worldWidth, worldHeight);
+                if (!missing && !directWoodWall &&
+                    HostStepAArt.ApplyObjectVisual(go, HostStepAArt.MapSprite(kind), visualQuarterTurns,
+                        kind == "wall" || kind == "road" || kind == "controlCore",
+                        kind == "controlCore"))
+                    go.GetComponentsInChildren(true, renderers); // The art overlay may add renderers.
+                var order = HostArtDepth.ObjectOrder(kind, intendedCenter.y, worldHeight, sortingOrder);
+                for (var i = 0; i < renderers.Count; i++)
+                    if (renderers[i] != null) renderers[i].sortingOrder = order;
+            }
             StripNonHostBehaviours(go);
             if (disableColliders)
             {
-                foreach (var collider in go.GetComponentsInChildren<Collider2D>(true))
-                    if (collider != null) collider.enabled = false;
-                foreach (var component in go.GetComponentsInChildren<Component>(true))
-                    if (component != null && component.GetType().Name.EndsWith("Collider", System.StringComparison.Ordinal))
+                using (ListPool<Component>.Get(out var components))
+                {
+                    go.GetComponentsInChildren(true, components);
+                    for (var i = 0; i < components.Count; i++)
                     {
-                        if (Application.isPlaying) Object.Destroy(component); else Object.DestroyImmediate(component);
+                        var component = components[i];
+                        if (component is Collider2D collider) collider.enabled = false;
+                        if (component != null && component.GetType().Name.EndsWith("Collider", System.StringComparison.Ordinal))
+                        {
+                            if (Application.isPlaying) Object.Destroy(component); else Object.DestroyImmediate(component);
+                        }
                     }
+                }
             }
             usedMissingVisual = missing;
             return go;
@@ -61,9 +86,19 @@ namespace XianXia.Unity.Host
 
         public static bool TryGetRendererBounds(GameObject go, out Bounds bounds)
         {
-            bounds = default; var any = false;
-            foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>(true))
+            using (ListPool<SpriteRenderer>.Get(out var renderers))
             {
+                go.GetComponentsInChildren(true, renderers);
+                return TryGetRendererBounds(renderers, out bounds);
+            }
+        }
+
+        static bool TryGetRendererBounds(List<SpriteRenderer> renderers, out Bounds bounds)
+        {
+            bounds = default; var any = false;
+            for (var i = 0; i < renderers.Count; i++)
+            {
+                var renderer = renderers[i];
                 if (renderer == null || !renderer.enabled || renderer.sprite == null) continue;
                 if (!any) { bounds = renderer.bounds; any = true; }
                 else bounds.Encapsulate(renderer.bounds);
@@ -71,24 +106,29 @@ namespace XianXia.Unity.Host
             return any;
         }
 
-        static void Fit(GameObject go, float width, float height)
+        static void Fit(GameObject go, List<SpriteRenderer> renderers, float width, float height)
         {
-            if (!TryGetRendererBounds(go, out var bounds) || bounds.size.x < .0001f || bounds.size.y < .0001f) return;
+            if (!TryGetRendererBounds(renderers, out var bounds) || bounds.size.x < .0001f || bounds.size.y < .0001f) return;
             go.transform.localScale = new Vector3(width / bounds.size.x, height / bounds.size.y, 1f);
         }
 
-        static void Align(GameObject go, Vector3 center)
+        static void Align(GameObject go, List<SpriteRenderer> renderers, Vector3 center)
         {
-            if (TryGetRendererBounds(go, out var bounds)) go.transform.position += center - bounds.center;
+            if (TryGetRendererBounds(renderers, out var bounds)) go.transform.position += center - bounds.center;
         }
 
         static void StripNonHostBehaviours(GameObject go)
         {
-            foreach (var behaviour in go.GetComponentsInChildren<MonoBehaviour>(true))
+            using (ListPool<MonoBehaviour>.Get(out var behaviours))
             {
-                if (behaviour == null || (behaviour.GetType().Namespace ?? string.Empty)
-                    .StartsWith("XianXia.Unity.Host", System.StringComparison.Ordinal)) continue;
-                if (Application.isPlaying) Object.Destroy(behaviour); else Object.DestroyImmediate(behaviour);
+                go.GetComponentsInChildren(true, behaviours);
+                for (var i = 0; i < behaviours.Count; i++)
+                {
+                    var behaviour = behaviours[i];
+                    if (behaviour == null || (behaviour.GetType().Namespace ?? string.Empty)
+                        .StartsWith("XianXia.Unity.Host", System.StringComparison.Ordinal)) continue;
+                    if (Application.isPlaying) Object.Destroy(behaviour); else Object.DestroyImmediate(behaviour);
+                }
             }
         }
     }

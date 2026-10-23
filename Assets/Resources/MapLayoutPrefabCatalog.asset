@@ -47,5 +47,7 @@ MonoBehaviour:
     prefab: {fileID: 4735573085919227875, guid: 583350b71dfefe748a9b2c298e3e9d7c, type: 3}
   - path: Assets/Prefabs/Environment/Tiles/WallTile.prefab
     prefab: {fileID: 4673174557007453180, guid: 5517ed19fed845309602e8db51b9c0ed, type: 3}
+  - path: Assets/Prefabs/Environment/Tiles/WoodWallTile.prefab
+    prefab: {fileID: 4735573085919227875, guid: b4a034c8574b4d79b1998d3c47205bbf, type: 3}
   - path: Assets/Prefabs/Environment/Props/ChessBoard.prefab
     prefab: {fileID: 4735573085919227875, guid: 25b93963c0b243c98a4f22a94bfe3ec0, type: 3}

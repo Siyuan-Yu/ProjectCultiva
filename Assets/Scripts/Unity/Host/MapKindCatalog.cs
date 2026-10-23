@@ -9,7 +9,7 @@ namespace XianXia.Unity.Host
     {
         public const int HouseFootprint = 20;
         public const int RoadFootprint = 1;
-        public const int DefaultWallLen = 6;
+        public const int DefaultWallLen = 1;
         public const int DefaultWallThickness = 1;
 
         public const string Grass = "Assets/Prefabs/Environment/Tiles/GrassTile.prefab";
@@ -19,6 +19,7 @@ namespace XianXia.Unity.Host
         public const string Spirit = "Assets/Prefabs/Environment/Tiles/SpiritSiteTile.prefab";
         public const string Road = "Assets/Prefabs/Environment/Tiles/DirtRoadTile.prefab";
         public const string Wall = "Assets/Prefabs/Environment/Tiles/WallTile.prefab";
+        public const string WoodWall = "Assets/Prefabs/Environment/Tiles/WoodWallTile.prefab";
         public const string Rock = "Assets/Prefabs/Environment/Tiles/RockTile.prefab";
         /// <summary>Housing zone overlay tint source (not a placeable「小房子」).</summary>
         public const string House = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
@@ -143,13 +144,13 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.62f, 0.48f, 0.28f)),
             new("room", House, StampMode.SingleCentered, 8, 12, false, HostInteractSpotKind.Room,
                 new UnityEngine.Color(0.58f, 0.45f, 0.30f, 0.28f)),
-            new("bed", Cushion, StampMode.SingleCentered, 2, 4, false, HostInteractSpotKind.Bed,
+            new("bed", Cushion, StampMode.SingleCentered, 1, 2, false, HostInteractSpotKind.Bed,
                 new UnityEngine.Color(0.62f, 0.36f, 0.22f)),
             new("wallSegment", Wall, StampMode.PerCell, 1, 4, false, null,
                 new UnityEngine.Color(0.35f, 0.35f, 0.38f)),
             new("road", Road, StampMode.PerCell, RoadFootprint, RoadFootprint, false, null,
                 new UnityEngine.Color(0.55f, 0.45f, 0.32f)),
-            new("wall", Wall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,
+            new("wall", WoodWall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,
                 new UnityEngine.Color(0.35f, 0.35f, 0.38f)),
 
             new("treeS", TreeS, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Work,

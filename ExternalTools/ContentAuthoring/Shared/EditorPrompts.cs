@@ -5,6 +5,15 @@ namespace ContentAuthoring.Shared;
 
 public static class EditorPrompts
 {
+    public static void RunOperation(Window owner, string title, Action operation)
+    {
+        try { operation(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(owner, ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     public static bool TryPromptText(string title, string label, string initial, out string value)
     {
         value = initial;

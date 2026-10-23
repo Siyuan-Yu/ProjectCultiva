@@ -159,8 +159,10 @@ public partial class MainWindow : Window
         if (BreakGrid.SelectedItem is BreakRow row) _breaks.Remove(row);
     }
 
-    private void NewManual_Click(object sender, RoutedEventArgs e) => CreateNew("cultivation");
-    private void NewArt_Click(object sender, RoutedEventArgs e) => CreateNew("combatArt");
+    private void NewManual_Click(object sender, RoutedEventArgs e) =>
+        EditorPrompts.RunOperation(this, "新建功法失败", () => CreateNew("cultivation"));
+    private void NewArt_Click(object sender, RoutedEventArgs e) =>
+        EditorPrompts.RunOperation(this, "新建斗技失败", () => CreateNew("combatArt"));
 
     private void CreateNew(string type)
     {
@@ -216,16 +218,7 @@ public partial class MainWindow : Window
             };
         }
 
-        var root = new JsonObject
-        {
-            ["schemaVersion"] = 1,
-            ["definitions"] = new JsonArray { def }
-        };
-        File.WriteAllText(
-            path,
-            root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) +
-            Environment.NewLine,
-            new System.Text.UTF8Encoding(false));
+        PackageStore.AppendDefinition(_package, ContentPathRules.RelativeTypePath(type, fileName), def);
         LoadRoot(_package.Root);
         KindTabs.SelectedIndex = type == "combatArt" ? 1 : 0;
         IdList.SelectedItem = id;

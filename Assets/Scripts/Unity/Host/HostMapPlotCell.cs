@@ -101,6 +101,9 @@ namespace XianXia.Unity.Host
         {
             _interactionBounds = bounds;
             _hasInteractionBounds = bounds.width > 0f && bounds.height > 0f;
+            if (kind == "chessBoard" && _hasInteractionBounds)
+                (GetComponent<HostChessSeatMarkers>() ?? gameObject.AddComponent<HostChessSeatMarkers>())
+                    .Bind(_world, stableCellId, bounds);
         }
 
         public bool ContainsInteractionPoint(Vector3 point) =>

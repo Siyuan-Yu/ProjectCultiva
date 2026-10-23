@@ -1,6 +1,8 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ContentAuthoring.Shared;
 
@@ -9,6 +11,8 @@ public sealed class ContentFile
     public required string Path { get; init; }
     public int SchemaVersion { get; set; } = 1;
     public required List<JsonObject> Definitions { get; set; }
+    internal string? LoadedContentHash { get; set; }
+    internal bool MustCreateNew { get; set; }
 }
 
 public sealed class DefRef
@@ -32,6 +36,7 @@ public sealed class ContentPackage
     public required string Root { get; init; }
     public required List<ContentFile> Files { get; init; }
     public required List<DefRef> Definitions { get; init; }
+    public List<ValidationIssue> LoadIssues { get; init; } = new();
 
     public IEnumerable<DefRef> OfType(string type) =>
         Definitions.Where(d => string.Equals(d.Type, type, StringComparison.Ordinal));
@@ -104,56 +109,71 @@ public static class PackageStore
 
         var files = new List<ContentFile>();
         var defs = new List<DefRef>();
+        var loadIssues = new List<ValidationIssue>();
 
         foreach (var path in Directory.EnumerateFiles(dataDir, "*.json", SearchOption.AllDirectories)
                      .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
         {
-            JsonNode? root;
             try
             {
-                root = JsonNode.Parse(File.ReadAllText(path));
-            }
-            catch
-            {
-                continue;
-            }
+                var sourceText = File.ReadAllText(path);
+                if (JsonNode.Parse(sourceText) is not JsonObject obj)
+                    throw new InvalidDataException("JSON 根节点必须是对象。");
+                if (obj["definitions"] is not JsonArray arr)
+                    throw new InvalidDataException("缺少 definitions 数组。");
 
-            if (root is not JsonObject obj) continue;
-            if (obj["definitions"] is not JsonArray arr) continue;
-
-            var schemaVersion = obj["schemaVersion"]?.GetValue<int>() ?? 1;
-            var definitions = new List<JsonObject>();
-            for (var i = 0; i < arr.Count; i++)
-            {
-                if (arr[i] is not JsonObject def) continue;
-                definitions.Add(def);
-                var id = def["id"]?.GetValue<string>() ?? "";
-                var type = def["type"]?.GetValue<string>() ?? "";
-                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type)) continue;
-                defs.Add(new DefRef
+                var schemaVersion = obj["schemaVersion"]?.GetValue<int>() ?? 1;
+                var definitions = new List<JsonObject>();
+                var fileDefinitions = new List<DefRef>();
+                for (var i = 0; i < arr.Count; i++)
                 {
-                    Id = id,
-                    Type = type,
-                    Name = def["name"]?.GetValue<string>() ?? "",
+                    if (arr[i] is not JsonObject def)
+                        throw new InvalidDataException($"definitions[{i}] 必须是对象。");
+                    var id = def["id"]?.GetValue<string>() ?? "";
+                    var type = def["type"]?.GetValue<string>() ?? "";
+                    if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type))
+                        throw new InvalidDataException($"definitions[{i}] 缺少 id 或 type。");
+                    definitions.Add(def);
+                    fileDefinitions.Add(new DefRef
+                    {
+                        Id = id,
+                        Type = type,
+                        Name = def["name"]?.GetValue<string>() ?? "",
+                        FilePath = path,
+                        Index = i,
+                        Raw = def
+                    });
+                }
+
+                files.Add(new ContentFile
+                {
+                    Path = path,
+                    SchemaVersion = schemaVersion,
+                    Definitions = definitions,
+                    LoadedContentHash = ContentHash(sourceText)
+                });
+                defs.AddRange(fileDefinitions);
+            }
+            catch (Exception ex) when (ex is JsonException or IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or FormatException)
+            {
+                var location = ex is JsonException json
+                    ? $"（第 {(json.LineNumber ?? 0) + 1} 行，字节列 {(json.BytePositionInLine ?? 0) + 1}）"
+                    : "";
+                loadIssues.Add(new ValidationIssue
+                {
+                    Level = "error",
                     FilePath = path,
-                    Index = definitions.Count - 1,
-                    Raw = def
+                    Message = $"{Path.GetRelativePath(packageRoot, path)}：无法加载{location}，{ex.Message}"
                 });
             }
-
-            files.Add(new ContentFile
-            {
-                Path = path,
-                SchemaVersion = schemaVersion,
-                Definitions = definitions
-            });
         }
 
         return new ContentPackage
         {
             Root = packageRoot,
             Files = files,
-            Definitions = defs
+            Definitions = defs,
+            LoadIssues = loadIssues
         };
     }
 
@@ -162,30 +182,73 @@ public static class PackageStore
         var root = new JsonObject
         {
             ["schemaVersion"] = file.SchemaVersion,
-            ["definitions"] = new JsonArray(file.Definitions.Select(d => JsonNode.Parse(d.ToJsonString())!).ToArray())
+            ["definitions"] = new JsonArray(file.Definitions.Select(d => d.DeepClone()).ToArray())
         };
         var text = root.ToJsonString(WriteOptions) + Environment.NewLine;
         if (string.IsNullOrWhiteSpace(text) || text.Length < 16)
             throw new InvalidOperationException("拒绝写入空内容: " + file.Path);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-        var tmp = file.Path + ".tmp";
-        File.WriteAllText(tmp, text, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        File.Copy(tmp, file.Path, overwrite: true);
-        File.Delete(tmp);
+        var fullPath = Path.GetFullPath(file.Path);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        var tmp = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        using var writeLock = new System.Threading.Mutex(false,
+            "Local\\XianXia.ContentAuthoring." + ContentHash(fullPath.ToUpperInvariant()));
+        var lockTaken = false;
+        try
+        {
+            try { lockTaken = writeLock.WaitOne(0); }
+            catch (System.Threading.AbandonedMutexException) { lockTaken = true; }
+            if (!lockTaken)
+                throw new IOException("另一个编辑器正在保存此文件，请稍后重试：\n" + fullPath);
+            EnsureFileUnchanged(file);
+            File.WriteAllText(tmp, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            EnsureFileUnchanged(file);
+            if (file.MustCreateNew) File.Move(tmp, fullPath);
+            else if (File.Exists(fullPath)) File.Replace(tmp, fullPath, null);
+            else File.Move(tmp, fullPath);
+            file.LoadedContentHash = ContentHash(text);
+            file.MustCreateNew = false;
+        }
+        finally
+        {
+            try { if (File.Exists(tmp)) File.Delete(tmp); }
+            finally { if (lockTaken) writeLock.ReleaseMutex(); }
+        }
+    }
+
+    private static string ContentHash(string text) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+
+    private static void EnsureFileUnchanged(ContentFile file)
+    {
+        if (file.LoadedContentHash == null) return; // Explicit standalone save/new file.
+        if (!File.Exists(file.Path) || ContentHash(File.ReadAllText(file.Path)) != file.LoadedContentHash)
+            throw new IOException("文件已被其他编辑器或外部操作修改，未覆盖磁盘内容。请先保留当前修改，再重新加载包后编辑：\n" + file.Path);
+    }
+
+    private static void EnsureWritable(ContentPackage package)
+    {
+        if (package.LoadIssues.Count > 0)
+            throw new InvalidOperationException("内容包有加载错误，不能保存不完整的包。请修复下列文件并重新加载：\n" +
+                string.Join("\n", package.LoadIssues.Take(5).Select(issue => issue.Message)));
     }
 
     public static void SaveDefinition(ContentPackage package, DefRef def)
     {
+        EnsureWritable(package);
+        var newId = def.Raw["id"]?.GetValue<string>() ?? "";
+        if (string.IsNullOrWhiteSpace(newId)) throw new InvalidOperationException("定义 ID 不能为空。");
+        if (package.Definitions.Any(other => !ReferenceEquals(other, def) && other.Id == newId))
+            throw new InvalidOperationException("定义 ID 已存在，未保存：" + newId);
         var file = package.Files.FirstOrDefault(f => f.Path == def.FilePath)
                    ?? throw new InvalidOperationException("找不到文件: " + def.FilePath);
         if (def.Index < 0 || def.Index >= file.Definitions.Count)
             throw new InvalidOperationException("定义索引越界: " + def.Id);
         file.Definitions[def.Index] = def.Raw;
-        def.Id = def.Raw["id"]?.GetValue<string>() ?? def.Id;
+        SaveFile(file);
+        def.Id = newId;
         def.Name = def.Raw["name"]?.GetValue<string>() ?? def.Name;
         def.Type = def.Raw["type"]?.GetValue<string>() ?? def.Type;
-        SaveFile(file);
     }
 
     /// <summary>
@@ -196,10 +259,12 @@ public static class PackageStore
     {
         if (package == null || def == null)
             throw new ArgumentNullException(nameof(def));
+        EnsureWritable(package);
 
         var file = package.Files.FirstOrDefault(f =>
                        string.Equals(f.Path, def.FilePath, StringComparison.OrdinalIgnoreCase))
                    ?? throw new InvalidOperationException("找不到文件: " + def.FilePath);
+        EnsureFileUnchanged(file);
 
         var removed = file.Definitions.RemoveAll(d =>
             string.Equals(d["id"]?.GetValue<string>(), def.Id, StringComparison.Ordinal));
@@ -280,42 +345,41 @@ public static class PackageStore
 
     public static DefRef AppendDefinition(ContentPackage package, string fileNameHint, JsonObject raw)
     {
+        EnsureWritable(package);
         var dataDir = Path.Combine(package.Root, "Data");
         var type = raw["type"]?.GetValue<string>() ?? "";
         var id = raw["id"]?.GetValue<string>() ?? "";
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type))
+            throw new InvalidOperationException("新定义必须填写 id 和 type。");
+        if (package.Find(id) != null)
+            throw new InvalidOperationException("定义 ID 已存在，未新增：" + id);
         if (string.Equals(type, "quest", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(id))
             fileNameHint = ContentPathRules.ResolveQuestFile(id);
         else if (string.Equals(type, "contentEvent", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(id))
             fileNameHint = ContentPathRules.ResolveEventFile(id);
 
-        var hint = Path.GetFileNameWithoutExtension(fileNameHint);
+        var relative = fileNameHint.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+            ? fileNameHint : fileNameHint + ".json";
+        if (!relative.Contains('/') && !relative.Contains('\\'))
+            relative = ContentPathRules.RelativeTypePath(type, relative);
+        var path = Path.GetFullPath(ContentPathRules.CombineDataPath(dataDir, relative));
+        var dataRoot = Path.GetFullPath(dataDir) + Path.DirectorySeparatorChar;
+        if (!path.StartsWith(dataRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("新定义必须保存到当前包的 Data 目录：" + path);
         var file = package.Files.FirstOrDefault(f =>
-            Path.GetFileName(f.Path).Contains(hint, StringComparison.OrdinalIgnoreCase));
-
+            string.Equals(Path.GetFullPath(f.Path), path, StringComparison.OrdinalIgnoreCase));
+        var isNewFile = file == null;
         if (file == null)
         {
-            // fallback: quest → *quest*.json, event → *event*.json
-            var token = hint.Contains("quest", StringComparison.OrdinalIgnoreCase) ? "quest"
-                : hint.Contains("event", StringComparison.OrdinalIgnoreCase) ? "event"
-                : hint;
-            file = package.Files.FirstOrDefault(f =>
-                Path.GetFileName(f.Path).Contains(token, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (file == null)
-        {
-            var relative = fileNameHint.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
-                ? fileNameHint
-                : fileNameHint + ".json";
-            if (!relative.Contains('/') && !relative.Contains('\\') && !string.IsNullOrEmpty(type))
-                relative = ContentPathRules.RelativeTypePath(type, relative);
-            var path = ContentPathRules.CombineDataPath(dataDir, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            file = new ContentFile { Path = path, SchemaVersion = 1, Definitions = new List<JsonObject>() };
-            package.Files.Add(file);
+            if (File.Exists(path))
+                throw new IOException("目标文件已存在但尚未加载，请重新加载包后再新增：" + path);
+            file = new ContentFile { Path = path, SchemaVersion = 1, Definitions = new List<JsonObject>(), MustCreateNew = true };
         }
 
         file.Definitions.Add(raw);
+        try { SaveFile(file); }
+        catch { file.Definitions.RemoveAt(file.Definitions.Count - 1); throw; }
+        if (isNewFile) package.Files.Add(file);
         var def = new DefRef
         {
             Id = raw["id"]?.GetValue<string>() ?? "",
@@ -326,7 +390,6 @@ public static class PackageStore
             Raw = raw
         };
         package.Definitions.Add(def);
-        SaveFile(file);
         return def;
     }
 
@@ -638,7 +701,8 @@ public static class PackageStore
         {
             Path = filePath,
             SchemaVersion = 1,
-            Definitions = new List<JsonObject> { clone }
+            Definitions = new List<JsonObject> { clone },
+            LoadedContentHash = File.Exists(filePath) ? ContentHash(File.ReadAllText(filePath)) : null
         };
         package.Files.Add(file);
         var def = new DefRef
@@ -682,6 +746,10 @@ public static class PackageStore
     {
         var loaded = LoadMapLayoutFile(filePath);
         var raw = loaded.Raw;
+        var sourceText = File.ReadAllText(filePath);
+        var source = JsonNode.Parse(sourceText)!.AsObject();
+        if (source["definitions"]!.AsArray().Count != 1)
+            throw new InvalidOperationException("该文件包含多条定义，请使用「打开包」后选择地图；独立打开不会截断同文件的其他内容。\n" + filePath);
 
         package.Definitions.RemoveAll(d =>
             string.Equals(d.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
@@ -698,8 +766,9 @@ public static class PackageStore
         var file = new ContentFile
         {
             Path = filePath,
-            SchemaVersion = 1,
-            Definitions = new List<JsonObject> { raw }
+            SchemaVersion = source["schemaVersion"]?.GetValue<int>() ?? 1,
+            Definitions = new List<JsonObject> { raw },
+            LoadedContentHash = ContentHash(sourceText)
         };
         package.Files.Add(file);
         var def = new DefRef

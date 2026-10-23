@@ -1,5 +1,7 @@
 # 领地经营
 
+> **2026-10-23 控制范围数值覆写：** 制作人将议政厅／势力旗的一级理论控制范围长宽各扩大 1.5 倍，统一配置为 **225×225 Surface Cells**（Main Surface 6.3×6.3 world）；各既有重叠、实际行政与建设资格仍由同一规则解析。下文及历史文档的 150×150 仅保留此前数值；野外战场尺寸、建筑占地、攻击射程不随之放大。世界与荒村扩展见 [320](../40-process/320-world-expand-05-7600x3400-2026-10-23.md)。
+
 > 状态：SiteCore／TerritoryClaim／Actual Administrative Control 与现行经济接线已 Producer Accepted / Sealed | 优先级：P0 | 最后更新：2026-09-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**

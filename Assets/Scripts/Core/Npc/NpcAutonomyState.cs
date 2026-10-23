@@ -41,6 +41,15 @@ namespace XianXia.Core.Npc
             WorldVec2 goal, float radius, out bool arrived)
         {
             arrived = false;
+            // Personal cold routes must never overwrite Party/Squad/travel or loaded-space authority.
+            if (world == null || actor == null ||
+                !XianXia.Core.Combat.CombatLifeStateService.CanFight(actor) ||
+                PartyRestService.BlocksMovement(actor) ||
+                world.ContinuousOutdoorMaterialization.IsMaterialized(actor.Id) ||
+                !CharacterWorldMovementAuthorityQuery.TryGetAuthority(world, actor.Id,
+                    world.Strategic.PlayerPartyContext, out var authority) ||
+                authority != CharacterWorldMovementAuthority.None)
+                return false;
             if (!CharacterWorldPresenceQuery.TryResolve(world, actor.Id, out var at) ||
                 !at.HasWorldPosition || at.SurfaceId != surfaceId ||
                 !world.SurfaceGround.TryGet(surfaceId, out var nav) || nav == null) return false;

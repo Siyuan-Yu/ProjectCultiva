@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:chapter_huangcun_life",
+      "type": "chapter",
+      "name": "荒村·初入尘途",
+      "description": "内部开局体验弧。自由选择劳动、人情、修行、探索；无固定天数剧情门槛，不强制结束或移交势力。",
+      "openingScenarioId": "base:scenario_huangcun_life",
+      "plannedDays": 0,
+      "questChainIds": [],
+      "eventChainIds": [
+        "base:event_huangcun_opening"
+      ],
+      "dayBeats": [
+        {
+          "dayIndex": 0,
+          "setFlags": [
+            "story:huangcun_production"
+          ],
+          "questOfferIds": [],
+          "contentEventIds": [
+            "base:event_huangcun_opening"
+          ]
+        }
+      ]
+    }
+  ]
+}

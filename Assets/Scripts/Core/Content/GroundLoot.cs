@@ -4,6 +4,8 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Core.Content
 {
@@ -38,6 +40,12 @@ namespace XianXia.Core.Content
             else return false;
             if (string.IsNullOrEmpty(surface) || !world.SurfaceSpatial.TryGet(surface, out var metric) ||
                 !metric.ContainsWorldPosition(x, y)) return false;
+            var cellCenter = SurfaceCellGeometry.SnapCenter(new WorldVec2(x,y),
+                metric.OriginWorldX, metric.OriginWorldY, metric.CellSize);
+            if (world.SurfaceGround.TryGet(surface, out var ground) &&
+                (!ground.Contains(cellCenter.X,cellCenter.Y) || !ground.IsWalkable(cellCenter.X,cellCenter.Y)))
+                return false; // Leave the held item intact rather than creating an unreachable drop.
+            x = cellCenter.X; y = cellCenter.Y;
             var prefix = "ground-loot:" + entity.Id.Value + ":" + world.Tick.Value + ":";
             var index = 0;
             while (world.GroundLoot.ContainsKey(prefix + index) || WorldLootPickupService.IsTaken(world, prefix + index)) index++;

@@ -352,6 +352,10 @@ namespace XianXia.Unity.Host
             };
             var lootSpotId = XianXia.Core.Content.WorldLootPickupService.StableSpotId(
                 string.Empty, source.StableId);
+            var prefabPath = info.PrefabPath;
+            if (source.Kind == OutdoorConstructedAssetSemantics.WallSegmentKind &&
+                _session?.World != null && _session.World.ConstructionCatalog.TryGet(source.BuildingId, out var wallSpec) &&
+                wallSpec.MaterialKind == "wood") prefabPath = MapKindCatalog.WoodWall;
             if (ShouldHideHiddenEntrance(metadata) || ShouldHideTakenLoot(metadata, lootSpotId))
                 return;
             if (IsLogicOnlyZone(source.Kind))
@@ -472,8 +476,9 @@ namespace XianXia.Unity.Host
                         OutdoorStatefulPlacementResolver.IsDestroyed(
                             _session?.World?.OutdoorStatefulObjects, id))
                         return;
-                    var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, id, width, height,
-                        info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12);
+                    var go = PlacePrefab(info.Kind, prefabPath, cx, cy, id, width, height,
+                        info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12,
+                        visualQuarterTurns: source.QuarterTurns);
                     if (info.Kind == "controlCore" && !string.IsNullOrEmpty(source.BoundLocationId))
                         _coreVisualsByLocation[source.BoundLocationId] = go;
                     if (info.InteractKind.HasValue)
@@ -503,8 +508,8 @@ namespace XianXia.Unity.Host
                     expectedForOwner++;
                     var cellMetadata = metadata;
                     cellMetadata.Id = cellId;
-                    var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, cellId, cellW, cellH,
-                        info.FallbackColor, sortingOrder: cellOrder);
+                    var go = PlacePrefab(info.Kind, prefabPath, cx, cy, cellId, cellW, cellH,
+                        info.FallbackColor, sortingOrder: cellOrder, visualQuarterTurns: source.QuarterTurns);
                     if (info.InteractKind.HasValue || info.Plantable)
                         AttachPlot(go, cellMetadata, info, source.SourceGridX + gx, source.SourceGridY + gy, cx, cy,
                             cellId, lootSpotId);
@@ -1256,39 +1261,8 @@ namespace XianXia.Unity.Host
             go.transform.position += delta;
         }
 
-        static bool TryGetRendererBounds(GameObject go, out Bounds bounds)
-        {
-            bounds = default;
-            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
-            if (renderers == null || renderers.Length == 0)
-                return false;
-            var any = false;
-            for (var i = 0; i < renderers.Length; i++)
-            {
-                var sr = renderers[i];
-                if (sr == null || !sr.enabled || sr.sprite == null)
-                    continue;
-                if (!any)
-                {
-                    bounds = sr.bounds;
-                    any = true;
-                }
-                else
-                    bounds.Encapsulate(sr.bounds);
-            }
-
-            return any;
-        }
-
-        static void ApplySortingOrder(GameObject go, int order)
-        {
-            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
-            for (var i = 0; i < renderers.Length; i++)
-            {
-                if (renderers[i] != null)
-                    renderers[i].sortingOrder = order;
-            }
-        }
+        static bool TryGetRendererBounds(GameObject go, out Bounds bounds) =>
+            HostMapObjectVisualFactory.TryGetRendererBounds(go, out bounds);
 
         static void TintRenderers(GameObject go, Color color)
         {
@@ -1300,22 +1274,5 @@ namespace XianXia.Unity.Host
             }
         }
 
-        static void StripNonHostBehaviours(GameObject go)
-        {
-            var behaviours = go.GetComponentsInChildren<MonoBehaviour>(true);
-            for (var i = 0; i < behaviours.Length; i++)
-            {
-                var mb = behaviours[i];
-                if (mb == null)
-                    continue;
-                var ns = mb.GetType().Namespace ?? string.Empty;
-                if (ns.StartsWith("XianXia.Unity.Host", System.StringComparison.Ordinal))
-                    continue;
-                if (Application.isPlaying)
-                    Object.Destroy(mb);
-                else
-                    Object.DestroyImmediate(mb);
-            }
-        }
     }
 }

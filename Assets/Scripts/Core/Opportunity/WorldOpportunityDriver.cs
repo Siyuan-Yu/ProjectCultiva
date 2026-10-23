@@ -235,6 +235,21 @@ namespace XianXia.Core.Opportunity
                 var candidate = new WorldVec2(
                     player.X + (float)Math.Cos(angle) * distance,
                     player.Y + (float)Math.Sin(angle) * distance);
+                if (spec.SpawnKind == WorldOpportunitySpawnKind.WorldObject)
+                {
+                    candidate = XianXia.Core.World.Surface.SurfaceCellGeometry.SnapCenter(candidate,
+                        ground.OriginX, ground.OriginY, ground.CellSize,
+                        spec.WorldObjectWidthCells, spec.WorldObjectHeightCells);
+                    var clear = true;
+                    for (var cy = 0; cy < spec.WorldObjectHeightCells && clear; cy++)
+                    for (var cx = 0; cx < spec.WorldObjectWidthCells && clear; cx++)
+                    {
+                        var x = candidate.X + (cx + .5f - spec.WorldObjectWidthCells*.5f)*ground.CellSize;
+                        var y = candidate.Y + (cy + .5f - spec.WorldObjectHeightCells*.5f)*ground.CellSize;
+                        clear = ground.Contains(x,y) && ground.IsWalkable(x,y);
+                    }
+                    if (!clear) continue;
+                }
                 var actualDistance = WorldVec2.Distance(player, candidate);
                 if (actualDistance < min || actualDistance > max || !ground.Contains(candidate.X, candidate.Y) ||
                     !ground.IsWalkable(candidate.X, candidate.Y)) continue;

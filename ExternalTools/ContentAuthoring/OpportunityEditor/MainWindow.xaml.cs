@@ -24,7 +24,14 @@ public partial class MainWindow : Window
             ? Definition.Id : $"{Definition.Name}\n{Definition.Id}";
     }
 
-    public sealed class PoolEntryRow { public string DefinitionId { get; set; } = ""; public int Weight { get; set; } = 1; }
+    public sealed class PoolEntryRow
+    {
+        public string DefinitionId { get; set; } = "";
+        public int Weight { get; set; } = 1;
+        public int CountMin { get; set; } = 1;
+        public int CountMax { get; set; } = 1;
+        public JsonObject Source { get; init; } = new();
+    }
     public sealed class ConditionRow
     {
         public string Kind { get; set; } = "";
@@ -208,7 +215,14 @@ public partial class MainWindow : Window
         _spawnTable = _package?.Find(id);
         if (_spawnTable?.Raw["entries"] is not JsonArray entries) return;
         foreach (var node in entries.OfType<JsonObject>())
-            _poolEntries.Add(new PoolEntryRow { DefinitionId = JsonEdit.GetString(node, "definitionId"), Weight = Math.Max(1, JsonEdit.GetInt(node, "weight", 1)) });
+            _poolEntries.Add(new PoolEntryRow
+            {
+                DefinitionId = JsonEdit.GetString(node, "definitionId"),
+                Weight = JsonEdit.GetInt(node, "weight", 1),
+                CountMin = JsonEdit.GetInt(node, "countMin", 1),
+                CountMax = JsonEdit.GetInt(node, "countMax", 1),
+                Source = (JsonObject)node.DeepClone()
+            });
     }
 
     void OpenPackage_Click(object sender, RoutedEventArgs e)
@@ -218,6 +232,9 @@ public partial class MainWindow : Window
     }
 
     void NewDirector_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建 Director 失败", CreateDirector);
+
+    void CreateDirector()
     {
         if (_package == null) return;
         var id = UniqueId("base:world_opportunity_director_new");
@@ -231,6 +248,9 @@ public partial class MainWindow : Window
     }
 
     void NewOpportunity_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建世界机会失败", CreateOpportunity);
+
+    void CreateOpportunity()
     {
         if (_package == null) return;
         var id = UniqueId("base:world_opportunity_new");
@@ -247,6 +267,9 @@ public partial class MainWindow : Window
     }
 
     void NewPool_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建人物池失败", CreatePool);
+
+    void CreatePool()
     {
         if (_package == null) return;
         var characterId = PoolCharacterPicker.SelectedId;
@@ -306,9 +329,11 @@ public partial class MainWindow : Window
     void Save_Click(object sender, RoutedEventArgs e)
     {
         if (_package == null) return;
-        PoolGrid.CommitEdit(); ConditionsGrid.CommitEdit(); OutcomesGrid.CommitEdit();
         try
         {
+            foreach (var grid in new[] { PoolGrid, ConditionsGrid, OutcomesGrid })
+                if (!grid.CommitEdit(DataGridEditingUnit.Cell, true) || !grid.CommitEdit(DataGridEditingUnit.Row, true))
+                    throw new InvalidOperationException("表格中有未完成或格式错误的输入，请修正后保存。");
             if (_director != null) SaveDirector();
             else if (_opportunity != null) SaveOpportunity();
             else { StatusText.Text = "请先选择一条定义。"; return; }
@@ -411,7 +436,16 @@ public partial class MainWindow : Window
         if (_package == null || _spawnTable == null) return;
         var entries = new JsonArray();
         foreach (var row in _poolEntries)
-            entries.Add(new JsonObject { ["definitionId"] = row.DefinitionId, ["weight"] = Math.Max(1, row.Weight), ["countMin"] = 1, ["countMax"] = 1 });
+        {
+            if (row.Weight <= 0 || row.CountMin < 0 || row.CountMax < row.CountMin)
+                throw new InvalidOperationException($"人物池 {row.DefinitionId}：权重必须为正整数，数量不能为负，最多数量不得小于最少数量。");
+            var entry = (JsonObject)row.Source.DeepClone();
+            entry["definitionId"] = row.DefinitionId;
+            entry["weight"] = row.Weight;
+            entry["countMin"] = row.CountMin;
+            entry["countMax"] = row.CountMax;
+            entries.Add(entry);
+        }
         _spawnTable.Raw["entries"] = entries;
         PackageStore.SaveDefinition(_package, _spawnTable);
     }

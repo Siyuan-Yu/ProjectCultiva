@@ -30,6 +30,7 @@ namespace XianXia.Data.Content
             if (registry.OutdoorSurfaces.Count > 0 && registry.SpatialRules == null)
                 report.Add(ErrorCode.MissingRequiredField, "Continuous world requires worldSpatialRules.");
             ValidateOutdoorSurfaceMetrics(registry, report);
+            ValidateGridFootprints(registry, report);
             if (registry.SpatialRules != null)
                 foreach (var pair in registry.Buildings)
                     if (pair.Value.CreatesWorldSite)
@@ -165,6 +166,42 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.InvalidArgument,
                         "Outdoor Surface and geography cellSize must match.", surface.SurfaceId);
             }
+        }
+
+        static void ValidateGridFootprints(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly || surface.SitePlacements == null) continue;
+                foreach (var p in surface.SitePlacements)
+                {
+                    if (p == null) continue;
+                    if (!XianXia.Core.World.Surface.SurfaceCellGeometry.IsAlignedRectangle(
+                        p.WorldX, p.WorldY, p.WorldWidth, p.WorldHeight,
+                        surface.OriginWorldX, surface.OriginWorldY, surface.CellSize))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor object requires integer-cell footprint and grid-line origin.", p.StableId);
+                    if (surface.CellSize > 0 &&
+                        (Math.Abs(p.WorldWidth/surface.CellSize-p.SourceCellsW) > .002 ||
+                         Math.Abs(p.WorldHeight/surface.CellSize-p.SourceCellsH) > .002))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Object sourceCellsW/H must match its physical cell footprint.", p.StableId);
+                    if ((p.Kind == "cushion" || p.Kind == "chessBoard") &&
+                        (p.SourceCellsW != 1 || p.SourceCellsH != 1))
+                        report.Add(ErrorCode.InvalidArgument, "Cushion/chess board footprint must be 1x1 cells.", p.StableId);
+                }
+                if (surface.FactionFlags == null) continue;
+                foreach (var flag in surface.FactionFlags)
+                    if (surface.CellSize > 0 &&
+                        (!XianXia.Core.World.Surface.SurfaceCellGeometry.IsInteger((flag.WorldX-surface.OriginWorldX)/surface.CellSize) ||
+                         !XianXia.Core.World.Surface.SurfaceCellGeometry.IsInteger((flag.WorldY-surface.OriginWorldY)/surface.CellSize)))
+                        report.Add(ErrorCode.InvalidArgument, "Faction flag's 4x4 footprint must align to the Surface grid.", flag.FlagId);
+            }
+            foreach (var pair in registry.MapLayouts)
+                foreach (var p in pair.Value.Placements)
+                    if ((p.Kind == "cushion" || p.Kind == "chessBoard") && (p.W != 1 || p.H != 1))
+                        report.Add(ErrorCode.InvalidArgument, "Cushion/chess board footprint must be 1x1 cells.", p.Id);
         }
 
         static void ValidateOutdoorControlCores(DefinitionRegistry registry, ValidationReport report)
@@ -495,6 +532,10 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.InvalidArgument, "worldObject opportunity requires kind and positive width/height.", ctx);
                 else if (worldObject && !DynamicOpportunityObjectKinds.Contains(o.WorldObjectKind))
                     report.Add(ErrorCode.InvalidArgument, "worldObjectKind is not an approved MapKindCatalog prop.", ctx + ":" + o.WorldObjectKind);
+                if (worldObject &&
+                    (!XianXia.Core.World.Surface.SurfaceCellGeometry.IsInteger(o.WorldObjectWorldWidth) ||
+                     !XianXia.Core.World.Surface.SurfaceCellGeometry.IsInteger(o.WorldObjectWorldHeight)))
+                    report.Add(ErrorCode.InvalidArgument, "Dynamic object footprint dimensions must be integer cells.", ctx);
                 if (string.Equals(o.DiscoveryMode, "hidden", StringComparison.OrdinalIgnoreCase))
                     report.Add(ErrorCode.InvalidArgument,
                         "discoveryMode 'hidden' is invalid; use hiddenUntilDiscovered.", ctx);

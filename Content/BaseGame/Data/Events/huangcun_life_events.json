@@ -1,0 +1,1589 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_huangcun_opening",
+      "type": "contentEvent",
+      "name": "荒村·初入尘途",
+      "trigger": "manual",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "arrival",
+      "steps": [
+        {
+          "id": "arrival",
+          "speakerRef": "",
+          "text": "木墙里的炊烟刚升起来。田里有人弯腰，药畦旁有人清点晒架，巡卫沿村路走过。议政厅门前，主管翻着一册起了毛边的账。\n\n你们三人暂时在荒村落脚。名义上附在荒村势力之下，吃住和差事都有着落；往后的路，却没有人替你们选定。\n\n可以先认认人，也可以直接去劳作、修炼或探索。这里没有规定你必须在第几天做成的事。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "settle",
+              "text": "先认人，记下村中的规矩。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_settle"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "practice",
+              "text": "先弄清怎样修行。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_practice"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "free",
+              "text": "先自己走走。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_supervisor",
+      "type": "contentEvent",
+      "name": "主管·账与规矩",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 30,
+      "topicText": "主管·账与规矩",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "ask",
+      "steps": [
+        {
+          "id": "ask",
+          "speakerRef": "@target",
+          "text": "主管把账册合上一半：「田里的收成、药里的成色、库里的损耗，上头只认这些。你们既然落在村里，就先把自己的日子过稳。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "rules",
+              "text": "吃住与库房有什么规矩？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "rules",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "burden",
+              "text": "村里的人看着都很忙。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "burden",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "知道了，我再去看看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "rules",
+          "speakerRef": "@target",
+          "text": "「床位按安排住，凡人的活按时辰轮。你们若自己编了队，就自己管好吃饭歇息。」\n\n「你们的势力如今附在荒村名下，库房按附庸权限开放取用。需要便去拿，账目照实留着；不用把正当取用藏成偷盗。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_rules_heard"
+            }
+          ],
+          "choices": [
+            {
+              "id": "noted",
+              "text": "记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "burden",
+          "speakerRef": "@target",
+          "text": "「忙是真的。」他的手指在账脊上停了停，「我少报一笔，上头来问；我多催一句，下面便骂。你不必替我说好话，只把眼前的人和事看清。」\n\n主管没有因这番话减免配额，也没有向你交出村中的权力。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_rules_heard"
+            }
+          ],
+          "choices": [
+            {
+              "id": "understood",
+              "text": "我会自己看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_guard",
+      "type": "contentEvent",
+      "name": "巡卫甲·墙外的路",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_a",
+      "priority": 30,
+      "topicText": "巡卫甲·墙外的路",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "ask",
+      "steps": [
+        {
+          "id": "ask",
+          "speakerRef": "@target",
+          "text": "巡卫甲用下巴点了点门外：「墙里是床和饭，墙外是路。出门前把同行的人、吃的、身上的伤都看一遍，省得走远了才想起。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "road",
+              "text": "远处有什么地方？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "road",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "fight",
+              "text": "真碰上敌人呢？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "fight",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢提醒。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "road",
+          "speakerRef": "@target",
+          "text": "「青石镇有坊市，也有别人的规矩。沿世界地图看路，别把每个旗号都当自己人。」\n\n你记下了一个远行方向。现在没有必须赶到的期限。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_road_hint"
+            }
+          ],
+          "choices": [
+            {
+              "id": "record",
+              "text": "记下去青石镇的打算。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_road"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先把村里的事理顺。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "speakerRef": "@target",
+          "text": "「没准备好就别硬顶。能走开的时候先走开；真进了独立战场，退走也不是一句话的事。」\n\n独立战场开战满 300 秒后才可尝试逃跑，成功与双方神识有关；洞府当前没有这个计时逃跑按钮。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "clear",
+              "text": "明白，先看清局势。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_jiang_advice",
+      "type": "contentEvent",
+      "name": "将老·吐纳与心境",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 10,
+      "topicText": "将老·吐纳与心境",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_practice_advice"
+        }
+      ],
+      "entryStepId": "advice",
+      "steps": [
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "将老捻着一枚棋子：「想静下来，先别站在路中间发愣。找个空蒲团，把脚落稳、气息放匀。饿着肚子、熬空精神，坐多久也不是办法。」\n\n感应境可以先吐纳积累，不必等一本功法。修为到瓶颈后主动尝试突破；到了炼气，往后的积累与突破才需要合适的功法。修炼会消耗精力和心境，吃饭、睡眠与娱乐要跟上。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_practice_advice"
+            }
+          ],
+          "choices": [
+            {
+              "id": "record",
+              "text": "把修行目标记下来。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_first_qi"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "thanks",
+              "text": "我先试试。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_companion_a",
+      "type": "contentEvent",
+      "name": "同伴甲·各自安排",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_companion_a",
+      "priority": 30,
+      "topicText": "同伴甲·各自安排",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "ask",
+      "steps": [
+        {
+          "id": "ask",
+          "speakerRef": "@target",
+          "text": "「村里有活，也有能坐下来喘口气的地方。咱们不必一直挤在一处，想同行时再编队。」\n\n未编入队伍的我方非凡人角色按个人需求自主生活。人物面板可选修炼、平衡、娱乐三档倾向；它不是强制命令，饥饿、疲劳、危险和设施是否可用仍然优先。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "understood",
+              "text": "各自照顾好自己。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "travel",
+              "text": "想一起出去时，我再编队。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_companion_b",
+      "type": "contentEvent",
+      "name": "同伴乙·留一点余力",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_companion_b",
+      "priority": 30,
+      "topicText": "同伴乙·留一点余力",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "ask",
+      "steps": [
+        {
+          "id": "ask",
+          "speakerRef": "@target",
+          "text": "「我们既到了这里，就先把附近认熟。要出门，别只看带了多少东西，也看看还能走多远。」\n\n编队后跟随的是队伍命令；队伍需要停下来时可统一休息。没有编队时，个人生活倾向继续生效。想练功要有可用打坐处，累了要能走到可用床位。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "understood",
+              "text": "记住了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_grain_offer",
+      "type": "contentEvent",
+      "name": "阿石·锅里留一口",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 40,
+      "topicText": "阿石·锅里留一口",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_huangcun_grain"
+        }
+      ],
+      "entryStepId": "offer",
+      "steps": [
+        {
+          "id": "offer",
+          "speakerRef": "@target",
+          "text": "阿石掸了掸袖上的土：「家里今早的锅空得早。我还得盯着田，若你顺手带来两份粮，我拿存着的两份粗木跟你换。」\n\n他望了望你：「不方便就算了，别因为这一口饭误了自己的事。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_neighbor_met"
+            }
+          ],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "我愿意帮这次忙。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_huangcun_grain"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "advice",
+              "text": "先聊聊附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "我先不答应，改日再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「找人不一定得守着屋门。」阿石指指田地，又指指住房，「大家会工作、吃饭、歇着。寻不着就顺路再看看。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回刚才的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "offer",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了，多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_grain_delivery",
+      "type": "contentEvent",
+      "name": "阿石·锅里留一口·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 40,
+      "topicText": "阿石·锅里留一口·交付",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_huangcun_grain"
+        }
+      ],
+      "entryStepId": "deliver",
+      "steps": [
+        {
+          "id": "deliver",
+          "speakerRef": "@target",
+          "text": "这桩小事还在等你决定。现在交付会消耗 粮食 ×2，不方便也可以稍后再来；没有倒计时逼你今天完成。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "hand_over",
+              "text": "把物资交给对方。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_huangcun_grain"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_huangcun_grain"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要 粮食 ×2"
+            },
+            {
+              "id": "advice",
+              "text": "再问问附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "我再准备一下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「收到了，多谢你跑这一趟。」\n\n物资已交付，可在任务日志领取约好的回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "bye",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「找人不一定得守着屋门。」阿石指指田地，又指指住房，「大家会工作、吃饭、歇着。寻不着就顺路再看看。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回交付。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "deliver",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_grain_claim",
+      "type": "contentEvent",
+      "name": "阿石·锅里留一口·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 50,
+      "topicText": "阿石·锅里留一口·回报",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_huangcun_grain"
+        }
+      ],
+      "entryStepId": "claim",
+      "steps": [
+        {
+          "id": "claim",
+          "speakerRef": "@target",
+          "text": "「东西已经收下了，约好的回报也给你留着。」\n\n打开任务日志领取即可；反复对话不会重复扣物资或重复发奖。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我去收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_grain_after",
+      "type": "contentEvent",
+      "name": "阿石·锅里留一口·闲谈",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 30,
+      "topicText": "阿石·锅里留一口·闲谈",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questCompletedFromTarget",
+          "id": "base:quest_huangcun_grain"
+        }
+      ],
+      "entryStepId": "chat",
+      "steps": [
+        {
+          "id": "chat",
+          "speakerRef": "@target",
+          "text": "「锅里有点余粮，心里就没那么慌。」阿石拈去手上的草根，「你若有别的打算，也记得留一顿饭。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "advice",
+              "text": "附近还有什么要留意？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "回头见。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「找人不一定得守着屋门。」阿石指指田地，又指指住房，「大家会工作、吃饭、歇着。寻不着就顺路再看看。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "thanks",
+              "text": "多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_medicine_offer",
+      "type": "contentEvent",
+      "name": "阿杏·把药备上",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 40,
+      "topicText": "阿杏·把药备上",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_huangcun_medicine"
+        }
+      ],
+      "entryStepId": "offer",
+      "steps": [
+        {
+          "id": "offer",
+          "speakerRef": "@target",
+          "text": "阿杏把晒干的药叶分成小堆：「床边用的药不能等有人倒下才去找。你若能匀来两份灵药，我这里还有三份粮食可以换给你。」\n\n「不是急令，先顾好你自己。药交给我本人，免得混进别的筐。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_neighbor_met"
+            }
+          ],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "我愿意帮这次忙。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_huangcun_medicine"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "advice",
+              "text": "先聊聊附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "我先不答应，改日再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「伤了就找医者和医疗床，不要只盯着那一点血。」阿杏说，「药效、卧床恢复和能否起身，各有各的条件。光答应帮忙，不会让床上的人立刻痊愈。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回刚才的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "offer",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了，多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_medicine_delivery",
+      "type": "contentEvent",
+      "name": "阿杏·把药备上·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 40,
+      "topicText": "阿杏·把药备上·交付",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_huangcun_medicine"
+        }
+      ],
+      "entryStepId": "deliver",
+      "steps": [
+        {
+          "id": "deliver",
+          "speakerRef": "@target",
+          "text": "这桩小事还在等你决定。现在交付会消耗 灵药 ×2，不方便也可以稍后再来；没有倒计时逼你今天完成。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "hand_over",
+              "text": "把物资交给对方。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_huangcun_medicine"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_huangcun_medicine"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要 灵药 ×2"
+            },
+            {
+              "id": "advice",
+              "text": "再问问附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "我再准备一下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「收到了，多谢你跑这一趟。」\n\n物资已交付，可在任务日志领取约好的回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "bye",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「伤了就找医者和医疗床，不要只盯着那一点血。」阿杏说，「药效、卧床恢复和能否起身，各有各的条件。光答应帮忙，不会让床上的人立刻痊愈。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回交付。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "deliver",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_medicine_claim",
+      "type": "contentEvent",
+      "name": "阿杏·把药备上·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 50,
+      "topicText": "阿杏·把药备上·回报",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_huangcun_medicine"
+        }
+      ],
+      "entryStepId": "claim",
+      "steps": [
+        {
+          "id": "claim",
+          "speakerRef": "@target",
+          "text": "「东西已经收下了，约好的回报也给你留着。」\n\n打开任务日志领取即可；反复对话不会重复扣物资或重复发奖。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我去收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_medicine_after",
+      "type": "contentEvent",
+      "name": "阿杏·把药备上·闲谈",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 30,
+      "topicText": "阿杏·把药备上·闲谈",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questCompletedFromTarget",
+          "id": "base:quest_huangcun_medicine"
+        }
+      ],
+      "entryStepId": "chat",
+      "steps": [
+        {
+          "id": "chat",
+          "speakerRef": "@target",
+          "text": "阿杏把药包的绳结重新勒紧：「能多备一份是一份。真要救人，还得有人到床边去。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "advice",
+              "text": "附近还有什么要留意？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "回头见。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「伤了就找医者和医疗床，不要只盯着那一点血。」阿杏说，「药效、卧床恢复和能否起身，各有各的条件。光答应帮忙，不会让床上的人立刻痊愈。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "thanks",
+              "text": "多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_wood_offer",
+      "type": "contentEvent",
+      "name": "阿木·修好背筐",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 40,
+      "topicText": "阿木·修好背筐",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_huangcun_wood"
+        }
+      ],
+      "entryStepId": "offer",
+      "steps": [
+        {
+          "id": "offer",
+          "speakerRef": "@target",
+          "text": "阿木把裂了口的背筐翻给你看：「底梁松了，三份粗木就够补。我拿一份灵药跟你换，省得每走几步就回头捡柴。」\n\n「不着急。有空也可以问问林边的路，我走得多些。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_neighbor_met"
+            }
+          ],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "我愿意帮这次忙。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_huangcun_wood"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "advice",
+              "text": "先聊聊附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "我先不答应，改日再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「灵泉那边有能静坐的地方，找空蒲团，别站着硬熬。」阿木把筐放下，「泉东一带偶尔有股凉气，像从石缝里钻出来。真想查，靠近些，用神识勘查；我没进去过，不敢说里面安全。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_practice_advice"
+            },
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_cave_hint"
+            }
+          ],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回刚才的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "offer",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了，多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_wood_delivery",
+      "type": "contentEvent",
+      "name": "阿木·修好背筐·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 40,
+      "topicText": "阿木·修好背筐·交付",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_huangcun_wood"
+        }
+      ],
+      "entryStepId": "deliver",
+      "steps": [
+        {
+          "id": "deliver",
+          "speakerRef": "@target",
+          "text": "这桩小事还在等你决定。现在交付会消耗 粗木 ×3，不方便也可以稍后再来；没有倒计时逼你今天完成。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "hand_over",
+              "text": "把物资交给对方。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_huangcun_wood"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_huangcun_wood"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要 粗木 ×3"
+            },
+            {
+              "id": "advice",
+              "text": "再问问附近的事。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "我再准备一下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「收到了，多谢你跑这一趟。」\n\n物资已交付，可在任务日志领取约好的回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "bye",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「灵泉那边有能静坐的地方，找空蒲团，别站着硬熬。」阿木把筐放下，「泉东一带偶尔有股凉气，像从石缝里钻出来。真想查，靠近些，用神识勘查；我没进去过，不敢说里面安全。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_practice_advice"
+            },
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_cave_hint"
+            }
+          ],
+          "choices": [
+            {
+              "id": "back",
+              "text": "说回交付。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "deliver",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_wood_claim",
+      "type": "contentEvent",
+      "name": "阿木·修好背筐·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 50,
+      "topicText": "阿木·修好背筐·回报",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_huangcun_wood"
+        }
+      ],
+      "entryStepId": "claim",
+      "steps": [
+        {
+          "id": "claim",
+          "speakerRef": "@target",
+          "text": "「东西已经收下了，约好的回报也给你留着。」\n\n打开任务日志领取即可；反复对话不会重复扣物资或重复发奖。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我去收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_wood_after",
+      "type": "contentEvent",
+      "name": "阿木·修好背筐·闲谈",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 30,
+      "topicText": "阿木·修好背筐·闲谈",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questCompletedFromTarget",
+          "id": "base:quest_huangcun_wood"
+        }
+      ],
+      "entryStepId": "chat",
+      "steps": [
+        {
+          "id": "chat",
+          "speakerRef": "@target",
+          "text": "「筐能背住东西，人才能走远。」阿木拍了拍木梁，「泉东那处异常还在，你要去就先准备好。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "advice",
+              "text": "附近还有什么要留意？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "advice",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "回头见。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "advice",
+          "speakerRef": "@target",
+          "text": "「灵泉那边有能静坐的地方，找空蒲团，别站着硬熬。」阿木把筐放下，「泉东一带偶尔有股凉气，像从石缝里钻出来。真想查，靠近些，用神识勘查；我没进去过，不敢说里面安全。」",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_practice_advice"
+            },
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_cave_hint"
+            }
+          ],
+          "choices": [
+            {
+              "id": "thanks",
+              "text": "多谢。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_healer",
+      "type": "contentEvent",
+      "name": "阿禾·先歇下来",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_farmer_c",
+      "priority": 30,
+      "topicText": "阿禾·先歇下来",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿禾从床边抬起头：「还有力气说话，也未必有力气再打一场。先看身上哪里伤着，再说别的。」\n\n医疗需要真实的医者、床位和药品。倒地、死亡与从世界移除并不是一回事；别把一个失去行动能力的人当作已经消失。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_neighbor_met"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记住了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_recruit",
+      "type": "contentEvent",
+      "name": "村内可招者·先问打算",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_village_recruit",
+      "priority": 30,
+      "topicText": "村内可招者·先问打算",
+      "once": false,
+      "onceScope": "global",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「出去走一趟，和把余生都交给谁，是两码事。」对方把活计放下，「想找人同行就说清去哪；想长期相处，总要先知道彼此愿不愿意。」\n\n普通对话不会自动招募、加入势力或强制编队。实际招募与任务同行使用各自的交互入口和条件。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_neighbor_met"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "先各忙各的，有事再谈。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_forest",
+      "type": "contentEvent",
+      "name": "树林·被踩实的小路",
+      "trigger": "onExplore",
+      "locationId": "base:loc_ref_forest",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "粗树皮上留下新旧交错的斧痕。有人在这里讨生活，也有人只是从这里经过。\n\n一条小径朝灵泉的方向延伸。村里的阿木常来此处；想知道山里的事，可以先问走过这些路的人。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_forest_seen"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，再看看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_mine",
+      "type": "contentEvent",
+      "name": "矿洞·尘土与旧字",
+      "trigger": "onExplore",
+      "locationId": "base:loc_ref_mine",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "矿口的石壁上有几行早已磨平的记号，旁边又被新划了几笔。你分不清谁是为了记数，谁是为了留话。\n\n这里首先是一处干活的地方，不会因为一眼异样就凭空变成宝库。往深处走之前，先看清脚下和退路。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_mine_seen"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，再看看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_huangcun_cave_chamber",
+      "type": "contentEvent",
+      "name": "洞府·旧居并不等于无主之物",
+      "trigger": "onExplore",
+      "locationId": "base:loc_cave_chamber",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "石室里的痕迹并不辉煌：磨过的地面，留在角落的旧物，还有早已无人回答的寂静。\n\n先观察现场的人和物。秘籍、斗技秘本需要实际拾取，再按自身条件研读；这段见闻不会替你领取它们，也不会替你清掉敌人。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_cave_entered"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，再看看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

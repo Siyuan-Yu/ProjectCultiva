@@ -791,7 +791,7 @@ namespace XianXia.Core.Persistence
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.IncompatibleContentVersion,
-                    "存档内容版本不兼容。WORLD-EXPAND-04 已调整世界尺寸与地点布局，请新开局；旧存档保留，未自动迁移或重置。",
+                    "存档内容版本不兼容。当前世界尺寸或内容布局已更新，请新开局；旧存档保留，未自动迁移或重置。",
                     snap.EnabledPackageVersion + " != " + expectedPackageVersion);
             }
 

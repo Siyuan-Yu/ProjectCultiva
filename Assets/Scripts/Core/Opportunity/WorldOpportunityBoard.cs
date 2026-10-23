@@ -48,6 +48,9 @@ namespace XianXia.Core.Opportunity
         public string WorldObjectLabel { get; set; } = string.Empty;
         public float WorldObjectWorldWidth { get; set; } = 1f;
         public float WorldObjectWorldHeight { get; set; } = 1f;
+        // Historic wire names above are presentation-cell dimensions, not canonical world units.
+        public int WorldObjectWidthCells => Math.Max(1, (int)Math.Ceiling(WorldObjectWorldWidth));
+        public int WorldObjectHeightCells => Math.Max(1, (int)Math.Ceiling(WorldObjectWorldHeight));
         public int DurationDays { get; set; } = 1;
         public float MinPlayerDistanceWorld { get; set; }
         public float MaxPlayerDistanceWorld { get; set; }

@@ -6,7 +6,7 @@ public static class PackageValidator
 {
     public static List<ValidationIssue> Validate(ContentPackage package)
     {
-        var issues = new List<ValidationIssue>();
+        var issues = new List<ValidationIssue>(package.LoadIssues);
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var def in package.Definitions)

@@ -292,15 +292,11 @@ namespace XianXia.Data.Bootstrap
                         {
                             var center = new WorldVec2(placement.WorldX+placement.WorldWidth*.5f,
                                 placement.WorldY+placement.WorldHeight*.5f);
-                            var axisX = placement.QuarterTurns % 2 == 0;
-                            var offset = surface.CellSize * 1.15f;
                             if (world.ChessBoards.ContainsKey(placement.StableId))
                                 return Result.Failure(ErrorCode.ContentLoadFailed, "Duplicate chess board.", placement.StableId);
-                            world.ChessBoards.Add(placement.StableId, new ChessBoardSpot {
-                                Id=placement.StableId, SiteId=placement.SiteId, SurfaceId=surface.SurfaceId,
-                                Center=center, ArrivalRadius=surface.CellSize*.3f,
-                                SeatA=new WorldVec2(center.X-(axisX?offset:0),center.Y-(axisX?0:offset)),
-                                SeatB=new WorldVec2(center.X+(axisX?offset:0),center.Y+(axisX?0:offset)) });
+                            world.ChessBoards.Add(placement.StableId, ChessBoardSpot.FromCell(
+                                placement.StableId, placement.SiteId, surface.SurfaceId,
+                                center, surface.CellSize, placement.QuarterTurns));
                         }
                         if (placement == null || !string.Equals(placement.Kind, "cushion", StringComparison.Ordinal))
                             continue;

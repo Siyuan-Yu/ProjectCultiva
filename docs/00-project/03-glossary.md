@@ -87,11 +87,13 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 > - **Retired Runtime Dependency**：`hexWorld`／FormalArmy／AtHex／Hex travel 不再由正常产品编译或加载；旧输入只允许在独立离线转换器、稳定 wire 检测、历史资料或明确测试夹具中出现。Separate Space 的 `mapLayout`／`localPlaceSet` 是当前合法格式，不属于旧 Outdoor runtime。
 > - **Future（未实现）**：自动水文、道路自动寻路、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling 等后续制作能力。不得从 MAP 封板推断这些功能已实现。
 > - **Authoring Source ≠ Runtime Content**：地图 authoring 源（Composer／FineEditor 编辑）与 bake 后的 runtime 产物不是同一类 JSON；见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §10～§13。
-> - **150×150 Surface Cells** 只表示 Level 1 SiteCore 的**理论行政控制范围**，**不是** Runtime Chunk、World Editor Cell、WorldSite Blueprint 或地图 authoring 最小尺寸。
+> - **225×225 Surface Cells** 表示当前 Level 1 SiteCore 的**理论行政控制范围**（2026-10-23 由原 150×150 长宽各扩至 1.5 倍），**不是** Runtime Chunk、World Editor Cell、WorldSite Blueprint 或地图 authoring 最小尺寸。
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
 | 连续世界格 | SurfaceCell | 最小真实连续世界地形格：terrain、walkability、footprint、水、道路与精修单位 | 1×1；早期 local tile 的正式后继 |
+| 整数格占地 | Integer-cell Footprint | 静态物件宽高为正整数格、矩形左下角对齐网格线；奇数格物件中心可在半格 | 蒲团／棋盘 1×1；人物 1×1 连续移动，美术／选取框独立；不等于世界坐标整数或已约定 1 米，见 321 |
+| 设施使用格 | Facility Use Cell | 人物实际站／坐以使用设施的格位，不是设施本体占地 | 棋盘左右各相邻 1×1 格，脚印与 Core 席位共源；独占预约不变 |
 | 运行块 | RuntimeChunk | 当前 50×50 Surface Cells 的 Streaming／materialization 技术分区 | 当前 50×50 Surface Cells；**不是制作／authoring 单位**，也不是 Site／行政单位 |
 | 大地图编辑格 | WorldEditorCell | 10×10 Surface Cells 的宏观地理制作格；只属于 Authoring | WorldComposer 已使用；runtime 不读取 |
 | 据点蓝图 | WorldSiteBlueprint | 任意尺寸 Surface Cell 布局的 WorldSite 精细 authoring 源 | MAP-01 V1 已支持；可跨多个 World Editor Cell／Runtime Chunk |
@@ -355,7 +357,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 户外表面空间元数据 | Outdoor Surface Spatial Metric/Coverage | Core 持有的完整 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage | 只回答 Surface 存在、尺度与 membership；不包含河桥、地形或 walkability |
 | 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
 | 地点核心 | SiteCore | WorldSite 唯一行政核心；预设议政厅或玩家建立的势力旗 | 议政厅不可拆但可接管；另立旗产生新 Site |
-| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位。Level 1 = 150×150 Surface Cells，只表示理论行政控制范围，**不是** Runtime Chunk／World Editor Cell／WorldSite Blueprint 或地图 authoring 最小尺寸 |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位。Level 1 = 225×225 Surface Cells（2026-10-23），只表示理论行政控制范围，**不是** Runtime Chunk／World Editor Cell／WorldSite Blueprint 或地图 authoring 最小尺寸 |
 | 实际行政控制 | WorldSiteAdministrativeControl | 由 Surface 精确位置、当前理论范围与领土取得历史唯一解析出的管理 Site；政治 Owner 从该 Site 读取 | 扩张不得追溯夺取他方或同势力其他 Site 的既有控制；Hex/Region 只是投影 |
 | 领土取得记录 | TerritoryClaim | 某 Site 在某 Surface 上一次不可改写的矩形范围取得历史，按 AcquiredOrder 决定重叠位置优先级 | 不保存 Faction Owner；核心失效时保留但不参与解析，恢复后沿用原优先级 |
 | 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |

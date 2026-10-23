@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Events;
 using XianXia.Core.Inventory;
@@ -56,25 +57,20 @@ namespace XianXia.Core.Content
                 return Result.Failure(ErrorCode.InvalidOperation, "Quest instance has expired.", runtime.QuestInstanceId);
             if (spec.DeliveryRequirements.Count == 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Quest has no delivery requirements.", questDefinitionId);
-            for (var i = 0; i < spec.DeliveryRequirements.Count; i++)
+            var planned = BuildDeliveryPlan(world, spec, out var removals);
+            if (planned.IsFailure) return planned;
+            // Use the same inventory/public-stock/quest/event rollback as all content outcomes,
+            // including callers which invoke this service without an outer event transaction.
+            return ContentOutcomeApplier.ApplyAll(world, context.ActorId, removals, context, () =>
             {
-                var requirement = spec.DeliveryRequirements[i];
-                var amount = requirement.Amount > 0 ? requirement.Amount : 1;
-                if (world.InventoryCatalog.HasTag(requirement.ItemId, "resource"))
-                {
-                    var consumed = PlayerStrategicResourceService.TryConsume(world, requirement.ItemId, amount, out _);
-                    if (consumed.IsFailure) return consumed;
-                }
-                else if (world.Inventory.GetCount(requirement.ItemId) < amount || !world.Inventory.TryRemoveAll(requirement.ItemId, amount))
-                    return Result.Failure(ErrorCode.InvalidOperation, "Party bag stock insufficient.", requirement.ItemId);
-            }
-            runtime.DeliveryCompleted = true;
-            runtime.ProgressMax = spec.DeliveryRequirements.Count;
-            runtime.ProgressCount = runtime.ProgressMax;
-            runtime.Status = QuestStatus.ReadyToClaim; QuestCompanionService.QuestStatusChanged(world, runtime);
-            world.Events.Publish(EventType.QuestCompleted, world.Tick, actor: context.ActorId,
-                target: runtime.IssuerEntityId, payload: runtime.QuestInstanceId);
-            return Result.Success();
+                runtime.DeliveryCompleted = true;
+                runtime.ProgressMax = spec.DeliveryRequirements.Count;
+                runtime.ProgressCount = runtime.ProgressMax;
+                runtime.Status = QuestStatus.ReadyToClaim; QuestCompanionService.QuestStatusChanged(world, runtime);
+                world.Events.Publish(EventType.QuestCompleted, world.Tick, actor: context.ActorId,
+                    target: runtime.IssuerEntityId, payload: runtime.QuestInstanceId);
+                return Result.Success();
+            });
         }
 
         public bool CanDeliverToTarget(SimulationWorld world, string questDefinitionId, ContentInteractionContext context)
@@ -83,16 +79,34 @@ namespace XianXia.Core.Content
             if (!world.Quests.TryGetForIssuer(questDefinitionId, context.TargetEntityId, out var runtime) ||
                 runtime.Status != QuestStatus.Active || runtime.DeliveryCompleted || QuestDeadline.IsExpired(world, runtime)) return false;
             if (spec.DeliveryRequirements.Count == 0) return false;
+            return BuildDeliveryPlan(world, spec, out _).IsSuccess;
+        }
+
+        static Result BuildDeliveryPlan(SimulationWorld world, QuestSpec spec, out List<ContentOutcome> removals)
+        {
+            removals = new List<ContentOutcome>(spec.DeliveryRequirements.Count);
+            var byItem = new Dictionary<string, ContentOutcome>(StringComparer.Ordinal);
             for (var i = 0; i < spec.DeliveryRequirements.Count; i++)
             {
                 var requirement = spec.DeliveryRequirements[i];
+                if (requirement == null || string.IsNullOrWhiteSpace(requirement.ItemId))
+                    return Result.Failure(ErrorCode.InvalidArgument, "Quest delivery item is missing.", spec.Id);
                 var amount = requirement.Amount > 0 ? requirement.Amount : 1;
-                var have = world.InventoryCatalog.HasTag(requirement.ItemId, "resource")
-                    ? PlayerStrategicResourceService.GetPlayerAccessibleCount(world, requirement.ItemId)
-                    : world.Inventory.GetCount(requirement.ItemId);
-                if (have < amount) return false;
+                if (!byItem.TryGetValue(requirement.ItemId, out var removal))
+                {
+                    removal = new ContentOutcome { Kind = "removeStock", Id = requirement.ItemId };
+                    byItem.Add(requirement.ItemId, removal);
+                    removals.Add(removal);
+                }
+                var total = (long)removal.Amount + amount;
+                if (total > int.MaxValue)
+                    return Result.Failure(ErrorCode.InvalidArgument, "Quest delivery total exceeds supported count.", requirement.ItemId);
+                removal.Amount = (int)total;
             }
-            return true;
+            foreach (var removal in removals)
+                if (PlayerStrategicResourceService.GetPlayerAccessibleCount(world, removal.Id) < removal.Amount)
+                    return Result.Failure(ErrorCode.InvalidOperation, "交付所需物资不足。", removal.Id);
+            return Result.Success();
         }
 
         public Result TryClaimRewards(SimulationWorld world, string questKey, EntityId subject)

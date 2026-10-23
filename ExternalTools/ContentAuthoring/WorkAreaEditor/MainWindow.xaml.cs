@@ -125,6 +125,9 @@ public partial class MainWindow : Window
     }
 
     void NewWorkArea_Click(object sender, RoutedEventArgs e)
+        => EditorPrompts.RunOperation(this, "新建工区失败", CreateWorkArea);
+
+    void CreateWorkArea()
     {
         if (_package == null) return;
         var id = $"base:workarea_new_{DateTime.Now:yyyyMMddHHmmss}";
@@ -148,6 +151,15 @@ public partial class MainWindow : Window
     }
 
     void Save_Click(object sender, RoutedEventArgs e)
+    {
+        try { SaveWorkArea(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    void SaveWorkArea()
     {
         if (_package == null || _workArea == null)
         {

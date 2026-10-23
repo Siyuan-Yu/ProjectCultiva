@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:world_opportunity_huangcun_waystone",
+      "type": "worldOpportunity",
+      "name": "林间旧路碑",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 40,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "rock",
+      "worldObjectLabel": "林间旧路碑",
+      "worldObjectWorldWidth": 2,
+      "worldObjectWorldHeight": 2,
+      "durationDays": 5,
+      "minPlayerDistanceWorld": 2.5,
+      "maxPlayerDistanceWorld": 4.5,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "hiddenUntilDiscovered",
+      "discoveryRadiusWorld": 1.25,
+      "discoveryNoticeTitle": "林间旧路碑",
+      "discoveryNoticeText": "行路时，你注意到一处值得看看的细节。",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_waystone_resolved"
+        }
+      ],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:event_huangcun_waystone",
+      "type": "contentEvent",
+      "name": "林间旧路碑·查看",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_huangcun_waystone",
+      "priority": 30,
+      "topicText": "查看林间旧路碑",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_waystone_resolved"
+        }
+      ],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "苔痕盖住了大半字。还能辨出“泉东”“敛息”几字，落款早已剥尽。\n\n这不是一部能直接学会的功法，只是前人走过这里的痕迹。你记下灵泉东侧可能藏有入口，打算靠近后用神识勘查。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "take",
+              "text": "记下线索，继续赶路。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "setFlag",
+                  "id": "story:huangcun_cave_hint"
+                },
+                {
+                  "kind": "setFlag",
+                  "id": "story:huangcun_waystone_resolved"
+                },
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "leave",
+              "text": "暂时不动，继续赶路。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:world_opportunity_huangcun_herb_patch",
+      "type": "worldOpportunity",
+      "name": "背阴野药",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 30,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "herbField",
+      "worldObjectLabel": "背阴野药",
+      "worldObjectWorldWidth": 1,
+      "worldObjectWorldHeight": 1,
+      "durationDays": 5,
+      "minPlayerDistanceWorld": 2.5,
+      "maxPlayerDistanceWorld": 4.5,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "worldVisible",
+      "discoveryRadiusWorld": 1.25,
+      "discoveryNoticeTitle": "背阴野药",
+      "discoveryNoticeText": "行路时，你注意到一处值得看看的细节。",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_herb_patch_resolved"
+        }
+      ],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:event_huangcun_herb_patch",
+      "type": "contentEvent",
+      "name": "背阴野药·查看",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_huangcun_herb_patch",
+      "priority": 30,
+      "topicText": "查看背阴野药",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_herb_patch_resolved"
+        }
+      ],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "背阴处长着一小丛灵药，叶缘还带着露水。数量不多，但比空手走这一趟好。\n\n采下这一份后，此处的线索就算记完了。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "take",
+              "text": "采一份带走。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "addStock",
+                  "id": "base:resource_spirit_herb",
+                  "amount": 1
+                },
+                {
+                  "kind": "setFlag",
+                  "id": "story:huangcun_herb_patch_resolved"
+                },
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "leave",
+              "text": "暂时不动，继续赶路。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:world_opportunity_huangcun_road_bundle",
+      "type": "worldOpportunity",
+      "name": "路边干粮包",
+      "surfaceId": "base:surface_main_wilderness_v1",
+      "weight": 20,
+      "maxActive": 1,
+      "spawnKind": "worldObject",
+      "worldObjectKind": "loot",
+      "worldObjectLabel": "路边干粮包",
+      "worldObjectWorldWidth": 1,
+      "worldObjectWorldHeight": 1,
+      "durationDays": 5,
+      "minPlayerDistanceWorld": 2.5,
+      "maxPlayerDistanceWorld": 4.5,
+      "allowInsideWorldSite": false,
+      "discoveryMode": "worldVisible",
+      "discoveryRadiusWorld": 1.25,
+      "discoveryNoticeTitle": "路边干粮包",
+      "discoveryNoticeText": "行路时，你注意到一处值得看看的细节。",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_road_bundle_resolved"
+        }
+      ],
+      "expireOutcomes": []
+    },
+    {
+      "id": "base:event_huangcun_road_bundle",
+      "type": "contentEvent",
+      "name": "路边干粮包·查看",
+      "trigger": "onInspect",
+      "worldObjectKind": "opportunityObject",
+      "worldOpportunityId": "base:world_opportunity_huangcun_road_bundle",
+      "priority": 30,
+      "topicText": "查看路边干粮包",
+      "once": false,
+      "onceScope": "perTarget",
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_road_bundle_resolved"
+        }
+      ],
+      "entryStepId": "inspect",
+      "steps": [
+        {
+          "id": "inspect",
+          "speakerRef": "",
+          "text": "旧布包挂在折枝上，外皮已经受潮，里面还有两份包得严实的干粮。包上没有可辨的名字。\n\n你可以把能用的带上，也可以留下；离开不会当作拾取。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "take",
+              "text": "收好两份干粮。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "addStock",
+                  "id": "base:resource_grain",
+                  "amount": 2
+                },
+                {
+                  "kind": "setFlag",
+                  "id": "story:huangcun_road_bundle_resolved"
+                },
+                {
+                  "kind": "resolveCurrentOpportunity"
+                }
+              ],
+              "nextStepId": ""
+            },
+            {
+              "id": "leave",
+              "text": "暂时不动，继续赶路。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

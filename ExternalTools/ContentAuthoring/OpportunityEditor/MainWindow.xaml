@@ -53,8 +53,11 @@
                     <DataGrid.Columns>
                       <DataGridTextColumn Header="人物模板 ID" Binding="{Binding DefinitionId}" Width="*" IsReadOnly="True"/>
                       <DataGridTextColumn Header="权重" Binding="{Binding Weight}" Width="90"/>
+                      <DataGridTextColumn Header="最少数量" Binding="{Binding CountMin}" Width="90"/>
+                      <DataGridTextColumn Header="最多数量" Binding="{Binding CountMax}" Width="90"/>
                     </DataGrid.Columns>
                   </DataGrid>
+                  <TextBlock Text="人物池可能同时用于地图刷怪；保存时保留各条目的数量范围。" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
                   <shared:CharacterPicker x:Name="PoolCharacterPicker" Margin="0,8,0,4"/>
                   <StackPanel Orientation="Horizontal">
                     <Button Content="＋添加人物" Width="100" Click="AddPoolCharacter_Click"/>

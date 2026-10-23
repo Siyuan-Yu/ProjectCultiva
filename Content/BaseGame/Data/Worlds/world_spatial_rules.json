@@ -1,14 +1,22 @@
 {
   "schemaVersion": 1,
-  "definitions": [{
-    "id": "base:world_spatial_rules_v1",
-    "type": "worldSpatialRules",
-    "coreLevels": [{ "level": 1, "controlWidthCells": 150, "controlHeightCells": 150 }],
-    "wildernessEncounterWidthCells": 500,
-    "wildernessEncounterHeightCells": 500,
-    "interventionDecisionSeconds": 3,
-    "interventionArrivalSeconds": 3,
-    "interventionRelationThreshold": 30,
-    "interventionChanceBasisPoints": 5000
-  }]
+  "definitions": [
+    {
+      "id": "base:world_spatial_rules_v1",
+      "type": "worldSpatialRules",
+      "coreLevels": [
+        {
+          "level": 1,
+          "controlWidthCells": 225,
+          "controlHeightCells": 225
+        }
+      ],
+      "wildernessEncounterWidthCells": 500,
+      "wildernessEncounterHeightCells": 500,
+      "interventionDecisionSeconds": 3,
+      "interventionArrivalSeconds": 3,
+      "interventionRelationThreshold": 30,
+      "interventionChanceBasisPoints": 5000
+    }
+  ]
 }

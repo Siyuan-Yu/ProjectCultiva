@@ -90,7 +90,22 @@ namespace XianXia.Core.Npc
                 }
                 if (entity.TryGet<NpcAutonomyState>(out var autonomy) && autonomy.Retreating)
                 {
-                    if (!CombatLifeStateService.CanFight(entity)) { autonomy.Retreating = false; continue; }
+                    // A queued personal retreat is stale once a higher movement authority takes over.
+                    if (!CombatLifeStateService.CanFight(entity) || PartyRestService.BlocksMovement(entity) ||
+                        partyMember || SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ||
+                        SquadWorldMotionService.OwnsCharacter(world, entity.Id) ||
+                        world.BackgroundCharacterTravel.IsTraveling(entity.Id) ||
+                        CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) ||
+                        SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, entity.Id))
+                    {
+                        autonomy.Retreating = false;
+                        if (entity.TryGet<MovementIntentComponent>(out var staleRetreat) &&
+                            staleRetreat.Active && staleRetreat.DestinationKey == "personal-retreat")
+                            staleRetreat.Clear();
+                    }
+                }
+                if (autonomy != null && autonomy.Retreating)
+                {
                     var goal = new WorldVec2(autonomy.RetreatX, autonomy.RetreatY);
                     if (!world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
                     {

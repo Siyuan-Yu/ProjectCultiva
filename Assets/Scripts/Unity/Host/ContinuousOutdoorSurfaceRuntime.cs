@@ -69,6 +69,15 @@ namespace XianXia.Unity.Host
         readonly HashSet<string> _distantSquadFormationReported =
             new HashSet<string>(StringComparer.Ordinal);
         readonly HashSet<string> _materializedSitePlacementOwners = new HashSet<string>(StringComparer.Ordinal);
+        // Derived from immutable loaded Content only. Runtime destruction is still queried at use time.
+        readonly Dictionary<SurfaceChunkCoord, List<OutdoorSurfacePlacementDefinition>> _bakedPlacementsByChunk =
+            new Dictionary<SurfaceChunkCoord, List<OutdoorSurfacePlacementDefinition>>();
+        readonly HashSet<string> _bakedPlacementIds = new HashSet<string>(StringComparer.Ordinal);
+        readonly List<string> _placementOwnerRemovalScratch = new List<string>();
+        OutdoorWorldSurfaceDefinition _placementIndexSurface;
+        OutdoorSurfaceCoordinateMapper _placementIndexMapper;
+        List<OutdoorSurfacePlacementDefinition> _placementIndexSource;
+        int _placementIndexCount;
         /// <summary>同一 materialize pass 内两人最小 presentation 间距（≈2.5 个精灵）。</summary>
         const float MaterializeSeparationPresentation = 2.6f;
         /// <summary>§16 重定位候选点的同心环步长（presentation 单位）。</summary>
@@ -466,6 +475,7 @@ namespace XianXia.Unity.Host
 
         public void Bind(PlayableHostBootstrap bootstrap)
         {
+            ClearBakedPlacementIndex();
             _bootstrap = bootstrap; _tileMap = bootstrap != null ? bootstrap.GetComponent<HostDemoTileMap>() : null;
             // The bridge source is the 50x50 fallback layout. 80x50 would create a 30-unit
             // physical navigation gap; this remains one uniform, provisional surface metric.
@@ -1182,12 +1192,17 @@ namespace XianXia.Unity.Host
         {
             // Remove by presentation ownership, even when snapshot restore has already replaced the World board.
             var runtimePrefix = SitePlacementOwnerKey(coord, "runtime:", fieldId);
-            foreach (var owner in new List<string>(_materializedSitePlacementOwners))
+            _placementOwnerRemovalScratch.Clear();
+            foreach (var owner in _materializedSitePlacementOwners)
                 if (owner.StartsWith(runtimePrefix, StringComparison.Ordinal))
-                {
-                    _tileMap.RemoveLayoutInstance(owner);
-                    _materializedSitePlacementOwners.Remove(owner);
-                }
+                    _placementOwnerRemovalScratch.Add(owner);
+            for (var i = 0; i < _placementOwnerRemovalScratch.Count; i++)
+            {
+                var owner = _placementOwnerRemovalScratch[i];
+                _tileMap.RemoveLayoutInstance(owner);
+                _materializedSitePlacementOwners.Remove(owner);
+            }
+            _placementOwnerRemovalScratch.Clear();
             var sites = _bootstrap?.Session?.World?.Strategic?.Sites?.Sites;
             if (sites == null) return;
             foreach (var entry in sites)
@@ -1213,15 +1228,15 @@ namespace XianXia.Unity.Host
         void BuildBakedOutdoorSitePlacements(SurfaceChunkCoord chunk)
         {
             if (!TryResolveSurface(out var surface) || surface.SitePlacements == null) return;
+            var placements = GetBakedPlacements(surface, chunk);
             // Chunk presentation is built before the ordinary place-registry refresh. Seed cave
             // authority first so the initial stamp can already apply party reveal visibility.
             var world = _bootstrap?.Session?.World;
             if (world != null)
-                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                for (var i = 0; i < placements.Count; i++)
                 {
-                    var cave = surface.SitePlacements[i];
-                    if (cave == null || !PlacementTouchesChunk(cave, chunk) ||
-                        !string.Equals(MapKindCatalog.NormalizeKind(cave.Kind), "cave", StringComparison.Ordinal) ||
+                    var cave = placements[i];
+                    if (!string.Equals(MapKindCatalog.NormalizeKind(cave.Kind), "cave", StringComparison.Ordinal) ||
                         string.IsNullOrEmpty(cave.BoundLocationId)) continue;
                     for (var p = 0; p < surface.SitePlaces.Count; p++)
                     {
@@ -1234,11 +1249,9 @@ namespace XianXia.Unity.Host
                     }
                 }
             var bySite = new Dictionary<string, List<OutdoorSurfacePlacementDefinition>>(StringComparer.Ordinal);
-            for (var i = 0; i < surface.SitePlacements.Count; i++)
+            for (var i = 0; i < placements.Count; i++)
             {
-                var source = surface.SitePlacements[i];
-                if (source == null || !PlacementTouchesChunk(source, chunk))
-                    continue;
+                var source = placements[i];
                 if (!bySite.TryGetValue(source.SiteId ?? string.Empty, out var converted))
                 {
                     converted = new List<OutdoorSurfacePlacementDefinition>();
@@ -1267,11 +1280,18 @@ namespace XianXia.Unity.Host
             var world = _bootstrap?.Session?.World;
             var assets = world?.OutdoorConstructedAssets;
             if (assets == null) return;
+            if (TryResolveSurface(out var surface)) EnsureBakedPlacementIndex(surface);
+            else ClearBakedPlacementIndex();
             foreach (var asset in assets.Assets.Values)
             {
-                if (asset.SurfaceId != _surfaceId || IsAuthoredPlacement(asset.StableAssetId)) continue;
+                if (asset.SurfaceId != _surfaceId || _bakedPlacementIds.Contains(asset.StableAssetId) ||
+                    !PlacementTouchesChunk(asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight, chunk))
+                    continue;
+                var owner = SitePlacementOwnerKey(chunk, "runtime:" + asset.StableAssetId);
+                if (_materializedSitePlacementOwners.Contains(owner)) continue;
                 var placement = new OutdoorSurfacePlacementDefinition {
                     StableId = asset.StableAssetId, SiteId = asset.BoundWorldSiteId, Kind = asset.Kind,
+                    BuildingId = asset.BuildingId, QuarterTurns = asset.QuarterTurns,
                     WorldX = asset.WorldX, WorldY = asset.WorldY,
                     WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight,
                     SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
@@ -1288,29 +1308,78 @@ namespace XianXia.Unity.Host
                           string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
                               StringComparison.Ordinal) ? "储藏室" : "农田"
                 };
-                if (!PlacementTouchesChunk(placement, chunk)) continue;
-                var owner = SitePlacementOwnerKey(chunk, "runtime:" + asset.StableAssetId);
-                if (_materializedSitePlacementOwners.Contains(owner)) continue;
                 _tileMap.BuildOutdoorPlacementInstance(owner,
                     new List<OutdoorSurfacePlacementDefinition> { placement }, _mapper, chunk);
                 _materializedSitePlacementOwners.Add(owner);
             }
         }
 
-        bool IsAuthoredPlacement(string stableId)
+        void ClearBakedPlacementIndex()
         {
-            if (string.IsNullOrWhiteSpace(stableId) || !TryResolveSurface(out var surface) ||
-                surface.SitePlacements == null) return false;
-            for (var i = 0; i < surface.SitePlacements.Count; i++)
-                if (string.Equals(surface.SitePlacements[i]?.StableId, stableId, StringComparison.Ordinal)) return true;
-            return false;
+            _bakedPlacementsByChunk.Clear();
+            _bakedPlacementIds.Clear();
+            _placementIndexSurface = null;
+            _placementIndexMapper = null;
+            _placementIndexSource = null;
+            _placementIndexCount = 0;
         }
 
-        bool PlacementTouchesChunk(OutdoorSurfacePlacementDefinition p, SurfaceChunkCoord chunk)
+        void EnsureBakedPlacementIndex(OutdoorWorldSurfaceDefinition surface)
+        {
+            var placements = surface?.SitePlacements;
+            if (ReferenceEquals(_placementIndexSurface, surface) &&
+                ReferenceEquals(_placementIndexMapper, _mapper) &&
+                ReferenceEquals(_placementIndexSource, placements) &&
+                _placementIndexCount == (placements?.Count ?? 0)) return;
+            ClearBakedPlacementIndex();
+            if (placements == null || _mapper == null) return;
+            _placementIndexSurface = surface;
+            _placementIndexMapper = _mapper;
+            _placementIndexSource = placements;
+            _placementIndexCount = placements.Count;
+            for (var i = 0; i < placements.Count; i++)
+            {
+                var placement = placements[i];
+                if (placement == null) continue;
+                if (!string.IsNullOrWhiteSpace(placement.StableId)) _bakedPlacementIds.Add(placement.StableId);
+                var min = _mapper.WorldToChunk(placement.WorldX, placement.WorldY);
+                var max = _mapper.WorldToChunk(placement.WorldX + placement.WorldWidth,
+                    placement.WorldY + placement.WorldHeight);
+                // Include neighboring candidates before applying the original strict intersection.
+                // This preserves floating-point seam behavior and multi-chunk footprints.
+                for (var y = min.Y - 1; y <= max.Y + 1; y++)
+                for (var x = min.X - 1; x <= max.X + 1; x++)
+                {
+                    var chunk = new SurfaceChunkCoord(x, y);
+                    if (!PlacementTouchesChunk(placement, chunk)) continue;
+                    if (!_bakedPlacementsByChunk.TryGetValue(chunk, out var bucket))
+                    {
+                        bucket = new List<OutdoorSurfacePlacementDefinition>();
+                        _bakedPlacementsByChunk.Add(chunk, bucket);
+                    }
+                    bucket.Add(placement);
+                }
+            }
+        }
+
+        IReadOnlyList<OutdoorSurfacePlacementDefinition> GetBakedPlacements(
+            OutdoorWorldSurfaceDefinition surface, SurfaceChunkCoord chunk)
+        {
+            EnsureBakedPlacementIndex(surface);
+            return _bakedPlacementsByChunk.TryGetValue(chunk, out var placements)
+                ? (IReadOnlyList<OutdoorSurfacePlacementDefinition>)placements
+                : Array.Empty<OutdoorSurfacePlacementDefinition>();
+        }
+
+        bool PlacementTouchesChunk(OutdoorSurfacePlacementDefinition p, SurfaceChunkCoord chunk) =>
+            PlacementTouchesChunk(p.WorldX, p.WorldY, p.WorldWidth, p.WorldHeight, chunk);
+
+        bool PlacementTouchesChunk(float worldX, float worldY, float worldWidth, float worldHeight,
+            SurfaceChunkCoord chunk)
         {
             _mapper.ChunkLocalToWorld(chunk, 0f, 0f, out var left, out var bottom);
-            return p.WorldX < left + _mapper.ChunkWidth && p.WorldX + p.WorldWidth > left &&
-                   p.WorldY < bottom + _mapper.ChunkHeight && p.WorldY + p.WorldHeight > bottom;
+            return worldX < left + _mapper.ChunkWidth && worldX + worldWidth > left &&
+                   worldY < bottom + _mapper.ChunkHeight && worldY + worldHeight > bottom;
         }
 
         void RecomposeWalkGrid()
@@ -1376,10 +1445,11 @@ namespace XianXia.Unity.Host
             if (!TryResolveSurface(out var surface) || surface.SitePlacements == null) return null;
             var grid = new WalkGrid(originX, originY, cell, width, height);
             var any = false;
-            for (var i = 0; i < surface.SitePlacements.Count; i++)
+            var placements = GetBakedPlacements(surface, coord);
+            for (var i = 0; i < placements.Count; i++)
             {
-                var p = surface.SitePlacements[i];
-                if (p == null || !p.BlocksMovement || !PlacementTouchesChunk(p, coord)) continue;
+                var p = placements[i];
+                if (!p.BlocksMovement) continue;
                 // Authored construction assets are projected by the same runtime authority as
                 // player-built assets below. In particular, a room blocks only its perimeter.
                 if (OutdoorConstructedAssetSemantics.IsAuthoredRuntimeAssetKind(p.Kind)) continue;
@@ -1421,11 +1491,8 @@ namespace XianXia.Unity.Host
                       string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) ||
                       string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.WallSegmentKind, StringComparison.Ordinal)))
                     continue;
-                var placement = new OutdoorSurfacePlacementDefinition {
-                    WorldX = asset.WorldX, WorldY = asset.WorldY,
-                    WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight
-                };
-                if (!PlacementTouchesChunk(placement, coord)) continue;
+                if (!PlacementTouchesChunk(asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight, coord))
+                    continue;
                 if (string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal))
                 {
                     var cw = asset.WorldWidth / asset.CellsW;
@@ -1527,6 +1594,7 @@ namespace XianXia.Unity.Host
             _presentedChunks.Clear();
             _loaded.Clear(); _desired.Clear(); _add.Clear(); _remove.Clear(); IsActive = false;
             _materializedSitePlacementOwners.Clear();
+            ClearBakedPlacementIndex();
             _grids.Clear();
             _compositeWalkGrid = null;
             if (world != null && world.SurfaceGround.Active == _geography?.Navigation)

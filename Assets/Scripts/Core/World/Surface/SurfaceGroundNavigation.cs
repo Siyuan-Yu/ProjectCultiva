@@ -25,6 +25,16 @@ namespace XianXia.Core.World.Surface
         BlockedGoal = 4
     }
 
+    /// <summary>Exact horizontal road run derived from the immutable ground cells, for map display.</summary>
+    public readonly struct SurfaceGroundRoadSpan
+    {
+        public SurfaceGroundRoadSpan(int x, int y, int length)
+        { X = x; Y = y; Length = length; }
+        public int X { get; }
+        public int Y { get; }
+        public int Length { get; }
+    }
+
     /// <summary>
     /// Checked-in Surface ground authority. The complete regional grid is independent of loaded
     /// chunk GameObjects. Water/solid block; bridge is walkable only because the bake validated
@@ -34,6 +44,7 @@ namespace XianXia.Core.World.Surface
     {
         readonly SurfaceGroundCellKind[] _cells;
         readonly WalkGrid _walkGrid;
+        readonly List<SurfaceGroundRoadSpan> _roadSpans = new List<SurfaceGroundRoadSpan>();
         readonly GridPathfinderWorkspace _workspace = new GridPathfinderWorkspace();
         readonly List<float> _pathScratch = new List<float>(512);
 
@@ -61,14 +72,34 @@ namespace XianXia.Core.World.Surface
             Height = height;
             _cells = new SurfaceGroundCellKind[cells.Count];
             _walkGrid = new WalkGrid(originX, originY, cellSize, width, height);
-            for (var i = 0; i < cells.Count; i++)
+            var index = 0;
+            for (var y = 0; y < height; y++)
             {
-                _cells[i] = cells[i];
-                var kind = cells[i];
-                var blocked = (kind & SurfaceGroundCellKind.Solid) != 0 ||
-                              ((kind & SurfaceGroundCellKind.Water) != 0 &&
-                               (kind & SurfaceGroundCellKind.Bridge) == 0);
-                if (blocked) _walkGrid.SetBlocked(i % width, i / width, true);
+                var roadStart = -1;
+                for (var x = 0; x < width; x++, index++)
+                {
+                    var kind = cells[index];
+                    _cells[index] = kind;
+                    var blocked = (kind & SurfaceGroundCellKind.Solid) != 0 ||
+                                  ((kind & SurfaceGroundCellKind.Water) != 0 &&
+                                   (kind & SurfaceGroundCellKind.Bridge) == 0);
+                    if (blocked) _walkGrid.SetBlocked(x, y, true);
+                    var visibleRoad = (kind & SurfaceGroundCellKind.Road) != 0 &&
+                                      (kind & (SurfaceGroundCellKind.Water |
+                                               SurfaceGroundCellKind.Bridge |
+                                               SurfaceGroundCellKind.Solid)) == 0;
+                    if (visibleRoad)
+                    {
+                        if (roadStart < 0) roadStart = x;
+                    }
+                    else if (roadStart >= 0)
+                    {
+                        _roadSpans.Add(new SurfaceGroundRoadSpan(roadStart, y, x - roadStart));
+                        roadStart = -1;
+                    }
+                }
+                if (roadStart >= 0)
+                    _roadSpans.Add(new SurfaceGroundRoadSpan(roadStart, y, width - roadStart));
             }
         }
 
@@ -83,6 +114,8 @@ namespace XianXia.Core.World.Surface
         public float MaxX => OriginX + Width * CellSize;
         public float MaxY => OriginY + Height * CellSize;
         public WalkGrid WalkGrid => _walkGrid;
+        /// <summary>Display-only projection; routing and walkability continue reading the original cells.</summary>
+        public IReadOnlyList<SurfaceGroundRoadSpan> RoadSpans => _roadSpans;
 
         public bool Contains(float x, float y) =>
             x >= OriginX && y >= OriginY && x < MaxX && y < MaxY;

@@ -17,6 +17,17 @@ namespace XianXia.Core.Npc
         public string Id = string.Empty, SiteId = string.Empty, SurfaceId = string.Empty;
         public WorldVec2 Center, SeatA, SeatB;
         public float ArrivalRadius;
+
+        public static ChessBoardSpot FromCell(string id, string siteId, string surfaceId,
+            WorldVec2 center, float cellSize, int quarterTurns)
+        {
+            var axisX = quarterTurns % 2 == 0;
+            return new ChessBoardSpot {
+                Id=id, SiteId=siteId, SurfaceId=surfaceId, Center=center,
+                ArrivalRadius=cellSize*.15f,
+                SeatA=new WorldVec2(center.X-(axisX?cellSize:0),center.Y-(axisX?0:cellSize)),
+                SeatB=new WorldVec2(center.X+(axisX?cellSize:0),center.Y+(axisX?0:cellSize)) };
+        }
     }
 
     public sealed class ChessGameState
