@@ -1,0 +1,1769 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_340_orientation",
+      "type": "contentEvent",
+      "name": "将老·刚来村里先做什么",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "priority": 35,
+      "topicText": "将老·刚来村里先做什么",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "将老指了指近处的田，再指向东边的医舍：「认人、找饭、认自己的床，和修炼不冲突。先做哪一件，由你。」\n\n开局选项只决定先接哪条引导。两条都没有时限，不改变身份、资质和难度。任务完成后到日志领取结算。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "settle",
+              "text": "补接：荒村见闻（已接取则保留原进度）",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_settle"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "practice",
+              "text": "补接：修行札记（已接取则保留原进度）",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "startQuest",
+                  "id": "base:quest_huangcun_practice"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "先照自己的步子来。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_village_map",
+      "type": "contentEvent",
+      "name": "阿石·吃住与近田",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 35,
+      "topicText": "阿石·吃住与近田",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿石抹去手上的土：「住屋还在西北，粮田紧挨着屋南边，田与田之间留着田埂。医舍和药圃在东北，功法阁、丹室和炼器室也在那一带。」\n\n「主管和巡卫搬到议政厅旁边了，往东南找。棋盘摆在外面，空了就找一处坐；树木和矿石散在村里，没必要都绕到同一片地方去。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_guard_routine",
+      "type": "contentEvent",
+      "name": "巡卫甲·当班时辰",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_a",
+      "priority": 35,
+      "topicText": "巡卫甲·当班时辰",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「我和巡卫乙同班。凌晨歇息，五时起查粮田、药圃、库房和矿口；十时到十三时去修炼院，十三时再查工，十八时转看四门，直到子时。」\n\n「受伤、饥饿、遇敌，自然先处置眼前的事。你也别把我们坐在蒲团上，当成村界已经放开。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_guard_training",
+      "type": "contentEvent",
+      "name": "巡卫乙·守门的人也要练",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_b",
+      "priority": 35,
+      "topicText": "巡卫乙·守门的人也要练",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "巡卫乙把兵器靠稳：「我们也不过才学着感应灵气。同一班下了差，就各找一个蒲团。修为靠一口一口练，不会巡过一遍门就凭空长出来。」\n\n「医舍的床是留给伤病的；平常累了，回自己的住处。外面再怎么叫阵，先别把身子熬垮。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_supervisor_routine",
+      "type": "contentEvent",
+      "name": "主管·查工也有间歇",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "priority": 35,
+      "topicText": "主管·查工也有间歇",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「五时先点田里的活，七时回去吐纳；十一时再查一次，十三时继续修炼，十八时巡一阵，二十时以后歇息。」\n\n主管把册页压住：「我不可能每时每刻站在你身后。可人走到哪里，活做到哪里，都有痕迹。先把吃住、伤药和每日份额顾好。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_clinic_map",
+      "type": "contentEvent",
+      "name": "阿杏·医舍不是堆人的地方",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 35,
+      "topicText": "阿杏·医舍不是堆人的地方",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「药圃搬近了，病人床也多了两张。」阿杏挽起袖子，「受伤的人要先送到能安置人的空床，医者才能接着照料。药不是床自己变出来的，库里、身上有多少，就只能用多少。」\n\n「别为了凑委托，把最后一点口粮和救命药全交出去。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_common_house",
+      "type": "contentEvent",
+      "name": "阿木·露天棋盘与散生树木",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 35,
+      "topicText": "阿木·露天棋盘与散生树木",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿木朝空地努努嘴：「下棋何必专门占一间屋？棋盘散着摆，走累了就近坐，别堵在别人门口。」\n\n「树也不只长在一块林地里。房前屋后、路边空地都有木料，找得到、砍得动的才算数。可别砍光了，树不会一过夜就自己长回来。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_after_liberation",
+      "type": "contentEvent",
+      "name": "阿石·村子到手以后",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 35,
+      "topicText": "阿石·村子到手以后",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「门开了，日子却不能停。」阿石指着田和床位，「先看公库的粮木、医舍的药、住户的床，再安排谁种田、采药、伐木。别把所有人一齐带走，村里总得有人照应。」\n\n「想往外走，就先去青石镇。那里能买书、换物，也有人知道外面的路。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_facilities",
+      "type": "contentEvent",
+      "name": "青石镇·落脚与补给",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 35,
+      "topicText": "青石镇·落脚与补给",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「书院和拍卖处在中街，北面是近镇田、药田与柴林。粮木药都往田边公库收，医舍领药也去那里。」\n\n行商指向东侧：「过路人歇脚有屋，想静坐也有蒲团。阿青照看药田，阿柴在林边，阿枝守着医舍。找他们办事，先去这些地方看看。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "我记下了。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_field_lunch_offer",
+      "type": "contentEvent",
+      "name": "阿石·田边留一份饭·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 40,
+      "topicText": "阿石·田边留一份饭·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_field_lunch"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿石把饭袋抖了抖，只落下几粒碎粮：「往返近了，手里的活反倒容易做得忘了吃饭。给我带六份粮吧，我拿攒下的六份粗木换。」\n\n「你和同行的也要吃，留够了再来。不急着今天交。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_field_lunch"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_field_lunch_delivery",
+      "type": "contentEvent",
+      "name": "阿石·田边留一份饭·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 40,
+      "topicText": "阿石·田边留一份饭·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_field_lunch"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粮食×6，回报粗木×6。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_field_lunch"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_field_lunch"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粮食×6"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_field_lunch_claim",
+      "type": "contentEvent",
+      "name": "阿石·田边留一份饭·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_mortal_a",
+      "priority": 50,
+      "topicText": "阿石·田边留一份饭·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_field_lunch"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粮食已经收到。答应的粗木×6记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_wood_handles_offer",
+      "type": "contentEvent",
+      "name": "阿木·拣些结实木料·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 40,
+      "topicText": "阿木·拣些结实木料·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_wood_handles"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿木用拇指刮过一截木纹：「好木料不能只看粗细，歪裂的做不了耐用的柄。帮我凑十二份粗木，我慢慢挑，给你四份粮。」\n\n「村里散生的树不少，别一路砍到自己饿得握不住斧头。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_wood_handles"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_wood_handles_delivery",
+      "type": "contentEvent",
+      "name": "阿木·拣些结实木料·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 40,
+      "topicText": "阿木·拣些结实木料·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_wood_handles"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粗木×12，回报粮食×4。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_wood_handles"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_wood_handles"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粗木×12"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_wood_handles_claim",
+      "type": "contentEvent",
+      "name": "阿木·拣些结实木料·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_woodcutter",
+      "priority": 50,
+      "topicText": "阿木·拣些结实木料·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_wood_handles"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粗木已经收到。答应的粮食×4记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_herb_support_offer",
+      "type": "contentEvent",
+      "name": "阿兰·药圃支架·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_b",
+      "priority": 40,
+      "topicText": "阿兰·药圃支架·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_herb_support"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿兰扶正一株歪倒的药草：「药圃挪到医舍边，照料是省脚力了，可扎架子的木头还得备着。帮我带八份粗木，我留三份药材给你。」\n\n「不必逞能赶工。药田、口粮和你自己的伤，都要顾。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_herb_support"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_herb_support_delivery",
+      "type": "contentEvent",
+      "name": "阿兰·药圃支架·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_b",
+      "priority": 40,
+      "topicText": "阿兰·药圃支架·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_herb_support"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粗木×8，回报药材×3。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_herb_support"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_herb_support"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粗木×8"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_herb_support_claim",
+      "type": "contentEvent",
+      "name": "阿兰·药圃支架·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_b",
+      "priority": 50,
+      "topicText": "阿兰·药圃支架·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_herb_support"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粗木已经收到。答应的药材×3记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_clinic_prepare_offer",
+      "type": "contentEvent",
+      "name": "阿杏·备用伤药·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 40,
+      "topicText": "阿杏·备用伤药·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_clinic_prepare"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿杏翻开药篓，拨开一层空叶：「床添了，药也得留得住。收五份药材作备用，我拿六份粮与你换。」\n\n她把篓口合上：「若你自己还有伤，就先用药。等有余的再来，医舍不催病人。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_clinic_prepare"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_clinic_prepare_delivery",
+      "type": "contentEvent",
+      "name": "阿杏·备用伤药·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 40,
+      "topicText": "阿杏·备用伤药·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_clinic_prepare"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是药材×5，回报粮食×6。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_clinic_prepare"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_clinic_prepare"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要药材×5"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_clinic_prepare_claim",
+      "type": "contentEvent",
+      "name": "阿杏·备用伤药·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_herb_c",
+      "priority": 50,
+      "topicText": "阿杏·备用伤药·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_clinic_prepare"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「药材已经收到。答应的粮食×6记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_night_food_offer",
+      "type": "contentEvent",
+      "name": "巡卫乙·夜巡口粮·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_b",
+      "priority": 40,
+      "topicText": "巡卫乙·夜巡口粮·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_night_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "巡卫乙把腰带紧了一格：「夜里四门转一圈，再回来就过了饭点。我想备四份粮在身上，用四份粗木换。」\n\n「只是换点口粮，别想着凭这个让我放你出村。值夜是值夜，人情是人情。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_night_food"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_night_food_delivery",
+      "type": "contentEvent",
+      "name": "巡卫乙·夜巡口粮·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_b",
+      "priority": 40,
+      "topicText": "巡卫乙·夜巡口粮·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_night_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粮食×4，回报粗木×4。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_night_food"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_night_food"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粮食×4"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_night_food_claim",
+      "type": "contentEvent",
+      "name": "巡卫乙·夜巡口粮·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_guard_b",
+      "priority": 50,
+      "topicText": "巡卫乙·夜巡口粮·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_night_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粮食已经收到。答应的粗木×4记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_village_restock_offer",
+      "type": "contentEvent",
+      "name": "阿土·开门后的备粮·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_farmer_b",
+      "priority": 40,
+      "topicText": "阿土·开门后的备粮·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_village_restock"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿土看着敞开的村门：「往外走的人多了，田里的人不能也都散了。先给村里留十份粮，我拿四份药材换。」\n\n「门开了是好事。饭能照常吃上，才是真的把日子接住。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_village_restock"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_village_restock_delivery",
+      "type": "contentEvent",
+      "name": "阿土·开门后的备粮·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_farmer_b",
+      "priority": 40,
+      "topicText": "阿土·开门后的备粮·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_village_restock"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粮食×10，回报药材×4。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_village_restock"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_village_restock"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粮食×10"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_village_restock_claim",
+      "type": "contentEvent",
+      "name": "阿土·开门后的备粮·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_farmer_b",
+      "priority": 50,
+      "topicText": "阿土·开门后的备粮·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_village_restock"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粮食已经收到。答应的药材×4记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_wood_offer",
+      "type": "contentEvent",
+      "name": "阿柴·青石歇脚屋备料·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_b",
+      "priority": 40,
+      "topicText": "阿柴·青石歇脚屋备料·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_qingshi_wood"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿柴拍拍手上的木屑：「歇脚屋已经能用了，我还想留些木料，日后修门补板不用临时找。帮我凑十六份粗木，换八份粮。」\n\n「镇北柴林就有料。若刚从荒村来，先找地方歇歇，明日再去也成。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_qingshi_wood"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_wood_delivery",
+      "type": "contentEvent",
+      "name": "阿柴·青石歇脚屋备料·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_b",
+      "priority": 40,
+      "topicText": "阿柴·青石歇脚屋备料·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_qingshi_wood"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是粗木×16，回报粮食×8。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_qingshi_wood"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_qingshi_wood"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粗木×16"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_wood_claim",
+      "type": "contentEvent",
+      "name": "阿柴·青石歇脚屋备料·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_b",
+      "priority": 50,
+      "topicText": "阿柴·青石歇脚屋备料·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_qingshi_wood"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「粗木已经收到。答应的粮食×8记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_medicine_offer",
+      "type": "contentEvent",
+      "name": "阿枝·过路人的伤药·托付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_c",
+      "priority": 40,
+      "topicText": "阿枝·过路人的伤药·托付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_340_qingshi_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "阿枝替空床掸去灰：「青石来往的人多，磕碰、旧伤都有。你若有八份余药，就送来，我用十二份粗木换。」\n\n「这是备用药，不问你是哪一宗的人。自用的先留下，别为了换木头硬撑着。」\n\n接取后向本人交付，在任务日志领取回报。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_340_qingshi_medicine"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_medicine_delivery",
+      "type": "contentEvent",
+      "name": "阿枝·过路人的伤药·交付",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_c",
+      "priority": 40,
+      "topicText": "阿枝·过路人的伤药·交付",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_340_qingshi_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「说好的是药材×8，回报粗木×12。别把自己的口粮、伤药也搭进去，凑齐了再交。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_340_qingshi_medicine"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_340_qingshi_medicine"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要药材×8"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_340_qingshi_medicine_claim",
+      "type": "contentEvent",
+      "name": "阿枝·过路人的伤药·回报",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_wood_c",
+      "priority": 50,
+      "topicText": "阿枝·过路人的伤药·回报",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_340_qingshi_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「药材已经收到。答应的粗木×12记在日志里了，去领吧，不用再交一遍。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

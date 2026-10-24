@@ -55,6 +55,7 @@ namespace XianXia.Core.Social
             var list = new List<EntityId>();
             foreach (var entity in world.Entities.All)
             {
+                if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
                     continue;
                 if (entity.TryGet<LifecycleComponent>(out var life) &&

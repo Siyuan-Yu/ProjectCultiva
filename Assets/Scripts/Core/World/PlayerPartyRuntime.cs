@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -259,8 +259,10 @@ namespace XianXia.Core.World
             if (!CanActAsActive(world, id, out error))
                 return false;
 
+            XianXia.Core.Combat.FlightService.PreservePartyPositionsBeforeControlSwitch(world, this, id);
             _activeId = id;
             _controlState = PlayerPartyControlState.Active;
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, this);
             return true;
         }
 

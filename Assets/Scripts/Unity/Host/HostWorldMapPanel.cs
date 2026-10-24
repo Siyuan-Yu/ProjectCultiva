@@ -266,7 +266,13 @@ namespace XianXia.Unity.Host
             _showTerritory = GUI.Toggle(new Rect(230, 14, 105, 24), _showTerritory, "势力范围", _toggle);
             _showGeography = GUI.Toggle(new Rect(340, 14, 105, 24), _showGeography, "地理层", _toggle);
             _showGrid = GUI.Toggle(new Rect(450, 14, 105, 24), _showGrid, "坐标网格", _toggle);
-            var clicked = _toolbar.Draw(570, 12, _body);
+            var openingLocked = HuangcunOpeningAccess.IsLocked(world);
+            if (openingLocked)
+            {
+                _factionPanel?.Close();
+                GUI.Label(new Rect(570, 44, 480, 24), "取得荒村后，解锁势力与外界。", _body);
+            }
+            var clicked = _toolbar.Draw(570, 12, _body, !openingLocked);
             if (clicked != HostGlobalStrategicToolbar.ModuleId.None)
             {
                 EnsurePanels();
@@ -301,9 +307,9 @@ namespace XianXia.Unity.Host
             bootstrap?.Session?.Registry?.TryGetContinuousSurfaceWorldMap(nav.SurfaceId, out cache);
             _renderer.Draw(local, projection, cache, nav);
             if (_showGrid) HostSurfaceWorldMapGridRenderer.Draw(local, projection, nav, Texture2D.whiteTexture);
+            if (_showGeography) DrawGeography(local, projection, nav);
             if (_showTerritory)
                 HostSurfaceActualControlRenderer.Draw(world, nav.SurfaceId, projection, Texture2D.whiteTexture);
-            if (_showGeography) DrawGeography(local, projection, nav);
             DrawRoute(projection, world);
             DrawSites(projection, world, nav);
             DrawSquads(projection, world, nav);

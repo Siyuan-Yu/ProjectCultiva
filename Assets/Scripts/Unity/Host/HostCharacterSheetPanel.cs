@@ -60,7 +60,7 @@ namespace XianXia.Unity.Host
         static readonly AttributeId[] CombatAttributes =
         {
             AttributeId.MaxHp, AttributeId.Attack, AttributeId.Defense,
-            AttributeId.Speed, AttributeId.SpiritPower
+            AttributeId.Speed, AttributeId.SpiritPower, AttributeId.HealthRecoveryRateMilli
         };
         static readonly SpiritRootKind[] RootOrder =
         {
@@ -368,7 +368,9 @@ namespace XianXia.Unity.Host
             var y = rect.y + 42f;
             if (currentHp && entity.TryGet<CombatVitalsComponent>(out var vitals)) DrawValueRow(rect, ref y, "当前生命", vitals.CurrentHp.ToString());
             if (entity.TryGet<AttributesComponent>(out var attrs))
-                for (var i = 0; i < order.Length; i++) DrawValueRow(rect, ref y, HostAttributeLabels.Name(order[i]), attrs.GetFinal(order[i]).ToString());
+                for (var i = 0; i < order.Length; i++) DrawValueRow(rect, ref y, HostAttributeLabels.Name(order[i]), order[i] == AttributeId.HealthRecoveryRateMilli
+                    ? (attrs.GetFinal(order[i]) / 1000f).ToString("0.###") + " HP/秒"
+                    : attrs.GetFinal(order[i]).ToString());
             else GUI.Label(new Rect(rect.x + 14f, y, rect.width - 28f, 24f), "无数据", _body);
         }
 

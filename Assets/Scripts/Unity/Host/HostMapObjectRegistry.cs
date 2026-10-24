@@ -12,6 +12,20 @@ namespace XianXia.Unity.Host
         // 逐格注册时用 instance-id 集合做 O(1) 重复检查（旧 List.Contains 会把 chunk build 拉成 O(N²)）。
         static readonly HashSet<int> PlotIds = new HashSet<int>();
         static readonly HashSet<int> DestructibleIds = new HashSet<int>();
+        // Loaded static props only. Rebuild lazily after chunk/geometry changes, never per hover.
+        const float PickBucketSize = 4f;
+        static readonly Dictionary<Vector2Int, List<int>> DestructibleBuckets = new Dictionary<Vector2Int, List<int>>();
+        static readonly Stack<List<int>> BucketLists = new Stack<List<int>>();
+        static readonly List<int> BroadDestructibles = new List<int>();
+        static readonly Dictionary<Vector2Int, List<int>> PlotBuckets = new Dictionary<Vector2Int, List<int>>();
+        static readonly List<int> BroadPlots = new List<int>();
+        static readonly Dictionary<string, HostMapPlotCell> BedsById =
+            new Dictionary<string, HostMapPlotCell>(System.StringComparer.Ordinal);
+        static bool _plotIndexDirty = true;
+        static bool _destructibleIndexDirty = true;
+        public static void InvalidatePlotGeometry() => _plotIndexDirty = true;
+        public static void InvalidateDestructibleGeometry() => _destructibleIndexDirty = true;
+
         static string _currentOwner = string.Empty;
 
         public static IReadOnlyList<HostMapPlotCell> AllPlots => Plots;
@@ -27,6 +41,10 @@ namespace XianXia.Unity.Host
         {
             Plots.Clear();
             Destructibles.Clear();
+            ClearPlotIndex();
+            _plotIndexDirty = true;
+            ClearDestructibleIndex();
+            _destructibleIndexDirty = true;
             OwnerByObject.Clear();
             PlotIds.Clear();
             DestructibleIds.Clear();
@@ -46,6 +64,8 @@ namespace XianXia.Unity.Host
 
         public static void RemoveOwner(string ownerKey)
         {
+            _plotIndexDirty = true;
+            _destructibleIndexDirty = true;
             ownerKey = ownerKey ?? string.Empty;
             for (var i = Plots.Count - 1; i >= 0; i--)
                 if (Plots[i] == null || IsOwnedBy(Plots[i], ownerKey))
@@ -66,6 +86,7 @@ namespace XianXia.Unity.Host
                         OwnerByObject.Remove(Destructibles[i]);
                     }
                     Destructibles.RemoveAt(i);
+                    _destructibleIndexDirty = true;
                 }
         }
 
@@ -76,6 +97,8 @@ namespace XianXia.Unity.Host
         {
             if (plot == null)
                 return;
+            // Configure can update the stable ID/kind of an already registered component.
+            _plotIndexDirty = true;
             OwnerByObject[plot] = ownerKey ?? string.Empty;
             if (!PlotIds.Add(plot.GetInstanceID()))
                 return;
@@ -92,7 +115,17 @@ namespace XianXia.Unity.Host
             if (!DestructibleIds.Add(d.GetInstanceID()))
                 return;
             Destructibles.Add(d);
+            _destructibleIndexDirty = true;
             OwnerByObject[d] = ownerKey ?? string.Empty;
+        }
+
+        public static void Unregister(HostMapPlotCell plot)
+        {
+            if (plot == null) return;
+            _plotIndexDirty = true;
+            PlotIds.Remove(plot.GetInstanceID());
+            Plots.Remove(plot);
+            OwnerByObject.Remove(plot);
         }
 
         public static void Unregister(HostMapDestructible d)
@@ -101,54 +134,152 @@ namespace XianXia.Unity.Host
                 return;
             DestructibleIds.Remove(d.GetInstanceID());
             Destructibles.Remove(d);
+            _destructibleIndexDirty = true;
             OwnerByObject.Remove(d);
         }
 
         public static bool TryPickPlot(Vector3 worldPoint, out HostMapPlotCell plot)
         {
+            EnsurePlotIndex();
             plot = null;
             var bestArea = float.MaxValue;
-            for (var i = Plots.Count - 1; i >= 0; i--)
-            {
-                var p = Plots[i];
-                if (p == null)
-                {
-                    Plots.RemoveAt(i);
-                    OwnerByObject.Remove(p);
-                    continue;
-                }
-
-                if (!p.ContainsInteractionPoint(worldPoint))
-                    continue;
-                var area = p.InteractionBoundsArea;
-                if (area >= bestArea)
-                    continue;
-                bestArea = area;
-                plot = p;
-            }
-
+            var bestIndex = -1;
+            PlotBuckets.TryGetValue(PickBucket(worldPoint.x, worldPoint.y), out var candidates);
+            PickPlotFrom(candidates, worldPoint, ref plot, ref bestArea, ref bestIndex);
+            PickPlotFrom(BroadPlots, worldPoint, ref plot, ref bestArea, ref bestIndex);
             return plot != null;
+        }
+
+        /// <summary>First registered matching bed, as in the original forward plot scan.</summary>
+        public static bool TryGetBedPlot(string stableId, out HostMapPlotCell plot)
+        {
+            EnsurePlotIndex();
+            plot = null;
+            if (string.IsNullOrEmpty(stableId) || !BedsById.TryGetValue(stableId, out plot)) return false;
+            if (plot != null) return true;
+            // A directly destroyed view can precede its owner's unload notification.
+            // Rebuild once so a surviving duplicate retains the old forward-scan behavior.
+            _plotIndexDirty = true;
+            EnsurePlotIndex();
+            return BedsById.TryGetValue(stableId, out plot) && plot != null;
+        }
+
+        static void ClearPlotIndex()
+        {
+            foreach (var list in PlotBuckets.Values) { list.Clear(); BucketLists.Push(list); }
+            PlotBuckets.Clear();
+            BroadPlots.Clear();
+            BedsById.Clear();
+        }
+
+        static void EnsurePlotIndex()
+        {
+            if (!_plotIndexDirty) return;
+            ClearPlotIndex();
+            for (var i = 0; i < Plots.Count; i++)
+            {
+                var plot = Plots[i];
+                if (plot == null) continue;
+                if (plot.IsBed && !string.IsNullOrEmpty(plot.StableCellId) && !BedsById.ContainsKey(plot.StableCellId))
+                    BedsById.Add(plot.StableCellId, plot);
+                if (!plot.HasInteractionBounds) continue;
+                var bounds = plot.InteractionBounds;
+                var min = PickBucket(bounds.xMin, bounds.yMin);
+                var max = PickBucket(bounds.xMax, bounds.yMax);
+                var width = (long)max.x - min.x + 1;
+                var height = (long)max.y - min.y + 1;
+                // Large rooms retain exact picking without unbounded index expansion.
+                if (width <= 0 || height <= 0 || width > 256 || height > 256 || width * height > 256)
+                { BroadPlots.Add(i); continue; }
+                for (var dy = 0; dy < height; dy++)
+                for (var dx = 0; dx < width; dx++)
+                {
+                    var key = new Vector2Int(min.x + dx, min.y + dy);
+                    if (!PlotBuckets.TryGetValue(key, out var list))
+                        PlotBuckets.Add(key, list = BucketLists.Count > 0 ? BucketLists.Pop() : new List<int>(8));
+                    list.Add(i);
+                }
+            }
+            _plotIndexDirty = false;
+        }
+
+        static void PickPlotFrom(List<int> candidates, Vector3 point, ref HostMapPlotCell target,
+            ref float bestArea, ref int bestIndex)
+        {
+            if (candidates == null) return;
+            for (var n = candidates.Count - 1; n >= 0; n--)
+            {
+                var i = candidates[n];
+                var plot = Plots[i];
+                if (plot == null || !plot.gameObject.activeInHierarchy || !plot.ContainsInteractionPoint(point)) continue;
+                var area = plot.InteractionBoundsArea;
+                if (area >= float.MaxValue || area > bestArea || area == bestArea && i <= bestIndex) continue;
+                target = plot; bestArea = area; bestIndex = i;
+            }
+        }
+
+        static Vector2Int PickBucket(float x, float y) =>
+            new Vector2Int(Mathf.FloorToInt(x / PickBucketSize), Mathf.FloorToInt(y / PickBucketSize));
+
+        static void ClearDestructibleIndex()
+        {
+            foreach (var list in DestructibleBuckets.Values) { list.Clear(); BucketLists.Push(list); }
+            DestructibleBuckets.Clear();
+            BroadDestructibles.Clear();
+        }
+
+        static void EnsureDestructibleIndex()
+        {
+            if (!_destructibleIndexDirty) return;
+            ClearDestructibleIndex();
+            for (var i = 0; i < Destructibles.Count; i++)
+            {
+                var item = Destructibles[i];
+                if (item == null || item.IsDestroyed || !item.HasInteractionBounds) continue;
+                var bounds = item.InteractionBounds;
+                var min = PickBucket(bounds.xMin, bounds.yMin);
+                var max = PickBucket(bounds.xMax, bounds.yMax);
+                // Preserve large props without expanding an accidentally huge index rectangle.
+                var count = ((long)max.x-min.x+1) * ((long)max.y-min.y+1);
+                if (count <= 0 || count > 256) { BroadDestructibles.Add(i); continue; }
+                for (var y = min.y; y <= max.y; y++)
+                for (var x = min.x; x <= max.x; x++)
+                {
+                    var key = new Vector2Int(x,y);
+                    if (!DestructibleBuckets.TryGetValue(key, out var list))
+                        DestructibleBuckets.Add(key, list = BucketLists.Count > 0 ? BucketLists.Pop() : new List<int>(8));
+                    list.Add(i);
+                }
+            }
+            _destructibleIndexDirty = false;
         }
 
         public static bool TryPickDestructible(Vector3 worldPoint, out HostMapDestructible target)
         {
+            EnsureDestructibleIndex();
             target = null;
             var bestArea = float.MaxValue;
-            for (var i = Destructibles.Count - 1; i >= 0; i--)
-            {
-                var item = Destructibles[i];
-                if (item == null || item.IsDestroyed)
-                {
-                    if (item != null) DestructibleIds.Remove(item.GetInstanceID());
-                    Destructibles.RemoveAt(i);
-                    continue;
-                }
-                if (!item.ContainsInteractionPoint(worldPoint) || item.InteractionBoundsArea >= bestArea)
-                    continue;
-                bestArea = item.InteractionBoundsArea;
-                target = item;
-            }
+            var bestIndex = -1;
+            DestructibleBuckets.TryGetValue(PickBucket(worldPoint.x, worldPoint.y), out var candidates);
+            PickFrom(candidates, worldPoint, ref target, ref bestArea, ref bestIndex);
+            PickFrom(BroadDestructibles, worldPoint, ref target, ref bestArea, ref bestIndex);
             return target != null;
+        }
+
+        static void PickFrom(List<int> candidates, Vector3 point, ref HostMapDestructible target,
+            ref float bestArea, ref int bestIndex)
+        {
+            if (candidates == null) return;
+            for (var n = candidates.Count-1; n >= 0; n--)
+            {
+                var i = candidates[n];
+                var item = Destructibles[i];
+                if (item == null || item.IsDestroyed || !item.gameObject.activeInHierarchy ||
+                    !item.ContainsInteractionPoint(point)) continue;
+                var area = item.InteractionBoundsArea;
+                if (area > bestArea || area == bestArea && i <= bestIndex) continue;
+                target = item; bestArea = area; bestIndex = i;
+            }
         }
 
         /// <summary>Nearest destructible within radius; optional tree-only filter.</summary>
@@ -170,9 +301,11 @@ namespace XianXia.Unity.Host
                     if (d != null)
                         DestructibleIds.Remove(d.GetInstanceID());
                     Destructibles.RemoveAt(i);
+                    _destructibleIndexDirty = true;
                     continue;
                 }
 
+                if (!d.gameObject.activeInHierarchy) continue;
                 if (treesOnly && !d.IsTree)
                     continue;
                 if (excludeId != 0 && d.GetInstanceID() == excludeId)

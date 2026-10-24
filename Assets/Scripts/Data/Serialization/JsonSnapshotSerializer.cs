@@ -97,12 +97,12 @@ namespace XianXia.Data.Serialization
             {
                 var root = SimpleJson.Parse(json);
                 var sourceSchema = (int)root.GetNumber("schemaVersion");
-                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
+                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "支持v15/v16/v17存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
+                        "支持v15/v16/v17/v18存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
                 var snapshot = new WorldSnapshot
                 {
-                    // v15/v16 -> v17 adds medical/ground-loot state in memory; never rewrites the source file on load.
+                    // v15/v16/v17 -> v18: upgrade in memory; never rewrite the source file on load.
                     SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
                     SnapshotId = ReadU(root, "snapshotId"),
                     WorldTick = ReadU(root, "worldTick"),
@@ -127,7 +127,7 @@ namespace XianXia.Data.Serialization
                             Id = value.GetString("id"), ItemId = value.GetString("itemId"), Count = (int)value.GetNumber("count"),
                             SurfaceId = value.GetString("surfaceId"), WorldX = (float)value.GetNumber("worldX"), WorldY = (float)value.GetNumber("worldY") });
                 }
-                else if (sourceSchema == WorldSnapshot.CurrentSchemaVersion)
+                else if (sourceSchema >= WorldSnapshot.PreFlightSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "Ground loot authority missing or invalid.");
                 if (root.TryGetProperty("entities", out var entities) && entities.Kind == JsonValueKind.Array)
                 {
@@ -138,7 +138,18 @@ namespace XianXia.Data.Serialization
                                 "recoveryHpMilli", "medicTargetId", "medicCarryingHerb", "medicTreatmentSeconds", "medicLastTreatmentTick" })
                                 if (!e.TryGetProperty(key, out _))
                                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少医疗状态字段：" + key);
+                        if (sourceSchema == WorldSnapshot.CurrentSchemaVersion)
+                            foreach (var key in new[] { "flightActive", "flightSurface", "flightScope", "flightHasGround", "flightGroundX", "flightGroundY", "flightDetached" })
+                                if (!e.TryGetProperty(key, out _))
+                                    return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少飞行状态字段：" + key);
                         var restoredEntity = ReadEntity(e);
+                        if (sourceSchema < WorldSnapshot.CurrentSchemaVersion) restoredEntity.Flight = null;
+                        if (restoredEntity.Flight?.Airborne == true &&
+                            (!restoredEntity.HasCultivation || restoredEntity.Realm < (int)XianXia.Core.Cultivation.RealmStage.GoldenCore ||
+                             !restoredEntity.Flight.HasGround || string.IsNullOrEmpty(restoredEntity.Flight.SurfaceId) ||
+                             float.IsNaN(restoredEntity.Flight.GroundX) || float.IsInfinity(restoredEntity.Flight.GroundX) ||
+                             float.IsNaN(restoredEntity.Flight.GroundY) || float.IsInfinity(restoredEntity.Flight.GroundY)))
+                            return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "无效的飞行落脚点。");
                         if (sourceSchema == WorldSnapshot.PreMedicalSchemaVersion &&
                             restoredEntity.Lifecycle == (int)XianXia.Core.Entities.LifecycleState.Incapacitated)
                         {
@@ -974,6 +985,13 @@ namespace XianXia.Data.Serialization
                     ["initialLoyalty"] = JsonValue.FromNumber(e.InitialLoyalty),
                     ["hasCombatVitals"] = JsonValue.FromBool(e.HasCombatVitals),
                     ["currentHp"] = JsonValue.FromNumber(e.CurrentHp),
+                    ["flightActive"] = JsonValue.FromBool(e.Flight?.Airborne == true),
+                    ["flightSurface"] = JsonValue.FromString(e.Flight?.SurfaceId ?? ""),
+                    ["flightScope"] = JsonValue.FromString(e.Flight?.ScopeId ?? ""),
+                    ["flightHasGround"] = JsonValue.FromBool(e.Flight?.HasGround == true),
+                    ["flightGroundX"] = JsonValue.FromNumber(e.Flight?.GroundX ?? 0),
+                    ["flightGroundY"] = JsonValue.FromNumber(e.Flight?.GroundY ?? 0),
+                    ["flightDetached"] = JsonValue.FromBool(e.Flight?.DetachedFollower == true),
                     ["currentSpiritPower"] = JsonValue.FromNumber(e.CurrentSpiritPower),
                     ["vitalsPoolsInitialized"] = JsonValue.FromBool(e.VitalsPoolsInitialized),
                     ["bleedOutAfterTick"] = U(e.BleedOutAfterTick),
@@ -1461,6 +1479,11 @@ namespace XianXia.Data.Serialization
                                   hcv.Kind == JsonValueKind.Boolean &&
                                   hcv.Bool,
                 CurrentHp = (int)e.GetNumber("currentHp"),
+                Flight = new XianXia.Core.Combat.FlightComponent {
+                    Airborne = e.GetBool("flightActive"), SurfaceId = e.GetString("flightSurface", ""),
+                    ScopeId = e.GetString("flightScope", ""), HasGround = e.GetBool("flightHasGround"),
+                    GroundX = (float)e.GetNumber("flightGroundX"), GroundY = (float)e.GetNumber("flightGroundY"),
+                    DetachedFollower = e.GetBool("flightDetached") },
                 CurrentSpiritPower = (int)e.GetNumber("currentSpiritPower"),
                 VitalsPoolsInitialized = e.TryGetProperty("vitalsPoolsInitialized", out var vpi) &&
                                          vpi.Kind == JsonValueKind.Boolean &&

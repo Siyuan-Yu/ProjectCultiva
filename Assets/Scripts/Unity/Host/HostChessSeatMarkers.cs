@@ -55,6 +55,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.ChessLateUpdate.Auto();
             if (_world == null || !_world.ChessBoards.TryGetValue(_boardId ?? string.Empty, out var board) ||
                 !_world.SurfaceSpatial.TryGet(board.SurfaceId, out var metric)) return;
             var scale = _bounds.width; // Board footprint is exactly one logical cell.

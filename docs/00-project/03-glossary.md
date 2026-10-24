@@ -1,4 +1,12 @@
-# 术语表
+﻿# 术语表
+
+## 荒村封闭开局（ADR-0052）
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 开局村界 | `HuangcunOpeningArea` | 从当前正式Surface荒村围墙重绑的只读几何，供Core准入与Host坐标适配共用；不是行政所有权或另一份存档坐标。 |
+| 封闭开局 | `story:huangcun_confined_opening` | 正式荒村开局通过内部体验弧启用的持久标记；参考开局不启用。 |
+| 外界解锁 | `story:huangcun_world_unlocked` | 真实取得荒村后由Core永久写入；不通过对话或日期授予，日后失地不重新封闭。 |
 
 ## NPC 自主生活（2026-10-21，Design Confirmed / Partial Implementation）
 
@@ -356,8 +364,8 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 连续户外世界表面 | Continuous Outdoor World Surface | 一块大陆普通户外共享的连续物理空间 | Site／Hex／Chunk 边界不切探索场景 |
 | 户外表面空间元数据 | Outdoor Surface Spatial Metric/Coverage | Core 持有的完整 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage | 只回答 Surface 存在、尺度与 membership；不包含河桥、地形或 walkability |
 | 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
-| 地点核心 | SiteCore | WorldSite 唯一行政核心；预设议政厅或玩家建立的势力旗 | 议政厅不可拆但可接管；另立旗产生新 Site |
-| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位。Level 1 = 225×225 Surface Cells（2026-10-23），只表示理论行政控制范围，**不是** Runtime Chunk／World Editor Cell／WorldSite Blueprint 或地图 authoring 最小尺寸 |
+| 地点核心 | SiteCore | WorldSite 唯一行政核心；新目标为预设且不可拆的固定议政厅／议事堂 | 可正式接管与升级；玩家建旗造新 Site 是已实施历史功能、待退役，见 ADR-0055 |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠，实际管理唯一；与城区蓝图尺寸不同。2026-10-25 设计确认主 Surface 1～5 级长宽分别为 225／337.5／450／562.5／675 cells；当前运行数据仍只配一级，见 ADR-0055 |
 | 实际行政控制 | WorldSiteAdministrativeControl | 由 Surface 精确位置、当前理论范围与领土取得历史唯一解析出的管理 Site；政治 Owner 从该 Site 读取 | 扩张不得追溯夺取他方或同势力其他 Site 的既有控制；Hex/Region 只是投影 |
 | 领土取得记录 | TerritoryClaim | 某 Site 在某 Surface 上一次不可改写的矩形范围取得历史，按 AcquiredOrder 决定重叠位置优先级 | 不保存 Faction Owner；核心失效时保留但不参与解析，恢复后沿用原优先级 |
 | 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |
@@ -365,7 +373,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
 | 控制资产 | Control Asset | 对 Hex 产生政治控制的因果真源 | 有 Owner 的 Fixed WorldSite 或存活 FactionFlag；见 2J |
-| 阵营旗 | FactionFlag | 可攻击、非 Character 的控制核心资产；正式 Continuous 旗以 authored Surface 世界位置创建唯一 WorldSite/SiteCore，Legacy/debug-only 旗仅保留兼容数据且不进入正常产品 WorldMap | 有 HP；需 War；旗 Core marker 使用精确 CoreWorldPosition；实际行政控制只来自 SiteCore→TerritoryClaim |
+| 阵营旗 | FactionFlag | 已实施版本及旧存档中的可攻击控制核心资产 | 2026-10-25 设计确认退出正常新游戏的建造、拆除、据点生成和地图表现；102 个既有旗 Site 保留稳定 Site ID 改固定议政厅，旧档迁移待定，见 ADR-0055 |
 | 建立顺序 | EstablishedOrder | 2026-09-06 Control Asset V1 的历史全局顺序字段 | 可用于旧档迁移；不得让旧核心升级按创建顺序追溯抢占既得控制 |
 | 理论核心范围 | Nominal SiteCore Range | SiteCore 当前等级产生、尚未解析重叠的行政／建设候选区域 | Footprint+一环只是旧 V1 实现；最终等级范围为后续内容参数 |
 | 有效控制范围 | Effective Control Range | 应用既得控制和稳定交接后，实际归某 Site／Faction 管理的区域 | 每个位置／建筑唯一；同势力 Union 不重复计数 |
@@ -397,7 +405,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 私藏物 | Contraband | 未上报的私有物资 | 被搜出则没收 |
 | 藏匿点 | Stash | 存放私藏物的地点 | 属性为容量与隐蔽度 |
 | 敛息／敛息草 | BreathConcealment | 短时间隐藏修为气息的资源或手段 | 非永久；需持续采集；炼气后隐藏身份的核心工具 |
-| 地点核心／控制核心 | SiteCore / ControlCore | 一个 WorldSite 唯一的行政核心；预设议政厅或创建新 Site 的旗 | 议政厅不可拆、可升级／接管；防御击破不等于删除 |
+| 地点核心／控制核心 | SiteCore / ControlCore | 一个 WorldSite 唯一的行政核心；正常新游戏目标为固定议政厅／议事堂 | 不可拆、可升级／接管；防御击破不等于删除；旧建旗入口待退役，见 ADR-0055 |
 | 接管目标 | CaptureObjective（Legacy API name） | 围绕唯一 SiteCore 的攻破与正式接管交互 | V1 不表示同城多个核心全做完；只有实际接管改变 Owner |
 | 斩首夺权 | DecapitationCapture | 直接攻击控制核心的占领方式 | 快，危险 |
 | 学校／学塾 | Academy | 定期刷新人才候选的领地建筑 | 约每 2～3 游戏月；可收弟子或任命管事 |
@@ -493,3 +501,10 @@ Commerce V1 仅允许通过明确配置的 Shop／Market／TradeProvider 直接�
 - Item escrow：寄拍确认时从 PartyInventory 移入 Listing 的整批物品。
 - Market bidder：只执行固定 ceiling/review 规则的抽象竞拍者，不是真实 NPC 或 AI。
 - Auction Claim：WonItem 或 UnsoldItem 的持久待领取物；背包无法完整容纳时保留。
+
+
+### 金丹／斗气化翼（ADR-0054，2026-10-24）
+
+**金丹（GoldenCore）**：境界枚举追加值3，结丹是内容解析别名。既有感应／炼气／筑基编号不变。元婴仍为设计。
+
+**斗气化翼（Flight）**：独立于斗气纱衣的Core飞行状态，金丹起可用F3切换；只改变地形通行与空地攻击规则，位置仍是Continuous Surface与exact WorldPosition。地面对空合法攻击接触时75%闪避；不是75%减伤。F2纱衣负责远程攻击，F3化翼负责飞行。实现与人工验收状态见[337](../40-process/337-golden-core-flight-design-2026-10-24.md)。

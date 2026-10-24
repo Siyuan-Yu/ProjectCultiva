@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -41,6 +41,9 @@ namespace XianXia.Unity.Host
         SpriteRenderer _torsoSprite, _headSprite, _leftArmSprite, _rightArmSprite;
         SpriteRenderer _leftLegSprite, _rightLegSprite, _toolSprite, _basketSprite;
         SpriteRenderer[] _renderers;
+        bool _hasTint, _hasDepth;
+        Color _appliedTint;
+        (int Order, int Layer, HostStepAArt.Direction Direction, bool Bed, int LeftLeg, int LeftArm) _appliedDepth;
         Sprite[] _parts;
         Sprite[] _diagonalParts;
         Sprite _sideArm;
@@ -492,6 +495,7 @@ namespace XianXia.Unity.Host
 
         void BuildHierarchy()
         {
+            _hasTint = _hasDepth = false;
             _sortingGroup = gameObject.AddComponent<SortingGroup>();
             var anchor = new GameObject("FootAnchor");
             _footAnchor = anchor.transform;
@@ -533,7 +537,7 @@ namespace XianXia.Unity.Host
             bool carryingCargo = false, bool carryingPerson = false,
             HumanWorkMotion workMotion = HumanWorkMotion.Generic,
             HumanAttackStyle attackStyle = HumanAttackStyle.Unarmed, float deltaTime = 1f / 60f,
-            bool locomoting = false)
+            bool locomoting = false, Vector3? aimDirection = null, bool airborne = false)
         {
             if (_parts == null || _footAnchor == null) return;
             var restPose = CurrentRestPose;
@@ -605,8 +609,8 @@ namespace XianXia.Unity.Host
             // Mirror the complete hierarchy, including joints and attachment offsets.
             _footAnchor.localScale = new Vector3(flip ? -.58f : .58f, .58f, .58f);
 
-            var blend = _lifePose || _sleepPose ? 1f : 1f - Mathf.Exp(-Mathf.Max(0f, deltaTime) * 26f);
-            _walkBlend = _lifePose || _sleepPose ? 0f : Mathf.MoveTowards(_walkBlend,
+            var blend = _lifePose || _sleepPose || airborne ? 1f : 1f - Mathf.Exp(-Mathf.Max(0f, deltaTime) * 26f);
+            _walkBlend = _lifePose || _sleepPose || airborne ? 0f : Mathf.MoveTowards(_walkBlend,
                 locomoting || action == HostStepAArt.Action.Walk ? 1f : 0f, Mathf.Max(0f, deltaTime) * 9f);
             var step = Mathf.Sin(walkPhase01 * Mathf.PI * 2f);
             var stride = step * _walkBlend;
@@ -825,6 +829,15 @@ namespace XianXia.Unity.Host
                     _supportHandActive = IsArmReachable(target, leftShoulder, leftGrip);
                     if (_supportHandActive) PoseArmToGrip(_leftArm, leftGrip, target, leftShoulder);
                 }
+            }
+            if (aimDirection.HasValue && !resting && !carryingCargo && !carryingPerson)
+            {
+                var localAim = _rightArm.parent.InverseTransformVector(aimDirection.Value);
+                localAim.z = 0f;
+                if (localAim.sqrMagnitude > .0001f)
+                    PoseArmToGrip(_rightArm, rightGrip,
+                        rightShoulder + localAim.normalized * rightGrip.magnitude, rightShoulder);
+                _toolSprite.enabled = false;
             }
             _basketSprite.sprite = (_hasBasket || carryingCargo) && _equipment != null ? _equipment[5] : null;
             _basketSprite.enabled = !_lifePose && !_sleepPose && (back || side) && _basketSprite.sprite != null;
@@ -1174,7 +1187,9 @@ namespace XianXia.Unity.Host
 
         public void SetTint(Color color)
         {
-            if (_renderers == null) return;
+            if (_renderers == null || _hasTint && _appliedTint.Equals(color)) return;
+            _hasTint = true;
+            _appliedTint = color;
             foreach (var renderer in _renderers)
                 if (renderer != null) renderer.color = color;
         }
@@ -1185,6 +1200,18 @@ namespace XianXia.Unity.Host
             if (_sleepPose || _lifePose) direction = _lastDirection;
             var back = direction == HostStepAArt.Direction.North ||
                 direction == HostStepAArt.Direction.NorthEast || direction == HostStepAArt.Direction.NorthWest;
+            var side = direction == HostStepAArt.Direction.East || direction == HostStepAArt.Direction.West ||
+                direction == HostStepAArt.Direction.NorthEast || direction == HostStepAArt.Direction.NorthWest ||
+                direction == HostStepAArt.Direction.SouthEast || direction == HostStepAArt.Direction.SouthWest;
+            var leftFootInFront = !back && !side && _walkBlend > .01f &&
+                _leftFootHeight < _rightFootHeight - .001f;
+            var leftLegOrder = leftFootInFront ? -1 : -2;
+            var leftArmOrder = _sleepPose || _lifePose ? 2 :
+                back ? -2 : _supportHandActive ? 3 : side ? -2 : 1;
+            var depth = (order, sortingLayerId, direction, _usingBedFrame, leftLegOrder, leftArmOrder);
+            if (_hasDepth && _appliedDepth.Equals(depth)) return;
+            _hasDepth = true;
+            _appliedDepth = depth;
             _sortingGroup.sortingLayerID = sortingLayerId;
             _sortingGroup.sortingOrder = order;
             if (_bedHeadSortingGroup != null)
@@ -1197,20 +1224,10 @@ namespace XianXia.Unity.Host
                 }
             }
             _basketSprite.sortingOrder = back ? 3 : -3;
-            _leftLegSprite.sortingOrder = -2;
-            _rightLegSprite.sortingOrder = -1;
-            var side = direction == HostStepAArt.Direction.East || direction == HostStepAArt.Direction.West ||
-                direction == HostStepAArt.Direction.NorthEast || direction == HostStepAArt.Direction.NorthWest ||
-                direction == HostStepAArt.Direction.SouthEast || direction == HostStepAArt.Direction.SouthWest;
-            if (!back && !side && _walkBlend > .01f && _leftFootHeight < _rightFootHeight - .001f)
-            {
-                // In the front view the nearer shoe must stay visible through the passing step.
-                // Side views keep a fixed near/far leg and mirror the whole hierarchy for west.
-                _leftLegSprite.sortingOrder = -1;
-                _rightLegSprite.sortingOrder = -2;
-            }
-            _leftArmSprite.sortingOrder = _sleepPose || _lifePose ? 2 :
-                back ? -2 : _supportHandActive ? 3 : side ? -2 : 1;
+            // Front-view shoes still exchange depth during the passing step.
+            _leftLegSprite.sortingOrder = leftLegOrder;
+            _rightLegSprite.sortingOrder = leftFootInFront ? -2 : -1;
+            _leftArmSprite.sortingOrder = leftArmOrder;
             _torsoSprite.sortingOrder = 0;
             _headSprite.sortingOrder = 5;
             _rightArmSprite.sortingOrder = back ? -2 : 3;

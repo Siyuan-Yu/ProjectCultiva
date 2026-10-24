@@ -30,7 +30,8 @@ namespace XianXia.Core.World.Strategic
             return world.Entities.TryGet(characterId, out var entity) &&
                    entity != null &&
                    CombatLifeStateService.CanFight(entity) && !XianXia.Core.Npc.PartyRestService.BlocksMovement(entity) &&
-                   !XianXia.Core.Npc.PartyRestService.HasIndependentPosition(entity);
+                   !XianXia.Core.Npc.PartyRestService.HasIndependentPosition(entity) &&
+                   (party.IsActive(characterId) || !FlightService.Detached(entity));
         }
 
         public static void CaptureTravelingMembersForPartyTransition(
@@ -72,6 +73,8 @@ namespace XianXia.Core.World.Strategic
                 surfaceId = surface.SurfaceId;
             if (string.IsNullOrEmpty(surfaceId))
                 return;
+            if (!HuangcunOpeningAccess.AllowsPosition(world, surfaceId,
+                    preciseWorldPosition.X, preciseWorldPosition.Y)) return;
             if (WorldSiteAdministrativeControlResolver.TryResolve(
                     world, surfaceId, preciseWorldPosition.X, preciseWorldPosition.Y,
                     out var site, out _) &&

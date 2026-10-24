@@ -388,6 +388,7 @@ namespace XianXia.Core.Combat
             {
                 if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                     continue;
+                if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
 
                 MedicalRecoveryService.AdvanceSecond(world, entity);
 

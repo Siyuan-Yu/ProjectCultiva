@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_qingshi_library_shelves",
+      "type": "quest",
+      "name": "青石书院·书架要结实",
+      "description": "开放外界后在青石书院找到书院行商，真实交付粗木×16，再从任务日志领取《衡息诀》书册及交情。自愿、无时限、一次性；不授宗门身份或贡献点。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "amount": 16
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:item_manual_zhiheng_intro",
+          "amount": 1
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_qingshi_library_road_food",
+      "type": "quest",
+      "name": "青石书院·送书人的路粮",
+      "description": "开放外界后在青石书院找到书院行商，真实交付粮食×10，再从任务日志领取《三叠剑式》书册及交情。自愿、无时限、一次性；不授宗门身份或贡献点。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_grain",
+          "amount": 10
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:item_art_qingxiao_intro",
+          "amount": 1
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_qingshi_library_medicine",
+      "type": "quest",
+      "name": "青石书院·行旅备用药",
+      "description": "开放外界后在青石书院找到书院行商，真实交付灵药×8，再从任务日志领取《养元篇》书册及交情。自愿、无时限、一次性；不授宗门身份或贡献点。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_spirit_herb",
+          "amount": 8
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:item_manual_baicao_intro",
+          "amount": 1
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_qingshi_library_weights",
+      "type": "quest",
+      "name": "青石书院·压住书页的石料",
+      "description": "开放外界后在青石书院找到书院行商，真实交付粗石×12，再从任务日志领取《撼岳拳》书册及交情。自愿、无时限、一次性；不授宗门身份或贡献点。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "amount": 12
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:item_art_zhenyue_intro",
+          "amount": 1
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

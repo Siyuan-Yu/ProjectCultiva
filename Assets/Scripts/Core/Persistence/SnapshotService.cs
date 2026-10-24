@@ -237,6 +237,11 @@ namespace XianXia.Core.Persistence
                     dto.VitalsPoolsInitialized = vitals.PoolsInitialized;
                 }
 
+                if (entity.TryGet<FlightComponent>(out var flight))
+                    dto.Flight = new FlightComponent { Airborne = flight.Airborne, SurfaceId = flight.SurfaceId,
+                        ScopeId = flight.ScopeId, HasGround = flight.HasGround, GroundX = flight.GroundX,
+                        GroundY = flight.GroundY, DetachedFollower = flight.DetachedFollower };
+
                 if (entity.TryGet<CorpseComponent>(out var corpse) && corpse != null)
                 {
                     dto.HasCorpse = true;
@@ -685,7 +690,7 @@ namespace XianXia.Core.Persistence
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1-v14 saves lack ROOM-01 room/bed authority. Start a new game (schema v17 required; v15/v16 JSON can be upgraded on load).",
+                    "Schema v1-v14 saves lack ROOM-01 room/bed authority. Start a new game (schema v18 required; v15/v16/v17 JSON can be upgraded on load).",
                     snap.SchemaVersion.ToString());
             }
 
@@ -1027,6 +1032,11 @@ namespace XianXia.Core.Persistence
                     vitals.PoolsInitialized = e.VitalsPoolsInitialized;
                 }
                 entity.AddComponent(vitals);
+
+                if (e.Flight != null)
+                    entity.AddComponent(new FlightComponent { Airborne = e.Flight.Airborne,
+                        SurfaceId = e.Flight.SurfaceId, ScopeId = e.Flight.ScopeId, HasGround = e.Flight.HasGround,
+                        GroundX = e.Flight.GroundX, GroundY = e.Flight.GroundY, DetachedFollower = e.Flight.DetachedFollower });
 
                 if (e.HasCorpse)
                 {

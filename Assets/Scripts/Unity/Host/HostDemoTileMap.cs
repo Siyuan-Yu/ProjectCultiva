@@ -374,6 +374,9 @@ namespace XianXia.Unity.Host
             if (string.Equals(source.Kind, OutdoorConstructedAssetSemantics.RoomKind,
                     System.StringComparison.Ordinal))
             {
+                var stoneRoom = _session?.World != null &&
+                    _session.World.ConstructionCatalog.TryGet(source.BuildingId, out var roomSpec) &&
+                    roomSpec.MaterialKind == "stone";
                 var cellW = width / source.SourceCellsW;
                 var cellH = height / source.SourceCellsH;
                 var doorLeft = (source.SourceCellsW - 2) / 2;
@@ -388,7 +391,7 @@ namespace XianXia.Unity.Host
                     mapper.WorldToPresentation(ix1, iy1, out var fr, out var ft);
                     var floor = PlaceSurfaceArtOverlay((fl + fr) * .5f, (fb + ft) * .5f,
                         id + ":floor:" + ownerChunk.X + ":" + ownerChunk.Y,
-                        Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), HostStepAArt.RoomFloorTile(),
+                        Mathf.Abs(fr - fl), Mathf.Abs(ft - fb), stoneRoom ? HostStepAArt.StoneFloorTile() : HostStepAArt.RoomFloorTile(),
                         info.FallbackColor, -20);
                     if (info.InteractKind.HasValue)
                         AttachPlot(floor, metadata, info, source.SourceGridX, source.SourceGridY,
@@ -408,7 +411,7 @@ namespace XianXia.Unity.Host
                     var wallId = OutdoorStatefulObjectId.ForCell(id + ":wall", gx, gy);
                     if (OutdoorStatefulPlacementResolver.IsDestroyed(
                             _session?.World?.OutdoorStatefulObjects, wallId)) continue;
-                    var wall = PlacePrefab("wall", MapKindCatalog.Wall, cx, cy, wallId, cellW, cellH,
+                    var wall = PlacePrefab("wall", stoneRoom ? MapKindCatalog.Wall : MapKindCatalog.WoodWall, cx, cy, wallId, cellW, cellH,
                         new Color(.35f, .35f, .38f), sortingOrder: -5,
                         visualQuarterTurns: gx == 0 || gx == source.SourceCellsW - 1 ? 1 : 0);
                     AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
@@ -672,13 +675,14 @@ namespace XianXia.Unity.Host
             var step = Mathf.Max(1, grassStride);
             var tileWidth = cellSize * step;
             var tileHeight = cellSize * step;
+            var tileCount = ((width + step - 1) / step) * ((height + step - 1) / step);
             for (var layerIndex = 0; layerIndex < _compactGrassLayers.Count; layerIndex++)
             {
                 var layer = _compactGrassLayers[layerIndex];
-                var vertices = new List<Vector3>();
-                var colors = new List<Color>();
-                var uvs = new List<Vector2>();
-                var triangles = new List<int>();
+                var vertices = new List<Vector3>(tileCount * 4);
+                var colors = new List<Color>(tileCount * 4);
+                var uvs = new List<Vector2>(tileCount * 4);
+                var triangles = new List<int>(tileCount * 6);
                 for (var gy = 0; gy < height; gy += step)
                 for (var gx = 0; gx < width; gx += step)
                 {
@@ -1066,6 +1070,26 @@ namespace XianXia.Unity.Host
                 info.Kind,
                 lootSpotId,
                 lootItemId);
+            // Mineral identity comes from the same location resource used by LaborAction.
+            // Apply once on materialization; keep shared sprites/materials and the existing Work interaction.
+            if (info.Kind == "ore" && _session?.World != null &&
+                WorldLocationQuery.TryGet(_session.World, p.BoundLocationId, out var mineralLocation))
+            {
+                switch (mineralLocation.ResourceOnExploreId)
+                {
+                    case "base:resource_iron_ore": TintRenderers(go, new Color(.69f, .73f, .79f)); break;
+                    case "base:resource_copper_ore": TintRenderers(go, new Color(1f, .62f, .35f)); break;
+                    case "base:resource_silver_ore": TintRenderers(go, new Color(.89f, .96f, 1f)); break;
+                    case "base:resource_spirit_ore": TintRenderers(go, new Color(.48f, 1f, .78f)); break;
+                }
+            }
+            if (IsTreeKind(info.Kind))
+            {
+                // Authored visual variants share the same harvest semantics and cached textures.
+                if (label == "青松") TintRenderers(go, new Color(.68f, .87f, .76f));
+                else if (label == "赤枫") TintRenderers(go, new Color(1f, .53f, .33f));
+                else if (label == "银叶树") TintRenderers(go, new Color(.83f, .94f, 1f));
+            }
             if (info.InteractKind == HostInteractSpotKind.Loot && !string.IsNullOrEmpty(lootItemId))
                 HostGroundLootVisual.Apply(go, _session?.World, lootItemId, label, 1f);
             if (HostWorldObjectPickGeometry.TryGetInteractionBounds(go, out var interactionBounds))

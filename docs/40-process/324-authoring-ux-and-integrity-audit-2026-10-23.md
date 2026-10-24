@@ -1,4 +1,6 @@
-# 作者工具易用性与内容保存完整性收口（2026-10-23）
+﻿# 作者工具易用性与内容保存完整性收口（2026-10-23）
+
+> 恢复后追加：任务日志显示条件及编辑器控件接通，任务保存不再清除对话发放条件；旧事件生成器保护现有分步对话及人物委托，关联扫描识别acceptQuestFromTarget。完整结果见329。
 
 > 状态：Design Confirmed（制作人授权本轮全项目审查与合理优化）／Implemented／Producer Acceptance Pending。本页负责 ExternalTools/ContentAuthoring 作者入口，不改变玩法、正式 Content、Surface 发布几何、美术资源精细度、Freeze、Packages 或 ProjectSettings。当前工作区已有地图扩展与 FineEditor 修改，全部保留。
 

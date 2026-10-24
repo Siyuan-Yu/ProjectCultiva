@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
 using XianXia.Core.Construction;
@@ -22,6 +22,13 @@ namespace XianXia.Unity.Host
         [SerializeField] TextMesh label;
         BoxCollider2D _bodyCollider;
         [SerializeField] string activityText = string.Empty;
+        string _labelDisplay;
+        string _labelActivity;
+        TextMesh _labelTarget;
+        TextMesh _labelRendererTarget;
+        MeshRenderer _labelRenderer;
+        string _namedDisplay;
+        EntityId _namedEntity;
 
         [Header("Runtime animation diagnostics (updated by the view)")]
         [SerializeField] string animationDriver = "Unconfigured";
@@ -86,6 +93,15 @@ namespace XianXia.Unity.Host
         bool _hasCarriedPresentationOrder;
 
         public HumanCommonRigEquipment EquipmentVisual => _equipmentVisual;
+        Vector3 _rangedAim;
+        bool _hasRangedAim;
+        public void SetRangedAim(Vector3 direction) { _rangedAim = direction; _hasRangedAim = true; }
+        public void ClearRangedAim() { _hasRangedAim = false; }
+        Vector3 _pointerFacing;
+        int _pointerFacingFrame = -1;
+        // A current-frame sample only: switching control cannot leave pointer ownership on the old view.
+        public void SetPointerFacing(Vector3 direction) { _pointerFacing = direction; _pointerFacingFrame = Time.frameCount; }
+
         public Vector3 CarryFacing => ArtDirectionVector(_artDirection);
 
         public void SetCarriedPresentationOrder(int order)
@@ -255,15 +271,20 @@ namespace XianXia.Unity.Host
             var center = transform.InverseTransformPoint(body.center);
             var min = transform.InverseTransformPoint(body.min);
             var max = transform.InverseTransformPoint(body.max);
-            _bodyCollider.offset = new Vector2(center.x, center.y);
-            _bodyCollider.size = new Vector2(Mathf.Max(.01f, Mathf.Abs(max.x - min.x)),
+            var offset = new Vector2(center.x, center.y);
+            var size = new Vector2(Mathf.Max(.01f, Mathf.Abs(max.x - min.x)),
                 Mathf.Max(.01f, Mathf.Abs(max.y - min.y)));
+            if (!_bodyCollider.offset.Equals(offset)) _bodyCollider.offset = offset;
+            if (!_bodyCollider.size.Equals(size)) _bodyCollider.size = size;
         }
 
         public void SetHighlight(bool highlighted)
         {
+            var newlyHighlighted = highlighted && !_highlight;
             _highlight = highlighted;
             ApplyVisualState();
+            // Hidden rings skip bounds/depth work; restore their current placement immediately.
+            if (newlyHighlighted) ApplyDepthSort();
         }
 
         public void SetActivityText(string text)
@@ -425,6 +446,8 @@ namespace XianXia.Unity.Host
         public bool Bind(SimulationWorld world, EntityId entityId)
         {
             _failed = false;
+            _namedDisplay = null;
+            _labelTarget = null;
             _world = world;
             _entityId = entityId;
 
@@ -445,6 +468,11 @@ namespace XianXia.Unity.Host
 
         public void Unbind()
         {
+            _namedDisplay = null;
+            _labelTarget = null;
+            _pointerFacingFrame = -1;
+            ClearRangedAim();
+            if (_flightVisual != null) { Destroy(_flightVisual.gameObject); _flightVisual = null; }
             SetSleepVisual(null, transform.position);
             if (_attackRenderer != null) _attackRenderer.enabled = false;
             _bound = false;
@@ -472,8 +500,26 @@ namespace XianXia.Unity.Host
             if (_modularRig != null) _modularRig.gameObject.SetActive(false);
         }
 
+        HostFlightVisual _flightVisual;
+        public Vector3 CombatVisualPoint => transform.position + Vector3.up * (.35f + (_flightVisual != null ? _flightVisual.Height : 0f));
+
+        void UpdateFlightVisual(Entity entity)
+        {
+            var flying = FlightService.IsAirborne(entity);
+            if (flying && _flightVisual == null)
+            {
+                var child = new GameObject("SpiritWings"); child.transform.SetParent(transform, false);
+                _flightVisual = child.AddComponent<HostFlightVisual>();
+            }
+            if (_flightVisual == null) return;
+            var height = _flightVisual.Present(flying, _artSession?.IsPaused == true,
+                bodyRenderer != null ? bodyRenderer.sortingOrder : 0);
+            if (_useModularRig && _modularRig != null) _modularRig.transform.localPosition += Vector3.up * height;
+        }
+
         void LateUpdate()
         {
+            using var timing = HostDebugHud.EntityLateUpdate.Auto();
             if (!_bound || _failed)
                 return;
 
@@ -484,10 +530,11 @@ namespace XianXia.Unity.Host
             }
 
             SyncFromCore(entity);
-            UpdateSleepVisual(entity);
-            UpdateRuntimeArt(entity);
-            SyncBodyCollider();
-            ApplyDepthSort();
+            using (HostDebugHud.EntitySleep.Auto()) UpdateSleepVisual(entity);
+            using (HostDebugHud.EntityArt.Auto()) UpdateRuntimeArt(entity);
+            UpdateFlightVisual(entity);
+            using (HostDebugHud.EntityBounds.Auto()) SyncBodyCollider();
+            using (HostDebugHud.EntityDepth.Auto()) ApplyDepthSort();
             ApplyHitFlash();
             ApplyRemovedHide(entity);
         }
@@ -577,7 +624,12 @@ namespace XianXia.Unity.Host
             UpdateSelectionRing(order);
             if (label != null)
             {
-                var mr = label.GetComponent<MeshRenderer>();
+                if (_labelRendererTarget != label)
+                {
+                    _labelRendererTarget = label;
+                    _labelRenderer = label.GetComponent<MeshRenderer>();
+                }
+                var mr = _labelRenderer;
                 if (mr != null)
                 {
                     if (_restBedVisual != null && _restBedVisual.TryGetSleepFrame(
@@ -599,7 +651,7 @@ namespace XianXia.Unity.Host
 
         void UpdateSelectionRing(int defaultOrder)
         {
-            if (selectionRing == null) return;
+            if (selectionRing == null || !selectionRing.enabled) return;
             var resting = UsesRestBodyBounds;
             if (resting && selectionRing.sprite != null && TryGetVisibleBodyBounds(out var body))
             {
@@ -655,7 +707,12 @@ namespace XianXia.Unity.Host
                 !display.Contains("敌对"))
                 display = display + "·敌对";
 
-            gameObject.name = "EntityView_" + entity.Id.Value + "_" + display;
+            if (_namedEntity != entity.Id || _namedDisplay != display)
+            {
+                gameObject.name = "EntityView_" + entity.Id.Value + "_" + display;
+                _namedEntity = entity.Id;
+                _namedDisplay = display;
+            }
 
             if (string.IsNullOrEmpty(activityText) &&
                 entity.TryGet<ActionStateComponent>(out var action) &&
@@ -774,7 +831,14 @@ namespace XianXia.Unity.Host
             }
             else if (!work.Active && _workContactRemaining > 0f)
                 work = _workContactVisual; // The final real hit can outlive the destroyed target's work session.
-            if (_pendingWorkContact && !paused && work.HasTarget && !_artState.AttackPending)
+            var airborne = FlightService.IsAirborne(entity);
+            var aiming = _hasRangedAim && canAct && !sleeping && !carryingCargo && !carryingPerson;
+            var pointerFacing = _pointerFacingFrame == Time.frameCount;
+            var aimDirection = pointerFacing ? _pointerFacing : _rangedAim;
+            if (aiming && !paused) SetArtDirection(aimDirection, true);
+            else if (pointerFacing && canAct && !sleeping && !paused)
+                SetArtDirection(_pointerFacing, true);
+            else if (_pendingWorkContact && !paused && work.HasTarget && !_artState.AttackPending)
                 SetArtDirection(work.Target - transform.position, true);
             else if (moved && !paused && !_artState.AttackPending)
                 SetArtDirection(movement);
@@ -785,7 +849,7 @@ namespace XianXia.Unity.Host
                 if (targetDelta.sqrMagnitude > .01f) SetArtDirection(targetDelta);
             }
             _artState.Advance(Time.unscaledDeltaTime, paused, canAct, sleeping,
-                moved, work.Active, moved ? distance : 0f, presentationDt,
+                moved && !airborne, work.Active, moved && !airborne ? distance : 0f, presentationDt,
                 _pendingWorkContact && work.Motion == _workContactVisual.Motion);
             _artAction = _artState.Action;
             animationProfile = _artProfile;
@@ -809,7 +873,8 @@ namespace XianXia.Unity.Host
                     _modularRig.NotifyWorkContact(work.Motion);
                 _modularRig.Apply(_artAction, _artDirection, _artState.WalkPhase01,
                     _artState.Clock, work.Tool, carryingCargo, carryingPerson, work.Motion, _attackStyle,
-                    paused ? 0f : Time.unscaledDeltaTime, _artState.IsLocomoting);
+                    paused ? 0f : Time.unscaledDeltaTime, _artState.IsLocomoting,
+                    aiming ? (Vector3?)aimDirection : null, airborne);
                 if (bodyRenderer != null) bodyRenderer.enabled = false;
                 rigWalkBlend = _modularRig.WalkBlend;
                 rigBodyVisible = _modularRig.HasVisibleBody;
@@ -949,28 +1014,21 @@ namespace XianXia.Unity.Host
 
         bool TryApplyBedRest(Sprite sprite, OutdoorConstructedAssetState bed)
         {
-            var plots = HostMapObjectRegistry.AllPlots;
-            for (var i = 0; i < plots.Count; i++)
+            if (!HostMapObjectRegistry.TryGetBedPlot(bed.StableAssetId, out var plot)) return false;
+            var layers = plot.GetComponent<HostBedVisualLayers>();
+            if (layers == null || !layers.TryGetSleepFrame(out _, out _, out _, out _))
             {
-                var plot = plots[i];
-                if (plot == null || !plot.IsBed || plot.StableCellId != bed.StableAssetId)
-                    continue;
-                var layers = plot.GetComponent<HostBedVisualLayers>();
+                // A refreshed bed sprite or temporarily unavailable visual must be able to
+                // recover, without reconfiguring every actor frame while it stays unavailable.
+                if (Time.realtimeSinceStartup < _nextBedVisualRetryTime) return false;
+                _nextBedVisualRetryTime = Time.realtimeSinceStartup + 1f;
+                HostBedVisualStyle.Apply(plot.gameObject, _world, bed.StableAssetId);
+                layers = plot.GetComponent<HostBedVisualLayers>();
                 if (layers == null || !layers.TryGetSleepFrame(out _, out _, out _, out _))
-                {
-                    // A refreshed bed sprite or temporarily unavailable visual must be able to
-                    // recover, without reconfiguring every actor frame while it stays unavailable.
-                    if (Time.realtimeSinceStartup < _nextBedVisualRetryTime) return false;
-                    _nextBedVisualRetryTime = Time.realtimeSinceStartup + 1f;
-                    HostBedVisualStyle.Apply(plot.gameObject, _world, bed.StableAssetId);
-                    layers = plot.GetComponent<HostBedVisualLayers>();
-                    if (layers == null || !layers.TryGetSleepFrame(out _, out _, out _, out _))
-                        return false;
-                }
-                SetSleepVisual(sprite, plot.transform.position, true, bed.QuarterTurns, true, layers);
-                return true;
+                    return false;
             }
-            return false;
+            SetSleepVisual(sprite, plot.transform.position, true, bed.QuarterTurns, true, layers);
+            return true;
         }
 
         void SetSleepVisual(Sprite sprite, Vector3 position, bool sleeping = false,
@@ -1076,6 +1134,11 @@ namespace XianXia.Unity.Host
                     : string.Empty;
             }
 
+            if (_labelTarget == label && _labelDisplay == display && _labelActivity == activityText)
+                return;
+            _labelTarget = label;
+            _labelDisplay = display;
+            _labelActivity = activityText;
             label.text = string.IsNullOrEmpty(activityText)
                 ? display
                 : display + "\n" + activityText;

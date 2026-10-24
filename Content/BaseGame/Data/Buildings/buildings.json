@@ -78,58 +78,820 @@
       ]
     },
     {
-      "id": "base:room_normal_wood", "type": "building", "name": "普通木屋", "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 4, "footprintCellsH": 6, "constructionLabor": 24,
-      "roomTier": "normal", "materialKind": "wood", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 100,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_wood","count":20}]
+      "id": "base:room_normal_wood",
+      "type": "building",
+      "name": "普通木屋",
+      "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 4,
+      "footprintCellsH": 6,
+      "constructionLabor": 24,
+      "roomTier": "normal",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 100,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 20
+        }
+      ]
     },
     {
-      "id": "base:room_normal_stone", "type": "building", "name": "普通石屋", "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 4, "footprintCellsH": 6, "constructionLabor": 32,
-      "roomTier": "normal", "materialKind": "stone", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 180,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_stone","count":24}]
+      "id": "base:room_normal_stone",
+      "type": "building",
+      "name": "普通石屋",
+      "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 4,
+      "footprintCellsH": 6,
+      "constructionLabor": 32,
+      "roomTier": "normal",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 180,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 24
+        }
+      ]
     },
     {
-      "id": "base:room_medium_wood", "type": "building", "name": "中型木屋", "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 8, "footprintCellsH": 12, "constructionLabor": 60,
-      "roomTier": "medium", "materialKind": "wood", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 140,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_wood","count":60}]
+      "id": "base:room_medium_wood",
+      "type": "building",
+      "name": "中型木屋",
+      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
     },
     {
-      "id": "base:room_medium_stone", "type": "building", "name": "中型石屋", "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 8, "footprintCellsH": 12, "constructionLabor": 80,
-      "roomTier": "medium", "materialKind": "stone", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 260,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_stone","count":72}]
+      "id": "base:room_medium_stone",
+      "type": "building",
+      "name": "中型石屋",
+      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
     },
     {
-      "id": "base:room_advanced_wood", "type": "building", "name": "高级木屋", "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 16, "footprintCellsH": 24, "constructionLabor": 140,
-      "roomTier": "advanced", "materialKind": "wood", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 200,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_wood","count":160}]
+      "id": "base:room_advanced_wood",
+      "type": "building",
+      "name": "高级木屋",
+      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 140,
+      "roomTier": "advanced",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 200,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 160
+        }
+      ]
     },
     {
-      "id": "base:room_advanced_stone", "type": "building", "name": "高级石屋", "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "room", "outdoorKind": "room", "footprintCellsW": 16, "footprintCellsH": 24, "constructionLabor": 180,
-      "roomTier": "advanced", "materialKind": "stone", "defaultRoomUsage": "Residential", "doorWidthCells": 2, "structureDurability": 380,
-      "createsWorldSite": false, "dismantleRefundRate": 0.5, "costs": [{"itemId":"base:resource_rough_stone","count":192}]
+      "id": "base:room_advanced_stone",
+      "type": "building",
+      "name": "高级石屋",
+      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
     },
     {
-      "id": "base:furniture_bed", "type": "building", "name": "床", "description": "独立 1×2 家具，不随房间自动生成。", "unlockedByDefault": true,
-      "placementKind": "bed", "outdoorKind": "bed", "footprintCellsW": 1, "footprintCellsH": 2, "constructionLabor": 10,
-      "materialKind": "wood", "structureDurability": 60, "createsWorldSite": false, "dismantleRefundRate": 0.5,
-      "costs": [{"itemId":"base:resource_rough_wood","count":6}]
+      "id": "base:furniture_bed",
+      "type": "building",
+      "name": "床",
+      "description": "独立 1×2 家具，不随房间自动生成。",
+      "unlockedByDefault": true,
+      "placementKind": "bed",
+      "outdoorKind": "bed",
+      "footprintCellsW": 1,
+      "footprintCellsH": 2,
+      "constructionLabor": 10,
+      "materialKind": "wood",
+      "structureDurability": 60,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 6
+        }
+      ]
     },
     {
-      "id": "base:wall_segment_wood", "type": "building", "name": "木墙", "description": "1×1 格实木墙，可逐格连接；成本与工时沿用首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "wallSegment", "outdoorKind": "wallSegment", "footprintCellsW": 1, "footprintCellsH": 1, "constructionLabor": 8,
-      "materialKind": "wood", "structureDurability": 70, "createsWorldSite": false, "dismantleRefundRate": 0.5,
-      "costs": [{"itemId":"base:resource_rough_wood","count":4}]
+      "id": "base:wall_segment_wood",
+      "type": "building",
+      "name": "木墙",
+      "description": "1×1 格实木墙，可逐格连接；成本与工时沿用首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "wallSegment",
+      "outdoorKind": "wallSegment",
+      "footprintCellsW": 1,
+      "footprintCellsH": 1,
+      "constructionLabor": 8,
+      "materialKind": "wood",
+      "structureDurability": 70,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 4
+        }
+      ]
     },
     {
-      "id": "base:wall_segment_stone", "type": "building", "name": "石墙段", "description": "自由墙段；成本与工时为首轮暂定值。", "unlockedByDefault": true,
-      "placementKind": "wallSegment", "outdoorKind": "wallSegment", "footprintCellsW": 1, "footprintCellsH": 4, "constructionLabor": 10,
-      "materialKind": "stone", "structureDurability": 130, "createsWorldSite": false, "dismantleRefundRate": 0.5,
-      "costs": [{"itemId":"base:resource_rough_stone","count":5}]
+      "id": "base:wall_segment_stone",
+      "type": "building",
+      "name": "石墙段",
+      "description": "自由墙段；成本与工时为首轮暂定值。",
+      "unlockedByDefault": true,
+      "placementKind": "wallSegment",
+      "outdoorKind": "wallSegment",
+      "footprintCellsW": 1,
+      "footprintCellsH": 4,
+      "constructionLabor": 10,
+      "materialKind": "stone",
+      "structureDurability": 130,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "base:building_manual_hall_low",
+      "type": "building",
+      "name": "低级功法阁",
+      "description": "低级木制，8×12格。供读书、整理功法和静坐；书册学习沿用现有规则。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_alchemy_room_low",
+      "type": "building",
+      "name": "低级丹室",
+      "description": "低级木制，8×12格。功能房建筑；配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_smithy_room_low",
+      "type": "building",
+      "name": "低级炼器室",
+      "description": "低级木制，8×12格。功能房建筑；配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_manual_hall_mid",
+      "type": "building",
+      "name": "中级功法阁",
+      "description": "中级石制功法阁。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_manual_hall_high",
+      "type": "building",
+      "name": "高级功法阁",
+      "description": "高级石制功法阁。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_alchemy_room_mid",
+      "type": "building",
+      "name": "中级丹室",
+      "description": "中级石制丹室。仅建筑空间；炼制配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_alchemy_room_high",
+      "type": "building",
+      "name": "高级丹室",
+      "description": "高级石制丹室。仅建筑空间；炼制配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_smithy_room_mid",
+      "type": "building",
+      "name": "中级炼器室",
+      "description": "中级石制炼器室。仅建筑空间；炼制配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_smithy_room_high",
+      "type": "building",
+      "name": "高级炼器室",
+      "description": "高级石制炼器室。仅建筑空间；炼制配方与生产流程尚未开放。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_market_hall_low",
+      "type": "building",
+      "name": "低级坊市商馆",
+      "description": "低级木制坊市商馆。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_market_hall_mid",
+      "type": "building",
+      "name": "中级坊市商馆",
+      "description": "中级石制坊市商馆。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_market_hall_high",
+      "type": "building",
+      "name": "高级坊市商馆",
+      "description": "高级石制坊市商馆。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_auction_hall_low",
+      "type": "building",
+      "name": "低级拍卖行",
+      "description": "低级木制拍卖行。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_auction_hall_mid",
+      "type": "building",
+      "name": "中级拍卖行",
+      "description": "中级石制拍卖行。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_auction_hall_high",
+      "type": "building",
+      "name": "高级拍卖行",
+      "description": "高级石制拍卖行。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_clinic_low",
+      "type": "building",
+      "name": "低级医舍",
+      "description": "低级木制医舍。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_clinic_mid",
+      "type": "building",
+      "name": "中级医舍",
+      "description": "中级石制医舍。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_clinic_high",
+      "type": "building",
+      "name": "高级医舍",
+      "description": "高级石制医舍。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_inn_low",
+      "type": "building",
+      "name": "低级客栈",
+      "description": "低级木制客栈。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_inn_mid",
+      "type": "building",
+      "name": "中级客栈",
+      "description": "中级石制客栈。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_inn_high",
+      "type": "building",
+      "name": "高级客栈",
+      "description": "高级石制客栈。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_practice_hall_low",
+      "type": "building",
+      "name": "低级修炼堂",
+      "description": "低级木制修炼堂。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_practice_hall_mid",
+      "type": "building",
+      "name": "中级修炼堂",
+      "description": "中级石制修炼堂。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 80,
+      "roomTier": "medium",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 260,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 72
+        }
+      ]
+    },
+    {
+      "id": "base:building_practice_hall_high",
+      "type": "building",
+      "name": "高级修炼堂",
+      "description": "高级石制修炼堂。沿用住房、床位及放置家具规则；商业服务由驻地商人提供。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 16,
+      "footprintCellsH": 24,
+      "constructionLabor": 180,
+      "roomTier": "advanced",
+      "materialKind": "stone",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 380,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_stone",
+          "count": 192
+        }
+      ]
     }
   ]
 }

@@ -19,6 +19,8 @@ namespace XianXia.Core.Content
         public bool Abandonable { get; set; }
         /// <summary>接取后有效游戏天数；0 = 无时限。超时自动 Failed 并应用 failResults。</summary>
         public int DeadlineDays { get; set; }
+        /// <summary>仅控制尚未接取任务的日志可见性；不隐藏已接任务，也不替代接取资格。</summary>
+        public List<ContentCondition> JournalConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> OfferConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> CompleteConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();

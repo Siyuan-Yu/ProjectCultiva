@@ -49,6 +49,14 @@ namespace XianXia.Core.Combat
                     ? Math.Min(200UL, life.BleedOutAfterTick - world.Tick.Value) : 0UL;
                 life.DyingReserveMilli = (int)remaining * 1000;
             }
+            // Most living characters are already at full health. Bed validation walks the
+            // world's bed inventory; it cannot change a full-health character with no
+            // pending medical progress or herb treatment, regardless of recovery rate.
+            if (life.State == LifecycleState.Alive && !life.HasMedicalProgress && life.HerbDoses == 0 &&
+                entity.TryGet<CombatVitalsComponent>(out var currentVitals) &&
+                entity.TryGet<AttributesComponent>(out var currentAttributes) &&
+                currentVitals.CurrentHp >= Math.Max(1, currentAttributes.GetFinal(AttributeId.MaxHp)))
+                return;
             var rate = ResolveRateMilli(world, entity);
             if (life.IsDying)
             {

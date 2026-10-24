@@ -27,6 +27,7 @@ namespace XianXia.Core.Npc
 
             foreach (var entity in world.Entities.All)
             {
+                if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 if (MortalCivilianQuery.IsManagedCivilian(world, entity))
                 {
                     // Rest/Labor/Idle and needs are owned by MortalCivilianService. A specialized
@@ -34,7 +35,7 @@ namespace XianXia.Core.Npc
                     // schedule action chain, unless a Squad or higher authority owns the character.
                     if (!world.Civilians.TryGet(entity.Id, out var civilian) ||
                         civilian.Activity != MortalActivity.DedicatedDuty ||
-                        World.Strategic.SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ||
+                        !MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, entity.Id, civilian) ||
                         !AutonomousActionContinuationService.CanContinue(world, entity.Id) ||
                         !entity.TryGet<ScheduleComponent>(out var managedBinding) ||
                         string.IsNullOrEmpty(managedBinding.DefinitionId) ||
@@ -147,6 +148,8 @@ namespace XianXia.Core.Npc
                 orderType = OrderType.Wait;
             else if (resolved.NeedsMove && !string.IsNullOrEmpty(resolved.WorkAreaId))
                 orderType = OrderType.Move;
+            else if (resolved.Activity == ScheduleActivity.Cultivate && !string.IsNullOrEmpty(resolved.WorkAreaId))
+                orderType = OrderType.Cultivate;
             else if (!string.IsNullOrEmpty(resolved.WorkAreaId))
                 orderType = OrderType.Work;
             else

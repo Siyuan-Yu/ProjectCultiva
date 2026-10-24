@@ -144,6 +144,7 @@ public static class PackageValidator
 
         if (def.Type == "quest")
         {
+            CheckCond(def.Raw["journalConditions"], "journalConditions");
             CheckCond(def.Raw["offerConditions"], "offerConditions");
             CheckCond(def.Raw["completeConditions"], "completeConditions");
             var questKind = JsonEdit.GetString(def.Raw,"questKind","general");

@@ -1,0 +1,56 @@
+﻿{
+  "batch": "Batch_Resources_20261023_001",
+  "assets": [
+    {
+      "key": "grain",
+      "name": "ART-UI-003_grain_pouch_v02",
+      "source": "exec-7819833a-606e-493e-a7ba-8947d974d3db.png",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent game inventory icon, also reused as a small ground prop in a Chinese cultivation village game. Subject: ONE humble light ochre cloth pouch of coarse grain, tied with a short plain brown cord, a small opening shows just a few broad cream grains. STRICT TRUE OVERHEAD orthographic view, looking straight down, no visible vertical bag wall, no isometric view. Centered isolated silhouette occupies about 78 percent of square canvas, generous completely transparent margin. Style: Chinese ink outlines and restrained pale watercolor washes, soft muted ochre, dark brown edges, very simple chunky shapes readable at 64x64 and 128x128 pixels; 2D top-down management game prop, low detail, no fine cloth weave, no tiny grain patterns. No background, no floor, no scenery, no characters, no letters, no labels, no watermark, no painted drop shadow, no luminous border. Actual alpha transparency. One object only. Visually modest production asset, not a polished illustration.",
+      "asset_id": "ART-UI-003",
+      "original": "ArtSource/Batches/Batch_Resources_20261023_001/Originals/ART-UI-003_grain_pouch_v02.png",
+      "unity": "Assets/Art/UI/Resources/ART-UI-003_grain_pouch_v02.png",
+      "sha256": "e3365db887585139cd9e874e499af6c6b159a9413f68baecd634deee16de9c88",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "status": "Implemented / Producer verification pending",
+      "generator": "built-in imagegen",
+      "runtime_max_texture_size": 128
+    },
+    {
+      "key": "herb",
+      "name": "ART-UI-003_spirit_herb_bundle_v02",
+      "source": "exec-373662fa-d7e2-4b6f-bf58-004332efd9ef.png",
+      "prompt": "Single transparent game inventory icon and small ground prop: one small bundle of medicinal spirit herbs tied with plain brown twine, five broad muted sage-green leaves and two tiny pale violet buds, strict true overhead orthographic view. Chinese ink outlines with pale watercolor washes matching a humble cultivation village management game. Simple chunky silhouette readable at 64 pixels, very low detail, no leaf veins or ornament, no glow. Centered object occupies 78 percent square, generous transparent margins, actual alpha transparency. No background, floor, text, watermark, shadow, people, frame or extra objects. Modest practical 2D static resource icon, not a detailed illustration.",
+      "asset_id": "ART-UI-003",
+      "original": "ArtSource/Batches/Batch_Resources_20261023_001/Originals/ART-UI-003_spirit_herb_bundle_v02.png",
+      "unity": "Assets/Art/UI/Resources/ART-UI-003_spirit_herb_bundle_v02.png",
+      "sha256": "92ef66e48d76675347b67c019d1832a1704caf6524bba712360338edfca4bc6c",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "status": "Implemented / Producer verification pending",
+      "generator": "built-in imagegen",
+      "runtime_max_texture_size": 128
+    },
+    {
+      "key": "stone",
+      "name": "ART-UI-003_rough_stone_v02",
+      "source": "exec-38b36d31-9c6d-4107-bef6-7e13d3426dae.png",
+      "prompt": "Single transparent game resource icon: a compact little group of THREE rough grey stone chunks, irregular angular simple silhouettes, muted warm grey with just two broad ink facets per stone. Strict true overhead orthographic top-down, no isometric perspective. Chinese ink outline and restrained pale watercolor, humble cultivation village management game, chunky low-detail readable at 64 pixels. Centered group occupies 75 percent square, generous transparent margins and actual alpha. No terrain, floor, background, cast shadow, text, border, sparkle, crystals, people or other objects. Practical static inventory and ground loot sprite, not polished illustration.",
+      "asset_id": "ART-UI-003",
+      "original": "ArtSource/Batches/Batch_Resources_20261023_001/Originals/ART-UI-003_rough_stone_v02.png",
+      "unity": "Assets/Art/UI/Resources/ART-UI-003_rough_stone_v02.png",
+      "sha256": "60afc823f317989fb33731381e5576d0977b3c2d7189ee9845f185689df65c59",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "status": "Implemented / Producer verification pending",
+      "generator": "built-in imagegen",
+      "runtime_max_texture_size": 128
+    }
+  ]
+}

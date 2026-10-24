@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -20,6 +20,7 @@ namespace XianXia.Unity.Host
         PlayableHostBootstrap _host;
         object _trackedWorld;
         float _nextScan;
+        readonly List<ulong> _cooldownIds = new List<ulong>(64);
         readonly List<EntityId> _visible = new List<EntityId>(64);
         readonly Dictionary<ulong, EntityId> _targets = new Dictionary<ulong, EntityId>();
         readonly Dictionary<ulong, float> _strikeCooldown = new Dictionary<ulong, float>();
@@ -49,12 +50,15 @@ namespace XianXia.Unity.Host
             var spawner = _host.ViewSpawner;
             if (spawner == null || _host.MoveController == null) return;
             var dt = Mathf.Max(0f, _host.PresentationDeltaTime);
-            var ids = new List<ulong>(_strikeCooldown.Keys);
+            _cooldownIds.Clear();
+            _cooldownIds.AddRange(_strikeCooldown.Keys);
+            var ids = _cooldownIds;
             for (var i = 0; i < ids.Count; i++)
                 _strikeCooldown[ids[i]] = Mathf.Max(0f, _strikeCooldown[ids[i]] - dt);
-            foreach (var e in world.Entities.All)
-                if (e.TryGet<NpcAutonomyState>(out var clocks) &&
-                    LocalMapVisibility.IsEntityVisible(world, e.Id)) clocks.AdvanceCooldowns(dt);
+            foreach (var view in spawner.Registry.All)
+                if (view != null && view.IsBound && LocalMapVisibility.IsEntityVisible(world, view.EntityId) &&
+                    world.Entities.TryGet(view.EntityId, out var e) &&
+                    e.TryGet<NpcAutonomyState>(out var clocks)) clocks.AdvanceCooldowns(dt);
             if (Time.unscaledTime >= _nextScan)
             {
                 _nextScan = Time.unscaledTime + ScanInterval;
@@ -96,6 +100,7 @@ namespace XianXia.Unity.Host
                 if (TryRetreatOutdoor(world, actor, target, actorEntity, targetEntity,
                         actorView, targetView)) continue;
                 _veil.TryAutoActivateForNonPlayer(world, actor);
+                _host.GetComponent<HostFlightController>()?.TryAutoBegin(actor);
                 _veil.DeactivateIfSpiritEmpty(actorEntity);
                 var range = _veil.ResolveEngageRange(actorEntity);
                 var distance = Vector2.Distance(actorView.transform.position, targetView.transform.position);
@@ -153,6 +158,7 @@ namespace XianXia.Unity.Host
             foreach (var view in spawner.Registry.All)
                 if (view != null && LocalMapVisibility.IsEntityVisible(world, view.EntityId) &&
                     world.Entities.TryGet(view.EntityId, out var e) &&
+                    HuangcunOpeningAccess.IsSimulated(world, e) &&
                     (e.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 &&
                     CombatLifeStateService.CanFight(e))
                     _visible.Add(view.EntityId);
@@ -171,13 +177,12 @@ namespace XianXia.Unity.Host
                 for (var j = 0; j < _visible.Count; j++)
                 {
                     var target = _visible[j];
-                    if (!IsLegalTarget(world, actor, target) ||
+                    if (actor == target || !spawner.Registry.TryGet(target, out var targetView)) continue;
+                    var dist = (actorView.transform.position - targetView.transform.position).sqrMagnitude;
+                    if (dist > NoticeRange * NoticeRange || !IsLegalTarget(world, actor, target) ||
                         !SameBattleSpace(world, actor, target) ||
                         (!SeparateSpaceCombatPolicy.IsInPlaceCombatSpace(world) &&
                          CharacterEncounterService.IsContactSuppressed(world, actor, target)) ||
-                        !spawner.Registry.TryGet(target, out var targetView)) continue;
-                    var dist = (actorView.transform.position - targetView.transform.position).sqrMagnitude;
-                    if (dist > NoticeRange * NoticeRange ||
                         !HasClearSight(actorView.transform.position, targetView.transform.position)) continue;
                     var priority = dist;
                     if (world.Strategic.PlayerPartyContext?.IsMember(actor) == true &&

@@ -8,7 +8,12 @@
       "trigger": "onExplore",
       "locationId": "base:loc_ref_herb_field",
       "once": true,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "step_001",
       "steps": [
         {
@@ -63,7 +68,12 @@
       "priority": 0,
       "topicText": "",
       "once": false,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "step_001",
       "steps": [
         {

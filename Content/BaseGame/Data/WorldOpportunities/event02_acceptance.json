@@ -108,7 +108,12 @@
       "allowInsideWorldSite": false,
       "discoveryMode": "worldVisible",
       "publicNoticeText": "",
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "expireOutcomes": []
     },
     {
@@ -127,7 +132,12 @@
       "publicNoticeTitle": "临时行商",
       "publicNoticeText": "听说荒村附近来了一名临时行商。",
       "publicNoticeRevealExactLocation": true,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "expireOutcomes": []
     },
     {
@@ -148,6 +158,10 @@
         {
           "kind": "questOfferableFromTarget",
           "id": "base:quest_event02_wounded_cultivator_herb"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "start",
@@ -218,6 +232,10 @@
         {
           "kind": "questActiveFromTarget",
           "id": "base:quest_event02_wounded_cultivator_herb"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "start",
@@ -297,6 +315,10 @@
         {
           "kind": "questOfferableFromTarget",
           "id": "base:quest_event02_temporary_merchant_herb"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "start",
@@ -363,6 +385,10 @@
         {
           "kind": "questActiveFromTarget",
           "id": "base:quest_event02_temporary_merchant_herb"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "start",
@@ -448,7 +474,12 @@
       "discoveryRadiusWorld": 1.25,
       "discoveryNoticeTitle": "残破石碑",
       "discoveryNoticeText": "你在荒草间发现了一块残破石碑。",
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "expireOutcomes": []
     },
     {
@@ -471,7 +502,12 @@
       "publicNoticeTitle": "遗落包裹",
       "publicNoticeText": "有人看见荒村附近遗落了一个包裹。",
       "publicNoticeRevealExactLocation": true,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "expireOutcomes": []
     },
     {
@@ -491,7 +527,12 @@
       "maxPlayerDistanceWorld": 3.0,
       "allowInsideWorldSite": false,
       "discoveryMode": "worldVisible",
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "expireOutcomes": []
     },
     {
@@ -509,6 +550,10 @@
         {
           "kind": "missingFlag",
           "id": "acceptance:dynamic_hidden_stele_seen"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "inspect",
@@ -542,6 +587,10 @@
         {
           "kind": "storyFlag",
           "id": "acceptance:dynamic_hidden_stele_seen"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "resolve",
@@ -589,7 +638,12 @@
       "topicText": "检查包裹",
       "once": false,
       "onceScope": "perTarget",
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "inspect",
       "steps": [
         {
@@ -626,7 +680,12 @@
       "topicText": "观察灵草",
       "once": false,
       "onceScope": "perTarget",
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "inspect",
       "steps": [
         {

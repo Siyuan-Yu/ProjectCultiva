@@ -54,6 +54,11 @@ namespace XianXia.Data.Bootstrap
             var surface = ApplySurfaceSites(world, registry, scenario);
             if (surface.IsFailure)
                 return surface;
+            // Flag settlements must exist before exact opening NPC anchors and authored assets bind.
+            // Reuse the normal flag bootstrap; no static region or alternate core is introduced.
+            world.Strategic.SpatialRules = registry.SpatialRules;
+            var flagSites = FactionFlagSiteCoreBootstrap.EnsureAuthoredSiteCores(world, true, ErrorCode.ContentLoadFailed);
+            if (flagSites.IsFailure) return flagSites;
             var squads = NpcSquadContentBootstrap.Apply(world, registry, scenario, openingLookup);
             if (squads.IsFailure) return squads;
             return Result.Success();

@@ -111,7 +111,7 @@
     {
       "id": "base:workarea_forest_edge",
       "type": "workArea",
-      "name": "林缘巡点",
+      "name": "就近伐木（散生树木）",
       "locationId": "base:loc_ref_forest",
       "tags": [
         "patrol",
@@ -161,7 +161,7 @@
     {
       "id": "base:workarea_forest_woodcut",
       "type": "workArea",
-      "name": "林缘砍柴点",
+      "name": "就近伐木（散生树木）",
       "locationId": "base:loc_ref_forest",
       "tags": [
         "wood",
@@ -303,6 +303,252 @@
         "manageHousing",
         "manageSchedules"
       ]
+    },
+    {
+      "id": "base:workarea_huangcun_field_check",
+      "type": "workArea",
+      "name": "粮田查工",
+      "locationId": "base:loc_ref_labor_yard",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Inspect"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_herb_check",
+      "type": "workArea",
+      "name": "药圃查工",
+      "locationId": "base:loc_ref_herb_field",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Inspect"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_store_check",
+      "type": "workArea",
+      "name": "公库点货",
+      "locationId": "base:loc_huangcun_store",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Inspect"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_check",
+      "type": "workArea",
+      "name": "散矿巡查",
+      "locationId": "base:loc_ref_mine",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Inspect"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_gate_north",
+      "type": "workArea",
+      "name": "荒村门岗·north",
+      "locationId": "base:loc_huangcun_gate_north",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Patrol"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_gate_east",
+      "type": "workArea",
+      "name": "荒村门岗·east",
+      "locationId": "base:loc_huangcun_gate_east",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Patrol"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_gate_south",
+      "type": "workArea",
+      "name": "荒村门岗·south",
+      "locationId": "base:loc_huangcun_gate_south",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Patrol"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_gate_west",
+      "type": "workArea",
+      "name": "荒村门岗·west",
+      "locationId": "base:loc_huangcun_gate_west",
+      "tags": [
+        "duty"
+      ],
+      "allowedActivities": [
+        "Patrol"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_practice",
+      "type": "workArea",
+      "name": "公用修炼院",
+      "locationId": "base:loc_huangcun_practice",
+      "tags": [
+        "cultivate"
+      ],
+      "allowedActivities": [
+        "Cultivate"
+      ],
+      "capacity": 6,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_common",
+      "type": "workArea",
+      "name": "露天歇脚处",
+      "locationId": "base:loc_huangcun_common",
+      "tags": [
+        "idle"
+      ],
+      "allowedActivities": [
+        "Idle",
+        "Rest",
+        "Eat"
+      ],
+      "capacity": 8,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_qingshi_farm",
+      "type": "workArea",
+      "name": "青石近镇粮田",
+      "locationId": "base:loc_qingshi_farm",
+      "tags": [
+        "farm",
+        "grain"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_qingshi_herb_farm",
+      "type": "workArea",
+      "name": "青石医舍药田",
+      "locationId": "base:loc_qingshi_herb_farm",
+      "tags": [
+        "farm",
+        "herb"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_qingshi_woodcut",
+      "type": "workArea",
+      "name": "青石柴林",
+      "locationId": "base:loc_qingshi_forest",
+      "tags": [
+        "wood"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_qingshi_practice",
+      "type": "workArea",
+      "name": "青石公用修炼处",
+      "locationId": "base:loc_qingshi_practice",
+      "tags": [
+        "cultivate"
+      ],
+      "allowedActivities": [
+        "Cultivate"
+      ],
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_qingshi_common",
+      "type": "workArea",
+      "name": "青石歇脚屋",
+      "locationId": "base:loc_qingshi_common",
+      "tags": [
+        "idle"
+      ],
+      "allowedActivities": [
+        "Idle",
+        "Rest",
+        "Eat"
+      ],
+      "capacity": 6,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_manual_hall",
+      "type": "workArea",
+      "name": "功法阁静坐",
+      "locationId": "base:loc_huangcun_manual_hall",
+      "tags": [
+        "cultivate"
+      ],
+      "allowedActivities": [
+        "Cultivate"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
     }
   ]
 }

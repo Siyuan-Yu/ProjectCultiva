@@ -23,6 +23,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.ActivityLateUpdate.Auto();
             if (bootstrap == null || viewSpawner == null)
                 return;
             var session = bootstrap.Session;

@@ -1147,6 +1147,7 @@ namespace XianXia.Core.World.Strategic
             var defense = target.TryGet<AttributesComponent>(out var attrs)
                 ? Math.Max(0, attrs.GetFinal(AttributeId.Defense)) : 0;
             var damage = Math.Max(1, Attack - defense / 2);
+            if (FlightService.TryEvade(world, null, target)) return false;
             var applied = CombatDamageRules.ApplyIncoming(target, damage);
             var source = ward.CoreKind == WorldSiteCoreKind.RemovableFactionFlag
                 ? "factionFlag" : "councilHall";

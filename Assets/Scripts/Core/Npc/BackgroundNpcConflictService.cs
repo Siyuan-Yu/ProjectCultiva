@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
@@ -18,6 +18,7 @@ namespace XianXia.Core.Npc
         const ulong IntervalTicks = 8UL;
         const float NoticeCells = 6f;
         static readonly MeleeCombatService Combat = new MeleeCombatService();
+        static readonly SpiritVeilService Veil = new SpiritVeilService();
         static readonly List<Entity> Actors = new List<Entity>(128);
         static readonly HashSet<ulong> Engaged = new HashSet<ulong>();
         static readonly List<WorldVec2> Route = new List<WorldVec2>(16);
@@ -27,7 +28,8 @@ namespace XianXia.Core.Npc
             if (world?.Entities == null || world.Tick.Value % IntervalTicks != 0 ||
                 world.Strategic.CharacterEncounter != null) return;
             foreach (var e in world.Entities.All)
-                if (!world.ContinuousOutdoorMaterialization.IsMaterialized(e.Id) &&
+                if (HuangcunOpeningAccess.IsSimulated(world, e) &&
+                    !world.ContinuousOutdoorMaterialization.IsMaterialized(e.Id) &&
                     !SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, e.Id) &&
                     e.TryGet<NpcAutonomyState>(out var state))
                 {
@@ -42,7 +44,8 @@ namespace XianXia.Core.Npc
                 }
             Actors.Clear(); Engaged.Clear();
             foreach (var e in world.Entities.All)
-                if (e != null && (e.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 &&
+                if (e != null && HuangcunOpeningAccess.IsSimulated(world, e) &&
+                    (e.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 &&
                     CombatLifeStateService.CanFight(e) &&
                     (!e.TryGet<NpcAutonomyState>(out var autonomy) || (!autonomy.Retreating && !autonomy.Exhausted)) &&
                     world.Strategic.PlayerPartyContext?.IsMember(e.Id) != true &&
@@ -71,7 +74,8 @@ namespace XianXia.Core.Npc
                     var dx = place.WorldPosition.X - from.WorldPosition.X;
                     var dy = place.WorldPosition.Y - from.WorldPosition.Y;
                     var distance = dx * dx + dy * dy;
-                    if (distance > closest || !NpcLocalNavigation.HasClearContact(world, ground, from.WorldPosition, place.WorldPosition)) continue;
+                    if (distance > closest || (!FlightService.IsAirborne(attacker) && !FlightService.IsAirborne(candidate) &&
+                        !NpcLocalNavigation.HasClearContact(world, ground, from.WorldPosition, place.WorldPosition))) continue;
                     closest = distance;
                     defender = candidate; to = place;
                 }
@@ -80,17 +84,31 @@ namespace XianXia.Core.Npc
                 if (MortalCivilianService.ReactToHostileContact(world, defender.Id)) continue;
                 if (TryRetreat(world, attacker, defender, from, to) ||
                     TryRetreat(world, defender, attacker, to, from)) continue;
-                var reach = MeleeCombatService.DefaultMeleeRange * ground.CellSize;
+                Veil.TryAutoActivateForNonPlayer(world, attacker.Id);
+                Veil.TryAutoActivateForNonPlayer(world, defender.Id);
+                BeginColdFlight(world, attacker, from, ground);
+                BeginColdFlight(world, defender, to, ground);
+                var reach = Veil.ResolveEngageRange(attacker) * ground.CellSize;
                 if (WorldVec2.Distance(from.WorldPosition, to.WorldPosition) > reach)
                 {
                     NpcColdMovement.Advance(world, attacker, from.SurfaceId, to.WorldPosition, reach, out _);
                     continue;
                 }
                 Combat.ApplyStrike(world, attacker.Id, defender.Id, out _, out _);
-                if (CombatLifeStateService.CanFight(defender))
+                if (CombatLifeStateService.CanFight(defender) &&
+                    WorldVec2.Distance(from.WorldPosition, to.WorldPosition) <= Veil.ResolveEngageRange(defender) * ground.CellSize)
                     Combat.ApplyStrike(world, defender.Id, attacker.Id, out _, out _);
             }
             Actors.Clear(); Engaged.Clear(); Route.Clear();
+        }
+
+        static void BeginColdFlight(SimulationWorld world, Entity entity,
+            CharacterWorldPresenceQuery.ResolvedPresence at, SurfaceGroundNavigation nav)
+        {
+            if (FlightService.IsAirborne(entity) || !entity.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cult) ||
+                cult.Realm < XianXia.Core.Cultivation.RealmStage.GoldenCore) return;
+            FlightService.Begin(world, entity.Id, at.SurfaceId, "", at.WorldPosition,
+                NpcLocalNavigation.HasClearContact(world, nav, at.WorldPosition, at.WorldPosition));
         }
 
         static bool TryRetreat(SimulationWorld world, Entity actor, Entity enemy,
@@ -120,7 +138,7 @@ namespace XianXia.Core.Npc
             var destination = new WorldVec2((float)(from.WorldPosition.X + vx / length * distance),
                 (float)(from.WorldPosition.Y + vy / length * distance));
             Route.Clear();
-            if (navigation.TryFindRoute(from.WorldPosition, destination, Route) != SurfaceGroundRouteStatus.Found)
+            if (FlightService.Route(world, actor.Id, navigation, from.WorldPosition, destination, Route) != SurfaceGroundRouteStatus.Found)
                 return false;
             var state = NpcAutonomyState.Ensure(actor);
             state.Retreating = true;

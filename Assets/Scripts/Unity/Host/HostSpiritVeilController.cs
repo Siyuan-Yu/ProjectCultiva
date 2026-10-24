@@ -51,7 +51,7 @@ namespace XianXia.Unity.Host
             }
 
             if (!world.Entities.TryGet(id, out var entity) ||
-                (entity.Tags & EntityTag.Npc) != 0)
+                !XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(world, id))
             {
                 message = "仅己方可召唤";
                 return false;

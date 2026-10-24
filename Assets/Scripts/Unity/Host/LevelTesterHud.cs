@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Domain.Ids;
 
 namespace XianXia.Unity.Host
 {
@@ -12,6 +13,13 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode toggleKey = KeyCode.F1;
 
         string _mapLine = "-";
+        bool _hasMapLineInput;
+        bool _mapLineLoaded;
+        DefinitionId _mapLineId;
+        int _mapLineWidth;
+        int _mapLineHeight;
+        int _mapLinePlacementCount;
+        string _mapLinePreferredId;
 
         void Awake()
         {
@@ -79,14 +87,31 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !MapLayoutPick.TryGet(session, out var layout) || layout == null)
             {
-                _mapLine = string.IsNullOrEmpty(bootstrap?.PreferredMapLayoutId)
+                var preferred = bootstrap?.PreferredMapLayoutId;
+                if (_hasMapLineInput && !_mapLineLoaded && _mapLinePreferredId == preferred)
+                    return;
+                _hasMapLineInput = true;
+                _mapLineLoaded = false;
+                _mapLinePreferredId = preferred;
+                _mapLine = string.IsNullOrEmpty(preferred)
                     ? "(未选到 mapLayout)"
-                    : bootstrap.PreferredMapLayoutId + " (未加载)";
+                    : preferred + " (未加载)";
                 return;
             }
 
-            _mapLine = layout.Id + " · " + layout.Width + "×" + layout.Height +
-                       " · placements=" + (layout.Placements?.Count ?? 0);
+            var placementCount = layout.Placements?.Count ?? 0;
+            if (_hasMapLineInput && _mapLineLoaded && _mapLineId == layout.Id &&
+                _mapLineWidth == layout.Width && _mapLineHeight == layout.Height &&
+                _mapLinePlacementCount == placementCount)
+                return;
+            _hasMapLineInput = true;
+            _mapLineLoaded = true;
+            _mapLineId = layout.Id;
+            _mapLineWidth = layout.Width;
+            _mapLineHeight = layout.Height;
+            _mapLinePlacementCount = placementCount;
+            _mapLine = _mapLineId + " · " + _mapLineWidth + "×" + _mapLineHeight +
+                       " · placements=" + _mapLinePlacementCount;
         }
 
         static string Truncate(string s, int max)

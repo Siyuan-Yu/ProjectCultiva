@@ -17,6 +17,7 @@ namespace XianXia.Core.Cultivation
                     if (minor < 1) minor = 1;
                     if (minor > 10) minor = 10;
                     return "炼气" + ToLayerName(minor) + "层";
+                case RealmStage.GoldenCore: return "金丹期";
                 case RealmStage.Foundation:
                     return "筑基期";
                 default:

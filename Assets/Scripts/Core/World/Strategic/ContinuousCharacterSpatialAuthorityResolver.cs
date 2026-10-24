@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
@@ -63,11 +63,11 @@ namespace XianXia.Core.World.Strategic
                     !Finite(squadMotion.WorldPosition.X) || !Finite(squadMotion.WorldPosition.Y) ||
                     !world.SurfaceGround.TryGet(surfaceId, out var nav) ||
                     !nav.Contains(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y) ||
-                    !nav.IsWalkable(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y))
+                    (!Combat.FlightService.AllAirborne(world, squad) && !nav.IsWalkable(squadMotion.WorldPosition.X, squadMotion.WorldPosition.Y)))
                 { failure = "SquadContinuousSpatialInvariant"; return false; }
                 var slot = SquadContinuousFormationResolver.StableSlot(squad, id);
                 if (slot < 0) { failure = "SquadContinuousSpatialInvariant:MemberMissing"; return false; }
-                position = SquadContinuousFormationResolver.Resolve(squadMotion, slot, nav);
+                position = SquadContinuousFormationResolver.Resolve(squadMotion, slot, nav, Combat.FlightService.IsAirborne(world, id));
                 return true;
             }
 

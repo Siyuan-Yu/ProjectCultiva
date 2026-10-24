@@ -53,6 +53,8 @@ namespace XianXia.Core.Npc
             if (!CharacterWorldPresenceQuery.TryResolve(world, actor.Id, out var at) ||
                 !at.HasWorldPosition || at.SurfaceId != surfaceId ||
                 !world.SurfaceGround.TryGet(surfaceId, out var nav) || nav == null) return false;
+            if (!HuangcunOpeningAccess.IsSimulated(world, actor) ||
+                !HuangcunOpeningAccess.AllowsPosition(world, surfaceId, goal.X, goal.Y)) return false;
             arrived = WorldVec2.Distance(at.WorldPosition, goal) <= radius;
             if (arrived) return true;
             var state = NpcAutonomyState.Ensure(actor);
@@ -61,7 +63,12 @@ namespace XianXia.Core.Npc
             var elapsed = state.LastMoveTick == 0 ? 1UL : Math.Min(8UL, world.Tick.Value - state.LastMoveTick);
             state.LastMoveTick = world.Tick.Value;
             var route = new List<WorldVec2>();
-            if (!NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, goal, route)) return false;
+            if (XianXia.Core.Combat.FlightService.IsAirborne(actor))
+            { if (XianXia.Core.Combat.FlightService.Route(world, actor.Id, nav, at.WorldPosition, goal, route) !=
+                XianXia.Core.World.Surface.SurfaceGroundRouteStatus.Found) return false; }
+            else if (!NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, goal, route)) return false;
+            for (var i = 0; i < route.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPosition(world, surfaceId, route[i].X, route[i].Y)) return false;
             var position = at.WorldPosition;
             var budget = BackgroundSimulationScheduler.DistanceBudgetFromElapsedSimulationTicks(
                 ContinuousWorldMovementScale.Resolve(world), elapsed);

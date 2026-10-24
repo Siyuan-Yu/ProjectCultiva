@@ -66,7 +66,7 @@ public static class SchemaFields
         {
             "id", "type", "name", "description", "autoOffer", "abandonable", "deadlineDays",
             "runtimeMode", "acceptanceMode", "deliveryRequirements", "questKind",
-            "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
+            "journalConditions", "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         },
         ["contentEvent"] = new HashSet<string>(StringComparer.Ordinal)
         {

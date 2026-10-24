@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -504,7 +504,7 @@ namespace XianXia.Unity.Host
                         var assetId = ward.AssetId;
                         var shotTarget = coreTarget;
                         _strikeVfx.PlayProjectile(from + Vector3.up * .35f,
-                            coreTargetView.transform.position + Vector3.up * .35f,
+                            coreTargetView.CombatVisualPoint,
                             coreTargetView, () =>
                             {
                                 if (!ReferenceEquals(_host?.Session?.World, world) ||
@@ -529,6 +529,7 @@ namespace XianXia.Unity.Host
                     if (p.Withdrawn || !CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
                     var id = new EntityId(p.CharacterId);
                     p.Cooldown = Mathf.Max(0f, p.Cooldown - dt);
+                    if (HostDirectionalRangedAttack.OwnsAttack(_host, id)) continue;
                     if (MortalTransportConstraintService.ValidateAttack(world, id).IsFailure)
                     { p.TargetId = 0; continue; }
                     if (p.TargetId == ulong.MaxValue && _host.Session.PlayerParty.IsMember(id)) continue;
@@ -562,11 +563,12 @@ namespace XianXia.Unity.Host
                     _veil.DeactivateIfSpiritEmpty(actorEntity);
                     var range = _veil.ResolveEngageRange(actorEntity);
                     if (Vector2.Distance(actorView.transform.position, targetView.transform.position) > range ||
-                        !_host.MoveController.IsCharacterStandClear(id))
+                        !_host.MoveController.IsCharacterStandClear(id) ||
+                        !HasClearAttackSight(actorView, targetView))
                     {
                         if (p.Cooldown <= 0f)
                         {
-                            _host.MoveController.OrderCharacterApproach(id, target, range);
+                            _host.MoveController.OrderCharacterApproach(id, target, range, requireClearSight: true);
                             p.Cooldown = .2f;
                         }
                         continue;
@@ -710,13 +712,14 @@ namespace XianXia.Unity.Host
                 return;
             var range = _veil.ResolveEngageRange(attackerEntity);
             if (Vector2.Distance(attackerView.transform.position, targetView.transform.position) > range ||
-                !_host.MoveController.IsCharacterStandClear(attackerId))
+                !_host.MoveController.IsCharacterStandClear(attackerId) ||
+                !HasClearAttackSight(attackerView, targetView))
             {
                 if (attacker.Cooldown <= 0f)
                 {
                     _host.MoveController.OrderCharacterApproach(
                         attackerId, targetId, range,
-                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
+                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand, requireClearSight: true);
                     attacker.Cooldown = .2f;
                 }
                 return;
@@ -726,7 +729,7 @@ namespace XianXia.Unity.Host
                 return;
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
             if (SpiritVeilService.IsActive(attackerEntity))
-                LaunchCharacterProjectile(world, state, attackerId, targetId);
+                LaunchCharacterProjectile(world, state, attackerId, targetId, allowIncapacitated: true);
             else
             {
                 var strike = _melee.ApplyStrike(
@@ -745,8 +748,14 @@ namespace XianXia.Unity.Host
             actorView.PlayArtAttack(targetView.transform.position, false);
         }
 
+        bool HasClearAttackSight(EntityView actor, EntityView target)
+        {
+            return actor != null && target != null &&
+                _host?.MoveController?.HasCharacterSight(actor.EntityId, target.EntityId) == true;
+        }
+
         void LaunchCharacterProjectile(SimulationWorld world, CharacterEncounterState state,
-            EntityId attacker, EntityId target)
+            EntityId attacker, EntityId target, bool allowIncapacitated = false)
         {
             if (_strikeVfx == null) return;
             var encounterId = state.EncounterId;
@@ -758,9 +767,13 @@ namespace XianXia.Unity.Host
                     (current.Phase != CharacterEncounterPhase.Active &&
                      current.Phase != CharacterEncounterPhase.ReadyToEnd) ||
                     !current.Opposing(attacker.Value, target.Value) ||
-                    !CharacterEncounterService.IsLiving(world, target.Value) ||
+                    !world.Entities.TryGet(attacker, out var shooter) || !CombatLifeStateService.CanFight(shooter) ||
+                    !world.Entities.TryGet(target, out var victim) ||
+                    !(allowIncapacitated ? CombatLifeStateService.CanBeAttacked(victim) : CombatLifeStateService.CanFight(victim)) ||
                     !_host.ViewSpawner.Registry.TryGet(target, out var currentView) ||
-                    currentView == null)
+                    currentView == null ||
+                    !_host.ViewSpawner.Registry.TryGet(attacker, out var shooterView) ||
+                    !HasClearAttackSight(shooterView, currentView))
                     return false;
                 var strike = _melee.ApplyStrike(world, attacker, target,
                     out _, out var defeated);

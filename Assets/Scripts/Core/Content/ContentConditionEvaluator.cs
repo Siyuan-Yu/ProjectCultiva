@@ -238,6 +238,10 @@ namespace XianXia.Core.Content
                 return true;
             }
 
+            if (string.Equals(text, "金丹", System.StringComparison.Ordinal) ||
+                string.Equals(text, "结丹", System.StringComparison.Ordinal) ||
+                string.Equals(text, "GoldenCore", System.StringComparison.OrdinalIgnoreCase))
+            { realm = RealmStage.GoldenCore; return true; }
             if (string.Equals(text, "筑基", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(text, "Foundation", StringComparison.OrdinalIgnoreCase))
             {

@@ -491,10 +491,13 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[StepAArt] Missing solid wall texture: " + name);
                 return null;
             }
-            texture.filterMode = FilterMode.Bilinear;
+            texture.filterMode = texture.mipmapCount > 1 ? FilterMode.Trilinear : FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             // The generated cutout has a small transparent margin; use only its opaque square.
-            sprite = Sprite.Create(texture, new Rect(32f, 32f, texture.width - 64f, texture.height - 64f),
+            var marginX = texture.width * (32f / 1254f);
+            var marginY = texture.height * (32f / 1254f);
+            sprite = Sprite.Create(texture, new Rect(marginX, marginY,
+                texture.width - 2f * marginX, texture.height - 2f * marginY),
                 new Vector2(.5f, .5f), 100f, 0, SpriteMeshType.FullRect);
             Props.Add(name, sprite);
             return sprite;
@@ -509,7 +512,7 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[StepAArt] Missing surface tile: " + name);
                 return null;
             }
-            texture.filterMode = FilterMode.Bilinear;
+            texture.filterMode = texture.mipmapCount > 1 ? FilterMode.Trilinear : FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
                 new Vector2(.5f, .5f), pixelsPerUnit, 0, SpriteMeshType.FullRect);
@@ -561,7 +564,7 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[StepAArt] Missing prop texture: " + name);
                 return null;
             }
-            texture.filterMode = FilterMode.Bilinear;
+            texture.filterMode = texture.mipmapCount > 1 ? FilterMode.Trilinear : FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             var squareRecovery = name == "ART-ROOM-009_recovery_cushion_v01";
             var rect = squareRecovery

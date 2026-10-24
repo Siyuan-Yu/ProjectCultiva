@@ -11,16 +11,33 @@
       "acceptanceMode": "interaction",
       "abandonable": true,
       "deadlineDays": 2,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "deliveryRequirements": [
-        { "itemId": "base:resource_spirit_herb", "amount": 1 }
+        {
+          "itemId": "base:resource_spirit_herb",
+          "amount": 1
+        }
       ],
       "completeConditions": [],
       "rewards": [
-        { "kind": "grantProgress", "amount": 3 }
+        {
+          "kind": "grantProgress",
+          "amount": 3
+        }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_event02_temporary_merchant_herb",
@@ -32,16 +49,33 @@
       "acceptanceMode": "interaction",
       "abandonable": true,
       "deadlineDays": 5,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "deliveryRequirements": [
-        { "itemId": "base:resource_spirit_herb", "amount": 1 }
+        {
+          "itemId": "base:resource_spirit_herb",
+          "amount": 1
+        }
       ],
       "completeConditions": [],
       "rewards": [
-        { "kind": "grantProgress", "amount": 2 }
+        {
+          "kind": "grantProgress",
+          "amount": 2
+        }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     }
   ]
 }

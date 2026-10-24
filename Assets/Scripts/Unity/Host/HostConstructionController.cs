@@ -1,5 +1,6 @@
 using XianXia.Core.Construction;
 using XianXia.Core.Results;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -13,6 +14,8 @@ namespace XianXia.Unity.Host
         public Result BeginPlacement(string buildingId)
         {
             var world = _bootstrap?.Session?.World;
+            if (HuangcunOpeningAccess.IsLocked(world))
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.ManagementLockedMessage);
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) || spec == null)
                 return Result.Failure(ErrorCode.NotFound, "建筑定义不存在。", buildingId);
             if (!spec.UnlockedByDefault)

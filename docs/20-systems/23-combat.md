@@ -1,4 +1,6 @@
-# 战斗
+﻿# 战斗
+
+> 2026-10-24：制作人批准[筑基定向射击](../40-process/43-decisions/ADR-0053-directional-ranged-basic-attack.md)，F2展开后主控WASD移动、鼠标瞄准、长按左键发射。状态与验收见336；不会绕过原独立战斗确认。
 
 > **2026-10-21 当前追加规则与实施：** 多轮谈判支持实际资源赔偿、双方释放俘虏及整个对方势力附庸；不交易自由人物，不新增押送。成交结束既有双方战争，非一次接触停火。冷区接敌／撤离、现场遮挡及六槽冷却存档已补齐，仍待人工验收。见 [318](../40-process/318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)／[ADR-0051](../40-process/43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。下文赎金／谈判暂缓为旧阶段记录。
 
@@ -350,3 +352,8 @@ CIVILIAN-LIFE-01 P1 的荒村医疗点只是伤员投送区域。所有正常可
 - [ ] 飞行／踏空在 2D 视角下如何清晰表达。
 - [ ] 是否需要阵型系统，还是只做自由站位与编队。
 - [ ] 重伤互动的触发条件、选项池与势力报复强度。
+
+
+## 2026-10-24 金丹化翼追加（已批准，实施待人工验收）
+
+按[ADR-0054](../40-process/43-decisions/ADR-0054-golden-core-flight.md)：GoldenCore=3、FlightComponent为独立飞行真源、Snapshot v18；地面对空合法命中接触时75%闪避，空对空无此加成，建筑为地面。闪避不扣生命或灵力护盾；多段逐段判定。不同高度需远程模式，射程不扩大。F3飞行与F2远程独立，失能／灵力归零须恢复合法地面落点。完整接线、约束与验收见[337](../40-process/337-golden-core-flight-design-2026-10-24.md)，不把基础编译等同Producer Accepted。

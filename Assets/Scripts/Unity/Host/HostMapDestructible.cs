@@ -70,6 +70,7 @@ namespace XianXia.Unity.Host
         /// <summary>Runtime-only final presentation geometry; rebuilt with every materialization.</summary>
         public void ConfigureInteractionBounds(Rect bounds)
         {
+            HostMapObjectRegistry.InvalidateDestructibleGeometry();
             _interactionBounds = bounds;
             _hasInteractionBounds = bounds.width > 0f && bounds.height > 0f;
         }

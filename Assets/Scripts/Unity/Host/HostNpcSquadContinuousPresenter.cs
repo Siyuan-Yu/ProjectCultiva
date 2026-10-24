@@ -44,6 +44,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.NpcSquadUpdate.Auto();
             var session = _bootstrap?.Session;
             var runtime = _bootstrap?.ContinuousOutdoorSurfaceRuntime;
             if (session == null || !session.IsInitialized || runtime == null || !runtime.IsActive)

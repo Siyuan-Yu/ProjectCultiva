@@ -51,10 +51,16 @@
         "Labor": 1
       },
       "preferredWorkAreaIds": [
+        "base:workarea_huangcun_field_check",
+        "base:workarea_huangcun_herb_check",
+        "base:workarea_huangcun_store_check",
+        "base:workarea_huangcun_mine_check",
+        "base:workarea_supervisor_mansion",
         "base:workarea_spring_cultivate",
-        "base:workarea_spring_check",
-        "base:workarea_road_hub",
-        "base:workarea_supervisor_mansion"
+        "base:workarea_huangcun_gate_north",
+        "base:workarea_huangcun_gate_east",
+        "base:workarea_huangcun_gate_south",
+        "base:workarea_huangcun_gate_west"
       ],
       "spiritRoots": {
         "Fire": 6,
@@ -107,7 +113,7 @@
         "Labor": true,
         "Rest": true,
         "Eat": true,
-        "Cultivate": false,
+        "Cultivate": true,
         "Explore": true,
         "Patrol": true,
         "Inspect": true
@@ -119,12 +125,18 @@
         "Rest": 5,
         "Explore": 3,
         "Labor": 1,
-        "Cultivate": 0
+        "Cultivate": 8
       },
       "preferredWorkAreaIds": [
-        "base:workarea_road_hub",
-        "base:workarea_forest_edge",
-        "base:workarea_labor_yard"
+        "base:workarea_huangcun_field_check",
+        "base:workarea_huangcun_herb_check",
+        "base:workarea_huangcun_store_check",
+        "base:workarea_huangcun_mine_check",
+        "base:workarea_huangcun_gate_north",
+        "base:workarea_huangcun_gate_east",
+        "base:workarea_huangcun_gate_south",
+        "base:workarea_huangcun_gate_west",
+        "base:workarea_huangcun_practice"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -177,7 +189,7 @@
         "Labor": true,
         "Rest": true,
         "Eat": true,
-        "Cultivate": false,
+        "Cultivate": true,
         "Explore": true,
         "Patrol": true,
         "Inspect": true
@@ -189,12 +201,18 @@
         "Rest": 5,
         "Explore": 3,
         "Labor": 1,
-        "Cultivate": 0
+        "Cultivate": 8
       },
       "preferredWorkAreaIds": [
-        "base:workarea_road_hub",
-        "base:workarea_forest_edge",
-        "base:workarea_labor_yard"
+        "base:workarea_huangcun_field_check",
+        "base:workarea_huangcun_herb_check",
+        "base:workarea_huangcun_store_check",
+        "base:workarea_huangcun_mine_check",
+        "base:workarea_huangcun_gate_north",
+        "base:workarea_huangcun_gate_east",
+        "base:workarea_huangcun_gate_south",
+        "base:workarea_huangcun_gate_west",
+        "base:workarea_huangcun_practice"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -551,10 +569,8 @@
         "Inspect": 0
       },
       "preferredWorkAreaIds": [
-        "base:workarea_herb_field",
-        "base:workarea_labor_yard",
-        "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_qingshi_herb_farm",
+        "base:workarea_qingshi_common"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -839,10 +855,8 @@
         "Inspect": 0
       },
       "preferredWorkAreaIds": [
-        "base:workarea_forest_woodcut",
-        "base:workarea_labor_yard",
-        "base:workarea_herb_field",
-        "base:workarea_mine"
+        "base:workarea_qingshi_woodcut",
+        "base:workarea_qingshi_common"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -911,10 +925,7 @@
         "Inspect": 0
       },
       "preferredWorkAreaIds": [
-        "base:workarea_forest_woodcut",
-        "base:workarea_labor_yard",
-        "base:workarea_herb_field",
-        "base:workarea_mine"
+        "base:workarea_qingshi_common"
       ],
       "spiritRoots": {
         "Fire": 0,

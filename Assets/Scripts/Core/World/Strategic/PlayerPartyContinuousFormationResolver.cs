@@ -1,4 +1,4 @@
-using XianXia.Core.Domain.Ids;
+﻿using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Surface;
@@ -35,7 +35,7 @@ namespace XianXia.Core.World.Strategic
                 if (member == id)
                 {
                     point = SquadContinuousFormationResolver.ResolveConnectedSlot(
-                        anchor, slot, navigation);
+                        anchor, slot, navigation, Combat.FlightService.IsAirborne(world, id));
                     return true;
                 }
                 slot++;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -31,6 +31,11 @@ namespace XianXia.Core.Exploration
             string explicitSpaceKind = null,
             string entryReason = "enter")
         {
+            if (world?.Strategic?.PlayerPartyContext != null)
+                foreach (var member in world.Strategic.PlayerPartyContext.Members)
+                    if (PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(world, world.Strategic.PlayerPartyContext, member) &&
+                        XianXia.Core.Combat.FlightService.IsAirborne(world, member))
+                        return Result.Failure(ErrorCode.InvalidOperation, "进入室内或洞府前，请先让队伍落地。");
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (!world.Entities.TryGet(subject, out var entity))

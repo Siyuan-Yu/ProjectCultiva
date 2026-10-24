@@ -146,6 +146,9 @@ namespace XianXia.Core.Exploration
             var changed = 0;
             for (var i = 0; i < ids.Count; i++)
             {
+                if (World.Strategic.HuangcunOpeningAccess.IsLocked(world) &&
+                    !ids[i].StartsWith(World.Strategic.Ch01ScenarioProgressionHooks.HuangcunSiteId + ":",
+                        StringComparison.Ordinal)) continue;
                 if (!world.OutdoorStatefulObjects.TryGetFarmPlot(ids[i], out var state) ||
                     state.Stage != OutdoorFarmCropStage.Growing)
                     continue;

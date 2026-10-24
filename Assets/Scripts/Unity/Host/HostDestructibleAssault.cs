@@ -235,6 +235,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.DestructibleUpdate.Auto();
             if (bootstrap?.Session?.World == null)
                 return;
             if (bootstrap.Session.IsPaused)

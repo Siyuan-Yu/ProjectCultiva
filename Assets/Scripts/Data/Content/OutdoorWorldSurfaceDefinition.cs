@@ -22,6 +22,17 @@ namespace XianXia.Data.Content
         public List<OutdoorSurfaceChunkDefinition> Chunks { get; set; } = new List<OutdoorSurfaceChunkDefinition>();
         public List<WorldSitePhysicalRegionDefinition> SiteRegions { get; set; } = new List<WorldSitePhysicalRegionDefinition>();
         public List<SurfaceFactionFlagDefinition> FactionFlags { get; set; } = new List<SurfaceFactionFlagDefinition>();
+        /// <summary>Content anchors may belong to fixed sites or explicitly authored flag sites.
+        /// This does not promote flag sites to static regions or change their runtime/save identity.</summary>
+        public IEnumerable<string> AuthoredSiteIdentities()
+        {
+            foreach (var region in SiteRegions)
+                if (region != null && !string.IsNullOrWhiteSpace(region.SiteId)) yield return region.SiteId;
+            foreach (var flag in FactionFlags)
+                if (flag != null && flag.CreatesWorldSite && !string.IsNullOrWhiteSpace(flag.FlagId))
+                    yield return XianXia.Core.World.Strategic.FactionFlagService.SiteIdForCoreFlag(flag.FlagId);
+        }
+
         public List<OutdoorSurfacePlacementDefinition> SitePlacements { get; set; } = new List<OutdoorSurfacePlacementDefinition>();
         public List<WorldSitePlaceDefinition> SitePlaces { get; set; } = new List<WorldSitePlaceDefinition>();
         /// <summary>

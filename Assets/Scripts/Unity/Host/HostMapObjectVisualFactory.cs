@@ -36,11 +36,12 @@ namespace XianXia.Unity.Host
             go.transform.localScale = Vector3.one;
             go.transform.position = intendedCenter;
             // Cell wood walls use one renderer, not a placeholder plus disabled overlay.
-            var directWoodWall = !missing && prefabPath == MapKindCatalog.WoodWall;
+            var directWoodWall = !missing && (prefabPath == MapKindCatalog.WoodWall || prefabPath == MapKindCatalog.Wall);
             if (directWoodWall)
             {
                 var renderer = go.GetComponentInChildren<SpriteRenderer>();
-                var sprite = HostStepAArt.MapSprite("wall");
+                var sprite = prefabPath == MapKindCatalog.WoodWall
+                    ? HostStepAArt.MapSprite("wall") : HostStepAArt.StoneFloorTile();
                 if (renderer != null)
                 {
                     if (sprite != null) renderer.sprite = sprite;

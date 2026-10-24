@@ -1,0 +1,4685 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:shop_q1_r10",
+      "type": "shop",
+      "displayName": "玄衡城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_hehuan_capital",
+      "type": "shop",
+      "displayName": "同心城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_xuansha_capital",
+      "type": "shop",
+      "displayName": "烬夜城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_wanling_capital",
+      "type": "shop",
+      "displayName": "栖灵城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_qingxiao_capital",
+      "type": "shop",
+      "displayName": "凌霄城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_baicao_capital",
+      "type": "shop",
+      "displayName": "回春城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_zhuxing_capital",
+      "type": "shop",
+      "displayName": "熔星城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_taiyan_capital",
+      "type": "shop",
+      "displayName": "衍枢城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_tianlu_capital",
+      "type": "shop",
+      "displayName": "承箓城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_zhenyue_capital",
+      "type": "shop",
+      "displayName": "磐岳城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_tingyue_capital",
+      "type": "shop",
+      "displayName": "惊霆城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_ningshuang_capital",
+      "type": "shop",
+      "displayName": "寒璧城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_qiangu_capital",
+      "type": "shop",
+      "displayName": "青瘴城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_tingyu_capital",
+      "type": "shop",
+      "displayName": "听澜城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_guiming_capital",
+      "type": "shop",
+      "displayName": "长明城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_sect_guanxing_capital",
+      "type": "shop",
+      "displayName": "照微城坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_site_guanai",
+      "type": "shop",
+      "displayName": "青石关坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_site_lingdi",
+      "type": "shop",
+      "displayName": "灵地坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_site_linjian",
+      "type": "shop",
+      "displayName": "林间坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:shop_site_zhuangyuan",
+      "type": "shop",
+      "displayName": "庄园坊市",
+      "initialWallet": {
+        "low": 20000,
+        "mid": 10,
+        "high": 2
+      },
+      "buybackMultiplier": 0.5,
+      "acceptedTradeCategories": [
+        "Material",
+        "Manual"
+      ],
+      "initialStock": [
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 3
+        },
+        {
+          "itemId": "base:item_rough_wood",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_q1_r10",
+      "type": "auctionHouse",
+      "displayName": "玄衡城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_hehuan_capital",
+      "type": "auctionHouse",
+      "displayName": "同心城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_xuansha_capital",
+      "type": "auctionHouse",
+      "displayName": "烬夜城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_wanling_capital",
+      "type": "auctionHouse",
+      "displayName": "栖灵城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_qingxiao_capital",
+      "type": "auctionHouse",
+      "displayName": "凌霄城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_baicao_capital",
+      "type": "auctionHouse",
+      "displayName": "回春城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_zhuxing_capital",
+      "type": "auctionHouse",
+      "displayName": "熔星城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_taiyan_capital",
+      "type": "auctionHouse",
+      "displayName": "衍枢城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_tianlu_capital",
+      "type": "auctionHouse",
+      "displayName": "承箓城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_zhenyue_capital",
+      "type": "auctionHouse",
+      "displayName": "磐岳城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_tingyue_capital",
+      "type": "auctionHouse",
+      "displayName": "惊霆城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_ningshuang_capital",
+      "type": "auctionHouse",
+      "displayName": "寒璧城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_qiangu_capital",
+      "type": "auctionHouse",
+      "displayName": "青瘴城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_tingyu_capital",
+      "type": "auctionHouse",
+      "displayName": "听澜城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_guiming_capital",
+      "type": "auctionHouse",
+      "displayName": "长明城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:auction_house_sect_guanxing_capital",
+      "type": "auctionHouse",
+      "displayName": "照微城拍卖行",
+      "durationDays": 3,
+      "feePercent": 5,
+      "marketReviewIntervalDays": 1,
+      "minimumIncrements": {
+        "low": 10,
+        "mid": 1,
+        "high": 1
+      },
+      "initialListings": [
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 900
+          }
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 1,
+          "startingPrice": {
+            "grade": "Low",
+            "amount": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": "base:character_q1_r10_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "玄衡城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_q1_r10"
+    },
+    {
+      "id": "base:character_q1_r10_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "玄衡城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_q1_r10"
+    },
+    {
+      "id": "base:character_sect_hehuan_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "同心城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_hehuan_capital"
+    },
+    {
+      "id": "base:character_sect_hehuan_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "同心城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_hehuan_capital"
+    },
+    {
+      "id": "base:character_sect_xuansha_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "烬夜城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_xuansha_capital"
+    },
+    {
+      "id": "base:character_sect_xuansha_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "烬夜城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_xuansha_capital"
+    },
+    {
+      "id": "base:character_sect_wanling_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "栖灵城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_wanling_capital"
+    },
+    {
+      "id": "base:character_sect_wanling_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "栖灵城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_wanling_capital"
+    },
+    {
+      "id": "base:character_sect_qingxiao_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "凌霄城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_qingxiao_capital"
+    },
+    {
+      "id": "base:character_sect_qingxiao_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "凌霄城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_qingxiao_capital"
+    },
+    {
+      "id": "base:character_sect_baicao_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "回春城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_baicao_capital"
+    },
+    {
+      "id": "base:character_sect_baicao_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "回春城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_baicao_capital"
+    },
+    {
+      "id": "base:character_sect_zhuxing_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "熔星城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_zhuxing_capital"
+    },
+    {
+      "id": "base:character_sect_zhuxing_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "熔星城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_zhuxing_capital"
+    },
+    {
+      "id": "base:character_sect_taiyan_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "衍枢城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_taiyan_capital"
+    },
+    {
+      "id": "base:character_sect_taiyan_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "衍枢城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_taiyan_capital"
+    },
+    {
+      "id": "base:character_sect_tianlu_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "承箓城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_tianlu_capital"
+    },
+    {
+      "id": "base:character_sect_tianlu_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "承箓城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_tianlu_capital"
+    },
+    {
+      "id": "base:character_sect_zhenyue_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "磐岳城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_zhenyue_capital"
+    },
+    {
+      "id": "base:character_sect_zhenyue_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "磐岳城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_zhenyue_capital"
+    },
+    {
+      "id": "base:character_sect_tingyue_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "惊霆城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_tingyue_capital"
+    },
+    {
+      "id": "base:character_sect_tingyue_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "惊霆城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_tingyue_capital"
+    },
+    {
+      "id": "base:character_sect_ningshuang_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "寒璧城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_ningshuang_capital"
+    },
+    {
+      "id": "base:character_sect_ningshuang_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "寒璧城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_ningshuang_capital"
+    },
+    {
+      "id": "base:character_sect_qiangu_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "青瘴城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_qiangu_capital"
+    },
+    {
+      "id": "base:character_sect_qiangu_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "青瘴城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_qiangu_capital"
+    },
+    {
+      "id": "base:character_sect_tingyu_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "听澜城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_tingyu_capital"
+    },
+    {
+      "id": "base:character_sect_tingyu_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "听澜城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_tingyu_capital"
+    },
+    {
+      "id": "base:character_sect_guiming_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "长明城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_guiming_capital"
+    },
+    {
+      "id": "base:character_sect_guiming_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "长明城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_guiming_capital"
+    },
+    {
+      "id": "base:character_sect_guanxing_capital_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "照微城·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_sect_guanxing_capital"
+    },
+    {
+      "id": "base:character_sect_guanxing_capital_auction",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "照微城·拍卖执事",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "auctionAttendant"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "auctionProviderHouseId": "base:auction_house_sect_guanxing_capital"
+    },
+    {
+      "id": "base:character_site_guanai_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "青石关·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_site_guanai"
+    },
+    {
+      "id": "base:character_site_lingdi_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "灵地·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_site_lingdi"
+    },
+    {
+      "id": "base:character_site_linjian_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "林间·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_site_linjian"
+    },
+    {
+      "id": "base:character_site_zhuangyuan_shop",
+      "type": "character",
+      "defaultFactionId": "",
+      "defaultFactionRole": "",
+      "name": "庄园·坊市行商",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Physique": 9,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "shopkeeper"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Eat": 0,
+        "Rest": 0,
+        "Explore": 0,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "",
+      "tradeProviderShopId": "base:shop_site_zhuangyuan"
+    }
+  ]
+}

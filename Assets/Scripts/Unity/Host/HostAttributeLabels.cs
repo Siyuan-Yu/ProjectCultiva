@@ -22,6 +22,7 @@ namespace XianXia.Unity.Host
                 case AttributeId.SpiritPower: return "灵力";
                 case AttributeId.Cultivation: return "修为";
                 case AttributeId.MindState: return "心境";
+                case AttributeId.HealthRecoveryRateMilli: return "恢复加成";
                 default: return id.ToString();
             }
         }

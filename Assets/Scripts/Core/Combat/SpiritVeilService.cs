@@ -45,7 +45,8 @@ namespace XianXia.Core.Combat
                 return Result.Failure(ErrorCode.InvalidArgument, "World null.");
             if (!world.Entities.TryGet(entityId, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Entity missing.");
-            if ((entity.Tags & EntityTag.Npc) == 0)
+            if ((entity.Tags & EntityTag.Npc) == 0 ||
+                world.Strategic?.PlayerPartyContext?.ActiveCharacterId == entityId)
                 return Result.Failure(ErrorCode.InvalidOperation, "仅非玩家自动召唤。");
             if (IsActive(entity))
                 return Result.Success();

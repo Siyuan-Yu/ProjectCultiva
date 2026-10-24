@@ -4,17 +4,18 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// IMGUI 与 RTS 选中抢点击：FormalHud 每帧登记遮挡区，Selection 用上一帧区域忽略点选。
+    /// IMGUI 与 RTS 选中抢点击：临时遮挡区按渲染帧轮换，Selection 可用完整前帧区域忽略点选。
     /// </summary>
     public static class HostUiHitTest
     {
         static readonly List<Rect> _current = new List<Rect>(16);
         static readonly List<Rect> _published = new List<Rect>(16);
-        // Ordinary HUD rects are rebuilt by BeginFrame/EndFrame. Floating windows have
-        // independent OnGUI ordering, so they need owner-scoped lifetime instead.
+        // Transient rects expire even when every ordinary HUD is hidden. Floating windows
+        // still use owner-scoped lifetime so opening/closing does not depend on OnGUI order.
         static readonly Dictionary<string, Rect> _persistent = new Dictionary<string, Rect>();
         static readonly List<RetiredRect> _retired = new List<RetiredRect>(4);
         static bool _selectionWholeScreen;
+        static int _currentFrame = -1;
 
         struct RetiredRect
         {
@@ -24,14 +25,16 @@ namespace XianXia.Unity.Host
 
         public static void BeginFrame()
         {
-            _current.Clear();
-            _selectionWholeScreen = false;
+            // Several independent OnGUI callbacks can begin during the same rendered frame.
+            // Preserve all regions already registered by those callbacks.
+            EnsureFrame();
         }
 
         /// <summary>登记 IMGUI 遮挡区：本帧 WorldMap 指针 dispatch 与下一帧 Selection 均忽略。</summary>
         public static void Block(Rect guiRect)
         {
-            if (guiRect.width > 1f && guiRect.height > 1f)
+            EnsureFrame();
+            if (guiRect.width > 1f && guiRect.height > 1f && !_current.Contains(guiRect))
                 _current.Add(guiRect);
         }
 
@@ -41,6 +44,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public static void RegisterPersistent(string owner, Rect guiRect)
         {
+            EnsureFrame();
             if (string.IsNullOrEmpty(owner) || guiRect.width <= 1f || guiRect.height <= 1f)
                 return;
             _persistent[owner] = guiRect;
@@ -52,6 +56,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public static void UnregisterPersistent(string owner, bool retireForCurrentFrame = false)
         {
+            EnsureFrame();
             if (string.IsNullOrEmpty(owner) || !_persistent.TryGetValue(owner, out var rect))
                 return;
             _persistent.Remove(owner);
@@ -60,16 +65,40 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 仅交给下一帧 RTS Selection 的全屏占位（大地图打开时挡近景点选）；
+        /// 交给 RTS Selection 的全屏占位（大地图打开时挡近景点选，并保留到下一帧）；
         /// 不计入本帧 <see cref="ContainsCurrentGuiPoint"/>，避免误挡 WorldMap 自身输入。
         /// </summary>
         public static void BlockSelectionWholeScreen()
         {
+            EnsureFrame();
             _selectionWholeScreen = true;
         }
 
         /// <summary>OnGUI 末尾调用：把本帧遮挡区交给下一帧的 Update 选中逻辑。</summary>
         public static void EndFrame()
+        {
+            EnsureFrame();
+            PublishCurrent();
+        }
+
+        static void EnsureFrame()
+        {
+            var frame = Time.frameCount;
+            if (_currentFrame == frame)
+                return;
+
+            // Late OnGUI registrations after EndFrame still belong to the complete old frame.
+            // After a gap with no callers, none of the old transient regions remain live.
+            if (_currentFrame == frame - 1)
+                PublishCurrent();
+            else
+                _published.Clear();
+            _current.Clear();
+            _selectionWholeScreen = false;
+            _currentFrame = frame;
+        }
+
+        static void PublishCurrent()
         {
             _published.Clear();
             if (_selectionWholeScreen)
@@ -81,6 +110,7 @@ namespace XianXia.Unity.Host
         /// <summary>本帧已登记 IMGUI 遮挡区（GUI 坐标，原点左上）。</summary>
         public static bool ContainsCurrentGuiPoint(Vector2 guiPoint)
         {
+            EnsureFrame();
             PruneRetired();
             for (var i = 0; i < _current.Count; i++)
             {
@@ -101,8 +131,16 @@ namespace XianXia.Unity.Host
         /// <summary><paramref name="screenPoint"/> 为 Input.mousePosition（原点左下）。</summary>
         public static bool ContainsScreenPoint(Vector2 screenPoint)
         {
+            EnsureFrame();
             PruneRetired();
             var gui = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
+            if (_selectionWholeScreen && new Rect(0f, 0f, Screen.width, Screen.height).Contains(gui))
+                return true;
+            for (var i = 0; i < _current.Count; i++)
+            {
+                if (_current[i].Contains(gui))
+                    return true;
+            }
             for (var i = 0; i < _published.Count; i++)
             {
                 if (_published[i].Contains(gui))

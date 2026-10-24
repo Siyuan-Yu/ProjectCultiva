@@ -10,7 +10,12 @@
       "priority": 50,
       "topicText": "约定之后再谈（DELAYED 验收）",
       "once": false,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "appointment",
       "steps": [
         {
@@ -99,6 +104,10 @@
         {
           "kind": "missingFlag",
           "id": "acceptance:delayed_event_blocked"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "followup",

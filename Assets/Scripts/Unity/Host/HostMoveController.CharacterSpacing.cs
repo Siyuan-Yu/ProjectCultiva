@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
@@ -83,7 +83,8 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _characterOccupants.Count; i++)
             {
                 var other = _characterOccupants[i];
-                if (other == null || other == actor || !other.gameObject.activeInHierarchy) continue;
+                if (other == null || other == actor || !other.gameObject.activeInHierarchy ||
+                    IsFlying(actor.EntityId) != IsFlying(other.EntityId)) continue;
                 var spacing = (actorSpacing + StandSpacing(other)) * .5f;
                 var delta = point - other.transform.position;
                 delta.z = 0f;
@@ -98,7 +99,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Bounded, walkable and reachable presentation landing; never changes the supplied radius.</summary>
-        public bool TryResolveFreeStandPoint(EntityId id, Vector3 center, float allowedRadius, out Vector3 resolved)
+        public bool TryResolveFreeStandPoint(EntityId id, Vector3 center, float allowedRadius, out Vector3 resolved,
+            bool requireClearSight = false)
         {
             resolved = default;
             if (id.IsNone || _walkGrid == null || viewSpawner == null ||
@@ -106,12 +108,19 @@ namespace XianXia.Unity.Host
                 float.IsNaN(allowedRadius) || float.IsInfinity(allowedRadius) || allowedRadius < 0f ||
                 float.IsNaN(center.x) || float.IsInfinity(center.x) ||
                 float.IsNaN(center.y) || float.IsInfinity(center.y)) return false;
+            if (IsFlying(id) && IsAirPointAllowed(id, center)) { resolved = center; return true; }
+            bool Accept(Vector3 point, out Vector3 result)
+            {
+                result = default;
+                return (!requireClearSight || GridPathfinder.IsWorldSegmentWalkable(
+                    _walkGrid, point.x, point.y, center.x, center.y)) && TryStandCandidate(view, point, out result);
+            }
             center.z = HostPresentationSpace.EntityZ;
-            if (TryStandCandidate(view, center, out resolved)) return true;
+            if (Accept(center, out resolved)) return true;
             var current = view.transform.position;
             current.z = HostPresentationSpace.EntityZ;
             if (Vector2.Distance(current, center) <= allowedRadius &&
-                TryStandCandidate(view, current, out resolved)) return true;
+                Accept(current, out resolved)) return true;
             var away = current - center;
             var startAngle = away.sqrMagnitude > .0001f
                 ? Mathf.Atan2(away.y, away.x) : (id.Value % 16) * Mathf.PI / 8f;
@@ -125,7 +134,7 @@ namespace XianXia.Unity.Host
                     var alternate = slot == 0 ? 0 : (slot + 1) / 2 * (slot % 2 == 1 ? 1 : -1);
                     var angle = startAngle + alternate * Mathf.PI / 8f;
                     var candidate = center + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
-                    if (TryStandCandidate(view, candidate, out resolved)) return true;
+                    if (Accept(candidate, out resolved)) return true;
                 }
             }
             return false;
@@ -141,27 +150,45 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        /// <summary>Same terrain/wall grid as movement; character foot reservations are not sight blockers.</summary>
+        public bool HasProjectileSight(Vector3 from, Vector3 to) =>
+            _walkGrid != null && GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.x, from.y, to.x, to.y);
+
+        public bool HasCharacterSight(EntityId actor, EntityId target)
+        {
+            return _walkGrid != null && viewSpawner != null &&
+                viewSpawner.Registry.TryGet(actor, out var from) && from != null &&
+                viewSpawner.Registry.TryGet(target, out var to) && to != null &&
+                ((IsFlying(actor) || IsFlying(target)) ? IsAirPointAllowed(actor, from.transform.position) && IsAirPointAllowed(target, to.transform.position) :
+                GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.transform.position.x,
+                    from.transform.position.y, to.transform.position.x, to.transform.position.y));
+        }
+
         public bool OrderCharacterApproach(EntityId actor, EntityId target, float range,
-            HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby) =>
+            HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby,
+            bool requireClearSight = false) =>
             TryOrderCharacterApproach(actor, target, range, issueStop: false,
-                completionPolicy: completionPolicy);
+                completionPolicy: completionPolicy, requireClearSight: requireClearSight);
 
         bool TryOrderCharacterApproach(EntityId actor, EntityId target, float range, bool issueStop,
             bool preserveNpcIntent = false,
-            HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby)
+            HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby,
+            bool requireClearSight = false)
         {
             if (actor.IsNone || target.IsNone || actor == target || range <= 0f ||
                 float.IsNaN(range) || float.IsInfinity(range) || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(actor, out var actorView) || actorView == null ||
                 !viewSpawner.Registry.TryGet(target, out var targetView) || targetView == null) return false;
             if (Vector2.Distance(actorView.transform.position, targetView.transform.position) <= range &&
-                IsCharacterStandClear(actor))
+                IsCharacterStandClear(actor) && (!requireClearSight ||
+                 GridPathfinder.IsWorldSegmentWalkable(_walkGrid, actorView.transform.position.x,
+                     actorView.transform.position.y, targetView.transform.position.x, targetView.transform.position.y)))
             {
                 if (issueStop) StopOne(actor);
                 else CancelPresentationMovement(actor);
                 return true;
             }
-            if (!TryResolveFreeStandPoint(actor, targetView.transform.position, range, out var stand)) return false;
+            if (!TryResolveFreeStandPoint(actor, targetView.transform.position, range, out var stand, requireClearSight)) return false;
             // Keep the original target/range for bounded in-place reallocation if this point is taken.
             if (!OrderEntityToWorldPoint(actor, stand, null, issueStop,
                     completionPolicy: completionPolicy, exactGoal: true,
@@ -179,6 +206,9 @@ namespace XianXia.Unity.Host
             float deltaTime, bool requireWaypointConnection = true)
         {
             if (deltaTime <= 0f) return from;
+            if (actor != null && IsFlying(actor.EntityId))
+                return IsAirPointAllowed(actor.EntityId, proposed) && IsCharacterStepClear(actor, from, proposed) ? proposed : from;
+            if (actor != null && !IsOpeningMoveAllowed(actor.EntityId, proposed)) return from;
             if (!IsSpacingStepNavigable(from, proposed, waypoint, requireWaypointConnection)) return from;
             if (actor == null || !IsCharacterOccupant(actor) ||
                 IsCharacterStepClear(actor, from, proposed)) return proposed;
@@ -193,7 +223,8 @@ namespace XianXia.Unity.Host
             {
                 var candidate = from + side * (i == 0 ? first : -first);
                 candidate.z = HostPresentationSpace.EntityZ;
-                if (IsSpacingStepNavigable(from, candidate, waypoint, requireWaypointConnection) &&
+                if (IsOpeningMoveAllowed(actor.EntityId, candidate) &&
+                    IsSpacingStepNavigable(from, candidate, waypoint, requireWaypointConnection) &&
                     IsCharacterStepClear(actor, from, candidate)) return candidate;
             }
             return from;
@@ -207,7 +238,8 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _characterOccupants.Count; i++)
             {
                 var other = _characterOccupants[i];
-                if (other == null || other == actor || !other.gameObject.activeInHierarchy) continue;
+                if (other == null || other == actor || !other.gameObject.activeInHierarchy ||
+                    IsFlying(actor.EntityId) != IsFlying(other.EntityId)) continue;
                 var spacing = (StandSpacing(actor) + StandSpacing(other)) * .5f;
                 var start = from - other.transform.position;
                 var end = to - other.transform.position;

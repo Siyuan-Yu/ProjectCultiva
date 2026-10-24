@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using XianXia.Core.Actions;
 using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
@@ -35,6 +36,17 @@ namespace XianXia.Core.Simulation
         readonly WorldOpportunityDiscoveryService _worldOpportunityDiscoveryService;
         readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
+        readonly List<ActionId> _actionIds = new List<ActionId>(128);
+        // Optional read-only F9 diagnostics. Null in normal play; no Unity dependency.
+        public Action<string, long> TickPhaseSample { get; set; }
+
+        static void SampleTickPhase(Action<string, long> sample, string name, ref long started)
+        {
+            if (sample == null) return;
+            var now = Stopwatch.GetTimestamp();
+            sample(name, now - started);
+            started = now;
+        }
 
         public SimulationLoop(
             SimulationWorld world,
@@ -153,22 +165,40 @@ namespace XianXia.Core.Simulation
             if (StrategicClockFreezeService.IsWorldTickFrozen(_world))
                 return Result.Success();
 
+            var phaseSample = TickPhaseSample;
+            var phaseStarted = phaseSample == null ? 0L : Stopwatch.GetTimestamp();
             var previous = _world.Tick;
             _world.Tick = _world.Tick.Add(1);
+            HuangcunOpeningAccess.RefreshUnlock(_world);
+            if (HuangcunOpeningAccess.IsLocked(_world))
+            {
+                foreach (var entity in _world.Entities.All)
+                    if (!HuangcunOpeningAccess.IsSimulated(_world, entity))
+                        HuangcunOpeningAccess.KeepDormantTimeCurrent(_world, entity);
+                HuangcunOpeningAccess.HoldExternalMarkets(_world);
+            }
+            SampleTickPhase(phaseSample, "opening", ref phaseStarted);
             OutdoorFarmGrowthService.Advance(_world);
+            SampleTickPhase(phaseSample, "farm", ref phaseStarted);
             ProcessDayBoundary(previous, _world.Tick);
             CharacterFactionLoyaltyService.EnsureAll(_world);
-            MortalCivilianService.Tick(_world);
+            SampleTickPhase(phaseSample, "day-loyalty", ref phaseStarted);
+            MortalCivilianService.Tick(_world, phaseSample);
+            SampleTickPhase(phaseSample, "civilian", ref phaseStarted);
             ChessRecreationService.Drive(_world, this);
             PersonalLifeService.Drive(_world, this);
+            SampleTickPhase(phaseSample, "personal-life", ref phaseStarted);
             _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
+            SampleTickPhase(phaseSample, "npc-before", ref phaseStarted);
 
-            var actionIds = new System.Collections.Generic.List<ActionId>(_world.ActiveActions.Keys);
-            foreach (var actionId in actionIds)
+            _actionIds.Clear();
+            _actionIds.AddRange(_world.ActiveActions.Keys);
+            foreach (var actionId in _actionIds)
             {
                 if (!_world.ActiveActions.TryGetValue(actionId, out var action))
                     continue;
+                if (!HuangcunOpeningAccess.IsSimulated(_world, action.Subject)) continue;
 
                 if (AutonomousActionContinuationService.IsAutonomous(action) &&
                     !AutonomousActionContinuationService.CanContinue(_world, action.Subject))
@@ -201,6 +231,7 @@ namespace XianXia.Core.Simulation
                     TryStartNext(action.Subject);
                 }
             }
+            SampleTickPhase(phaseSample, "actions", ref phaseStarted);
 
             _npcActivityDriver.Drive(_world, this);
             PersonalLifeService.Drive(_world, this);
@@ -208,14 +239,22 @@ namespace XianXia.Core.Simulation
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
+            SampleTickPhase(phaseSample, "npc-after", ref phaseStarted);
             // Strategic Squad/background state advances on WorldTick; PlayerParty
             // SurfaceVisible movement remains Host/presentation driven.
             StrategicTravelDriver.AfterTravelTick(_world, 1);
+            SampleTickPhase(phaseSample, "travel", ref phaseStarted);
             BackgroundNpcConflictService.Tick(_world);
+            SampleTickPhase(phaseSample, "background-conflict", ref phaseStarted);
+            XianXia.Core.Combat.FlightService.MaintainCold(_world);
+            SampleTickPhase(phaseSample, "cold-flight", ref phaseStarted);
             CombatLifeStateService.TickCorpseDecay(_world);
+            SampleTickPhase(phaseSample, "life-decay", ref phaseStarted);
             _worldOpportunityDriver.Tick(_world);
             _worldOpportunityDiscoveryService.Tick(_world);
-            AuctionHouseService.ProcessDue(_world);
+            SampleTickPhase(phaseSample, "opportunity", ref phaseStarted);
+            if (!HuangcunOpeningAccess.IsLocked(_world)) AuctionHouseService.ProcessDue(_world);
+            SampleTickPhase(phaseSample, "auction", ref phaseStarted);
             return Result.Success();
         }
 
@@ -319,7 +358,10 @@ namespace XianXia.Core.Simulation
             }
 
             var action = translated.Value;
-            var can = action.CanStart(_world);
+            var can = XianXia.Core.Combat.FlightService.IsAirborne(entity) &&
+                (action is WorkAction || action is LaborAction || action is RestAction || action is BedRestAction || action is CultivateAction)
+                ? XianXia.Core.Results.Result.Failure(XianXia.Core.Results.ErrorCode.InvalidOperation, "请先落地，再进行休息、修炼或劳作。")
+                : action.CanStart(_world);
             if (can.IsFailure)
             {
                 _world.Events.Publish(EventType.OrderRejected, _world.Tick, subject, subject, can.Error.Message);

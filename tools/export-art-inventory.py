@@ -50,8 +50,13 @@ def read_register() -> dict[str, dict[str, str]]:
     with REGISTER.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle, delimiter="\t"))
     by_id = {row["AssetID"]: row for row in rows}
-    if len(rows) != 55 or len(by_id) != len(rows):
-        raise ValueError("273 must contain its 55 unique AssetIDs before inventory export")
+    original_ids = {f"ART-{family}-{index:03d}"
+                    for family, count in (("CHAR", 7), ("ANIM", 5), ("ROOM", 10),
+                                          ("GROUND", 14), ("UI", 10), ("FX", 6), ("REF", 3))
+                    for index in range(1, count + 1)}
+    if len(by_id) != len(rows) or not original_ids.issubset(by_id) or any(
+            ID_RE.fullmatch(asset_id) is None for asset_id in by_id):
+        raise ValueError("273 must preserve its original 55 AssetIDs and contain unique valid IDs")
     return by_id
 
 
@@ -292,7 +297,7 @@ def main() -> None:
         "## 当前汇总", "",
         f"- 扫描范围：ArtSource（不含自动生成的 Reports）及 Assets/Art；文件 {len(rows)}，{total_bytes} 字节。",
         f"- 原图 {originals}；Frames 目录图像 {frames}；Spine 工程/导出文件 {spine}。",
-        f"- 273 全部55个资产族：登记已接入待验 {registered_integrated}，其余 {55-registered_integrated}；其中本次文件可关联 {len(asset_ids)} 个AssetID（已接入待验 {integrated}、其余 {len(asset_ids)-integrated}）。这些数不是文件级人工验收。",
+        f"- 273 全部{len(register)}个资产族：登记已接入待验 {registered_integrated}，其余 {len(register)-registered_integrated}；其中本次文件可关联 {len(asset_ids)} 个AssetID（已接入待验 {integrated}、其余 {len(asset_ids)-integrated}）。这些数不是文件级人工验收。",
         f"- 同 SHA-256 图片 {len(duplicate_groups)} 组，额外副本 {duplicate_files} 个；理论重复占用 {duplicate_waste} 字节。重复不等于可删除。",
         "- 当前可直接删除的图像候选：0；manifest、原图来源、Unity引用及加工脚本均可能依赖旧路径。",
         "- HumanCommonRig：001/002 两批基础部件共12套Skin、25身份；003闭眼、004斜向头身、005侧臂见各批manifest及docs/40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md。Unity人工验收待完成，Spine不是依赖。",

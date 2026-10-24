@@ -29,7 +29,7 @@ namespace XianXia.Unity.Host
                 Entries[entry.WorldObjectInstanceId] = entry;
         }
         public static bool TryResolve(string id, out HostDynamicWorldObjectEntry entry) =>
-            Entries.TryGetValue(id ?? string.Empty, out entry) && entry?.View != null;
+            Entries.TryGetValue(id ?? string.Empty, out entry) && entry?.View != null && entry.View.activeInHierarchy;
         public static bool Remove(string id) => Entries.Remove(id ?? string.Empty);
         public static void Clear() => Entries.Clear();
         public static bool TryPick(Vector3 point, out HostDynamicWorldObjectEntry picked)
@@ -37,7 +37,7 @@ namespace XianXia.Unity.Host
             picked = null; var best = float.MaxValue;
             foreach (var entry in Entries.Values)
             {
-                if (entry?.View == null || !entry.PresentationBounds.Contains(point)) continue;
+                if (entry?.View == null || !entry.View.activeInHierarchy || !entry.PresentationBounds.Contains(point)) continue;
                 var distance = (entry.PresentationBounds.center - point).sqrMagnitude;
                 if (distance >= best) continue;
                 best = distance; picked = entry;

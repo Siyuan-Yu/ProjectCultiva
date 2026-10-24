@@ -35,7 +35,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_practice",
@@ -67,7 +73,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_first_qi",
@@ -99,7 +111,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_cave",
@@ -135,13 +153,19 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_road",
       "type": "quest",
       "name": "出村见闻·青石镇",
-      "description": "可选远行。准备食物与队伍，沿世界地图前往青石镇入口。此目标只记录实际到达，不赠送传送或强制发动战斗。遇到危险可以先退回村内。",
+      "description": "取得荒村后的可选远行。备好粮食、药物和同行者的状态，再前往青石镇入口。记录只认实际到达，没有时限；可以先经营村庄再上路。",
       "questKind": "general",
       "runtimeMode": "fixed",
       "acceptanceMode": "journal",
@@ -155,7 +179,7 @@
         },
         {
           "kind": "hasFlag",
-          "id": "story:huangcun_road_hint"
+          "id": "story:huangcun_world_unlocked"
         }
       ],
       "completeConditions": [
@@ -171,7 +195,17 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_grain",
@@ -215,7 +249,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_medicine",
@@ -259,7 +299,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_huangcun_wood",
@@ -303,7 +349,495 @@
         }
       ],
       "failConditions": [],
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
+    },
+    {
+      "id": "base:quest_huangcun_cave_manual",
+      "type": "quest",
+      "name": "洞府札记·读懂旧卷",
+      "description": "可选研读目标。实际拾取洞府秘诀秘籍，在背包中查看门槛并研读；当前查看任务的人真正学会洞府秘诀后完成。可以选择其他功法走自己的路，这条札记不会限制成长。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_cave_entered"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_cave_entered"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "hasManual",
+          "id": "base:cultivation_dongfu_secret"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_cave_manual_learned"
+        }
+      ],
+      "failConditions": [],
       "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_nearby_paths",
+      "type": "quest",
+      "name": "村中见闻·木与石",
+      "description": "可选，无时限。探访村内散木小路和一处铁矿露头，认识村里的生计。已去过的地点直接计入；不要求采空资源、击杀敌人或交出所得。回来后可以找阿木、主管聊聊。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_ref_forest"
+        },
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_ref_mine"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_nearby_paths"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_jiang_manual",
+      "type": "quest",
+      "name": "修行手记·读懂旧卷",
+      "description": "可选，无时限。若选择将老旧卷这条路，通过现有结交与对弈途径取得真本，再在背包中查看门槛、学习。只在当前查看人物实际学会旧卷时完成；不因听过指点或持有书册而算完成，也不替代洞府路线。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "realmAtLeast",
+          "realm": "炼气"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "realmAtLeast",
+          "realm": "炼气"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "hasManual",
+          "id": "base:cultivation_jiang_lao_legacy"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_jiang_manual"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_village_freedom",
+      "type": "quest",
+      "name": "墙内外·自己的去路",
+      "description": "你可以先劳动、修行、结交与备战，不受固定天数催促。准备好后，通过真实战斗与占领取得青石荒村的所有权，解除村界封锁。宣布独立、打倒某个人或拆掉一段木墙，都不等于取得村庄。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_village_freedom_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_foundation",
+      "type": "quest",
+      "name": "修行手记·再上一层",
+      "description": "可选长线目标。炼气以后选择能继续修行的功法，照顾心境与恢复，积累到瓶颈，再尝试真实突破至筑基。这个目标不规定夺取荒村必须达到的境界。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "realmAtLeast",
+          "realm": "炼气"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "realmAtLeast",
+          "realm": "炼气"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "realmAtLeast",
+          "realm": "筑基"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_foundation_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_village_survey",
+      "type": "quest",
+      "name": "安身之地·田与医舍",
+      "description": "取得荒村后，实际查看劳作区与医疗点，认清食物生产和伤者安置的位置。先了解现有人手、床位和存粮，再决定怎样经营。查看不会自动雇人、补粮或治疗。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_ref_labor_yard"
+        },
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_ref_huangcun_medical"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_village_survey_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_travel_supply",
+      "type": "quest",
+      "name": "远行准备·粮药与归路",
+      "description": "在可用随身物资或本地公库中实际备有6份粮食与2份灵药。只检查当前可用的真实数量，不扣除物资，也不凭此产生补给。随后可从背包装好行囊，确认同行者有余力再出发。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "stockAtLeast",
+          "id": "base:resource_grain",
+          "amount": 6
+        },
+        {
+          "kind": "stockAtLeast",
+          "id": "base:resource_spirit_herb",
+          "amount": 2
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_travel_supply_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_forest_site",
+      "type": "quest",
+      "name": "墙外见闻·远处林地",
+      "description": "占领荒村后的一条可选探索路线。村内树林以外，还有一处独立林地。前往并实际探索它的入口，先看清所有者与守卫。此行不要求占领，不把别人所有的资源当作无主物。",
+      "questKind": "general",
+      "runtimeMode": "fixed",
+      "acceptanceMode": "journal",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [
+        {
+          "kind": "exploredLocation",
+          "id": "base:loc_site_linjian_start"
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "story:huangcun_forest_site_noted"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_huangcun_village_grain",
+      "type": "quest",
+      "name": "阿土·新日子的第一锅",
+      "description": "荒村换了主人，吃饭的事仍要做。自愿向阿土交付4份真实粮食，回报3份粗木与一点交情；无时限。交付扣除实际可用物资，村中职业与人手仍由你另行安排。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:resource_rough_wood",
+          "amount": 3
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 4
+        }
+      ],
+      "failConditions": [],
+      "failResults": [],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_grain",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "id": "base:quest_huangcun_village_medicine",
+      "type": "quest",
+      "name": "阿枝·先把药留住",
+      "description": "占领荒村并开放外界后，到青石镇医舍向阿枝交付2份真实灵药，回报2份粮食与一点交情。村内阿禾、阿杏继续负责就近救治；这笔委托不替代医者用药。",
+      "questKind": "general",
+      "runtimeMode": "characterCommission",
+      "acceptanceMode": "interaction",
+      "autoOffer": false,
+      "abandonable": true,
+      "deadlineDays": 0,
+      "journalConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "offerConditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "completeConditions": [],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:resource_grain",
+          "amount": 2
+        },
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "@issuer",
+          "toDefinitionId": "@actor",
+          "amount": 5
+        }
+      ],
+      "failConditions": [],
+      "failResults": [],
+      "deliveryRequirements": [
+        {
+          "itemId": "base:resource_spirit_herb",
+          "amount": 2
+        }
+      ]
     }
   ]
 }

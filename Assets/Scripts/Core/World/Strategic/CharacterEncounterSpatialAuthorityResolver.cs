@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Navigation;
@@ -87,7 +87,7 @@ namespace XianXia.Core.World.Strategic
             out string source,
             out int cellX,
             out int cellY,
-            out string failure)
+            out string failure, bool airborne = false)
         {
             tactical = default;
             source = string.Empty;
@@ -97,6 +97,14 @@ namespace XianXia.Core.World.Strategic
                 occupiedCells == null || maxRadius < 1)
             { failure = "InvalidPlacementContext"; return false; }
 
+            if (airborne)
+            {
+                var point = hasPreferred ? preferred : origin;
+                var projected = worldToGrid(point);
+                if (!containsWorld(point) || !grid.TryWorldToCell(projected.X, projected.Y, out cellX, out cellY))
+                { failure = "AirPositionOutsideEncounter"; return false; }
+                tactical = point; source = "AirborneExact"; return true;
+            }
             if (hasPreferred && TryAcceptExact(grid, preferred, worldToGrid, containsWorld,
                     occupiedCells, out cellX, out cellY))
             {

@@ -625,9 +625,11 @@ namespace XianXia.Core.Npc
             return true;
         }
 
-        public static void Tick(SimulationWorld world)
+        public static void Tick(SimulationWorld world, Action<string, long> phaseSample = null)
         {
             if (world == null) return;
+            var diagnosticStart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
+            long siteTicks = 0, needsTicks = 0, evaluateTicks = 0, applyTicks = 0;
             CivilianConstructionJobService.CancelInvalidJobs(world);
             foreach (var pair in world.Civilians.All)
                 if (!pair.Value.RescueTargetId.IsNone && !world.Entities.TryGet(pair.Key, out _))
@@ -640,6 +642,7 @@ namespace XianXia.Core.Npc
             {
                 var state = Ensure(world, entity);
                 if (state == null) continue;
+                if (!HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 ReconcileMedicAssignment(world, entity, state);
                 if (!entity.TryGet<LifecycleComponent>(out var life) || life.State == LifecycleState.Dead || life.State == LifecycleState.Removed)
                 {
@@ -651,7 +654,9 @@ namespace XianXia.Core.Npc
                     state.Activity = MortalActivity.Idle; continue;
                 }
                 AdvanceDayCare(world, entity.Id, state, world.Tick.Value / WorldTick.TicksPerDay);
+                var diagnosticPart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
                 state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
+                if (phaseSample != null) siteTicks += System.Diagnostics.Stopwatch.GetTimestamp() - diagnosticPart;
                 if (life.State == LifecycleState.Alive &&
                     state.Disposition == CivilianDisposition.Displaced &&
                     HandleDisplaced(world, entity, state))
@@ -659,7 +664,9 @@ namespace XianXia.Core.Npc
                     state.LastUpdateTick = world.Tick.Value;
                     continue;
                 }
+                diagnosticPart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
                 AdvanceNeeds(world, entity, state);
+                if (phaseSample != null) needsTicks += System.Diagnostics.Stopwatch.GetTimestamp() - diagnosticPart;
                 if (life.IsIncapacitated && state.Disposition != CivilianDisposition.CapturedEscorted ||
                     life.State != LifecycleState.Alive && life.State != LifecycleState.Captured)
                 {
@@ -726,7 +733,9 @@ namespace XianXia.Core.Npc
                 { EndCivilianSleep(world, entity.Id, state); ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
                 if (state.Disposition == CivilianDisposition.Fleeing) AdvanceFlee(world, entity, state);
                 if (state.Disposition == CivilianDisposition.CapturedEscorted) SyncEscort(world, entity, state);
+                diagnosticPart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
                 state.Activity = MortalActivityEvaluator.Evaluate(world, entity, state);
+                if (phaseSample != null) evaluateTicks += System.Diagnostics.Stopwatch.GetTimestamp() - diagnosticPart;
                 if (state.Satiety > MortalCivilianTuning.HungerThreshold &&
                     state.Activity != MortalActivity.Eat)
                     ClearFoodTrip(entity, state);
@@ -736,8 +745,19 @@ namespace XianXia.Core.Npc
                     InterruptMedic(state);
                 if (state.Activity != MortalActivity.Haul)
                     CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
+                diagnosticPart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
                 ApplyActivity(world, entity, state);
+                if (phaseSample != null) applyTicks += System.Diagnostics.Stopwatch.GetTimestamp() - diagnosticPart;
                 state.LastUpdateTick = world.Tick.Value;
+            }
+            if (phaseSample != null)
+            {
+                var totalTicks = System.Diagnostics.Stopwatch.GetTimestamp() - diagnosticStart;
+                phaseSample("civilian-site", siteTicks);
+                phaseSample("civilian-needs", needsTicks);
+                phaseSample("civilian-evaluate", evaluateTicks);
+                phaseSample("civilian-apply", applyTicks);
+                phaseSample("civilian-other", Math.Max(0L, totalTicks - siteTicks - needsTicks - evaluateTicks - applyTicks));
             }
         }
 

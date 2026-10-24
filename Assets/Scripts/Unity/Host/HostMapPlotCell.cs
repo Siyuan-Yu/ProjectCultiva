@@ -99,6 +99,7 @@ namespace XianXia.Unity.Host
         /// <summary>Runtime-only final presentation geometry; never part of content or snapshot state.</summary>
         public void ConfigureInteractionBounds(Rect bounds)
         {
+            HostMapObjectRegistry.InvalidatePlotGeometry();
             _interactionBounds = bounds;
             _hasInteractionBounds = bounds.width > 0f && bounds.height > 0f;
             if (kind == "chessBoard" && _hasInteractionBounds)
@@ -301,7 +302,7 @@ namespace XianXia.Unity.Host
                 case "cushion": return "蒲团";
                 case "chessboard": return "棋盘";
                 case "ore":
-                case "mine": return "矿点";
+                case "mine": return string.IsNullOrEmpty(label) ? "矿点" : label;
                 default: return string.IsNullOrEmpty(label) ? kind : label;
             }
         }

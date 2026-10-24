@@ -62,7 +62,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>绘制工具栏；返回被点击的模块（单击 Toggle 由 Host 处理）。</summary>
-        public ModuleId Draw(float x, float y, GUIStyle buttonStyle)
+        public ModuleId Draw(float x, float y, GUIStyle buttonStyle, bool factionUnlocked = true)
         {
             LastDrawnWidth = 0f;
             var clicked = ModuleId.None;
@@ -81,8 +81,11 @@ namespace XianXia.Unity.Host
                     GUI.color = new Color(0.85f, 0.92f, 1f, 1f);
 
                 var rect = new Rect(cursor, y, entry.Width, 26f);
+                var enabled = GUI.enabled;
+                if (entry.Id == ModuleId.FactionDiplomacy && !factionUnlocked) GUI.enabled = false;
                 if (GUI.Button(rect, entry.Label))
                     clicked = entry.Id;
+                GUI.enabled = enabled;
 
                 GUI.color = prev;
                 cursor += entry.Width + 8f;

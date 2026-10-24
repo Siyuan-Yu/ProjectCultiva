@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Actions;
@@ -61,6 +61,10 @@ namespace XianXia.Unity.Host
         GUIStyle _parchmentTitle;
         GUIStyle _parchmentBody;
         GUIStyle _small;
+        GUIStyle _inlineMeterLabel;
+        GUIStyle _inlineMeterValue;
+        GUIStyle _statBarValue;
+        GUIStyle _lifeStateBadge;
         bool _stylesReady;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
@@ -192,9 +196,10 @@ namespace XianXia.Unity.Host
                 y += messageHeight + 2f;
             }
 
-            for (var i = 0; i < party.Members.Count; i++)
+            var members = party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = party.Members[i];
+                var id = members[i];
                 if (!session.World.Entities.TryGet(id, out var ent))
                     continue;
 
@@ -432,6 +437,12 @@ namespace XianXia.Unity.Host
             _parchmentBody = HostImguiStyles.InkLabel(12, wordWrap: true, ink: Ink);
             _small = HostImguiStyles.InkLabel(11, ink: Ink);
             _small.alignment = TextAnchor.MiddleCenter;
+            _inlineMeterLabel = new GUIStyle(_body) { fontSize = 11, alignment = TextAnchor.MiddleLeft };
+            _inlineMeterValue = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter };
+            HostImguiStyles.LockTextColor(_inlineMeterValue, Color.white);
+            _statBarValue = new GUIStyle(_parchmentBody) { alignment = TextAnchor.MiddleCenter, fontSize = 11 };
+            HostImguiStyles.LockTextColor(_statBarValue, Ink);
+            _lifeStateBadge = new GUIStyle(_parchmentTitle) { alignment = TextAnchor.MiddleCenter, fontSize = 13 };
             _stylesReady = true;
         }
 
@@ -504,6 +515,9 @@ namespace XianXia.Unity.Host
             var res = "背包 " + used + "/" + cap + "   " + (network ? "战略物资" : "随身物资") +
                       "  木 " + wood + "  粮 " + grain + "  药 " + herb + "  敛息草 " + grass;
             GUI.Label(new Rect(Screen.width - RailW - 926f, 4f, 604f, 18f), res, _body);
+            if (HuangcunOpeningAccess.IsMovementLocked(session.World))
+                GUI.Label(new Rect(Screen.width - RailW - 926f, 24f, 530f, 18f),
+                    HuangcunOpeningAccess.BlockedMessage, _body);
             if (GUI.Button(new Rect(Screen.width - RailW - 310f, 6f, 70f, 28f), "地图"))
             {
                 var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
@@ -1149,16 +1163,13 @@ namespace XianXia.Unity.Host
 
         void DrawInlineMeter(float x, float y, float w, string label, int cur, int max, Color fill)
         {
-            var labelStyle = new GUIStyle(_body) { fontSize = 11, alignment = TextAnchor.MiddleLeft };
-            GUI.Label(new Rect(x, y - 2f, 48f, 18f), label, labelStyle);
+            GUI.Label(new Rect(x, y - 2f, 48f, 18f), label, _inlineMeterLabel);
             var bar = new Rect(x + 44f, y + 2f, w - 48f, 12f);
             Fill(bar, new Color(0.25f, 0.25f, 0.28f, 0.9f));
             var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
             Fill(new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f), fill);
             DrawFrame(bar, new Color(0.7f, 0.7f, 0.75f, 0.8f));
-            var valueStyle = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter };
-            HostImguiStyles.LockTextColor(valueStyle, Color.white);
-            GUI.Label(bar, cur + "/" + max, valueStyle);
+            GUI.Label(bar, cur + "/" + max, _inlineMeterValue);
         }
 
         void DrawRightRail(PlayableHostSession session)
@@ -1526,7 +1537,14 @@ namespace XianXia.Unity.Host
         {
             // 交互／战斗横排；纱衣紧挨战斗，F2（事件流水改为 Ctrl+F2）
             var showVeil = CanShowSpiritVeilOrb(focus);
-            var labels = showVeil
+            var showFlight = bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(focus, out var flightEntity) &&
+                flightEntity.TryGet<CultivationComponent>(out var flightCult) && flightCult.Realm >= RealmStage.GoldenCore;
+            var labels = showFlight ? new[]
+                {
+                    "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F2\n纱衣",
+                    FlightService.IsAirborne(bootstrap.Session.World, focus) ? "F3\n落地" : "F3\n化翼", "F7\n勘查", "F6\n修炼"
+                } : showVeil
                 ? new[]
                 {
                     "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F2\n纱衣", "F7\n勘查", "F6\n修炼"
@@ -1544,28 +1562,31 @@ namespace XianXia.Unity.Host
             {
                 var r = new Rect(startX + i * (ActionOrb + gap), y, ActionOrb, ActionOrb);
                 var isVeil = showVeil && i == 4;
-                GUI.enabled = commandBridge != null || mode != null || isVeil;
+                var isFlight = showFlight && i == 5;
+                GUI.enabled = commandBridge != null || mode != null || isVeil || isFlight;
                 if (HostImguiStyles.ParchmentBtn(r, labels[i]))
                 {
                     Event.current.Use();
                     if (isVeil)
                         ToggleSpiritVeilOrb(focus);
+                    else if (isFlight)
+                        bootstrap.GetComponent<HostFlightController>()?.Toggle(focus);
                     else
-                        InvokeActionIndex(focus, MapOrbIndexToAction(i, showVeil));
+                        InvokeActionIndex(focus, MapOrbIndexToAction(i, showVeil, showFlight));
                 }
 
                 GUI.enabled = true;
             }
         }
 
-        static int MapOrbIndexToAction(int orbIndex, bool showVeil)
+        static int MapOrbIndexToAction(int orbIndex, bool showVeil, bool showFlight)
         {
             if (!showVeil)
                 return orbIndex;
-            // 0–3 同原；4＝纱衣；5→F7(4)；6→F6(5)
+            // Skip inserted ability buttons; preserve the original explore/cultivate action indices.
             if (orbIndex < 4)
                 return orbIndex;
-            return orbIndex - 1;
+            return orbIndex - 1 - (showFlight && orbIndex > 5 ? 1 : 0);
         }
 
         bool CanShowSpiritVeilOrb(EntityId focus)
@@ -1667,11 +1688,18 @@ namespace XianXia.Unity.Host
             var veilText = "斗气纱衣：—";
             if (hasCultivation && cult.Realm >= RealmStage.Foundation)
                 veilText = SpiritVeilService.IsActive(entity)
-                    ? "斗气纱衣：已展开 · F2 收起"
+                    ? "斗气纱衣：已展开 · 左键按住射击 · WASD移动 · F2收起"
                     : "斗气纱衣：未展开 · F2 召唤（耗灵力 " +
                       SpiritVeilRules.FoundationActivateSpiritCost + "）";
             GUI.Label(new Rect(rightX, ry, rightW, 20f), veilText, _parchmentBody);
             ry += 22f;
+            if (hasCultivation && cult.Realm >= RealmStage.GoldenCore)
+            {
+                GUI.Label(new Rect(rightX, ry, rightW, 20f), FlightService.IsAirborne(entity)
+                    ? "斗气化翼：飞行中 · F3落地 · 地面对空75%闪避"
+                    : "斗气化翼：F3展开（80灵力）· 可飞越地形", _parchmentBody);
+                ry += 22f;
+            }
             if (hasPersonalLife)
             {
                 if (PersonalLifeService.CanEditPreference(session.World, entity))
@@ -1746,13 +1774,7 @@ namespace XianXia.Unity.Host
             if (hasValue)
                 Fill(inner, fill);
             DrawFrame(bar, Ink);
-            var valueStyle = new GUIStyle(_parchmentBody)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 11
-            };
-            HostImguiStyles.LockTextColor(valueStyle, Ink);
-            GUI.Label(bar, hasValue ? cur + "/" + max : "—", valueStyle);
+            GUI.Label(bar, hasValue ? cur + "/" + max : "—", _statBarValue);
         }
 
         static string ManualShortName(CultivationComponent cult, SimulationWorld world)
@@ -1797,8 +1819,11 @@ namespace XianXia.Unity.Host
                 InvokeActionIndex(focus, 2);
             else if (Input.GetKeyDown(KeyCode.F8))
                 InvokeActionIndex(focus, 3);
-            else if (Input.GetKeyDown(KeyCode.F2))
+            else if (Input.GetKeyDown(KeyCode.F2) &&
+                     !Input.GetKey(KeyCode.LeftControl) && !Input.GetKey(KeyCode.RightControl))
                 ToggleSpiritVeilOrb(focus);
+            else if (Input.GetKeyDown(KeyCode.F3))
+                bootstrap.GetComponent<HostFlightController>()?.ToggleActive();
             else if (Input.GetKeyDown(KeyCode.F7))
                 InvokeActionIndex(focus, 4);
             else if (Input.GetKeyDown(KeyCode.F6))
@@ -1965,106 +1990,8 @@ namespace XianXia.Unity.Host
                 sb.AppendLine("进度：" + count + "/" + max);
         }
 
-        static string SummarizeTrackedObjectives(
-            SimulationWorld world,
-            QuestSpec spec,
-            QuestRuntime rt)
-        {
-            if (spec != null && spec.DeliveryRequirements.Count > 0)
-            {
-                if (rt != null && rt.DeliveryCompleted) return "物品已交付";
-                var delivery = new System.Collections.Generic.List<string>();
-                for (var i = 0; i < spec.DeliveryRequirements.Count; i++)
-                    delivery.Add("交付 " + QuestJournalQuery.ResourceLabel(spec.DeliveryRequirements[i].ItemId) +
-                                 " ×" + spec.DeliveryRequirements[i].Amount);
-                return string.Join("；", delivery);
-            }
-            if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
-                return "（无）";
-            for (var i = 0; i < spec.CompleteConditions.Count; i++)
-            {
-                var c = spec.CompleteConditions[i];
-                if (c == null)
-                    continue;
-                if (!string.Equals(c.Kind, "uniqueLaborAtLocation", System.StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var max = c.Amount > 0 ? c.Amount : 1;
-                var cur = rt != null ? rt.ProgressCount : 0;
-                return string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase)
-                    ? "农田采集 " + cur + "/" + max + "（每人×1）"
-                    : "农田劳作 " + cur + "/" + max + "（每人约3秒）";
-            }
-
-            var stockParts = new System.Collections.Generic.List<string>();
-            for (var i = 0; i < spec.CompleteConditions.Count; i++)
-            {
-                var c = spec.CompleteConditions[i];
-                if (c == null ||
-                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var need = c.Amount > 0 ? c.Amount : 1;
-                var have = PlayerStrategicResourceService.GetPlayerAccessibleCount(world, c.Id);
-                if (have > need)
-                    have = need;
-                stockParts.Add(QuestJournalQuery.ResourceLabel(c.Id) + " " + have + "/" + need);
-            }
-
-            if (stockParts.Count > 0)
-                return string.Join("；", stockParts);
-
-            return SummarizeTrackedObjectivesFallback(spec);
-        }
-
-        static string SummarizeTrackedObjectivesFallback(QuestSpec spec)
-        {
-            if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
-                return "（无）";
-            // 复用查询层摘要逻辑的轻量版
-            var parts = new System.Collections.Generic.List<string>(spec.CompleteConditions.Count);
-            for (var i = 0; i < spec.CompleteConditions.Count; i++)
-            {
-                var c = spec.CompleteConditions[i];
-                if (c == null || string.IsNullOrEmpty(c.Kind))
-                    continue;
-                switch (c.Kind.Trim().ToLowerInvariant())
-                {
-                    case "exploredlocation":
-                        parts.Add("探索 " + ShortId(c.Id));
-                        break;
-                    case "atlocation":
-                        parts.Add("抵达 " + ShortId(c.Id));
-                        break;
-                    case "questcompleted":
-                        parts.Add("完成 " + ShortId(c.Id));
-                        break;
-                    case "hasflag":
-                    case "storyflag":
-                        parts.Add("标记 " + ShortId(c.Id));
-                        break;
-                    case "laboratlocation":
-                        parts.Add(ShortId(c.CharacterId) + "农田≥" + c.Amount + "秒");
-                        break;
-                    case "uniquelaboratlocation":
-                        parts.Add("劳作人数≥" + c.Amount);
-                        break;
-                    case "uniqueharvestatlocation":
-                        parts.Add("采集人数≥" + c.Amount);
-                        break;
-                    case "characteratlocation":
-                        parts.Add(ShortId(c.CharacterId) + "→集合");
-                        break;
-                    case "stockatleast":
-                        parts.Add(ShortId(c.Id) + "≥" + c.Amount);
-                        break;
-                    default:
-                        parts.Add(c.Kind + (string.IsNullOrEmpty(c.Id) ? "" : " " + ShortId(c.Id)));
-                        break;
-                }
-            }
-
-            return parts.Count == 0 ? "（无）" : string.Join("；", parts);
-        }
+        static string SummarizeTrackedObjectives(SimulationWorld world, QuestSpec spec, QuestRuntime runtime) =>
+            QuestJournalQuery.DescribeObjectives(world, spec, runtime);
 
         string BuildEventText(PlayableHostSession session)
         {
@@ -2152,12 +2079,7 @@ namespace XianXia.Unity.Host
             DrawFrame(badge, ParchmentDark);
             var prev = GUI.color;
             GUI.color = Color.white;
-            var style = new GUIStyle(_parchmentTitle)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 13
-            };
-            GUI.Label(badge, label, style);
+            GUI.Label(badge, label, _lifeStateBadge);
             GUI.color = prev;
             return badge.xMax;
         }

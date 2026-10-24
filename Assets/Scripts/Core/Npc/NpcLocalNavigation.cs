@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Construction;
 using XianXia.Core.Navigation;
@@ -21,12 +21,21 @@ namespace XianXia.Core.Npc
             var y1 = Math.Min(ground.Height - 1, (int)Math.Floor((Math.Max(from.Y, to.Y) - ground.OriginY) / cell) + 12);
             if (x1 < x0 || y1 < y0 || x1-x0+1 > MaxCells || y1-y0+1 > MaxCells) return null;
             var grid = new WalkGrid(ground.OriginX + x0 * cell, ground.OriginY + y0 * cell, cell, x1-x0+1, y1-y0+1);
+            var restrictOpening = World.Strategic.HuangcunOpeningAccess.IsMovementLocked(world);
             for (int y = 0; y < grid.Height; y++)
             for (int x = 0; x < grid.Width; x++)
-                grid.SetBlocked(x, y, !ground.IsWalkable(grid.OriginX + (x+.5f)*cell, grid.OriginY + (y+.5f)*cell));
-            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+            {
+                var wx = grid.OriginX + (x + .5f) * cell;
+                var wy = grid.OriginY + (y + .5f) * cell;
+                grid.SetBlocked(x, y, !ground.IsWalkable(wx, wy) ||
+                    restrictOpening && !world.OpeningArea.Contains(ground.SurfaceId, wx, wy));
+            }
+            foreach (var asset in world.OutdoorConstructedAssets.QueryOverlapping(
+                         ground.SurfaceId, grid.OriginX, grid.OriginY,
+                         grid.Width * cell, grid.Height * cell))
             {
                 if (asset.SurfaceId != ground.SurfaceId ||
+                    world.OutdoorStatefulObjects.IsDestructibleDestroyed(asset.StableAssetId) ||
                     asset.WorldX > grid.OriginX + grid.Width*cell || asset.WorldX + asset.WorldWidth < grid.OriginX ||
                     asset.WorldY > grid.OriginY + grid.Height*cell || asset.WorldY + asset.WorldHeight < grid.OriginY) continue;
                 if (RoomBedGeometry.IsRoom(asset))
@@ -59,6 +68,25 @@ namespace XianXia.Core.Npc
         {
             var grid = Build(world, ground, from, to);
             return grid != null && GridPathfinder.IsWorldSegmentWalkable(grid, from.X, from.Y, to.X, to.Y);
+        }
+
+        public static bool TryLandingPoint(SimulationWorld world, SurfaceGroundNavigation ground,
+            WorldVec2 from, Func<WorldVec2, bool> allowed, out WorldVec2 point)
+        {
+            point = from;
+            var grid = Build(world, ground, from, from);
+            if (grid == null || !grid.TryWorldToCell(from.X, from.Y, out var cx, out var cy)) return false;
+            if (grid.IsWalkable(cx, cy) && allowed(from)) return true;
+            for (var radius = 1; radius <= 12; radius++)
+                for (var y = -radius; y <= radius; y++)
+                    for (var x = -radius; x <= radius; x++)
+                    {
+                        if (Math.Abs(x) != radius && Math.Abs(y) != radius || !grid.IsWalkable(cx + x, cy + y)) continue;
+                        grid.CellToWorldCenter(cx + x, cy + y, out var wx, out var wy);
+                        var candidate = new WorldVec2(wx, wy);
+                        if (allowed(candidate)) { point = candidate; return true; }
+                    }
+            return false;
         }
 
         public static bool TryRoute(SimulationWorld world, SurfaceGroundNavigation ground,

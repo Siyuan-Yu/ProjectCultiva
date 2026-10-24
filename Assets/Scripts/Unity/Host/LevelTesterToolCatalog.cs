@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace XianXia.Unity.Host
@@ -37,6 +37,7 @@ namespace XianXia.Unity.Host
             E("combat.incapacitate-selected", "让选中人物进入弥留", "人物与战斗", "伤员 Incapacitated", "使唯一选中人物进入弥留状态。"),
             E("combat.party-attack", "增加我方全员攻击", "人物与战斗", "Party 攻击 +10", "仅修改 PlayerParty 成员。"),
             E("combat.party-max-hp", "增加我方全员最大生命", "人物与战斗", "Party 最大生命 +50", "仅修改 PlayerParty 成员并回满生命。"),
+            E("combat.golden-flight", "选中人物立刻变金丹", "人物与战斗", "金丹 结丹 飞行 翅膀 F3 突破", "仅开发验收：设置所选修士为金丹并补充灵力，或补满当前突破修为。正式成长仍走修炼与突破。"),
             E("combat.party-refill", "恢复我方生命与灵力", "人物与战斗", "Party 回满", "恢复 PlayerParty 存活成员的生命与灵力。"),
 
             E("civilian.grain-add", "添加公库粗粮", "资源与场景准备", "公共库存 粗粮 20", "向当前验收 Site 公库加入粗粮。"),
@@ -44,6 +45,7 @@ namespace XianXia.Unity.Host
             E("civilian.grain-clear", "清空公库粗粮", "资源与场景准备", "公共库存 无粮", "清空当前验收 Site 的粗粮。"),
             E("civilian.reset", "重置凡人验收场景", "资源与场景准备", "CIVILIAN Reset", "重置 CIVILIAN-LIFE-01 全局验收前置。"),
 
+            E("world.huangcun-movement", "临时解除荒村移动限制", "定位", "出村 解锁 地图 边界 移动 作弊 恢复", "仅当前会话解除出村移动限制，可恢复；不解锁剧情、经营或外界模拟，读档恢复默认。"),
             E("focus.huangcun", "定位荒村", "定位", "Site", "把相机定位到荒村。"),
             E("focus.grain-field", "定位粮田", "定位", "劳役场", "把相机定位到粮田 WorkArea。"),
             E("focus.herb-field", "定位药田", "定位", "药田", "把相机定位到药田 WorkArea。"),

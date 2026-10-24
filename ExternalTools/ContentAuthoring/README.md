@@ -1,4 +1,8 @@
-# ContentAuthoring（Windows / WPF）
+﻿# ContentAuthoring（Windows / WPF）
+
+> 2026-10-24内容作者入口：正式世界`main_world.worldcomposition.json`新增青石镇公开书院与迁居区；`sixteen_sects.candidate.worldcomposition.json`可在WorldComposer打开，FineEditor编辑16宗城／78节点蓝图。候选无运行发布绑定，不能直接替换正式世界；高阶人物和专属宗门机制未实施。详细内容、候选边界见[333](../../docs/40-process/333-small-village-and-sixteen-sects-content-2026-10-24.md)及[宗门目录](../../docs/30-content/16-sect-world-content-catalog.md)。
+
+> 2026-10-23续做：QuestEditor支持journalConditions（只隐藏尚未接取的日志项），接取条件在手动／自动入口均生效；对话发放保存保留条件，旧关联事件按钮不改写分步对话，不为人物委托生成startQuest。正式首段与验收隔离及当前结果见[329](../../docs/40-process/329-project-audit-resume-and-opening-completion-2026-10-23.md)。
 
 本目录有 11 个独立编辑器工程，以及共享库。Editor metadata 的唯一真源是 [EditorManifest.json](EditorManifest.json)：它定义工程路径、生命周期、默认发布集合、未来替代工具与提示说明。
 

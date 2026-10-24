@@ -16,6 +16,16 @@ namespace XianXia.Unity.Host
         // 每 location 的 instance-id 集合：逐格注册 O(1) 查重（旧 List.Contains 是 O(N²)）。
         static readonly Dictionary<string, HashSet<int>> IdsByLocation =
             new Dictionary<string, HashSet<int>>(System.StringComparer.Ordinal);
+        // Loaded farm cells are static presentation geometry. Hover and context clicks
+        // only need nearby cells, not every field in every loaded settlement.
+        const float PickBucketSize = 4f;
+        static readonly Dictionary<Vector2Int, List<HostMapPlotCell>> PickBuckets =
+            new Dictionary<Vector2Int, List<HostMapPlotCell>>();
+        static readonly Dictionary<HostMapPlotCell, Vector2Int> BucketByPlot =
+            new Dictionary<HostMapPlotCell, Vector2Int>();
+        static readonly Dictionary<HostMapPlotCell, int> RegistrationOrder =
+            new Dictionary<HostMapPlotCell, int>();
+        static int _nextRegistrationOrder;
         static string _currentOwner = string.Empty;
 
         /// <summary>Legacy single-map wrapper. New incremental users must use owner APIs.</summary>
@@ -26,6 +36,10 @@ namespace XianXia.Unity.Host
             ByLocation.Clear();
             OwnerByPlot.Clear();
             IdsByLocation.Clear();
+            PickBuckets.Clear();
+            BucketByPlot.Clear();
+            RegistrationOrder.Clear();
+            _nextRegistrationOrder = 0;
             _currentOwner = string.Empty;
         }
 
@@ -76,6 +90,12 @@ namespace XianXia.Unity.Host
                 return;
             list.Add(plot);
             OwnerByPlot[plot] = ownerKey ?? string.Empty;
+            var bucket = PickBucket(plot.transform.position);
+            if (!PickBuckets.TryGetValue(bucket, out var candidates))
+                PickBuckets.Add(bucket, candidates = new List<HostMapPlotCell>(8));
+            candidates.Add(plot);
+            BucketByPlot[plot] = bucket;
+            RegistrationOrder[plot] = _nextRegistrationOrder++;
         }
 
         public static bool HasField(string locationId) =>
@@ -117,33 +137,26 @@ namespace XianXia.Unity.Host
         public static bool TryFindLocationNear(Vector3 worldPoint, out string locationId, float maxDist = 0.55f)
         {
             locationId = null;
-            HostMapPlotCell best = null;
-            var bestD = maxDist * maxDist;
-            foreach (var kv in ByLocation)
-            {
-                var list = kv.Value;
-                if (list == null)
-                    continue;
-                for (var i = 0; i < list.Count; i++)
-                {
-                    var p = list[i];
-                    if (p == null || !p.IsPlantableField)
-                        continue;
-                    var d = XySqr(p.transform.position, worldPoint);
-                    if (d > bestD)
-                        continue;
-                    bestD = d;
-                    best = p;
-                    locationId = kv.Key;
-                }
-            }
-
-            return best != null && !string.IsNullOrEmpty(locationId);
+            if (!TryFindPlotAt(worldPoint, out var plot, maxDist)) return false;
+            locationId = plot.LocationId;
+            return !string.IsNullOrEmpty(locationId);
         }
 
         static void RemovePlot(HostMapPlotCell plot)
         {
             OwnerByPlot.Remove(plot);
+            if (plot != null && IdsByLocation.TryGetValue(plot.LocationId, out var ids))
+                ids.Remove(plot.GetInstanceID());
+            if (BucketByPlot.TryGetValue(plot, out var bucket))
+            {
+                if (PickBuckets.TryGetValue(bucket, out var candidates))
+                {
+                    candidates.Remove(plot);
+                    if (candidates.Count == 0) PickBuckets.Remove(bucket);
+                }
+                BucketByPlot.Remove(plot);
+            }
+            RegistrationOrder.Remove(plot);
             foreach (var kv in ByLocation)
                 kv.Value?.Remove(plot);
             var empty = new List<string>();
@@ -161,27 +174,34 @@ namespace XianXia.Unity.Host
         public static bool TryFindPlotAt(Vector3 worldPoint, out HostMapPlotCell plot, float maxDist = 0.55f)
         {
             plot = null;
+            if (maxDist < 0f) return false;
             var bestD = maxDist * maxDist;
-            foreach (var kv in ByLocation)
+            var center = PickBucket(worldPoint);
+            var reach = Mathf.CeilToInt(maxDist / PickBucketSize);
+            var bestOrder = -1;
+            for (var y = center.y - reach; y <= center.y + reach; y++)
+            for (var x = center.x - reach; x <= center.x + reach; x++)
             {
-                var list = kv.Value;
-                if (list == null)
-                    continue;
-                for (var i = 0; i < list.Count; i++)
+                if (!PickBuckets.TryGetValue(new Vector2Int(x, y), out var candidates)) continue;
+                for (var i = 0; i < candidates.Count; i++)
                 {
-                    var p = list[i];
-                    if (p == null || !p.IsPlantableField)
-                        continue;
+                    var p = candidates[i];
+                    if (p == null || !p.IsPlantableField) continue;
                     var d = XySqr(p.transform.position, worldPoint);
-                    if (d > bestD)
-                        continue;
+                    if (d > bestD) continue;
+                    var order = RegistrationOrder[p];
+                    if (d == bestD && order < bestOrder) continue;
                     bestD = d;
+                    bestOrder = order;
                     plot = p;
                 }
             }
 
             return plot != null;
         }
+
+        static Vector2Int PickBucket(Vector3 point) => new Vector2Int(
+            Mathf.FloorToInt(point.x / PickBucketSize), Mathf.FloorToInt(point.y / PickBucketSize));
 
         static float XySqr(Vector3 a, Vector3 b)
         {

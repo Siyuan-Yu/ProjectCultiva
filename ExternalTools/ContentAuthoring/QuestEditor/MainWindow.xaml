@@ -108,11 +108,15 @@
             </StackPanel>
           </GroupBox>
 
-          <GroupBox Header="③ 接取条件（autoOffer 时生效）" Margin="0,0,0,8">
+          <GroupBox Header="③ 接取条件（手动／自动均须满足）" Margin="0,0,0,8">
             <StackPanel Margin="6">
               <CheckBox x:Name="AutoOfferBox" Content="条件满足时自动接取 (autoOffer)" Margin="0,0,0,6"/>
               <shared:JsonArrayEditor x:Name="OfferEditor"/>
             </StackPanel>
+          </GroupBox>
+
+          <GroupBox Header="日志显示条件（仅未接任务，留空则沿用原显示）" Margin="0,0,0,8">
+            <shared:JsonArrayEditor x:Name="JournalEditor" Margin="6"/>
           </GroupBox>
 
           <GroupBox Header="④ 完成条件（交付型人物委托可留空）" Margin="0,0,0,8">

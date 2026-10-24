@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "design:zhiheng_capital",
+  "displayName": "玄衡城（布局候选）",
+  "widthCells": 160,
+  "heightCells": 140,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "design:zhiheng_capital:hall",
+      "kindId": "controlCore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 92,
+      "widthCells": 8,
+      "heightCells": 8,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·议政厅",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "8"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:library",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 30,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·藏书阁",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:tasks",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 50,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·执事堂",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:store",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 96,
+      "localSurfaceY": 82,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·公库",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:trade",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 116,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·坊市",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:craft",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 116,
+      "localSurfaceY": 56,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·资源统筹工坊",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:clinic",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 30,
+      "localSurfaceY": 56,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·医舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_0",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 20,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_0:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_0",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_1",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 52,
+      "localSurfaceY": 20,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_1:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_1",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_2",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 20,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_2:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_2",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_3",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 108,
+      "localSurfaceY": 20,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_3:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 110,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_3",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_4",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 38,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_4:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 42,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_4",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_5",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 52,
+      "localSurfaceY": 38,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_5:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 42,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_5",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_6",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 38,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_6:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 42,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_6",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_7",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 108,
+      "localSurfaceY": 38,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "玄衡城·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:housing_7:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 110,
+      "localSurfaceY": 42,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:zhiheng_capital:housing_7",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 63,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:cushion_2",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:cushion_3",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 69,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:chess",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 84,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "闲暇棋盘",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:grain",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 124,
+      "widthCells": 8,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "供应田",
+        "blocksMovement": "false",
+        "sourceCellsW": "8",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:herbs",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 138,
+      "localSurfaceY": 124,
+      "widthCells": 8,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "8",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:feature_0",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 18,
+      "localSurfaceY": 104,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "征额周转库",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6",
+        "designPurpose": "仅作者布局；不生成专属能力或高阶人物"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:feature_1",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 104,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "运粮库",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6",
+        "designPurpose": "仅作者布局；不生成专属能力或高阶人物"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:feature_2",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 102,
+      "localSurfaceY": 104,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "城郊供粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4",
+        "designPurpose": "仅作者布局；不生成专属能力或高阶人物"
+      }
+    },
+    {
+      "placementId": "design:zhiheng_capital:feature_3",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 130,
+      "localSurfaceY": 104,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "税册署",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "designPurpose": "仅作者布局；不生成专属能力或高阶人物",
+        "buildingId": "base:room_normal_wood",
+        "roomUsage": "Residential",
+        "structureDurability": "100"
+      }
+    }
+  ]
+}

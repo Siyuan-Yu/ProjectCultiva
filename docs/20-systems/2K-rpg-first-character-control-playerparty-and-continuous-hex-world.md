@@ -90,6 +90,10 @@ ActiveControlledCharacter
 
 仍仅 Active 可 WASD／RTS Move／Route Preview；非 Active 不可移动命令、不可 fallback 控 Active。
 
+#### 主控鼠标朝向（2026-10-24 制作人确认）
+
+有效世界输入期间，Active无论静止、WASD或原有点击路径移动，都持续面向鼠标；移动方向仍由移动命令决定。普通朝向复用现有八向表现，不要求开启F2纱衣，也不授予远程攻击、飞行或新战斗资格。F2的瞄准手臂与发射仍按ADR-0053；F3按ADR-0054。暂停、界面遮挡、世界地图、失能及卧姿遵守现有输入／表现门禁；切换主控后旧人物不保留鼠标控制。以上不改变本节镜头跟随政策。实施与统一人工验收见[339](../40-process/339-pointer-facing-and-movement-performance-2026-10-24.md)。
+
 ---
 
 ## 2. PlayerParty

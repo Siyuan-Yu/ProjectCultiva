@@ -43,6 +43,8 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            // This overlay has no controls: layout/key events need no entity scan or projection.
+            if (Event.current.type != EventType.Repaint) return;
             if (bootstrap?.Session?.World == null || viewSpawner == null)
                 return;
             // 人物详情是硬模态；世界人物条不得穿透到其上层。
@@ -56,7 +58,7 @@ namespace XianXia.Unity.Host
             var world = bootstrap.Session.World;
             foreach (var view in viewSpawner.Registry.All)
             {
-                if (view == null || !view.IsBound)
+                if (view == null || !view.IsBound || !view.gameObject.activeInHierarchy)
                     continue;
                 var id = view.EntityId;
                 if (id.IsNone || !world.Entities.TryGet(id, out var entity))
@@ -126,7 +128,8 @@ namespace XianXia.Unity.Host
                 Screen.height - Mathf.Max(topLeft.y, bottomRight.y),
                 Mathf.Abs(bottomRight.x - topLeft.x), Mathf.Abs(topLeft.y - bottomRight.y));
             projectedBorder = rect.height * Mathf.Clamp(border / height, 0f, .5f);
-            return rect.width > 0f && rect.height > 0f;
+            return rect.width > 0f && rect.height > 0f &&
+                rect.xMax >= 0f && rect.yMax >= 0f && rect.xMin <= Screen.width && rect.yMin <= Screen.height;
         }
 
         bool ShouldEmphasize(Entity entity, XianXia.Core.Domain.Ids.EntityId id)

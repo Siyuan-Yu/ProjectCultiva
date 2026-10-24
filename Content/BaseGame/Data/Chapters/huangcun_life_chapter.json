@@ -16,7 +16,8 @@
         {
           "dayIndex": 0,
           "setFlags": [
-            "story:huangcun_production"
+            "story:huangcun_production",
+            "story:huangcun_confined_opening"
           ],
           "questOfferIds": [],
           "contentEventIds": [

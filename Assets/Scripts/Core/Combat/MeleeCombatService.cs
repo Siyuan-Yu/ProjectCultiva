@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using XianXia.Core.Attributes;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
@@ -97,6 +97,7 @@ namespace XianXia.Core.Combat
                     out var dmg, out var defeated);
                 if (hit.IsFailure)
                 {
+                    if (hit.Error.Message == "闪避") continue;
                     if (hitsLanded > 0)
                     {
                         new SkillMasteryService().AddArtMasteryProgress(
@@ -178,6 +179,11 @@ namespace XianXia.Core.Combat
                 return Result.Success();
             }
 
+            if (FlightService.IsAirborne(attacker) != FlightService.IsAirborne(defender) &&
+                !SpiritVeilService.IsActive(attacker))
+                return Result.Failure(ErrorCode.InvalidOperation, "高度不同，需远程攻击。");
+            if (FlightService.TryEvade(world, attacker, defender))
+                return Result.Failure(ErrorCode.InvalidOperation, "闪避");
             var damage = damageOverride >= 0
                 ? Math.Max(1, damageOverride)
                 : ComputeStrikeDamage(world, attacker, defender);

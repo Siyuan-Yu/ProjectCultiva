@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -24,6 +24,9 @@ namespace XianXia.Unity.Host
         [Header("Content")]
         [Tooltip("Optional explicit override. Empty = Editor repo Content/BaseGame, or Player bundled BaseGame.")]
         [SerializeField] string contentPackageDirectoryOverride = "";
+
+        [Tooltip("默认读取 formal-opening.json；仅参考／验收模式关闭，使用下方 Inspector 自定义绑定。")]
+        [SerializeField] bool useFormalOpening = true;
 
         [Header("Level Tester · 关卡地图")]
         [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
@@ -98,6 +101,9 @@ namespace XianXia.Unity.Host
         readonly OutdoorEntityReconcileGate _outdoorEntityReconcileGate =
             new OutdoorEntityReconcileGate();
         float _autoTickAccumulator;
+        const int MaxAutoTicksPerFrame = 2;
+        const float MaxAutoTickDebtIntervals = 4f;
+        const double AutoTickFrameBudgetMilliseconds = 4.0;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
         // Phase 5R-B3B.3：NewGame 初始 Site 的一次性 Bootstrap provenance 与 consumed 状态全部由
@@ -332,6 +338,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.SimulationUpdate.Auto();
             if (!_session.IsInitialized)
                 return;
 
@@ -368,12 +375,22 @@ namespace XianXia.Unity.Host
                 !StrategicClockFreezeService.IsWorldTickFrozen(_session.World))
             {
                 var speed = EffectiveSpeedMultiplier();
-                _autoTickAccumulator += Time.unscaledDeltaTime * speed;
                 var interval = SecondsPerAutoTickAt1x;
-                while (_autoTickAccumulator >= interval)
+                // A slow frame must not create an unbounded catch-up loop. Preserve every
+                // executed WorldTick; under overload the requested clock multiplier slows.
+                _autoTickAccumulator = Mathf.Min(
+                    _autoTickAccumulator + Time.unscaledDeltaTime * speed,
+                    interval * MaxAutoTickDebtIntervals);
+                var started = System.Diagnostics.Stopwatch.GetTimestamp();
+                var ticksThisFrame = 0;
+                while (_autoTickAccumulator >= interval && ticksThisFrame < MaxAutoTicksPerFrame)
                 {
                     _autoTickAccumulator -= interval;
                     StepTick();
+                    ticksThisFrame++;
+                    if ((System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 /
+                        System.Diagnostics.Stopwatch.Frequency >= AutoTickFrameBudgetMilliseconds)
+                        break;
                 }
             }
 
@@ -382,6 +399,7 @@ namespace XianXia.Unity.Host
         /// <summary>Set before <see cref="TryInitialize"/> (sample scene / EditMode).</summary>
         public void ConfigureOpeningScenario(string scenarioId)
         {
+            useFormalOpening = false;
             openingScenarioId = scenarioId ?? "";
         }
 
@@ -617,8 +635,12 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostNpcAutonomousCombat>();
             if (GetComponent<HostMeleeStrikeVfx>() == null)
                 gameObject.AddComponent<HostMeleeStrikeVfx>();
+            if (GetComponent<HostFlightController>() == null)
+                gameObject.AddComponent<HostFlightController>();
             if (GetComponent<HostSpiritVeilController>() == null)
                 gameObject.AddComponent<HostSpiritVeilController>();
+            if (GetComponent<HostDirectionalRangedAttack>() == null)
+                gameObject.AddComponent<HostDirectionalRangedAttack>();
             if (GetComponent<HostCombatVitalsBars>() == null)
                 gameObject.AddComponent<HostCombatVitalsBars>();
             if (GetComponent<HostCombatSkillBar>() == null)
@@ -780,6 +802,27 @@ namespace XianXia.Unity.Host
                 _session.Clear();
                 selectionController.ClearSelection();
                 return false;
+            }
+
+            if (useFormalOpening)
+            {
+                try
+                {
+                    var opening = FormalOpeningSelection.Read(_resolvedContentPath);
+                    openingScenarioId = opening.openingScenarioId;
+                    characterRosterId = opening.characterRosterId;
+                    preferredMapLayoutId = opening.preferredMapLayoutId;
+                    // A stale saved file override must not replace the formal package map.
+                    mapLayoutFilePath = "";
+                }
+                catch (System.Exception error)
+                {
+                    _status = "INIT FAILED: " + error.Message;
+                    Debug.LogError("[PlayableHost] " + _status, this);
+                    _session.Clear();
+                    selectionController.ClearSelection();
+                    return false;
+                }
             }
 
             var options = new PlayableDayOptions
@@ -1724,7 +1767,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var tick = _session.TickOnce();
+            XianXia.Core.Results.Result tick;
+            using (HostDebugHud.SimulationTickOnce.Auto())
+                tick = _session.TickOnce();
             if (tick.IsFailure)
             {
                 _status = "TICK FAILED: " + tick.Error;

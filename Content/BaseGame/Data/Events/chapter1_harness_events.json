@@ -8,7 +8,12 @@
       "trigger": "onExplore",
       "locationId": "base:loc_ref_road_hub",
       "once": true,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "step_001",
       "steps": [
         {
@@ -22,7 +27,10 @@
               "text": "记下此事",
               "conditions": [],
               "outcomes": [
-                { "kind": "setFlag", "id": "event:ch01_harness_resolved" }
+                {
+                  "kind": "setFlag",
+                  "id": "event:ch01_harness_resolved"
+                }
               ],
               "nextStepId": ""
             }

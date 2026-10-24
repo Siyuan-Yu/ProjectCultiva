@@ -15,6 +15,7 @@ namespace XianXia.Unity.Host
         [SerializeField] bool open;
 
         Vector2 _scroll;
+        readonly List<BuildingConstructionSpec> _buildingSpecs = new List<BuildingConstructionSpec>(32);
         string _status = string.Empty;
         bool _holdingPause;
         GUIStyle _title;
@@ -117,6 +118,7 @@ namespace XianXia.Unity.Host
             EnsureStyles();
 
             var world = bootstrap.Session.World;
+            var openingLocked = HuangcunOpeningAccess.IsLocked(world);
             var width = Mathf.Min(720f, Screen.width - 40f);
             var height = Mathf.Min(520f, Screen.height - 40f);
             var window = new Rect(
@@ -126,10 +128,10 @@ namespace XianXia.Unity.Host
                 height);
             HostUiHitTest.Block(window);
             GUI.Box(window, GUIContent.none);
-            GUI.Box(window, GUIContent.none);
             GUI.Label(new Rect(window.x + 16f, window.y + 12f, width - 32f, 28f), "建筑", _title);
 
-            var specs = new List<BuildingConstructionSpec>();
+            var specs = _buildingSpecs;
+            specs.Clear();
             foreach (var pair in world.ConstructionCatalog.Buildings)
                 if (pair.Value != null && pair.Value.UnlockedByDefault)
                     specs.Add(pair.Value);
@@ -171,9 +173,9 @@ namespace XianXia.Unity.Host
 
                 var canBuild = ConstructionService.HasRequiredMaterials(world, spec, out _) ||
                                ConstructionService.CanUseCivilianSiteMaterials(world, spec);
-                GUI.enabled = canBuild;
+                GUI.enabled = canBuild && !openingLocked;
                 if (GUI.Button(new Rect(card.xMax - 116f, card.yMax - 48f, 100f, 34f),
-                        canBuild ? "建造" : "材料不足"))
+                        openingLocked ? "占领后解锁" : canBuild ? "建造" : "材料不足"))
                 {
                     CloseForPlacement();
                     var controller = bootstrap.GetComponent<HostConstructionController>();
@@ -190,7 +192,10 @@ namespace XianXia.Unity.Host
             }
             GUI.EndScrollView();
 
-            if (!string.IsNullOrEmpty(_status))
+            if (openingLocked)
+                GUI.Label(new Rect(window.x + 16f, window.yMax - 48f, width - 120f, 28f),
+                    HuangcunOpeningAccess.ManagementLockedMessage, _small);
+            else if (!string.IsNullOrEmpty(_status))
                 GUI.Label(new Rect(window.x + 16f, window.yMax - 48f, width - 120f, 28f),
                     _status, _small);
             if (GUI.Button(new Rect(window.xMax - 92f, window.yMax - 48f, 76f, 32f), "关闭"))

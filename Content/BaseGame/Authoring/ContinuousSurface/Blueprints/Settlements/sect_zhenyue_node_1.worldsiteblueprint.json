@@ -1,0 +1,1357 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "site:runtime:base:flag_sect_zhenyue_node_1",
+  "displayName": "砺骨坪",
+  "widthCells": 120,
+  "heightCells": 120,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_0",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_0",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_0_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 21,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_0",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_0_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_0",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_1",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_1",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_1_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 35,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_1",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_1_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_1",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_2",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_2",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_2_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_2",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_2"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_2_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_2",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_2"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_3",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 90,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_3",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_3_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_3",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_3"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_3_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_3",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_3"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_4",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_4",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_4_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 21,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_4",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_4_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_4",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_5",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_5",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_5_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 35,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_5",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_5"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_5_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_5",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_5"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_6",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_6",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_6_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_6",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_6_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_6",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_7",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 90,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_7",
+        "localPlaceName": "砺骨坪石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_7_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_7",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_7"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_7_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_home_7",
+        "localPlaceName": "砺骨坪石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:home_7"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:manual_hall",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪小功法阁",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_manual_hall_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_manual_hall",
+        "localPlaceName": "砺骨坪小功法阁",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:manual_hall_cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_manual_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:manual_hall_cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 25,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_manual_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:practice_hall",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪修炼屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_practice_hall_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_practice_hall",
+        "localPlaceName": "砺骨坪修炼屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:practice_hall_cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_practice_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:practice_hall_cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 43,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_practice_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:inn",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪驿舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_inn_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_inn",
+        "localPlaceName": "砺骨坪驿舍",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:inn_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪驿舍床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_inn",
+        "localPlaceName": "砺骨坪驿舍床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:inn"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:inn_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪驿舍床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_inn",
+        "localPlaceName": "砺骨坪驿舍床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_zhenyue_node_1:town:inn"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:workshop",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪炼器室",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_smithy_room_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_workshop",
+        "localPlaceName": "砺骨坪炼器室",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:storage",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 52,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "砺骨坪公库",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "3",
+        "buildingId": "base:building_storage_room",
+        "structureDurability": "0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:recovery",
+      "kindId": "recoverySpot",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 70,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "歇息恢复处",
+        "blocksMovement": "false",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "buildingId": "base:building_recovery_spot",
+        "structureDurability": "0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:chess_0",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 44,
+      "localSurfaceY": 70,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "露天棋桌",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:chess_1",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 58,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "露天棋桌",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:grain_0",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:grain_1",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:grain_2",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:grain_3",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:herb_0",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:herb_1",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:herb_2",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 78,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:ore_iron",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 60,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "铁矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_ore_iron",
+        "localPlaceName": "铁矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:ore_copper",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 104,
+      "localSurfaceY": 42,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "铜矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_ore_copper",
+        "localPlaceName": "铜矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:ore_silver",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 12,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_ore_silver",
+        "localPlaceName": "银矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:ore_spirit",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 82,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "灵矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_zhenyue_node_1_ore_spirit",
+        "localPlaceName": "灵矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:broadleaf:1",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 33,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:maple:2",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 56,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:3",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 31,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:pine:4",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 49,
+      "localSurfaceY": 86,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:broadleaf:5",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 42,
+      "localSurfaceY": 17,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:maple:6",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 100,
+      "localSurfaceY": 14,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:7",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 33,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:broadleaf:9",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 95,
+      "localSurfaceY": 70,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:11",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 44,
+      "localSurfaceY": 10,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:pine:12",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 13,
+      "localSurfaceY": 20,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:broadleaf:13",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 51,
+      "localSurfaceY": 73,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:15",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 85,
+      "localSurfaceY": 82,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:pine:16",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 101,
+      "localSurfaceY": 97,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:19",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 85,
+      "localSurfaceY": 26,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:broadleaf:21",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 91,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:maple:22",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 79,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:silverleaf:23",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 17,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_zhenyue_node_1:town:tree:pine:24",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 49,
+      "localSurfaceY": 97,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    }
+  ]
+}

@@ -128,6 +128,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.NpcScheduleUpdate.Auto();
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
             if (bootstrap.Session.IsPaused)
@@ -540,6 +541,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.NpcLateUpdate.Auto();
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized ||
                 bootstrap.Session.World == null)
                 return;

@@ -50,7 +50,10 @@ namespace XianXia.Core.World.Strategic
             // 起事负责先前的独立与宣战；Capture 完成只负责第一章政治成立进度。
             if (string.Equals(siteId, HuangcunSiteId, System.StringComparison.Ordinal) &&
                 string.Equals(newOwnerFactionId, StrategicFactionCatalog.PlayerFactionId, StringComparison.Ordinal))
+            {
                 world.Flags.Set(FlagPlayerFactionPoliticallyActive);
+                HuangcunOpeningAccess.RefreshUnlock(world);
+            }
         }
 
         /// <summary>Future: FormerOverlordSect offers vassalage after war progression. DEFER — hook only.</summary>

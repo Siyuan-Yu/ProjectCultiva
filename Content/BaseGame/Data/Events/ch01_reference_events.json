@@ -7,7 +7,12 @@
       "name": "开局·杂役晨点",
       "trigger": "manual",
       "once": true,
-      "conditions": [],
+      "conditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "entryStepId": "step_001",
       "steps": [
         {
@@ -47,6 +52,10 @@
         {
           "kind": "storyFlag",
           "id": "quest:ch01_ref_dispatch_done"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "entryStepId": "step_001",
@@ -127,16 +136,7 @@
               "id": "later",
               "text": "改日再来。",
               "conditions": [],
-              "outcomes": [
-                {
-                  "kind": "setFlag",
-                  "id": "story:jiang_lao_met"
-                },
-                {
-                  "kind": "startQuest",
-                  "id": "base:quest_jiang_lao_chess"
-                }
-              ],
+              "outcomes": [],
               "nextStepId": ""
             }
           ]
@@ -260,7 +260,7 @@
         {
           "id": "step_001",
           "speakerRef": "@target",
-          "text": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍与开山拳秘本领走——入了炼气再研读，莫要浪费。」",
+          "text": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍与开山拳秘本领走。功法要看所需境界，斗技秘本也得静心研读；拿到手，可不等于已经学会。」",
           "outcomes": [],
           "choices": [
             {

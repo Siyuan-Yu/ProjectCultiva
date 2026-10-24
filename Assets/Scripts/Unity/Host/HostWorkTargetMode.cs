@@ -39,6 +39,7 @@ namespace XianXia.Unity.Host
         bool _idleHoverInteractable;
         string _hoverHint = string.Empty;
         bool _cursorOverridden;
+        bool _appliedCursorAllowed;
 
         public bool IsActive => armed != ArmKind.None;
 
@@ -152,8 +153,15 @@ namespace XianXia.Unity.Host
 
         void OnDisable() => ClearCursorOverride();
 
+        void OnApplicationFocus(bool focused)
+        {
+            // The Editor/OS may replace the hardware cursor while the game loses focus.
+            ClearCursorOverride();
+        }
+
         void Update()
         {
+            using var timing = HostDebugHud.WorkTargetUpdate.Auto();
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
             {
                 ClearCursorOverride();
@@ -228,8 +236,12 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
-            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target,
-                    WorldObjectPickPurpose.WorkTarget) &&
+            WorldObjectInteractionTarget target;
+            bool picked;
+            using (HostDebugHud.WorkTargetPick.Auto())
+                picked = HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out target,
+                    WorldObjectPickPurpose.WorkTarget);
+            if (picked &&
                 target.Kind == WorldObjectTargetKind.FarmPlot)
             {
                 var authorization = ResolveFarmAuthorization(target.Plot);
@@ -247,7 +259,11 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (TryFindWorkInteractAt(point, world, out var work))
+            HostInteractSpot work;
+            bool hasWork;
+            using (HostDebugHud.WorkTargetWorkSpot.Auto())
+                hasWork = TryFindWorkInteractAt(point, world, out work);
+            if (hasWork)
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键交互·" + work.Label;
@@ -279,7 +295,11 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (TryPickNpcAtMouse(out var npc) &&
+            EntityId npc;
+            bool hasNpc;
+            using (HostDebugHud.WorkTargetNpc.Auto())
+                hasNpc = TryPickNpcAtMouse(out npc);
+            if (hasNpc &&
                 selectionController != null &&
                 !selectionController.IsPartyUnit(npc))
             {
@@ -785,8 +805,10 @@ namespace XianXia.Unity.Host
 
         void ApplyCursor(bool ok)
         {
+            if (_cursorOverridden && _appliedCursorAllowed == ok) return;
             EnsureCursors();
             _cursorOverridden = true;
+            _appliedCursorAllowed = ok;
             Cursor.SetCursor(ok ? _cursorGreen : _cursorRed, new Vector2(8f, 8f), CursorMode.Auto);
         }
 

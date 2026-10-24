@@ -85,10 +85,11 @@ namespace XianXia.Unity.EditorTools
 
         internal static FormalOpeningSelection ReadFormalOpening(string packageRoot)
         {
-            var path = Path.Combine(packageRoot, "formal-opening.json");
-            if (!File.Exists(path)) throw new BuildFailedException("缺少正式开局绑定：" + path);
-            var selection = JsonUtility.FromJson<FormalOpeningSelection>(File.ReadAllText(path));
-            if (selection == null) throw new BuildFailedException("正式开局绑定无效：空配置");
+            var selection = new FormalOpeningSelection();
+            if (!ContentPackageValidationFacade.TryReadFormalOpening(packageRoot,
+                    out selection.openingScenarioId, out selection.characterRosterId,
+                    out selection.preferredMapLayoutId, out var readError))
+                throw new BuildFailedException(readError);
             if (!ContentPackageValidationFacade.TryValidateOpeningSelection(packageRoot,
                     selection.openingScenarioId, selection.characterRosterId, selection.preferredMapLayoutId, out var message))
                 throw new BuildFailedException("正式开局绑定无效：" + message);

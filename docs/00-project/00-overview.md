@@ -1,5 +1,21 @@
 # 修仙游戏策划案总览
 
+> 2026-10-25 新据点方向见 [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)：正常新游戏以可占领固定议政厅取代建旗新建据点，保留 102 个现有旗 Site 身份；荒村一级，青石与 102 个旧旗据点暂三级，其他固定地点保留当前等级；议政厅 1～5 级范围长宽倍率 1／1.5／2／2.5／3。青石采用少分叉正交街路。当前为 Design Confirmed / Implementation Pending，正式游戏仍按下方已实现状态运行。
+
+> 2026-10-24最新以[342](../40-process/342-world-settlements-and-public-techniques-2026-10-24.md)为准：现有108处据点已有街区及分级建筑，宗门主城接入交易，公开传承扩充；版本0.0.17需新开局。炼丹炼器生产链与高阶宗主仍未实现，运行待验收。
+
+> 2026-10-24布局最新以[341](../40-process/341-huangcun-quadrants-resources-and-workrooms-2026-10-24.md)为准：荒村紧排田地、主管巡卫右下住房、散生资源与低级木制功能房已配置，版本0.0.16需新开局，运行待验收。炼丹／炼器配方生产仍未实现。
+
+> 2026-10-24内容最新状态见[340](../40-process/340-huangcun-daily-life-and-settlement-content-2026-10-24.md)：荒村近邻生产／作息／生活委托与青石公共设施已补充，版本0.0.15需新开局，运行待验收；后续宗城、工坊与夜间追捕仍按该文未完边界推进。本轮制作人确认卡顿基本解决，不等于200 FPS验收。
+
+> 2026-10-24现状与本轮推进统一见[339](../40-process/339-pointer-facing-and-movement-performance-2026-10-24.md)：现有框架上的荒村开局与宗门内容扩充，主控持续鼠标朝向及移动性能已返修，当前路线采样约125 FPS并获顺滑改善反馈；追加优化及完整交互待验。宗门领地已发布，完整城内内容仍待补。本页历史状态须结合247最新覆写阅读。
+
+> 2026-10-24布局最新结果见[334](../40-process/334-compact-faction-territories-and-single-core-huangcun-2026-10-24.md)：同宗据点邻接收拢，荒村设施与围墙全部纳入单议政厅范围，原补范围旗移到村外独立据点。世界尺寸与行政规则不变。
+
+> 2026-10-24人口与宗门内容最新状态见[333](../40-process/333-small-village-and-sixteen-sects-content-2026-10-24.md)和[宗门目录](../30-content/16-sect-world-content-catalog.md)：荒村收紧为13人，青石镇承接迁居者与公开书院。高阶境界与宗城仍为设计候选；未改现有框架。
+
+> 当前开局规则与本轮结果统一见[332](../40-process/332-huangcun-confined-opening-and-liberation-2026-10-23.md)：占领荒村前封闭村界、暂停外界自主模拟，真实占领后开放外界与势力玩法。其余现有系统保持各自已实施／已验收状态，最新Snapshot仍为v17。本页只保留总纲。
+
 > 2026-10-18 人物表现与美术源文件最新实施/待验状态统一见 [297 当前交接](../40-process/297-art-rig-and-source-cleanup-current-handoff-2026-10-18.md)；本总览不重复美术实现细节。
 
 ## CIVILIAN-LIFE-01（2026-09-27）

@@ -88,6 +88,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.WorkLoopLateUpdate.Auto();
             if (_looping.Count == 0 || bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
             if (commandBridge == null)

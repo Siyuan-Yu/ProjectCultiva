@@ -1,0 +1,3139 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "site:runtime:base:flag_sect_guanxing_node_5",
+  "displayName": "望野关",
+  "widthCells": 120,
+  "heightCells": 120,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_0",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_0",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_0_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 21,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_0",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_0_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_0",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_1",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_1",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_1_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 35,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_1",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_1_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_1",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_2",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_2",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_2_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_2",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_2"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_2_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_2",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_2"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_3",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 90,
+      "localSurfaceY": 24,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_3",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_3_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_3",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_3"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_3_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 26,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_3",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_3"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_4",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_4",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_4_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 21,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_4",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_4_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_4",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_5",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_5",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_5_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 35,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_5",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_5"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_5_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_5",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_5"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_6",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_6",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_6_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_6",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_6_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_6",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_7",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 90,
+      "localSurfaceY": 42,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:room_medium_stone",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_7",
+        "localPlaceName": "望野关石屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_7_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_7",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_7"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_7_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关石屋床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_home_7",
+        "localPlaceName": "望野关石屋床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:home_7"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:manual_hall",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关小功法阁",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_manual_hall_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_manual_hall",
+        "localPlaceName": "望野关小功法阁",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:manual_hall_cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_manual_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:manual_hall_cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 25,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_manual_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:practice_hall",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关修炼屋",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_practice_hall_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_practice_hall",
+        "localPlaceName": "望野关修炼屋",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:practice_hall_cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_practice_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:practice_hall_cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 43,
+      "localSurfaceY": 86,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_practice_hall",
+        "localPlaceName": "静坐蒲团",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:inn",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关驿舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_inn_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_inn",
+        "localPlaceName": "望野关驿舍",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:inn_bed_0",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 77,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关驿舍床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_inn",
+        "localPlaceName": "望野关驿舍床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:inn"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:inn_bed_1",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关驿舍床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_inn",
+        "localPlaceName": "望野关驿舍床位",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "parentRoomId": "site:runtime:base:flag_sect_guanxing_node_5:town:inn"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:workshop",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 82,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关炼器室",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_smithy_room_mid",
+        "structureDurability": "260",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_workshop",
+        "localPlaceName": "望野关炼器室",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:storage",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 52,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "望野关公库",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "3",
+        "buildingId": "base:building_storage_room",
+        "structureDurability": "0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:recovery",
+      "kindId": "recoverySpot",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 70,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "歇息恢复处",
+        "blocksMovement": "false",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "buildingId": "base:building_recovery_spot",
+        "structureDurability": "0"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:chess_0",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 44,
+      "localSurfaceY": 70,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "露天棋桌",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:chess_1",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 58,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "露天棋桌",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:grain_0",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:grain_1",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:grain_2",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:grain_3",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "粮田",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:herb_0",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:herb_1",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:herb_2",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 78,
+      "localSurfaceY": 98,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:ore_iron",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 60,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "铁矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_ore_iron",
+        "localPlaceName": "铁矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:ore_copper",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 104,
+      "localSurfaceY": 42,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "铜矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_ore_copper",
+        "localPlaceName": "铜矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:ore_silver",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 108,
+      "localSurfaceY": 12,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_ore_silver",
+        "localPlaceName": "银矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:ore_spirit",
+      "kindId": "ore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 82,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "灵矿",
+        "blocksMovement": "true",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_sect_guanxing_node_5_ore_spirit",
+        "localPlaceName": "灵矿",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 8,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_8_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 8,
+      "widthCells": 3,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 8,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_8_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 9,
+      "localSurfaceY": 111,
+      "widthCells": 3,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_12",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 12,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_12_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_12",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 12,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_12_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_16",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 16,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_16_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 16,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_16",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 16,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_16_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 16,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_20",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 20,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_20_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_20",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 20,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_20_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_24",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_24_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_24",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 24,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_24_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 24,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_28",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 28,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_28_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 28,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_28",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 28,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_28_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 28,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_32",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 32,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_32_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_32",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 32,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_32_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_36",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 36,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_36_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_36",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 36,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_36_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_40",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 40,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_40_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_40",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 40,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_40_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_44",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_44_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 44,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_44",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 44,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_44_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 44,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_48",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 48,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_48_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 48,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_48",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 48,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_48_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 48,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_52",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 52,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_52_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 52,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_52",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 52,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_52_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 52,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_68",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 68,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_68_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 68,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_68",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 68,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_68_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 68,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_72",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 72,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_72_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_72",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 72,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_72_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 72,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_76",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 76,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_76_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_76",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 76,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_76_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 76,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_80",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 80,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_80_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_80",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 80,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_80_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 80,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_84",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_84_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 84,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_84",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 84,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_84_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 84,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_88",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 88,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_88_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 88,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_88",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 88,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_88_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 88,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_92",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 92,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_92_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 92,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_92",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 92,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_92_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 92,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_96",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 96,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_96_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 96,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_96",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 96,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_96_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 96,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_100",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 100,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_100_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 100,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_100",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 100,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_100_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 100,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_104",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 104,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_104_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 104,
+      "localSurfaceY": 8,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_104",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 104,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_104_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 104,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_8_108",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 8,
+      "localSurfaceY": 108,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_108_8",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 108,
+      "localSurfaceY": 8,
+      "widthCells": 3,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_v_111_108",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 111,
+      "localSurfaceY": 108,
+      "widthCells": 1,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "4",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:wall_h_108_111",
+      "kindId": "wallSegment",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 108,
+      "localSurfaceY": 111,
+      "widthCells": 3,
+      "heightCells": 1,
+      "rotationQuarterTurns": 1,
+      "metadata": {
+        "label": "石城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "3",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "130"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:0",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 65,
+      "localSurfaceY": 78,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:broadleaf:1",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 100,
+      "localSurfaceY": 71,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:maple:2",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 45,
+      "localSurfaceY": 96,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:silverleaf:3",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 87,
+      "localSurfaceY": 81,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:4",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 97,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:broadleaf:5",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 94,
+      "localSurfaceY": 17,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:maple:6",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 50,
+      "localSurfaceY": 91,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:silverleaf:7",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 13,
+      "localSurfaceY": 12,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:8",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 71,
+      "localSurfaceY": 13,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:maple:10",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 95,
+      "localSurfaceY": 11,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:silverleaf:11",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 15,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:12",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 68,
+      "localSurfaceY": 23,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:broadleaf:13",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 15,
+      "localSurfaceY": 86,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阔叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:maple:14",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 50,
+      "localSurfaceY": 99,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:silverleaf:15",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 83,
+      "localSurfaceY": 16,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:16",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 88,
+      "localSurfaceY": 104,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:silverleaf:19",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 71,
+      "localSurfaceY": 33,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "银叶树",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:20",
+      "kindId": "treeS",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 48,
+      "localSurfaceY": 38,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:maple:22",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 19,
+      "localSurfaceY": 72,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "赤枫",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "site:runtime:base:flag_sect_guanxing_node_5:town:tree:pine:24",
+      "kindId": "treeL",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 13,
+      "localSurfaceY": 91,
+      "widthCells": 6,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青松",
+        "blocksMovement": "true",
+        "sourceCellsW": "6",
+        "sourceCellsH": "6"
+      }
+    }
+  ]
+}

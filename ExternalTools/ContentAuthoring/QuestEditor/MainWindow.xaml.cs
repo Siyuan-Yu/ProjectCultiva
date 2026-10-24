@@ -50,6 +50,7 @@ public partial class MainWindow : Window
 
     void ConfigureEditors()
     {
+        JournalEditor.Configure(_package, JsonArrayEditorMode.Condition, "日志显示条件");
         OfferEditor.Configure(_package, JsonArrayEditorMode.Condition, "接取条件");
         CompleteEditor.Configure(_package, JsonArrayEditorMode.Condition, "完成条件");
         RewardsEditor.Configure(_package, JsonArrayEditorMode.Outcome, "奖励");
@@ -105,6 +106,7 @@ public partial class MainWindow : Window
             }
             else { DeliveryItemBox.Text = ""; DeliveryAmountBox.Text = "1"; AdditionalDeliveryBox.Text = ""; }
 
+            JournalEditor.LoadFrom(_quest.Raw["journalConditions"]);
             OfferEditor.LoadFrom(_quest.Raw["offerConditions"]);
             CompleteEditor.LoadFrom(_quest.Raw["completeConditions"]);
             RewardsEditor.LoadFrom(_quest.Raw["rewards"]);
@@ -508,7 +510,7 @@ public partial class MainWindow : Window
                     break;
                 case QuestOfferMode.NpcDialogue:
                     _quest.Raw["autoOffer"] = false;
-                    _quest.Raw["offerConditions"] = new JsonArray();
+                    _quest.Raw["offerConditions"] = OfferEditor.ToJsonArray();
                     break;
                 case QuestOfferMode.Auto:
                     QuestOfferService.ApplyAutoOffer(_quest.Raw, OfferEditor.ToJsonArray());
@@ -525,6 +527,7 @@ public partial class MainWindow : Window
             return false;
         }
 
+        _quest.Raw["journalConditions"] = JournalEditor.ToJsonArray();
         _quest.Raw["completeConditions"] = CompleteEditor.ToJsonArray();
         _quest.Raw["rewards"] = RewardsEditor.ToJsonArray();
         _quest.Raw["failConditions"] = FailCondEditor.ToJsonArray();

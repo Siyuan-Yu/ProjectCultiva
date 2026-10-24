@@ -1,0 +1,1384 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "base:site_chengzhen",
+  "displayName": "青石镇·公开书院与迁居区",
+  "widthCells": 140,
+  "heightCells": 160,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "base:site_chengzhen:quarter:library",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 53,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石书院·公开书架",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:auction",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 66,
+      "localSurfaceY": 53,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇·拍卖行",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:contact",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 53,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇·联络驿舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:contact:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 84,
+      "localSurfaceY": 57,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇·联络驿舍床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:contact",
+        "initialAssigneeSpawnKey": "base:character_ch01_ref_guard_c",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:herbs",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 73,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿青药材行",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:herbs:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 28,
+      "localSurfaceY": 77,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿青药材行床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:herbs",
+        "initialAssigneeSpawnKey": "base:character_ch01_ref_mortal_b",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:timber",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 73,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿柴木料行",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:timber:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 77,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿柴木料行床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:timber",
+        "initialAssigneeSpawnKey": "base:character_ch01_ref_wood_b",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:clinic",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 73,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿枝医舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Medical",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:clinic:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 56,
+      "localSurfaceY": 77,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "医舍病床",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:clinic",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:inn",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 30,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿生暂住客舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:inn:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 34,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "阿生暂住客舍床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:inn",
+        "initialAssigneeSpawnKey": "base:character_village_recruit",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:shop_home",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 26,
+      "localSurfaceY": 30,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "行商住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:shop_home:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 28,
+      "localSurfaceY": 34,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "行商住处床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:shop_home",
+        "initialAssigneeSpawnKey": "base:character_qingshi_shopkeeper",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:auction_home",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 38,
+      "localSurfaceY": 30,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "执事住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "buildingId": "base:room_medium_stone"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:auction_home:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 40,
+      "localSurfaceY": 34,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "执事住处床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:auction_home",
+        "initialAssigneeSpawnKey": "base:character_qingshi_auction_attendant",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:clinic_medical_bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 77,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石医舍备用医疗床",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "base:site_chengzhen:quarter:clinic",
+        "structureDurability": "60",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:chess",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 48,
+      "localSurfaceY": 66,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "书院门前棋盘",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 56,
+      "localSurfaceY": 66,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "书院静坐位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 59,
+      "localSurfaceY": 66,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "书院静坐位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:cushion_2",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 62,
+      "localSurfaceY": 66,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "书院静坐位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:medic_home",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 30,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "buildingId": "base:room_medium_stone",
+        "label": "阿枝住处",
+        "roomUsage": "Residential",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "structureDurability": "260"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:medic_home:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 56,
+      "localSurfaceY": 34,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "buildingId": "base:furniture_bed",
+        "label": "阿枝床位",
+        "parentRoomId": "base:site_chengzhen:quarter:medic_home",
+        "initialAssigneeSpawnKey": "base:character_ch01_ref_wood_c",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "structureDurability": "60"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:core_council_hall",
+      "kindId": "controlCore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 113,
+      "localSurfaceY": 119,
+      "widthCells": 8,
+      "heightCells": 8,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇·议政厅",
+        "blocksMovement": "true",
+        "boundLocationId": "base:loc_site_chengzhen_core",
+        "sourceCellsW": "8",
+        "sourceCellsH": "8"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:grain_0",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 92,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石近镇粮田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4",
+        "boundLocationId": "base:loc_qingshi_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:grain_1",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 29,
+      "localSurfaceY": 92,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石近镇粮田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4",
+        "boundLocationId": "base:loc_qingshi_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:grain_2",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 20,
+      "localSurfaceY": 100,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石近镇粮田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4",
+        "boundLocationId": "base:loc_qingshi_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:grain_3",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 29,
+      "localSurfaceY": 100,
+      "widthCells": 5,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石近镇粮田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "5",
+        "sourceCellsH": "4",
+        "boundLocationId": "base:loc_qingshi_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:herb_0",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 92,
+      "widthCells": 7,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石医舍药田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "7",
+        "sourceCellsH": "5",
+        "boundLocationId": "base:loc_qingshi_herb_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:herb_1",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 64,
+      "localSurfaceY": 92,
+      "widthCells": 7,
+      "heightCells": 5,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石医舍药田",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "7",
+        "sourceCellsH": "5",
+        "boundLocationId": "base:loc_qingshi_herb_farm"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:grain_store",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 39,
+      "localSurfaceY": 94,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "label": "青石公库·粮木药收存",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "3",
+        "sourceCellsH": "3"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:common_house",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 75,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "buildingId": "base:room_medium_stone",
+        "quarterTurns": "0",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "label": "青石歇脚屋",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:public_cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 94,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石公用蒲团",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:public_cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 85,
+      "localSurfaceY": 94,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石公用蒲团",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:public_cushion_2",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 88,
+      "localSurfaceY": 94,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石公用蒲团",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:public_cushion_3",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 91,
+      "localSurfaceY": 94,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青石公用蒲团",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_00",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_01",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_02",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_03",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_04",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_05",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 70,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_06",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 114,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_07",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_08",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_09",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_10",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_11",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_12",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 70,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_13",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 124,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_14",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_15",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_16",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_17",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_18",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_19",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 70,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_20",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 134,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_21",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_22",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 22,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_23",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_24",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "青松",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_25",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "阔叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_26",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 70,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "赤枫",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:tree_340_27",
+      "kindId": "treeM",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 82,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "false",
+        "label": "银叶树",
+        "siteId": "base:site_chengzhen",
+        "legacyGeometryState": "edited",
+        "sourceCellsW": "2",
+        "sourceCellsH": "2",
+        "boundLocationId": "base:loc_qingshi_forest"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:alchemy_room",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 144,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇中级丹室",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_alchemy_room_mid",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "boundLocationId": "base:loc_qingshi_alchemy_room"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:smithy_room",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 144,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇中级炼器室",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_smithy_room_mid",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "boundLocationId": "base:loc_qingshi_smithy_room"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:practice_hall",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 62,
+      "localSurfaceY": 144,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "青石镇修炼堂",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "buildingId": "base:building_practice_hall_mid",
+        "roomUsage": "Residential",
+        "structureDurability": "260",
+        "boundLocationId": "base:loc_qingshi_practice_hall"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:practice_hall:cushion:0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 64,
+      "localSurfaceY": 148,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice_hall"
+      }
+    },
+    {
+      "placementId": "base:site_chengzhen:quarter:practice_hall:cushion:1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 67,
+      "localSurfaceY": 148,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "静坐蒲团",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1",
+        "boundLocationId": "base:loc_qingshi_practice_hall"
+      }
+    }
+  ]
+}

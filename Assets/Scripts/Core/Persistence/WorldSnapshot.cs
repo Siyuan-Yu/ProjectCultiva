@@ -5,7 +5,8 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 17;
+        public const int CurrentSchemaVersion = 18;
+        public const int PreFlightSchemaVersion = 17;
         public const int PreMedicalSchemaVersion = 15;
         public const int PreGroundLootSchemaVersion = 16;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
@@ -859,6 +860,7 @@ namespace XianXia.Core.Persistence
         public int InitialLoyalty { get; set; } = 50;
 
         /// <summary>CombatVitals 当前生命；旧档缺省时 Restore 不灌满（PoolsInitialized=false 仅在无 vitals 字段时）。</summary>
+        public XianXia.Core.Combat.FlightComponent Flight { get; set; }
         public bool HasCombatVitals { get; set; }
         public int CurrentHp { get; set; }
         public int CurrentSpiritPower { get; set; }

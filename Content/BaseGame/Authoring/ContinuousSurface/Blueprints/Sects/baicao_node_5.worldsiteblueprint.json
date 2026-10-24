@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "design:baicao_node_5",
+  "displayName": "采药谷（布局候选）",
+  "widthCells": 80,
+  "heightCells": 64,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "design:baicao_node_5:hall",
+      "kindId": "controlCore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 36,
+      "localSurfaceY": 40,
+      "widthCells": 8,
+      "heightCells": 8,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·管事堂",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "8"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:store",
+      "kindId": "storageRoom",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 32,
+      "widthCells": 4,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·库房",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:clinic",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 16,
+      "localSurfaceY": 32,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·医舍",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_0",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 12,
+      "localSurfaceY": 12,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_0:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 14,
+      "localSurfaceY": 16,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:baicao_node_5:housing_0",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_1",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 32,
+      "localSurfaceY": 12,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_1:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 16,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:baicao_node_5:housing_1",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_2",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 52,
+      "localSurfaceY": 12,
+      "widthCells": 8,
+      "heightCells": 12,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "采药谷·弟子住处",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "12",
+        "roomUsage": "Residential",
+        "buildingId": "base:room_normal_wood"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:housing_2:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 54,
+      "localSurfaceY": 16,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "待分配床位",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "parentRoomId": "design:baicao_node_5:housing_2",
+        "buildingId": "base:furniture_bed"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:cushion_0",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 34,
+      "localSurfaceY": 30,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:cushion_1",
+      "kindId": "cushion",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 37,
+      "localSurfaceY": 30,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "独立修炼位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:chess",
+      "kindId": "chessBoard",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 46,
+      "localSurfaceY": 30,
+      "widthCells": 1,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "闲暇棋盘",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "1"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:grain",
+      "kindId": "grainField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 10,
+      "localSurfaceY": 48,
+      "widthCells": 8,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "供应田",
+        "blocksMovement": "false",
+        "sourceCellsW": "8",
+        "sourceCellsH": "6"
+      }
+    },
+    {
+      "placementId": "design:baicao_node_5:herbs",
+      "kindId": "herbField",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 58,
+      "localSurfaceY": 48,
+      "widthCells": 8,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "药圃",
+        "blocksMovement": "false",
+        "sourceCellsW": "8",
+        "sourceCellsH": "6"
+      }
+    }
+  ]
+}

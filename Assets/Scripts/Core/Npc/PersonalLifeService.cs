@@ -5,6 +5,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.World;
 using XianXia.Core.Orders;
 using XianXia.Core.Schedule;
@@ -50,6 +51,7 @@ namespace XianXia.Core.Npc
             if (world == null || loop == null) return;
             foreach (var entity in world.Entities.All)
             {
+                if (!HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 var personal = Ensure(world, entity);
                 if (personal == null) continue;
                 AdvanceNeeds(world, entity, personal);

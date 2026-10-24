@@ -132,9 +132,24 @@ namespace XianXia.Core.Construction
 
     public sealed class OutdoorConstructedAssetBoard
     {
+        const float SpatialBucketSize = 50f;
         readonly Dictionary<string, OutdoorConstructedAssetState> _assets =
             new Dictionary<string, OutdoorConstructedAssetState>(StringComparer.Ordinal);
+        // Derived query acceleration only. Registered footprints are immutable; snapshot restore
+        // uses Clear/TryRegister, so no spatial state is serialized or promoted to authority.
+        readonly Dictionary<(string SurfaceId, int X, int Y), List<OutdoorConstructedAssetState>> _spatial =
+            new Dictionary<(string, int, int), List<OutdoorConstructedAssetState>>();
+        readonly Dictionary<string, OutdoorConstructedAssetState> _exclusiveLocations =
+            new Dictionary<string, OutdoorConstructedAssetState>(StringComparer.Ordinal);
+        readonly List<OutdoorConstructedAssetState> _beds = new List<OutdoorConstructedAssetState>();
+        readonly Dictionary<string, List<OutdoorConstructedAssetState>> _bedsByRoom =
+            new Dictionary<string, List<OutdoorConstructedAssetState>>(StringComparer.Ordinal);
         public IReadOnlyDictionary<string, OutdoorConstructedAssetState> Assets => _assets;
+        public IReadOnlyList<OutdoorConstructedAssetState> Beds => _beds;
+        public IReadOnlyList<OutdoorConstructedAssetState> BedsInRoom(string roomId) =>
+            roomId != null && _bedsByRoom.TryGetValue(roomId, out var beds)
+                ? (IReadOnlyList<OutdoorConstructedAssetState>)beds
+                : Array.Empty<OutdoorConstructedAssetState>();
         public long NextSequence { get; private set; } = 1;
         public string NextId => NextIdForKind("grainField");
         public string NextRecoveryId => NextIdForKind(OutdoorConstructedAssetSemantics.RecoverySpotKind);
@@ -153,22 +168,98 @@ namespace XianXia.Core.Construction
                                 : "asset:runtime:farm:";
             return prefix + NextSequence.ToString(CultureInfo.InvariantCulture);
         }
-        public void Clear() { _assets.Clear(); NextSequence = 1; }
+        public void Clear()
+        {
+            _assets.Clear(); _spatial.Clear(); _exclusiveLocations.Clear();
+            _beds.Clear(); _bedsByRoom.Clear(); NextSequence = 1;
+        }
         public bool TryRegister(OutdoorConstructedAssetState asset)
         {
             if (asset == null || !asset.IsValid || _assets.ContainsKey(asset.StableAssetId)) return false;
-            foreach (var existing in _assets.Values)
-                if ((!string.IsNullOrWhiteSpace(asset.BoundLocationId) &&
-                     existing.BoundLocationId == asset.BoundLocationId &&
-                     !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) &&
-                     !string.Equals(existing.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) &&
-                     !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal) &&
-                     !string.Equals(existing.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)) ||
-                    (Overlaps(existing, asset) && !RoomBedGeometry.IsAllowedNestedPair(existing, asset))) return false;
+            if (HasExclusiveLocation(asset) && _exclusiveLocations.ContainsKey(asset.BoundLocationId)) return false;
+            foreach (var existing in QueryOverlapping(asset.SurfaceId,
+                         asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight))
+                if (Overlaps(existing, asset) && !RoomBedGeometry.IsAllowedNestedPair(existing, asset)) return false;
             _assets.Add(asset.StableAssetId, asset);
+            if (HasExclusiveLocation(asset)) _exclusiveLocations.Add(asset.BoundLocationId, asset);
+            AddToSpatial(asset);
+            if (RoomBedGeometry.IsBed(asset))
+            {
+                _beds.Add(asset);
+                if (!_bedsByRoom.TryGetValue(asset.ParentRoomId ?? string.Empty, out var roomBeds))
+                    _bedsByRoom.Add(asset.ParentRoomId ?? string.Empty,
+                        roomBeds = new List<OutdoorConstructedAssetState>());
+                roomBeds.Add(asset);
+            }
             return true;
         }
-        internal void Remove(string id) => _assets.Remove(id);
+        internal void Remove(string id)
+        {
+            if (!_assets.TryGetValue(id, out var asset)) return;
+            RemoveFromSpatial(asset);
+            if (HasExclusiveLocation(asset)) _exclusiveLocations.Remove(asset.BoundLocationId);
+            if (RoomBedGeometry.IsBed(asset))
+            {
+                _beds.Remove(asset);
+                var roomId = asset.ParentRoomId ?? string.Empty;
+                if (_bedsByRoom.TryGetValue(roomId, out var roomBeds))
+                {
+                    roomBeds.Remove(asset);
+                    if (roomBeds.Count == 0) _bedsByRoom.Remove(roomId);
+                }
+            }
+            _assets.Remove(id);
+        }
+        static bool HasExclusiveLocation(OutdoorConstructedAssetState asset) =>
+            !string.IsNullOrWhiteSpace(asset.BoundLocationId) &&
+            !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.BedKind, StringComparison.Ordinal) &&
+            !string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal);
+
+        static int Bucket(float world) => (int)Math.Floor(world / SpatialBucketSize);
+
+        void AddToSpatial(OutdoorConstructedAssetState asset)
+        {
+            for (var y = Bucket(asset.WorldY); y <= Bucket(asset.WorldY + asset.WorldHeight); y++)
+            for (var x = Bucket(asset.WorldX); x <= Bucket(asset.WorldX + asset.WorldWidth); x++)
+            {
+                var key = (asset.SurfaceId, x, y);
+                if (!_spatial.TryGetValue(key, out var items))
+                    _spatial.Add(key, items = new List<OutdoorConstructedAssetState>());
+                items.Add(asset);
+            }
+        }
+
+        void RemoveFromSpatial(OutdoorConstructedAssetState asset)
+        {
+            for (var y = Bucket(asset.WorldY); y <= Bucket(asset.WorldY + asset.WorldHeight); y++)
+            for (var x = Bucket(asset.WorldX); x <= Bucket(asset.WorldX + asset.WorldWidth); x++)
+            {
+                var key = (asset.SurfaceId, x, y);
+                if (!_spatial.TryGetValue(key, out var items)) continue;
+                items.Remove(asset);
+                if (items.Count == 0) _spatial.Remove(key);
+            }
+        }
+
+        public IEnumerable<OutdoorConstructedAssetState> QueryOverlapping(
+            string surfaceId, float worldX, float worldY, float width, float height)
+        {
+            if (string.IsNullOrEmpty(surfaceId) || width <= 0f || height <= 0f) yield break;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            for (var y = Bucket(worldY); y <= Bucket(worldY + height); y++)
+            for (var x = Bucket(worldX); x <= Bucket(worldX + width); x++)
+            {
+                if (!_spatial.TryGetValue((surfaceId, x, y), out var items)) continue;
+                for (var i = 0; i < items.Count; i++)
+                {
+                    var asset = items[i];
+                    if (seen.Add(asset.StableAssetId) &&
+                        asset.WorldX < worldX + width && worldX < asset.WorldX + asset.WorldWidth &&
+                        asset.WorldY < worldY + height && worldY < asset.WorldY + asset.WorldHeight)
+                        yield return asset;
+                }
+            }
+        }
         internal void AdvanceSequence() { NextSequence = checked(NextSequence + 1); }
         public bool RestoreSequence(long sequence)
         {
@@ -274,11 +365,16 @@ namespace XianXia.Core.Construction
             out WorldVec2 point)
         {
             point = default;
-            var candidates = new List<WorldVec2>(4);
-            CollectAccessPoints(board, bed, candidates);
-            if (candidates.Count == 0) return false;
-            point = candidates[0];
-            return true;
+            if (!TryResolveAccessGeometry(board, bed, out var room, out var cellX, out var cellY))
+                return false;
+            for (var i = 0; i < 4; i++)
+            {
+                var candidate = AccessCandidate(bed, cellX, cellY, i);
+                if (!IsLegalAccessCandidate(board, bed, room, candidate, cellX, cellY)) continue;
+                point = candidate;
+                return true;
+            }
+            return false;
         }
 
         public static void CollectAccessPoints(
@@ -288,26 +384,13 @@ namespace XianXia.Core.Construction
         {
             if (into == null) throw new ArgumentNullException(nameof(into));
             into.Clear();
-            if (board == null || !IsBed(bed) || bed.CellsW <= 0 || bed.CellsH <= 0) return;
-            OutdoorConstructedAssetState room = null;
-            if (!string.IsNullOrEmpty(bed.ParentRoomId) &&
-                (!board.Assets.TryGetValue(bed.ParentRoomId, out room) || !FitsUsableInterior(room, bed)))
+            if (!TryResolveAccessGeometry(board, bed, out var room, out var cellX, out var cellY))
                 return;
-
-            var cellX = room != null ? room.WorldWidth / room.CellsW : bed.WorldWidth / bed.CellsW;
-            var cellY = room != null ? room.WorldHeight / room.CellsH : bed.WorldHeight / bed.CellsH;
-            var candidates = new[] {
-                new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY - cellY * .5f),
-                new WorldVec2(bed.WorldX + bed.WorldWidth + cellX * .5f, bed.WorldY + bed.WorldHeight * .5f),
-                new WorldVec2(bed.WorldX - cellX * .5f, bed.WorldY + bed.WorldHeight * .5f),
-                new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY + bed.WorldHeight + cellY * .5f)
-            };
-            for (var i = 0; i < candidates.Length; i++)
+            for (var i = 0; i < 4; i++)
             {
-                var candidate = candidates[i];
-                if (room != null && !CellFitsInterior(room, candidate, cellX, cellY)) continue;
-                if (CellOverlapsFurniture(board, bed, room, candidate, cellX, cellY)) continue;
-                into.Add(candidate);
+                var candidate = AccessCandidate(bed, cellX, cellY, i);
+                if (IsLegalAccessCandidate(board, bed, room, candidate, cellX, cellY))
+                    into.Add(candidate);
             }
         }
 
@@ -317,14 +400,80 @@ namespace XianXia.Core.Construction
             WorldVec2 point,
             float epsilon = .001f)
         {
-            var candidates = new List<WorldVec2>(4);
-            CollectAccessPoints(board, bed, candidates);
-            for (var i = 0; i < candidates.Count; i++)
-                if (Math.Abs(candidates[i].X - point.X) <= epsilon &&
-                    Math.Abs(candidates[i].Y - point.Y) <= epsilon)
+            if (!TryResolveAccessGeometry(board, bed, out var room, out var cellX, out var cellY))
+                return false;
+            for (var i = 0; i < 4; i++)
+            {
+                var candidate = AccessCandidate(bed, cellX, cellY, i);
+                if (Math.Abs(candidate.X - point.X) <= epsilon &&
+                    Math.Abs(candidate.Y - point.Y) <= epsilon &&
+                    IsLegalAccessCandidate(board, bed, room, candidate, cellX, cellY))
                     return true;
+            }
             return false;
         }
+
+        internal static bool IsWithinAccessPointRange(
+            OutdoorConstructedAssetBoard board,
+            OutdoorConstructedAssetState bed,
+            WorldVec2 point,
+            float distanceSquared)
+        {
+            if (!TryResolveAccessGeometry(board, bed, out var room, out var cellX, out var cellY))
+                return false;
+            for (var i = 0; i < 4; i++)
+            {
+                var candidate = AccessCandidate(bed, cellX, cellY, i);
+                var dx = point.X - candidate.X;
+                var dy = point.Y - candidate.Y;
+                // Distant candidates cannot match; only matching candidates need the
+                // unchanged room-interior and furniture-overlap checks.
+                if (dx * dx + dy * dy <= distanceSquared &&
+                    IsLegalAccessCandidate(board, bed, room, candidate, cellX, cellY))
+                    return true;
+            }
+            return false;
+        }
+
+        static bool TryResolveAccessGeometry(
+            OutdoorConstructedAssetBoard board,
+            OutdoorConstructedAssetState bed,
+            out OutdoorConstructedAssetState room,
+            out float cellX,
+            out float cellY)
+        {
+            room = null;
+            cellX = cellY = 0f;
+            if (board == null || !IsBed(bed) || bed.CellsW <= 0 || bed.CellsH <= 0) return false;
+            if (!string.IsNullOrEmpty(bed.ParentRoomId) &&
+                (!board.Assets.TryGetValue(bed.ParentRoomId, out room) || !FitsUsableInterior(room, bed)))
+                return false;
+            cellX = room != null ? room.WorldWidth / room.CellsW : bed.WorldWidth / bed.CellsW;
+            cellY = room != null ? room.WorldHeight / room.CellsH : bed.WorldHeight / bed.CellsH;
+            return true;
+        }
+
+        static WorldVec2 AccessCandidate(OutdoorConstructedAssetState bed, float cellX, float cellY, int index)
+        {
+            // Preserve the authored preference: below, right, left, then above.
+            switch (index)
+            {
+                case 0: return new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY - cellY * .5f);
+                case 1: return new WorldVec2(bed.WorldX + bed.WorldWidth + cellX * .5f, bed.WorldY + bed.WorldHeight * .5f);
+                case 2: return new WorldVec2(bed.WorldX - cellX * .5f, bed.WorldY + bed.WorldHeight * .5f);
+                default: return new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY + bed.WorldHeight + cellY * .5f);
+            }
+        }
+
+        static bool IsLegalAccessCandidate(
+            OutdoorConstructedAssetBoard board,
+            OutdoorConstructedAssetState bed,
+            OutdoorConstructedAssetState room,
+            WorldVec2 point,
+            float cellX,
+            float cellY) =>
+            (room == null || CellFitsInterior(room, point, cellX, cellY)) &&
+            !CellOverlapsFurniture(board, bed, room, point, cellX, cellY);
 
         static bool CellFitsInterior(OutdoorConstructedAssetState room, WorldVec2 point, float cellX, float cellY)
         {
@@ -348,7 +497,8 @@ namespace XianXia.Core.Construction
             var left = point.X - cellX * .5f;
             var bottom = point.Y - cellY * .5f;
             var epsilon = Math.Min(cellX, cellY) * .001f;
-            foreach (var asset in board.Assets.Values)
+            foreach (var asset in board.QueryOverlapping(bed.SurfaceId,
+                         left, bottom, cellX, cellY))
             {
                 if (ReferenceEquals(asset, bed) || ReferenceEquals(asset, room) ||
                     asset.StableAssetId == bed.StableAssetId || room != null && asset.StableAssetId == room.StableAssetId)
@@ -615,15 +765,8 @@ namespace XianXia.Core.Construction
                 !presence.HasWorldPosition || presence.SurfaceId != bed.SurfaceId) return false;
             var cell = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
                 ? metric.CellSize : Math.Min(bed.WorldWidth / bed.CellsW, bed.WorldHeight / bed.CellsH);
-            var accesses = new List<WorldVec2>(4);
-            RoomBedGeometry.CollectAccessPoints(world.OutdoorConstructedAssets, bed, accesses);
-            for (var i = 0; i < accesses.Count; i++)
-            {
-                var dx = presence.WorldPosition.X - accesses[i].X;
-                var dy = presence.WorldPosition.Y - accesses[i].Y;
-                if (dx * dx + dy * dy <= cell * cell * .75f * .75f) return true;
-            }
-            return false;
+            return RoomBedGeometry.IsWithinAccessPointRange(world.OutdoorConstructedAssets, bed,
+                presence.WorldPosition, cell * cell * .75f * .75f);
         }
 
         public static bool CanUseBed(
@@ -688,14 +831,14 @@ namespace XianXia.Core.Construction
 
         public static IEnumerable<OutdoorConstructedAssetState> BedsInRoom(SimulationWorld world, string roomId)
         {
-            foreach (var bed in Beds(world)) if (bed.ParentRoomId == roomId) yield return bed;
+            if (world == null) yield break;
+            foreach (var bed in world.OutdoorConstructedAssets.BedsInRoom(roomId)) yield return bed;
         }
 
         static IEnumerable<OutdoorConstructedAssetState> Beds(SimulationWorld world)
         {
             if (world == null) yield break;
-            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
-                if (RoomBedGeometry.IsBed(asset)) yield return asset;
+            foreach (var bed in world.OutdoorConstructedAssets.Beds) yield return bed;
         }
     }
 

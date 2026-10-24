@@ -18,6 +18,8 @@ namespace XianXia.Unity.Host
         public void Open()
         {
             if (!HostPlayerPaths.IsFormalPlayer) return;
+            if (!_visible && _host?.Session?.IsInitialized == true &&
+                (HostInputGate.BlockWorldInteraction || _host.Session.ModalHardPaused)) return;
             _visible = true;
             Acquire();
         }

@@ -11,7 +11,12 @@
       "acceptanceMode": "journal",
       "autoOffer": false,
       "abandonable": true,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "completeConditions": [
         {
           "kind": "exploredLocation",
@@ -21,7 +26,13 @@
       "rewards": [],
       "failConditions": [],
       "failResults": [],
-      "deadlineDays": 7
+      "deadlineDays": 7,
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_social01_cave_b",
@@ -33,7 +44,12 @@
       "acceptanceMode": "journal",
       "autoOffer": false,
       "abandonable": true,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "completeConditions": [
         {
           "kind": "exploredLocation",
@@ -43,7 +59,13 @@
       "rewards": [],
       "failConditions": [],
       "failResults": [],
-      "deadlineDays": 9
+      "deadlineDays": 9,
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_social01_general",
@@ -55,7 +77,12 @@
       "acceptanceMode": "journal",
       "autoOffer": false,
       "abandonable": true,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "completeConditions": [
         {
           "kind": "exploredLocation",
@@ -64,7 +91,13 @@
       ],
       "rewards": [],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     }
   ]
 }

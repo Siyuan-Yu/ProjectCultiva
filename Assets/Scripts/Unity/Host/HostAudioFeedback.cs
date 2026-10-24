@@ -15,7 +15,10 @@ namespace XianXia.Unity.Host
             var index = (int)cue;
             if (Time.unscaledTime - LastPlayed[index] < (cue == Cue.Hit ? .08f : .18f)) return;
             LastPlayed[index] = Time.unscaledTime;
-            var source = host.GetComponent<AudioSource>() ?? host.AddComponent<AudioSource>();
+            var source = host.GetComponent<AudioSource>();
+            // Unity's missing/destroyed native component is not a CLR null (so ?? is insufficient).
+            if (source == null) source = host.AddComponent<AudioSource>();
+            if (source == null) return;
             source.playOnAwake = false;
             source.spatialBlend = 0f;
             source.volume = .14f;

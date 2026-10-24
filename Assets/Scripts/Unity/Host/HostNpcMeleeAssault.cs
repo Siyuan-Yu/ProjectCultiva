@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -140,6 +140,7 @@ namespace XianXia.Unity.Host
                 return;
             if (!world.Entities.TryGet(id, out var e) || !SpiritVeilService.IsActive(e))
                 return;
+            bootstrap.GetComponent<HostFlightController>()?.TryAutoBegin(id);
             Toast(id, "展开斗气纱衣", new Color(0.55f, 0.9f, 1f));
         }
 
@@ -250,6 +251,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _scratch.Count; i++)
             {
                 var atkId = _scratch[i];
+                if (HostDirectionalRangedAttack.OwnsAttack(bootstrap, atkId)) continue;
                 if (!world.Entities.TryGet(atkId, out var atkEnt) ||
                     !atkEnt.TryGet<LifecycleComponent>(out var atkLife) ||
                     atkLife.IsRemoved ||
@@ -297,7 +299,8 @@ namespace XianXia.Unity.Host
                 var atkRange = _veil.ResolveEngageRange(atkEnt);
                 var dist = Vector2.Distance(new Vector2(ax, ay), new Vector2(dx, dy));
                 var needsApproach = dist > atkRange ||
-                    moveController != null && !moveController.IsCharacterStandClear(atkId);
+                    moveController != null && !moveController.IsCharacterStandClear(atkId) ||
+                    moveController == null || !moveController.HasCharacterSight(atkId, _defender);
                 if (needsApproach)
                 {
                     ChaseDefender(atkId, atkRange);
@@ -371,6 +374,7 @@ namespace XianXia.Unity.Host
                 return;
 
             // 守方反击：对一名在反击距离内的攻方出手
+            if (HostDirectionalRangedAttack.OwnsAttack(bootstrap, _defender)) return;
             if (_defenderCooldown > 0f)
                 return;
             if (!world.Entities.TryGet(_defender, out defEnt) ||
@@ -388,8 +392,8 @@ namespace XianXia.Unity.Host
                 if (!TryGetPresentation(atkId, out var ax, out var ay))
                     continue;
                 var dist = Vector2.Distance(new Vector2(ax, ay), new Vector2(dx, dy));
-                if (dist > defRange)
-                    continue;
+                if (dist > defRange || moveController == null ||
+                    !moveController.HasCharacterSight(_defender, atkId)) continue;
 
                 _counterFocus = (idx + 1) % Mathf.Max(1, _attackers.Count);
                 _defenderCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
@@ -434,7 +438,10 @@ namespace XianXia.Unity.Host
                 (counter ? attacker != _defender || !IsAttacker(target)
                          : target != _defender || !IsAttacker(attacker)) ||
                 !world.Entities.TryGet(target, out var targetEntity) ||
-                !CombatLifeStateService.CanFight(targetEntity)) return false;
+                !CombatLifeStateService.CanFight(targetEntity) ||
+                !world.Entities.TryGet(attacker, out var attackerEntity) ||
+                !CombatLifeStateService.CanFight(attackerEntity) ||
+                moveController == null || !moveController.HasCharacterSight(attacker, target)) return false;
 
             var hit = _melee.ApplyStrike(world, attacker, target, out var damage, out var defeated);
             if (hit.IsFailure) return false;
@@ -590,7 +597,7 @@ namespace XianXia.Unity.Host
                 return;
 
             _nextRepathByAttacker[attacker.Value] = Time.unscaledTime + Mathf.Max(0.1f, repathInterval);
-            moveController.OrderCharacterApproach(attacker, _defender, engageRange);
+            moveController.OrderCharacterApproach(attacker, _defender, engageRange, requireClearSight: true);
             SetFightActivity(attacker, true);
         }
 

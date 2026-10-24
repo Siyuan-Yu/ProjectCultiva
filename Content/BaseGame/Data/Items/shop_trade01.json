@@ -4,7 +4,7 @@
     {
       "id": "base:shop_qingshi_general",
       "type": "shop",
-      "displayName": "青石坊市·杂货铺",
+      "displayName": "青石坊市·杂货与书院公开书架",
       "initialWallet": {
         "low": 20000,
         "mid": 10,
@@ -12,7 +12,8 @@
       },
       "buybackMultiplier": 0.5,
       "acceptedTradeCategories": [
-        "Material"
+        "Material",
+        "Manual"
       ],
       "initialStock": [
         {
@@ -30,6 +31,262 @@
         {
           "itemId": "base:item_art_kaishan_fist",
           "quantity": 10
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhiheng_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_hehuan_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_hehuan_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_xuansha_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_xuansha_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_wanling_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_wanling_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_qingxiao_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_baicao_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_baicao_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhuxing_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_taiyan_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_taiyan_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tianlu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tianlu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhenyue_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tingyue_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tingyue_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_ningshuang_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_qiangu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_qiangu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tingyu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tingyu_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_guiming_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_guiming_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_guanxing_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_guanxing_intro",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_zhiheng_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhiheng_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_hehuan_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_hehuan_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_xuansha_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_xuansha_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_wanling_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_wanling_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_qingxiao_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_qingxiao_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_baicao_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_baicao_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_zhuxing_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhuxing_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_taiyan_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_taiyan_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tianlu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tianlu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_zhenyue_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_zhenyue_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tingyue_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tingyue_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_ningshuang_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_ningshuang_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_qiangu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_qiangu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_tingyu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_tingyu_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_guiming_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_guiming_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_manual_guanxing_branch",
+          "quantity": 2
+        },
+        {
+          "itemId": "base:item_art_guanxing_branch",
+          "quantity": 2
         }
       ]
     },

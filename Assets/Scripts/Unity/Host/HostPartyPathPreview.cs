@@ -51,6 +51,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.PathPreviewLateUpdate.Auto();
             _used = 0;
             if (!CanDraw())
             {

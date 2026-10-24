@@ -60,6 +60,8 @@ namespace XianXia.Data.Content
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
+            // ADR-0052: produced exclusively by a real Site capture, never by a dialogue outcome.
+            producedFlags.Add(HuangcunOpeningAccess.UnlockedFlag);
             ValidateFlagConsumers(producedFlags, consumedFlags, report);
 
             return report;
@@ -87,9 +89,15 @@ namespace XianXia.Data.Content
                 return report;
             }
 
-            var siteIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var site in surface.SiteRegions)
-                if (site != null && !string.IsNullOrWhiteSpace(site.SiteId)) siteIds.Add(site.SiteId);
+            var confinedOpening = ContentRuntimeBootstrap.RequiresConfinedOpening(registry, scenario);
+            var openingArea = new HuangcunOpeningArea();
+            if (confinedOpening)
+            {
+                ContentRuntimeBootstrap.BindOpeningArea(openingArea, surface);
+                if (!openingArea.IsConfigured)
+                    report.Add(ErrorCode.InvalidArgument, "封闭荒村开局缺少有效的作者围墙边界。", scenario.Id.ToString());
+            }
+            var siteIds = new HashSet<string>(surface.AuthoredSiteIdentities(), StringComparer.Ordinal);
             var locations = CollectLocationIds(registry);
             var ordinals = new Dictionary<string, int>(StringComparer.Ordinal);
             var spawnedIds = new HashSet<string>(StringComparer.Ordinal);
@@ -121,6 +129,10 @@ namespace XianXia.Data.Content
                 else if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId) &&
                          !string.Equals(spawn.WorldSiteId.Trim(), anchor.SiteId, StringComparison.Ordinal))
                     report.Add(ErrorCode.InvalidArgument, "Selected spawn Site differs from Surface anchor.", context + ":" + key);
+                if (confinedOpening && anchor != null &&
+                    string.Equals(anchor.SiteId, Ch01ScenarioProgressionHooks.HuangcunSiteId, StringComparison.Ordinal) &&
+                    !openingArea.Contains(surface.SurfaceId, anchor.WorldX, anchor.WorldY))
+                    report.Add(ErrorCode.InvalidArgument, "荒村人物开局位置在封闭村界之外。", context + ":" + key);
                 if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId) && !siteIds.Contains(spawn.WorldSiteId))
                     report.Add(ErrorCode.NotFound, "Selected spawn WorldSite missing on Surface.", context + ":" + spawn.WorldSiteId);
                 if (string.IsNullOrWhiteSpace(spawn.EntityKind) ||
@@ -277,6 +289,9 @@ namespace XianXia.Data.Content
         static void ValidateOutdoorStorageRooms(DefinitionRegistry registry, ValidationReport report)
         {
             var knownSites = CollectAuthoredSiteIds(registry);
+            foreach (var surface in registry.OutdoorSurfaces.Values)
+                if (surface != null && !surface.AcceptanceOnly)
+                    foreach (var siteId in surface.AuthoredSiteIdentities()) knownSites.Add(siteId);
             var storageSites = new HashSet<string>(StringComparer.Ordinal);
             foreach (var pair in registry.OutdoorSurfaces)
             {
@@ -418,6 +433,10 @@ namespace XianXia.Data.Content
                 AddLocationIds(set, kv.Value?.Locations);
             foreach (var kv in registry.OutdoorSurfaces)
             {
+                var places = kv.Value?.SitePlaces;
+                if (places != null)
+                    foreach (var place in places)
+                        if (!string.IsNullOrWhiteSpace(place?.LocationId)) set.Add(place.LocationId);
                 var placements = kv.Value?.SitePlacements;
                 if (placements == null)
                     continue;
@@ -663,10 +682,8 @@ namespace XianXia.Data.Content
                 }
 
                 var worldSites = new HashSet<string>(StringComparer.Ordinal);
-                if (openingSurface?.SiteRegions != null)
-                    foreach (var region in openingSurface.SiteRegions)
-                        if (region != null && !string.IsNullOrEmpty(region.SiteId))
-                            worldSites.Add(region.SiteId);
+                if (openingSurface != null)
+                    foreach (var siteId in openingSurface.AuthoredSiteIdentities()) worldSites.Add(siteId);
                 if (openingSurface?.OpeningEntityAnchors != null)
                 {
                     var anchorKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -959,7 +976,7 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.InvalidArgument, "Invalid bed kind, 1x2 dimensions or labor.", building.Id.ToString());
                 if (building.PlacementKind == "wallSegment" &&
                     (building.CreatesWorldSite || building.OutdoorKind != "wallSegment" ||
-                     building.FootprintCellsW != 1 || building.FootprintCellsH < 2 ||
+                     building.FootprintCellsW != 1 || building.FootprintCellsH < 1 ||
                      building.ConstructionLabor <= 0 || building.StructureDurability <= 0 ||
                      (building.MaterialKind != "wood" && building.MaterialKind != "stone")))
                     report.Add(ErrorCode.InvalidArgument, "Invalid wall segment definition.", building.Id.ToString());
@@ -1337,6 +1354,7 @@ namespace XianXia.Data.Content
                         report.Add(ErrorCode.NotFound, "delivery resource/item reference missing.",
                             ctx + ".deliveryRequirements:" + requirement.ItemId);
                 }
+                ScanConditions(q.JournalConditions, registry, locations, producedFlags, consumedFlags, ctx + ".journal", report);
                 ScanConditions(q.OfferConditions, registry, locations, producedFlags, consumedFlags, ctx + ".offer", report);
                 ScanConditions(q.CompleteConditions, registry, locations, producedFlags, consumedFlags, ctx + ".complete", report);
                 ScanConditions(q.FailConditions, registry, locations, producedFlags, consumedFlags, ctx + ".fail", report);
@@ -1499,6 +1517,8 @@ namespace XianXia.Data.Content
                         RequireDef(registry, beat.ContentEventIds[i], "contentEvent", bctx + ".event", report);
                     for (var i = 0; i < beat.SetFlags.Count; i++)
                     {
+                        if (beat.SetFlags[i] == HuangcunOpeningAccess.UnlockedFlag)
+                            report.Add(ErrorCode.InvalidArgument, "外界解锁必须来自真实占领，不能由章节点直接授予。", bctx);
                         if (!string.IsNullOrEmpty(beat.SetFlags[i]))
                             producedFlags.Add(beat.SetFlags[i]);
                     }
@@ -1622,6 +1642,12 @@ namespace XianXia.Data.Content
                 if (o == null || string.IsNullOrEmpty(o.Kind))
                     continue;
                 var kind = o.Kind.Trim().ToLowerInvariant();
+                if ((o.Id == HuangcunOpeningAccess.UnlockedFlag || o.Id == HuangcunOpeningAccess.ConfinedFlag) &&
+                    (kind == "setflag" || kind == "setstoryflag" || kind == "clearflag" || kind == "clearstoryflag"))
+                {
+                    report.Add(ErrorCode.InvalidArgument, "开局阶段旗标由真实占领及开局配置维护，不能在内容结果中直接改写。", ctx + ":" + o.Id);
+                    continue;
+                }
                 switch (kind)
                 {
                     case "setflag":

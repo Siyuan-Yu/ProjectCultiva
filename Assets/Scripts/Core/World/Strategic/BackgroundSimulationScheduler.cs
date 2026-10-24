@@ -96,6 +96,7 @@ namespace XianXia.Core.World.Strategic
             bool advanceLastProcessed,
             ulong currentWorldTick = 0)
         {
+            if (!HuangcunOpeningAccess.IsSimulated(world, characterId)) return;
             if (!world.BackgroundCharacterTravel.TryGet(characterId, out var motion) ||
                 motion == null ||
                 !motion.IsMoving)

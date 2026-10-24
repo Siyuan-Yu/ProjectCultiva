@@ -1,0 +1,1701 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:art_zhiheng_branch",
+      "type": "combatArt",
+      "name": "叠岳掌（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "2段直接伤害；入门每段攻击力×2.2；冷却5秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 2.2,
+      "hitCount": 2,
+      "cooldownSeconds": 5,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.98
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 2.2
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 2.42
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 2.64
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 2.86
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 3.3
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "zhiheng"
+      ]
+    },
+    {
+      "id": "base:art_hehuan_branch",
+      "type": "combatArt",
+      "name": "回弦二叠（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "2段直接伤害；入门每段攻击力×3.0；冷却7秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 3.0,
+      "hitCount": 2,
+      "cooldownSeconds": 7,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 2.7
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 3.0
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 3.3
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 3.6
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 3.9
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 4.5
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "hehuan"
+      ]
+    },
+    {
+      "id": "base:art_xuansha_branch",
+      "type": "combatArt",
+      "name": "断烬击（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×2.6；冷却3秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 2.6,
+      "hitCount": 1,
+      "cooldownSeconds": 3,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 2.34
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 2.6
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 2.86
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 3.12
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 3.38
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 3.9
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 36,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 49,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 62,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 75,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 7
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 7
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "xuansha"
+      ]
+    },
+    {
+      "id": "base:art_wanling_branch",
+      "type": "combatArt",
+      "name": "逐影三扑（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "3段直接伤害；入门每段攻击力×1.35；冷却4秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.35,
+      "hitCount": 3,
+      "cooldownSeconds": 4,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.215
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.35
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.485
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.62
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.755
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 2.025
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "wanling"
+      ]
+    },
+    {
+      "id": "base:art_qingxiao_branch",
+      "type": "combatArt",
+      "name": "一线开云（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×6.2；冷却8秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 6.2,
+      "hitCount": 1,
+      "cooldownSeconds": 8,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 5.58
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 6.2
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 6.82
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 7.44
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 8.06
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 9.3
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 33,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 45,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 56,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 68,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "qingxiao"
+      ]
+    },
+    {
+      "id": "base:art_baicao_branch",
+      "type": "combatArt",
+      "name": "折枝连指（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "4段直接伤害；入门每段攻击力×0.95；冷却4秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 0.95,
+      "hitCount": 4,
+      "cooldownSeconds": 4,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 0.855
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 0.95
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.045
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.14
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.235
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 1.425
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "baicao"
+      ]
+    },
+    {
+      "id": "base:art_zhuxing_branch",
+      "type": "combatArt",
+      "name": "碎砧三落（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "3段直接伤害；入门每段攻击力×1.45；冷却5秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.45,
+      "hitCount": 3,
+      "cooldownSeconds": 5,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.305
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.45
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.595
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.74
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.885
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 2.175
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 34,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 70,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "zhuxing"
+      ]
+    },
+    {
+      "id": "base:art_taiyan_branch",
+      "type": "combatArt",
+      "name": "开门断式（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×5.3；冷却7秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 5.3,
+      "hitCount": 1,
+      "cooldownSeconds": 7,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 4.77
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 5.3
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 5.83
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 6.36
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 6.89
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 7.95
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "taiyan"
+      ]
+    },
+    {
+      "id": "base:art_tianlu_branch",
+      "type": "combatArt",
+      "name": "连篆轻击（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "2段直接伤害；入门每段攻击力×1.2；冷却2.8秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.2,
+      "hitCount": 2,
+      "cooldownSeconds": 2.8,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.08
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.2
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.32
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.44
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.56
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 1.8
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 33,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 45,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 56,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 68,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "tianlu"
+      ]
+    },
+    {
+      "id": "base:art_zhenyue_branch",
+      "type": "combatArt",
+      "name": "叠石连拳（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "3段直接伤害；入门每段攻击力×1.25；冷却3.5秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.25,
+      "hitCount": 3,
+      "cooldownSeconds": 3.5,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.125
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.25
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.375
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.5
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.625
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 1.875
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 34,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 70,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "zhenyue"
+      ]
+    },
+    {
+      "id": "base:art_tingyue_branch",
+      "type": "combatArt",
+      "name": "沉霆破（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×6.0；冷却8秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 6.0,
+      "hitCount": 1,
+      "cooldownSeconds": 8,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 5.4
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 6.0
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 6.6
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 7.2
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 7.8
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 9.0
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 42,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 74,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 90,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 8
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 8
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "tingyue"
+      ]
+    },
+    {
+      "id": "base:art_ningshuang_branch",
+      "type": "combatArt",
+      "name": "飞霰三点（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "3段直接伤害；入门每段攻击力×1.3；冷却4秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.3,
+      "hitCount": 3,
+      "cooldownSeconds": 4,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.17
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.3
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.43
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.56
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.69
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 1.95
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 33,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 45,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 56,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 68,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "ningshuang"
+      ]
+    },
+    {
+      "id": "base:art_qiangu_branch",
+      "type": "combatArt",
+      "name": "蜕壳击（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×4.7；冷却6秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 4.7,
+      "hitCount": 1,
+      "cooldownSeconds": 6,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 4.23
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 4.7
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 5.17
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 5.64
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 6.11
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 7.05
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 33,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 45,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 56,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 68,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "qiangu"
+      ]
+    },
+    {
+      "id": "base:art_tingyu_branch",
+      "type": "combatArt",
+      "name": "重弦一叩（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "1段直接伤害；入门每段攻击力×5.4；冷却7秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 5.4,
+      "hitCount": 1,
+      "cooldownSeconds": 7,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 4.86
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 5.4
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 5.94
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 6.48
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 7.02
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 8.1
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "tingyu"
+      ]
+    },
+    {
+      "id": "base:art_guiming_branch",
+      "type": "combatArt",
+      "name": "照骨二叠（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "2段直接伤害；入门每段攻击力×1.6；冷却3.5秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.6,
+      "hitCount": 2,
+      "cooldownSeconds": 3.5,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.44
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.6
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.76
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.92
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 2.08
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 2.4
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 36,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 49,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 62,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 75,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 7
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 7
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "guiming"
+      ]
+    },
+    {
+      "id": "base:art_guanxing_branch",
+      "type": "combatArt",
+      "name": "连星三点（公开进阶式）",
+      "grade": "黄阶中级",
+      "effectSummary": "3段直接伤害；入门每段攻击力×1.15；冷却3.5秒。没有额外元素状态；与入门式构成不同的轻重击选择。",
+      "damageAttackMult": 1.15,
+      "hitCount": 3,
+      "cooldownSeconds": 3.5,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "damageAttackMult": 1.035
+          },
+          {
+            "tier": "entry",
+            "damageAttackMult": 1.15
+          },
+          {
+            "tier": "minor",
+            "damageAttackMult": 1.265
+          },
+          {
+            "tier": "major",
+            "damageAttackMult": 1.38
+          },
+          {
+            "tier": "perfect",
+            "damageAttackMult": 1.495
+          },
+          {
+            "tier": "transcendent",
+            "damageAttackMult": 1.725
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 35,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 48,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 73,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "tags": [
+        "art",
+        "active",
+        "sect_branch",
+        "guanxing"
+      ]
+    }
+  ]
+}

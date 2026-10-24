@@ -202,7 +202,7 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "description", "autoOffer", "abandonable", "deadlineDays",
             "runtimeMode", "acceptanceMode", "deliveryRequirements", "questKind",
-            "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
+            "journalConditions", "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         };
         public static readonly HashSet<string> QuestDeliveryRequirementFields = new HashSet<string>(StringComparer.Ordinal)
         { "itemId", "amount" };

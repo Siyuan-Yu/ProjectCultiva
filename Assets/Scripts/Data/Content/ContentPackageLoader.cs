@@ -2394,6 +2394,7 @@ namespace XianXia.Data.Content
                 if (string.IsNullOrWhiteSpace(region.SiteId) ||
                     !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId))
                     report.Add(ErrorCode.InvalidArgument, "Invalid or duplicate Outdoor WorldSite physical region.", id + ".siteRegions");
+            var contentSiteIds = new HashSet<string>(surface.AuthoredSiteIdentities(), StringComparer.Ordinal);
             foreach (var placement in surface.SitePlacements)
             {
                 if (string.IsNullOrWhiteSpace(placement.StableId) || string.IsNullOrWhiteSpace(placement.SiteId) ||
@@ -2401,13 +2402,13 @@ namespace XianXia.Data.Content
                     placement.SourceCellsW <= 0 || placement.SourceCellsH <= 0 ||
                     !usedCoords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(placement.ChunkX, placement.ChunkY)))
                     report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate Outdoor Site placement or missing target chunk.", id + ".sitePlacements");
-                if (!regionIds.Contains(placement.SiteId))
-                    report.Add(ErrorCode.InvalidArgument, "Outdoor Site placement has no physical region.", placement.StableId);
+                if (!contentSiteIds.Contains(placement.SiteId))
+                    report.Add(ErrorCode.InvalidArgument, "Outdoor Site placement has no fixed region or authored flag site.", placement.StableId);
             }
             foreach (var place in surface.SitePlaces)
                 if (string.IsNullOrWhiteSpace(place.SiteId) || string.IsNullOrWhiteSpace(place.LocationId) ||
                     string.IsNullOrWhiteSpace(place.Kind) || !placeIds.Add(place.LocationId) ||
-                    !regionIds.Contains(place.SiteId))
+                    !contentSiteIds.Contains(place.SiteId))
                     report.Add(ErrorCode.InvalidArgument,
                         "Outdoor SitePlace requires unique locationId, valid siteId and baked kind metadata.",
                         id + ".sitePlaces");
@@ -2415,7 +2416,7 @@ namespace XianXia.Data.Content
             foreach (var anchor in surface.OpeningEntityAnchors)
             {
                 if (string.IsNullOrWhiteSpace(anchor.SiteId) || string.IsNullOrWhiteSpace(anchor.SpawnKey) ||
-                    string.IsNullOrWhiteSpace(anchor.DefinitionId) || !regionIds.Contains(anchor.SiteId))
+                    string.IsNullOrWhiteSpace(anchor.DefinitionId) || !contentSiteIds.Contains(anchor.SiteId))
                     report.Add(ErrorCode.InvalidArgument,
                         "Outdoor opening entity anchor requires siteId/spawnKey/definitionId and a valid siteId.",
                         id + ".openingEntityAnchors");
@@ -2505,6 +2506,7 @@ namespace XianXia.Data.Content
                 Abandonable = item.GetBool("abandonable", false),
                 DeadlineDays = (int)item.GetNumber("deadlineDays", 0)
             };
+            ReadConditions(item, "journalConditions", quest.JournalConditions, report, id.ToString());
             ReadConditions(item, "offerConditions", quest.OfferConditions, report, id.ToString());
             ReadConditions(item, "completeConditions", quest.CompleteConditions, report, id.ToString());
             ReadConditions(item, "failConditions", quest.FailConditions, report, id.ToString());

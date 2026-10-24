@@ -45,6 +45,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (Event.current.type != EventType.Repaint) return;
             if (worldCamera == null)
                 worldCamera = Camera.main;
             if (worldCamera == null || _items.Count == 0)

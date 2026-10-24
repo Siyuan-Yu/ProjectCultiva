@@ -58,6 +58,8 @@ namespace XianXia.Core.Construction
             out string siteId)
         {
             flagId = siteId = string.Empty;
+            if (HuangcunOpeningAccess.IsLocked(world) && playerFactionId == world.Strategic.PlayerFactionId)
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.ManagementLockedMessage);
             var resolved = ResolveFactionFlagSpec(world, buildingId, out var spec);
             if (resolved.IsFailure)
                 return resolved;
@@ -115,6 +117,8 @@ namespace XianXia.Core.Construction
             int quarterTurns = 0, string parentRoomId = "")
         {
             jobId = string.Empty;
+            if (HuangcunOpeningAccess.IsLocked(world) && actingFactionId == world.Strategic.PlayerFactionId)
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.ManagementLockedMessage);
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) || spec == null ||
                 !spec.UnlockedByDefault || spec.CreatesWorldSite ||
                 spec.PlacementKind == ConstructionPlacementKind.FactionFlag ||
@@ -252,6 +256,8 @@ namespace XianXia.Core.Construction
             bool materialsPrepaid = false, int quarterTurns = 0, string parentRoomId = "")
         {
             assetId = string.Empty;
+            if (HuangcunOpeningAccess.IsLocked(world) && actingFactionId == world.Strategic.PlayerFactionId)
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.ManagementLockedMessage);
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) ||
                 spec.PlacementKind != placementKind || !spec.UnlockedByDefault || spec.CreatesWorldSite ||
                 (placementKind == ConstructionPlacementKind.RecoverySpot &&

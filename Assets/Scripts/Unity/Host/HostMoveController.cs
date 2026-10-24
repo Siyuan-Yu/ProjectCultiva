@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -236,7 +236,7 @@ namespace XianXia.Unity.Host
             for (var i = index; i < path.Count; i++)
             {
                 var to = path[i];
-                if (!GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.x, from.y, to.x, to.y))
+                if (IsFlying(id) ? !IsAirPointAllowed(id, to) : !GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.x, from.y, to.x, to.y))
                     return false;
                 from = to;
             }
@@ -246,9 +246,10 @@ namespace XianXia.Unity.Host
         /// <summary>Build an A* world polyline without issuing a move order.</summary>
         public bool TryBuildPathPreview(
             Vector3 from, Vector3 to, List<Vector3> into, bool exactGoal = false) =>
-            TryBuildWorldPath(from, to, into, exactGoal);
+            TryBuildCharacterPath(bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None, from, to, into, exactGoal);
 
         public Vector3 PreviewFormationGoal(Vector3 click, int moveIndex, int moveCount) =>
+            IsFlying(bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None) ? click :
             ResolveFormationGoal(click, FormationOffset(moveIndex, moveCount));
 
         public void Bind(
@@ -315,6 +316,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.MoveUpdate.Auto();
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
                 return;
             // Modal pause owns all input. Manual pause still listens for one legal player world
@@ -613,6 +615,12 @@ namespace XianXia.Unity.Host
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return false;
 
+            if (!IsOpeningMoveAllowed(id, point))
+            {
+                view.SetActivityText(HuangcunOpeningAccess.BlockedMessage);
+                return false;
+            }
+
             // 弥留／死亡／已移除：LocalMap 禁止移动（大地图宏观令另有门禁）
             if (bootstrap?.Session?.World != null &&
                 bootstrap.Session.World.Entities.TryGet(id, out var lifeEnt) &&
@@ -622,7 +630,7 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            if (stopBeforeCommit)
+            if (stopBeforeCommit && !IsFlying(id))
             {
                 // A player repath must be planned from the visible foot point. Never move the
                 // character to a grid centre as a side effect of a right click.
@@ -637,8 +645,10 @@ namespace XianXia.Unity.Host
             if (freeStandRadius > 0f &&
                 !TryResolveFreeStandPoint(id, requestedCenter, freeStandRadius, out point))
                 point = requestedCenter;
-            if (!TryBuildWorldPath(view.transform.position, point, _wpScratch, exactGoal))
+            if (!TryBuildCharacterPath(id, view.transform.position, point, _wpScratch, exactGoal))
                 return false;
+            for (var i = 0; i < _wpScratch.Count; i++)
+                if (!IsOpeningMoveAllowed(id, _wpScratch[i])) return false;
 
             // Commit the player's Stop only after a replacement path exists. A blocked click
             // leaves the current route running rather than producing a visible stop/restart.
@@ -799,7 +809,7 @@ namespace XianXia.Unity.Host
             var dx = dir.x * speed * dt;
             var dy = dir.y * speed * dt;
 
-            if (_walkGrid != null)
+            if (_walkGrid != null && !IsFlying(id))
             {
                 TryAxisStep(view, ref pos, dx, 0f);
                 TryAxisStep(view, ref pos, 0f, dy);
@@ -835,6 +845,7 @@ namespace XianXia.Unity.Host
             next.x += dx;
             next.y += dy;
             next.z = HostPresentationSpace.EntityZ;
+            if (!IsOpeningMoveAllowed(view.EntityId, next)) return;
             if (GridPathfinder.IsWorldSegmentWalkable(_walkGrid, pos.x, pos.y, next.x, next.y))
             {
                 pos = next;
@@ -1000,7 +1011,8 @@ namespace XianXia.Unity.Host
                 }
 
                 var pos = view.transform.position;
-                if (_walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
+                if (IsFlying(view.EntityId) ? !IsAirPointAllowed(view.EntityId, target) :
+                    _walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
                         _walkGrid, pos.x, pos.y, target.x, target.y))
                 {
                     Debug.LogWarning("[HostMoveBlocked] Current path leg became invalid. EntityId=" +
@@ -1092,7 +1104,7 @@ namespace XianXia.Unity.Host
                 {
                     var nearTarget = Vector3.MoveTowards(pos, target, distanceBudget);
                     var beforeSnap = pos;
-                    pos = FilterCharacterStep(view, pos, ClampToWalkable(pos, nearTarget), target, deltaTime);
+                    pos = FilterCharacterStep(view, pos, (IsFlying(view.EntityId) ? nearTarget : ClampToWalkable(pos, nearTarget)), target, deltaTime);
                     distanceBudget -= Vector3.Distance(beforeSnap, pos);
                     if ((pos - target).sqrMagnitude > .0001f)
                         break;
@@ -1109,7 +1121,7 @@ namespace XianXia.Unity.Host
                 var routeStep = Mathf.Min(distanceBudget, distance);
                 var proposed = pos + delta / distance * routeStep;
                 proposed.z = HostPresentationSpace.EntityZ;
-                var moved = FilterCharacterStep(view, pos, ClampToWalkable(pos, proposed), target, deltaTime);
+                var moved = FilterCharacterStep(view, pos, (IsFlying(view.EntityId) ? proposed : ClampToWalkable(pos, proposed)), target, deltaTime);
                 var consumed = Vector3.Distance(pos, moved);
                 pos = moved;
                 // A static obstacle spends this step's budget; do not repeat tiny steps.
@@ -1178,7 +1190,7 @@ namespace XianXia.Unity.Host
 
         void SnapOntoWalkableIfNeeded(EntityView view)
         {
-            if (_walkGrid == null || view == null)
+            if (_walkGrid == null || view == null || IsFlying(view.EntityId))
                 return;
             var pos = view.transform.position;
             if (!_walkGrid.TryWorldToCell(pos.x, pos.y, out var cx, out var cy))

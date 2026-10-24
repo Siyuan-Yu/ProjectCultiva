@@ -9,7 +9,12 @@
       "autoOffer": false,
       "abandonable": false,
       "deadlineDays": 1,
-      "offerConditions": [],
+      "offerConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
       "completeConditions": [
         {
           "kind": "uniqueHarvestAtLocation",
@@ -32,8 +37,16 @@
         {
           "kind": "relationDelta",
           "fromDefinitionId": "base:character_ch01_ref_supervisor",
-          "toDefinitionIds": ["@party"],
+          "toDefinitionIds": [
+            "@party"
+          ],
           "amount": -5
+        }
+      ],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ]
     },
@@ -49,6 +62,10 @@
         {
           "kind": "questCompleted",
           "id": "base:quest_ch01_ref_inspect_yard"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "completeConditions": [
@@ -79,7 +96,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_ch01_ref_gather_wood",
@@ -93,6 +116,10 @@
         {
           "kind": "questCompleted",
           "id": "base:quest_ch01_ref_dispatch_party"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
         }
       ],
       "completeConditions": [
@@ -123,7 +150,13 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [],
+      "journalConditions": [
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_production"
+        }
+      ]
     },
     {
       "id": "base:quest_jiang_lao_chess",

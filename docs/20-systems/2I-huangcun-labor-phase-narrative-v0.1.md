@@ -1,5 +1,9 @@
 # 荒村杂役阶段叙事设计 v0.1
 
+> **2026-10-24布局覆写：** [341](../40-process/341-huangcun-quadrants-resources-and-workrooms-2026-10-24.md)已按制作人指定取消集中采树区／矿区表现，改为散生树与铁铜银灵矿；凡人居西北，主管／巡卫居议政厅东南，药圃与低级功法阁／丹室／炼器室居东北，露天下棋。沿用原劳动／伐木／书册系统，丹室和炼器室暂只有建筑，不代表配方生产已完成。340作息保留，运行待验收。
+
+> **2026-10-24现行内容覆写：** 制作人本轮批准的作息与生活内容以[340](../40-process/340-huangcun-daily-life-and-settlement-content-2026-10-24.md)为准，状态Implemented / Producer Acceptance Pending。双巡卫同班白天查工、午间修炼、晚上巡门；主管交替巡查和修炼。驻村凡人DedicatedDuty共享现有MortalCivilianMovementAuthority，到修炼地点后接既有CultivateAction；饥饿、睡眠、战斗等优先级保留。开局三选项只选择先接哪条引导，可向将老补接；无固定天数结束，真实取得村子后开放外界。新增生活委托复用真实交付与日志领奖，不自动建造、不代替每日劳役份额。下文尚未落地的叙事设想仍为Draft。
+
 > **CIVILIAN-LIFE-01 实现映射（2026-09-27）：** 荒村凡人劳动现由真实 Character 的 Profession 与 `MortalActivityEvaluator` 决定。Farmer/HerbFarmer 复用 WorkArea、MovementIntent 与现有逐格农作，Logger 复用现有树木破坏/产出结算，产物进入 Site PublicStock；通用 tagged work 复用 LocationLabor 进度。饥饿、睡眠、救援和强制战后状态优先于普通劳动。该实现状态为 **Implementation Complete / Producer Acceptance Pending**，不改变本文件的叙事草案状态。
 
 > 状态：**Draft / v0.1 / 待人工审核**  

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using XianXia.Core.Domain.Ids;
@@ -133,7 +133,7 @@ namespace XianXia.Core.World.Strategic
                     "PlayerParty cannot use NPC SquadWorldMotion.", squadId ?? string.Empty);
             if (
                 !world.SurfaceGround.TryGet(surfaceId, out var navigation) ||
-                !navigation.Contains(position.X, position.Y) || !navigation.IsWalkable(position.X, position.Y))
+                !navigation.Contains(position.X, position.Y) || (!Combat.FlightService.AllAirborne(world, squad) && !navigation.IsWalkable(position.X, position.Y)))
                 return Result.Fail<SquadWorldMotionState>(ErrorCode.InvalidArgument,
                     "Squad world-motion initial position is invalid.", squadId ?? string.Empty);
             world.Strategic.SquadWorldMotions.Remove(squadId);
@@ -175,9 +175,14 @@ namespace XianXia.Core.World.Strategic
                 !navigation.Contains(destination.X, destination.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, "NPC Squad destination is not on the same Surface.");
             RouteScratch.Clear();
-            var status = navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch);
+            var status = Combat.FlightService.AllAirborne(world, squad)
+                ? Combat.FlightService.Route(world, squad.LeaderCharacterId, navigation, motion.WorldPosition, destination, RouteScratch)
+                : navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch);
             if (status != SurfaceGroundRouteStatus.Found)
                 return Result.Failure(ErrorCode.InvalidOperation, "NPC Squad route unavailable: " + status + ".");
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y))
+                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
             motion.BeginRoute(RouteScratch, destination, navigation.SurfaceId,
                 navigation.SourceRevision, navigation.SourceHash);
             squad.SetCommand(SquadCommandKind.SquadWorldMotion);
@@ -274,10 +279,19 @@ namespace XianXia.Core.World.Strategic
                     new EntityId(squad.MemberCharacterIds[i]))) { hasLiving = true; break; }
             if (!hasLiving) return;
             if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation)) return;
-            if (!string.Equals(navigation.SourceHash, motion.SourceHash, StringComparison.Ordinal))
+            if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId,
+                    motion.WorldPosition.X, motion.WorldPosition.Y) ||
+                !HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId,
+                    motion.Destination.X, motion.Destination.Y)) return;
+            if (!string.Equals(navigation.SourceHash, motion.SourceHash, StringComparison.Ordinal) ||
+                !Combat.FlightService.AllAirborne(world, squad) && motion.WaypointIndex < motion.Route.Count &&
+                !navigation.IsSegmentWalkable(motion.WorldPosition.X, motion.WorldPosition.Y,
+                    motion.Route[motion.WaypointIndex].X, motion.Route[motion.WaypointIndex].Y))
             {
                 RouteScratch.Clear();
-                if (navigation.TryFindRoute(motion.WorldPosition, motion.Destination, RouteScratch) !=
+                if ((Combat.FlightService.AllAirborne(world, squad)
+                        ? Combat.FlightService.Route(world, squad.LeaderCharacterId, navigation, motion.WorldPosition, motion.Destination, RouteScratch)
+                        : navigation.TryFindRoute(motion.WorldPosition, motion.Destination, RouteScratch)) !=
                     SurfaceGroundRouteStatus.Found) return;
                 motion.BeginRoute(RouteScratch, motion.Destination, navigation.SurfaceId,
                     navigation.SourceRevision, navigation.SourceHash);
@@ -290,6 +304,7 @@ namespace XianXia.Core.World.Strategic
             while (remaining > .0001f && index < route.Count && guard-- > 0)
             {
                 var target = route[index];
+                if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId, target.X, target.Y)) return;
                 var distance = WorldVec2.Distance(position, target);
                 if (distance <= .0001f) { position = target; index++; continue; }
                 if (distance <= remaining + .0001f) { position = target; remaining -= distance; index++; }

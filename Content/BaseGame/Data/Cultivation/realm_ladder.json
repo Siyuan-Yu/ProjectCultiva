@@ -14,7 +14,10 @@
           "progressRequired": 100,
           "successPercent": 95,
           "majorRealmJump": false,
-          "bonuses": { "MaxHp": 5, "Stamina": 2 }
+          "bonuses": {
+            "MaxHp": 5,
+            "Stamina": 2
+          }
         },
         {
           "fromRealm": "Mortal",
@@ -24,7 +27,10 @@
           "progressRequired": 200,
           "successPercent": 95,
           "majorRealmJump": false,
-          "bonuses": { "MaxHp": 8, "SpiritSense": 2 }
+          "bonuses": {
+            "MaxHp": 8,
+            "SpiritSense": 2
+          }
         },
         {
           "fromRealm": "Mortal",
@@ -35,7 +41,12 @@
           "successPercent": 90,
           "majorRealmJump": true,
           "grantSpiritPower": 50,
-          "bonuses": { "MaxHp": 25, "Attack": 5, "Defense": 4, "Comprehension": 2 }
+          "bonuses": {
+            "MaxHp": 25,
+            "Attack": 5,
+            "Defense": 4,
+            "Comprehension": 2
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -44,7 +55,11 @@
           "toMinor": 2,
           "progressRequired": 400,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 7, "Attack": 1, "SpiritPower": 6 }
+          "bonuses": {
+            "MaxHp": 7,
+            "Attack": 1,
+            "SpiritPower": 6
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -53,7 +68,11 @@
           "toMinor": 3,
           "progressRequired": 500,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 8, "Attack": 1, "SpiritPower": 7 }
+          "bonuses": {
+            "MaxHp": 8,
+            "Attack": 1,
+            "SpiritPower": 7
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -62,7 +81,11 @@
           "toMinor": 4,
           "progressRequired": 650,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 9, "Attack": 2, "SpiritPower": 8 }
+          "bonuses": {
+            "MaxHp": 9,
+            "Attack": 2,
+            "SpiritPower": 8
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -71,7 +94,11 @@
           "toMinor": 5,
           "progressRequired": 850,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 10, "Attack": 2, "SpiritPower": 9 }
+          "bonuses": {
+            "MaxHp": 10,
+            "Attack": 2,
+            "SpiritPower": 9
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -80,7 +107,11 @@
           "toMinor": 6,
           "progressRequired": 1100,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 11, "Attack": 2, "SpiritPower": 10 }
+          "bonuses": {
+            "MaxHp": 11,
+            "Attack": 2,
+            "SpiritPower": 10
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -89,7 +120,11 @@
           "toMinor": 7,
           "progressRequired": 1400,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 12, "Attack": 3, "SpiritPower": 11 }
+          "bonuses": {
+            "MaxHp": 12,
+            "Attack": 3,
+            "SpiritPower": 11
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -98,7 +133,11 @@
           "toMinor": 8,
           "progressRequired": 1800,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 13, "Attack": 3, "SpiritPower": 12 }
+          "bonuses": {
+            "MaxHp": 13,
+            "Attack": 3,
+            "SpiritPower": 12
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -107,7 +146,11 @@
           "toMinor": 9,
           "progressRequired": 2300,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 14, "Attack": 3, "SpiritPower": 13 }
+          "bonuses": {
+            "MaxHp": 14,
+            "Attack": 3,
+            "SpiritPower": 13
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -116,7 +159,11 @@
           "toMinor": 10,
           "progressRequired": 3000,
           "successPercent": 92,
-          "bonuses": { "MaxHp": 15, "Attack": 4, "SpiritPower": 14 }
+          "bonuses": {
+            "MaxHp": 15,
+            "Attack": 4,
+            "SpiritPower": 14
+          }
         },
         {
           "fromRealm": "QiRefining",
@@ -132,6 +179,23 @@
             "Defense": 15,
             "SpiritPower": 40,
             "SpiritSense": 10
+          }
+        },
+        {
+          "fromRealm": "Foundation",
+          "fromMinor": 0,
+          "toRealm": "GoldenCore",
+          "toMinor": 0,
+          "progressRequired": 30000,
+          "successPercent": 25,
+          "majorRealmJump": true,
+          "bonuses": {
+            "MaxHp": 120,
+            "Attack": 35,
+            "Defense": 25,
+            "SpiritPower": 120,
+            "SpiritSense": 20,
+            "Physique": 12
           }
         }
       ]

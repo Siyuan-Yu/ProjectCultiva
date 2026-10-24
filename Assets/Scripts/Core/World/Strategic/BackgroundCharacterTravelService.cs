@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -49,11 +49,16 @@ namespace XianXia.Core.World.Strategic
                     "No shared Continuous Surface for NPC Site travel.");
 
             RouteScratch.Clear();
-            var routeStatus = navigation.TryFindRoute(start, destination, RouteScratch);
+            var routeStatus = Combat.FlightService.Route(world, characterId, navigation, start, destination, RouteScratch);
             if (routeStatus != SurfaceGroundRouteStatus.Found)
                 return Result.Failure(
                     ErrorCode.InvalidOperation,
                     "NPC Surface route unavailable: " + routeStatus);
+            if (!HuangcunOpeningAccess.IsSimulated(world, characterId))
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPosition(world, surfaceId, RouteScratch[i].X, RouteScratch[i].Y))
+                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
 
             var motion = world.BackgroundCharacterTravel.GetOrCreate(characterId);
             motion.BeginSurfaceTravel(RouteScratch, surfaceId, destination, siteId);
@@ -97,6 +102,7 @@ namespace XianXia.Core.World.Strategic
             EntityId characterId,
             float distanceBudget)
         {
+            if (!HuangcunOpeningAccess.IsSimulated(world, characterId)) return;
             if (world?.BackgroundCharacterTravel == null || characterId.IsNone ||
                 distanceBudget <= 0f ||
                 !world.BackgroundCharacterTravel.TryGet(characterId, out var motion) ||
@@ -120,6 +126,7 @@ namespace XianXia.Core.World.Strategic
                    motion.TryGetSurfaceWaypoint(out var waypoint) &&
                    guard++ < 128)
             {
+                if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId, waypoint.X, waypoint.Y)) return;
                 var distance = WorldVec2.Distance(position, waypoint);
                 if (distance <= remaining + 0.0001f)
                 {

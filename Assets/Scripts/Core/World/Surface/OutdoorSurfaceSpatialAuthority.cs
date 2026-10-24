@@ -52,13 +52,15 @@ namespace XianXia.Core.World.Surface
         public float ChunkHeight { get; }
         public IReadOnlyCollection<SurfaceChunkCoord> AuthoredChunks => _authoredChunks;
 
+        public bool ContainsChunk(SurfaceChunkCoord chunk) => _authoredChunks.Contains(chunk);
+
         public bool ContainsWorldPosition(float worldX, float worldY)
         {
             if (!IsFinite(worldX) || !IsFinite(worldY)) return false;
             var chunk = new SurfaceChunkCoord(
                 (int)Math.Floor((worldX - OriginWorldX) / ChunkWidth),
                 (int)Math.Floor((worldY - OriginWorldY) / ChunkHeight));
-            return _authoredChunks.Contains(chunk);
+            return ContainsChunk(chunk);
         }
 
         static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

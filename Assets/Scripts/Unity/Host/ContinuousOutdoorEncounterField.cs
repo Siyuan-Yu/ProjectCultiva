@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -170,7 +170,7 @@ namespace XianXia.Unity.Host
                 if (!EncounterInitialTacticalPlacementResolver.TryResolve(
                         plan.Grid, origin, hasPreferred, preferred, preferredSource,
                         WorldToPreparedGrid, PreparedGridToWorld, point => state.Contains(point.X, point.Y),
-                        occupied, 8, out var tactical, out _, out _, out _, out var reason))
+                        occupied, 8, out var tactical, out _, out _, out _, out var reason, XianXia.Core.Combat.FlightService.IsAirborne(world, id)))
                 {
                     var reference = hasPreferred ? preferred : origin;
                     var projected = WorldToPreparedGrid(reference);
@@ -467,7 +467,7 @@ namespace XianXia.Unity.Host
             if (participant == null ||
                 !_compositeWalkGrid.TryWorldToCell(
                     presentationPosition.x, presentationPosition.y, out var cellX, out var cellY) ||
-                !_compositeWalkGrid.IsWalkable(cellX, cellY))
+                (!_compositeWalkGrid.IsWalkable(cellX, cellY) && !XianXia.Core.Combat.FlightService.IsAirborne(world, id)))
                 return false;
             _mapper.PresentationToWorld(
                 presentationPosition.x, presentationPosition.y, out var worldX, out var worldY);
@@ -915,7 +915,7 @@ namespace XianXia.Unity.Host
                 }
                 _mapper.WorldToPresentation(member.OriginX, member.OriginY, out var px, out var py);
                 if (!_compositeWalkGrid.TryWorldToCell(px, py, out var x, out var y)) return false;
-                if (!_compositeWalkGrid.IsWalkable(x, y))
+                if (!_compositeWalkGrid.IsWalkable(x, y) && !XianXia.Core.Combat.FlightService.IsAirborne(_bootstrap.Session.World, id))
                 {
                     if (!_compositeWalkGrid.TryFindNearestWalkable(x, y, 1, out x, out y)) return false;
                     _compositeWalkGrid.CellToWorldCenter(x, y, out px, out py);

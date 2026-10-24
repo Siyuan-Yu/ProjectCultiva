@@ -1,0 +1,2005 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:cultivation_zhiheng_intro",
+      "type": "cultivation",
+      "name": "衡息诀（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "均衡镇守：守得住、爆发普通。装备：防御+3、生命上限+12、攻击-1；入门打坐修为增量10。",
+      "cultivationSpeed": 10,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 16
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 19
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "zhiheng_intro_defense"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 12,
+          "stackingKey": "zhiheng_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "zhiheng_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "zhiheng"
+      ]
+    },
+    {
+      "id": "base:cultivation_hehuan_intro",
+      "type": "cultivation",
+      "name": "和心引气篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "调息续战：温和恢复，轻击回转，正面爆发低。装备：持续恢复+0.12HP/秒、心境+6、攻击-1；入门打坐修为增量11。",
+      "cultivationSpeed": 11,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 17
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 20
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "HealthRecoveryRateMilli",
+          "operation": "Fixed",
+          "value": 120,
+          "stackingKey": "hehuan_intro_healthrecoveryratemilli"
+        },
+        {
+          "targetAttribute": "MindState",
+          "operation": "Fixed",
+          "value": 6,
+          "stackingKey": "hehuan_intro_mindstate"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "hehuan_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "hehuan"
+      ]
+    },
+    {
+      "id": "base:cultivation_xuansha_intro",
+      "type": "cultivation",
+      "name": "玄煞锻息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "暗煞强攻：高攻击、重爆发，牺牲防御与心境。装备：攻击+4、防御-2、心境-3；入门打坐修为增量8。",
+      "cultivationSpeed": 8,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 7
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 17
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 26,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 39,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 52,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 65,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 4,
+          "stackingKey": "xuansha_intro_attack"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": -2,
+          "stackingKey": "xuansha_intro_defense"
+        },
+        {
+          "targetAttribute": "MindState",
+          "operation": "Fixed",
+          "value": -3,
+          "stackingKey": "xuansha_intro_mindstate"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "xuansha"
+      ]
+    },
+    {
+      "id": "base:cultivation_wanling_intro",
+      "type": "cultivation",
+      "name": "听息养神篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "猎手连扑：两段重击，耐战但回转慢；御兽仍预留。装备：生命上限+16、耐力+8、攻击+1；入门打坐修为增量10。",
+      "cultivationSpeed": 10,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 16
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 19
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 16,
+          "stackingKey": "wanling_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Stamina",
+          "operation": "Fixed",
+          "value": 8,
+          "stackingKey": "wanling_intro_stamina"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 1,
+          "stackingKey": "wanling_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "wanling"
+      ]
+    },
+    {
+      "id": "base:cultivation_qingxiao_intro",
+      "type": "cultivation",
+      "name": "青锋吐纳篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "轻身快剑：三连击、短冷却，生命上限降低。装备：攻击+3、生命上限-18、防御-1；入门打坐修为增量9。",
+      "cultivationSpeed": 9,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 18
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 23,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 35,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "qingxiao_intro_attack"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": -18,
+          "stackingKey": "qingxiao_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "qingxiao_intro_defense"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "qingxiao"
+      ]
+    },
+    {
+      "id": "base:cultivation_baicao_intro",
+      "type": "cultivation",
+      "name": "养元篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "青木养元：持续回血最强，攻击偏弱。装备：持续恢复+0.35HP/秒、生命上限+12、攻击-2；入门打坐修为增量11。",
+      "cultivationSpeed": 11,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 17
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 20
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "HealthRecoveryRateMilli",
+          "operation": "Fixed",
+          "value": 350,
+          "stackingKey": "baicao_intro_healthrecoveryratemilli"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 12,
+          "stackingKey": "baicao_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -2,
+          "stackingKey": "baicao_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "baicao"
+      ]
+    },
+    {
+      "id": "base:cultivation_zhuxing_intro",
+      "type": "cultivation",
+      "name": "炉息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "金火锻体：攻守兼备重击，修行慢。装备：防御+3、攻击+2、耐力-4；入门打坐修为增量8。",
+      "cultivationSpeed": 8,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 7
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 17
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 24,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 36,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 48,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "zhuxing_intro_defense"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "zhuxing_intro_attack"
+        },
+        {
+          "targetAttribute": "Stamina",
+          "operation": "Fixed",
+          "value": -4,
+          "stackingKey": "zhuxing_intro_stamina"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "zhuxing"
+      ]
+    },
+    {
+      "id": "base:cultivation_taiyan_intro",
+      "type": "cultivation",
+      "name": "守一观息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "守势推演：厚防低攻，单击回转；阵法预留。装备：防御+4、悟性+2、攻击-2；入门打坐修为增量12。",
+      "cultivationSpeed": 12,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 16
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 18
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 21
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": 4,
+          "stackingKey": "taiyan_intro_defense"
+        },
+        {
+          "targetAttribute": "Comprehension",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "taiyan_intro_comprehension"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -2,
+          "stackingKey": "taiyan_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "taiyan"
+      ]
+    },
+    {
+      "id": "base:cultivation_tianlu_intro",
+      "type": "cultivation",
+      "name": "澄神篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "符法爆发：较高攻击、双段蓄发，体质薄弱。装备：攻击+3、神识+2、生命上限-12；入门打坐修为增量10。",
+      "cultivationSpeed": 10,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 16
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 19
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 23,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 35,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "tianlu_intro_attack"
+        },
+        {
+          "targetAttribute": "SpiritSense",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "tianlu_intro_spiritsense"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": -12,
+          "stackingKey": "tianlu_intro_maxhp"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "tianlu"
+      ]
+    },
+    {
+      "id": "base:cultivation_zhenyue_intro",
+      "type": "cultivation",
+      "name": "磐身篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "磐山体修：最高血量、硬防重拳，爆发间隔长。装备：生命上限+30、防御+3、攻击-1；入门打坐修为增量8。",
+      "cultivationSpeed": 8,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 7
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 17
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 24,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 36,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 48,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 60,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 30,
+          "stackingKey": "zhenyue_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "zhenyue_intro_defense"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "zhenyue_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "zhenyue"
+      ]
+    },
+    {
+      "id": "base:cultivation_tingyue_intro",
+      "type": "cultivation",
+      "name": "鸣息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "雷修疾攻：高攻双击、短冷却，血薄且修炼最难。装备：攻击+4、生命上限-16、防御-1；入门打坐修为增量6。",
+      "cultivationSpeed": 6,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 5
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 6
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 15
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 32,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 48,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 64,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 80,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 7
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 7
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 4,
+          "stackingKey": "tingyue_intro_attack"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": -16,
+          "stackingKey": "tingyue_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "tingyue_intro_defense"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "tingyue"
+      ]
+    },
+    {
+      "id": "base:cultivation_ningshuang_intro",
+      "type": "cultivation",
+      "name": "凝息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "凝息冰修：防守恢复、低频重击；冻结预留。装备：防御+3、持续恢复+0.18HP/秒、攻击-1；入门打坐修为增量9。",
+      "cultivationSpeed": 9,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 18
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 23,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 35,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "ningshuang_intro_defense"
+        },
+        {
+          "targetAttribute": "HealthRecoveryRateMilli",
+          "operation": "Fixed",
+          "value": 180,
+          "stackingKey": "ningshuang_intro_healthrecoveryratemilli"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "ningshuang_intro_attack"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "ningshuang"
+      ]
+    },
+    {
+      "id": "base:cultivation_qiangu_intro",
+      "type": "cultivation",
+      "name": "辨息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "蛊爪缠斗：四段轻击、快速回转，惧怕厚甲；毒伤预留。装备：攻击+1、生命上限+8、防御-2；入门打坐修为增量9。",
+      "cultivationSpeed": 9,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 18
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 23,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 35,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 46,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 58,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 1,
+          "stackingKey": "qiangu_intro_attack"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 8,
+          "stackingKey": "qiangu_intro_maxhp"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": -2,
+          "stackingKey": "qiangu_intro_defense"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "qiangu"
+      ]
+    },
+    {
+      "id": "base:cultivation_tingyu_intro",
+      "type": "cultivation",
+      "name": "清商调息篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "清商快拍：低伤双击、最短冷却，脆弱；幻术预留。装备：攻击+1、心境+5、生命上限-10；入门打坐修为增量11。",
+      "cultivationSpeed": 11,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 11
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 13
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 15
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 17
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 20
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 20,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 1
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 30,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 40,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 1,
+          "stackingKey": "tingyu_intro_attack"
+        },
+        {
+          "targetAttribute": "MindState",
+          "operation": "Fixed",
+          "value": 5,
+          "stackingKey": "tingyu_intro_mindstate"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": -10,
+          "stackingKey": "tingyu_intro_maxhp"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "tingyu"
+      ]
+    },
+    {
+      "id": "base:cultivation_guiming_intro",
+      "type": "cultivation",
+      "name": "守灯篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "守灯魂修：高血缓复、单段重击，修炼慢；魂体预留。装备：生命上限+20、持续恢复+0.15HP/秒、防御-1；入门打坐修为增量8。",
+      "cultivationSpeed": 8,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 7
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 8
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 17
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 26,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 39,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 52,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 65,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 6
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 6
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 20,
+          "stackingKey": "guiming_intro_maxhp"
+        },
+        {
+          "targetAttribute": "HealthRecoveryRateMilli",
+          "operation": "Fixed",
+          "value": 150,
+          "stackingKey": "guiming_intro_healthrecoveryratemilli"
+        },
+        {
+          "targetAttribute": "Defense",
+          "operation": "Fixed",
+          "value": -1,
+          "stackingKey": "guiming_intro_defense"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "guiming"
+      ]
+    },
+    {
+      "id": "base:cultivation_guanxing_intro",
+      "type": "cultivation",
+      "name": "照微篇（公开入门篇）",
+      "requiredRealm": "炼气",
+      "grade": "黄阶初级",
+      "effectSummary": "观星点杀：高倍率单击、长冷却，脆弱且重悟性。装备：攻击+2、悟性+4、生命上限-14；入门打坐修为增量10。",
+      "cultivationSpeed": 10,
+      "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          {
+            "tier": "novice",
+            "cultivationSpeed": 9
+          },
+          {
+            "tier": "entry",
+            "cultivationSpeed": 10
+          },
+          {
+            "tier": "minor",
+            "cultivationSpeed": 12
+          },
+          {
+            "tier": "major",
+            "cultivationSpeed": 14
+          },
+          {
+            "tier": "perfect",
+            "cultivationSpeed": 16
+          },
+          {
+            "tier": "transcendent",
+            "cultivationSpeed": 19
+          }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 25,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 2
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 38,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 3
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "from": "major",
+            "to": "perfect",
+            "progressRequired": 50,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 4
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "from": "perfect",
+            "to": "transcendent",
+            "progressRequired": 63,
+            "costs": [
+              {
+                "itemId": "base:resource_spirit_herb",
+                "count": 5
+              },
+              {
+                "itemId": "base:resource_rough_wood",
+                "count": 5
+              }
+            ]
+          }
+        ]
+      },
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "guanxing_intro_attack"
+        },
+        {
+          "targetAttribute": "Comprehension",
+          "operation": "Fixed",
+          "value": 4,
+          "stackingKey": "guanxing_intro_comprehension"
+        },
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": -14,
+          "stackingKey": "guanxing_intro_maxhp"
+        }
+      ],
+      "tags": [
+        "manual",
+        "sect_intro",
+        "guanxing"
+      ]
+    }
+  ]
+}

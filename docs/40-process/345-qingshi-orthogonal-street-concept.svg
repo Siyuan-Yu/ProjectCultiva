@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 570" role="img" aria-label="青石镇正交街路概念图：南北和东西主街，少量短街，公共建筑与住商沿街混排">
+  <defs>
+    <pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#d8d5b6"/><circle cx="7" cy="8" r="1" fill="#a9b68f"/><circle cx="19" cy="20" r="1" fill="#a9b68f"/></pattern>
+    <style>text{font-family:"Microsoft YaHei","Noto Sans CJK SC",sans-serif;fill:#29313a}.title{font-size:22px;font-weight:700}.note{font-size:14px;fill:#52616c}.label{font-size:15px;font-weight:600;text-anchor:middle}.small{font-size:12px;text-anchor:middle}.building{stroke:#616a63;stroke-width:2;rx:4}.public{fill:#d8a986}.trade{fill:#e4c983}.home{fill:#b8cba7}.work{fill:#b3bec8}</style>
+  </defs>
+  <rect width="900" height="570" fill="#f3f0e3"/>
+  <text class="title" x="42" y="46">青石镇：方向清楚的小型街镇</text>
+  <text class="note" x="42" y="72">概念关系图 · 非工程坐标 · 三级 450×450 格是行政范围，不是必须铺满建筑的城区</text>
+  <rect x="52" y="98" width="796" height="398" fill="url(#grass)" stroke="#91a08b" stroke-width="2" rx="8"/>
+  <rect x="425" y="98" width="68" height="398" fill="#b9ae97"/>
+  <rect x="52" y="270" width="796" height="64" fill="#b9ae97"/>
+  <rect x="602" y="334" width="32" height="162" fill="#cbbfa9"/>
+  <rect x="493" y="417" width="141" height="30" fill="#cbbfa9"/>
+  <rect x="425" y="270" width="68" height="64" fill="#a79c86"/>
+  <text class="small" x="459" y="307">小市集</text>
+  <text class="small" x="459" y="119">北</text><path d="M459 112 L459 94 M452 101 L459 94 L466 101" fill="none" stroke="#29313a" stroke-width="2"/>
+  <rect class="building public" x="317" y="139" width="91" height="68"/><text class="label" x="362" y="179">议政厅</text>
+  <rect class="building trade" x="509" y="147" width="92" height="54"/><text class="label" x="555" y="179">书肆</text>
+  <rect class="building home" x="98" y="142" width="86" height="56"/><text class="label" x="141" y="175">铺居</text>
+  <rect class="building trade" x="205" y="166" width="91" height="55"/><text class="label" x="250" y="199">药材行</text>
+  <rect class="building public" x="654" y="144" width="111" height="65"/><text class="label" x="709" y="181">功法阁</text>
+  <rect class="building trade" x="303" y="342" width="103" height="58"/><text class="label" x="354" y="377">拍卖行</text>
+  <rect class="building work" x="509" y="350" width="84" height="59"/><text class="label" x="551" y="385">医馆</text>
+  <rect class="building trade" x="665" y="355" width="112" height="55"/><text class="label" x="721" y="389">客栈</text>
+  <rect class="building home" x="111" y="374" width="76" height="60"/><text class="label" x="149" y="409">民居</text>
+  <rect class="building work" x="209" y="365" width="79" height="62"/><text class="label" x="249" y="401">工坊</text>
+  <rect class="building home" x="660" y="440" width="72" height="40"/><text class="small" x="696" y="465">民居</text>
+  <text class="note" x="67" y="528">东西主街 ↔</text><text class="note" x="395" y="528">↑ 南北主街</text><text class="note" x="661" y="528">仅一条必要的背街服务道</text>
+</svg>

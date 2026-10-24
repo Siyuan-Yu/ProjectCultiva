@@ -12,7 +12,7 @@
     {
       "id": "base:sect_huangcun_labor",
       "type": "strategicFaction",
-      "name": "压迫宗门",
+      "name": "执衡宗",
       "mapColor": "#C75247",
       "territorySelectable": true,
       "sortOrder": 20

@@ -69,7 +69,7 @@ public static class QuestOfferService
     {
         var questId = JsonEdit.GetString(quest, "id");
         quest["autoOffer"] = false;
-        quest["offerConditions"] = new JsonArray();
+        quest["offerConditions"] ??= new JsonArray();
         foreach (var loc in PackageStore.LocationsOfferingQuest(package, questId))
             PackageStore.SetLocationQuestOffer(package, loc, questId, enabled: false);
 
@@ -98,6 +98,15 @@ public static class QuestOfferService
                 existing = package.Find(linked[0]);
         }
 
+        // A linked step dialogue already owns its trigger, speaker, topics and branches.
+        // The legacy offer shortcut must never replace that graph or add top-level choices.
+        if (existing?.Raw["steps"] is JsonArray steps && steps.Count > 0)
+        {
+            quest["autoOffer"] = false;
+            return existing;
+        }
+        if (string.Equals(JsonEdit.GetString(quest, "runtimeMode"), "characterCommission", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("人物委托需在事件编辑器使用 onTalk 与 acceptQuestFromTarget，不能生成旧 startQuest 到达事件。");
         if (existing != null)
         {
             PatchNpcQuestEvent(existing.Raw, questId, locationId, questName, npcName);

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:npc_squad_huangcun_life_patrol",
+      "type": "npcSquad",
+      "name": "荒村正式双人巡卫",
+      "factionId": "base:sect_huangcun_labor",
+      "assemblySiteId": "base:site_huangcun",
+      "members": [
+        {
+          "characterDefinitionId": "base:character_ch01_ref_guard_a",
+          "leader": true,
+          "reuseOpeningSpawn": true
+        },
+        {
+          "characterDefinitionId": "base:character_ch01_ref_guard_b",
+          "leader": false,
+          "reuseOpeningSpawn": true
+        }
+      ],
+      "squadId": "squad:npc:huangcun_life_patrol"
+    }
+  ]
+}

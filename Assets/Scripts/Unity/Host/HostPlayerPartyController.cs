@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using XianXia.Core.Actions;
@@ -199,6 +199,7 @@ namespace XianXia.Unity.Host
         void TickQuestCompanions()
         {
             var world = bootstrap.Session.World;
+            if (world.QuestCompanions.Bindings.Count == 0) return;
             QuestCompanionService.Reconcile(world);
             if (!CanProcessCompanionDeparture()) return;
             var ids = new List<EntityId>(world.QuestCompanions.Bindings.Keys);
@@ -428,9 +429,10 @@ namespace XianXia.Unity.Host
             // 修复：旧实现把每个 follower 拉到 Active exact point（root cause 2 —— materialize 后
             // 所有人重新叠回 Active）。goal = Active + FollowerOffset(followerIndex)。
             var followerIndex = 0;
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id))
                     continue;
                 if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
@@ -459,6 +461,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.PartyUpdate.Auto();
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
 
@@ -761,6 +764,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.PartyLateUpdate.Auto();
             // After CameraRig middle-pan so WASD Hard Follow wins the same frame.
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
@@ -771,6 +775,30 @@ namespace XianXia.Unity.Host
             if (bootstrap.WorldMapPanel == null || !bootstrap.WorldMapPanel.IsOpen)
                 bootstrap.ContinuousOutdoorSurfaceRuntime?.SyncPartyPresentation();
             TickCameraFollow();
+            TickPointerFacing();
+        }
+
+        void TickPointerFacing()
+        {
+            // Sample after movement and camera follow, before EntityView's order-200 LateUpdate.
+            // Idle and click-path movement use the same facing as WASD, without enabling F2 attacks.
+            if (bootstrap.Session.IsPaused || HostInputGate.BlockWorldInteraction ||
+                bootstrap.Session.World.ContentEvents.HasActive ||
+                bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt ||
+                bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen ||
+                bootstrap.WorkTargetMode != null && bootstrap.WorkTargetMode.IsActive ||
+                HostUiHitTest.ContainsScreenPoint(Input.mousePosition) || _spawner == null)
+                return;
+            var encounter = bootstrap.Session.World.Strategic.CharacterEncounter;
+            if (encounter != null && encounter.Phase != CharacterEncounterPhase.Active &&
+                encounter.Phase != CharacterEncounterPhase.ReadyToEnd) return;
+            var camera = Camera.main;
+            if (camera == null || !camera.pixelRect.Contains((Vector2)Input.mousePosition) ||
+                !_spawner.Registry.TryGet(Party.ActiveCharacterId, out var view) || view == null ||
+                !HostPresentationSpace.TryRaycastPlane(camera, Input.mousePosition, out var point)) return;
+            var facing = point - view.CombatVisualPoint;
+            facing.z = 0f;
+            if (facing.sqrMagnitude > .0001f) view.SetPointerFacing(facing.normalized);
         }
 
         void TickContinuousSurfaceAutoTravelMovement()
@@ -1337,13 +1365,14 @@ namespace XianXia.Unity.Host
 
             var activePos = activeView.transform.position;
             var followerIndex = 0;
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id))
                     continue;
                 if (bootstrap.Session.World.Entities.TryGet(id, out var recovering) &&
-                    PartyRestService.HasIndependentPosition(recovering) &&
+                    (PartyRestService.HasIndependentPosition(recovering) || FlightService.Detached(recovering)) &&
                     _spawner.Registry.TryGet(id, out var recoveringView) && recoveringView != null)
                 {
                     var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
@@ -1352,9 +1381,12 @@ namespace XianXia.Unity.Host
                         bootstrap.Session.World.WorldPresence.SetAtWorldPosition(id,
                             new WorldVec2(wx, wy), surface.ActiveSurfaceId);
                     if (!PartyRestService.BlocksMovement(recovering) &&
+                        FlightService.IsAirborne(recovering) == FlightService.IsAirborne(bootstrap.Session.World, active) &&
+                        _move.HasCharacterSight(id, active) &&
                         Vector2.Distance(recoveringView.transform.position, activePos) <= followStopDistance + followerSpreadRadius)
                     {
                         NpcAutonomyState.Ensure(recovering).DetachedByExhaustion = false;
+                        if (recovering.TryGet<FlightComponent>(out var flight)) flight.DetachedFollower = false;
                         PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(bootstrap.Session.World, Party);
                     }
                 }
@@ -1365,7 +1397,7 @@ namespace XianXia.Unity.Host
                 if (!PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
                         bootstrap.Session.World, Party, id) &&
                     !(bootstrap.Session.World.Entities.TryGet(id, out var detached) &&
-                      PartyRestService.HasIndependentPosition(detached) && !PartyRestService.BlocksMovement(detached)))
+                      (PartyRestService.HasIndependentPosition(detached) || FlightService.Detached(detached)) && !PartyRestService.BlocksMovement(detached)))
                     continue;
 
                 // Formation slot 按 Party.Members 稳定顺序分配：每遇到一个非 Active follower
@@ -1429,9 +1461,10 @@ namespace XianXia.Unity.Host
 
             var activePosition = activeView.transform.position;
             var followerIndex = 0;
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (id == active)
                     continue;
                 var participant = encounter.Find(id.Value);
@@ -1491,9 +1524,10 @@ namespace XianXia.Unity.Host
             if (Party == null || follower.IsNone)
                 return 0;
             var idx = 0;
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id))
                     continue;
                 if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
@@ -1552,9 +1586,10 @@ namespace XianXia.Unity.Host
 
             var world = bootstrap?.Session?.World;
             var defender = _melee.DefenderId;
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id) || _melee.IsAttacker(id))
                     continue;
                 if (!bootstrap.Session.World.Entities.TryGet(id, out var ent) ||
@@ -1579,9 +1614,10 @@ namespace XianXia.Unity.Host
             var current = ResolveActiveSharedActivity(active);
             if (current != _lastActiveSharedActivity)
             {
-                for (var i = 0; i < Party.Members.Count; i++)
+                var previousActivityMembers = Party.Members;
+                for (var i = 0; i < previousActivityMembers.Count; i++)
                 {
-                    var id = Party.Members[i];
+                    var id = previousActivityMembers[i];
                     if (Party.IsActive(id))
                         continue;
                     if (_followerSharedActivity.TryGetValue(id.Value, out var assigned) &&
@@ -1599,9 +1635,10 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id))
                     continue;
                 if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&
@@ -1715,9 +1752,10 @@ namespace XianXia.Unity.Host
 
         void ClearFollowerPartyDerivedWork()
         {
-            for (var i = 0; i < Party.Members.Count; i++)
+            var members = Party.Members;
+            for (var i = 0; i < members.Count; i++)
             {
-                var id = Party.Members[i];
+                var id = members[i];
                 if (Party.IsActive(id))
                     continue;
                 if (bootstrap.Session.World.Entities.TryGet(id, out var restEntity) &&

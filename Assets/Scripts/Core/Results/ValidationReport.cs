@@ -37,7 +37,8 @@ namespace XianXia.Core.Results
             var first = _errors[0];
             var detail = _errors.Count == 1
                 ? first.Detail
-                : "error_count=" + _errors.Count;
+                : (string.IsNullOrEmpty(first.Detail) ? string.Empty : first.Detail + "; ") +
+                  "error_count=" + _errors.Count;
             return Result.Failure(ErrorCode.ValidationFailed, first.Message, detail);
         }
 
@@ -49,7 +50,8 @@ namespace XianXia.Core.Results
             var first = _errors[0];
             var detail = _errors.Count == 1
                 ? first.Detail
-                : "error_count=" + _errors.Count;
+                : (string.IsNullOrEmpty(first.Detail) ? string.Empty : first.Detail + "; ") +
+                  "error_count=" + _errors.Count;
             return Result<T>.Failure(ErrorCode.ValidationFailed, first.Message, detail);
         }
     }

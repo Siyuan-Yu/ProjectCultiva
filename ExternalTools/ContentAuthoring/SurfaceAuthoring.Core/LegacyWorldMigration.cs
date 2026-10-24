@@ -150,8 +150,13 @@ public static class LegacyWorldMigration
             var siteId = blueprint.BlueprintId;
             if (!authoredSites.Add(siteId))
                 throw new InvalidDataException("同一 Site 有多个运行时蓝图：" + siteId);
-            if (!sites.OfType<JsonObject>().Any(x => Text(x, "siteId") == siteId))
-                throw new InvalidDataException("蓝图缺少 RuntimeLayout.siteRegions：" + siteId);
+            var flagSite = main["factionFlags"]?.AsArray().OfType<JsonObject>().Any(x =>
+                x["createsWorldSite"]?.GetValue<bool>() == true &&
+                "site:runtime:" + Text(x, "flagId") == siteId) == true;
+            if (!sites.OfType<JsonObject>().Any(x => Text(x, "siteId") == siteId) && !flagSite)
+                throw new InvalidDataException("蓝图缺少静态据点或已作者化旗帜据点：" + siteId);
+            if (flagSite && blueprint.ObjectPlacements.Any(x => x.KindId == "controlCore"))
+                throw new InvalidDataException("旗帜据点不能重复放置固定 controlCore：" + siteId);
             foreach (var old in placements.OfType<JsonObject>().Where(x => Text(x, "siteId") == siteId).ToList())
                 placements.Remove(old);
 

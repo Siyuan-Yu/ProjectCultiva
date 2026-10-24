@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -422,6 +422,8 @@ namespace XianXia.Unity.Host
                 case "session.reset": DrawSessionResetTool(x, y, width); break;
                 case "combat.party-attack": DrawPartyAttackTool(x, y, width); break;
                 case "combat.party-max-hp": DrawPartyMaxHpTool(x, y, width); break;
+                case "world.huangcun-movement": DrawHuangcunMovementTool(x, y, width); break;
+                case "combat.golden-flight": DrawGoldenFlightTool(x, y, width); break;
                 case "combat.party-refill": DrawPartyRefillTool(x, y, width); break;
                 case "combat.incapacitate-selected": DrawSelectedIncapacitateTool(x, y, width); break;
                 case "world.npc-squad-move": DrawNpcSquadMoveTool(x, y, width); break;
@@ -726,6 +728,55 @@ namespace XianXia.Unity.Host
                                       result.Succeeded + " / 跳过 " + result.Skipped;
         }
 
+        void DrawHuangcunMovementTool(float x, float y, float width)
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null) { DrawPanelResult(x, y, width, "请先进入游戏。"); return; }
+            var bypass = world.OpeningArea.DebugBypassMovementRestriction;
+            if (GUI.Button(new Rect(x, y, width, 26f), bypass
+                ? "恢复荒村移动限制（建议先返回村内）" : "临时解除荒村移动限制"))
+            {
+                world.OpeningArea.DebugBypassMovementRestriction = !bypass;
+                _panelStatus = !bypass
+                    ? "已临时放开出村移动；普通墙体仍有碰撞，可走村口或化翼。读档后恢复默认，外界仍按剧情暂停。"
+                    : "已恢复正常移动规则。若仍在村外，可再次解除后返回；已经正式解放荒村则仍可自由出入。";
+            }
+            DrawPanelResult(x, y + 34f, width,
+                (world.OpeningArea.DebugBypassMovementRestriction ? "当前：移动限制已临时解除。" : "当前：遵循正常出村规则。") + "\n" + _panelStatus);
+        }
+
+        void DrawGoldenFlightTool(float x, float y, float width)
+        {
+            var prepare = GUI.Button(new Rect(x, y, width, 26f), "立刻变成金丹期（选中人物，并补满灵力）");
+            var progress = GUI.Button(new Rect(x, y + 32f, width, 26f), "补满所选修士当前突破修为（保留正常成功率）");
+            if (prepare || progress)
+            {
+                var ids = selectionController?.State?.SelectedIds;
+                var world = bootstrap?.Session?.World;
+                if (world == null || ids == null || ids.Count != 1 || !world.Entities.TryGet(ids[0], out var entity) ||
+                    !entity.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cult) ||
+                    !entity.TryGet<AttributesComponent>(out var attrs) || !CombatLifeStateService.CanFight(entity))
+                    _panelStatus = "请唯一选中一名能行动的修士。";
+                else
+                {
+                    var cultivation = new XianXia.Core.Cultivation.CultivationService();
+                    if (prepare)
+                    {
+                        bootstrap.Session.Loop.StopSubject(entity.Id);
+                        cult.Realm = XianXia.Core.Cultivation.RealmStage.GoldenCore;
+                        cult.MinorStage = 0;
+                        attrs.SetBase(AttributeId.SpiritPower, Mathf.Max(200, attrs.GetBase(AttributeId.SpiritPower)));
+                        CombatDamageRules.EnsureVitals(entity);
+                        if (entity.TryGet<CombatVitalsComponent>(out var vitals)) vitals.CurrentSpiritPower = attrs.GetFinal(AttributeId.SpiritPower);
+                    }
+                    cultivation.SyncProgressRequired(world, cult);
+                    if (progress) cult.Progress = cult.BreakthroughProgressRequired;
+                    _panelStatus = prepare ? "选中人物已立刻变为金丹期，灵力已补满。关闭面板后，主控按F3化翼、F2远程。" : "修为已补满，请使用正式突破入口。";
+                }
+            }
+            DrawPanelResult(x, y + 66f, width, _panelStatus);
+        }
+
         void ForceSelectedCharacterIncapacitated()
         {
             var selected = selectionController?.State?.SelectedIds;
@@ -749,6 +800,23 @@ namespace XianXia.Unity.Host
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
             GUI.Label(new Rect(x, y, width, 24f), "系统 / 性能", _title);
             y += 30f;
+            var performance = bootstrap != null ? bootstrap.DebugHud : null;
+            if (performance != null)
+            {
+                if (GUI.Button(new Rect(x, y, 200f, 24f),
+                    performance.PerformanceVisible ? "关闭行走帧耗时（F9）" : "显示行走帧耗时（F9）"))
+                    performance.SetPerformanceVisible(!performance.PerformanceVisible);
+                y += 28f;
+                var wasEnabled = GUI.enabled;
+                GUI.enabled = wasEnabled && performance.PerformanceVisible;
+                if (GUI.Button(new Rect(x, y, 300f, 24f),
+                    performance.UncappedCapture ? "恢复原同步/限帧（Ctrl+F9）" : "临时不限帧采样（Ctrl+F9）"))
+                    performance.SetUncappedCapture(!performance.UncappedCapture);
+                GUI.enabled = wasEnabled;
+                y += 28f;
+                GUI.Label(new Rect(x, y, width, 220f), performance.PerformanceSummary, _body);
+                y += 224f;
+            }
             GUI.Label(new Rect(x, y, width, 22f),
                 bootstrap != null ? bootstrap.OutdoorAuthorityDiagnostic : "Authority=Uninitialized", _body);
             y += 24f;

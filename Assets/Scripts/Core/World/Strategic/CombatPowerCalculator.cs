@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Attributes;
 using XianXia.Core.Cultivation;
@@ -42,6 +42,8 @@ namespace XianXia.Core.World.Strategic
                 return 1;
             switch (cult.Realm)
             {
+                case RealmStage.GoldenCore:
+                    return 30;
                 case RealmStage.Foundation:
                     return 10;
                 case RealmStage.QiRefining:

@@ -168,13 +168,20 @@ namespace XianXia.Unity.Host
         void RefreshForegroundStyle()
         {
             if (!_configured || _bedRenderer == null || _foregroundRenderer == null) return;
-            _foregroundRenderer.sharedMaterial = _bedRenderer.sharedMaterial;
-            _foregroundRenderer.color = _bedRenderer.color;
-            _foregroundRenderer.flipX = _bedRenderer.flipX;
-            _foregroundRenderer.flipY = _bedRenderer.flipY;
-            _foregroundRenderer.sortingLayerID = _bedRenderer.sortingLayerID;
-            _foregroundRenderer.sortingOrder = _bedRenderer.sortingOrder + 2;
-            _foregroundRenderer.enabled = _bedRenderer.enabled;
+            var material = _bedRenderer.sharedMaterial;
+            var color = _bedRenderer.color;
+            var flipX = _bedRenderer.flipX;
+            var flipY = _bedRenderer.flipY;
+            var layer = _bedRenderer.sortingLayerID;
+            var order = _bedRenderer.sortingOrder + 2;
+            var visible = _bedRenderer.enabled;
+            if (_foregroundRenderer.sharedMaterial != material) _foregroundRenderer.sharedMaterial = material;
+            if (!_foregroundRenderer.color.Equals(color)) _foregroundRenderer.color = color;
+            if (_foregroundRenderer.flipX != flipX) _foregroundRenderer.flipX = flipX;
+            if (_foregroundRenderer.flipY != flipY) _foregroundRenderer.flipY = flipY;
+            if (_foregroundRenderer.sortingLayerID != layer) _foregroundRenderer.sortingLayerID = layer;
+            if (_foregroundRenderer.sortingOrder != order) _foregroundRenderer.sortingOrder = order;
+            if (_foregroundRenderer.enabled != visible) _foregroundRenderer.enabled = visible;
         }
 
         void OnEnable()

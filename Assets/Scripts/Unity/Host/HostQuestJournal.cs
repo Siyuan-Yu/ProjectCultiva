@@ -30,6 +30,9 @@ namespace XianXia.Unity.Host
         [SerializeField] bool open;
 
         readonly List<QuestListEntry> _entries = new List<QuestListEntry>(64);
+        int _entriesFrame = -1;
+        object _entriesWorld;
+        EntityId _entriesSubject;
         Tab _tab = Tab.Active;
         string _selectedId = string.Empty;
         string _trackedQuestId = string.Empty;
@@ -66,6 +69,7 @@ namespace XianXia.Unity.Host
 
         void Open()
         {
+            _entriesFrame = -1;
             open = true;
             HostInputGate.Acquire(InputOwner);
             if (!_holdingPause && bootstrap?.Session != null)
@@ -90,6 +94,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            _entriesFrame = -1; _entriesWorld = null; _entries.Clear();
             ReleasePauseOwnership();
             HostInputGate.Release(InputOwner);
             open = false;
@@ -112,6 +117,7 @@ namespace XianXia.Unity.Host
         {
             if (drained == null || drained.Count == 0)
                 return;
+            _entriesFrame = -1;
             for (var i = 0; i < drained.Count; i++)
             {
                 var evt = drained[i];
@@ -301,7 +307,12 @@ namespace XianXia.Unity.Host
 
         void RefreshEntries(PlayableHostSession session)
         {
-            QuestJournalQuery.Collect(session.World, ResolveSubject(session), _entries);
+            var subject = ResolveSubject(session);
+            if (_entriesFrame != Time.frameCount || !ReferenceEquals(_entriesWorld, session.World) || _entriesSubject != subject)
+            {
+                QuestJournalQuery.Collect(session.World, subject, _entries);
+                _entriesFrame = Time.frameCount; _entriesWorld = session.World; _entriesSubject = subject;
+            }
             if (string.IsNullOrEmpty(_selectedId) && _entries.Count > 0)
                 _selectedId = FirstVisibleId();
         }
@@ -604,6 +615,7 @@ namespace XianXia.Unity.Host
 
         void DoQuestCommand(PlayerCommandKind kind, string questId, string okMsg)
         {
+            _entriesFrame = -1;
             if (commandBridge == null)
             {
                 _status = "CommandBridge 未绑定";

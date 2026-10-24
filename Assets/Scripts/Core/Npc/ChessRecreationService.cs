@@ -74,7 +74,8 @@ namespace XianXia.Core.Npc
 
         public static bool CanParticipate(SimulationWorld world, Entity e)
         {
-            if (world == null || e == null || !CombatLifeStateService.CanFight(e) ||
+            if (world == null || e == null || !HuangcunOpeningAccess.IsSimulated(world, e) ||
+                !CombatLifeStateService.CanFight(e) ||
                 PartyRestService.BlocksMovement(e) || world.Strategic.PlayerPartyContext?.IsMember(e.Id) == true ||
                 CharacterEncounterService.OwnsParticipantSpatialState(world, e.Id) ||
                 SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, e.Id) ||
@@ -110,9 +111,10 @@ namespace XianXia.Core.Npc
             if (!CharacterWorldPresenceQuery.TryResolve(world, e.Id, out var at) || !at.HasWorldPosition ||
                 !world.SurfaceGround.TryGet(at.SurfaceId, out var ground) || ground == null) return false;
             foreach (var other in world.Entities.All)
-                if (other.Id != e.Id && NpcHostilityService.CanAutoAttack(world, other.Id, e.Id) &&
+                if (other.Id != e.Id &&
                     CharacterWorldPresenceQuery.TryResolve(world, other.Id, out var enemy) && enemy.HasWorldPosition &&
-                    enemy.SurfaceId == at.SurfaceId && WorldVec2.Distance(enemy.WorldPosition, at.WorldPosition) <= ground.CellSize*6)
+                    enemy.SurfaceId == at.SurfaceId && WorldVec2.Distance(enemy.WorldPosition, at.WorldPosition) <= ground.CellSize*6 &&
+                    NpcHostilityService.CanAutoAttack(world, other.Id, e.Id))
                     return false;
             return true;
         }
@@ -137,14 +139,18 @@ namespace XianXia.Core.Npc
                 bool seatA = game.PlayerA == 0 && game.CooldownUntilTick <= world.Tick.Value;
                 bool seatB = game.PlayerB == 0 && game.CooldownUntilTickB <= world.Tick.Value;
                 if (!seatA && !seatB) continue;
-                var otherId = seatA ? game.PlayerB : game.PlayerA;
-                if (otherId != 0 && world.Entities.TryGet(new EntityId(otherId), out var other) &&
-                    (NpcHostilityService.CanAutoAttack(world, other.Id, e.Id) ||
-                     NpcHostilityService.CanAutoAttack(world, e.Id, other.Id))) continue;
-                var seat = seatA ? board.SeatA : board.SeatB;
+                if (!world.SurfaceGround.TryGet(board.SurfaceId, out var nav)) continue;
                 var route = new List<WorldVec2>();
-                if (!world.SurfaceGround.TryGet(board.SurfaceId, out var nav) ||
-                    !NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, seat, route)) continue;
+                bool reachableA = false, reachableB = false;
+                // Try each free seat independently: an unreachable left side cannot hide the right.
+                if (seatA)
+                    reachableA = CanShareWith(world, game.PlayerB, e) &&
+                        NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, board.SeatA, route);
+                if (!reachableA && seatB)
+                    reachableB = CanShareWith(world, game.PlayerA, e) &&
+                        NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, board.SeatB, route);
+                if (!reachableA && !reachableB) continue;
+                seatA = reachableA;
                 loop.CancelOrdersFromSource(e.Id, OrderSource.Ai);
                 loop.CancelOrdersFromSource(e.Id, OrderSource.Schedule);
                 if (seatA)
@@ -159,6 +165,11 @@ namespace XianXia.Core.Npc
             }
             return false;
         }
+
+        static bool CanShareWith(SimulationWorld world, ulong otherId, Entity actor) =>
+            otherId == 0 || world.Entities.TryGet(new EntityId(otherId), out var other) &&
+            !NpcHostilityService.CanAutoAttack(world, other.Id, actor.Id) &&
+            !NpcHostilityService.CanAutoAttack(world, actor.Id, other.Id);
 
         public static void Drive(SimulationWorld world, SimulationLoop loop)
         {
@@ -184,6 +195,8 @@ namespace XianXia.Core.Npc
             {
                 if (!world.ChessBoards.TryGetValue(game.BoardId, out var board))
                 { EndSeat(world, loop, game, true); EndSeat(world, loop, game, false); continue; }
+                if (!HuangcunOpeningAccess.AllowsPosition(world, board.SurfaceId, board.Center.X, board.Center.Y))
+                { game.LastProcessedTick = world.Tick.Value; continue; }
                 var advance = game.LastProcessedTick != world.Tick.Value;
                 DriveSeat(world, loop, game, board, true, advance);
                 DriveSeat(world, loop, game, board, false, advance);

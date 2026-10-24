@@ -1,0 +1,1489 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_qingshi_library_introduction",
+      "type": "contentEvent",
+      "name": "青石书院·公开书架与十六宗门",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "青石书院·公开书架与十六宗门",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "掌柜拨亮灯芯：「各家的真传不会摆在街边。这里卖的是公开入门抄本，认得字、付得起钱就能买。宗门深处的传承和身份规矩，是另一回事。」\n\n「想用物资换书，也可以帮我备些纸架和行路的资粮。数量写清，交给我本人，绝不空记一笔贡献。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "sects",
+              "text": "想认认外面的宗门。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "sects",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "books",
+              "text": "这些书怎么选？",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "books",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "我先看看。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "sects",
+          "speakerRef": "@target",
+          "text": "十六家的公开入门篇都在这里。它们能帮你认清调息和出手的路子，真正的高阶传承还要以后寻访。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "group_0",
+              "text": "治事与守御",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "group_0",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "group_1",
+              "text": "行旅与养生",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "group_1",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "group_2",
+              "text": "营造与术业",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "group_2",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "group_3",
+              "text": "山门与异学",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "group_3",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "回头再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "books",
+          "speakerRef": "@target",
+          "text": "「入门功法要到炼气才能装备修炼；斗技秘本学会后仍要装备，按自身攻击与熟练度出手。书册可以通过交易购买。我的几个备料委托也会换给你指定的书。」\n\n「想听宗门旧闻尽可问我，眼下别把传闻里的神通当成手上已经会的本事。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "先按自己缺的来。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "group_0",
+          "speakerRef": "@target",
+          "text": "你想了解哪一家？",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "zhiheng",
+              "text": "执衡宗：资源统筹",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "zhiheng",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "hehuan",
+              "text": "合欢宗：自愿结契",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "hehuan",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "xuansha",
+              "text": "玄煞门：魔功淬体与险地取材；代价须可追踪",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "xuansha",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "wanling",
+              "text": "万灵山：灵兽驯养",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "wanling",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "group_1",
+          "speakerRef": "@target",
+          "text": "你想了解哪一家？",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "qingxiao",
+              "text": "青霄剑宗：剑修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "qingxiao",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "baicao",
+              "text": "百草丹宗：药田",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "baicao",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "zhuxing",
+              "text": "铸星谷：矿冶",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "zhuxing",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "taiyan",
+              "text": "太衍阵宗：地脉",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "taiyan",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "group_2",
+          "speakerRef": "@target",
+          "text": "你想了解哪一家？",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "tianlu",
+              "text": "天箓观：符箓",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "tianlu",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "zhenyue",
+              "text": "镇岳宗：体修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "zhenyue",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "tingyue",
+              "text": "霆岳府：雷修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "tingyue",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "ningshuang",
+              "text": "凝霜宫：冰修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "ningshuang",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "group_3",
+          "speakerRef": "@target",
+          "text": "你想了解哪一家？",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "qiangu",
+              "text": "千蛊寨：蛊修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "qiangu",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "tingyu",
+              "text": "听雨阁：音律",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "tingyu",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "guiming",
+              "text": "归冥宗：魂修",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "guiming",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "guanxing",
+              "text": "观星台：推演",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "guanxing",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "zhiheng",
+          "speakerRef": "@target",
+          "text": "「执衡宗以玄衡城为中心，附属据点各有供应职责。外头常说他们讲究资源统筹、镇守与严苛征额。我这里只卖《衡息诀》和《镇衡掌》的公开入门抄本。」\n\n「执衡宗的荒村只是最小的末梢，管事修为远不及上宗。离了村，也别以为见过一位主管就看遍了天下。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "hehuan",
+          "speakerRef": "@target",
+          "text": "「合欢宗的主城叫同心城，讲究自愿结契、双修与心境；拒绝强迫采补。我这里只卖《和心引气篇》和《回风拂袖》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "xuansha",
+          "speakerRef": "@target",
+          "text": "「玄煞门的主城叫烬夜城，讲究魔功淬体与险地取材；代价须可追踪。我这里只卖《玄煞锻息篇》和《裂石手》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "wanling",
+          "speakerRef": "@target",
+          "text": "「万灵山的主城叫栖灵城，讲究灵兽驯养、栖地与饲料供给。我这里只卖《听息养神篇》和《伏虎式》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "qingxiao",
+          "speakerRef": "@target",
+          "text": "「青霄剑宗的主城叫凌霄城，讲究剑修、护道与精炼兵刃。我这里只卖《青锋吐纳篇》和《三叠剑式》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "baicao",
+          "speakerRef": "@target",
+          "text": "「百草丹宗的主城叫回春城，讲究药田、医术与炼丹的材料闭环。我这里只卖《养元篇》和《采叶手》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "zhuxing",
+          "speakerRef": "@target",
+          "text": "「铸星谷的主城叫熔星城，讲究矿冶、锻器与耐用器具。我这里只卖《炉息篇》和《锻铁击》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "taiyan",
+          "speakerRef": "@target",
+          "text": "「太衍阵宗的主城叫衍枢城，讲究地脉、阵基与阵法维护。我这里只卖《守一观息篇》和《定枢指》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "tianlu",
+          "speakerRef": "@target",
+          "text": "「天箓观的主城叫承箓城，讲究符箓、符纸朱砂与传令。我这里只卖《澄神篇》和《点朱指》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "zhenyue",
+          "speakerRef": "@target",
+          "text": "「镇岳宗的主城叫磐岳城，讲究体修、负重与近身护卫。我这里只卖《磐身篇》和《撼岳拳》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "tingyue",
+          "speakerRef": "@target",
+          "text": "「霆岳府的主城叫惊霆城，讲究雷修、山地巡防与引雷阵具。我这里只卖《鸣息篇》和《惊雷式》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "ningshuang",
+          "speakerRef": "@target",
+          "text": "「凝霜宫的主城叫寒璧城，讲究冰修、寒地储藏与静心。我这里只卖《凝息篇》和《折霜指》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "qiangu",
+          "speakerRef": "@target",
+          "text": "「千蛊寨的主城叫青瘴城，讲究蛊修、毒材辨识与解毒；养蛊另待框架。我这里只卖《辨息篇》和《摘星爪》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "tingyu",
+          "speakerRef": "@target",
+          "text": "「听雨阁的主城叫听澜城，讲究音律、幻术与消息辨伪。我这里只卖《清商调息篇》和《碎音指》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "guiming",
+          "speakerRef": "@target",
+          "text": "「归冥宗的主城叫长明城，讲究魂修、遗迹与亡者安置；不把凡人当耗材。我这里只卖《守灯篇》和《叩关掌》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "guanxing",
+          "speakerRef": "@target",
+          "text": "「观星台的主城叫照微城，讲究推演、历法与远行测绘；预测不改写随机真源。我这里只卖《照微篇》和《落星指》的公开入门抄本；宗中高人、真传规矩和专门技艺，还得等你将来亲自打听。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "back",
+              "text": "先记下，改日再问。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "leave",
+              "text": "多谢指点。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_shelves_offer",
+      "type": "contentEvent",
+      "name": "书院委托·书架要结实",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院委托·书架要结实",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_qingshi_library_shelves"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "木板遇潮就翘。书院要添一排架子，你肯匀来十六份粗木，我便用公开的《衡息诀》抄本相谢。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_qingshi_library_shelves"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_shelves_delivery",
+      "type": "contentEvent",
+      "name": "书院交付·书架要结实",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院交付·书架要结实",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_qingshi_library_shelves"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "约好的是粗木×16，交齐后换《衡息诀》。你可以再准备，不必着急。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_qingshi_library_shelves"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_qingshi_library_shelves"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粗木×16"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_shelves_claim",
+      "type": "contentEvent",
+      "name": "书院回报·书架要结实",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 50,
+      "topicText": "书院回报·书架要结实",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_qingshi_library_shelves"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「《衡息诀》已经给你留下。物资不用再交，从任务日志领取书就行。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_road_food_offer",
+      "type": "contentEvent",
+      "name": "书院委托·送书人的路粮",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院委托·送书人的路粮",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_qingshi_library_road_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "远处来的书要有人一路护着。十份路粮记在实账上，换一本《三叠剑式》入门秘本，不劳你入谁家的门。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_qingshi_library_road_food"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_road_food_delivery",
+      "type": "contentEvent",
+      "name": "书院交付·送书人的路粮",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院交付·送书人的路粮",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_qingshi_library_road_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "约好的是粮食×10，交齐后换《三叠剑式》。你可以再准备，不必着急。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_qingshi_library_road_food"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_qingshi_library_road_food"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粮食×10"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_road_food_claim",
+      "type": "contentEvent",
+      "name": "书院回报·送书人的路粮",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 50,
+      "topicText": "书院回报·送书人的路粮",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_qingshi_library_road_food"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「《三叠剑式》已经给你留下。物资不用再交，从任务日志领取书就行。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_medicine_offer",
+      "type": "contentEvent",
+      "name": "书院委托·行旅备用药",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院委托·行旅备用药",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_qingshi_library_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "行旅最怕半路伤病。备八份灵药给送书人，我拿《养元篇》的公开抄本来换；药交给我，村里救命的药可先留足。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_qingshi_library_medicine"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_medicine_delivery",
+      "type": "contentEvent",
+      "name": "书院交付·行旅备用药",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院交付·行旅备用药",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_qingshi_library_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "约好的是灵药×8，交齐后换《养元篇》。你可以再准备，不必着急。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_qingshi_library_medicine"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_qingshi_library_medicine"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要灵药×8"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_medicine_claim",
+      "type": "contentEvent",
+      "name": "书院回报·行旅备用药",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 50,
+      "topicText": "书院回报·行旅备用药",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_qingshi_library_medicine"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「《养元篇》已经给你留下。物资不用再交，从任务日志领取书就行。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_weights_offer",
+      "type": "contentEvent",
+      "name": "书院委托·压住书页的石料",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院委托·压住书页的石料",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questOfferableFromTarget",
+          "id": "base:quest_qingshi_library_weights"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "书案缺几块压纸石。你若有十二份粗石可匀，我这里有《撼岳拳》入门秘本，不算宗门名分，只算这回的买卖。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "accept",
+              "text": "这笔我愿意做。",
+              "conditions": [],
+              "outcomes": [
+                {
+                  "kind": "acceptQuestFromTarget",
+                  "id": "base:quest_qingshi_library_weights"
+                }
+              ],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            },
+            {
+              "id": "later",
+              "text": "先留着，回头再说。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_weights_delivery",
+      "type": "contentEvent",
+      "name": "书院交付·压住书页的石料",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 40,
+      "topicText": "书院交付·压住书页的石料",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questActiveFromTarget",
+          "id": "base:quest_qingshi_library_weights"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "约好的是粗石×12，交齐后换《撼岳拳》。你可以再准备，不必着急。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "deliver",
+              "text": "把约好的物资交给他。",
+              "conditions": [
+                {
+                  "kind": "questDeliveryAvailableFromTarget",
+                  "id": "base:quest_qingshi_library_weights"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "deliverQuestToTarget",
+                  "id": "base:quest_qingshi_library_weights"
+                }
+              ],
+              "nextStepId": "thanks",
+              "unavailableMode": "disabled",
+              "requirementText": "需要粗石×12"
+            },
+            {
+              "id": "later",
+              "text": "我再准备。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        },
+        {
+          "id": "thanks",
+          "speakerRef": "@target",
+          "text": "「物资收好了，书也给你留好了。记得从任务日志把它收进袋里。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "好。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_qingshi_library_weights_claim",
+      "type": "contentEvent",
+      "name": "书院回报·压住书页的石料",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_qingshi_shopkeeper",
+      "priority": 50,
+      "topicText": "书院回报·压住书页的石料",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        },
+        {
+          "kind": "questReadyToClaimFromTarget",
+          "id": "base:quest_qingshi_library_weights"
+        }
+      ],
+      "entryStepId": "talk",
+      "steps": [
+        {
+          "id": "talk",
+          "speakerRef": "@target",
+          "text": "「《撼岳拳》已经给你留下。物资不用再交，从任务日志领取书就行。」",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "这就收下。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

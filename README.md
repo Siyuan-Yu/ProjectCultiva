@@ -1,5 +1,27 @@
 # 修仙游戏项目（暂定名 XianXia）
 
+> 最新：[342 世界聚落与公开传承](docs/40-process/342-world-settlements-and-public-techniques-2026-10-24.md)。108处现有据点已有街区，含16宗门主城商业NPC；新增16功法／16斗技／32书册，石木功能房与树木外观变体。版本 `0.0.17-world-settlements` 需新开局；运行待人工验收，未提交推送。
+
+> 最新：[341 荒村四区调整](docs/40-process/341-huangcun-quadrants-resources-and-workrooms-2026-10-24.md)。田地紧排、住房分区、室外棋盘、两倍散生树、铁铜银灵散矿与低级木制功能房已配置。版本 `0.0.16-huangcun-quadrants` 需新开局；基础编译／静态引用通过，运行待人工验收，未提交推送。
+
+> 最新：[340 荒村生活与聚落内容](docs/40-process/340-huangcun-daily-life-and-settlement-content-2026-10-24.md)。开局引导释义、巡卫／主管规律作息、近田药圃、树林／修炼院／医疗床、青石生活设施与8委托已实施；版本 `0.0.15-huangcun-daily-life` 需新开局。四程序集基础编译和内容静态校验通过，运行待人工验收，未提交推送。制作人确认此前卡顿基本解决，200 FPS仍未实测确认。
+
+> 2026-10-24主控与性能返修见[339](docs/40-process/339-pointer-facing-and-movement-performance-2026-10-24.md)：制作人最新13:46 F9报告平均133.40 FPS，全程未暂停，120不是限帧值。继续向200 FPS预算优化覆盖／床边重复查询、临时分配与隐藏HUD点击区；新增Ctrl+F9临时不限帧对照，关闭F9恢复原设置。基础编译通过，追加收益与200 FPS待新采样，完整交互待验；未提交推送。当前宗门密度暂保留，位置精调后续另做。
+
+> 最新领地：[338 十六宗门正式势力范围](docs/40-process/338-sixteen-sect-territories-2026-10-24.md)。16宗领地已配置，新增90旗，世界与荒村尺寸不变；内容0.0.14，需要新开局。城内设施／驻军仍待补，运行待验收，未提交推送。
+
+> 最新：[337 金丹化翼实施与验收](docs/40-process/337-golden-core-flight-design-2026-10-24.md)。制作人已批准框架扩展；金丹突破、F3飞行／轻量翅膀、空地75%闪避及Snapshot v18已接线，内容0.0.13-golden-core-flight。基础编译通过，运行待人工验收，未提交／推送；F2仍为独立远程模式。
+
+> 最新操作见[336](docs/40-process/336-directional-ranged-control-and-polish-2026-10-24.md)：筑基F2纱衣后，WASD移动、鼠标瞄准、长按左键定向普攻，命中才伤害；骨架瞄准与UI互斥已接线，基础编译通过，待人工验收，未提交推送。
+
+> 宗门打法最新见[335](docs/40-process/335-sixteen-sect-combat-identities-2026-10-24.md)：16套功法／斗技补齐攻防血量、回血、连击冷却与修炼难度取舍。版本0.0.12-sect-combat-identities；已配置，待人工验收；普攻加速及元素特殊机制待框架批准。未提交推送。
+
+> 2026-10-24最新布局见[334](docs/40-process/334-compact-faction-territories-and-single-core-huangcun-2026-10-24.md)：同宗据点按约280格邻接收拢，荒村重排为220×200，全部村内物件均在自身议政厅225×225范围内；原补范围旗移至独立的衡河西岸驿。同步林间实物、出生床位、道路与宗门候选。版本`0.0.11-compact-territories`，需新开局；框架未改，运行待验，未提交推送。
+
+> 2026-10-24最新内容见[333](docs/40-process/333-small-village-and-sixteen-sects-content-2026-10-24.md)与[十六宗门目录](docs/30-content/16-sect-world-content-catalog.md)：正式名册20人分布为荒村13／青石镇7，新增16套入门功法与斗技、32书册、青石书院购书与4项交付换书。正式内容现22任务／67生活事件／6机会模板，版本`0.0.10-small-village-sect-books`，需新开局。16宗城与附属节点为作者候选，高阶人物和专属机制仅设计；未扩框架，待人工验收，未提交推送。
+
+> 2026-10-23最新追加见[332](docs/40-process/332-huangcun-confined-opening-and-liberation-2026-10-23.md)：正式荒村开局在真实占领前限制离村、暂停外界自主模拟，占领后永久解锁外界、势力入口与建造。正式内容现20人／18任务／54生活事件／6机会模板，复用原资源和同屏上限；版本0.0.9-huangcun-liberation，需新开局。当前已实现、待人工验收，未提交推送。
+
 单人开发的修仙题材游戏。Unity + Cursor。本仓库同时存放**策划文档**与**游戏工程**，用 Git 实现跨设备开发与开发史留存。
 
 ## 当前阶段

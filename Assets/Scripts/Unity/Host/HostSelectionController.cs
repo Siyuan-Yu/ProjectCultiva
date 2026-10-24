@@ -68,7 +68,8 @@ namespace XianXia.Unity.Host
         {
             if (spawner == null || selectionCamera == null)
                 return;
-            if (HostInputGate.BlockWorldInteraction)
+            if (HostInputGate.BlockWorldInteraction ||
+                HostDirectionalRangedAttack.ClaimsPointer(GetComponent<PlayableHostBootstrap>()))
             {
                 CancelGesture();
                 return;

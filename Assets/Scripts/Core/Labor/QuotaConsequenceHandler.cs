@@ -15,6 +15,7 @@ namespace XianXia.Core.Labor
 
             foreach (var entity in world.Entities.All)
             {
+                if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 if (!entity.TryGet<DailyTaskComponent>(out var daily))
                     continue;
 

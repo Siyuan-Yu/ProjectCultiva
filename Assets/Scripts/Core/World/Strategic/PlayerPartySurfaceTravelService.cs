@@ -21,6 +21,8 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid Surface travel args.");
+            if (!HuangcunOpeningAccess.AllowsPosition(world, world.PlayerPartyTravel?.SurfaceId, destination.X, destination.Y))
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
             if (world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity) &&
                 XianXia.Core.Npc.PartyRestService.BlocksMovement(activeEntity))
                 return Result.Failure(ErrorCode.InvalidOperation, "主控精力耗尽，恢复后才能行军。");
@@ -40,11 +42,14 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Continuous Surface navigation is not ready for this route.");
 
             RouteScratch.Clear();
-            var status = navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch);
+            var status = XianXia.Core.Combat.FlightService.Route(world, world.Strategic.PlayerPartyContext.ActiveCharacterId, navigation, motion.WorldPosition, destination, RouteScratch);
             if (status == SurfaceGroundRouteStatus.BlockedGoal)
                 return Result.Failure(ErrorCode.InvalidArgument, "不可步行到达的地面目标。");
             if (status != SurfaceGroundRouteStatus.Found)
                 return Result.Failure(ErrorCode.InvalidOperation, "Surface route unavailable: " + status);
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPosition(world, navigation.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y))
+                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             motion.SetCurrentOutdoorWorldSiteContext(string.Empty);
@@ -60,6 +65,7 @@ namespace XianXia.Core.World.Strategic
         {
             var motion = world?.PlayerPartyTravel;
             if (motion == null || !motion.HasPosition ||
+                !HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId, destination.X, destination.Y) ||
                 !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) ||
                 string.IsNullOrEmpty(motion.SurfaceId) ||
                 !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null ||
@@ -67,8 +73,10 @@ namespace XianXia.Core.World.Strategic
                 !navigation.Contains(destination.X, destination.Y))
                 return false;
             RouteScratch.Clear();
-            if (navigation.TryFindRoute(motion.WorldPosition, destination, RouteScratch) != SurfaceGroundRouteStatus.Found)
+            if (XianXia.Core.Combat.FlightService.Route(world, world.Strategic.PlayerPartyContext.ActiveCharacterId, navigation, motion.WorldPosition, destination, RouteScratch) != SurfaceGroundRouteStatus.Found)
                 return false;
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPosition(world, navigation.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y)) return false;
             motion.BeginSurfaceAutoTravel(navigation.SurfaceId, destination, targetSiteId,
                 Math.Max(0.001f, arrivalRadius), RouteScratch);
             return true;
@@ -85,6 +93,8 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world, PlayerPartyRuntime party, WorldVec2 position)
         {
             var motion = world?.PlayerPartyTravel;
+            if (!HuangcunOpeningAccess.AllowsPosition(world, motion?.SurfaceId, position.X, position.Y))
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
             if (motion == null || party == null || string.IsNullOrEmpty(motion.SurfaceId) ||
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null)
@@ -92,8 +102,8 @@ namespace XianXia.Core.World.Strategic
                     "PlayerParty has no active Continuous Surface authority.");
             if (!navigation.Contains(motion.WorldPosition.X, motion.WorldPosition.Y) ||
                 !navigation.Contains(position.X, position.Y) ||
-                !navigation.IsSegmentWalkable(
-                    motion.WorldPosition.X, motion.WorldPosition.Y, position.X, position.Y))
+                (!XianXia.Core.Combat.FlightService.IsAirborne(world, party.ActiveCharacterId) && !navigation.IsSegmentWalkable(
+                    motion.WorldPosition.X, motion.WorldPosition.Y, position.X, position.Y)))
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "Continuous Surface movement segment is blocked.");
 

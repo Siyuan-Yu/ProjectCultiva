@@ -27,6 +27,8 @@ namespace XianXia.Core.Simulation
     /// <summary>Single-region M1 simulation state container.</summary>
     public sealed class SimulationWorld
     {
+        public HuangcunOpeningArea OpeningArea { get; } = new HuangcunOpeningArea();
+
         readonly Dictionary<string, ScheduleDefinition> _schedules =
             new Dictionary<string, ScheduleDefinition>(System.StringComparer.Ordinal);
         readonly Dictionary<string, OpportunitySite> _opportunitySites =

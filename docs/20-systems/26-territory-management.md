@@ -1,5 +1,7 @@
 # 领地经营
 
+> **2026-10-25 设计覆写，未实施：** 正常新游戏不再建／拆旗产生 Site，只能正式占领既有固定核心；升级已拥有的议政厅扩大理论范围，实际控制仍唯一并保留既得 Claim。一级 225×225 Surface cells；二至五级长宽倍率 1.5／2／2.5／3，见[ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)。下方拆旗和旗 marker 是历史实现／旧档兼容描述，不能直接作为新游戏操作入口。状态 Design Confirmed / Implementation Pending。
+
 > **2026-10-23 控制范围数值覆写：** 制作人将议政厅／势力旗的一级理论控制范围长宽各扩大 1.5 倍，统一配置为 **225×225 Surface Cells**（Main Surface 6.3×6.3 world）；各既有重叠、实际行政与建设资格仍由同一规则解析。下文及历史文档的 150×150 仅保留此前数值；野外战场尺寸、建筑占地、攻击射程不随之放大。世界与荒村扩展见 [320](../40-process/320-world-expand-05-7600x3400-2026-10-23.md)。
 
 > 状态：SiteCore／TerritoryClaim／Actual Administrative Control 与现行经济接线已 Producer Accepted / Sealed | 优先级：P0 | 最后更新：2026-09-21

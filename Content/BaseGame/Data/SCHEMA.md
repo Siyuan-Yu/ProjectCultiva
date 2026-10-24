@@ -1,4 +1,6 @@
-# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready / Chapter Production)
+﻿# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready / Chapter Production)
+
+> 2026-10-23 正式首段续做：现行 Snapshot 为 v17（下文 v8 等为历史引入点）；本轮不改 wire 版本。新增可选 quest.journalConditions[]，只控制 Inactive 固定任务是否显示在日志，留空保留现有 Locked／Available 行为；Active／ReadyToClaim／Completed／Failed 不受该字段隐藏。接取资格仍只由 offerConditions 与原服务决定。LevelTester 默认与正式构建共读 Content/BaseGame/formal-opening.json；Inspector 的 useFormalOpening 关闭后可显式进入参考／验收模式。见 [329](../../../docs/40-process/329-project-audit-resume-and-opening-completion-2026-10-23.md)。
 
 > 2026-10-20 后续：[313](../../../docs/40-process/313-medical-closure-and-ground-loot-2026-10-20.md)将当前Snapshot升级为v17；新增顶层`groundLoot[]`，每项`id/itemId/count/surfaceId/worldX/worldY`，与既有`TakenWorldLootSpotIds`共同保存数量与已拾取事实。v15/v16读入补为空列表，原医疗状态保留；v17缺少地面物品列表应拒绝，不能静默丢掉掉落物。Content地图既有`lootItemId`、位置和稳定ID不变。下方v16为初次医疗实施历史记录。
 
@@ -487,7 +489,8 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 | `abandonable` | 玩家是否可在任务日志中放弃（默认 false） |
 | `deadlineDays` | 接取后有效游戏天数；`0` = 无时限。超时自动 `Failed` 并应用 `failResults` |
 | 状态机 | Inactive → Active → **ReadyToClaim（待领奖）** → Completed；奖励仅在领取时发放 |
-| `offerConditions`／`completeConditions`／`failConditions` | condition 对象数组 |
+| `journalConditions` | 可选 condition 数组，仅未接任务的日志显示门槛；不替代接取门槛，不隐藏已接任务 |
+| `offerConditions`／`completeConditions`／`failConditions` | condition 对象数组，手动与自动接取都要满足 offerConditions |
 | `rewards`／`failResults` | outcome 对象数组 |
 
 `failResults`：任务 **超时**（`deadlineDays`）或 **失败条件** 满足时执行；留空 `[]` 表示无额外后果。常用 `relationDelta`（NPC 发布任务超时降好感）。

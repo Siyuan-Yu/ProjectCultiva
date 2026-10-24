@@ -649,7 +649,8 @@ public static class PackageStore
     {
         bool Starts(JsonObject owner) => owner["outcomes"] is JsonArray outcomes &&
             outcomes.OfType<JsonObject>().Any(o =>
-                string.Equals(JsonEdit.GetString(o, "kind"), "startQuest", StringComparison.OrdinalIgnoreCase) &&
+                (string.Equals(JsonEdit.GetString(o, "kind"), "startQuest", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(JsonEdit.GetString(o, "kind"), "acceptQuestFromTarget", StringComparison.OrdinalIgnoreCase)) &&
                 JsonEdit.GetString(o, "id") == questId);
         bool ChoiceStarts(JsonObject owner) => owner["choices"] is JsonArray choices &&
             choices.OfType<JsonObject>().Any(Starts);

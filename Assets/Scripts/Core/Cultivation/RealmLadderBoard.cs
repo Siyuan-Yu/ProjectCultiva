@@ -81,6 +81,10 @@ namespace XianXia.Core.Cultivation
                 Bonus(AttributeId.Defense, 15),
                 Bonus(AttributeId.SpiritPower, 40), Bonus(AttributeId.SpiritSense, 10)));
 
+            list.Add(MinorStep(RealmStage.Foundation, 0, RealmStage.GoldenCore, 0,
+                30000, 25, true, 0, Bonus(AttributeId.MaxHp, 120), Bonus(AttributeId.Attack, 35),
+                Bonus(AttributeId.Defense, 25), Bonus(AttributeId.SpiritPower, 120),
+                Bonus(AttributeId.SpiritSense, 20), Bonus(AttributeId.Physique, 12)));
             return list;
         }
 

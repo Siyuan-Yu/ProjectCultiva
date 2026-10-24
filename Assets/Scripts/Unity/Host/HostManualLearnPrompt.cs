@@ -308,6 +308,10 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
+            if (string.Equals(text, "金丹", System.StringComparison.Ordinal) ||
+                string.Equals(text, "结丹", System.StringComparison.Ordinal) ||
+                string.Equals(text, "GoldenCore", System.StringComparison.OrdinalIgnoreCase))
+            { realm = RealmStage.GoldenCore; return true; }
             if (string.Equals(text, "筑基", System.StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(text, "Foundation", System.StringComparison.OrdinalIgnoreCase))
             {

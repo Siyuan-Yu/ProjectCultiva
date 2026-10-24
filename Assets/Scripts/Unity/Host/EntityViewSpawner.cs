@@ -58,6 +58,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.ViewsUpdate.Auto();
             var driver = VisualDriver;
             var driverChanged = _appliedVisualDriver != driver;
             _appliedVisualDriver = driver;

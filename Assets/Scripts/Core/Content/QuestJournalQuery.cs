@@ -81,12 +81,26 @@ namespace XianXia.Core.Content
                 if (spec.IsCharacterCommission && runtime.Status == QuestStatus.Inactive)
                     continue;
 
+                if (runtime.Status == QuestStatus.Inactive &&
+                    !ContentConditionEvaluator.AllPass(world, subject, spec.JournalConditions)) continue;
+
                 var entry = BuildEntry(world, subject, spec, runtime, kv.Key);
                 if (entry != null)
                     into.Add(entry);
             }
 
             into.Sort(CompareEntries);
+        }
+
+        /// <summary>Shared read-only target text for the full journal and tracked HUD.</summary>
+        public static string DescribeObjectives(SimulationWorld world, QuestSpec spec, QuestRuntime runtime)
+        {
+            if (spec == null) return "（无完成条件）";
+            if (spec.DeliveryRequirements.Count > 0)
+                return runtime?.DeliveryCompleted == true ? "物品已交付，等待领取奖励" : SummarizeDelivery(spec.DeliveryRequirements);
+            if ((UsesDescriptionForInternalHandIn(spec.CompleteConditions) || UsesOnlyStoryFlags(spec.CompleteConditions)) &&
+                !string.IsNullOrWhiteSpace(spec.Description)) return spec.Description;
+            return SummarizeObjectivesLive(world, spec.CompleteConditions, runtime);
         }
 
         static QuestListEntry BuildEntry(
@@ -110,18 +124,10 @@ namespace XianXia.Core.Content
                 ProgressMax = runtime.ProgressMax,
                 RewardsSummary = SummarizeOutcomes(spec.Rewards),
                 FailResultsSummary = SummarizeOutcomes(spec.FailResults, "（无失败后果）"),
-                ObjectivesSummary = SummarizeObjectivesLive(world, spec.CompleteConditions, runtime)
+                ObjectivesSummary = DescribeObjectives(world, spec, runtime)
             };
             if (spec.IsCharacterCommission)
                 entry.Name += " · " + runtime.IssuerDisplayName + " [" + ShortInstance(runtime.QuestInstanceId) + "]";
-            if (spec.DeliveryRequirements.Count > 0)
-                entry.ObjectivesSummary = runtime.DeliveryCompleted
-                    ? "物品已交付，等待领取奖励"
-                    : SummarizeDelivery(spec.DeliveryRequirements);
-            if (UsesDescriptionForInternalHandIn(spec.CompleteConditions) &&
-                !string.IsNullOrWhiteSpace(entry.Description))
-                entry.ObjectivesSummary = entry.Description;
-
             if (entry.ProgressMax > 0 || TryGetStockProgress(world, spec, out _, out _))
             {
                 var count = entry.ProgressCount;
@@ -195,6 +201,16 @@ namespace XianXia.Core.Content
                 parts.Add("交付 " + ResourceLabel(requirements[i].ItemId) + " ×" +
                           (requirements[i].Amount > 0 ? requirements[i].Amount : 1));
             return string.Join("；", parts);
+        }
+
+        static bool UsesOnlyStoryFlags(IReadOnlyList<ContentCondition> conditions)
+        {
+            if (conditions == null || conditions.Count == 0) return false;
+            foreach (var c in conditions)
+                if (c == null || string.IsNullOrEmpty(c.Id) || !c.Id.StartsWith("story:", System.StringComparison.Ordinal) ||
+                    !(string.Equals(c.Kind, "hasFlag", System.StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(c.Kind, "storyFlag", System.StringComparison.OrdinalIgnoreCase))) return false;
+            return true;
         }
 
         static bool UsesDescriptionForInternalHandIn(IReadOnlyList<ContentCondition> conditions)
@@ -335,6 +351,18 @@ namespace XianXia.Core.Content
             if (!string.IsNullOrEmpty(counterLive))
                 return counterLive;
 
+            if (list.Count == 1 && world != null)
+            {
+                var c = list[0];
+                if (c != null && string.Equals(c.Kind, "hasManual", System.StringComparison.OrdinalIgnoreCase) &&
+                    DefinitionId.TryParse(c.Id, out var manualId) && world.TryGetManual(manualId, out var manual))
+                    return "实际学会：" + (string.IsNullOrEmpty(manual.Name) ? c.Id : manual.Name);
+                if (c != null && (string.Equals(c.Kind, "atLocation", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(c.Kind, "characterAtLocation", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(c.Kind, "exploredLocation", System.StringComparison.OrdinalIgnoreCase)) &&
+                    world.ContinuousOutdoorMaterialization.TryGetAnyPlace(c.Id, out var place))
+                    return (string.Equals(c.Kind, "exploredLocation", System.StringComparison.OrdinalIgnoreCase) ? "探索：" : "抵达：") + place.Name;
+            }
             return SummarizeObjectives(list);
         }
 

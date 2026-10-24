@@ -18,9 +18,15 @@ namespace XianXia.Unity.Host
         {
             public GameObject Root;
             public TextMesh Label;
+            public string LabelText;
+            public string FactionId;
+            public Vector3 Center;
+            public bool Positioned;
         }
         readonly Dictionary<string, FlagVisual> _visuals =
             new Dictionary<string, FlagVisual>(StringComparer.Ordinal);
+        readonly HashSet<string> _keptVisuals = new HashSet<string>(StringComparer.Ordinal);
+        readonly List<string> _removedVisuals = new List<string>();
         GameObject _preview;
         string _buildingId = string.Empty;
         string _status = string.Empty;
@@ -52,6 +58,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.FlagsUpdate.Auto();
             var world = _bootstrap?.Session?.World;
             if (world == null || !_bootstrap.Session.IsInitialized)
             {
@@ -275,7 +282,8 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             bool continuous)
         {
-            var keep = new HashSet<string>(StringComparer.Ordinal);
+            _keptVisuals.Clear();
+            var keep = _keptVisuals;
             if (continuous)
             {
                 foreach (var pair in world.Strategic.FactionFlags.Flags)
@@ -287,7 +295,8 @@ namespace XianXia.Unity.Host
                     keep.Add(flag.FlagId);
                 }
             }
-            var remove = new List<string>();
+            _removedVisuals.Clear();
+            var remove = _removedVisuals;
             foreach (var pair in _visuals)
                 if (!keep.Contains(pair.Key)) remove.Add(pair.Key);
             for (var i = 0; i < remove.Count; i++) DestroyVisual(remove[i]);
@@ -323,14 +332,29 @@ namespace XianXia.Unity.Host
                 visual = new FlagVisual { Root = root, Label = label };
                 _visuals[flag.FlagId] = visual;
             }
-            visual.Label.text = BuildLabel(flag);
-            SetFlagStyle(visual.Root, flag.FactionId);
+            var labelText = BuildLabel(flag);
+            if (!string.Equals(visual.LabelText, labelText, StringComparison.Ordinal))
+            {
+                visual.LabelText = labelText;
+                visual.Label.text = labelText;
+            }
+            if (!visual.Positioned || !string.Equals(visual.FactionId, flag.FactionId, StringComparison.Ordinal))
+            {
+                visual.FactionId = flag.FactionId;
+                SetFlagStyle(visual.Root, flag.FactionId);
+                visual.Positioned = false; // A different sprite may have different source bounds.
+            }
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (continuous != null && continuous.IsActive &&
                 HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
             {
-                var p = HostPresentationSpace.ToPresentation(center);
-                PositionBuilding(visual.Root, p.x, p.y, 1f);
+                if (!visual.Positioned || !visual.Center.Equals(center))
+                {
+                    var p = HostPresentationSpace.ToPresentation(center);
+                    PositionBuilding(visual.Root, p.x, p.y, 1f);
+                    visual.Center = center;
+                    visual.Positioned = true;
+                }
             }
         }
 
@@ -418,8 +442,11 @@ namespace XianXia.Unity.Host
 
         void DestroyAllVisuals()
         {
-            var ids = new List<string>(_visuals.Keys);
-            for (var i = 0; i < ids.Count; i++) DestroyVisual(ids[i]);
+            _removedVisuals.Clear();
+            _removedVisuals.AddRange(_visuals.Keys);
+            for (var i = 0; i < _removedVisuals.Count; i++) DestroyVisual(_removedVisuals[i]);
+            _removedVisuals.Clear();
+            _keptVisuals.Clear();
         }
 
         void DestroyPreview()

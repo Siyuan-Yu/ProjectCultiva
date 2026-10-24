@@ -104,6 +104,8 @@ namespace XianXia.Unity.Host
 
         bool IsInspectTargetLocallyVisible()
         {
+            if (_inspect.Plot != null && !_inspect.Plot.gameObject.activeInHierarchy ||
+                _inspect.Destructible != null && !_inspect.Destructible.gameObject.activeInHierarchy) return false;
             var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
             var world = bootstrap?.Session?.World;
             if (continuous == null || !continuous.IsActive || world == null) return true;

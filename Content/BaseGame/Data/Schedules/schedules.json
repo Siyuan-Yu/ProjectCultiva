@@ -6,11 +6,36 @@
       "type": "schedule",
       "name": "开局劳役日",
       "blocks": [
-        { "startTick": 0, "endTick": 24, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 24, "endTick": 144, "activity": "Labor", "orderDurationTicks": 12 },
-        { "startTick": 144, "endTick": 168, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 168, "endTick": 240, "activity": "Labor", "orderDurationTicks": 12 },
-        { "startTick": 240, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 24,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 24,
+          "endTick": 144,
+          "activity": "Labor",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 144,
+          "endTick": 168,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 168,
+          "endTick": 240,
+          "activity": "Labor",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 240,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
       ]
     },
     {
@@ -18,9 +43,24 @@
       "type": "schedule",
       "name": "凡人劳役日",
       "blocks": [
-        { "startTick": 0, "endTick": 60, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 60, "endTick": 264, "activity": "Labor", "orderDurationTicks": 12 },
-        { "startTick": 264, "endTick": 288, "activity": "Idle", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 60,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 60,
+          "endTick": 264,
+          "activity": "Labor",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 264,
+          "endTick": 288,
+          "activity": "Idle",
+          "orderDurationTicks": 6
+        }
       ]
     },
     {
@@ -28,12 +68,42 @@
       "type": "schedule",
       "name": "修士日",
       "blocks": [
-        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 48, "endTick": 120, "activity": "Explore", "orderDurationTicks": 12 },
-        { "startTick": 120, "endTick": 192, "activity": "Cultivate", "orderDurationTicks": 12 },
-        { "startTick": 192, "endTick": 228, "activity": "Explore", "orderDurationTicks": 12 },
-        { "startTick": 228, "endTick": 264, "activity": "Cultivate", "orderDurationTicks": 12 },
-        { "startTick": 264, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 48,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 48,
+          "endTick": 120,
+          "activity": "Explore",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 120,
+          "endTick": 192,
+          "activity": "Cultivate",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 192,
+          "endTick": 228,
+          "activity": "Explore",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 228,
+          "endTick": 264,
+          "activity": "Cultivate",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 264,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
       ]
     },
     {
@@ -41,12 +111,42 @@
       "type": "schedule",
       "name": "主管日",
       "blocks": [
-        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 48, "endTick": 120, "activity": "Patrol", "orderDurationTicks": 12 },
-        { "startTick": 120, "endTick": 168, "activity": "Inspect", "orderDurationTicks": 12 },
-        { "startTick": 168, "endTick": 216, "activity": "Cultivate", "orderDurationTicks": 12 },
-        { "startTick": 216, "endTick": 264, "activity": "Patrol", "orderDurationTicks": 12 },
-        { "startTick": 264, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 48,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 48,
+          "endTick": 120,
+          "activity": "Patrol",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 120,
+          "endTick": 168,
+          "activity": "Inspect",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 168,
+          "endTick": 216,
+          "activity": "Cultivate",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 216,
+          "endTick": 264,
+          "activity": "Patrol",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 264,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
       ]
     },
     {
@@ -54,11 +154,36 @@
       "type": "schedule",
       "name": "默认劳工日",
       "blocks": [
-        { "startTick": 0, "endTick": 24, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 24, "endTick": 144, "activity": "Labor", "orderDurationTicks": 12 },
-        { "startTick": 144, "endTick": 168, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 168, "endTick": 240, "activity": "Labor", "orderDurationTicks": 12 },
-        { "startTick": 240, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 24,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 24,
+          "endTick": 144,
+          "activity": "Labor",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 144,
+          "endTick": 168,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 168,
+          "endTick": 240,
+          "activity": "Labor",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 240,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
       ]
     },
     {
@@ -66,12 +191,128 @@
       "type": "schedule",
       "name": "将老踱步日",
       "blocks": [
-        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
-        { "startTick": 48, "endTick": 120, "activity": "Patrol", "orderDurationTicks": 12 },
-        { "startTick": 120, "endTick": 156, "activity": "Explore", "orderDurationTicks": 12 },
-        { "startTick": 156, "endTick": 216, "activity": "Patrol", "orderDurationTicks": 12 },
-        { "startTick": 216, "endTick": 252, "activity": "Explore", "orderDurationTicks": 12 },
-        { "startTick": 252, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+        {
+          "startTick": 0,
+          "endTick": 48,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 48,
+          "endTick": 120,
+          "activity": "Patrol",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 120,
+          "endTick": 156,
+          "activity": "Explore",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 156,
+          "endTick": 216,
+          "activity": "Patrol",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 216,
+          "endTick": 252,
+          "activity": "Explore",
+          "orderDurationTicks": 12
+        },
+        {
+          "startTick": 252,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
+      ]
+    },
+    {
+      "id": "base:schedule_huangcun_guard_day",
+      "type": "schedule",
+      "name": "荒村双巡卫同班作息",
+      "blocks": [
+        {
+          "startTick": 0,
+          "endTick": 60,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 60,
+          "endTick": 120,
+          "activity": "Inspect",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 120,
+          "endTick": 156,
+          "activity": "Cultivate",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 156,
+          "endTick": 216,
+          "activity": "Inspect",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 216,
+          "endTick": 288,
+          "activity": "Patrol",
+          "orderDurationTicks": 4
+        }
+      ]
+    },
+    {
+      "id": "base:schedule_huangcun_supervisor_day",
+      "type": "schedule",
+      "name": "荒村主管查工与修炼",
+      "blocks": [
+        {
+          "startTick": 0,
+          "endTick": 60,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 60,
+          "endTick": 84,
+          "activity": "Inspect",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 84,
+          "endTick": 132,
+          "activity": "Cultivate",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 132,
+          "endTick": 156,
+          "activity": "Inspect",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 156,
+          "endTick": 216,
+          "activity": "Cultivate",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 216,
+          "endTick": 240,
+          "activity": "Patrol",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 240,
+          "endTick": 288,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        }
       ]
     }
   ]

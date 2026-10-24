@@ -33,6 +33,9 @@ namespace XianXia.Unity.Host
                 XianXia.Core.World.Strategic.CharacterEncounterPhase.Committed)
             { result.Message = "请先关闭本场战报再保存。"; return result; }
 
+            if (bootstrap.GetComponent<HostTicTacToePanel>()?.IsOpen == true)
+            { result.Message = "请先结束与将老的棋局，再保存。"; return result; }
+
             HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(bootstrap);
             HostSnapshotSessionRehydration.LogDomainTrace(bootstrap.Session, "BeforeSave");
             var captured = bootstrap.Session.CaptureSnapshotJson();

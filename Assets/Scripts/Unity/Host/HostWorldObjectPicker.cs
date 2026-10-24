@@ -241,18 +241,26 @@ namespace XianXia.Unity.Host
             // NPC work selection may still resolve them; legacy LocalMap keeps its click behavior.
             if (continuous != null && continuous.IsActive && purpose == WorldObjectPickPurpose.PlayerInteraction)
                 return false;
+            // WorkTarget callers only consume farm cells, destructibles and loot. Logical
+            // housing/work-area results were ignored by both hover and right-click handlers.
+            // Avoid walking every authored work area on every rendered hover frame.
+            if (purpose == WorldObjectPickPurpose.WorkTarget)
+                return false;
 
-            if (TryPickWorkArea(world, point, 6.5f, housing: true, out var workAreaId))
+            using (HostDebugHud.WorldPickerWorkArea.Auto())
             {
-                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Housing, workAreaId,
-                    displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
-                return true;
-            }
-            if (TryPickWorkArea(world, point, 6.5f, housing: false, out workAreaId))
-            {
-                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.WorkArea, workAreaId,
-                    displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
-                return true;
+                if (TryPickWorkArea(world, point, 6.5f, housing: true, out var workAreaId))
+                {
+                    target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Housing, workAreaId,
+                        displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
+                    return true;
+                }
+                if (TryPickWorkArea(world, point, 6.5f, housing: false, out workAreaId))
+                {
+                    target = new WorldObjectInteractionTarget(WorldObjectTargetKind.WorkArea, workAreaId,
+                        displayLabel: ResolveWorkAreaName(world, workAreaId), approachPosition: point);
+                    return true;
+                }
             }
             return false;
         }
@@ -415,6 +423,10 @@ namespace XianXia.Unity.Host
         {
             workAreaId = string.Empty; var p = HostPresentationSpace.ToPresentation(point);
             var best = float.MaxValue;
+            // A farm click has one nearest loaded cell. Do not rescan every farm cell
+            // for each work area while the pointer hovers over the world.
+            HostMapPlotCell farmPlot = null;
+            var hasFarmPlot = !housing && HostFarmFieldRegistry.TryFindPlotAt(point, out farmPlot);
             foreach (var pair in world.WorkAreas)
             {
                 var area = pair.Value;
@@ -426,9 +438,9 @@ namespace XianXia.Unity.Host
                 float distance;
                 if (HostFarmFieldRules.IsFarmTaggedWorkArea(area))
                 {
-                    if (!HostFarmFieldRegistry.TryFindPlotAt(point, out var plot) || plot == null ||
-                        !string.Equals(plot.LocationId, area.LocationId, StringComparison.Ordinal)) continue;
-                    distance = HostFarmFieldRules.XyDistance(plot.transform.position, point);
+                    if (!hasFarmPlot || farmPlot == null ||
+                        !string.Equals(farmPlot.LocationId, area.LocationId, StringComparison.Ordinal)) continue;
+                    distance = HostFarmFieldRules.XyDistance(farmPlot.transform.position, point);
                 }
                 else
                 {

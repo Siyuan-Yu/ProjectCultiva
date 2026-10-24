@@ -1,0 +1,549 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:item_manual_zhiheng_branch",
+      "type": "item",
+      "name": "负衡经（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhiheng_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "zhiheng"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_zhiheng_branch",
+      "type": "item",
+      "name": "叠岳掌（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhiheng_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "zhiheng"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_hehuan_branch",
+      "type": "item",
+      "name": "清心同息篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_hehuan_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "hehuan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_hehuan_branch",
+      "type": "item",
+      "name": "回弦二叠（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_hehuan_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "hehuan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_xuansha_branch",
+      "type": "item",
+      "name": "烬骨守息录（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_xuansha_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "xuansha"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_xuansha_branch",
+      "type": "item",
+      "name": "断烬击（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_xuansha_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "xuansha"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_wanling_branch",
+      "type": "item",
+      "name": "听林识息篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_wanling_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "wanling"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_wanling_branch",
+      "type": "item",
+      "name": "逐影三扑（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_wanling_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "wanling"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_qingxiao_branch",
+      "type": "item",
+      "name": "藏锋养剑诀（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_qingxiao_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "qingxiao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_qingxiao_branch",
+      "type": "item",
+      "name": "一线开云（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_qingxiao_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "qingxiao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_baicao_branch",
+      "type": "item",
+      "name": "青枝行气录（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_baicao_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "baicao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_baicao_branch",
+      "type": "item",
+      "name": "折枝连指（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_baicao_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "baicao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_zhuxing_branch",
+      "type": "item",
+      "name": "温炉养神诀（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhuxing_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "zhuxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_zhuxing_branch",
+      "type": "item",
+      "name": "碎砧三落（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhuxing_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "zhuxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_taiyan_branch",
+      "type": "item",
+      "name": "转枢行气篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_taiyan_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "taiyan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_taiyan_branch",
+      "type": "item",
+      "name": "开门断式（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_taiyan_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "taiyan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_tianlu_branch",
+      "type": "item",
+      "name": "守篆凝息录（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tianlu_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "tianlu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_tianlu_branch",
+      "type": "item",
+      "name": "连篆轻击（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tianlu_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "tianlu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_zhenyue_branch",
+      "type": "item",
+      "name": "轻岳养脉诀（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhenyue_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "zhenyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_zhenyue_branch",
+      "type": "item",
+      "name": "叠石连拳（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhenyue_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "zhenyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_tingyue_branch",
+      "type": "item",
+      "name": "息雷静脉篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tingyue_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "tingyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_tingyue_branch",
+      "type": "item",
+      "name": "沉霆破（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tingyue_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "tingyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_ningshuang_branch",
+      "type": "item",
+      "name": "流泉行息诀（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_ningshuang_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "ningshuang"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_ningshuang_branch",
+      "type": "item",
+      "name": "飞霰三点（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_ningshuang_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "ningshuang"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_qiangu_branch",
+      "type": "item",
+      "name": "净息辨毒篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_qiangu_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "qiangu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_qiangu_branch",
+      "type": "item",
+      "name": "蜕壳击（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_qiangu_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "qiangu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_tingyu_branch",
+      "type": "item",
+      "name": "沉弦养心录（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tingyu_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "tingyu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_tingyu_branch",
+      "type": "item",
+      "name": "重弦一叩（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tingyu_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "tingyu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_guiming_branch",
+      "type": "item",
+      "name": "守灯明识诀（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_guiming_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "guiming"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_guiming_branch",
+      "type": "item",
+      "name": "照骨二叠（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_guiming_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "guiming"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    },
+    {
+      "id": "base:item_manual_guanxing_branch",
+      "type": "item",
+      "name": "定曜护身篇（公开进阶篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_guanxing_branch",
+      "tags": [
+        "manual_tome",
+        "sect_branch",
+        "guanxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 900
+      }
+    },
+    {
+      "id": "base:item_art_guanxing_branch",
+      "type": "item",
+      "name": "连星三点（公开进阶式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_guanxing_branch",
+      "tags": [
+        "art_tome",
+        "sect_branch",
+        "guanxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 1080
+      }
+    }
+  ]
+}

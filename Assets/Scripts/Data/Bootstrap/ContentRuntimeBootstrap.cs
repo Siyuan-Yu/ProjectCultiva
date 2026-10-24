@@ -143,6 +143,7 @@ namespace XianXia.Data.Bootstrap
                     Abandonable = def.Abandonable,
                     DeadlineDays = def.DeadlineDays
                 };
+                spec.JournalConditions.AddRange(def.JournalConditions);
                 spec.OfferConditions.AddRange(def.OfferConditions);
                 spec.CompleteConditions.AddRange(def.CompleteConditions);
                 spec.FailConditions.AddRange(def.FailConditions);
@@ -351,12 +352,14 @@ namespace XianXia.Data.Bootstrap
             world.ContinuousWorldMovementScale = authoritySurface.MovementScale;
 
             world.SurfaceGround.ClearRegistered();
+            world.OpeningArea.Clear();
             foreach (var pair in registry.OutdoorSurfaceGeographies)
                 world.SurfaceGround.Register(pair.Value?.Navigation);
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
                 if (surface?.SiteRegions == null) continue;
+                BindOpeningArea(world.OpeningArea, surface);
                 for (var i = 0; i < surface.SiteRegions.Count; i++)
                 {
                     var region = surface.SiteRegions[i];
@@ -369,7 +372,40 @@ namespace XianXia.Data.Bootstrap
                             region.ArrivalWorldX, region.ArrivalWorldY));
                 }
             }
+            if ((world.Flags.Has(HuangcunOpeningAccess.ConfinedFlag) || RequiresConfinedOpening(registry, openingScenario)) &&
+                !world.OpeningArea.IsConfigured)
+                return Result.Failure(ErrorCode.ContentLoadFailed, "封闭荒村开局缺少有效的作者围墙边界。");
             return Result.Success();
+        }
+
+        public static bool RequiresConfinedOpening(DefinitionRegistry registry, OpeningScenarioDefinition scenario)
+        {
+            if (registry == null || scenario == null || !DefinitionId.TryParse(scenario.OpeningChapterId, out var id) ||
+                !registry.TryGetChapter(id, out var chapter)) return false;
+            foreach (var beat in chapter.DayBeats)
+                if (beat.SetFlags.Contains(HuangcunOpeningAccess.ConfinedFlag)) return true;
+            return false;
+        }
+
+        /// <summary>Shared by runtime rebinding and formal opening validation; no gameplay state changes.</summary>
+        public static void BindOpeningArea(HuangcunOpeningArea area, OutdoorWorldSurfaceDefinition surface)
+        {
+            if (surface == null || surface.AcceptanceOnly) return;
+            var minX = float.PositiveInfinity; var minY = float.PositiveInfinity;
+            var maxX = float.NegativeInfinity; var maxY = float.NegativeInfinity;
+            var wallCount = 0;
+            foreach (var placement in surface.SitePlacements)
+            {
+                if (placement == null || placement.StableId == null ||
+                    !placement.StableId.StartsWith(Ch01ScenarioProgressionHooks.HuangcunSiteId + ":wood_wall:",
+                        StringComparison.Ordinal)) continue;
+                minX = Math.Min(minX, placement.WorldX); minY = Math.Min(minY, placement.WorldY);
+                maxX = Math.Max(maxX, placement.WorldX + placement.WorldWidth);
+                maxY = Math.Max(maxY, placement.WorldY + placement.WorldHeight);
+                wallCount++;
+            }
+            if (wallCount >= 4)
+                area.Configure(surface.SurfaceId, minX, minY, maxX, maxY, surface.CellSize);
         }
 
         public static Result RebindPresetWorldSiteCoreMetadata(

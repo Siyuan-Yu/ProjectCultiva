@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
@@ -43,6 +43,7 @@ namespace XianXia.Unity.Host
             public EntityView HitTarget;
             public bool HitApplied;
             public Func<bool> ResolveHit;
+            public Func<Vector3, Vector3, bool> Sweep;
         }
 
         readonly List<Fx> _live = new List<Fx>(24);
@@ -92,8 +93,8 @@ namespace XianXia.Unity.Host
 
             aView.PlayArtAttack(dView.transform.position, ranged, styleOverride);
             if (ranged)
-                PlayProjectile(aView.transform.position + Vector3.up * .35f,
-                    dView.transform.position + Vector3.up * .35f, dView, resolveHit);
+                PlayProjectile(aView.CombatVisualPoint,
+                    dView.CombatVisualPoint, dView, resolveHit);
             else
             {
                 Play(aView.transform.position, dView.transform.position);
@@ -122,8 +123,31 @@ namespace XianXia.Unity.Host
             SpawnFx(from, to, FxKind.Projectile, hitTarget, resolveHit);
         }
 
+        public void PlayDirectionalProjectile(Vector3 origin, Vector3 direction, float range,
+            Func<Vector3, Vector3, bool> sweep)
+        {
+            SpawnFx(origin, origin + direction.normalized * range, FxKind.Projectile, null, sweep: sweep);
+        }
+
+        /// <summary>Earliest segment/circle intersection, including starting inside; no low-frame-rate tunnelling.</summary>
+        public static bool SweptContact(Vector3 from, Vector3 to, Vector3 center, float radius, out float fraction)
+        {
+            var delta = Flat(to - from);
+            var relative = Flat(from - center);
+            fraction = 0f;
+            var c = relative.sqrMagnitude - radius * radius;
+            if (c <= 0f) return true;
+            var a = delta.sqrMagnitude;
+            if (a <= .0000001f) return false;
+            var b = Vector3.Dot(relative, delta);
+            var discriminant = b * b - a * c;
+            if (discriminant < 0f) return false;
+            fraction = (-b - Mathf.Sqrt(discriminant)) / a;
+            return fraction >= 0f && fraction <= 1f;
+        }
+
         void SpawnFx(Vector3 from, Vector3 to, FxKind kind, EntityView hitTarget,
-            Func<bool> resolveHit = null)
+            Func<bool> resolveHit = null, Func<Vector3, Vector3, bool> sweep = null)
         {
             EnsureRoot();
             var fx = Rent();
@@ -138,6 +162,7 @@ namespace XianXia.Unity.Host
             fx.HitTarget = hitTarget;
             fx.HitApplied = false;
             fx.ResolveHit = resolveHit;
+            fx.Sweep = sweep;
 
             if (kind == FxKind.Projectile)
             {
@@ -202,8 +227,9 @@ namespace XianXia.Unity.Host
                         continue;
                     }
 
-                    var step = s.Speed * Time.unscaledDeltaTime;
-                    var pos = s.Root.position + s.Direction * step;
+                    var previous = s.Root.position;
+                    var step = Mathf.Min(s.Speed * Time.unscaledDeltaTime, s.MaxRange - s.Traveled);
+                    var pos = previous + s.Direction * step;
                     pos.z = HostPresentationSpace.EntityZ - 0.02f;
                     s.Root.position = pos;
                     s.Traveled += step;
@@ -211,12 +237,19 @@ namespace XianXia.Unity.Host
                     var travelT = Mathf.Clamp01(s.Traveled / Mathf.Max(0.01f, s.MaxRange));
                     Animate(s, travelT);
 
+                    if (s.Sweep != null && s.Sweep(previous, pos))
+                    {
+                        Return(s);
+                        _live.RemoveAt(i);
+                        continue;
+                    }
+
                     if (target != null && target.gameObject.activeInHierarchy)
                     {
-                        var targetPos = target.transform.position + Vector3.up * .35f;
+                        var targetPos = target.CombatVisualPoint;
                         targetPos.z = HostPresentationSpace.EntityZ - 0.02f;
                         var hitRadius = Mathf.Max(0.08f, projectileHitRadius);
-                        if (Flat(pos - targetPos).sqrMagnitude <= hitRadius * hitRadius)
+                        if (SweptContact(previous, pos, targetPos, hitRadius, out _))
                         {
                             s.To = targetPos;
                             s.HitApplied = true;
@@ -240,7 +273,10 @@ namespace XianXia.Unity.Host
                 {
                     Return(s);
                     _live.RemoveAt(i);
+                    continue;
                 }
+                // Fx is a value type: preserve travelled distance for the next swept segment.
+                _live[i] = s;
             }
         }
 
@@ -397,6 +433,7 @@ namespace XianXia.Unity.Host
             s.HitTarget = null;
             s.HitApplied = false;
             s.ResolveHit = null;
+            s.Sweep = null;
             s.Direction = Vector3.right;
             s.MaxRange = 0f;
             s.Traveled = 0f;

@@ -1,0 +1,549 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:item_manual_zhiheng_intro",
+      "type": "item",
+      "name": "衡息诀（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhiheng_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "zhiheng"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 400
+      }
+    },
+    {
+      "id": "base:item_art_zhiheng_intro",
+      "type": "item",
+      "name": "镇衡掌（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhiheng_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "zhiheng"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 480
+      }
+    },
+    {
+      "id": "base:item_manual_hehuan_intro",
+      "type": "item",
+      "name": "和心引气篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_hehuan_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "hehuan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 460
+      }
+    },
+    {
+      "id": "base:item_art_hehuan_intro",
+      "type": "item",
+      "name": "回风拂袖（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_hehuan_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "hehuan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 540
+      }
+    },
+    {
+      "id": "base:item_manual_xuansha_intro",
+      "type": "item",
+      "name": "玄煞锻息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_xuansha_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "xuansha"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 520
+      }
+    },
+    {
+      "id": "base:item_art_xuansha_intro",
+      "type": "item",
+      "name": "裂石手（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_xuansha_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "xuansha"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 600
+      }
+    },
+    {
+      "id": "base:item_manual_wanling_intro",
+      "type": "item",
+      "name": "听息养神篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_wanling_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "wanling"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 580
+      }
+    },
+    {
+      "id": "base:item_art_wanling_intro",
+      "type": "item",
+      "name": "伏虎式（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_wanling_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "wanling"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 660
+      }
+    },
+    {
+      "id": "base:item_manual_qingxiao_intro",
+      "type": "item",
+      "name": "青锋吐纳篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_qingxiao_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "qingxiao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 400
+      }
+    },
+    {
+      "id": "base:item_art_qingxiao_intro",
+      "type": "item",
+      "name": "三叠剑式（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_qingxiao_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "qingxiao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 480
+      }
+    },
+    {
+      "id": "base:item_manual_baicao_intro",
+      "type": "item",
+      "name": "养元篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_baicao_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "baicao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 460
+      }
+    },
+    {
+      "id": "base:item_art_baicao_intro",
+      "type": "item",
+      "name": "采叶手（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_baicao_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "baicao"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 540
+      }
+    },
+    {
+      "id": "base:item_manual_zhuxing_intro",
+      "type": "item",
+      "name": "炉息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhuxing_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "zhuxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 520
+      }
+    },
+    {
+      "id": "base:item_art_zhuxing_intro",
+      "type": "item",
+      "name": "锻铁击（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhuxing_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "zhuxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 600
+      }
+    },
+    {
+      "id": "base:item_manual_taiyan_intro",
+      "type": "item",
+      "name": "守一观息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_taiyan_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "taiyan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 580
+      }
+    },
+    {
+      "id": "base:item_art_taiyan_intro",
+      "type": "item",
+      "name": "定枢指（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_taiyan_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "taiyan"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 660
+      }
+    },
+    {
+      "id": "base:item_manual_tianlu_intro",
+      "type": "item",
+      "name": "澄神篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tianlu_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "tianlu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 400
+      }
+    },
+    {
+      "id": "base:item_art_tianlu_intro",
+      "type": "item",
+      "name": "点朱指（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tianlu_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "tianlu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 480
+      }
+    },
+    {
+      "id": "base:item_manual_zhenyue_intro",
+      "type": "item",
+      "name": "磐身篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_zhenyue_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "zhenyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 460
+      }
+    },
+    {
+      "id": "base:item_art_zhenyue_intro",
+      "type": "item",
+      "name": "撼岳拳（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_zhenyue_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "zhenyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 540
+      }
+    },
+    {
+      "id": "base:item_manual_tingyue_intro",
+      "type": "item",
+      "name": "鸣息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tingyue_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "tingyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 520
+      }
+    },
+    {
+      "id": "base:item_art_tingyue_intro",
+      "type": "item",
+      "name": "惊雷式（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tingyue_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "tingyue"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 600
+      }
+    },
+    {
+      "id": "base:item_manual_ningshuang_intro",
+      "type": "item",
+      "name": "凝息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_ningshuang_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "ningshuang"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 580
+      }
+    },
+    {
+      "id": "base:item_art_ningshuang_intro",
+      "type": "item",
+      "name": "折霜指（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_ningshuang_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "ningshuang"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 660
+      }
+    },
+    {
+      "id": "base:item_manual_qiangu_intro",
+      "type": "item",
+      "name": "辨息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_qiangu_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "qiangu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 400
+      }
+    },
+    {
+      "id": "base:item_art_qiangu_intro",
+      "type": "item",
+      "name": "摘星爪（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_qiangu_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "qiangu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 480
+      }
+    },
+    {
+      "id": "base:item_manual_tingyu_intro",
+      "type": "item",
+      "name": "清商调息篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_tingyu_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "tingyu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 460
+      }
+    },
+    {
+      "id": "base:item_art_tingyu_intro",
+      "type": "item",
+      "name": "碎音指（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_tingyu_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "tingyu"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 540
+      }
+    },
+    {
+      "id": "base:item_manual_guiming_intro",
+      "type": "item",
+      "name": "守灯篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_guiming_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "guiming"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 520
+      }
+    },
+    {
+      "id": "base:item_art_guiming_intro",
+      "type": "item",
+      "name": "叩关掌（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_guiming_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "guiming"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 600
+      }
+    },
+    {
+      "id": "base:item_manual_guanxing_intro",
+      "type": "item",
+      "name": "照微篇（公开入门篇）·书册",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_guanxing_intro",
+      "tags": [
+        "manual_tome",
+        "sect_intro",
+        "guanxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 580
+      }
+    },
+    {
+      "id": "base:item_art_guanxing_intro",
+      "type": "item",
+      "name": "落星指（入门式）·书册",
+      "maxStack": 1,
+      "teachesArtId": "base:art_guanxing_intro",
+      "tags": [
+        "art_tome",
+        "sect_intro",
+        "guanxing"
+      ],
+      "tradeCategory": "Manual",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 660
+      }
+    }
+  ]
+}

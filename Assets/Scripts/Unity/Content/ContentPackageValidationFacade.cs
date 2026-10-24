@@ -8,6 +8,22 @@ namespace XianXia.Unity.Content
     /// <summary>Host／Editor entry for BaseGame reference validation (Chapter Production Toolkit).</summary>
     public static class ContentPackageValidationFacade
     {
+        public static bool TryReadFormalOpening(string packageRoot, out string scenarioId,
+            out string rosterId, out string mapId, out string message)
+        {
+            scenarioId = rosterId = mapId = string.Empty;
+            try
+            {
+                var selection = XianXia.Data.Bootstrap.FormalOpeningSelection.Read(packageRoot);
+                scenarioId = selection.openingScenarioId;
+                rosterId = selection.characterRosterId;
+                mapId = selection.preferredMapLayoutId;
+                message = "OK";
+                return true;
+            }
+            catch (System.Exception error) { message = error.Message; return false; }
+        }
+
         public static bool TryValidateOpeningSelection(string packageDirectory, string scenario,
             string roster, string map, out string message)
         {

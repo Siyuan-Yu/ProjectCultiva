@@ -251,6 +251,9 @@ namespace XianXia.Core.Opportunity
                     if (!clear) continue;
                 }
                 var actualDistance = WorldVec2.Distance(player, candidate);
+                if (!HuangcunOpeningAccess.AllowsPosition(world, spec.SurfaceId, candidate.X, candidate.Y)) continue;
+                if (spec.SpawnKind == WorldOpportunitySpawnKind.WorldObject &&
+                    !HasFreeFootprint(world, spec, candidate, ground.CellSize)) continue;
                 if (actualDistance < min || actualDistance > max || !ground.Contains(candidate.X, candidate.Y) ||
                     !ground.IsWalkable(candidate.X, candidate.Y)) continue;
                 if (!spec.AllowInsideWorldSite && !string.IsNullOrEmpty(WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, candidate))) continue;
@@ -275,6 +278,25 @@ namespace XianXia.Core.Opportunity
                 return true;
             }
             return false;
+        }
+
+        static bool HasFreeFootprint(SimulationWorld world, WorldOpportunitySpec spec, WorldVec2 centre, float cell)
+        {
+            var halfWidth = Math.Max(1, spec.WorldObjectWidthCells) * cell * .5f;
+            var halfHeight = Math.Max(1, spec.WorldObjectHeightCells) * cell * .5f;
+            if (!HuangcunOpeningAccess.AllowsPosition(world, spec.SurfaceId,
+                    centre.X - halfWidth + cell * .5f, centre.Y - halfHeight + cell * .5f) ||
+                !HuangcunOpeningAccess.AllowsPosition(world, spec.SurfaceId,
+                    centre.X + halfWidth - cell * .5f, centre.Y + halfHeight - cell * .5f)) return false;
+            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+            {
+                if (asset.SurfaceId != spec.SurfaceId ||
+                    world.OutdoorStatefulObjects.IsDestructibleDestroyed(asset.StableAssetId)) continue;
+                if (centre.X - halfWidth < asset.WorldX + asset.WorldWidth &&
+                    centre.X + halfWidth > asset.WorldX && centre.Y - halfHeight < asset.WorldY + asset.WorldHeight &&
+                    centre.Y + halfHeight > asset.WorldY) return false;
+            }
+            return true;
         }
 
         static void Expire(SimulationWorld world, ulong day)

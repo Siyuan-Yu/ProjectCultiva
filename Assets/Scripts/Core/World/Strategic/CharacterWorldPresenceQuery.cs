@@ -1,4 +1,4 @@
-using XianXia.Core.Domain.Ids;
+﻿using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
@@ -71,7 +71,7 @@ namespace XianXia.Core.World.Strategic
             var partyMotion = world.PlayerPartyTravel;
             if (partyMotion != null && partyMotion.HasPosition &&
                 IsTravelingMember(partyMotion, characterId) &&
-                !(world.Entities.TryGet(characterId, out var tiredEntity) && (PartyRestService.BlocksMovement(tiredEntity) || PartyRestService.HasIndependentPosition(tiredEntity))))
+                !(world.Entities.TryGet(characterId, out var tiredEntity) && (PartyRestService.BlocksMovement(tiredEntity) || PartyRestService.HasIndependentPosition(tiredEntity) || Combat.FlightService.Detached(tiredEntity))))
             {
                 resolved = new ResolvedPresence(
                     PresenceState.AtWorldPosition,
