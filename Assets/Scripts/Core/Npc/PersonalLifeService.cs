@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -246,6 +247,10 @@ namespace XianXia.Core.Npc
 
         static void AdvanceNeeds(SimulationWorld world, Entity entity, PersonalLifeComponent personal)
         {
+            var goldenCore = entity.TryGet<CultivationComponent>(out var cultivation) &&
+                             cultivation.Realm >= RealmStage.GoldenCore;
+            if (goldenCore && personal.Energy < PartyRestService.ExhaustionRecoveryThreshold)
+                personal.Energy = PartyRestService.ExhaustionRecoveryThreshold;
             var now = world.Tick.Value;
             if (now <= personal.LastProcessedTick) return;
             var elapsed = now - personal.LastProcessedTick;
@@ -261,10 +266,10 @@ namespace XianXia.Core.Npc
                     if (running is RestAction || running is BedRestAction) personal.Energy += 3;
                     else if (action.ActiveOrderSource == OrderSource.Ai &&
                              personal.Activity == PersonalLifeActivity.Recreational && running is WaitAction)
-                    { personal.CurrentMood += 2; if (tick % 8UL == 0UL) personal.Energy--; }
-                    else if (tick % 8UL == 0UL && !(running is CultivateAction)) personal.Energy--;
+                    { personal.CurrentMood += 2; if (!goldenCore && tick % 8UL == 0UL) personal.Energy--; }
+                    else if (!goldenCore && tick % 8UL == 0UL && !(running is CultivateAction)) personal.Energy--;
                 }
-                else if (tick % 8UL == 0UL) personal.Energy--;
+                else if (!goldenCore && tick % 8UL == 0UL) personal.Energy--;
             }
             personal.LastProcessedTick = now;
             personal.Clamp();

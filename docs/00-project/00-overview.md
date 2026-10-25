@@ -1,6 +1,12 @@
 # 修仙游戏策划案总览
 
-> 2026-10-25 新据点方向见 [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)：正常新游戏以可占领固定议政厅取代建旗新建据点，保留 102 个现有旗 Site 身份；荒村一级，青石与 102 个旧旗据点暂三级，其他固定地点保留当前等级；议政厅 1～5 级范围长宽倍率 1／1.5／2／2.5／3。青石采用少分叉正交街路。当前为 Design Confirmed / Implementation Pending，正式游戏仍按下方已实现状态运行。
+> 2026-10-25 当前城镇尺寸与实体状态以 [357](../40-process/357-golden-core-energy-and-town-footprints-2026-10-25.md)为准：等级 1～5 控制范围长宽为 180／270／360／450／540 格，108 座固定城镇的实体边界与围墙按当前等级调整；荒村为 180×180 格。内容包 `0.0.23-town-footprints-080` 需新开局；**Implemented / Producer Acceptance Pending**。下文旧尺寸、旧间距与旧版本均为历史阶段记录。
+
+> 2026-10-25 最新城镇布局以 [348 实施](../40-process/348-natural-town-layout-and-qingshi-urban-quarter-2026-10-25.md)为准：世界上的 108 座固定 Site 错列且不等距；全部五级时最近行政边界仍隔 96 格。青石镇内部保持正交街道，实体蓝图扩至 240×210 格并补公共房、街边内容与东缘田圃；其他 106 处据点补少量沿街空间。内容包 `0.0.20-natural-towns` 需新开局；**Implemented / Producer Acceptance Pending**。
+
+> 2026-10-25 最新世界布局见 [ADR-0056](../40-process/43-decisions/ADR-0056-five-level-town-separation-and-world-expansion.md) 与[347 实施](../40-process/347-five-level-town-separation-implementation-2026-10-25.md)：主连续世界扩至 15200×6800 格，108 座固定城镇即使全部升至五级仍互不相接，最小行政边界距离 175 格。同宗城镇也遵循此规则；内容包 `0.0.19-separated-world` 需新开局。**Implemented / Producer Acceptance Pending**。
+
+> 2026-10-25 新据点规则见 [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)，落地状态见[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)：正常新游戏以可占领固定议政厅取代建旗新建据点，保留 102 个现有旗 Site 身份；荒村一级，青石与 102 个旧旗据点暂三级，其他固定地点保留当前等级；议政厅 1～5 级范围长宽倍率 1／1.5／2／2.5／3。青石采用少分叉正交街路。**Implemented / Producer Acceptance Pending**，内容包 `0.0.18-fixed-council-sites` 需新开局。
 
 > 2026-10-24最新以[342](../40-process/342-world-settlements-and-public-techniques-2026-10-24.md)为准：现有108处据点已有街区及分级建筑，宗门主城接入交易，公开传承扩充；版本0.0.17需新开局。炼丹炼器生产链与高阶宗主仍未实现，运行待验收。
 

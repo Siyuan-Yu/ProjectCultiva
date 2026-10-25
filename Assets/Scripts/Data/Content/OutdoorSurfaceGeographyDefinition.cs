@@ -13,7 +13,7 @@ namespace XianXia.Data.Content
         public int SourceSchemaVersion { get; set; }
         public string SourceRevision { get; set; }
         public string SourceHash { get; set; }
-        public List<SurfaceChunkCoord> CoverageChunks { get; } = new List<SurfaceChunkCoord>();
+        public HashSet<SurfaceChunkCoord> CoverageChunks { get; } = new HashSet<SurfaceChunkCoord>();
         public SurfaceGroundNavigation Navigation { get; set; }
         public List<OutdoorGeographyPrimitive> MapPrimitives { get; } = new List<OutdoorGeographyPrimitive>();
         public List<OutdoorGeographyLandmark> Landmarks { get; } = new List<OutdoorGeographyLandmark>();

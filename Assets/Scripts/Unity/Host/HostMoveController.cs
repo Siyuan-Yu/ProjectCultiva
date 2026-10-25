@@ -745,6 +745,8 @@ namespace XianXia.Unity.Host
         /// </summary>
         void CancelSurfaceAutoTravelIfActive()
         {
+            if (bootstrap?.WorldMapPanel?.IsOpen == true)
+                return;
             var world = bootstrap?.Session?.World;
             var motion = world?.PlayerPartyTravel;
             if (!PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion))

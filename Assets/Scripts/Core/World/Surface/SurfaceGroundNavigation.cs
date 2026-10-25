@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using XianXia.Core.Navigation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
@@ -45,6 +46,7 @@ namespace XianXia.Core.World.Surface
         readonly SurfaceGroundCellKind[] _cells;
         readonly WalkGrid _walkGrid;
         readonly List<SurfaceGroundRoadSpan> _roadSpans = new List<SurfaceGroundRoadSpan>();
+        readonly List<BridgePassage> _bridgePassages = new List<BridgePassage>();
         readonly GridPathfinderWorkspace _workspace = new GridPathfinderWorkspace();
         readonly List<float> _pathScratch = new List<float>(512);
 
@@ -57,7 +59,8 @@ namespace XianXia.Core.World.Surface
             float cellSize,
             int width,
             int height,
-            IReadOnlyList<SurfaceGroundCellKind> cells)
+            IReadOnlyList<SurfaceGroundCellKind> cells,
+            bool takeOwnership = false)
         {
             if (string.IsNullOrWhiteSpace(surfaceId)) throw new ArgumentException("surfaceId required.", nameof(surfaceId));
             if (cellSize <= 0f || width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(cellSize));
@@ -70,20 +73,34 @@ namespace XianXia.Core.World.Surface
             CellSize = cellSize;
             Width = width;
             Height = height;
-            _cells = new SurfaceGroundCellKind[cells.Count];
+            // The content loader may hand over its freshly decoded array to avoid a second
+            // full-world allocation. Other callers retain the original copy semantics.
+            _cells = takeOwnership && cells is SurfaceGroundCellKind[] owned
+                ? owned : new SurfaceGroundCellKind[cells.Count];
+            var copyCells = !ReferenceEquals(_cells, cells);
             _walkGrid = new WalkGrid(originX, originY, cellSize, width, height);
             var index = 0;
             for (var y = 0; y < height; y++)
             {
                 var roadStart = -1;
+                var bridgeStart = -1;
                 for (var x = 0; x < width; x++, index++)
                 {
                     var kind = cells[index];
-                    _cells[index] = kind;
+                    if (copyCells) _cells[index] = kind;
                     var blocked = (kind & SurfaceGroundCellKind.Solid) != 0 ||
                                   ((kind & SurfaceGroundCellKind.Water) != 0 &&
                                    (kind & SurfaceGroundCellKind.Bridge) == 0);
                     if (blocked) _walkGrid.SetBlocked(x, y, true);
+                    if (!blocked && (kind & SurfaceGroundCellKind.Bridge) != 0)
+                    {
+                        if (bridgeStart < 0) bridgeStart = x;
+                    }
+                    else if (bridgeStart >= 0)
+                    {
+                        AddBridgePassage(bridgeStart, x - 1, y);
+                        bridgeStart = -1;
+                    }
                     var visibleRoad = (kind & SurfaceGroundCellKind.Road) != 0 &&
                                       (kind & (SurfaceGroundCellKind.Water |
                                                SurfaceGroundCellKind.Bridge |
@@ -100,7 +117,25 @@ namespace XianXia.Core.World.Surface
                 }
                 if (roadStart >= 0)
                     _roadSpans.Add(new SurfaceGroundRoadSpan(roadStart, y, width - roadStart));
+                if (bridgeStart >= 0)
+                    AddBridgePassage(bridgeStart, width - 1, y);
             }
+        }
+
+        readonly struct BridgePassage
+        {
+            public readonly WorldVec2 Left;
+            public readonly WorldVec2 Right;
+            public BridgePassage(WorldVec2 left, WorldVec2 right)
+            { Left = left; Right = right; }
+        }
+
+        void AddBridgePassage(int leftX, int rightX, int y)
+        {
+            _walkGrid.CellToWorldCenter(leftX, y, out var lx, out var ly);
+            _walkGrid.CellToWorldCenter(rightX, y, out var rx, out var ry);
+            _bridgePassages.Add(new BridgePassage(
+                new WorldVec2(lx, ly), new WorldVec2(rx, ry)));
         }
 
         public string SurfaceId { get; }
@@ -138,7 +173,29 @@ namespace XianXia.Core.World.Surface
         public SurfaceGroundRouteStatus TryFindRoute(
             WorldVec2 start,
             WorldVec2 goal,
-            List<WorldVec2> routeOut)
+            List<WorldVec2> routeOut) =>
+            TryFindRoute(start, goal, routeOut, _workspace, _pathScratch, default);
+
+        /// <summary>
+        /// Independent read-only planning workspace for a background WorldMap request. The
+        /// checked-in ground grid is immutable after construction; only these scratch buffers
+        /// belong to the caller, so NPC/main-thread route requests never share mutable state.
+        /// </summary>
+        public SurfaceGroundRouteStatus TryFindRouteIsolated(
+            WorldVec2 start,
+            WorldVec2 goal,
+            List<WorldVec2> routeOut,
+            CancellationToken cancellationToken = default) =>
+            TryFindRoute(start, goal, routeOut,
+                new GridPathfinderWorkspace(), new List<float>(512), cancellationToken);
+
+        SurfaceGroundRouteStatus TryFindRoute(
+            WorldVec2 start,
+            WorldVec2 goal,
+            List<WorldVec2> routeOut,
+            GridPathfinderWorkspace workspace,
+            List<float> pathScratch,
+            CancellationToken cancellationToken)
         {
             if (routeOut == null) throw new ArgumentNullException(nameof(routeOut));
             routeOut.Clear();
@@ -147,24 +204,68 @@ namespace XianXia.Core.World.Surface
             if (!IsWalkable(goal.X, goal.Y))
                 return SurfaceGroundRouteStatus.BlockedGoal;
             // Most travel over the expanded plain has direct line of sight. Avoid allocating
-            // a full-surface A* workspace (6.46M cells) for an already clear segment.
+            // a full-surface A* workspace for an already clear segment.
             if (IsSegmentWalkable(start.X, start.Y, goal.X, goal.Y))
             {
                 routeOut.Add(start);
                 if (!start.Equals(goal)) routeOut.Add(goal);
                 return SurfaceGroundRouteStatus.Found;
             }
-            _pathScratch.Clear();
-            if (!_workspace.TryFindWorldPath(
+            // A river crossing may lie far outside the start-goal corridor. Try the authored
+            // walkable bridge cells as exact, visibility-checked detours before continent A*.
+            if (TryBridgeShortcut(start, goal, routeOut, cancellationToken))
+                return SurfaceGroundRouteStatus.Found;
+            pathScratch.Clear();
+            if (!workspace.TryFindWorldPath(
                     _walkGrid, start.X, start.Y, goal.X, goal.Y,
-                    _pathScratch, startSnapRadius: 8, goalSnapRadius: 0))
+                    pathScratch, startSnapRadius: 8, goalSnapRadius: 0,
+                    cancellationToken: cancellationToken))
                 return SurfaceGroundRouteStatus.NoRouteWithinCoverage;
             routeOut.Add(start);
-            for (var i = 0; i + 1 < _pathScratch.Count; i += 2)
-                routeOut.Add(new WorldVec2(_pathScratch[i], _pathScratch[i + 1]));
+            for (var i = 0; i + 1 < pathScratch.Count; i += 2)
+                routeOut.Add(new WorldVec2(pathScratch[i], pathScratch[i + 1]));
             if (routeOut.Count == 0 || !routeOut[routeOut.Count - 1].Equals(goal))
                 routeOut.Add(goal);
             return SurfaceGroundRouteStatus.Found;
+        }
+
+        bool TryBridgeShortcut(WorldVec2 start, WorldVec2 goal,
+            List<WorldVec2> routeOut, CancellationToken cancellationToken)
+        {
+            var best = -1;
+            var bestReverse = false;
+            var bestLength = float.MaxValue;
+            for (var i = 0; i < _bridgePassages.Count; i++)
+            {
+                if ((i & 31) == 0 && cancellationToken.IsCancellationRequested) return false;
+                var passage = _bridgePassages[i];
+                for (var direction = 0; direction < 2; direction++)
+                {
+                    var entry = direction == 0 ? passage.Left : passage.Right;
+                    var exit = direction == 0 ? passage.Right : passage.Left;
+                    var ax = entry.X - start.X; var ay = entry.Y - start.Y;
+                    var bx = exit.X - entry.X; var by = exit.Y - entry.Y;
+                    var cx = goal.X - exit.X; var cy = goal.Y - exit.Y;
+                    var length = (float)(Math.Sqrt(ax * ax + ay * ay) +
+                        Math.Sqrt(bx * bx + by * by) + Math.Sqrt(cx * cx + cy * cy));
+                    if (length >= bestLength ||
+                        !IsSegmentWalkable(start.X, start.Y, entry.X, entry.Y) ||
+                        !IsSegmentWalkable(entry.X, entry.Y, exit.X, exit.Y) ||
+                        !IsSegmentWalkable(exit.X, exit.Y, goal.X, goal.Y)) continue;
+                    best = i;
+                    bestReverse = direction != 0;
+                    bestLength = length;
+                }
+            }
+            if (best < 0) return false;
+            var selected = _bridgePassages[best];
+            var first = bestReverse ? selected.Right : selected.Left;
+            var second = bestReverse ? selected.Left : selected.Right;
+            routeOut.Add(start);
+            if (!start.Equals(first)) routeOut.Add(first);
+            if (!second.Equals(routeOut[routeOut.Count - 1])) routeOut.Add(second);
+            if (!goal.Equals(routeOut[routeOut.Count - 1])) routeOut.Add(goal);
+            return true;
         }
     }
 

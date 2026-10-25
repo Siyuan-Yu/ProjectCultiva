@@ -556,6 +556,72 @@ namespace XianXia.Unity.Host
             TickNeighborhoodTransition();
         }
 
+        void OnGUI()
+        {
+            if (Event.current.type != EventType.Repaint || !IsActive || _mapper == null ||
+                _bootstrap?.Session?.IsInitialized != true ||
+                _bootstrap.WorldMapPanel?.IsOpen == true) return;
+            var camera = Camera.main;
+            if (camera == null || !camera.orthographic) return;
+            var world = _bootstrap.Session.World;
+            if (world?.Strategic?.TerritoryClaims?.HasAuthority != true) return;
+
+            var cameraHalfY = camera.orthographicSize;
+            var cameraHalfX = cameraHalfY * camera.aspect;
+            _mapper.PresentationToWorld(camera.transform.position.x - cameraHalfX,
+                camera.transform.position.y - cameraHalfY, out var visibleMinX, out var visibleMinY);
+            _mapper.PresentationToWorld(camera.transform.position.x + cameraHalfX,
+                camera.transform.position.y + cameraHalfY, out var visibleMaxX, out var visibleMaxY);
+            var oldDepth = GUI.depth;
+            var oldColor = GUI.color;
+            GUI.depth = 20;
+            var pixel = Texture2D.whiteTexture;
+            foreach (var overlay in HostSurfaceActualControlRenderer.GetSiteOverlays(world))
+            {
+                if (!string.Equals(overlay.SurfaceId, _surfaceId, StringComparison.Ordinal) ||
+                    overlay.MaxX < visibleMinX || overlay.MinX > visibleMaxX ||
+                    overlay.MaxY < visibleMinY || overlay.MinY > visibleMaxY) continue;
+                StrategicFactionCatalog.MapTint(overlay.FactionId, out var r, out var g, out var b);
+                for (var i = 0; i < overlay.Pieces.Count; i++)
+                {
+                    var piece = overlay.Pieces[i];
+                    if (piece.MaxX < visibleMinX || piece.MinX > visibleMaxX ||
+                        piece.MaxY < visibleMinY || piece.MinY > visibleMaxY) continue;
+                    var a = LocalControlGuiPoint(camera, piece.MinX, piece.MinY);
+                    var c = LocalControlGuiPoint(camera, piece.MaxX, piece.MaxY);
+                    var rect = Rect.MinMaxRect(Mathf.Max(0f, Mathf.Min(a.x, c.x)),
+                        Mathf.Max(0f, Mathf.Min(a.y, c.y)),
+                        Mathf.Min(Screen.width, Mathf.Max(a.x, c.x)),
+                        Mathf.Min(Screen.height, Mathf.Max(a.y, c.y)));
+                    if (rect.width <= 0f || rect.height <= 0f) continue;
+                    GUI.color = new Color(r, g, b, .075f);
+                    GUI.DrawTexture(rect, pixel);
+                }
+                GUI.color = new Color(r, g, b, .38f);
+                for (var i = 0; i < overlay.BoundarySegments.Count; i++)
+                {
+                    var edge = overlay.BoundarySegments[i];
+                    var a = LocalControlGuiPoint(camera, edge.X0, edge.Y0);
+                    var b0 = LocalControlGuiPoint(camera, edge.X1, edge.Y1);
+                    var rect = Mathf.Abs(a.x - b0.x) < 1f
+                        ? new Rect(a.x - 1f, Mathf.Min(a.y, b0.y), 2f, Mathf.Abs(a.y - b0.y))
+                        : new Rect(Mathf.Min(a.x, b0.x), a.y - 1f, Mathf.Abs(a.x - b0.x), 2f);
+                    if (rect.xMax > 0f && rect.xMin < Screen.width &&
+                        rect.yMax > 0f && rect.yMin < Screen.height)
+                        GUI.DrawTexture(rect, pixel);
+                }
+            }
+            GUI.color = oldColor;
+            GUI.depth = oldDepth;
+        }
+
+        Vector2 LocalControlGuiPoint(Camera camera, float worldX, float worldY)
+        {
+            _mapper.WorldToPresentation(worldX, worldY, out var x, out var y);
+            var screen = camera.WorldToScreenPoint(HostPresentationSpace.FromPresentation(x, y));
+            return new Vector2(screen.x, Screen.height - screen.y);
+        }
+
         /// <summary>Coalesces authored destructible topology changes until the next runtime update.</summary>
         public void NotifyOutdoorDestructibleStateChanged(string stableObjectId)
         {

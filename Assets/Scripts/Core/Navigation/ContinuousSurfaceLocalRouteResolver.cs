@@ -88,14 +88,22 @@ namespace XianXia.Core.Navigation
             {
                 var desiredX = candidateXy[firstOutsideOffset * 2];
                 var desiredY = candidateXy[firstOutsideOffset * 2 + 1];
-                var startIndex = sy * grid.Width + sx;
-                var best = startIndex;
-                var bestDistance = DistanceToDesired(grid, sx, sy, desiredX, desiredY);
+                var best = -1;
+                var bestDistance = float.MaxValue;
+                // The presentation position may be off a snapped cell centre. Returning that
+                // centre as a "frontier" produces an accepted global plan with no movement;
+                // require an actual local step before issuing another subgoal.
+                var minStep = grid.CellSize * .75f;
+                var minStepSquared = minStep * minStep;
                 for (var i = 0; i < Touched.Count; i++)
                 {
                     var cell = Touched[i];
                     var cx = cell % grid.Width;
                     var cy = cell / grid.Width;
+                    grid.CellToWorldCenter(cx, cy, out var wx, out var wy);
+                    var stepX = wx - startX;
+                    var stepY = wy - startY;
+                    if (stepX * stepX + stepY * stepY < minStepSquared) continue;
                     var distance = DistanceToDesired(grid, cx, cy, desiredX, desiredY);
                     if (distance < bestDistance - 0.0001f ||
                         (Math.Abs(distance - bestDistance) <= 0.0001f && cell < best))
@@ -104,7 +112,7 @@ namespace XianXia.Core.Navigation
                         bestDistance = distance;
                     }
                 }
-                if (best == startIndex)
+                if (best < 0)
                 {
                     failureReason = "SurfaceLocalRouteNoProgress";
                     return false;

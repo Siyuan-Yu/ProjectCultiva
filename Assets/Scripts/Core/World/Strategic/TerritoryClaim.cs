@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Inventory;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -347,6 +348,49 @@ namespace XianXia.Core.World.Strategic
 
     public static class WorldSiteCoreLevelService
     {
+        public static Result TryUpgradePlayerOwned(SimulationWorld world, string siteId)
+        {
+            if (world?.Strategic?.SpatialRules == null ||
+                !world.Strategic.Sites.TryGet(siteId ?? string.Empty, out var site) || site == null ||
+                site.IsRuntimeCreated || site.CoreIsRemovable || !site.IsCoreActive ||
+                !string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "只能升级己方已占领的固定议政厅。");
+            if (!PlayerStrategicResourceService.TryResolveCurrentManagingSite(world, out var current) ||
+                !string.Equals(current.SiteId, site.SiteId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "请进入此议政厅所属的己方据点后升级。");
+            var nextLevel = site.CoreLevel + 1;
+            CoreLevelControlRange next;
+            try { next = world.Strategic.SpatialRules.RequireLevel(nextLevel); }
+            catch (InvalidOperationException) { return Result.Failure(ErrorCode.InvalidOperation, "议政厅已达到最高等级。"); }
+            foreach (var cost in next.UpgradeCosts)
+                if (PlayerStrategicResourceService.GetAvailableCount(world, cost.ResourceId) < cost.Amount)
+                    return Result.Failure(ErrorCode.InvalidOperation, "升级物资不足。", cost.ResourceId);
+
+            var receipts = new List<StrategicResourceWithdrawalReceipt>();
+            foreach (var cost in next.UpgradeCosts)
+            {
+                var spent = PlayerStrategicResourceService.TryConsume(world, cost.ResourceId, cost.Amount, out var receipt);
+                if (spent.IsSuccess) receipts.Add(receipt);
+                else
+                {
+                    for (var i = receipts.Count - 1; i >= 0; i--)
+                    {
+                        var rollback = PlayerStrategicResourceService.Rollback(world, receipts[i]);
+                        if (rollback.IsFailure) return rollback;
+                    }
+                    return spent;
+                }
+            }
+            var result = TryUpgrade(world, siteId, nextLevel);
+            if (result.IsSuccess) return result;
+            for (var i = receipts.Count - 1; i >= 0; i--)
+            {
+                var rollback = PlayerStrategicResourceService.Rollback(world, receipts[i]);
+                if (rollback.IsFailure) return rollback;
+            }
+            return result;
+        }
+
         public static Result TryUpgrade(SimulationWorld world, string siteId, int targetLevel)
         {
             if (world?.Strategic?.SpatialRules == null ||

@@ -114,6 +114,28 @@ public static class CompatibilityPublisher
     {
         var width = geography["width"]?.GetValue<int>() ?? 0;
         var height = geography["height"]?.GetValue<int>() ?? 0;
+        if (string.Equals(geography["rowEncoding"]?.GetValue<string>(), "rle1", StringComparison.Ordinal))
+        {
+            if (width <= 0 || height <= 0 || width % 50 != 0 || height % 50 != 0 ||
+                geography["rows"] is not JsonArray compactRows || compactRows.Count != height ||
+                geography["coverageChunks"] is not JsonArray compactCoverage ||
+                compactCoverage.Count != width / 50 * (height / 50) ||
+                geography["chunkRows"] is not JsonArray emptyChunkRows || emptyChunkRows.Count != 0)
+                throw new InvalidDataException("压缩 geography 候选的尺寸或 Chunk 清单无效。");
+            foreach (var row in compactRows)
+                if (row is not JsonValue value || !value.TryGetValue<string>(out var text) ||
+                    !SurfaceRasterRunLength.HasDecodedWidth(text, width))
+                    throw new InvalidDataException("压缩 geography 候选的行内容无效。");
+            var compactSeen = new HashSet<(int X, int Y)>();
+            foreach (var node in compactCoverage)
+            {
+                if (node is not JsonObject chunk || !TryChunkCoord(chunk, out var coord) ||
+                    coord.X < 0 || coord.Y < 0 || coord.X >= width / 50 || coord.Y >= height / 50 ||
+                    !compactSeen.Add(coord))
+                    throw new InvalidDataException("压缩 geography 候选的 Chunk 坐标无效。");
+            }
+            return;
+        }
         if (width <= 0 || height <= 0 || geography["rows"] is not JsonArray rows || rows.Count != height ||
             geography["coverageChunks"] is not JsonArray coverage || geography["chunkRows"] is not JsonArray chunkRows ||
             coverage.Count == 0 || chunkRows.Count != coverage.Count)

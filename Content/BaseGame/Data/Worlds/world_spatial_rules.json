@@ -7,8 +7,68 @@
       "coreLevels": [
         {
           "level": 1,
-          "controlWidthCells": 225,
-          "controlHeightCells": 225
+          "controlWidthCells": 180,
+          "controlHeightCells": 180
+        },
+        {
+          "level": 2,
+          "controlWidthCells": 270,
+          "controlHeightCells": 270,
+          "upgradeCosts": [
+            {
+              "resourceId": "base:resource_rough_wood",
+              "amount": 40
+            },
+            {
+              "resourceId": "base:resource_rough_stone",
+              "amount": 20
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "controlWidthCells": 360,
+          "controlHeightCells": 360,
+          "upgradeCosts": [
+            {
+              "resourceId": "base:resource_rough_wood",
+              "amount": 80
+            },
+            {
+              "resourceId": "base:resource_rough_stone",
+              "amount": 60
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "controlWidthCells": 450,
+          "controlHeightCells": 450,
+          "upgradeCosts": [
+            {
+              "resourceId": "base:resource_rough_stone",
+              "amount": 120
+            },
+            {
+              "resourceId": "base:resource_iron_ore",
+              "amount": 40
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "controlWidthCells": 540,
+          "controlHeightCells": 540,
+          "upgradeCosts": [
+            {
+              "resourceId": "base:resource_rough_stone",
+              "amount": 160
+            },
+            {
+              "resourceId": "base:resource_spirit_ore",
+              "amount": 40
+            }
+          ]
         }
       ],
       "wildernessEncounterWidthCells": 500,

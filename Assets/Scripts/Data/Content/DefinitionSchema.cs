@@ -127,8 +127,10 @@ namespace XianXia.Data.Content
         };
         public static readonly HashSet<string> CoreLevelControlRangeFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "level", "controlWidthCells", "controlHeightCells", "controlWidthWorld", "controlHeightWorld"
+            "level", "controlWidthCells", "controlHeightCells", "controlWidthWorld", "controlHeightWorld", "upgradeCosts"
         };
+        public static readonly HashSet<string> CoreUpgradeCostFields = new HashSet<string>(StringComparer.Ordinal)
+        { "resourceId", "amount" };
         public static readonly HashSet<string> OpeningEntityAnchorFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "spawnKey", "definitionId", "sourceLocationId", "worldX", "worldY"
@@ -141,7 +143,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OutdoorSurfaceGeographyFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "surfaceId", "sourceSchemaVersion", "sourceRevision", "sourceHash",
-            "originWorldX", "originWorldY", "cellSize", "width", "height", "coverageChunks", "chunkRows", "rows",
+            "originWorldX", "originWorldY", "cellSize", "width", "height", "coverageChunks", "chunkRows", "rows", "rowEncoding",
             "mapPrimitives", "landmarks", "hexSummary"
         };
         public static readonly HashSet<string> OutdoorGeographyChunkFields = new HashSet<string>(StringComparer.Ordinal)
@@ -184,7 +186,7 @@ namespace XianXia.Data.Content
         };
 
         public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)
-        { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
+        { "siteId", "surfaceId", "displayName", "siteType", "ownerFactionId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY", "coreLevel", "controlEstablishedOrder" };
         public static readonly HashSet<string> SurfaceFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
         { "flagId", "factionId", "worldX", "worldY", "establishedOrder", "createsWorldSite", "siteDisplayName", "siteType", "coreLevel" };
         public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)

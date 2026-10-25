@@ -1,6 +1,6 @@
 # 连续世界制作、合成与去 Hex 产品方向
 
-> **2026-10-25 设计覆写，未实施：** [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)要求 102 个已存在的旗 Site 保留稳定 Site ID，改由作者源显式固定 `controlCore` 构成；同一 Site 不得再由旗 bootstrap 创建。下方「关联旗蓝图禁止 controlCore」仅描述当前已实施版本；转换时应按[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)逐 Site 迁移及核对发布器，不能只删除校验。
+> **2026-10-25 实施覆写，待人工验收：** [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)要求 102 个已存在的旗 Site 保留稳定 Site ID，改由作者源显式固定 `controlCore` 构成；本轮已按[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)逐 Site 迁移并重新发布。同一 Site 不再由旗 bootstrap 创建。下方「关联旗蓝图禁止 controlCore」仅描述旧版本历史。
 
 > 2026-10-24内容接线增补见[342](../40-process/342-world-settlements-and-public-techniques-2026-10-24.md)：Blueprint可关联当前Surface显式createsWorldSite旗帜产生的既有runtime SiteId，发布器禁止该类蓝图另带controlCore。该身份可承载地点、设施与精确NPC锚点；它仍不属于静态SiteRegion。开局先建立旗帜Site再绑定居民／资产；Host按Site→Chunk索引加载固定及旗帜据点居民与地点。Snapshot authority不变。
 
@@ -57,6 +57,8 @@
 
 一级 SiteCore 的理论行政控制范围按制作人本轮指令从 150×150 改为 **225×225 Surface Cells**；不是 Chunk、Blueprint、World Editor Cell、Natural Region 或 authoring 最小尺寸。
 
+2026-10-25 最新覆写：一级理论行政范围长宽取旧 225 的 0.8，即 **180×180 Surface Cells**；二至五级为 270／360／450／540 cells。108 处固定据点的现等级实体蓝图与外墙按该范围边缘重新发布；上段 225 及 [356](../40-process/356-world-map-flight-travel-and-level-one-size-2026-10-25.md) 的 0.75 为实施历史，见 [357](../40-process/357-golden-core-energy-and-town-footprints-2026-10-25.md)。
+
 ## 3. Authoring 与 bake
 
 2026-10-23 荒村紧凑住宿与木围墙见 [322](../40-process/322-huangcun-compact-housing-and-cell-wood-walls-2026-10-23.md)：240×200 村域保留，住宅／床／住户锚点成组移动；村界沿边界逐格放置 844 段 1×1 木墙，四边各留 8 格常开通路。作者源与生成产物分离不变；墙的导航／逐格破坏身份仍走既有链，Host 木墙 prefab 单渲染层、无物理组件，保留 Chunk 加载／卸载，不以视觉合并覆盖格身份。
@@ -86,6 +88,8 @@ Blueprint 支持 quarter-turn rotation，并可携带通用对象 placement：�
 External Control Handoff 仍消费同一 player-centered streaming authority。接管者跨 Surface，或在同 Surface 但落点超出旧 loaded 5×5 时，先释放旧 presentation，再以接管者 chunk 为中心同步 hard re-anchor；落点已在当前邻域内时可复用既有 presentation。独立战场退出若 `NeedsExternalControlHandoff`，只释放旧 battlefield，不先重建旧 Party 邻域。目的地 Surface、正确 ActiveSurfaceId、successor chunk、Site／Squad／Population reconcile 与 successor EntityView 全部就绪后，Camera／Selection 才能切换；不建立第二 camera streaming center。
 
 WorldMap 应从同一 Surface 派生战略缩放：显示实际 terrain、水、山、道路、森林、Site、party、NPC squads 与 actual control。地图点击、路线目标和 Site 选择以 exact WorldPosition 为共同坐标，不以 Hex center / Q-R authoring 伪造实际位置。
+
+2026-10-25 的 [ADR-0056](../40-process/43-decisions/ADR-0056-five-level-town-separation-and-world-expansion.md) 将主 Surface 扩到 15200×6800 格。运行地理可用 `rle1` 行压缩传输，Loader 解码后仍为精确逐格导航；WorldMap terrain／forest cache 可按 4 格显示采样，并以其实际 `cellSize` 投影。缓存分辨率不得反向成为导航、Site 控制或地图点选的坐标真源。
 
 当前已确认 UI 规则：战略图标、名称间距和字号按世界空间投影随地图 zoom 缩放；Header、Footer 与按需 Flyout 才保持屏幕空间。不得恢复固定屏幕像素图标／标签方案。Site／Flag 已按该规则实现；2026-10-19 Player／NPC Squad 的固定像素差异已按制作人授权收口：采用同一 Surface 投影，初始视觉尺寸分别为 18／14 Surface Cells，Player 名称高度 12 Cells、间距 4 Cells；点击区域随图标投影，不再用独立固定像素矩形。此为表现尺寸，不改变 Squad／Party 的真实位置或占地；制作人已确认现场验收无问题，状态 Producer Accepted。WorldMap 打开是 planning overlay，不移动玩家；有效目标进入同一 Surface travel 计划，关闭地图后恢复旅行。
 

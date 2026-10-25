@@ -25,7 +25,8 @@ namespace XianXia.Data.Bootstrap
                         return Result.Failure(ErrorCode.SnapshotInvalid, "Duplicate authored Site identity.", region.SiteId);
                     world.Strategic.Sites.Register(new WorldSite {
                         SiteId = region.SiteId, DisplayName = region.DisplayName,
-                        SiteType = region.SiteType, UsesContinuousOutdoorSurface = true
+                        SiteType = region.SiteType, UsesContinuousOutdoorSurface = true,
+                        CoreLevel = region.CoreLevel, ControlEstablishedOrder = region.ControlEstablishedOrder
                     });
                 }
             }
@@ -88,7 +89,9 @@ namespace XianXia.Data.Bootstrap
                     DisplayName = string.IsNullOrWhiteSpace(region.DisplayName) ? region.SiteId : region.DisplayName,
                     SiteType = string.IsNullOrWhiteSpace(region.SiteType) ? "Site" : region.SiteType,
                     OwnerFactionId = region.OwnerFactionId ?? string.Empty,
-                    UsesContinuousOutdoorSurface = true
+                    UsesContinuousOutdoorSurface = true,
+                    CoreLevel = region.CoreLevel,
+                    ControlEstablishedOrder = region.ControlEstablishedOrder
                 };
                 world.Strategic.Sites.Register(site);
             }

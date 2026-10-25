@@ -1,5 +1,17 @@
 # Project Handoff — Continuous World Current State
 
+> **2026-10-25 当前待验收改动：** [357](357-golden-core-energy-and-town-footprints-2026-10-25.md)已覆写 [356](356-world-map-flight-travel-and-level-one-size-2026-10-25.md) 的 0.75：等级 1～5 理论长宽为 180／270／360／450／540 cells，108 处固定城镇实体蓝图按现等级重做，围墙沿控制边缘；荒村现为 180×180 格。金丹及以上不再因日常或打坐扣精力，已耗尽者恢复行动阈值。作者源已重发三份正式运行世界数据，运行包 `0.0.23-town-footprints-080` 需新开局。此前世界图中断预检与开发调用栈保留；其他取消来源仍待现场复现，基础编译／静态检查已完成，未运行自动测试、未提交推送。
+
+> **2026-10-25 最新世界图旅行返修：** [351](351-world-map-long-route-and-player-marker-2026-10-25.md)将远距离受阻寻路移出地图主线程，限制长路径简化成本，局部前沿须产生实际位移；村界／无路拒绝显式提示，主控小队使用固定屏幕像素标志。Core／Data 与 Unity Core／Host 基础编译 0 错误；Unity 现场帧时、远路可达性仍待制作人验收。未提交推送。
+
+> **2026-10-25 最新城镇视觉返修：** [350](350-town-walls-stone-room-art-and-chunk-seams-2026-10-25.md)为青石及其余 79 处无墙据点补石墙，在道路口留门；108 处固定 Site 现在均有墙数据。石屋墙体换独立石砌图，Chunk 草地网格按瓦片实际跨度铺齐。运行包 `0.0.21-town-walls-and-art`，需新开局。仅基础编译／静态引用完成，Unity 视觉、通行、帧时待人工验收；未提交推送。
+
+> **2026-10-25 最新城镇布局：** [348 实施／验收](348-natural-town-layout-and-qingshi-urban-quarter-2026-10-25.md)把 108 个固定 Site 从等距方阵改为不等距错列，五级范围最小间隔 96 格，主世界仍为 15200×6800；蓝图、地点／人物、同城与城际道路随之迁移。青石镇 240×210 格正交街区补石制公共房和街面内容，其余 106 处补 258 间沿街房。运行包 `0.0.20-natural-towns`，需新开局；Unity 人工验收待制作人进行，未提交推送。下条 175 格与 `0.0.19` 是此前等距布局的历史状态。
+
+> **2026-10-25 最新世界布局：** [ADR-0056](43-decisions/ADR-0056-five-level-town-separation-and-world-expansion.md) 与[347 实施／验收](347-five-level-town-separation-implementation-2026-10-25.md)将主 Surface 扩至 15200×6800 格并重排 108 个固定 Site；哪怕全部五级，行政方框最小仍隔 175 格，蓝图、锚点、道路和地形同步迁移。运行包 `0.0.19-separated-world`，需新开局；基础编译／静态检查通过，Unity 人工验收待进行，未提交推送。下文 7600×3400 和旧内容版本均是各自时点历史状态。
+
+> **2026-10-25 最新运行实施：** [345 固定议政厅实施记录](345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)已将 ADR-0055 接入作者源和正式运行包 `0.0.18-fixed-council-sites`：108 个固定 Site／核心、103 个三级范围、五级升级入口、青石正交街区与五处边缘重排。基础编译和静态完整性通过，Unity 人工验收待制作人进行；未提交推送。下两段保留为此前检查点与设计阶段的历史记录。
+
 > **2026-10-25 工作区备份入口：** 制作人要求先将当前所有非忽略工作区改动连同文档提交并上传 GitHub；范围与状态见[346检查点](346-2026-10-25-workspace-github-checkpoint.md)。这是 Git 备份，不改变各功能的 Producer Acceptance，也不把下述固定据点新设计当作已实施。实际提交及推送结果以 Git 为准。
 
 > **2026-10-25 最新设计，不是运行现状：** 制作人确认[ADR-0055](43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)与[345变更单](345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)：荒村一级，青石与 102 个旧旗据点暂三级，其他四个固定地点保留当前等级；议政厅 1～5 级长宽倍率 1／1.5／2／2.5／3；102 个历史旗 Site 保留身份迁为固定可占领核心，玩家不再建旗造新 Site，可升级现有 Site。允许重排中心与道路，青石改为横平竖直、少分叉街路，旧[344](344-qingshi-urban-upgrade-proposal-2026-10-24.md)已据此修订。旧档采用现有 package-version 拒绝／保留路径，不暗迁；[108行身份清单](345-site-identity-inventory.tsv)已导出。状态 Design Confirmed / 未实施，地理落点与升级成本待内容制作；下方 344 曲折街巷说明只保留历史时点含义。

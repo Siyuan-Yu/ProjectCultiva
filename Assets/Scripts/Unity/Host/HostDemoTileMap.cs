@@ -155,40 +155,62 @@ namespace XianXia.Unity.Host
             BeginInstanceBuild(instanceKey, null, Vector2.zero);
             mapper.ChunkLocalToWorld(chunk, 0f, 0f, out var left, out var bottom);
             mapper.WorldToPresentation(left, bottom, out var px, out var py);
-            var width = Mathf.RoundToInt(mapper.ChunkWidth / terrain.CellSize);
-            var height = Mathf.RoundToInt(mapper.ChunkHeight / terrain.CellSize);
-            var startX = Mathf.RoundToInt((left - terrain.OriginWorldX) / terrain.CellSize);
-            var startY = Mathf.RoundToInt((bottom - terrain.OriginWorldY) / terrain.CellSize);
-            var presentationCell = terrain.CellSize * mapper.PresentationUnitsPerWorldUnit;
+            var right = left + mapper.ChunkWidth;
+            var top = bottom + mapper.ChunkHeight;
+            // The WorldMap cache may be sampled at four physical cells per display cell.
+            // A 50-cell chunk is then 12.5 cache cells; rounding to 12 left a two-cell
+            // strip of camera clear color on every chunk's right/top edge.
+            var groundWidth = Mathf.RoundToInt(mapper.ChunkWidth / mapper.CellSize);
+            var groundHeight = Mathf.RoundToInt(mapper.ChunkHeight / mapper.CellSize);
+            var groundCell = mapper.CellSize * mapper.PresentationUnitsPerWorldUnit;
             if (stampGrassGround && TryResolveCompactGrassTemplate())
-                BuildCompactGrassGround(px, py, width, height, presentationCell);
+                BuildCompactGrassGround(px, py, groundWidth, groundHeight, groundCell);
             else
-                PlaceZoneOverlay(px + width * presentationCell * .5f,
-                    py + height * presentationCell * .5f, "plain_" + chunk,
-                    width * presentationCell, height * presentationCell,
+                PlaceZoneOverlay(px + mapper.ChunkWidth * mapper.PresentationUnitsPerWorldUnit * .5f,
+                    py + mapper.ChunkHeight * mapper.PresentationUnitsPerWorldUnit * .5f,
+                    "plain_" + chunk,
+                    mapper.ChunkWidth * mapper.PresentationUnitsPerWorldUnit,
+                    mapper.ChunkHeight * mapper.PresentationUnitsPerWorldUnit,
                     new Color(.30f, .42f, .26f, .98f));
-            // Merge adjacent cells of the same authored terrain into one presentation rectangle.
-            for (var y = 0; y < height; y++)
+            var startX = Mathf.Clamp(Mathf.FloorToInt((left - terrain.OriginWorldX) / terrain.CellSize),
+                0, terrain.WidthCells);
+            var endX = Mathf.Clamp(Mathf.CeilToInt((right - terrain.OriginWorldX) / terrain.CellSize),
+                startX, terrain.WidthCells);
+            var startY = Mathf.Clamp(Mathf.FloorToInt((bottom - terrain.OriginWorldY) / terrain.CellSize),
+                0, terrain.HeightCells);
+            var endY = Mathf.Clamp(Mathf.CeilToInt((top - terrain.OriginWorldY) / terrain.CellSize),
+                startY, terrain.HeightCells);
+            // The coarse cache only chooses terrain colors. Clip each sample run to the
+            // physical chunk bounds so a half-cache-cell edge neither leaks nor disappears.
+            for (var y = startY; y < endY; y++)
             {
-                var terrainRow = terrain.BaseTerrainRows[startY + y];
-                var forestRow = terrain.ForestRows[startY + y];
-                var x = 0;
-                while (x < width)
+                var terrainRow = terrain.BaseTerrainRows[y];
+                var forestRow = terrain.ForestRows[y];
+                var x = startX;
+                while (x < endX)
                 {
-                    var kind = terrainRow[startX + x];
-                    var forest = forestRow[startX + x];
+                    var kind = terrainRow[x];
+                    var forest = forestRow[x];
                     var end = x + 1;
-                    while (end < width && terrainRow[startX + end] == kind && forestRow[startX + end] == forest)
+                    while (end < endX && terrainRow[end] == kind && forestRow[end] == forest)
                         end++;
                     Color color;
                     if (kind == 'M') color = new Color(.39f, .39f, .35f, .94f);
                     else if (kind == 'W') color = new Color(.13f, .39f, .66f, .86f);
                     else if (forest != '0') color = new Color(.11f, .29f, .13f, .48f + (forest - '0') * .035f);
                     else { x = end; continue; }
-                    PlaceZoneOverlay(px + (x + end) * .5f * presentationCell,
-                        py + (y + .5f) * presentationCell,
-                        "terrain_" + chunk + "_" + y + "_" + x,
-                        (end - x) * presentationCell, presentationCell, color);
+                    var worldLeft = Mathf.Max(left, terrain.OriginWorldX + x * terrain.CellSize);
+                    var worldRight = Mathf.Min(right, terrain.OriginWorldX + end * terrain.CellSize);
+                    var worldBottom = Mathf.Max(bottom, terrain.OriginWorldY + y * terrain.CellSize);
+                    var worldTop = Mathf.Min(top, terrain.OriginWorldY + (y + 1) * terrain.CellSize);
+                    if (worldRight > worldLeft && worldTop > worldBottom)
+                    {
+                        mapper.WorldToPresentation(worldLeft, worldBottom, out var fl, out var fb);
+                        mapper.WorldToPresentation(worldRight, worldTop, out var fr, out var ft);
+                        PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                            "terrain_" + chunk + "_" + y + "_" + x,
+                            fr - fl, ft - fb, color);
+                    }
                     x = end;
                 }
             }
@@ -320,6 +342,12 @@ namespace XianXia.Unity.Host
             if (placement == null || placement.SourceCellsW <= 0 || placement.SourceCellsH <= 0 ||
                 !MapKindCatalog.TryGet(placement.Kind ?? string.Empty, out var info))
                 return false;
+            if (string.Equals(placement.Kind, OutdoorConstructedAssetSemantics.WallSegmentKind,
+                    System.StringComparison.Ordinal))
+            {
+                count = 1; // One tiled renderer per visible chunk fragment, not one object per wall cell.
+                return true;
+            }
             if (!UsesPerCellIdentity(placement, info))
             {
                 count = 1;
@@ -371,7 +399,36 @@ namespace XianXia.Unity.Host
 
             var stateful = OutdoorStatefulObjectSemantics.IsStatefulKind(source.Kind);
             var perCell = UsesPerCellIdentity(source, info);
-            if (string.Equals(source.Kind, OutdoorConstructedAssetSemantics.RoomKind,
+            if (string.Equals(source.Kind, OutdoorConstructedAssetSemantics.WallSegmentKind,
+                    System.StringComparison.Ordinal))
+            {
+                mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
+                var ix0 = Mathf.Max(source.WorldX, chunkWorldX);
+                var iy0 = Mathf.Max(source.WorldY, chunkWorldY);
+                var ix1 = Mathf.Min(source.WorldX + source.WorldWidth, chunkWorldX + mapper.ChunkWidth);
+                var iy1 = Mathf.Min(source.WorldY + source.WorldHeight, chunkWorldY + mapper.ChunkHeight);
+                if (ix1 > ix0 && iy1 > iy0)
+                {
+                    mapper.WorldToPresentation(ix0, iy0, out var fl, out var fb);
+                    mapper.WorldToPresentation(ix1, iy1, out var fr, out var ft);
+                    var centerX = (fl + fr) * .5f;
+                    var centerY = (fb + ft) * .5f;
+                    var segmentWidth = Mathf.Abs(fr - fl);
+                    var segmentHeight = Mathf.Abs(ft - fb);
+                    var woodWall = _session?.World != null &&
+                        _session.World.ConstructionCatalog.TryGet(source.BuildingId, out var wallSegmentSpec) &&
+                        wallSegmentSpec.MaterialKind == "wood";
+                    PlaceSurfaceArtOverlay(centerX, centerY,
+                        id + ":wall:" + ownerChunk.X + ":" + ownerChunk.Y,
+                        segmentWidth, segmentHeight,
+                        woodWall ? HostStepAArt.MapSprite("wall") : HostStepAArt.StoneWallTile(),
+                        info.FallbackColor,
+                        HostArtDepth.ObjectOrder("wallSegment", centerY, segmentHeight, -5));
+                    actual++;
+                }
+                expectedForOwner = actual;
+            }
+            else if (string.Equals(source.Kind, OutdoorConstructedAssetSemantics.RoomKind,
                     System.StringComparison.Ordinal))
             {
                 var stoneRoom = _session?.World != null &&
@@ -673,8 +730,6 @@ namespace XianXia.Unity.Host
             }
 
             var step = Mathf.Max(1, grassStride);
-            var tileWidth = cellSize * step;
-            var tileHeight = cellSize * step;
             var tileCount = ((width + step - 1) / step) * ((height + step - 1) / step);
             for (var layerIndex = 0; layerIndex < _compactGrassLayers.Count; layerIndex++)
             {
@@ -686,14 +741,20 @@ namespace XianXia.Unity.Host
                 for (var gy = 0; gy < height; gy += step)
                 for (var gx = 0; gx < width; gx += step)
                 {
-                    var centerX = originX + (gx + .5f) * cellSize;
-                    var centerY = originY + (gy + .5f) * cellSize;
+                    var cellsWide = Mathf.Min(step, width - gx);
+                    var cellsHigh = Mathf.Min(step, height - gy);
+                    var centerX = originX + (gx + cellsWide * .5f) * cellSize;
+                    var centerY = originY + (gy + cellsHigh * .5f) * cellSize;
+                    // A tiny overlap hides subpixel cracks without exposing the camera clear color
+                    // at a 50-cell chunk boundary. Partial edge tiles end at the exact boundary.
+                    var quadWidth = (cellsWide + .02f) * cellSize;
+                    var quadHeight = (cellsHigh + .02f) * cellSize;
                     var vertexStart = vertices.Count;
                     for (var corner = 0; corner < 4; corner++)
                     {
                         vertices.Add(new Vector3(
-                            centerX + layer.Corners[corner].x * tileWidth,
-                            centerY + layer.Corners[corner].y * tileHeight,
+                            centerX + layer.Corners[corner].x * quadWidth,
+                            centerY + layer.Corners[corner].y * quadHeight,
                             0f));
                         colors.Add(layer.Color);
                         uvs.Add(layer.Uvs[corner]);
@@ -733,11 +794,16 @@ namespace XianXia.Unity.Host
             var step = Mathf.Max(1, grassStride);
             for (var gy = 0; gy < height; gy += step)
             for (var gx = 0; gx < width; gx += step)
+            {
+                var cellsWide = Mathf.Min(step, width - gx);
+                var cellsHigh = Mathf.Min(step, height - gy);
                 PlacePrefab("grass", MapKindCatalog.Grass,
-                    originX + (gx + .5f) * cellSize,
-                    originY + (gy + .5f) * cellSize,
-                    "Grass_" + gx + "_" + gy, cellSize * step, cellSize * step,
+                    originX + (gx + cellsWide * .5f) * cellSize,
+                    originY + (gy + cellsHigh * .5f) * cellSize,
+                    "Grass_" + gx + "_" + gy,
+                    cellSize * (cellsWide + .02f), cellSize * (cellsHigh + .02f),
                     new Color(.30f, .42f, .26f));
+            }
         }
 
         bool TryResolveCompactGrassTemplate()
@@ -1251,7 +1317,7 @@ namespace XianXia.Unity.Host
             var go = HostMapObjectVisualFactory.Create(kind, prefabPath, name,
                 _buildRoot != null ? _buildRoot : mapRoot, intended, worldW, worldH, sortingOrder, false,
                 out var usedMissingVisual, visualQuarterTurns);
-            if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall && HostStepAArt.MapSprite("wall") == null)
+            if (!usedMissingVisual && prefabPath == MapKindCatalog.Wall && HostStepAArt.StoneWallTile() == null)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
             if (!usedMissingVisual && string.Equals(kind, OutdoorConstructedAssetSemantics.BedKind,
                     System.StringComparison.Ordinal))

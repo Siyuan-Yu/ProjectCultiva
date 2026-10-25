@@ -1,7 +1,7 @@
 {
   "modId": "base",
   "namespace": "base",
-  "version": "0.0.17-world-settlements",
+  "version": "0.0.23-town-footprints-080",
   "compatibleGameVersion": "0.1.0",
   "dependencies": [],
   "optionalDependencies": [],

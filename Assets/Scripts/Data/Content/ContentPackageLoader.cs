@@ -2035,29 +2035,39 @@ namespace XianXia.Data.Content
                 report.Add(ErrorCode.InvalidArgument, "Invalid outdoorSurfaceGeography metadata.", id.ToString());
                 return;
             }
-            if (!item.TryGetProperty("rows", out var rows) || rows.Kind != JsonValueKind.Array || rows.Array.Count != height)
+            var rowEncoding = item.GetString("rowEncoding", string.Empty);
+            var compactRows = string.Equals(rowEncoding, "rle1", StringComparison.Ordinal);
+            if ((!compactRows && !string.IsNullOrEmpty(rowEncoding)) ||
+                !item.TryGetProperty("rows", out var rows) || rows.Kind != JsonValueKind.Array || rows.Array.Count != height)
             {
                 report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography rows/height mismatch.", id.ToString());
                 return;
             }
-            var cells = new List<SurfaceGroundCellKind>(width * height);
+            var cells = new SurfaceGroundCellKind[checked(width * height)];
+            var cellIndex = 0;
             for (var y = 0; y < rows.Array.Count; y++)
             {
                 var row = rows.Array[y];
-                if (row.Kind != JsonValueKind.String || row.String.Length != width)
+                var text = row.Kind == JsonValueKind.String ? row.String : string.Empty;
+                if (compactRows && !SurfaceRasterRunLength.TryDecode(text, width, out text))
+                {
+                    report.Add(ErrorCode.InvalidArgument, "Invalid compressed outdoor geography row.", id + ".rows[" + y + "]");
+                    return;
+                }
+                if (row.Kind != JsonValueKind.String || text.Length != width)
                 {
                     report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography row width mismatch.", id + ".rows[" + y + "]");
                     return;
                 }
-                for (var x = 0; x < row.String.Length; x++)
+                for (var x = 0; x < text.Length; x++)
                 {
-                    switch (row.String[x])
+                    switch (text[x])
                     {
-                        case '.': cells.Add(SurfaceGroundCellKind.Ground); break;
-                        case '~': cells.Add(SurfaceGroundCellKind.Water); break;
-                        case '=': cells.Add(SurfaceGroundCellKind.Road); break;
-                        case 'B': cells.Add(SurfaceGroundCellKind.Water | SurfaceGroundCellKind.Bridge | SurfaceGroundCellKind.Road); break;
-                        case '#': cells.Add(SurfaceGroundCellKind.Solid); break;
+                        case '.': cells[cellIndex++] = SurfaceGroundCellKind.Ground; break;
+                        case '~': cells[cellIndex++] = SurfaceGroundCellKind.Water; break;
+                        case '=': cells[cellIndex++] = SurfaceGroundCellKind.Road; break;
+                        case 'B': cells[cellIndex++] = SurfaceGroundCellKind.Water | SurfaceGroundCellKind.Bridge | SurfaceGroundCellKind.Road; break;
+                        case '#': cells[cellIndex++] = SurfaceGroundCellKind.Solid; break;
                         default:
                             report.Add(ErrorCode.InvalidArgument, "Unknown outdoor geography cell code.", id + ".rows[" + y + "][" + x + "]");
                             return;
@@ -2068,7 +2078,7 @@ namespace XianXia.Data.Content
             {
                 Id = id, SurfaceId = surfaceId, SourceSchemaVersion = schema,
                 SourceRevision = revision, SourceHash = hash,
-                Navigation = new SurfaceGroundNavigation(surfaceId, revision, hash, originX, originY, cellSize, width, height, cells)
+                Navigation = new SurfaceGroundNavigation(surfaceId, revision, hash, originX, originY, cellSize, width, height, cells, takeOwnership: true)
             };
             if (!item.TryGetProperty("coverageChunks", out var coverage) || coverage.Kind != JsonValueKind.Array)
             {
@@ -2084,6 +2094,8 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.InvalidArgument, "Duplicate geography coverage chunk.", id + ".coverageChunks");
                 else definition.CoverageChunks.Add(coord);
             }
+            if (!compactRows)
+            {
             if (!item.TryGetProperty("chunkRows", out var chunkRows) || chunkRows.Kind != JsonValueKind.Array ||
                 chunkRows.Array.Count != definition.CoverageChunks.Count)
             {
@@ -2133,6 +2145,7 @@ namespace XianXia.Data.Content
                             return;
                         }
                 }
+            }
             }
             if (item.TryGetProperty("mapPrimitives", out var primitives) && primitives.Kind == JsonValueKind.Array)
                 foreach (var node in primitives.Array)
@@ -2230,8 +2243,26 @@ namespace XianXia.Data.Content
                     if (level < 1 || !levels.Add(level) || !(width > 0f) || !(height > 0f) ||
                         float.IsInfinity(width) || float.IsInfinity(height))
                     { report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate core level control range.", id.ToString()); return; }
-                    rules.CoreLevels.Add(new XianXia.Core.World.Strategic.CoreLevelControlRange
-                        { Level = level, WidthCells = width, HeightCells = height });
+                    var coreLevel = new XianXia.Core.World.Strategic.CoreLevelControlRange
+                        { Level = level, WidthCells = width, HeightCells = height };
+                    if (row.TryGetProperty("upgradeCosts", out var costs) && costs.Kind == JsonValueKind.Array)
+                    {
+                        var resources = new HashSet<string>(StringComparer.Ordinal);
+                        foreach (var cost in costs.Array)
+                        {
+                            DefinitionSchema.RejectUnknownFields(cost, DefinitionSchema.CoreUpgradeCostFields,
+                                report, id + ".coreLevels.upgradeCosts");
+                            var resourceId = cost.GetString("resourceId", string.Empty);
+                            var amount = (int)cost.GetNumber("amount", 0);
+                            if (string.IsNullOrWhiteSpace(resourceId) || !resources.Add(resourceId) || amount <= 0)
+                            { report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate core upgrade cost.", id.ToString()); return; }
+                            coreLevel.UpgradeCosts.Add(new XianXia.Core.World.Strategic.CoreUpgradeCost
+                                { ResourceId = resourceId, Amount = amount });
+                        }
+                    }
+                    if (level > 1 && coreLevel.UpgradeCosts.Count == 0)
+                    { report.Add(ErrorCode.InvalidArgument, "Upgradable core level requires resource costs.", id.ToString()); return; }
+                    rules.CoreLevels.Add(coreLevel);
                 }
             if (!levels.Contains(1) || !(rules.WildernessEncounterWidthCells > 0f) ||
                 !(rules.WildernessEncounterHeightCells > 0f) || float.IsInfinity(rules.WildernessEncounterWidthCells) ||
@@ -2303,7 +2334,9 @@ namespace XianXia.Data.Content
                         DisplayName = node.GetString("displayName", string.Empty),
                         SiteType = node.GetString("siteType", string.Empty),
                         OwnerFactionId = node.GetString("ownerFactionId", string.Empty),
-                        ArrivalWorldX = ReadFloat(node, "arrivalWorldX", 0f), ArrivalWorldY = ReadFloat(node, "arrivalWorldY", 0f)
+                        ArrivalWorldX = ReadFloat(node, "arrivalWorldX", 0f), ArrivalWorldY = ReadFloat(node, "arrivalWorldY", 0f),
+                        CoreLevel = (int)node.GetNumber("coreLevel", 1),
+                        ControlEstablishedOrder = (long)node.GetNumber("controlEstablishedOrder", 0)
                     });
                 }
             if (item.TryGetProperty("factionFlags", out var flags) && flags.Kind == JsonValueKind.Array)
@@ -2392,7 +2425,8 @@ namespace XianXia.Data.Content
             var placeIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var region in surface.SiteRegions)
                 if (string.IsNullOrWhiteSpace(region.SiteId) ||
-                    !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId))
+                    !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId) ||
+                    region.CoreLevel < 1 || region.ControlEstablishedOrder < 0)
                     report.Add(ErrorCode.InvalidArgument, "Invalid or duplicate Outdoor WorldSite physical region.", id + ".siteRegions");
             var contentSiteIds = new HashSet<string>(surface.AuthoredSiteIdentities(), StringComparer.Ordinal);
             foreach (var placement in surface.SitePlacements)

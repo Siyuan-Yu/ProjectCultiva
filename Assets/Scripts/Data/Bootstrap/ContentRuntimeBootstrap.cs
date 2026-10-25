@@ -463,7 +463,7 @@ namespace XianXia.Data.Bootstrap
                             "Outdoor controlCore canonical binding is invalid.", binding.Error.ToString());
                     try
                     {
-                        registry.SpatialRules.ResolveLevel(world, 1, surface.SurfaceId);
+                        registry.SpatialRules.ResolveLevel(world, site.CoreLevel, surface.SurfaceId);
                     }
                     catch (Exception e)
                     {
@@ -498,7 +498,6 @@ namespace XianXia.Data.Bootstrap
                 site.HasCoreWorldPosition = true;
                 site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
                 site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
-                site.CoreLevel = 1;
                 registry.SpatialRules.Bind(world, site);
                 site.IsCoreActive = true;
                 site.CoreIsRemovable = false;

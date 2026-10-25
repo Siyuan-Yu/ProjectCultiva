@@ -41,7 +41,7 @@ namespace XianXia.Unity.Host
             {
                 var renderer = go.GetComponentInChildren<SpriteRenderer>();
                 var sprite = prefabPath == MapKindCatalog.WoodWall
-                    ? HostStepAArt.MapSprite("wall") : HostStepAArt.StoneFloorTile();
+                    ? HostStepAArt.MapSprite("wall") : HostStepAArt.StoneWallTile();
                 if (renderer != null)
                 {
                     if (sprite != null) renderer.sprite = sprite;

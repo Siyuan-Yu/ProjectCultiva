@@ -549,6 +549,2658 @@
       "capacity": 2,
       "offsetX": 0,
       "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_core_player_origin",
+      "type": "workArea",
+      "name": "行路旧营·议政厅",
+      "locationId": "base:loc_player_origin_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q1_r10",
+      "type": "workArea",
+      "name": "玄衡城·主城领地·议政厅",
+      "locationId": "base:loc_q1_r10_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q3_r11",
+      "type": "workArea",
+      "name": "执衡宗·赤铁坞前哨·议政厅",
+      "locationId": "base:loc_q3_r11_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q7_r8",
+      "type": "workArea",
+      "name": "执衡宗·荒村北路哨·议政厅",
+      "locationId": "base:loc_q7_r8_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q5_r10",
+      "type": "workArea",
+      "name": "执衡宗·南稷庄前哨·议政厅",
+      "locationId": "base:loc_q5_r10_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q27_r10",
+      "type": "workArea",
+      "name": "沧澜渔盟·渔港·议政厅",
+      "locationId": "base:loc_q27_r10_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q26_r8",
+      "type": "workArea",
+      "name": "沧澜渔盟·林岸驿·议政厅",
+      "locationId": "base:loc_q26_r8_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q29_r10",
+      "type": "workArea",
+      "name": "沧澜渔盟·东汊哨·议政厅",
+      "locationId": "base:loc_q29_r10_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q15_r12",
+      "type": "workArea",
+      "name": "西津渡帮·东路哨·议政厅",
+      "locationId": "base:loc_q15_r12_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q10_r13",
+      "type": "workArea",
+      "name": "西津渡帮·西路哨·议政厅",
+      "locationId": "base:loc_q10_r13_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_q12_r13",
+      "type": "workArea",
+      "name": "西津渡帮·北山驿·议政厅",
+      "locationId": "base:loc_q12_r13_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_huangcun_forest_outpost",
+      "type": "workArea",
+      "name": "执衡宗·衡河西岸驿·议政厅",
+      "locationId": "base:loc_huangcun_forest_outpost_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_capital",
+      "type": "workArea",
+      "name": "同心城·主城领地·议政厅",
+      "locationId": "base:loc_sect_hehuan_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_node_1",
+      "type": "workArea",
+      "name": "并蒂坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_hehuan_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_node_2",
+      "type": "workArea",
+      "name": "暖玉坊·宗门据点·议政厅",
+      "locationId": "base:loc_sect_hehuan_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_node_3",
+      "type": "workArea",
+      "name": "桃溪庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_hehuan_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_node_4",
+      "type": "workArea",
+      "name": "合鸣驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_hehuan_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_hehuan_node_5",
+      "type": "workArea",
+      "name": "望月台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_hehuan_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_capital",
+      "type": "workArea",
+      "name": "烬夜城·主城领地·议政厅",
+      "locationId": "base:loc_sect_xuansha_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_node_1",
+      "type": "workArea",
+      "name": "黑炉坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_xuansha_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_node_2",
+      "type": "workArea",
+      "name": "赤砂矿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_xuansha_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_node_3",
+      "type": "workArea",
+      "name": "断风哨·宗门据点·议政厅",
+      "locationId": "base:loc_sect_xuansha_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_node_4",
+      "type": "workArea",
+      "name": "灰烬庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_xuansha_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_xuansha_node_5",
+      "type": "workArea",
+      "name": "伏煞谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_xuansha_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_capital",
+      "type": "workArea",
+      "name": "栖灵城·主城领地·议政厅",
+      "locationId": "base:loc_sect_wanling_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_node_1",
+      "type": "workArea",
+      "name": "青蹄牧场·宗门据点·议政厅",
+      "locationId": "base:loc_sect_wanling_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_node_2",
+      "type": "workArea",
+      "name": "松尾谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_wanling_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_node_3",
+      "type": "workArea",
+      "name": "百羽驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_wanling_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_node_4",
+      "type": "workArea",
+      "name": "鹿鸣庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_wanling_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_wanling_node_5",
+      "type": "workArea",
+      "name": "护生关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_wanling_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_capital",
+      "type": "workArea",
+      "name": "凌霄城·主城领地·议政厅",
+      "locationId": "base:loc_sect_qingxiao_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_node_1",
+      "type": "workArea",
+      "name": "试剑坪·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qingxiao_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_node_2",
+      "type": "workArea",
+      "name": "青锋矿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qingxiao_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_node_3",
+      "type": "workArea",
+      "name": "回云驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qingxiao_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_node_4",
+      "type": "workArea",
+      "name": "剑竹庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qingxiao_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qingxiao_node_5",
+      "type": "workArea",
+      "name": "断瀑关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qingxiao_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_capital",
+      "type": "workArea",
+      "name": "回春城·主城领地·议政厅",
+      "locationId": "base:loc_sect_baicao_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_node_1",
+      "type": "workArea",
+      "name": "百草圃·宗门据点·议政厅",
+      "locationId": "base:loc_sect_baicao_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_node_2",
+      "type": "workArea",
+      "name": "丹砂坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_baicao_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_node_3",
+      "type": "workArea",
+      "name": "济生驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_baicao_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_node_4",
+      "type": "workArea",
+      "name": "春雨庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_baicao_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_baicao_node_5",
+      "type": "workArea",
+      "name": "采药谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_baicao_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_capital",
+      "type": "workArea",
+      "name": "熔星城·主城领地·议政厅",
+      "locationId": "base:loc_sect_zhuxing_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_node_1",
+      "type": "workArea",
+      "name": "星铁矿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhuxing_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_node_2",
+      "type": "workArea",
+      "name": "炉心坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhuxing_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_node_3",
+      "type": "workArea",
+      "name": "锻石庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhuxing_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_node_4",
+      "type": "workArea",
+      "name": "铜火驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhuxing_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhuxing_node_5",
+      "type": "workArea",
+      "name": "百炼关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhuxing_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_capital",
+      "type": "workArea",
+      "name": "衍枢城·主城领地·议政厅",
+      "locationId": "base:loc_sect_taiyan_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_node_1",
+      "type": "workArea",
+      "name": "方寸台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_taiyan_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_node_2",
+      "type": "workArea",
+      "name": "测脉庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_taiyan_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_node_3",
+      "type": "workArea",
+      "name": "石枢坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_taiyan_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_node_4",
+      "type": "workArea",
+      "name": "八门驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_taiyan_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_taiyan_node_5",
+      "type": "workArea",
+      "name": "合仪关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_taiyan_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_capital",
+      "type": "workArea",
+      "name": "承箓城·主城领地·议政厅",
+      "locationId": "base:loc_sect_tianlu_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_node_1",
+      "type": "workArea",
+      "name": "青纸坊·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tianlu_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_node_2",
+      "type": "workArea",
+      "name": "朱砂岭·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tianlu_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_node_3",
+      "type": "workArea",
+      "name": "传灯驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tianlu_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_node_4",
+      "type": "workArea",
+      "name": "净笔庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tianlu_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tianlu_node_5",
+      "type": "workArea",
+      "name": "封篆台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tianlu_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_capital",
+      "type": "workArea",
+      "name": "磐岳城·主城领地·议政厅",
+      "locationId": "base:loc_sect_zhenyue_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_node_1",
+      "type": "workArea",
+      "name": "砺骨坪·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhenyue_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_node_2",
+      "type": "workArea",
+      "name": "磐石矿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhenyue_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_node_3",
+      "type": "workArea",
+      "name": "担山庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhenyue_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_node_4",
+      "type": "workArea",
+      "name": "镇门哨·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhenyue_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_zhenyue_node_5",
+      "type": "workArea",
+      "name": "重岩驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_zhenyue_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_capital",
+      "type": "workArea",
+      "name": "惊霆城·主城领地·议政厅",
+      "locationId": "base:loc_sect_tingyue_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_node_1",
+      "type": "workArea",
+      "name": "雷鸣台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyue_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_node_2",
+      "type": "workArea",
+      "name": "紫铜岭·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyue_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_node_3",
+      "type": "workArea",
+      "name": "听雷驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyue_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_node_4",
+      "type": "workArea",
+      "name": "云田庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyue_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyue_node_5",
+      "type": "workArea",
+      "name": "断雷关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyue_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_capital",
+      "type": "workArea",
+      "name": "寒璧城·主城领地·议政厅",
+      "locationId": "base:loc_sect_ningshuang_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_node_1",
+      "type": "workArea",
+      "name": "冰泉谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_ningshuang_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_node_2",
+      "type": "workArea",
+      "name": "寒玉坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_ningshuang_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_node_3",
+      "type": "workArea",
+      "name": "雪灯驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_ningshuang_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_node_4",
+      "type": "workArea",
+      "name": "霜禾庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_ningshuang_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_ningshuang_node_5",
+      "type": "workArea",
+      "name": "静雪关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_ningshuang_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_capital",
+      "type": "workArea",
+      "name": "青瘴城·主城领地·议政厅",
+      "locationId": "base:loc_sect_qiangu_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_node_1",
+      "type": "workArea",
+      "name": "辨毒圃·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qiangu_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_node_2",
+      "type": "workArea",
+      "name": "青瘴谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qiangu_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_node_3",
+      "type": "workArea",
+      "name": "蜕甲坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qiangu_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_node_4",
+      "type": "workArea",
+      "name": "清息驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qiangu_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_qiangu_node_5",
+      "type": "workArea",
+      "name": "避瘴庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_qiangu_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_capital",
+      "type": "workArea",
+      "name": "听澜城·主城领地·议政厅",
+      "locationId": "base:loc_sect_tingyu_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_node_1",
+      "type": "workArea",
+      "name": "竹声坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyu_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_node_2",
+      "type": "workArea",
+      "name": "回音谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyu_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_node_3",
+      "type": "workArea",
+      "name": "丝弦坊·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyu_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_node_4",
+      "type": "workArea",
+      "name": "雨灯驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyu_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_tingyu_node_5",
+      "type": "workArea",
+      "name": "清商庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_tingyu_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_capital",
+      "type": "workArea",
+      "name": "长明城·主城领地·议政厅",
+      "locationId": "base:loc_sect_guiming_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_node_1",
+      "type": "workArea",
+      "name": "长明台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guiming_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_node_2",
+      "type": "workArea",
+      "name": "照骨谷·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guiming_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_node_3",
+      "type": "workArea",
+      "name": "守夜驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guiming_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_node_4",
+      "type": "workArea",
+      "name": "安魂庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guiming_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guiming_node_5",
+      "type": "workArea",
+      "name": "幽灯坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guiming_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_capital",
+      "type": "workArea",
+      "name": "照微城·主城领地·议政厅",
+      "locationId": "base:loc_sect_guanxing_capital_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_node_1",
+      "type": "workArea",
+      "name": "观斗台·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guanxing_node_1_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_node_2",
+      "type": "workArea",
+      "name": "历石坞·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guanxing_node_2_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_node_3",
+      "type": "workArea",
+      "name": "引星驿·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guanxing_node_3_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_node_4",
+      "type": "workArea",
+      "name": "明晷庄·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guanxing_node_4_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_sect_guanxing_node_5",
+      "type": "workArea",
+      "name": "望野关·宗门据点·议政厅",
+      "locationId": "base:loc_sect_guanxing_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
     }
   ]
 }

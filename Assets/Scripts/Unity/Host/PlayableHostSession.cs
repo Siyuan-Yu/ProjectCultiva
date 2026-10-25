@@ -259,6 +259,14 @@ namespace XianXia.Unity.Host
                 return Result.Failure(parsed.Error);
             }
 
+            if (!string.IsNullOrEmpty(expectedVersion) &&
+                !string.Equals(parsed.Value.EnabledPackageVersion, expectedVersion, System.StringComparison.Ordinal))
+            {
+                LastError = "存档内容版本不兼容。世界据点布局已更新，请新开局；旧存档文件会保留。";
+                return Result.Failure(ErrorCode.IncompatibleContentVersion, LastError,
+                    parsed.Value.EnabledPackageVersion + " != " + expectedVersion);
+            }
+
             var restored = service.Restore(parsed.Value, expectedVersion,
                 (candidate, snapshot) => StrategicContentBootstrap.PrepareSnapshotSiteIdentities(candidate, Registry, snapshot));
             if (restored.IsFailure)

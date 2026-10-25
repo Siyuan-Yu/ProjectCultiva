@@ -1,6 +1,10 @@
 # ADR-0055：固定议政厅据点与五级行政范围
 
-> 日期：2026-10-25。状态：**Producer Design Confirmed；未实施／未人工验收／未封板**。制作人已确认规则方向、102 个既有据点均纳入及等级倍数；具体旧档迁移与世界重排仍需按下述边界落地。本 ADR 不修改 Freeze 正文、稳定 ID／Snapshot 数值或 Core／Data 边界。
+> 日期：2026-10-25。状态：**Producer Design Confirmed / Implemented；未人工验收／未封板**。制作人已确认规则方向、102 个既有据点均纳入及等级倍数；实施记录见[345](../345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)。本 ADR 不修改 Freeze 正文或稳定 ID／Snapshot 数值；实施按制作人“全部实现”授权扩充了 Core／Data 内容契约。
+
+> 后续 [ADR-0056](ADR-0056-five-level-town-separation-and-world-expansion.md) 增加作者布局约束：当前 108 城即使全部五级也不得互相贴边。下文通用解析规则仍能处理旧档或其他世界的历史重叠，但本次主世界不再布置重叠理论范围。
+
+> 2026-10-25 最新尺寸覆写：[357](../357-golden-core-energy-and-town-footprints-2026-10-25.md)取旧一级 225 格的 **0.8**，并维持原等级倍率，现行 1～5 级长宽为 **180／270／360／450／540 cells**；全部固定城镇实体外墙放到各自行政范围边缘。此前 [356](../356-world-map-flight-travel-and-level-one-size-2026-10-25.md) 的一级 0.75 和二至五级旧绝对尺寸是已被本决定替代的实施历史；下文 225 基数与旧绝对尺寸同样是历史，不再是当前运行数值。
 
 ## 决定
 

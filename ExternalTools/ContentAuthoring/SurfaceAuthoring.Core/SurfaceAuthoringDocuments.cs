@@ -216,7 +216,14 @@ public static class SurfaceAuthoringValidation
         foreach(var p in d.WorldSiteBlueprintPlacements){if(string.IsNullOrWhiteSpace(p.PlacementId)||string.IsNullOrWhiteSpace(p.BlueprintId)||string.IsNullOrWhiteSpace(p.SourcePath))Error(issues,"据点蓝图放置必须提供 placementId、blueprintId 和 sourcePath。");if(p.RotationQuarterTurns is <0 or >3)Error(issues,$"据点蓝图放置 {p.PlacementId} 的 rotationQuarterTurns 必须为 0 到 3。");}
         foreach(var p in d.DetailPatchPlacements)if(string.IsNullOrWhiteSpace(p.PlacementId)||string.IsNullOrWhiteSpace(p.PatchId)||string.IsNullOrWhiteSpace(p.SourcePath))Error(issues,"精修块放置必须提供 placementId、patchId 和 sourcePath。");
         foreach(var p in d.WorldObjectPlacements){if(string.IsNullOrWhiteSpace(p.PlacementId)||string.IsNullOrWhiteSpace(p.KindId))Error(issues,"世界物件必须提供 placementId 和 kindId。");if(p.WidthCells<=0||p.HeightCells<=0||p.WorldSurfaceX<0||p.WorldSurfaceY<0||p.WorldSurfaceX+p.WidthCells>d.SurfaceWidthCells||p.WorldSurfaceY+p.HeightCells>d.SurfaceHeightCells)Error(issues,$"世界物件 {p.PlacementId} 的范围无效或超出世界。");if(p.RotationQuarterTurns is <0 or >3)Error(issues,$"世界物件 {p.PlacementId} 的 rotationQuarterTurns 必须为 0 到 3。");}
-        foreach(var f in d.CoarseFeatureSources)if(f.Feature==TerrainFeature.Forest&&(d.CoarseTerrainSources.FirstOrDefault(t=>t.EditorCellX==f.EditorCellX&&t.EditorCellY==f.EditorCellY)?.BaseTerrain??d.DefaultBaseTerrain)==BaseTerrain.Water)Error(issues,$"大地图编辑格 ({f.EditorCellX},{f.EditorCellY})：水域不能生成森林。");
+        var terrainByEditorCell = new Dictionary<(int X, int Y), BaseTerrain>();
+        foreach (var terrain in d.CoarseTerrainSources)
+            terrainByEditorCell.TryAdd((terrain.EditorCellX, terrain.EditorCellY), terrain.BaseTerrain);
+        foreach (var feature in d.CoarseFeatureSources)
+            if (feature.Feature == TerrainFeature.Forest &&
+                (terrainByEditorCell.TryGetValue((feature.EditorCellX, feature.EditorCellY), out var baseTerrain)
+                    ? baseTerrain : d.DefaultBaseTerrain) == BaseTerrain.Water)
+                Error(issues, $"大地图编辑格 ({feature.EditorCellX},{feature.EditorCellY})：水域不能生成森林。");
         foreach(var c in d.Crossings.Where(x=>x.Resolution==CrossingResolution.Bridge))if(!d.WorldObjectPlacements.Any(o=>o.KindId=="bridge"&&o.Metadata.TryGetValue("riverPathId",out var river)&&river==c.RiverPathId&&o.Metadata.TryGetValue("roadPathId",out var road)&&road==c.RoadPathId))Error(issues,$"道路/河流交叉口 {c.RoadPathId} / {c.RiverPathId} 缺少绑定的桥物件。");
         foreach (var river in d.Rivers) ValidatePath(issues, river.PathId, river.WidthCells, river.ControlPoints, d);
         foreach (var road in d.Roads) ValidatePath(issues, road.PathId, RoadWidths.GetWidth(road.RoadClass), road.ControlPoints, d);

@@ -379,6 +379,7 @@ namespace XianXia.Unity.Host
             if (kind == "roadVertical") return SurfaceTile("ART-GROUND-002_road_vertical_v02", 425f);
             if (kind == "roadCross") return SurfaceTile("ART-GROUND-002_road_cross_v02", 406f);
             if (kind == "wall") return SolidWallSprite();
+            if (kind == "stoneWall") return StoneWallTile();
             string name;
             switch (kind)
             {
@@ -401,6 +402,8 @@ namespace XianXia.Unity.Host
         public static Sprite RoomFloorTile() => SurfaceTile("ART-ROOM-001_floor_interior_v02", 520f);
 
         public static Sprite StoneFloorTile() => SurfaceTile("ART-GROUND-004_stone_mine_floor_v01", 512f);
+
+        public static Sprite StoneWallTile() => SolidWallSprite("ART-ROOM-012_stone_wall_solid_v01");
 
         // Source artwork is split at runtime so the visual opening follows the real two-cell doorway.
         // 0/1 are the posts and 2 is the shallow lintel; none carries collision authority.
@@ -481,14 +484,15 @@ namespace XianXia.Unity.Host
             return sprites[stage];
         }
 
-        static Sprite SolidWallSprite()
+        static Sprite SolidWallSprite() => SolidWallSprite("ART-ROOM-002_wood_wall_solid_v03");
+
+        static Sprite SolidWallSprite(string name)
         {
-            const string name = "ART-ROOM-002_wood_wall_solid_v03";
             if (Props.TryGetValue(name, out var sprite)) return sprite;
             var texture = Resources.Load<Texture2D>(name);
             if (texture == null)
             {
-                Debug.LogWarning("[StepAArt] Missing solid wall texture: " + name);
+                Debug.LogWarning("[StepAArt] Missing wall texture: " + name);
                 return null;
             }
             texture.filterMode = texture.mipmapCount > 1 ? FilterMode.Trilinear : FilterMode.Bilinear;

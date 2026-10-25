@@ -95,7 +95,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 > - **Retired Runtime Dependency**：`hexWorld`／FormalArmy／AtHex／Hex travel 不再由正常产品编译或加载；旧输入只允许在独立离线转换器、稳定 wire 检测、历史资料或明确测试夹具中出现。Separate Space 的 `mapLayout`／`localPlaceSet` 是当前合法格式，不属于旧 Outdoor runtime。
 > - **Future（未实现）**：自动水文、道路自动寻路、detail scatter、minor POI、terrain compatibility matrix、Runtime Chunk profiling 等后续制作能力。不得从 MAP 封板推断这些功能已实现。
 > - **Authoring Source ≠ Runtime Content**：地图 authoring 源（Composer／FineEditor 编辑）与 bake 后的 runtime 产物不是同一类 JSON；见 [ADR-0037](../40-process/43-decisions/ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) §10～§13。
-> - **225×225 Surface Cells** 表示当前 Level 1 SiteCore 的**理论行政控制范围**（2026-10-23 由原 150×150 长宽各扩至 1.5 倍），**不是** Runtime Chunk、World Editor Cell、WorldSite Blueprint 或地图 authoring 最小尺寸。
+> - **180×180 Surface Cells** 表示当前 Level 1 SiteCore 的**理论行政控制范围**（2026-10-25 长宽为旧 225 的 0.8），**不是** Runtime Chunk 或 World Editor Cell；本轮固定城镇实体围墙按该等级范围的边缘布置，见 357。
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
@@ -364,8 +364,9 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 连续户外世界表面 | Continuous Outdoor World Surface | 一块大陆普通户外共享的连续物理空间 | Site／Hex／Chunk 边界不切探索场景 |
 | 户外表面空间元数据 | Outdoor Surface Spatial Metric/Coverage | Core 持有的完整 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage | 只回答 Surface 存在、尺度与 membership；不包含河桥、地形或 walkability |
 | 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
-| 地点核心 | SiteCore | WorldSite 唯一行政核心；新目标为预设且不可拆的固定议政厅／议事堂 | 可正式接管与升级；玩家建旗造新 Site 是已实施历史功能、待退役，见 ADR-0055 |
-| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠，实际管理唯一；与城区蓝图尺寸不同。2026-10-25 设计确认主 Surface 1～5 级长宽分别为 225／337.5／450／562.5／675 cells；当前运行数据仍只配一级，见 ADR-0055 |
+| 地点核心 | SiteCore | WorldSite 唯一行政核心；正常新游戏为预设且不可拆的固定议政厅／议事堂 | 可正式接管与升级；玩家建旗造新 Site 已从正常新游戏退役，见 ADR-0055／345 |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 解析规则仍支持历史范围重叠，实际管理唯一；当前主世界 108 城的作者布局连全部五级也互不重叠。现有固定城镇外墙沿当前等级范围边缘；1～5 级长宽为 180／270／360／450／540 cells，见 ADR-0055／0056 及 357 后续覆写 |
+| 城镇野外缓冲 | Town Wilderness Gap | 两处 Site 假定都为五级时，各自 540×540 格理论行政方框边界之间的空地 | 当前 108 城两两不贴边；原布局以 675 格五级范围校核，缩尺后仍保留间隔。道路、林地或事件可经过，见 ADR-0056／347／357 |
 | 实际行政控制 | WorldSiteAdministrativeControl | 由 Surface 精确位置、当前理论范围与领土取得历史唯一解析出的管理 Site；政治 Owner 从该 Site 读取 | 扩张不得追溯夺取他方或同势力其他 Site 的既有控制；Hex/Region 只是投影 |
 | 领土取得记录 | TerritoryClaim | 某 Site 在某 Surface 上一次不可改写的矩形范围取得历史，按 AcquiredOrder 决定重叠位置优先级 | 不保存 Faction Owner；核心失效时保留但不参与解析，恢复后沿用原优先级 |
 | 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |
@@ -373,7 +374,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
 | 控制资产 | Control Asset | 对 Hex 产生政治控制的因果真源 | 有 Owner 的 Fixed WorldSite 或存活 FactionFlag；见 2J |
-| 阵营旗 | FactionFlag | 已实施版本及旧存档中的可攻击控制核心资产 | 2026-10-25 设计确认退出正常新游戏的建造、拆除、据点生成和地图表现；102 个既有旗 Site 保留稳定 Site ID 改固定议政厅，旧档迁移待定，见 ADR-0055 |
+| 阵营旗 | FactionFlag | 旧版本及旧存档中的可攻击控制核心资产 | 正常新游戏已退出建造、拆除、据点生成和地图表现；102 个既有旗 Site 保留稳定 Site ID 改固定议政厅，旧档以内容版本隔离，见 ADR-0055／345 |
 | 建立顺序 | EstablishedOrder | 2026-09-06 Control Asset V1 的历史全局顺序字段 | 可用于旧档迁移；不得让旧核心升级按创建顺序追溯抢占既得控制 |
 | 理论核心范围 | Nominal SiteCore Range | SiteCore 当前等级产生、尚未解析重叠的行政／建设候选区域 | Footprint+一环只是旧 V1 实现；最终等级范围为后续内容参数 |
 | 有效控制范围 | Effective Control Range | 应用既得控制和稳定交接后，实际归某 Site／Faction 管理的区域 | 每个位置／建筑唯一；同势力 Union 不重复计数 |
@@ -405,7 +406,7 @@ Snapshot v11 保留既有调度字段并完整保存临时绑定；严格校验�
 | 私藏物 | Contraband | 未上报的私有物资 | 被搜出则没收 |
 | 藏匿点 | Stash | 存放私藏物的地点 | 属性为容量与隐蔽度 |
 | 敛息／敛息草 | BreathConcealment | 短时间隐藏修为气息的资源或手段 | 非永久；需持续采集；炼气后隐藏身份的核心工具 |
-| 地点核心／控制核心 | SiteCore / ControlCore | 一个 WorldSite 唯一的行政核心；正常新游戏目标为固定议政厅／议事堂 | 不可拆、可升级／接管；防御击破不等于删除；旧建旗入口待退役，见 ADR-0055 |
+| 地点核心／控制核心 | SiteCore / ControlCore | 一个 WorldSite 唯一的行政核心；正常新游戏为固定议政厅／议事堂 | 不可拆、可升级／接管；防御击破不等于删除；旧建旗入口已退役，见 ADR-0055／345 |
 | 接管目标 | CaptureObjective（Legacy API name） | 围绕唯一 SiteCore 的攻破与正式接管交互 | V1 不表示同城多个核心全做完；只有实际接管改变 Owner |
 | 斩首夺权 | DecapitationCapture | 直接攻击控制核心的占领方式 | 快，危险 |
 | 学校／学塾 | Academy | 定期刷新人才候选的领地建筑 | 约每 2～3 游戏月；可收弟子或任命管事 |

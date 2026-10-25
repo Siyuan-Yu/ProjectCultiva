@@ -7,7 +7,7 @@ namespace XianXia.Unity.Host
     /// <summary>Cached Surface WorldMap terrain. One texture rebuild per content identity, never per IMGUI repaint.</summary>
     public sealed class HostSurfaceWorldMapRenderer
     {
-        Texture2D _texture; string _identity = string.Empty; Rect _worldBounds;
+        Texture2D _texture; string _identity = string.Empty; Rect _worldBounds; int _sampleStep;
         public void Clear()
         {
             if (_texture != null)
@@ -18,22 +18,28 @@ namespace XianXia.Unity.Host
             _texture = null;
             _identity = string.Empty;
             _worldBounds = default;
+            _sampleStep = 0;
         }
         public void Draw(Rect mapRect, SurfaceWorldMapViewportProjection projection, ContinuousSurfaceWorldMapDefinition cache, SurfaceGroundNavigation fallback)
         {
-            Ensure(cache, fallback); if (_texture == null) return;
+            if (Event.current.type != EventType.Repaint) return;
+            Ensure(cache, fallback, mapRect); if (_texture == null) return;
             var screen = projection.ProjectWorldRect(_worldBounds); GUI.DrawTexture(screen, _texture, ScaleMode.StretchToFill, false);
         }
-        void Ensure(ContinuousSurfaceWorldMapDefinition cache, SurfaceGroundNavigation nav)
+        void Ensure(ContinuousSurfaceWorldMapDefinition cache, SurfaceGroundNavigation nav, Rect mapRect)
         {
             var identity = cache != null ? cache.SurfaceId + "|" + cache.SourceHash : nav?.SurfaceId + "|" + nav?.SourceHash;
-            if (_texture != null && identity == _identity) return;
-            _identity = identity; if (nav == null) return;
+            if (nav == null) return;
             var width = cache?.WidthCells ?? nav.Width; var height = cache?.HeightCells ?? nav.Height;
-            // World size is independent from the display texture budget. In particular,
-            // 7600-cell worlds must also render on devices with a 4096 texture limit.
-            var textureLimit = SystemInfo.maxTextureSize > 0 ? Mathf.Min(4096, SystemInfo.maxTextureSize) : 4096;
+            // A global 4096-wide texture exceeds most Game panels. Sample only enough pixels
+            // for the actual map panel, while preserving the full world-space bounds below.
+            var panelLimit = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(mapRect.width, mapRect.height)), 512, 4096);
+            var textureLimit = SystemInfo.maxTextureSize > 0
+                ? Mathf.Min(panelLimit, SystemInfo.maxTextureSize) : panelLimit;
             var sampleStep = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(width, height) / (float)textureLimit));
+            if (_texture != null && identity == _identity && sampleStep == _sampleStep) return;
+            _identity = identity;
+            _sampleStep = sampleStep;
             var textureWidth = (width + sampleStep - 1) / sampleStep;
             var textureHeight = (height + sampleStep - 1) / sampleStep;
             var colors = new Color32[textureWidth * textureHeight];
@@ -49,7 +55,8 @@ namespace XianXia.Unity.Host
             }
             if (_texture != null) Object.Destroy(_texture);
             _texture=new Texture2D(textureWidth,textureHeight,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp}; _texture.SetPixels32(colors); _texture.Apply(false,true);
-            _worldBounds=new Rect(nav.OriginX,nav.OriginY,width*nav.CellSize,height*nav.CellSize);
+            _worldBounds=new Rect(nav.OriginX,nav.OriginY,
+                width*(cache?.CellSize ?? nav.CellSize),height*(cache?.CellSize ?? nav.CellSize));
         }
     }
 }

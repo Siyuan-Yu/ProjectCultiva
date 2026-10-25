@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
         static SimulationWorld _cachedWorld;
         static bool _cachedAuthority;
         static List<FactionActualControlOverlay> _cachedOverlays;
+        static List<WorldSiteActualControlOverlay> _cachedSiteOverlays;
         static readonly List<ClaimStamp> CachedInputs = new List<ClaimStamp>();
 
         // Derived Host geometry only: compare exact inputs so captures, damage and upgrades
@@ -38,24 +39,41 @@ namespace XianXia.Unity.Host
             return stamp;
         }
 
-        static List<FactionActualControlOverlay> GetOverlays(SimulationWorld world)
+        static void RefreshCacheIfChanged(SimulationWorld world)
         {
             var board = world?.Strategic?.TerritoryClaims;
             var claims = board?.Claims;
             var count = claims?.Count ?? 0;
             var authority = board?.HasAuthority ?? false;
-            var changed = !ReferenceEquals(world, _cachedWorld) || _cachedOverlays == null ||
+            var changed = !ReferenceEquals(world, _cachedWorld) ||
+                (_cachedOverlays == null && _cachedSiteOverlays == null) ||
                 authority != _cachedAuthority || count != CachedInputs.Count;
             if (!changed)
                 for (var i = 0; i < count; i++)
                     if (!CachedInputs[i].Matches(ReadStamp(world, claims[i]))) { changed = true; break; }
-            if (!changed) return _cachedOverlays;
-            _cachedOverlays = WorldSiteActualControlOverlayBuilder.BuildFactionUnion(world);
+            if (!changed) return;
+            _cachedOverlays = null;
+            _cachedSiteOverlays = null;
             _cachedWorld = world;
             _cachedAuthority = authority;
             CachedInputs.Clear();
             for (var i = 0; i < count; i++) CachedInputs.Add(ReadStamp(world, claims[i]));
+        }
+
+        static List<FactionActualControlOverlay> GetOverlays(SimulationWorld world)
+        {
+            RefreshCacheIfChanged(world);
+            if (_cachedOverlays == null)
+                _cachedOverlays = WorldSiteActualControlOverlayBuilder.BuildFactionUnion(world);
             return _cachedOverlays;
+        }
+
+        public static IReadOnlyList<WorldSiteActualControlOverlay> GetSiteOverlays(SimulationWorld world)
+        {
+            RefreshCacheIfChanged(world);
+            if (_cachedSiteOverlays == null)
+                _cachedSiteOverlays = WorldSiteActualControlOverlayBuilder.Build(world);
+            return _cachedSiteOverlays;
         }
         public static void Draw(SimulationWorld world, string surfaceId,
             SurfaceWorldMapViewportProjection projection, Texture2D pixel)

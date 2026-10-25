@@ -640,9 +640,9 @@ namespace XianXia.Unity.Host
             var owner = site?.OwnerFactionId ?? string.Empty;
             var friendly = !string.IsNullOrEmpty(owner) &&
                            string.Equals(owner, session.World.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            DrawInspectShell(250f, "议政厅 · " + core.Name, () =>
+            DrawInspectShell(310f, "议政厅 · " + core.Name, () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 250f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 310f);
                 GUI.Label(new Rect(r.x + 10f, r.y + 34f, r.width - 20f, 20f),
                     "所属据点：" + (site?.DisplayName ?? "未绑定") + " · Lv." + (site?.CoreLevel ?? 1), _body);
                 DrawInlineMeter(
@@ -674,6 +674,33 @@ namespace XianXia.Unity.Host
                 }
                 GUI.Label(new Rect(r.x + 10f, r.y + 184f, r.width - 20f, 54f),
                     FormatSitePublicStock(session, site), _body);
+                if (!friendly || site == null || !site.IsCoreActive) return;
+                CoreLevelControlRange next = null;
+                try { next = session.World.Strategic.SpatialRules.RequireLevel(site.CoreLevel + 1); }
+                catch (System.InvalidOperationException) { }
+                if (next == null)
+                {
+                    GUI.Label(new Rect(r.x + 10f, r.y + 242f, r.width - 20f, 20f), "议政厅已满级", _body);
+                    return;
+                }
+                var costs = new List<string>();
+                foreach (var cost in next.UpgradeCosts)
+                {
+                    var label = cost.ResourceId;
+                    if (DefinitionId.TryParse(cost.ResourceId, out var resourceId) &&
+                        session.Registry.TryGetResource(resourceId, out var resource))
+                        label = resource.Name;
+                    costs.Add(label + " " +
+                              PlayerStrategicResourceService.GetAvailableCount(session.World, cost.ResourceId) +
+                              "/" + cost.Amount);
+                }
+                GUI.Label(new Rect(r.x + 10f, r.y + 238f, r.width - 20f, 24f),
+                    "升至 Lv." + next.Level + "：" + string.Join(" · ", costs), _body);
+                if (GUI.Button(new Rect(r.x + 10f, r.y + 266f, r.width - 20f, 28f), "升级议政厅"))
+                {
+                    var result = WorldSiteCoreLevelService.TryUpgradePlayerOwned(session.World, site.SiteId);
+                    SetPartyStatus(result.IsSuccess ? "议政厅已升至 Lv." + site.CoreLevel : result.Error.Message);
+                }
             });
         }
 

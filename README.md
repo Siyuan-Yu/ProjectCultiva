@@ -1,5 +1,15 @@
 # 修仙游戏项目（暂定名 XianXia）
 
+> 当前实施以 [357 金丹精力与城镇实体范围](docs/40-process/357-golden-core-energy-and-town-footprints-2026-10-25.md)为准：等级 1～5 的控制范围长宽为 180／270／360／450／540 格；108 座固定城镇实体和外墙已按当前等级调整，荒村为 180×180 格。金丹及以上日常与打坐不再扣精力。内容包 `0.0.23-town-footprints-080` 需新开局；**Implemented / Producer Acceptance Pending**，世界图偶发旅行取消仍待现场追踪。下文为此前阶段记录。
+
+> 最新：[350 城镇墙体与石屋／Chunk 接缝返修](docs/40-process/350-town-walls-stone-room-art-and-chunk-seams-2026-10-25.md)。青石与其余 79 处原无墙据点补石墙并留门，108 处固定 Site 均有墙；石屋改用独立石墙贴图，草地 Chunk 边缘重新铺齐。内容包 `0.0.21-town-walls-and-art` 需新开局；基础编译通过，Unity 视觉／通行／帧时待制作人人工验收，未提交推送。
+
+> 最新：[348 自然错落的城镇与青石街区](docs/40-process/348-natural-town-layout-and-qingshi-urban-quarter-2026-10-25.md)。108 座城镇在 15200×6800 世界内改为不等距错列，五级范围最近仍隔 96 格；青石镇改为 240×210 格的正交街区，补石制公共建筑、沿街铺居和边缘田圃；其余 106 处补 258 间沿街房。内容包 `0.0.20-natural-towns`，旧档需新开局；Unity 人工验收待制作人进行，未提交推送。
+
+> 最新：[347 五级城镇分离与世界扩图](docs/40-process/347-five-level-town-separation-implementation-2026-10-25.md)。同宗及异宗的 108 处据点已在 15200×6800 格世界重排，全部升到五级后最近两座行政方框仍隔 175 格；道路、蓝图和锚点同步迁移。内容版本 `0.0.19-separated-world` 需新开局。基础编译／静态检查后仍待 Unity 人工验收；未提交推送。
+
+> 最新：[345 固定议政厅据点实施](docs/40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)。102 旧旗据点改为固定可占领议政厅，荒村一级、青石与 102 据点三级，五级范围／升级费用已接线；青石街区扩展并铺正交道路，内容版本 `0.0.18-fixed-council-sites` 需新开局。基础编译与静态完整性通过，Unity 人工验收待制作人进行；未提交推送。
+
 > 最新：[342 世界聚落与公开传承](docs/40-process/342-world-settlements-and-public-techniques-2026-10-24.md)。108处现有据点已有街区，含16宗门主城商业NPC；新增16功法／16斗技／32书册，石木功能房与树木外观变体。版本 `0.0.17-world-settlements` 需新开局；运行待人工验收，未提交推送。
 
 > 最新：[341 荒村四区调整](docs/40-process/341-huangcun-quadrants-resources-and-workrooms-2026-10-24.md)。田地紧排、住房分区、室外棋盘、两倍散生树、铁铜银灵散矿与低级木制功能房已配置。版本 `0.0.16-huangcun-quadrants` 需新开局；基础编译／静态引用通过，运行待人工验收，未提交推送。

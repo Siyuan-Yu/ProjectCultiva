@@ -1,6 +1,7 @@
 using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Surface;
@@ -17,15 +18,53 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyRuntime party,
             WorldVec2 destination,
             string targetSiteId,
-            float arrivalRadius)
+            float arrivalRadius) =>
+            BeginTravelInternal(world, party, destination, targetSiteId, arrivalRadius,
+                null, default, null, EntityId.None, false);
+
+        /// <summary>Commit a route planned from an immutable Surface on a worker, after checking
+        /// the exact authority snapshot again on the main thread.</summary>
+        public static Result BeginTravelWithPreparedRoute(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            WorldVec2 destination,
+            string targetSiteId,
+            float arrivalRadius,
+            IReadOnlyList<WorldVec2> preparedRoute,
+            WorldVec2 expectedStart,
+            string expectedSurfaceId,
+            EntityId expectedActor,
+            bool expectedAirborne) =>
+            BeginTravelInternal(world, party, destination, targetSiteId, arrivalRadius,
+                preparedRoute, expectedStart, expectedSurfaceId, expectedActor, expectedAirborne);
+
+        static Result BeginTravelInternal(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            WorldVec2 destination,
+            string targetSiteId,
+            float arrivalRadius,
+            IReadOnlyList<WorldVec2> preparedRoute,
+            WorldVec2 expectedStart,
+            string expectedSurfaceId,
+            EntityId expectedActor,
+            bool expectedAirborne)
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid Surface travel args.");
             if (!HuangcunOpeningAccess.AllowsPosition(world, world.PlayerPartyTravel?.SurfaceId, destination.X, destination.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
-            if (world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity) &&
-                XianXia.Core.Npc.PartyRestService.BlocksMovement(activeEntity))
-                return Result.Failure(ErrorCode.InvalidOperation, "主控精力耗尽，恢复后才能行军。");
+            if (world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity))
+            {
+                if (XianXia.Core.Npc.PartyRestService.BlocksMovement(activeEntity) ||
+                    activeEntity.TryGet<XianXia.Core.Npc.PersonalLifeComponent>(out var personal) &&
+                    personal.Energy <= 0)
+                    return Result.Failure(ErrorCode.InvalidOperation, "主控精力耗尽，恢复后才能行军。");
+                if (XianXia.Core.Combat.FlightService.IsAirborne(activeEntity) &&
+                    !XianXia.Core.Combat.FlightService.CanSustain(activeEntity))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "斗气化翼已无法维持，请落地或恢复状态后再规划旅行。");
+            }
             var motion = world.PlayerPartyTravel;
             if (motion == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "Surface travel state is unavailable.");
@@ -42,7 +81,36 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Continuous Surface navigation is not ready for this route.");
 
             RouteScratch.Clear();
-            var status = XianXia.Core.Combat.FlightService.Route(world, world.Strategic.PlayerPartyContext.ActiveCharacterId, navigation, motion.WorldPosition, destination, RouteScratch);
+            SurfaceGroundRouteStatus status;
+            if (preparedRoute != null)
+            {
+                if (!motion.WorldPosition.Equals(expectedStart) ||
+                    !string.Equals(motion.SurfaceId, expectedSurfaceId, StringComparison.Ordinal) ||
+                    party.ActiveCharacterId != expectedActor ||
+                    XianXia.Core.Combat.FlightService.IsAirborne(world, expectedActor) != expectedAirborne ||
+                    preparedRoute.Count == 0 ||
+                    !preparedRoute[0].Equals(expectedStart) ||
+                    !preparedRoute[preparedRoute.Count - 1].Equals(destination))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "规划期间主控或位置已变化，请重新选择目标。");
+                for (var i = 0; i < preparedRoute.Count; i++)
+                {
+                    var point = preparedRoute[i];
+                    if (!navigation.Contains(point.X, point.Y) ||
+                        (!expectedAirborne && i > 0 &&
+                         (i > 1 || navigation.IsWalkable(expectedStart.X, expectedStart.Y)) &&
+                         !navigation.IsSegmentWalkable(preparedRoute[i - 1].X,
+                             preparedRoute[i - 1].Y, point.X, point.Y)))
+                        return Result.Failure(ErrorCode.InvalidOperation,
+                            "规划路线已失效，请重新选择目标。");
+                    RouteScratch.Add(point);
+                }
+                status = SurfaceGroundRouteStatus.Found;
+            }
+            else
+                status = XianXia.Core.Combat.FlightService.Route(world,
+                    world.Strategic.PlayerPartyContext.ActiveCharacterId, navigation,
+                    motion.WorldPosition, destination, RouteScratch);
             if (status == SurfaceGroundRouteStatus.BlockedGoal)
                 return Result.Failure(ErrorCode.InvalidArgument, "不可步行到达的地面目标。");
             if (status != SurfaceGroundRouteStatus.Found)

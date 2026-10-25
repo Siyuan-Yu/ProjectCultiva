@@ -1,6 +1,6 @@
 # 势力、军队、外交与战略占领
 
-> **2026-10-25 设计覆写，未实施：** 正常新游戏只占领既有固定议政厅 Site；102 个历史旗 Site 保留身份后迁为固定核心，不再允许新建旗 Site。战斗仍须正式战争关系、真实 CharacterEncounter、攻破核心及持续接管，不因击破自动易主。见[ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)；下方旗战斗属于已验收旧实现与兼容语义。
+> **2026-10-25 实施覆写，待人工验收：** 正常新游戏只占领既有固定议政厅 Site；102 个历史旗 Site 已保留身份迁为固定核心，不再允许新建旗 Site。战斗仍须正式战争关系、真实 CharacterEncounter、攻破核心及持续接管，不因击破自动易主。见[ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)与[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)；下方旗战斗属于已验收旧实现与兼容语义。
 
 > **2026-10-21 追加确认与实施：** 外交支持多轮停战谈判；条款限实际公库赔偿、双方实际俘虏释放及对方势力附庸，不交易正常自由人物、不新增押送、不自动招募。成交结束双方所在的现有绑定战争；附庸沿用既有边界，不套娃、不转让地点。见 [318](../40-process/318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)／[ADR-0051](../40-process/43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。已接线待人工验收，下文历史“谈判暂缓”不再代表本轮状态。
 
@@ -691,7 +691,7 @@ Controller = B
 
 ## 31. CaptureObjective
 
-`CaptureObjective` 是既有实现/API 名称；当前 V1 语义收敛到 WorldSite 的唯一 `SiteCore`。预设 Site 的核心表现为固定议政厅／主管府等，可被攻破防御并通过正式交互接管，但不可拆除。玩家另立势力旗会创建新的 Site，而不是给同一 Site 添加第二个 CaptureObjective。
+`CaptureObjective` 是既有实现/API 名称；当前 V1 语义收敛到 WorldSite 的唯一 `SiteCore`。预设 Site 的核心表现为固定议政厅／主管府等，可被攻破防御并通过正式交互接管，但不可拆除。旧版本玩家另立势力旗曾创建新的 Site；正常新游戏已停用此入口，不会给同一 Site 添加第二个 CaptureObjective。
 
 | Node 类型 | 示例 |
 |-----------|------|

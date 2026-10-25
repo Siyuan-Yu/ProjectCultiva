@@ -108,9 +108,9 @@ public static class LegacyWorldMigration
         // uses that identical ascending-Y row order; never flip one representation independently.
         for(var row=0;row<height;row++){var y=row;var chars=new char[width];for(var x=0;x<width;x++){var c=engine.Resolve(x,y);chars[x]=c.BaseTerrain==BaseTerrain.Water?'~':c.Road.HasValue?'=':'.';if(compatibility.TryGetValue((x,y),out var imported))chars[x]=imported;foreach(var o in composition.WorldObjectPlacements.Where(o=>!o.Metadata.ContainsKey("compatibilityMask")&&x>=o.WorldSurfaceX&&y>=o.WorldSurfaceY&&x<o.WorldSurfaceX+o.WidthCells&&y<o.WorldSurfaceY+o.HeightCells))chars[x]=o.KindId=="bridge"?'B':o.KindId=="rock"?'#':chars[x];}rows.Add(new string(chars));}
         geo["sourceRevision"]="continuous-surface-authoring:"+composition.CompositionId;geo["sourceHash"]=ContinuousSurfaceBaker.SourceHash(composition,linked);geo["originWorldX"]=binding.OriginWorldX;geo["originWorldY"]=binding.OriginWorldY;geo["cellSize"]=binding.SurfaceCellWorldSize;geo["width"]=width;geo["height"]=height;geo["rows"]=rows;
-        var coverage=new JsonArray();var chunkRows=new JsonArray();var oldChunks=(main["chunks"] as JsonArray??new JsonArray()).OfType<JsonObject>().ToDictionary(x=>$"{Integer(x,"x")}_{Integer(x,"y")}",StringComparer.Ordinal);var chunks=new JsonArray();var chunkWidth=width/50;var chunkHeight=height/50;
-        for(var chunkY=0;chunkY<chunkHeight;chunkY++)for(var chunkX=0;chunkX<chunkWidth;chunkX++){coverage.Add(new JsonObject{{"x",chunkX},{"y",chunkY}});var chunk=new JsonObject{{"id",$"main_{chunkX}_{chunkY}"},{"x",chunkX},{"y",chunkY}};chunks.Add(chunk);var localRows=new JsonArray();for(var localY=0;localY<50;localY++){var globalY=chunkY*50+localY;localRows.Add(rows[globalY]!.GetValue<string>().Substring(chunkX*50,50));}chunkRows.Add(new JsonObject{{"x",chunkX},{"y",chunkY},{"rows",localRows}});}
-        geo["coverageChunks"]=coverage;geo["chunkRows"]=chunkRows;main["originWorldX"]=binding.OriginWorldX;main["originWorldY"]=binding.OriginWorldY;main["cellSize"]=binding.SurfaceCellWorldSize;main["chunkWidth"]=50*binding.SurfaceCellWorldSize;main["chunkHeight"]=50*binding.SurfaceCellWorldSize;main["chunks"]=chunks;
+        var coverage=new JsonArray();var chunkRows=new JsonArray();var oldChunks=(main["chunks"] as JsonArray??new JsonArray()).OfType<JsonObject>().ToDictionary(x=>$"{Integer(x,"x")}_{Integer(x,"y")}",StringComparer.Ordinal);var chunks=new JsonArray();var chunkWidth=width/50;var chunkHeight=height/50;var compactRaster=width>=10000;
+        for(var chunkY=0;chunkY<chunkHeight;chunkY++)for(var chunkX=0;chunkX<chunkWidth;chunkX++){coverage.Add(new JsonObject{{"x",chunkX},{"y",chunkY}});var chunk=new JsonObject{{"id",$"main_{chunkX}_{chunkY}"},{"x",chunkX},{"y",chunkY}};chunks.Add(chunk);if(!compactRaster){var localRows=new JsonArray();for(var localY=0;localY<50;localY++){var globalY=chunkY*50+localY;localRows.Add(rows[globalY]!.GetValue<string>().Substring(chunkX*50,50));}chunkRows.Add(new JsonObject{{"x",chunkX},{"y",chunkY},{"rows",localRows}});}}
+        geo["coverageChunks"]=coverage;geo["chunkRows"]=chunkRows;if(compactRaster){var packed=new JsonArray();foreach(var row in rows)packed.Add(SurfaceRasterRunLength.Encode(row!.GetValue<string>()));geo["rows"]=packed;geo["rowEncoding"]="rle1";}main["originWorldX"]=binding.OriginWorldX;main["originWorldY"]=binding.OriginWorldY;main["cellSize"]=binding.SurfaceCellWorldSize;main["chunkWidth"]=50*binding.SurfaceCellWorldSize;main["chunkHeight"]=50*binding.SurfaceCellWorldSize;main["chunks"]=chunks;
         var primitives=new JsonArray();foreach(var river in composition.Rivers)primitives.Add(Primitive(river.PathId,"waterRegion",river.ControlPoints,river.WidthCells,binding));foreach(var road in composition.Roads)primitives.Add(Primitive(road.PathId,"roadPolyline",road.ControlPoints,RoadWidths.GetWidth(road.RoadClass),binding));foreach(var o in composition.WorldObjectPlacements.Where(x=>x.KindId is "bridge" or "rock"))primitives.Add(new JsonObject{{"stableId",o.PlacementId},{"kind",o.KindId=="bridge"?"bridge":"solidBlocker"},{"worldX",binding.OriginWorldX+o.WorldSurfaceX*binding.SurfaceCellWorldSize},{"worldY",binding.OriginWorldY+o.WorldSurfaceY*binding.SurfaceCellWorldSize},{"worldWidth",o.WidthCells*binding.SurfaceCellWorldSize},{"worldHeight",o.HeightCells*binding.SurfaceCellWorldSize},{"strokeWidth",0},{"points",new JsonArray()}});geo["mapPrimitives"]=primitives;
         if(linked.Blueprints.TryGetValue("huangcun",out var bp)&&composition.WorldSiteBlueprintPlacements.FirstOrDefault(x=>x.PlacementId=="huangcun") is{} placement)
         {
@@ -119,7 +119,29 @@ public static class LegacyWorldMigration
         }
         PublishAdditionalBlueprints(composition, linked, main);
         FinalizeGridPlacements(main, binding);
-        var terrainRows=new JsonArray();var forestRows=new JsonArray();for(var y=0;y<height;y++){var terrain=new char[width];var forest=new char[width];for(var x=0;x<width;x++){var c=engine.Resolve(x,y);terrain[x]=c.BaseTerrain==BaseTerrain.Water?'W':c.BaseTerrain==BaseTerrain.Mountain?'M':'P';forest[x]=c.Feature==TerrainFeature.Forest?(char)('0'+Math.Clamp((int)Math.Round(c.FeatureDensity*9d),1,9)):'0';}terrainRows.Add(new string(terrain));forestRows.Add(new string(forest));}var mapRoot=new JsonObject{{"schemaVersion",1},{"definitions",new JsonArray{new JsonObject{{"id","base:main_world_surface_map_v1"},{"type","continuousSurfaceWorldMap"},{"name","主世界连续地图表现缓存"},{"compositionId",composition.CompositionId},{"surfaceId",binding.SurfaceId},{"sourceHash",ContinuousSurfaceBaker.SourceHash(composition,linked)},{"originWorldX",binding.OriginWorldX},{"originWorldY",binding.OriginWorldY},{"cellSize",binding.SurfaceCellWorldSize},{"widthCells",width},{"heightCells",height},{"baseTerrainRows",terrainRows},{"forestRows",forestRows}}}}};
+        var mapStep=compactRaster?4:1;
+        var mapWidth=(width+mapStep-1)/mapStep;var mapHeight=(height+mapStep-1)/mapStep;
+        var terrainRows=new JsonArray();var forestRows=new JsonArray();
+        for(var mapY=0;mapY<mapHeight;mapY++)
+        {
+            var terrain=new char[mapWidth];var forest=new char[mapWidth];
+            var sampleY=Math.Min(height-1,mapY*mapStep+mapStep/2);
+            for(var mapX=0;mapX<mapWidth;mapX++)
+            {
+                var sampleX=Math.Min(width-1,mapX*mapStep+mapStep/2);
+                var c=engine.Resolve(sampleX,sampleY);
+                terrain[mapX]=c.BaseTerrain==BaseTerrain.Water?'W':c.BaseTerrain==BaseTerrain.Mountain?'M':'P';
+                forest[mapX]=c.Feature==TerrainFeature.Forest?(char)('0'+Math.Clamp((int)Math.Round(c.FeatureDensity*9d),1,9)):'0';
+            }
+            terrainRows.Add(new string(terrain));forestRows.Add(new string(forest));
+        }
+        var mapRoot=new JsonObject{{"schemaVersion",1},{"definitions",new JsonArray{new JsonObject{
+            {"id","base:main_world_surface_map_v1"},{"type","continuousSurfaceWorldMap"},{"name","主世界连续地图表现缓存"},
+            {"compositionId",composition.CompositionId},{"surfaceId",binding.SurfaceId},{"sourceHash",ContinuousSurfaceBaker.SourceHash(composition,linked)},
+            {"originWorldX",binding.OriginWorldX},{"originWorldY",binding.OriginWorldY},
+            {"cellSize",binding.SurfaceCellWorldSize*mapStep},{"widthCells",mapWidth},{"heightCells",mapHeight},
+            {"baseTerrainRows",terrainRows},{"forestRows",forestRows}
+        }}}};
         var mainOut=Path.Combine(outputDirectory,"main_wilderness_surface_v1.candidate.json");var geoOut=Path.Combine(outputDirectory,"w2a_surface_geography_baked_v1.candidate.json");var mapOut=Path.Combine(outputDirectory,"main_world_surface_map_v1.candidate.json");File.WriteAllText(mainOut,mainRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(geoOut,geoRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));File.WriteAllText(mapOut,mapRoot.ToJsonString(SurfaceAuthoringJson.Options),new System.Text.UTF8Encoding(false));return[mainOut,geoOut,mapOut];
     }
 

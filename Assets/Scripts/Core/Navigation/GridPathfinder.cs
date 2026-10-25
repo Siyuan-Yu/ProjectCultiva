@@ -13,6 +13,9 @@ namespace XianXia.Core.Navigation
     public static class GridPathfinder
     {
         static readonly GridPathfinderWorkspace Shared = new GridPathfinderWorkspace();
+        // The global Surface can span thousands of cells. A string-pull lookahead must stay
+        // bounded: rechecking an ever longer ray from one anchor makes long routes quadratic.
+        const int MaxSimplifyLookaheadCells = 48;
 
         public static bool TryFindPath(
             WalkGrid grid,
@@ -58,6 +61,7 @@ namespace XianXia.Core.Navigation
             for (var i = 1; i < cells.Count; i++)
             {
                 var canSkipToHere = i + 1 < cells.Count &&
+                                    i + 1 - anchor <= MaxSimplifyLookaheadCells &&
                                     IsCellSegmentWalkable(grid, cells[anchor], cells[i + 1]);
                 if (canSkipToHere)
                     continue;

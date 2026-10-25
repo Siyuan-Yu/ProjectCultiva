@@ -79,6 +79,8 @@ namespace XianXia.Core.World.Strategic
             var claims = world?.Strategic?.TerritoryClaims?.Claims;
             if (claims == null || !world.Strategic.TerritoryClaims.HasAuthority)
                 return result;
+            if (TryBuildDisjointClaims(world, claims, result)) return result;
+            result.Clear();
 
             var surfaces = new HashSet<string>(StringComparer.Ordinal);
             for (var i = 0; i < claims.Count; i++)
@@ -93,6 +95,75 @@ namespace XianXia.Core.World.Strategic
                 return surface != 0 ? surface : string.CompareOrdinal(a.SiteId, b.SiteId);
             });
             return result;
+        }
+
+        // The current mainland keeps all Site control rectangles separated even at level 5.
+        // Avoid a global X/Y partition for this common case; overlapping claims retain the
+        // original exact resolver below.
+        static bool TryBuildDisjointClaims(SimulationWorld world,
+            IReadOnlyList<TerritoryClaimState> claims,
+            List<WorldSiteActualControlOverlay> output)
+        {
+            var regions = new List<(TerritoryClaimState Claim, WorldSite Site, ActualControlRect Rect)>();
+            var siteIds = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < claims.Count; i++)
+            {
+                var claim = claims[i];
+                if (!IsEligible(world, claim)) continue;
+                world.Strategic.Sites.TryGet(claim.SiteId, out var site);
+                if (!string.Equals(site.CoreSurfaceId, claim.SurfaceId, StringComparison.Ordinal) ||
+                    !siteIds.Add(site.SiteId)) return false;
+                var rect = new ActualControlRect
+                {
+                    MinX = Math.Max(claim.CenterX - claim.Width * .5f,
+                        site.CoreWorldX - site.CoreRangeWidth * .5f),
+                    MaxX = Math.Min(claim.CenterX + claim.Width * .5f,
+                        site.CoreWorldX + site.CoreRangeWidth * .5f),
+                    MinY = Math.Max(claim.CenterY - claim.Height * .5f,
+                        site.CoreWorldY - site.CoreRangeHeight * .5f),
+                    MaxY = Math.Min(claim.CenterY + claim.Height * .5f,
+                        site.CoreWorldY + site.CoreRangeHeight * .5f)
+                };
+                if (rect.MaxX - rect.MinX <= Epsilon || rect.MaxY - rect.MinY <= Epsilon)
+                    continue;
+                for (var j = 0; j < regions.Count; j++)
+                {
+                    var other = regions[j];
+                    if (!string.Equals(claim.SurfaceId, other.Claim.SurfaceId, StringComparison.Ordinal))
+                        continue;
+                    if (rect.MinX < other.Rect.MaxX - Epsilon && rect.MaxX > other.Rect.MinX + Epsilon &&
+                        rect.MinY < other.Rect.MaxY - Epsilon && rect.MaxY > other.Rect.MinY + Epsilon)
+                        return false;
+                }
+                if (!WorldSiteAdministrativeControlResolver.TryResolve(world, claim.SurfaceId,
+                        (rect.MinX + rect.MaxX) * .5f, (rect.MinY + rect.MaxY) * .5f,
+                        out var resolved, out _) || resolved.SiteId != site.SiteId)
+                    return false;
+                regions.Add((claim, site, rect));
+            }
+            for (var i = 0; i < regions.Count; i++)
+            {
+                var region = regions[i];
+                var rect = region.Rect;
+                var overlay = new WorldSiteActualControlOverlay
+                {
+                    SiteId = region.Site.SiteId, SurfaceId = region.Claim.SurfaceId,
+                    FactionId = region.Site.OwnerFactionId,
+                    MinX = rect.MinX, MinY = rect.MinY, MaxX = rect.MaxX, MaxY = rect.MaxY
+                };
+                overlay.MutablePieces.Add(rect);
+                AddBoundary(overlay, rect.MinX, rect.MinY, rect.MaxX, rect.MinY);
+                AddBoundary(overlay, rect.MaxX, rect.MinY, rect.MaxX, rect.MaxY);
+                AddBoundary(overlay, rect.MaxX, rect.MaxY, rect.MinX, rect.MaxY);
+                AddBoundary(overlay, rect.MinX, rect.MaxY, rect.MinX, rect.MinY);
+                output.Add(overlay);
+            }
+            output.Sort((a, b) =>
+            {
+                var surface = string.CompareOrdinal(a.SurfaceId, b.SurfaceId);
+                return surface != 0 ? surface : string.CompareOrdinal(a.SiteId, b.SiteId);
+            });
+            return true;
         }
 
         /// <summary>

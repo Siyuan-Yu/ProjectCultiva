@@ -58,6 +58,8 @@ namespace XianXia.Core.Construction
             out string siteId)
         {
             flagId = siteId = string.Empty;
+            if (world != null && ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "新据点需占领既有固定议政厅；不能再建造势力旗。");
             if (HuangcunOpeningAccess.IsLocked(world) && playerFactionId == world.Strategic.PlayerFactionId)
                 return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.ManagementLockedMessage);
             var resolved = ResolveFactionFlagSpec(world, buildingId, out var spec);

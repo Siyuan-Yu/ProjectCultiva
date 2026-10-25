@@ -32,10 +32,18 @@ namespace XianXia.Data.Content
             ValidateOutdoorSurfaceMetrics(registry, report);
             ValidateGridFootprints(registry, report);
             if (registry.SpatialRules != null)
+            {
+                foreach (var level in registry.SpatialRules.CoreLevels)
+                    foreach (var cost in level.UpgradeCosts)
+                        if (!DefinitionId.TryParse(cost.ResourceId, out var resourceId) ||
+                            !registry.TryGetResource(resourceId, out _))
+                            report.Add(ErrorCode.NotFound, "Core upgrade cost must reference a resource item.",
+                                "Level=" + level.Level + " Resource=" + cost.ResourceId);
                 foreach (var pair in registry.Buildings)
                     if (pair.Value.CreatesWorldSite)
                         try { registry.SpatialRules.RequireLevel(pair.Value.InitialSiteLevel); }
                         catch (InvalidOperationException ex) { report.Add(ErrorCode.InvalidArgument, ex.Message, pair.Key.ToString()); }
+            }
             var producedFlags = new HashSet<string>(StringComparer.Ordinal);
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 
@@ -266,7 +274,12 @@ namespace XianXia.Data.Content
                         report.Add(ErrorCode.MissingRequiredField,
                             "Outdoor controlCore requires worldSpatialRules.", context);
                     else
-                        try { registry.SpatialRules.RequireLevel(1); }
+                        try
+                        {
+                            var region = surface.SiteRegions.Find(r => r != null &&
+                                string.Equals(r.SiteId, placement.SiteId, StringComparison.Ordinal));
+                            registry.SpatialRules.RequireLevel(region?.CoreLevel ?? 1);
+                        }
                         catch (InvalidOperationException ex)
                         { report.Add(ErrorCode.InvalidArgument, ex.Message, context); }
                     var centerX = placement.WorldX + placement.WorldWidth * .5f;

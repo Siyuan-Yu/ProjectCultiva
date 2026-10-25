@@ -9,6 +9,13 @@ namespace XianXia.Core.World.Strategic
         public int Level { get; set; }
         public float WidthCells { get; set; }
         public float HeightCells { get; set; }
+        public List<CoreUpgradeCost> UpgradeCosts { get; } = new List<CoreUpgradeCost>();
+    }
+
+    public sealed class CoreUpgradeCost
+    {
+        public string ResourceId { get; set; } = string.Empty;
+        public int Amount { get; set; }
     }
 
     public readonly struct ResolvedWorldSpatialRange

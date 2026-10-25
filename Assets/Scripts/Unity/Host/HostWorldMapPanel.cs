@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
@@ -19,12 +21,10 @@ namespace XianXia.Unity.Host
         const float HeaderHeight = 78f;
         const float FooterHeight = 34f;
         const float MinimumViewHalf = 1.5f;
-        const float CouncilHallMarkerSizeCells = 30f;
+        const float CouncilHallMarkerSizeCells = 90f;
         const float FactionFlagMarkerSizeCells = 26f;
-        const float PlayerMarkerSizeCells = 18f;
+        const float PlayerMarkerScreenSize = 26f;
         const float SquadMarkerSizeCells = 14f;
-        const float PlayerLabelHeightCells = 12f;
-        const float PlayerLabelGapCells = 4f;
         const float SiteLabelHeightCells = 24f;
         const float SiteLabelGapCells = 5f;
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -36,10 +36,33 @@ namespace XianXia.Unity.Host
         readonly List<(string Id, Rect Rect)> _siteHits = new List<(string, Rect)>();
         readonly List<(string Id, Rect Rect)> _squadHits = new List<(string, Rect)>();
         readonly HashSet<ulong> _selected = new HashSet<ulong>();
-        readonly List<Rect> _roadRects = new List<Rect>(256);
+        readonly GUIContent _siteLabelContent = new GUIContent();
         readonly Dictionary<int, GUIStyle> _siteLabelStyles = new Dictionary<int, GUIStyle>();
+        readonly Dictionary<(string Text, int FontSize), Vector2> _siteLabelSizes =
+            new Dictionary<(string, int), Vector2>();
         readonly HashSet<string> _missingSiteCoreReported = new HashSet<string>(StringComparer.Ordinal);
-        string _roadCacheIdentity = string.Empty;
+        readonly HashSet<string> _reportedTravelFailures = new HashSet<string>(StringComparer.Ordinal);
+        sealed class PendingRoute
+        {
+            public SimulationWorld World;
+            public SurfaceGroundNavigation Navigation;
+            public WorldVec2 Start;
+            public WorldVec2 Destination;
+            public EntityId Actor;
+            public string SiteId;
+            public CancellationTokenSource Cancellation;
+            public Task<(SurfaceGroundRouteStatus Status, List<WorldVec2> Points)> Work;
+        }
+
+        PendingRoute _pendingRoute;
+        bool _hasQueuedRoute;
+        bool _discardPendingRoute;
+        WorldVec2 _queuedDestination;
+        string _queuedSiteId;
+        bool _statusIsError;
+        int _acceptedTravelPlanVersion = -1;
+        EntityId _acceptedTravelActorId = EntityId.None;
+        bool _acceptedTravelWasAirborne;
         HostStrategicCharacterListPanel _characterPanel;
         HostFactionDiplomacyOverviewPanel _factionPanel;
         GUIStyle _title;
@@ -47,6 +70,7 @@ namespace XianXia.Unity.Host
         GUIStyle _toggle;
         GUIStyle _axisCenter;
         GUIStyle _axisLeft;
+        GUIStyle _playerLabel;
         bool _showGrid = true;
         bool _showGeography = true;
         bool _showTerritory = true;
@@ -92,6 +116,14 @@ namespace XianXia.Unity.Host
             bootstrap?.ConstructionPanel?.Close();
             bootstrap?.QuestJournal?.Close();
             open = true;
+            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
+            _acceptedTravelPlanVersion = motion != null && motion.IsMoving
+                ? motion.TravelPlanVersion : -1;
+            _acceptedTravelActorId = _acceptedTravelPlanVersion >= 0
+                ? bootstrap.Session.PlayerParty.ActiveCharacterId : EntityId.None;
+            _acceptedTravelWasAirborne = _acceptedTravelPlanVersion >= 0 &&
+                XianXia.Core.Combat.FlightService.IsAirborne(
+                    bootstrap.Session.World, _acceptedTravelActorId);
             _viewReady = false;
             _missingSiteCoreReported.Clear();
             HostInputGate.Acquire(InputOwner);
@@ -103,6 +135,9 @@ namespace XianXia.Unity.Host
         void CloseInternal(bool resumeLocal)
         {
             open = false;
+            _acceptedTravelPlanVersion = -1;
+            _acceptedTravelActorId = EntityId.None;
+            _acceptedTravelWasAirborne = false;
             HostInputGate.Release(InputOwner);
             _panning = false;
             _characterPanel?.Close();
@@ -126,10 +161,19 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             Close();
+            _pendingRoute?.Cancellation.Cancel();
+            _pendingRoute = null;
+            _hasQueuedRoute = false;
+            _discardPendingRoute = false;
             _selected.Clear();
             _selectedSiteId = string.Empty;
             _selectedSquadId = string.Empty;
             _status = string.Empty;
+            _statusIsError = false;
+            _acceptedTravelPlanVersion = -1;
+            _acceptedTravelActorId = EntityId.None;
+            _acceptedTravelWasAirborne = false;
+            _reportedTravelFailures.Clear();
             _viewReady = false;
         }
 
@@ -194,8 +238,21 @@ namespace XianXia.Unity.Host
             _viewReady = true;
         }
 
+        static float FullSurfaceViewHalf(Rect viewport, SurfaceGroundNavigation nav)
+        {
+            const float margin = 1.08f;
+            var worldWidth = nav.Width * nav.CellSize;
+            var worldHeight = nav.Height * nav.CellSize;
+            var scale = Mathf.Min(viewport.width / (worldWidth * margin),
+                viewport.height / (worldHeight * margin));
+            return Mathf.Max(MinimumViewHalf,
+                Mathf.Min(viewport.width, viewport.height) / (2f * scale));
+        }
+
         void Update()
         {
+            FinishPendingRoute();
+            ReportInterruptedRoute();
             if (open) HostInputGate.Acquire(InputOwner);
             if (open && bootstrap?.Session?.IsInitialized == true &&
                 IsBlockedByBattlefield(bootstrap.Session.World))
@@ -206,6 +263,13 @@ namespace XianXia.Unity.Host
         void OnDisable()
         {
             open = false;
+            _acceptedTravelPlanVersion = -1;
+            _acceptedTravelActorId = EntityId.None;
+            _acceptedTravelWasAirborne = false;
+            _pendingRoute?.Cancellation.Cancel();
+            _pendingRoute = null;
+            _hasQueuedRoute = false;
+            _discardPendingRoute = false;
             HostInputGate.Release(InputOwner);
         }
 
@@ -232,14 +296,19 @@ namespace XianXia.Unity.Host
             }
             var mapRect = new Rect(12f, HeaderHeight, Screen.width - 24f,
                 Mathf.Max(64f, Screen.height - HeaderHeight - FooterHeight));
+            var fullViewHalf = FullSurfaceViewHalf(mapRect, nav);
             if (!_viewReady)
             {
                 _centerX = nav.OriginX + nav.Width * nav.CellSize * .5f;
                 _centerY = nav.OriginY + nav.Height * nav.CellSize * .5f;
-                _viewHalf = Mathf.Max(MinimumViewHalf,
-                    Mathf.Max(nav.Width * nav.CellSize * .55f,
-                              nav.Height * nav.CellSize * .55f));
+                _viewHalf = fullViewHalf;
                 _viewReady = true;
+            }
+            _viewHalf = Mathf.Min(_viewHalf, fullViewHalf);
+            if (_viewHalf >= fullViewHalf - .001f)
+            {
+                _centerX = nav.OriginX + nav.Width * nav.CellSize * .5f;
+                _centerY = nav.OriginY + nav.Height * nav.CellSize * .5f;
             }
             DrawHeader(world);
             RegisterOverlayInputRects();
@@ -253,6 +322,16 @@ namespace XianXia.Unity.Host
             DrawCoordinateReference(local, projection, world, nav, pointerAvailable, pointerWorld);
             GUI.EndGroup();
             GUI.Label(new Rect(16, Screen.height - FooterHeight + 3, Screen.width - 32, 26), _status, _body);
+            if (_statusIsError || _pendingRoute != null)
+            {
+                var notice = new Rect(16f, HeaderHeight + 8f,
+                    Mathf.Min(740f, Screen.width - 32f), 42f);
+                Fill(notice, _statusIsError
+                    ? new Color(.27f, .07f, .06f, .96f)
+                    : new Color(.06f, .17f, .23f, .96f));
+                GUI.Label(new Rect(notice.x + 10f, notice.y + 3f,
+                    notice.width - 20f, notice.height - 6f), _status, _body);
+            }
             DrawRosterPanels(world);
             if (!string.IsNullOrEmpty(_selectedSiteId) || !string.IsNullOrEmpty(_selectedSquadId))
                 DrawInspect(world);
@@ -292,11 +371,23 @@ namespace XianXia.Unity.Host
             _toolbar.SyncFromPanels(
                 _characterPanel?.IsOpen == true,
                 _factionPanel?.IsOpen == true);
-            if (world.PlayerPartyTravel.IsMoving &&
-                GUI.Button(new Rect(16, 44, 95, 27), "停止旅行"))
+            if ((world.PlayerPartyTravel.IsMoving || _pendingRoute != null) &&
+                GUI.Button(new Rect(16, 44, 95, 27),
+                    _pendingRoute != null ? "取消规划" : "停止旅行"))
             {
-                PlayerPartySurfaceTravelService.Cancel(world);
-                _status = "已停止旅行";
+                if (_pendingRoute != null)
+                {
+                    _pendingRoute.Cancellation.Cancel();
+                    _discardPendingRoute = true;
+                    _hasQueuedRoute = false;
+                }
+                if (world.PlayerPartyTravel.IsMoving)
+                    PlayerPartySurfaceTravelService.Cancel(world);
+                _acceptedTravelPlanVersion = -1;
+                _acceptedTravelActorId = EntityId.None;
+                _acceptedTravelWasAirborne = false;
+                _status = _pendingRoute != null ? "已取消路线规划" : "已停止旅行";
+                _statusIsError = false;
             }
         }
 
@@ -319,25 +410,30 @@ namespace XianXia.Unity.Host
         void DrawGeography(Rect local, SurfaceWorldMapViewportProjection projection,
             SurfaceGroundNavigation nav)
         {
-            var identity = nav.SurfaceId + "|" + nav.SourceRevision + "|" + nav.SourceHash;
-            if (!string.Equals(identity, _roadCacheIdentity, StringComparison.Ordinal))
+            if (Event.current.type != EventType.Repaint) return;
+            var geography = bootstrap?.ContinuousOutdoorSurfaceRuntime?.ActiveGeography;
+            if (geography == null && bootstrap?.Session?.Registry != null)
+                bootstrap.Session.Registry.TryGetOutdoorSurfaceGeography(nav.SurfaceId, out geography);
+            if (geography == null) return;
+            // The authored centerlines are the map's display geometry. The exact road grid
+            // remains in SurfaceGroundNavigation for movement, but has tens of thousands of
+            // horizontal runs in this world and must not be sent through IMGUI each frame.
+            foreach (var primitive in geography.MapPrimitives)
             {
-                _roadCacheIdentity = identity;
-                _roadRects.Clear();
-                foreach (var span in nav.RoadSpans)
+                if (primitive.Kind != "roadPolyline") continue;
+                var points = primitive.Points;
+                var thickness = Mathf.Clamp(primitive.StrokeWidth * projection.Scale, 1f, 20f);
+                for (var i = 0; i + 3 < points.Count; i += 2)
                 {
-                    _roadRects.Add(new Rect(nav.OriginX + span.X * nav.CellSize,
-                        nav.OriginY + span.Y * nav.CellSize, span.Length * nav.CellSize,
-                        nav.CellSize));
+                    var a = projection.ProjectWorld(points[i], points[i + 1]);
+                    var b = projection.ProjectWorld(points[i + 2], points[i + 3]);
+                    if (!Rect.MinMaxRect(Mathf.Min(a.x, b.x) - thickness,
+                            Mathf.Min(a.y, b.y) - thickness,
+                            Mathf.Max(a.x, b.x) + thickness,
+                            Mathf.Max(a.y, b.y) + thickness).Overlaps(local)) continue;
+                    DrawScaledSegment(a, b, thickness, new Color(.78f, .59f, .30f, .88f));
                 }
             }
-            foreach (var road in _roadRects)
-            {
-                var screen = projection.ProjectWorldRect(road);
-                if (screen.Overlaps(local)) Fill(screen, new Color(.78f, .59f, .30f, .88f));
-            }
-            var geography = bootstrap?.ContinuousOutdoorSurfaceRuntime?.ActiveGeography;
-            if (geography == null) return;
             foreach (var primitive in geography.MapPrimitives)
             {
                 if (primitive.Kind == "roadPolyline") continue;
@@ -370,6 +466,7 @@ namespace XianXia.Unity.Host
         void DrawCoordinateReference(Rect local, SurfaceWorldMapViewportProjection projection,
             SimulationWorld world, SurfaceGroundNavigation nav, bool pointerAvailable, Vector2 pointerWorld)
         {
+            if (Event.current.type != EventType.Repaint) return;
             var bounds = projection.VisibleWorldBounds;
             DrawAxisTicks(local, projection, bounds);
 
@@ -446,18 +543,26 @@ namespace XianXia.Unity.Host
                 var markerWorld = new Rect(site.CoreWorldX - sizeWorld * .5f,
                     site.CoreWorldY - sizeWorld * .5f, sizeWorld, sizeWorld);
                 var marker = projection.ProjectWorldRect(markerWorld);
-                var selected = string.Equals(_selectedSiteId, site.SiteId, StringComparison.Ordinal);
-                if (site.CoreIsRemovable) DrawSiteFlag(marker, selected);
-                else DrawCouncilHall(marker, selected);
-
                 var fontWorld = nav.CellSize * SiteLabelHeightCells;
-                var labelWorld = new Rect(
+                var fontSize = Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 11, 48);
+                var style = SiteLabelStyle(fontSize);
+                _siteLabelContent.text = site.DisplayName;
+                var measured = SiteLabelSize(site.DisplayName, fontSize, style);
+                var labelHeight = Mathf.Ceil(Mathf.Max(measured.y + 4f, fontSize * 1.5f + 4f));
+                var anchor = projection.ProjectWorld(
                     site.CoreWorldX + sizeWorld * .5f + nav.CellSize * SiteLabelGapCells,
-                    site.CoreWorldY - fontWorld * .5f,
-                    fontWorld * Mathf.Max(1, site.DisplayName.Length + 1), fontWorld);
-                var label = projection.ProjectWorldRect(labelWorld);
-                var fontSize = Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 1, 128);
-                GUI.Label(label, site.DisplayName, SiteLabelStyle(fontSize));
+                    site.CoreWorldY);
+                var label = new Rect(anchor.x, anchor.y - labelHeight * .5f,
+                    Mathf.Ceil(measured.x + 8f), labelHeight);
+                if (!marker.Overlaps(projection.MapRect) && !label.Overlaps(projection.MapRect))
+                    continue;
+                if (Event.current.type == EventType.Repaint)
+                {
+                    var selected = string.Equals(_selectedSiteId, site.SiteId, StringComparison.Ordinal);
+                    if (site.CoreIsRemovable) DrawSiteFlag(marker, selected);
+                    else DrawCouncilHall(marker, selected);
+                    GUI.Label(label, _siteLabelContent, style);
+                }
                 _siteHits.Add((site.SiteId, Rect.MinMaxRect(
                     Mathf.Min(marker.xMin, label.xMin), Mathf.Min(marker.yMin, label.yMin),
                     Mathf.Max(marker.xMax, label.xMax), Mathf.Max(marker.yMax, label.yMax))));
@@ -472,6 +577,16 @@ namespace XianXia.Unity.Host
             style.normal.textColor = new Color(.12f, .10f, .08f);
             _siteLabelStyles.Add(fontSize, style);
             return style;
+        }
+
+        Vector2 SiteLabelSize(string text, int fontSize, GUIStyle style)
+        {
+            var key = (text, fontSize);
+            if (_siteLabelSizes.TryGetValue(key, out var size)) return size;
+            _siteLabelContent.text = text;
+            size = style.CalcSize(_siteLabelContent);
+            _siteLabelSizes.Add(key, size);
+            return size;
         }
 
         static void DrawCouncilHall(Rect r, bool selected)
@@ -523,8 +638,9 @@ namespace XianXia.Unity.Host
                 var rect = projection.ProjectWorldRect(new Rect(
                     motion.WorldPosition.X - sizeWorld * .5f,
                     motion.WorldPosition.Y - sizeWorld * .5f, sizeWorld, sizeWorld));
-                Fill(rect, string.Equals(_selectedSquadId, pair.Key, StringComparison.Ordinal)
-                    ? Color.cyan : new Color(.95f, .32f, .25f));
+                if (Event.current.type == EventType.Repaint && rect.Overlaps(projection.MapRect))
+                    Fill(rect, string.Equals(_selectedSquadId, pair.Key, StringComparison.Ordinal)
+                        ? Color.cyan : new Color(.95f, .32f, .25f));
                 _squadHits.Add((pair.Key, rect));
             }
         }
@@ -532,22 +648,34 @@ namespace XianXia.Unity.Host
         void DrawPlayer(SurfaceWorldMapViewportProjection projection, SimulationWorld world,
             SurfaceGroundNavigation nav)
         {
+            if (Event.current.type != EventType.Repaint) return;
             if (world.PlayerPartyTravel == null || !world.PlayerPartyTravel.HasPosition) return;
             var pos = world.PlayerPartyTravel.WorldPosition;
-            var sizeWorld = nav.CellSize * PlayerMarkerSizeCells;
-            var marker = projection.ProjectWorldRect(new Rect(
-                pos.X - sizeWorld * .5f, pos.Y - sizeWorld * .5f, sizeWorld, sizeWorld));
-            Fill(marker, new Color(.25f, 1f, .36f));
-            var fontWorld = nav.CellSize * PlayerLabelHeightCells;
-            var label = projection.ProjectWorldRect(new Rect(
-                pos.X + sizeWorld * .5f + nav.CellSize * PlayerLabelGapCells,
-                pos.Y - fontWorld * .5f, fontWorld * 5f, fontWorld));
-            GUI.Label(label, "玩家小队", SiteLabelStyle(
-                Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 1, 128)));
+            var center = projection.ProjectWorld(pos.X, pos.Y);
+            if (!projection.MapRect.Contains(center)) return;
+            var half = PlayerMarkerScreenSize * .5f;
+            // This is deliberately the only map marker sized in screen pixels. The dark halo
+            // separates the active party from small Site and NPC marks at every zoom level.
+            Fill(new Rect(center.x - half - 3f, center.y - half - 3f,
+                PlayerMarkerScreenSize + 6f, PlayerMarkerScreenSize + 6f),
+                new Color(.06f, .14f, .16f, .96f));
+            Fill(new Rect(center.x - half, center.y - half,
+                PlayerMarkerScreenSize, PlayerMarkerScreenSize),
+                new Color(1f, .86f, .28f));
+            Fill(new Rect(center.x - 7f, center.y - 7f, 14f, 14f),
+                new Color(.08f, .56f, .48f));
+            Fill(new Rect(center.x - 2f, center.y - 2f, 4f, 4f), Color.white);
+            var labelX = center.x + half + 7f;
+            if (labelX + 84f > projection.MapRect.xMax)
+                labelX = center.x - half - 91f;
+            var label = new Rect(labelX, center.y - 13f, 84f, 26f);
+            Fill(label, new Color(.06f, .14f, .16f, .94f));
+            GUI.Label(label, "玩家小队", _playerLabel);
         }
 
         void DrawRoute(SurfaceWorldMapViewportProjection projection, SimulationWorld world)
         {
+            if (Event.current.type != EventType.Repaint) return;
             var motion = world.PlayerPartyTravel;
             if (motion == null || !motion.IsMoving || motion.ContinuousSurfaceRoute == null) return;
             var route = motion.ContinuousSurfaceRoute;
@@ -569,6 +697,9 @@ namespace XianXia.Unity.Host
                 HostUiHitTest.Block(HostStrategicRosterPanelLayout.Compute(Screen.width, Screen.height));
             if (!string.IsNullOrEmpty(_selectedSiteId) || !string.IsNullOrEmpty(_selectedSquadId))
                 HostUiHitTest.Block(InspectRect());
+            if (_statusIsError || _pendingRoute != null)
+                HostUiHitTest.Block(new Rect(16f, HeaderHeight + 8f,
+                    Mathf.Min(740f, Screen.width - 32f), 42f));
         }
 
         static Rect InspectRect() => new Rect(Screen.width - 310, HeaderHeight + 8, 292, 102);
@@ -590,8 +721,14 @@ namespace XianXia.Unity.Host
             }
             if (e.type == EventType.ScrollWheel)
             {
+                var fullViewHalf = FullSurfaceViewHalf(local, nav);
                 _viewHalf = Mathf.Clamp(_viewHalf * (e.delta.y > 0 ? 1.15f : .87f),
-                    MinimumViewHalf, Math.Max(nav.Width, nav.Height) * nav.CellSize);
+                    MinimumViewHalf, fullViewHalf);
+                if (_viewHalf >= fullViewHalf - .001f)
+                {
+                    _centerX = nav.OriginX + nav.Width * nav.CellSize * .5f;
+                    _centerY = nav.OriginY + nav.Height * nav.CellSize * .5f;
+                }
                 e.Use();
                 return;
             }
@@ -625,6 +762,7 @@ namespace XianXia.Unity.Host
                         _selectedSquadId = hit.Id;
                         _selectedSiteId = string.Empty;
                         _status = "已选中 NPC 小队（只读）";
+                        _statusIsError = false;
                         e.Use(); return;
                     }
                 foreach (var hit in _siteHits)
@@ -633,18 +771,21 @@ namespace XianXia.Unity.Host
                         _selectedSiteId = hit.Id;
             _selectedSquadId = string.Empty;
                         _status = "已选中地点 " + hit.Id;
+                        _statusIsError = false;
                         e.Use(); return;
                     }
             _selectedSquadId = string.Empty;
                 _selectedSiteId = string.Empty;
                 _status = "已选中玩家小队";
+                _statusIsError = false;
                 e.Use();
             }
             else if (e.button == 1)
             {
                 if (!string.IsNullOrEmpty(_selectedSquadId))
                 {
-                    _status = "NPC 小队仅供查看";
+                    ShowRouteFailure(world, world.PlayerPartyTravel.WorldPosition,
+                        "NPC 小队仅供查看；请先单击空白处取消选中，再右键规划玩家路线。");
                     e.Use(); return;
                 }
                 var party = bootstrap?.Session?.PlayerParty;
@@ -659,29 +800,227 @@ namespace XianXia.Unity.Host
                         worldPoint = new Vector2(arrival.X, arrival.Y);
                         break;
                     }
-                Result result = PlayerPartySurfaceTravelService.BeginTravel(
-                    world, party, new(worldPoint.x, worldPoint.y), siteId,
-                    nav.CellSize * .75f);
-                if (result.IsFailure)
-                {
-                    _status = result.Error.Message;
-                    ReportSurfaceTravelPlanRejected(world, worldPoint, result.Error.ToString());
-                }
-                else
-                {
-                    _status = string.IsNullOrEmpty(siteId)
-                        ? "已规划前往地面位置，关闭地图后出发"
-                        : "已规划前往 " + siteId + "，关闭地图后出发";
-                }
+                PlanSurfaceRoute(world, nav,
+                    new WorldVec2(worldPoint.x, worldPoint.y), siteId);
                 e.Use();
             }
         }
 
+        void PlanSurfaceRoute(SimulationWorld world, SurfaceGroundNavigation nav,
+            WorldVec2 destination, string siteId)
+        {
+            _statusIsError = false;
+            var party = bootstrap?.Session?.PlayerParty;
+            var motion = world?.PlayerPartyTravel;
+            if (party == null || !party.HasActive || motion == null || !motion.HasPosition ||
+                nav == null || !nav.Contains(destination.X, destination.Y))
+            {
+                ShowRouteFailure(world, destination, "目标不在当前连续世界地面范围内。");
+                return;
+            }
+            if (!HuangcunOpeningAccess.AllowsPosition(
+                    world, motion.SurfaceId, destination.X, destination.Y))
+            {
+                ShowRouteFailure(world, destination, HuangcunOpeningAccess.BlockedMessage);
+                return;
+            }
+
+            if (_pendingRoute != null)
+            {
+                _pendingRoute.Cancellation.Cancel();
+                _discardPendingRoute = false;
+                _hasQueuedRoute = true;
+                _queuedDestination = destination;
+                _queuedSiteId = siteId;
+                _status = "正在规划新目标，请稍候…";
+                return;
+            }
+
+            var actor = party.ActiveCharacterId;
+            var airborne = XianXia.Core.Combat.FlightService.IsAirborne(world, actor);
+            if (airborne || !nav.IsWalkable(destination.X, destination.Y) ||
+                nav.IsSegmentWalkable(motion.WorldPosition.X, motion.WorldPosition.Y,
+                    destination.X, destination.Y))
+            {
+                FinishSynchronousRoute(world, party, nav, destination, siteId);
+                return;
+            }
+
+            // Only immutable Surface cells are read on the worker. World/party/story state stays
+            // on the main thread and is rechecked when the route is committed.
+            var start = motion.WorldPosition;
+            var cancellation = new CancellationTokenSource();
+            _pendingRoute = new PendingRoute
+            {
+                World = world,
+                Navigation = nav,
+                Start = start,
+                Destination = destination,
+                Actor = actor,
+                SiteId = siteId,
+                Cancellation = cancellation,
+                Work = Task.Run(() =>
+                {
+                    var points = new List<WorldVec2>(128);
+                    var status = nav.TryFindRouteIsolated(start, destination, points,
+                        cancellation.Token);
+                    return (status, points);
+                })
+            };
+            _status = "正在规划路线，地图可以继续拖动或缩放…";
+        }
+
+        void FinishPendingRoute()
+        {
+            var pending = _pendingRoute;
+            if (pending == null || !pending.Work.IsCompleted) return;
+            _pendingRoute = null;
+            if (pending.Work.IsFaulted)
+            {
+                var ignoredException = pending.Work.Exception;
+            }
+            pending.Cancellation.Dispose();
+            if (_discardPendingRoute)
+            {
+                _discardPendingRoute = false;
+                return;
+            }
+            if (_hasQueuedRoute)
+            {
+                var destination = _queuedDestination;
+                var siteId = _queuedSiteId;
+                _hasQueuedRoute = false;
+                if (bootstrap?.Session?.IsInitialized == true)
+                    PlanSurfaceRoute(bootstrap.Session.World,
+                        bootstrap.Session.World.SurfaceGround.Active, destination, siteId);
+                return;
+            }
+            if (bootstrap?.Session?.IsInitialized != true ||
+                !ReferenceEquals(bootstrap.Session.World, pending.World) ||
+                !ReferenceEquals(pending.World.SurfaceGround.Active, pending.Navigation))
+                return;
+            if (pending.Work.IsFaulted || pending.Work.IsCanceled)
+            {
+                ShowRouteFailure(pending.World, pending.Destination,
+                    "路线规划失败，请重新选择目标。");
+                return;
+            }
+            var planned = pending.Work.Result;
+            if (planned.Status != SurfaceGroundRouteStatus.Found)
+            {
+                ShowRouteFailure(pending.World, pending.Destination,
+                    planned.Status == SurfaceGroundRouteStatus.BlockedGoal
+                        ? "目标地面不可通行。"
+                        : "当前地面无法找到通往目标的路线。");
+                return;
+            }
+            var result = PlayerPartySurfaceTravelService.BeginTravelWithPreparedRoute(
+                pending.World, bootstrap.Session.PlayerParty, pending.Destination,
+                pending.SiteId, pending.Navigation.CellSize * .75f,
+                planned.Points, pending.Start, pending.Navigation.SurfaceId,
+                pending.Actor, expectedAirborne: false);
+            if (result.IsFailure)
+                ShowRouteFailure(pending.World, pending.Destination, result.Error.Message);
+            else
+                ShowRouteSuccess(pending.SiteId);
+        }
+
+        void FinishSynchronousRoute(SimulationWorld world, PlayerPartyRuntime party,
+            SurfaceGroundNavigation nav, WorldVec2 destination, string siteId)
+        {
+            var result = PlayerPartySurfaceTravelService.BeginTravel(
+                world, party, destination, siteId, nav.CellSize * .75f);
+            if (result.IsFailure)
+                ShowRouteFailure(world, destination, result.Error.Message);
+            else
+                ShowRouteSuccess(siteId);
+        }
+
+        void ShowRouteSuccess(string siteId)
+        {
+            _statusIsError = false;
+            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
+            _acceptedTravelPlanVersion = open && motion != null && motion.IsMoving
+                ? motion.TravelPlanVersion : -1;
+            _acceptedTravelActorId = _acceptedTravelPlanVersion >= 0
+                ? bootstrap.Session.PlayerParty.ActiveCharacterId : EntityId.None;
+            _acceptedTravelWasAirborne = _acceptedTravelPlanVersion >= 0 &&
+                XianXia.Core.Combat.FlightService.IsAirborne(
+                    bootstrap.Session.World, _acceptedTravelActorId);
+            _status = string.IsNullOrEmpty(siteId)
+                ? "已规划前往地面位置，关闭地图后出发"
+                : "已规划前往 " + siteId + "，关闭地图后出发";
+            if (!open)
+                bootstrap?.PlayerPartyController?.ResumeSurfaceTravelAfterPlanning();
+        }
+
+        void ReportInterruptedRoute()
+        {
+            if (!open || _acceptedTravelPlanVersion < 0 ||
+                bootstrap?.Session?.IsInitialized != true)
+                return;
+            var motion = bootstrap.Session.World.PlayerPartyTravel;
+            if (motion != null && motion.IsMoving)
+                return;
+            _acceptedTravelPlanVersion = -1;
+            if (_statusIsError) return;
+            _statusIsError = true;
+            var actorChanged = bootstrap.Session.PlayerParty.ActiveCharacterId != _acceptedTravelActorId;
+            var actorExists = bootstrap.Session.World.Entities.TryGet(
+                _acceptedTravelActorId, out var actor);
+            var exhausted = actorExists &&
+                (XianXia.Core.Npc.PartyRestService.BlocksMovement(actor) ||
+                 actor.TryGet<XianXia.Core.Npc.PersonalLifeComponent>(out var personal) &&
+                 personal.Energy <= 0);
+            var flightEnded = _acceptedTravelWasAirborne && actorExists &&
+                !XianXia.Core.Combat.FlightService.IsAirborne(actor);
+            _status = actorChanged ? "主控已切换，原旅行路线已取消。" :
+                exhausted ? "主控精力耗尽，旅行已中断；休息后重新选择目标。" :
+                flightEnded ? "斗气化翼已结束，飞行路线已取消；请落地后重新规划。" :
+                "旅行已被中断，路线已取消。请确认主控状态后重新选择目标。";
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning("[WorldMapTravelInterrupted] PlanVersion=" +
+                (motion != null ? motion.TravelPlanVersion.ToString() : "missing") +
+                " Position=" + (motion != null ? motion.WorldPosition.ToString() : "missing") +
+                " Active=" + bootstrap.Session.PlayerParty.ActiveCharacterId +
+                " AcceptedActor=" + _acceptedTravelActorId +
+                " WasAirborne=" + _acceptedTravelWasAirborne +
+                " Exhausted=" + exhausted +
+                " FlightEnded=" + flightEnded +
+                " EndedBy=" + (motion != null ? motion.LastTravelEndTrace : "missing"), this);
+#endif
+            _acceptedTravelActorId = EntityId.None;
+            _acceptedTravelWasAirborne = false;
+        }
+
+        void ShowRouteFailure(SimulationWorld world, WorldVec2 destination, string message)
+        {
+            if (_pendingRoute != null)
+            {
+                _pendingRoute.Cancellation.Cancel();
+                _discardPendingRoute = true;
+                _hasQueuedRoute = false;
+            }
+            _statusIsError = true;
+            _status = "无法出发：" + message;
+            ReportSurfaceTravelPlanRejected(world,
+                new Vector2(destination.X, destination.Y), message);
+        }
+
         [System.Diagnostics.Conditional("UNITY_EDITOR"),
          System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
-        static void ReportSurfaceTravelPlanRejected(
+        void ReportSurfaceTravelPlanRejected(
             SimulationWorld world, Vector2 destination, string reason)
         {
+            // Expected interaction rejection is already visible on the map. Logging a stack
+            // for every exploratory far click can itself stall the Editor Console.
+            if (string.Equals(reason, HuangcunOpeningAccess.BlockedMessage,
+                    StringComparison.Ordinal) ||
+                reason != null && (reason.StartsWith("目标地面", StringComparison.Ordinal) ||
+                    reason.StartsWith("目标不在", StringComparison.Ordinal) ||
+                    reason.StartsWith("NPC 小队", StringComparison.Ordinal)) ||
+                !_reportedTravelFailures.Add(reason ?? string.Empty))
+                return;
             var motion = world?.PlayerPartyTravel;
             Debug.LogWarning(
                 "[SurfaceTravelPlanRejected] reason=" + (reason ?? string.Empty) +
@@ -781,6 +1120,13 @@ namespace XianXia.Unity.Host
             _axisCenter = new GUIStyle(_body) { fontSize = 11, alignment = TextAnchor.MiddleCenter, wordWrap = false };
             _axisCenter.normal.textColor = new Color(.12f, .10f, .08f, .70f);
             _axisLeft = new GUIStyle(_axisCenter) { alignment = TextAnchor.MiddleLeft };
+            _playerLabel = new GUIStyle(_body)
+            {
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
         }
     }
 }

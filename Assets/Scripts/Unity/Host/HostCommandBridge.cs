@@ -853,7 +853,11 @@ namespace XianXia.Unity.Host
                     // 取消整队 Surface AutoTravel（玩家主动夺回主控）。Follower / 其他可控角色
                     // 的内部 Stop（RebindAllFollowers / ClearDirectControlFor / OrderFollowerTowardActive）
                     // 只停该角色自己 —— 绝不能 CancelTravel / CompleteMove / 清掉整队 travel plan。
-                    if (!active.IsNone && id == active)
+                    // WorldMap owns planning while open. Presentation cleanup may issue Stop
+                    // for the active view, but only the map's explicit Stop Travel action may
+                    // cancel the canonical party route in that state.
+                    if (!active.IsNone && id == active &&
+                        hostBootstrap?.WorldMapPanel?.IsOpen != true)
                         CancelSurfaceAutoTravelIfActive();
                     var moveController = hostBootstrap != null
                         ? hostBootstrap.GetComponent<HostMoveController>()

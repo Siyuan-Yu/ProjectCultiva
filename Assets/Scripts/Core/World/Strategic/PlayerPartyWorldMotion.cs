@@ -33,6 +33,10 @@ namespace XianXia.Core.World.Strategic
         public WorldVec2 ContinuousPhysicalDestination { get; private set; }
         public float ContinuousPhysicalArrivalRadius { get; private set; }
         public int TravelPlanVersion { get; private set; }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Transient diagnostic only: the WorldMap can report who ended a committed route.
+        public string LastTravelEndTrace { get; private set; } = string.Empty;
+#endif
         public int ContinuousSurfaceRouteIndex { get; private set; }
         public IReadOnlyList<WorldVec2> ContinuousSurfaceRoute =>
             _continuousSurfaceRouteView ??
@@ -140,6 +144,10 @@ namespace XianXia.Core.World.Strategic
 
         void InvalidateTravelPlanAndClearMovement()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsMoving)
+                LastTravelEndTrace = new System.Diagnostics.StackTrace(1, true).ToString();
+#endif
             TravelPlanVersion++;
             DestinationSiteId = string.Empty;
             HasContinuousPhysicalDestination = false;

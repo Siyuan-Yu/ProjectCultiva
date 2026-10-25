@@ -86,7 +86,7 @@ namespace XianXia.Core.Actions
             gain += talentBonus;
             if (entity.TryGet<PersonalLifeComponent>(out var personalLife))
             {
-                personalLife.Energy--;
+                if (cultivation.Realm < RealmStage.GoldenCore) personalLife.Energy--;
                 personalLife.CurrentMood--;
                 personalLife.Clamp();
             }

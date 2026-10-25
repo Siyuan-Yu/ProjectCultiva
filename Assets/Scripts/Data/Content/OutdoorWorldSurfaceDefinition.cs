@@ -61,6 +61,8 @@ namespace XianXia.Data.Content
         public string OwnerFactionId { get; set; }
         public float ArrivalWorldX { get; set; }
         public float ArrivalWorldY { get; set; }
+        public int CoreLevel { get; set; } = 1;
+        public long ControlEstablishedOrder { get; set; }
     }
 
     public sealed class SurfaceFactionFlagDefinition

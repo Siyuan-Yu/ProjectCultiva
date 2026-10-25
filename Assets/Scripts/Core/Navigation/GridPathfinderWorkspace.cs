@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace XianXia.Core.Navigation
 {
@@ -36,6 +37,7 @@ namespace XianXia.Core.Navigation
         readonly List<int> _touched = new List<int>(256);
         readonly List<GridCoord> _cells = new List<GridCoord>(64);
         readonly List<int> _stack = new List<int>(64);
+        readonly SparseGridPathfinderWorkspace _sparse = new SparseGridPathfinderWorkspace();
         int _capacity;
         int _heapCount;
         int _nextSeq;
@@ -47,7 +49,8 @@ namespace XianXia.Core.Navigation
             int startY,
             int goalX,
             int goalY,
-            List<GridCoord> pathOut)
+            List<GridCoord> pathOut,
+            CancellationToken cancellationToken = default)
         {
             if (grid == null)
                 throw new ArgumentNullException(nameof(grid));
@@ -63,6 +66,13 @@ namespace XianXia.Core.Navigation
                 return true;
             }
 
+            // Full-world geography is now over 100 million cells. The dense arrays below are
+            // appropriate for loaded-chunk grids, but would reserve several GB on the first
+            // obstructed global route. Sparse A* keeps storage proportional to visited cells.
+            if ((long)grid.Width * grid.Height > 4_000_000)
+                return _sparse.TryFindPath(grid, startX, startY, goalX, goalY,
+                    pathOut, cancellationToken);
+
             var w = grid.Width;
             EnsureCapacity(w * grid.Height);
             ResetTouched();
@@ -77,8 +87,11 @@ namespace XianXia.Core.Navigation
             Push(start);
 
             var found = false;
+            var expansions = 0;
             while (_heapCount > 0)
             {
+                if ((++expansions & 255) == 0 && cancellationToken.IsCancellationRequested)
+                    return false;
                 var current = Pop();
                 if (current == goal)
                 {
@@ -146,7 +159,8 @@ namespace XianXia.Core.Navigation
             float goalY,
             List<float> pathXyOut,
             int startSnapRadius,
-            int goalSnapRadius)
+            int goalSnapRadius,
+            CancellationToken cancellationToken = default)
         {
             if (pathXyOut == null)
                 throw new ArgumentNullException(nameof(pathXyOut));
@@ -164,7 +178,8 @@ namespace XianXia.Core.Navigation
                 !grid.TryFindNearestWalkable(gx, gy, goalSnapRadius, out gx, out gy))
                 return false;
 
-            if (!TryFindPath(grid, sx, sy, gx, gy, _cells))
+            if (!TryFindPath(grid, sx, sy, gx, gy, _cells, cancellationToken) ||
+                cancellationToken.IsCancellationRequested)
                 return false;
 
             GridPathfinder.SimplifyCells(grid, _cells);
