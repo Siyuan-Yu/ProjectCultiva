@@ -392,6 +392,8 @@ namespace XianXia.Unity.Host
                 case "cave": name = "ART-ROOM-010_cave_entrance_v02"; break;
                 case "recoverySpot": name = "ART-ROOM-009_recovery_cushion_v01"; break;
                 case "storageRoom": name = "ART-ROOM-007_storage_crates_v03"; break;
+                case "alchemyFurnace": name = "ART-ROOM-013_alchemy_furnace_v01"; break;
+                case "smithingFurnace": name = "ART-ROOM-014_smithing_furnace_v01"; break;
                 case "controlCore": name = "ART-ROOM-008_council_hall_ward_v05"; break;
                 case "factionControlPost": name = "ART-ROOM-008_flag_red_v02"; break;
                 default: return null;

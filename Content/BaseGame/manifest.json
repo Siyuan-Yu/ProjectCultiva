@@ -1,7 +1,7 @@
 {
   "modId": "base",
   "namespace": "base",
-  "version": "0.0.37-two-compact-sects",
+  "version": "0.0.40-huangcun-survival",
   "compatibleGameVersion": "0.1.0",
   "dependencies": [],
   "optionalDependencies": [],

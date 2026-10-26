@@ -22,6 +22,11 @@ namespace XianXia.Core.Orders
             var actionId = new ActionId(_nextActionId++);
             switch (order.Type)
             {
+                case OrderType.HuangcunSurvival:
+                    if (!XianXia.Core.Npc.HuangcunSurvivalService.IsKnownTask(order.TargetRef) ||
+                        order.WaitTicks != XianXia.Core.Npc.HuangcunSurvivalService.Duration(order.TargetRef))
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Invalid survival action duration.");
+                    return Result.Ok<IAction>(new HuangcunSurvivalAction(actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
                 case OrderType.Wait:
                     if (order.WaitTicks == 0)
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "WaitTicks must be > 0.");

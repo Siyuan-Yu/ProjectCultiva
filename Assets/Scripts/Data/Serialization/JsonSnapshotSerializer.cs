@@ -34,6 +34,7 @@ namespace XianXia.Data.Serialization
                 ["nextModifierId"] = U(snapshot.NextModifierId),
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
                 ["chessGames"] = WriteChessGames(snapshot.ChessGames),
+                ["huangcunSurvival"] = WriteHuangcunSurvival(snapshot.HuangcunSurvival),
                 ["peaceNegotiations"] = WritePeaceNegotiations(snapshot.PeaceNegotiations),
                 ["groundLoot"] = WriteGroundLoot(snapshot.GroundLoot),
                 ["characterFactionLoyalties"] = JsonValue.FromArray(SerializeCharacterFactionLoyalties(snapshot.CharacterFactionLoyalties)),
@@ -97,12 +98,12 @@ namespace XianXia.Data.Serialization
             {
                 var root = SimpleJson.Parse(json);
                 var sourceSchema = (int)root.GetNumber("schemaVersion");
-                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
+                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreSurvivalSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "支持v15/v16/v17/v18存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
+                        "支持v15至v19存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
                 var snapshot = new WorldSnapshot
                 {
-                    // v15/v16/v17 -> v18: upgrade in memory; never rewrite the source file on load.
+                    // v15-v18 -> v19: upgrade in memory; old saves do not seed survival state.
                     SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
                     SnapshotId = ReadU(root, "snapshotId"),
                     WorldTick = ReadU(root, "worldTick"),
@@ -138,12 +139,12 @@ namespace XianXia.Data.Serialization
                                 "recoveryHpMilli", "medicTargetId", "medicCarryingHerb", "medicTreatmentSeconds", "medicLastTreatmentTick" })
                                 if (!e.TryGetProperty(key, out _))
                                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少医疗状态字段：" + key);
-                        if (sourceSchema == WorldSnapshot.CurrentSchemaVersion)
+                        if (sourceSchema >= WorldSnapshot.PreSurvivalSchemaVersion)
                             foreach (var key in new[] { "flightActive", "flightSurface", "flightScope", "flightHasGround", "flightGroundX", "flightGroundY", "flightDetached" })
                                 if (!e.TryGetProperty(key, out _))
                                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少飞行状态字段：" + key);
                         var restoredEntity = ReadEntity(e);
-                        if (sourceSchema < WorldSnapshot.CurrentSchemaVersion) restoredEntity.Flight = null;
+                        if (sourceSchema < WorldSnapshot.PreSurvivalSchemaVersion) restoredEntity.Flight = null;
                         if (restoredEntity.Flight?.Airborne == true &&
                             (!restoredEntity.HasCultivation || restoredEntity.Realm < (int)XianXia.Core.Cultivation.RealmStage.GoldenCore ||
                              !restoredEntity.Flight.HasGround || string.IsNullOrEmpty(restoredEntity.Flight.SurfaceId) ||
@@ -476,6 +477,12 @@ namespace XianXia.Data.Serialization
                     ? CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"))
                     : new XianXia.Core.Inventory.CommerceState();
                 if (root.TryGetProperty("chessGames", out var games)) snapshot.ChessGames = ReadChessGames(games);
+                if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion)
+                {
+                    if (!root.TryGetProperty("huangcunSurvival", out var survival))
+                        return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少荒村生存状态。");
+                    snapshot.HuangcunSurvival = ReadHuangcunSurvival(survival, snapshot.WorldTick);
+                }
                 if (root.TryGetProperty("peaceNegotiations", out var offers))
                     snapshot.PeaceNegotiations = ReadPeaceNegotiations(offers);
                 return Result.Ok(snapshot);
@@ -797,6 +804,54 @@ namespace XianXia.Data.Serialization
                     ["loyalty"] = JsonValue.FromNumber(entry.Loyalty)
                 }));
             return result;
+        }
+
+        static JsonValue WriteHuangcunSurvival(XianXia.Core.Npc.HuangcunSurvivalState s)
+        {
+            var places = new List<JsonValue>(); var items = new List<JsonValue>();
+            foreach (var p in s.Places) places.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                ["key"] = JsonValue.FromString(p.Key), ["x"] = JsonValue.FromNumber(p.Value.X), ["y"] = JsonValue.FromNumber(p.Value.Y) }));
+            foreach (var p in s.StoredItems) items.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                ["id"] = JsonValue.FromString(p.Key), ["count"] = JsonValue.FromNumber(p.Value) }));
+            return JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                ["enabled"] = JsonValue.FromBool(s.Enabled), ["released"] = JsonValue.FromBool(s.Released),
+                ["startedTick"] = U(s.StartedTick), ["lastProcessedTick"] = U(s.LastProcessedTick), ["prisonerId"] = U(s.PrisonerId),
+                ["prisonRoomId"] = JsonValue.FromString(s.PrisonRoomId), ["campRoomId"] = JsonValue.FromString(s.CampRoomId),
+                ["ownerFactionId"] = JsonValue.FromString(s.OwnerFactionId),
+                ["message"] = JsonValue.FromString(s.Message), ["places"] = JsonValue.FromArray(places), ["items"] = JsonValue.FromArray(items) });
+        }
+        static XianXia.Core.Npc.HuangcunSurvivalState ReadHuangcunSurvival(JsonValue v, ulong tick)
+        {
+            if (v.Kind != JsonValueKind.Object || !v.TryGetProperty("enabled", out var enabled) || enabled.Kind != JsonValueKind.Boolean ||
+                !v.TryGetProperty("released", out var released) || released.Kind != JsonValueKind.Boolean ||
+                !v.TryGetProperty("places", out var places) || places.Kind != JsonValueKind.Array ||
+                !v.TryGetProperty("items", out var items) || items.Kind != JsonValueKind.Array)
+                throw new System.FormatException("Invalid survival state.");
+            var s = new XianXia.Core.Npc.HuangcunSurvivalState { Enabled = enabled.Bool, Released = released.Bool,
+                StartedTick = ReadU(v,"startedTick"), LastProcessedTick = ReadU(v,"lastProcessedTick"), PrisonerId = ReadU(v,"prisonerId"),
+                PrisonRoomId = v.GetString("prisonRoomId", ""), CampRoomId = v.GetString("campRoomId", ""), OwnerFactionId = v.GetString("ownerFactionId", ""), Message = v.GetString("message", "") };
+            foreach (var p in places.Array)
+            {
+                var key=p.GetString("key", ""); var x=(float)p.GetNumber("x"); var y=(float)p.GetNumber("y");
+                if (string.IsNullOrEmpty(key) || s.Places.ContainsKey(key) || float.IsNaN(x) || float.IsInfinity(x) || float.IsNaN(y) || float.IsInfinity(y))
+                    throw new System.FormatException("Invalid survival place.");
+                s.Places.Add(key,new XianXia.Core.World.WorldVec2(x,y));
+            }
+            foreach(var p in items.Array)
+            {
+                var id=p.GetString("id", ""); var n=p.GetNumber("count");
+                if ((id!=XianXia.Core.Npc.HuangcunSurvivalService.Grain && id!=XianXia.Core.Npc.HuangcunSurvivalService.Wood && id!=XianXia.Core.Npc.HuangcunSurvivalService.Herb) ||
+                    n<0 || n>30 || n!=System.Math.Floor(n) || s.StoredItems.ContainsKey(id)) throw new System.FormatException("Invalid private camp stock.");
+                s.StoredItems.Add(id,(int)n);
+            }
+            if (s.Enabled)
+            {
+                foreach(var key in new[]{"prison","food","wood","herb","work","camp_near","camp_far"})
+                    if(!s.Places.ContainsKey(key)) throw new System.FormatException("Missing survival place: " + key);
+                if(s.PrisonerId==0 || string.IsNullOrEmpty(s.PrisonRoomId) || string.IsNullOrEmpty(s.OwnerFactionId) || s.StartedTick>tick || s.LastProcessedTick>tick ||
+                    !string.IsNullOrEmpty(s.CampRoomId) && !s.Places.ContainsKey("camp")) throw new System.FormatException("Invalid survival references/time.");
+            }
+            return s;
         }
 
         static JsonValue WriteChessGames(List<XianXia.Core.Npc.ChessGameState> games)

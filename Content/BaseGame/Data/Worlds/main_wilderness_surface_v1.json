@@ -321061,9 +321061,9 @@
           "siteType": "Pass",
           "coreLevel": 1,
           "controlEstablishedOrder": 2,
+          "ownerFactionId": "base:sect_zhenyue",
           "arrivalWorldX": 99.288,
-          "arrivalWorldY": 229.544,
-          "ownerFactionId": "base:sect_zhenyue"
+          "arrivalWorldY": 229.544
         },
         {
           "siteId": "base:site_huangcun",
@@ -321104,9 +321104,9 @@
           "siteType": "Village",
           "coreLevel": 1,
           "controlEstablishedOrder": 6,
+          "ownerFactionId": "base:sect_zhenyue",
           "arrivalWorldX": 140.588,
-          "arrivalWorldY": 229.544,
-          "ownerFactionId": "base:sect_zhenyue"
+          "arrivalWorldY": 229.544
         },
         {
           "siteId": "site:runtime:base:flag_player_origin",
@@ -321222,9 +321222,9 @@
           "siteType": "Outpost",
           "coreLevel": 1,
           "controlEstablishedOrder": 27,
+          "ownerFactionId": "base:sect_tingyu",
           "arrivalWorldX": 447.636,
-          "arrivalWorldY": 75.37599999999999,
-          "ownerFactionId": "base:sect_tingyu"
+          "arrivalWorldY": 75.37599999999999
         },
         {
           "siteId": "site:runtime:base:flag_sect_xuansha_capital",
@@ -321442,9 +321442,9 @@
           "siteType": "Outpost",
           "coreLevel": 1,
           "controlEstablishedOrder": 65,
+          "ownerFactionId": "base:sect_tianlu",
           "arrivalWorldX": 252.812,
-          "arrivalWorldY": 226.744,
-          "ownerFactionId": "base:sect_tianlu"
+          "arrivalWorldY": 226.744
         },
         {
           "siteId": "site:runtime:base:flag_sect_tianlu_node_2",
@@ -321453,9 +321453,9 @@
           "siteType": "Outpost",
           "coreLevel": 2,
           "controlEstablishedOrder": 66,
+          "ownerFactionId": "base:sect_tianlu",
           "arrivalWorldX": 287.028,
-          "arrivalWorldY": 226.744,
-          "ownerFactionId": "base:sect_tianlu"
+          "arrivalWorldY": 226.744
         },
         {
           "siteId": "site:runtime:base:flag_sect_zhenyue_capital",
@@ -321519,9 +321519,9 @@
           "siteType": "Outpost",
           "coreLevel": 2,
           "controlEstablishedOrder": 75,
+          "ownerFactionId": "base:sect_tianlu",
           "arrivalWorldX": 212.156,
-          "arrivalWorldY": 230.244,
-          "ownerFactionId": "base:sect_tianlu"
+          "arrivalWorldY": 230.244
         },
         {
           "siteId": "site:runtime:base:flag_sect_tingyue_capital",
@@ -321604,9 +321604,9 @@
           "siteType": "Outpost",
           "coreLevel": 1,
           "controlEstablishedOrder": 96,
+          "ownerFactionId": "base:sect_tingyu",
           "arrivalWorldX": 410.67600000000004,
-          "arrivalWorldY": 47.012,
-          "ownerFactionId": "base:sect_tingyu"
+          "arrivalWorldY": 47.012
         },
         {
           "siteId": "site:runtime:base:flag_sect_tingyu_node_3",
@@ -321615,9 +321615,9 @@
           "siteType": "Outpost",
           "coreLevel": 1,
           "controlEstablishedOrder": 97,
+          "ownerFactionId": "base:sect_tingyu",
           "arrivalWorldX": 467.46000000000004,
-          "arrivalWorldY": 47.012,
-          "ownerFactionId": "base:sect_tingyu"
+          "arrivalWorldY": 47.012
         },
         {
           "siteId": "site:runtime:base:flag_sect_guiming_node_1",
@@ -321666,9 +321666,9 @@
           "controlEstablishedOrder": 257,
           "displayName": "云峰镇",
           "coreLevel": 2,
+          "ownerFactionId": "base:sect_qingxiao",
           "arrivalWorldX": 14.840000000000002,
-          "arrivalWorldY": 124.768,
-          "ownerFactionId": "base:sect_qingxiao"
+          "arrivalWorldY": 124.768
         },
         {
           "siteId": "base:site_final_dongye",
@@ -321677,9 +321677,9 @@
           "controlEstablishedOrder": 258,
           "displayName": "东野驿",
           "coreLevel": 1,
+          "ownerFactionId": "base:faction_shuofeng",
           "arrivalWorldX": 382.312,
-          "arrivalWorldY": 175.196,
-          "ownerFactionId": "base:faction_shuofeng"
+          "arrivalWorldY": 175.196
         },
         {
           "siteId": "base:site_final_songyuan",
@@ -321688,9 +321688,9 @@
           "controlEstablishedOrder": 259,
           "displayName": "松原镇",
           "coreLevel": 1,
+          "ownerFactionId": "base:faction_shuofeng",
           "arrivalWorldX": 392.47600000000006,
-          "arrivalWorldY": 223.216,
-          "ownerFactionId": "base:faction_shuofeng"
+          "arrivalWorldY": 223.216
         },
         {
           "siteId": "base:site_beast_north_gate",
@@ -321699,9 +321699,9 @@
           "controlEstablishedOrder": 260,
           "displayName": "镇魔北关",
           "coreLevel": 3,
+          "ownerFactionId": "base:sect_tianlu",
           "arrivalWorldX": 232.344,
-          "arrivalWorldY": 217.28,
-          "ownerFactionId": "base:sect_tianlu"
+          "arrivalWorldY": 217.28
         },
         {
           "siteId": "base:site_beast_east_gate",
@@ -321710,9 +321710,9 @@
           "controlEstablishedOrder": 261,
           "displayName": "镇魔东关",
           "coreLevel": 3,
+          "ownerFactionId": "base:sect_hehuan",
           "arrivalWorldX": 335.86,
-          "arrivalWorldY": 117.768,
-          "ownerFactionId": "base:sect_hehuan"
+          "arrivalWorldY": 117.768
         },
         {
           "siteId": "base:site_beast_south_gate",
@@ -321741,9 +321741,9 @@
           "controlEstablishedOrder": 264,
           "displayName": "雷西关",
           "coreLevel": 3,
+          "ownerFactionId": "base:sect_hehuan",
           "arrivalWorldX": 401.576,
-          "arrivalWorldY": 128.24,
-          "ownerFactionId": "base:sect_hehuan"
+          "arrivalWorldY": 128.24
         },
         {
           "siteId": "base:site_thunder_south_gate",
@@ -321752,13 +321752,28 @@
           "controlEstablishedOrder": 265,
           "displayName": "雷南关",
           "coreLevel": 3,
+          "ownerFactionId": "base:sect_tingyu",
           "arrivalWorldX": 479.55600000000004,
-          "arrivalWorldY": 83.104,
-          "ownerFactionId": "base:sect_tingyu"
+          "arrivalWorldY": 83.104
         }
       ],
       "factionFlags": [],
       "sitePlacements": [
+        {
+          "stableId": "base:site_huangcun:alchemy_furnace",
+          "siteId": "base:site_huangcun",
+          "worldX": 179.424,
+          "worldY": 82.068,
+          "worldWidth": 0.084,
+          "worldHeight": 0.084,
+          "kind": "alchemyFurnace",
+          "blocksMovement": true,
+          "label": "炼丹炉（制作功能暂未开放）",
+          "chunkX": 129,
+          "chunkY": 59,
+          "sourceCellsW": 3,
+          "sourceCellsH": 3
+        },
         {
           "stableId": "base:site_huangcun:alchemy_room",
           "siteId": "base:site_huangcun",
@@ -330161,6 +330176,21 @@
           "sourceCellsH": 2,
           "chunkX": 130,
           "chunkY": 57
+        },
+        {
+          "stableId": "base:site_huangcun:smithing_furnace",
+          "siteId": "base:site_huangcun",
+          "worldX": 179.87199999999999,
+          "worldY": 82.03999999999999,
+          "worldWidth": 0.084,
+          "worldHeight": 0.112,
+          "kind": "smithingFurnace",
+          "blocksMovement": true,
+          "label": "炼器炉（制作功能暂未开放）",
+          "chunkX": 129,
+          "chunkY": 59,
+          "sourceCellsW": 3,
+          "sourceCellsH": 4
         },
         {
           "stableId": "base:site_huangcun:smithy_room",

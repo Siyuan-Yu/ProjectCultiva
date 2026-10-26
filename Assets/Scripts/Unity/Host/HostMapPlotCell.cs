@@ -300,6 +300,8 @@ namespace XianXia.Unity.Host
                 case "recoveryspot": return "恢复处";
                 case "prisondropoff": return "囚犯交接点";
                 case "storageroom": return "储藏室";
+                case "alchemyfurnace": return "炼丹炉";
+                case "smithingfurnace": return "炼器炉";
                 case "loot": return "地上物";
                 case "cushion": return "蒲团";
                 case "chessboard": return "棋盘";

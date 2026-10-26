@@ -31,6 +31,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostFormalHud : MonoBehaviour
     {
+        readonly HostHuangcunSurvivalPanel _survivalPanel = new HostHuangcunSurvivalPanel();
         const float TopH = 48f;
         const float OpsLegendH = 40f;
         /// <summary>顶栏 + 操作提示条占用高度（其它 IMGUI 面板应让位）。</summary>
@@ -88,6 +89,9 @@ namespace XianXia.Unity.Host
 
         readonly List<EntityId> _housingResidentsScratch = new List<EntityId>(16);
         Vector2 _scheduleEditScroll;
+        bool _openingHelpOpen;
+        int _openingHelpTab;
+        Vector2 _openingHelpScroll;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -156,6 +160,8 @@ namespace XianXia.Unity.Host
 
             EnsureStyles();
             HostUiHitTest.BeginFrame();
+            if (bootstrap.ContentInterrupt?.HasBlockingInterrupt != true && _survivalPanel.Draw(session))
+            { HostUiHitTest.EndFrame(); return; }
             if (bootstrap != null &&
                 bootstrap.ContentInterrupt != null &&
                 bootstrap.ContentInterrupt.HasBlockingInterrupt)
@@ -1087,6 +1093,12 @@ namespace XianXia.Unity.Host
                         plot.Kind == "chessBoard" ? "休闲棋盘：左右各一座，独自入座即可娱乐；两人可同时使用。" :
                         "修炼蒲团：供人物打坐修炼。", _body);
                 }
+                else if (plot.Kind == "alchemyFurnace" || plot.Kind == "smithingFurnace")
+                {
+                    GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 80f),
+                        (plot.Kind == "alchemyFurnace" ? "炼丹炉" : "炼器炉") +
+                        "：炉具已安置。配方与制作功能暂未开放，不会消耗材料或自动产出。", _body);
+                }
                 else
                 {
                     GUI.Label(
@@ -1221,11 +1233,104 @@ namespace XianXia.Unity.Host
                 DrawPanel(new Rect(x, y, RailW, h), scheduleTitle, BuildScheduleText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
             y += h + Pad;
-            DrawPanel(new Rect(x, y, RailW, h), "任务", BuildQuestText(session));
+            if (HuangcunOpeningAccess.IsLocked(session.World))
+                DrawOpeningHelp(new Rect(x, y, RailW, h), session);
+            else
+                DrawPanel(new Rect(x, y, RailW, h), "任务", BuildQuestText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
             y += h + Pad;
             DrawPanel(new Rect(x, y, RailW, h), "事件", BuildEventText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
+        }
+
+        void DrawOpeningHelp(Rect rect, PlayableHostSession session)
+        {
+            // 默认收起；纯说明，不暂停、发命令或修改任何任务状态。
+            Fill(rect, new Color(0.11f, 0.13f, 0.16f, 0.92f));
+            if (GUI.Button(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, 24f),
+                    _openingHelpOpen ? "▼ 荒村帮助（可收起）" : "▶ 荒村帮助（可选）"))
+                _openingHelpOpen = !_openingHelpOpen;
+            if (!_openingHelpOpen)
+            {
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 32f, rect.width - 16f, rect.height - 36f),
+                    BuildQuestText(session), _body);
+                return;
+            }
+            var labels = new[] { "修炼", "生活", "夺村" };
+            for (var i = 0; i < labels.Length; i++)
+                if (GUI.Button(new Rect(rect.x + 6f + i * (rect.width - 12f) / 3f, rect.y + 30f,
+                        (rect.width - 12f) / 3f, 24f), (_openingHelpTab == i ? "● " : "") + labels[i]))
+                { _openingHelpTab = i; _openingHelpScroll = Vector2.zero; }
+            var viewport = new Rect(rect.x + 6f, rect.y + 58f, rect.width - 12f, Mathf.Max(16f, rect.height - 64f));
+            var text = BuildOpeningHelpText(session);
+            var width = viewport.width - 20f;
+            var height = Mathf.Max(viewport.height, _body.CalcHeight(new GUIContent(text), width) + 8f);
+            _openingHelpScroll = GUI.BeginScrollView(viewport, _openingHelpScroll, new Rect(0f, 0f, width, height));
+            GUI.Label(new Rect(0f, 0f, width, height), text, _body);
+            GUI.EndScrollView();
+        }
+
+        string BuildOpeningHelpText(PlayableHostSession session)
+        {
+            var sb = new StringBuilder("可自由行动，无需完成教学。J 查看可选任务。\n\n");
+            var actor = session.PlayerParty.ActiveCharacterId;
+            if (!session.World.Entities.TryGet(actor, out var entity))
+                return "暂无主控人物；选定可控人物后可查看状态。";
+            sb.AppendLine("主控：" + entity.DisplayName);
+            if (_openingHelpTab == 0)
+            {
+                sb.AppendLine(session.World.Flags.Has("story:huangcun_first_cultivation_tick")
+                    ? "已记录：主控实际打坐获得过修为。" : "尚未记录首次吐纳：F6 选择可用蒲团，抵达后让时间推进。只听建议不算实际修炼。");
+                if (entity.TryGet<CultivationComponent>(out var cult))
+                {
+                    sb.AppendLine("当前修为：" + cult.Progress + "/" + cult.BreakthroughProgressRequired);
+                    sb.AppendLine(cult.IsAtBottleneck
+                        ? "已到瓶颈：继续打坐不会越过上限。点人物「境界」查看条件、材料和成功率，再决定是否尝试突破。"
+                        : "尚未到瓶颈：可继续打坐；留意精力与心境，也可以先休息或做其他事。");
+                    sb.AppendLine(cult.HasLearnedManual ? "已有功法：在境界界面查看功法和熟练度。" : "未学功法：感应阶段可先吐纳。进入炼气后按 B 打开背包，从功法书册选择学习者并研读；拿到书不等于学会，研读也可能失败。");
+                    if (cult.Realm >= RealmStage.Foundation)
+                        sb.AppendLine("筑基能力：F2 展开纱衣后可定向攻击，消耗灵力；不必为了夺村先达到筑基。");
+                }
+                sb.AppendLine("斗技学会后查看人物斗技栏，选择可用技能与合法目标；留意冷却、灵力及距离提示。");
+            }
+            else if (_openingHelpTab == 1)
+            {
+                if (entity.TryGet<PersonalLifeComponent>(out var needs))
+                    sb.AppendLine("饱食 " + needs.Satiety + "/100 · 精力 " + needs.Energy + "/100 · 心境 " + needs.CurrentMood + "/100");
+                if (entity.TryGet<CombatVitalsComponent>(out var vitals))
+                {
+                    sb.AppendLine("当前生命：" + vitals.CurrentHp + "（完整数值见人物面板）");
+                    if (entity.TryGet<AttributesComponent>(out var attributes) &&
+                        vitals.CurrentHp < attributes.GetFinal(AttributeId.MaxHp))
+                    {
+                        var recovery = MedicalRecoveryService.ResolveRateMilli(session.World, entity);
+                        sb.AppendLine("当前医疗净恢复率：" + (recovery / 1000f).ToString("0.00") + "/秒");
+                        if (recovery <= 0)
+                            sb.AppendLine("目前没有正向恢复：只等待或只放到床上不保证好转，请检查药材治疗及医疗床；濒危时不要盲目加速。");
+                    }
+                }
+                sb.AppendLine("先照顾状态再连续修炼或作战。精力不足找可用床休息；饥饿时检查可用食物与取食路径，不要只加速等待。");
+                sb.AppendLine("可选委托：阿石的粮食熟悉生产／库存，阿木的木料熟悉采集，阿杏的药材用于备战认识。交付后到 J 日志领取回报；不必全部完成，也别交光自己的补给。");
+                sb.AppendLine("受伤后先离开危险，检查医疗床、药材与可行动同伴；失能人物不能继续执行普通命令。恢复生命不等于补满饱食、精力和灵力。");
+                sb.AppendLine("开战前可手动存档。无法脱离或全队失能时可读档重整；本帮助不提供复活或无条件恢复。");
+                sb.AppendLine("巡卫在岗且靠近出村路线时会拦住通行，可等其离开再尝试；当前不是视线发现后的追捕处罚玩法。");
+            }
+            else
+            {
+                sb.AppendLine("① 准备粮药、查看主控与同伴状态；不限定境界，也不要求先完成委托。\n② 右键议政厅选择攻击，阅读并确认敌对行动；取消确认不会发动攻击。\n③ 应对守军并攻击核心，不是拆掉围墙。\n④ 核心攻破后，让可战人物留在范围内持续占领。");
+                if (WorldSiteCoreWarfareService.TryGetFixedCore(session.World, Ch01ScenarioProgressionHooks.HuangcunSiteId, out var core))
+                {
+                    sb.AppendLine("核心当前耐久：" + core.CurrentDurability);
+                    sb.AppendLine(core.CaptureAvailable
+                        ? "已攻破 · 占领 " + core.OccupyProgressSeconds.ToString("0.0") + "/" + core.OccupyHoldSeconds.ToString("0.0") + " 秒"
+                        : "核心尚未攻破；靠近并按正式攻击流程削减耐久。");
+                }
+                sb.AppendLine("进度不动？查看守军争夺、己方是否可战、是否仍在核心范围。离开范围会失去持续占领进度；具体拒绝原因以操作反馈为准。");
+                if (controlCoreAssault != null && controlCoreAssault.IsAssaulting)
+                    sb.AppendLine("当前行动：" + controlCoreAssault.Guidance);
+                sb.AppendLine("真实取得荒村后才解除外界限制；打倒单个守卫、宣布独立都不等于夺村成功。");
+            }
+            return sb.ToString();
         }
 
         void DrawEditableSchedulePanel(Rect rect, string title, PlayableHostSession session)

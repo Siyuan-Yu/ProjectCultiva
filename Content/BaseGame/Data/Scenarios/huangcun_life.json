@@ -6,11 +6,11 @@
       "startingInventory": [
         {
           "itemId": "base:resource_rough_wood",
-          "count": 20
+          "count": 2
         },
         {
           "itemId": "base:resource_grain",
-          "count": 6
+          "count": 1
         }
       ],
       "type": "openingScenario",

@@ -59,6 +59,26 @@
       ]
     },
     {
+      "id": "base:room_survival_camp",
+      "type": "building",
+      "name": "临时修炼棚",
+      "description": "荒村私人营地；只通过生活面板在预留空地搭建，不取得领地权限。",
+      "unlockedByDefault": false,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 4,
+      "footprintCellsH": 6,
+      "constructionLabor": 18,
+      "roomTier": "normal",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 100,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0,
+      "costs": [{ "itemId": "base:resource_rough_wood", "count": 12 }]
+    },
+    {
       "id": "base:room_normal_wood",
       "type": "building",
       "name": "普通木屋",

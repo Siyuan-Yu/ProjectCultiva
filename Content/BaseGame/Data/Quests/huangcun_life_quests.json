@@ -47,7 +47,7 @@
       "id": "base:quest_huangcun_practice",
       "type": "quest",
       "name": "修行札记·从吐纳开始",
-      "description": "可选引导。向将老请教吐纳，或询问阿木林边的见闻，了解村内的打坐处。感应境无需先得功法；实际修炼必须走到可用蒲团，不会因完成此记录自动涨修为。",
+      "description": "可选札记，可不接或放弃，不限制其他行动。用主控人物在可用蒲团实际打坐，获得一次修为即可完成；F6 选择修炼地点。将老或阿木可以指路，但听取建议不代替修炼。精力不足先休息，修为满后从人物的「境界」查看并主动突破；完成札记不会额外增加修为。",
       "questKind": "general",
       "runtimeMode": "fixed",
       "acceptanceMode": "journal",
@@ -63,7 +63,7 @@
       "completeConditions": [
         {
           "kind": "hasFlag",
-          "id": "story:huangcun_practice_advice"
+          "id": "story:huangcun_first_cultivation_tick"
         }
       ],
       "rewards": [
@@ -495,7 +495,7 @@
       "id": "base:quest_huangcun_village_freedom",
       "type": "quest",
       "name": "墙内外·自己的去路",
-      "description": "你可以先劳动、修行、结交与备战，不受固定天数催促。准备好后，通过真实战斗与占领取得青石荒村的所有权，解除村界封锁。宣布独立、打倒某个人或拆掉一段木墙，都不等于取得村庄。",
+      "description": "可选目标，无期限，也不要求先完成其他札记或达到指定境界。备好食物与伤后恢复手段，查看同伴战力；右键议政厅选择攻击并确认敌对行动，处理守军、攻破核心耐久，再让可战人物留在核心范围持续占领。守军争夺或离开范围会阻断占领。取得荒村真实所有权才解锁外界，宣布独立或拆墙不算。",
       "questKind": "general",
       "runtimeMode": "fixed",
       "acceptanceMode": "journal",

@@ -1487,7 +1487,7 @@ namespace XianXia.Core.Npc
             var injured = new List<Entity>();
             foreach (var other in world.Entities.All)
             {
-                if (other.Id == rescuer.Id ||
+                if (other.Id == rescuer.Id || HuangcunSurvivalService.IsPrisoner(world,other.Id) ||
                     !other.TryGet<FactionMembershipComponent>(out var faction) || !faction.IsAffiliated ||
                     !string.Equals(faction.FactionId, own.FactionId, StringComparison.Ordinal) ||
                     !other.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
@@ -1615,6 +1615,7 @@ namespace XianXia.Core.Npc
         {
             destinationId = surfaceId = string.Empty; destination = default; deliveryRange = 0f;
             if (world == null || rescuer == null || injured.IsNone ||
+                HuangcunSurvivalService.IsPrisoner(world,injured) ||
                 !world.Entities.TryGet(injured, out var injuredEntity) ||
                 !injuredEntity.TryGet<LifecycleComponent>(out var injuredLife) || !injuredLife.IsIncapacitated)
                 return false;

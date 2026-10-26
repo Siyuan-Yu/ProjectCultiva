@@ -186,6 +186,7 @@ namespace XianXia.Core.Simulation
             MortalCivilianService.Tick(_world, phaseSample);
             SampleTickPhase(phaseSample, "civilian", ref phaseStarted);
             ChessRecreationService.Drive(_world, this);
+            HuangcunSurvivalService.Tick(_world, this);
             PersonalLifeService.Drive(_world, this);
             SampleTickPhase(phaseSample, "personal-life", ref phaseStarted);
             _npcActivityDriver.Drive(_world, this);

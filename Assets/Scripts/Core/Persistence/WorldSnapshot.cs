@@ -5,7 +5,9 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 18;
+        public const int CurrentSchemaVersion = 19;
+        public const int PreSurvivalSchemaVersion = 18;
+        public XianXia.Core.Npc.HuangcunSurvivalState HuangcunSurvival { get; set; } = new XianXia.Core.Npc.HuangcunSurvivalState();
         public const int PreFlightSchemaVersion = 17;
         public const int PreMedicalSchemaVersion = 15;
         public const int PreGroundLootSchemaVersion = 16;

@@ -55,7 +55,10 @@ namespace XianXia.Core.Npc
                 if (!HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 var personal = Ensure(world, entity);
                 if (personal == null) continue;
+                if (HuangcunSurvivalService.IsPrisoner(world, entity.Id))
+                { personal.LastProcessedTick = world.Tick.Value; personal.Status = "囚禁中：缺粮与伤势持续恶化"; continue; }
                 AdvanceNeeds(world, entity, personal);
+                HuangcunSurvivalService.TryRation(world, entity, personal);
                 var partyMember = world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true;
                 if (!string.IsNullOrEmpty(personal.MeditationSpotId) &&
                     (!world.MeditationSpots.Spots.ContainsKey(personal.MeditationSpotId) ||
@@ -133,6 +136,7 @@ namespace XianXia.Core.Npc
                 }
                 if (world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true &&
                     personal.Satiety <= HungerThreshold &&
+                    (!HuangcunSurvivalService.Applies(world, entity) || !HuangcunOpeningAccess.IsLocked(world)) &&
                     !CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) &&
                     TryConsumePartyFood(world))
                 {
@@ -219,7 +223,7 @@ namespace XianXia.Core.Npc
                 var cultivate = entity.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cultivation) &&
                                 !cultivation.IsAtBottleneck && personal.Energy > ExhaustionThreshold &&
                                 personal.Satiety > HungerThreshold && personal.CurrentMood >= MinCultivationMood;
-                var wantCultivate = cultivate && PreferCultivation(world, personal);
+                var wantCultivate = cultivate && HuangcunSurvivalService.ValidateCultivation(world, entity).IsSuccess && PreferCultivation(world, personal);
                 var meditationBlocked = false;
                 if (wantCultivate)
                 {

@@ -807,6 +807,11 @@ namespace XianXia.Core.Construction
             reason = string.Empty;
             if (world == null || !world.Entities.TryGet(characterId, out _) || !RoomBedGeometry.IsBed(bed))
             { reason = "床位或人物无效。"; return false; }
+            if (world.HuangcunSurvival.Enabled && bed.ParentRoomId == world.HuangcunSurvival.CampRoomId &&
+                !string.IsNullOrEmpty(world.HuangcunSurvival.CampRoomId) &&
+                (!world.Entities.TryGet(characterId,out var camper) || !camper.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var campFaction) ||
+                 campFaction.FactionId != world.HuangcunSurvival.OwnerFactionId))
+            { reason = "这是其他势力的私人营地床铺。"; return false; }
             if (!bed.AssignedCharacterId.IsNone && bed.AssignedCharacterId != characterId)
             { reason = "该床已分配给其他住户。"; return false; }
             if (!bed.ReservedCharacterId.IsNone && bed.ReservedCharacterId != characterId)

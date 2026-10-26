@@ -88,6 +88,7 @@ namespace XianXia.Core.Persistence
             };
 
             snap.ChessGames = world.ChessGames.Values.Select(g => g.Copy()).ToList();
+            snap.HuangcunSurvival = world.HuangcunSurvival.Copy();
             snap.PeaceNegotiations = world.Strategic.PeaceNegotiations.Select(n => n.Copy()).ToList();
             foreach (var entity in world.Entities.All)
             {
@@ -425,6 +426,7 @@ namespace XianXia.Core.Persistence
                     targetRef = work.TargetWorkAreaId;
                     activity = (int)work.Activity;
                 }
+                else if (action is HuangcunSurvivalAction survival) { kind = "HuangcunSurvival"; targetRef = survival.Task; }
                 else kind = "ApplyModifier";
 
                 snap.ActiveActions.Add(new ActiveActionSnapshotDto
@@ -1231,6 +1233,16 @@ namespace XianXia.Core.Persistence
                     recovery.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[recovery.Id] = recovery;
                 }
+                else if (a.Kind == "HuangcunSurvival")
+                {
+                    if (!XianXia.Core.Npc.HuangcunSurvivalService.IsKnownTask(a.TargetRef) ||
+                        a.TotalTicks != XianXia.Core.Npc.HuangcunSurvivalService.Duration(a.TargetRef ?? string.Empty))
+                        return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid survival action clock.");
+                    var survival = new HuangcunSurvivalAction(new ActionId(a.Id), new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId), a.TotalTicks, a.TargetRef ?? string.Empty);
+                    survival.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[survival.Id] = survival;
+                }
                 else if (a.Kind == "BedRest")
                 {
                     var bedRest = new BedRestAction(new ActionId(a.Id), new EntityId(a.SubjectId),
@@ -1334,6 +1346,13 @@ namespace XianXia.Core.Persistence
                 WorldLootPickupService.RestoreTakenSpotIds(world, snap.TakenWorldLootSpotIds);
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
+            world.HuangcunSurvival = (snap.HuangcunSurvival ?? new XianXia.Core.Npc.HuangcunSurvivalState()).Copy();
+            var survivalState = world.HuangcunSurvival;
+            if (survivalState.Enabled &&
+                (!world.Entities.TryGet(new EntityId(survivalState.PrisonerId), out _) ||
+                 !world.OutdoorConstructedAssets.Assets.ContainsKey(survivalState.PrisonRoomId) ||
+                 !string.IsNullOrEmpty(survivalState.CampRoomId) && !world.OutdoorConstructedAssets.Assets.ContainsKey(survivalState.CampRoomId)))
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Survival character or room reference missing.");
             if (snap.GroundLoot == null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Ground loot authority missing.");
             foreach (var drop in snap.GroundLoot)

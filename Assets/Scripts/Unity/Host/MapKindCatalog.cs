@@ -56,6 +56,8 @@ namespace XianXia.Unity.Host
                 case "controlCore":
                 case "factionControlPost":
                 case "storageRoom":
+                case "alchemyFurnace":
+                case "smithingFurnace":
                 case "bed":
                 case "wallSegment":
                     return true;
@@ -140,6 +142,10 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.18f, 0.78f, 0.78f)),
             new("prisonDropOff", Cushion, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.PrisonDropOff,
                 new UnityEngine.Color(0.68f, 0.42f, 0.22f)),
+            new("alchemyFurnace", StorageRoom, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(0.56f, 0.43f, 0.25f)),
+            new("smithingFurnace", StorageRoom, StampMode.SingleCentered, 3, 4, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(0.38f, 0.36f, 0.33f)),
             new("storageRoom", StorageRoom, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Storage,
                 new UnityEngine.Color(0.62f, 0.48f, 0.28f)),
             new("room", House, StampMode.SingleCentered, 8, 12, false, HostInteractSpotKind.Room,

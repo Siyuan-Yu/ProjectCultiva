@@ -13,6 +13,9 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (string.Equals(actingFactionId, site.OwnerFactionId, StringComparison.Ordinal))
                 return true;
+            if (world.HuangcunSurvival.Enabled && HuangcunOpeningAccess.IsLocked(world) &&
+                actingFactionId == world.Strategic.PlayerFactionId && site.SiteId == Ch01ScenarioProgressionHooks.HuangcunSiteId)
+                return false; // Rations are issued explicitly, not unlimited access to the overlord's store.
             return FactionDiplomacyRelationQuery.GetRelation(world, actingFactionId,
                        site.OwnerFactionId) == FactionDiplomacyRelation.Overlord;
         }

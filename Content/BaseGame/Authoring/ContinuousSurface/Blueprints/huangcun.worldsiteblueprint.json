@@ -2499,6 +2499,40 @@
       }
     },
     {
+      "placementId": "base:site_huangcun:alchemy_furnace",
+      "kindId": "alchemyFurnace",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 532,
+      "localSurfaceY": 584,
+      "widthCells": 3,
+      "heightCells": 3,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "label": "炼丹炉（制作功能暂未开放）",
+        "siteId": "base:site_huangcun",
+        "legacyGeometryState": "edited"
+      }
+    },
+    {
+      "placementId": "base:site_huangcun:smithing_furnace",
+      "kindId": "smithingFurnace",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 548,
+      "localSurfaceY": 583,
+      "widthCells": 3,
+      "heightCells": 4,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "blocksMovement": "true",
+        "label": "炼器炉（制作功能暂未开放）",
+        "siteId": "base:site_huangcun",
+        "legacyGeometryState": "edited"
+      }
+    },
+    {
       "placementId": "base:site_huangcun:scattered_ore_9",
       "kindId": "ore",
       "contentRef": null,

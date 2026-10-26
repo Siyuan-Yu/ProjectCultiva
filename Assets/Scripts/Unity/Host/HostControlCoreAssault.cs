@@ -28,6 +28,7 @@ namespace XianXia.Unity.Host
         XianXia.Core.Simulation.SimulationWorld _world;
 
         public string TargetWorkAreaId => _targetWorkAreaId;
+        public string Guidance { get; private set; } = string.Empty;
 
         public bool IsAssaulting => !string.IsNullOrEmpty(_targetWorkAreaId);
 
@@ -48,12 +49,16 @@ namespace XianXia.Unity.Host
             _targetWorkAreaId = workAreaId ?? string.Empty;
             _meleeCooldown = 0f;
             _world = bootstrap?.Session?.World;
+            _contested = false;
+            Guidance = "正在接近议政厅；抵达攻击范围后削减核心耐久。";
         }
 
         public void Clear()
         {
             _targetWorkAreaId = string.Empty;
             _meleeCooldown = 0f;
+            Guidance = string.Empty;
+            _contested = false;
         }
 
         void Update()
@@ -91,6 +96,7 @@ namespace XianXia.Unity.Host
 
             if (!near && !core.CaptureAvailable)
             {
+                Guidance = "尚未进入核心攻击范围；靠近议政厅后才能攻击。";
                 world.ControlCores.ResetOccupyProgress(_targetWorkAreaId);
                 return;
             }
@@ -98,6 +104,7 @@ namespace XianXia.Unity.Host
             var dt = bootstrap.PresentationDeltaTime;
             if (core.CurrentDurability > 0)
             {
+                Guidance = "正在攻打核心 · 剩余耐久 " + core.CurrentDurability + "；攻破后仍需留在范围内占领。";
                 var combatActor = encounter?.Find(bootstrap.Session.PlayerParty.ActiveCharacterId.Value);
                 if (combatActor != null) _meleeCooldown = combatActor.Cooldown;
                 else _meleeCooldown -= dt;
@@ -142,6 +149,8 @@ namespace XianXia.Unity.Host
                     py >= minY - HostControlCoreQuery.MeleeMargin && py <= maxY + HostControlCoreQuery.MeleeMargin;
             }
             WorldSiteCoreWarfareService.TickOccupation(world, _targetWorkAreaId, dt, out var contested, InOccupyArea);
+            Guidance = contested ? "占领被守军阻断：先处理仍在争夺的守军。"
+                : "核心已攻破：让可战人物留在核心范围内；离开范围会重置持续占领进度。";
             if (contested && !_contested) Toast(bootstrap.Session.PlayerParty.ActiveCharacterId, "占领被守军阻断", new Color(1f, .6f, .3f));
             _contested = contested;
             if (world.ControlCores.TryGet(_targetWorkAreaId, out core) && !core.CaptureAvailable && core.CurrentDurability > 0)

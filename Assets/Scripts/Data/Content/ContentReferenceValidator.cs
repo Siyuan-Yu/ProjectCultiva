@@ -1814,6 +1814,10 @@ namespace XianXia.Data.Content
             // SupervisorPressureHandler writes this at day end.
             if (string.Equals(flag, "story:supervisor_pressure", StringComparison.Ordinal))
                 return true;
+            // CultivateAction.Advance records actual progress gained by the active player character.
+            // This flag must not be granted by dialogue just to satisfy content validation.
+            if (string.Equals(flag, "story:huangcun_first_cultivation_tick", StringComparison.Ordinal))
+                return true;
             return false;
         }
 

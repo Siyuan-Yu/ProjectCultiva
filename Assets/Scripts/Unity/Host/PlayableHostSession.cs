@@ -157,6 +157,14 @@ namespace XianXia.Unity.Host
             CharacterIds = started.Value.CharacterIds;
             if (CharacterIds.Count > 0)
                 PlayerParty.TryInitialize(CharacterIds[0], out _);
+            World.Strategic.PlayerPartyContext = PlayerParty;
+            var survival = XianXia.Core.Npc.HuangcunSurvivalService.InitializeNewGame(World, Loop, CharacterIds);
+            if (survival.IsFailure)
+            {
+                var failure = survival.Error.ToString();
+                Clear(); LastError = failure;
+                return survival;
+            }
             SquadMembershipService.EnsureSingletonsForUnassignedCharacters(World);
             RecruitableNpcId = started.Value.RecruitableNpcId;
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);

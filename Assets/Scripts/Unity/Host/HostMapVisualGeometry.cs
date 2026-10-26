@@ -45,6 +45,7 @@ namespace XianXia.Unity.Host
                 case "treeS": case "treeM": case "treeL":
                 case "wall": case "wallSegment": case "room":
                 case "storageRoom": case "controlCore": case "cave": case "rock":
+                case "alchemyFurnace": case "smithingFurnace":
                     return Order(centerY - height * .5f);
                 case "bed": case "ore": case "mine": case "factionControlPost":
                     return Order(centerY);

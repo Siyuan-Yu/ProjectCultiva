@@ -12,11 +12,11 @@ namespace XianXia.Core.Actions
     {
         public static bool IsAutonomous(IAction action) =>
             action is CultivateAction || action is LaborAction || action is WorkAction ||
-            action is MoveAction || action is RestAction || action is ObserveAction;
+            action is MoveAction || action is RestAction || action is ObserveAction || action is HuangcunSurvivalAction;
 
         public static bool IsAutonomous(OrderType type) =>
             type == OrderType.Cultivate || type == OrderType.Labor || type == OrderType.Work ||
-            type == OrderType.Move || type == OrderType.Rest || type == OrderType.Observe;
+            type == OrderType.Move || type == OrderType.Rest || type == OrderType.Observe || type == OrderType.HuangcunSurvival;
 
         public static bool CanContinue(SimulationWorld world, EntityId subject)
         {

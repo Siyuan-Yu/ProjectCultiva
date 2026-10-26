@@ -28,6 +28,7 @@ namespace XianXia.Core.Simulation
     public sealed class SimulationWorld
     {
         public HuangcunOpeningArea OpeningArea { get; } = new HuangcunOpeningArea();
+        public HuangcunSurvivalState HuangcunSurvival { get; set; } = new HuangcunSurvivalState();
 
         readonly Dictionary<string, ScheduleDefinition> _schedules =
             new Dictionary<string, ScheduleDefinition>(System.StringComparer.Ordinal);

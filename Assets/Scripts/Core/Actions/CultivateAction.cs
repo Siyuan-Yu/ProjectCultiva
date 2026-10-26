@@ -44,7 +44,7 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionCannotStart, "Subject cannot cultivate.", life.State.ToString());
             if (!entity.TryGet<CultivationComponent>(out _))
                 return Result.Failure(ErrorCode.ComponentMissing, "CultivationComponent missing.");
-            return Result.Success();
+            return HuangcunSurvivalService.ValidateCultivation(world, entity);
         }
 
         public Result Start(SimulationWorld world)
@@ -74,6 +74,8 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionFailed, "CultivationComponent missing during cultivate.");
             }
 
+            var survivalCheck = HuangcunSurvivalService.ValidateCultivation(world, entity);
+            if (survivalCheck.IsFailure) { Status = ActionStatus.Failed; world.HuangcunSurvival.Message = survivalCheck.Error.ToString(); return survivalCheck; }
             Clock = Clock.Consume(1);
             var talentBonus = 0;
             if (entity.TryGet<PersonalityProfileComponent>(out var profile))
@@ -84,17 +86,26 @@ namespace XianXia.Core.Actions
                 ? cultivation.CultivationSpeed
                 : CultivationProgressRules.BaseProgressPerTick;
             gain += talentBonus;
+            var survival = HuangcunSurvivalService.Applies(world, entity) && XianXia.Core.World.Strategic.HuangcunOpeningAccess.IsLocked(world);
+            if (survival && !HuangcunSurvivalService.AtCamp(world, Subject)) gain = System.Math.Max(1, gain / 2);
             if (entity.TryGet<PersonalLifeComponent>(out var personalLife))
             {
                 if (cultivation.Realm < RealmStage.GoldenCore) personalLife.Energy--;
                 personalLife.CurrentMood--;
+                if (survival && !cultivation.IsAtBottleneck) personalLife.Satiety--;
                 personalLife.Clamp();
             }
             var cap = cultivation.BreakthroughProgressRequired;
+            var previousProgress = cultivation.Progress;
             if (cap > 0 && cultivation.Progress + gain > cap)
                 cultivation.Progress = cap;
             else
                 cultivation.Progress += gain;
+
+            // 可选荒村札记：只记录主控真正获得修为，不由听取建议或 NPC 自修代办。
+            if (cultivation.Progress > previousProgress && world.Flags.Has("story:huangcun_production") &&
+                world.Strategic.PlayerPartyContext?.ActiveCharacterId == Subject)
+                StoryFlagService.Set(world, "story:huangcun_first_cultivation_tick", Subject);
 
             if (cultivation.HasLearnedManual)
                 new SkillMasteryService().AddManualMasteryProgress(

@@ -22,6 +22,7 @@ namespace XianXia.Core.Orders
         Work = 7,
         /// <summary>在恢复处将生命与灵力恢复至当前上限。</summary>
         Recover = 8,
-        RestAtBed = 9
+        RestAtBed = 9,
+        HuangcunSurvival = 10
     }
 }
