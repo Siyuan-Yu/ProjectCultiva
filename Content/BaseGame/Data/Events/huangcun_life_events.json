@@ -18,7 +18,7 @@
         {
           "id": "arrival",
           "speakerRef": "",
-          "text": "木墙里的炊烟刚升起来。田边有人弯腰，药圃有人蹲着翻看叶色，巡卫从四门之间走过。你和同行的两人被记在荒村的名册上。\n\n眼下，杂役不得越过村界。墙内散生的树木、零星矿石、灵泉，还有人们不愿多说的旧洞府，都可以慢慢寻找。想有朝一日走出去，得先有安身和立足的本事。\n\n今日的活、相识的人、夜里的吐纳，你可以自己安排。\n\n【先从哪里开始？】下面只是两条可选引导和自由行动，不是职业或难度，不会锁住其他路线。暂时不接的引导，之后可向将老询问补接。",
+          "text": "木墙里的炊烟刚升起来。田边有人弯腰，药圃有人蹲着翻看叶色，巡卫从四门之间走过。你和同行的两人被记在荒村的名册上。\n\n杂役擅自出村会被近处巡视的主管或巡卫拦下；他们歇息或走远时，可以沿村门溜到墙外。旧洞府藏在东北面的山崖内侧，城外还有野树与散矿。盆地外的悬崖无法徒步翻越；要去更远的世界，得先取得荒村，再启用东侧城外的古传送灵阵。\n\n今日的活、相识的人、夜里的吐纳，你可以自己安排。\n\n【先从哪里开始？】下面只是两条可选引导和自由行动，不是职业或难度，不会锁住其他路线。暂时不接的引导，之后可向将老询问补接。",
           "outcomes": [],
           "choices": [
             {
@@ -122,7 +122,7 @@
         {
           "id": "rules",
           "speakerRef": "@target",
-          "text": "「住处按床位安排，当班做事，闲下了自己歇着。你们同行的人，吃饭睡觉也得互相照应。」\n\n主管将名册合上：「库房仍可按附庸的规矩取用，里头有多少就是多少。还有，两名巡卫轮看四门。田、林、矿和灵泉任你往来，村界外不许去。」",
+          "text": "「住处按床位安排，当班做事，闲下了自己歇着。你们同行的人，吃饭睡觉也得互相照应。」\n\n主管将名册合上：「库房仍可按附庸的规矩取用，里头有多少就是多少。还有，两名巡卫轮看四门。田、林、矿和灵泉任你往来；当班和夜巡时若被看见擅自出村，可不会只记一笔账。」",
           "outcomes": [
             {
               "kind": "setFlag",
@@ -3548,6 +3548,260 @@
           ]
         }
       ]
+    },
+    {
+      "id": "base:event_huangcun_cave_exterior",
+      "type": "contentEvent",
+      "name": "荒村外·崖内旧洞",
+      "trigger": "onExplore",
+      "once": true,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "荒村的屋檐已经看不见了。岩坡上的旧痕迹通向一处被藤蔓遮住的洞口。这里不在巡卫的日常路线上，适合避人耳目，却也没有谁会替闯进去的人收拾残局。",
+          "outcomes": [
+            {
+              "kind": "setFlag",
+              "id": "story:huangcun_cave_exterior_seen"
+            }
+          ],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，继续。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "locationId": "base:loc_ref_cave"
+    },
+    {
+      "id": "base:event_huangcun_spirit_gate_dormant",
+      "type": "contentEvent",
+      "name": "荒村外·沉寂灵阵",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "missingFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "四块石座围着几乎磨平的阵纹。阵心仍有微弱灵光，却与荒村的控制核心隔着一道未接上的脉路。村里的人只当它是废物；在取得荒村前，你也无法让它把人送出这片山崖。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，继续。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "spiritGate",
+      "worldObjectId": "base:site_huangcun:enclave_spirit_gate",
+      "priority": 40,
+      "topicText": "查看灵阵刻纹"
+    },
+    {
+      "id": "base:event_huangcun_spirit_gate_active",
+      "type": "contentEvent",
+      "name": "荒村外·复明灵阵",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_production"
+        },
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "荒村的控制脉路接上了旧阵。石纹自内向外亮起，越过山崖的落点仍在同一片大地上。靠近任一端启用灵阵，便能往返山崖内外。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，继续。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "spiritGate",
+      "worldObjectId": "base:site_huangcun:enclave_spirit_gate",
+      "priority": 40,
+      "topicText": "查看灵阵刻纹"
+    },
+    {
+      "id": "base:event_huangcun_spirit_gate_outer",
+      "type": "contentEvent",
+      "name": "山崖外·返程灵阵",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [
+        {
+          "kind": "hasFlag",
+          "id": "story:huangcun_world_unlocked"
+        }
+      ],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "崖外的旧阵与荒村东面的阵纹遥相呼应。靠近阵心启用它，便能回到山崖内侧。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下，继续。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "spiritGate",
+      "worldObjectId": "base:site_huangcun:enclave_spirit_gate_outer",
+      "priority": 40,
+      "topicText": "查看返程阵纹"
+    },
+    {
+      "id": "base:event_huangcun_waystone_spring",
+      "type": "contentEvent",
+      "name": "崖下灵泉·旧碑",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "小灵泉边的石碑只剩半截，上面记着旧时采药人沿崖行走的方向。荒村的木墙在身后，向东北走还有一处被藤蔓遮住的旧洞。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下方向。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "waystone",
+      "worldObjectId": "base:site_huangcun:enclave_waystone_spring",
+      "priority": 30,
+      "topicText": "读旧碑"
+    },
+    {
+      "id": "base:event_huangcun_waystone_cave",
+      "type": "contentEvent",
+      "name": "东北岩坡·藤痕石碑",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "碑身上有被藤根磨出的旧刻痕。顺着岩坡往东北望，废弃洞府的入口藏在更高处；这里已经离开巡卫平日守着的村门。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "继续搜寻。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "waystone",
+      "worldObjectId": "base:site_huangcun:enclave_waystone_cave",
+      "priority": 30,
+      "topicText": "辨认藤痕"
+    },
+    {
+      "id": "base:event_huangcun_waystone_ridge",
+      "type": "contentEvent",
+      "name": "东崖·残碑",
+      "trigger": "onInspect",
+      "once": false,
+      "conditions": [],
+      "entryStepId": "look",
+      "steps": [
+        {
+          "id": "look",
+          "speakerRef": "",
+          "text": "残碑上的旧图只画出了荒村、四周山崖和东侧古阵。地面没有通往外界的路；要想启用阵法，得先真正取得荒村。等有了凌空越崖的本领，也许还可以另寻出路。",
+          "outcomes": [],
+          "choices": [
+            {
+              "id": "leave",
+              "text": "记下地形。",
+              "conditions": [],
+              "outcomes": [],
+              "nextStepId": "",
+              "unavailableMode": "disabled",
+              "requirementText": ""
+            }
+          ]
+        }
+      ],
+      "worldObjectKind": "waystone",
+      "worldObjectId": "base:site_huangcun:enclave_waystone_ridge",
+      "priority": 30,
+      "topicText": "查看旧图"
     }
   ]
 }

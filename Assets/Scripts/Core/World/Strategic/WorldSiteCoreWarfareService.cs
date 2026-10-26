@@ -276,7 +276,8 @@ namespace XianXia.Core.World.Strategic
             else if (!ContinuousCharacterSpatialAuthorityResolver.TryResolveWorldPosition(
                          world, attacker, target.SurfaceId, out _, out _, out _, out _))
                 return Fail("攻击者不在目标连续世界表面。");
-            if (requireWar && !WarGateService.CanAttack(world, member.FactionId, current.OwnerFactionId))
+            if (requireWar && !string.IsNullOrEmpty(current.OwnerFactionId) &&
+                !WarGateService.CanAttack(world, member.FactionId, current.OwnerFactionId))
                 return Fail("攻击据点核心需要有效战争状态。");
             return Result.Success();
         }

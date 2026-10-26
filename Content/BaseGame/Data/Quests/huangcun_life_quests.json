@@ -123,7 +123,7 @@
       "id": "base:quest_huangcun_cave",
       "type": "quest",
       "name": "山中旧迹·废弃洞府",
-      "description": "可选探索。根据灵泉附近的气息提示，使用神识勘查寻找入口，进入并探索洞府内室。先恢复状态、查看周围敌我；不要求击败主管，也不因接取任务生成敌人。",
+      "description": "可选探索。趁主管与巡卫巡视的空档，从荒村出门前往东北方向的墙外山地，使用神识勘查寻找废弃洞府入口，再进入内室探索。先恢复状态、查看周围敌我；不要求击败主管，也不因接取任务生成敌人。",
       "questKind": "secretRealm",
       "runtimeMode": "fixed",
       "acceptanceMode": "journal",

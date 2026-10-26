@@ -1,5 +1,7 @@
 # ADR-0055：固定议政厅据点与五级行政范围
 
+> 2026-10-26 更新：制作人已批准 [ADR-0060](ADR-0060-final-world-geography-and-site-retirement.md) 的主世界定稿迁移。下文 §2 关于 102 个旧旗 Site 在**新开局主世界全部保留**的要求，由 ADR-0060 的逐项退役决定替代；退役旧 ID 不复用；保留 ID 依逐项表迁址／改名／改属，旧档原文件仍保留。唯一固定 SiteCore 与等级范围等其余规则继续有效。
+
 > 日期：2026-10-25。状态：**Producer Design Confirmed / Implemented；未人工验收／未封板**。制作人已确认规则方向、102 个既有据点均纳入及等级倍数；实施记录见[345](../345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)。本 ADR 不修改 Freeze 正文或稳定 ID／Snapshot 数值；实施按制作人“全部实现”授权扩充了 Core／Data 内容契约。
 
 > 后续 [ADR-0056](ADR-0056-five-level-town-separation-and-world-expansion.md) 增加作者布局约束：当前 108 城即使全部五级也不得互相贴边。下文通用解析规则仍能处理旧档或其他世界的历史重叠，但本次主世界不再布置重叠理论范围。

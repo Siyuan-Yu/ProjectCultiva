@@ -17,7 +17,28 @@ namespace XianXia.Unity.Host
             var runtime = bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (runtime?.Mapper == null || !runtime.IsActive) return false;
             runtime.Mapper.PresentationToWorld(point.x, point.y, out var x, out var y);
-            return HuangcunOpeningAccess.AllowsPosition(world, runtime.ActiveSurfaceId, x, y);
+            if (!HuangcunOpeningAccess.AllowsPosition(world, runtime.ActiveSurfaceId, x, y)) return false;
+            if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.HasPosition &&
+                world.Strategic.PlayerPartyContext?.ActiveCharacterId == id)
+                return HuangcunOpeningAccess.AllowsPlayerMove(world, runtime.ActiveSurfaceId,
+                    world.PlayerPartyTravel.WorldPosition.X, world.PlayerPartyTravel.WorldPosition.Y, x, y);
+            return true;
+        }
+
+        string OpeningMoveBlockReason(EntityId id, Vector3 point)
+        {
+            var world = bootstrap?.Session?.World;
+            var runtime = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (world?.PlayerPartyTravel == null || runtime?.Mapper == null ||
+                world.Strategic.PlayerPartyContext?.ActiveCharacterId != id)
+                return HuangcunOpeningAccess.BlockedMessage;
+            runtime.Mapper.PresentationToWorld(point.x, point.y, out var x, out var y);
+            return HuangcunOpeningAccess.AllowsPosition(world, runtime.ActiveSurfaceId, x, y) &&
+                !HuangcunOpeningAccess.AllowsPlayerMove(world, runtime.ActiveSurfaceId,
+                    world.PlayerPartyTravel.WorldPosition.X,
+                    world.PlayerPartyTravel.WorldPosition.Y, x, y)
+                ? HuangcunOpeningAccess.PatrolBlockedMessage
+                : HuangcunOpeningAccess.BlockedMessage;
         }
     }
 }

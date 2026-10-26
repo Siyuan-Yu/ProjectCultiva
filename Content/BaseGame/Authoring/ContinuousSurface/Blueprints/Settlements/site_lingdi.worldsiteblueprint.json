@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "base:site_lingdi",
-  "displayName": "灵地",
+  "displayName": "坚元城",
   "widthCells": 180,
   "heightCells": 180,
   "fineTerrainSources": [],
@@ -17,12 +17,12 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地·议政厅",
+        "label": "坚元城·议政厅",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "8",
         "boundLocationId": "base:loc_site_lingdi_core",
-        "localPlaceName": "灵地·议政厅",
+        "localPlaceName": "坚元城·议政厅",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "structureDurability": "200"
       }
@@ -38,7 +38,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -46,7 +46,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_0",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -61,14 +61,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_0",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_0"
       }
@@ -84,14 +84,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_0",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_0"
       }
@@ -107,7 +107,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -115,7 +115,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_1",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -130,14 +130,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_1",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_1"
       }
@@ -153,14 +153,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_1",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_1"
       }
@@ -176,7 +176,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -184,7 +184,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_2",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -199,14 +199,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_2",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_2"
       }
@@ -222,14 +222,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_2",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_2"
       }
@@ -245,7 +245,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -253,7 +253,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_3",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -268,14 +268,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_3",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_3"
       }
@@ -291,14 +291,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_3",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_3"
       }
@@ -314,7 +314,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -322,7 +322,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_4",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -337,14 +337,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_4",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_4"
       }
@@ -360,14 +360,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_4",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_4"
       }
@@ -383,7 +383,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -391,7 +391,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_5",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -406,14 +406,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_5",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_5"
       }
@@ -429,14 +429,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_5",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_5"
       }
@@ -452,7 +452,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -460,7 +460,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_6",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -475,14 +475,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_6",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_6"
       }
@@ -498,14 +498,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_6",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_6"
       }
@@ -521,7 +521,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋",
+        "label": "坚元城石屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -529,7 +529,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_home_7",
-        "localPlaceName": "灵地石屋",
+        "localPlaceName": "坚元城石屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -544,14 +544,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_7",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_7"
       }
@@ -567,14 +567,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地石屋床位",
+        "label": "坚元城石屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_home_7",
-        "localPlaceName": "灵地石屋床位",
+        "localPlaceName": "坚元城石屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:home_7"
       }
@@ -590,7 +590,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地小功法阁",
+        "label": "坚元城小功法阁",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -598,7 +598,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_manual_hall",
-        "localPlaceName": "灵地小功法阁",
+        "localPlaceName": "坚元城小功法阁",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -653,7 +653,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地修炼屋",
+        "label": "坚元城修炼屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -661,7 +661,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_practice_hall",
-        "localPlaceName": "灵地修炼屋",
+        "localPlaceName": "坚元城修炼屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -716,7 +716,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地药舍",
+        "label": "坚元城药舍",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -724,7 +724,7 @@
         "structureDurability": "260",
         "roomUsage": "Medical",
         "boundLocationId": "base:loc_site_lingdi_inn",
-        "localPlaceName": "灵地药舍",
+        "localPlaceName": "坚元城药舍",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -739,14 +739,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地药舍床位",
+        "label": "坚元城药舍床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_inn",
-        "localPlaceName": "灵地药舍床位",
+        "localPlaceName": "坚元城药舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:inn"
       }
@@ -762,14 +762,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地药舍床位",
+        "label": "坚元城药舍床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_lingdi_inn",
-        "localPlaceName": "灵地药舍床位",
+        "localPlaceName": "坚元城药舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_lingdi:town:inn"
       }
@@ -785,7 +785,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地低级丹室",
+        "label": "坚元城低级丹室",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -793,7 +793,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_workshop",
-        "localPlaceName": "灵地低级丹室",
+        "localPlaceName": "坚元城低级丹室",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -808,7 +808,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地坊市",
+        "label": "坚元城坊市",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -816,7 +816,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_lingdi_market_hall",
-        "localPlaceName": "灵地坊市",
+        "localPlaceName": "坚元城坊市",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -831,7 +831,7 @@
       "heightCells": 3,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "灵地公库",
+        "label": "坚元城公库",
         "blocksMovement": "true",
         "sourceCellsW": "3",
         "sourceCellsH": "3",

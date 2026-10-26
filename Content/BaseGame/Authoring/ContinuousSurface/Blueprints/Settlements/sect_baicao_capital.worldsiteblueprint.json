@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_baicao_capital",
-  "displayName": "回春城",
+  "displayName": "百草城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2362,11 +2362,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "回春城·主城领地·议政厅",
+        "label": "百草城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_baicao_capital",
         "boundLocationId": "base:loc_sect_baicao_capital_core",
-        "localPlaceName": "回春城·主城领地·议政厅",
+        "localPlaceName": "百草城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

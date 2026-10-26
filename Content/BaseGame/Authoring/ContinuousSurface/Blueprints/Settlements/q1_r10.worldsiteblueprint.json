@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_q1_r10",
-  "displayName": "玄衡城",
+  "displayName": "衡岳城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2311,11 +2311,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "玄衡城·主城领地·议政厅",
+        "label": "衡岳城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_q1_r10",
         "boundLocationId": "base:loc_q1_r10_core",
-        "localPlaceName": "玄衡城·主城领地·议政厅",
+        "localPlaceName": "衡岳城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

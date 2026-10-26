@@ -1,5 +1,98 @@
 # 开发日志
 
+## 2026-10-26 — 新开局名册与 Surface 锚点一致性修复（Implemented / 待制作人验收）
+
+制作人在 Unity 新开局遇到 `Missing opening Surface anchor: base:character_sect_wanling_capital_shop`。原因是正式 Host 选择 `huangcun_life_roster` 生成角色，而地理迁移只清理了 `huangcun_life` 场景中的 12 名退役城池商人；名册仍有这 12 名角色。现将名册同步裁至 44 名开局角色，并使一次性地理迁移脚本同时维护场景与名册。角色定义本身未删；静态核对名册与场景的 44 个 ID 完全一致，44 名角色均有发布 Surface 锚点。本轮未启动 Unity 或自动测试，运行结果待制作人重试新开局；未提交推送。
+
+## 2026-10-26 — 定稿世界地理、八宗城址与关口作者源发布（Implemented / 待制作人验收）
+
+按制作人批准的 [ADR-0060](43-decisions/ADR-0060-final-world-geography-and-site-retirement.md) 和八宗最终口径，把 [WORLD-REF-020](../../ArtSource/References/WORLD-REF-020_world_geography_final_concept_v01.png) 的布局迁到 Continuous Surface 作者源。108 个旧 Site 中 57 个按 [379](379-final-world-site-disposition-audit.tsv) 迁址／改名／改属、51 个从新开局布局退役；荒村归执衡宗且闭合盆地保留，执衡五城，朔风堡 7 座边境城不计入宗门。极寒、火脉、青霄、镇岳、蛇人沙漠周缘生成 Mountain 阻挡和与关口城对齐的地面缺口；魔兽核心无人类城，西侧河流配两座桥。开局商人对退役 Site 的直接出生引用已清理，八个旧宗门血脉定义退役后与执衡共八宗。正式运行地图三件套已由 WorldComposer 核心发布器同源生成，Host 世界图使用浅色地貌表现，BaseGame 内容版本升为 `0.0.27-final-world-geography`。未启动 Unity、未运行自动测试、未提交推送；基础编译和静态检查结果以及需人工验收项见 [378](378-final-world-geography-gate-handoff-2026-10-26.md)。
+
+## 2026-10-26 — 世界地理定稿 PNG 与正式内容迁移边界（Design Confirmed / 未实施）
+
+制作人确认浅色二维世界图的最后两处修改：衡河南关移至荒村西南的空地，删除镇星裂谷下方的孤立折线，并要求将高原／盆地关口城市落实为普通地面必经入口、金丹飞行可越崖。定稿与单轮实施交接见 [378](378-final-world-geography-gate-handoff-2026-10-26.md)，PNG 已存入 `ArtSource/References/WORLD-REF-020_world_geography_final_concept_v01.png`；32 个旧版 WORLD-REF 图文件已删除，历史提案页保留文字并标明图已撤下。正式世界仍为 108 固定 Site／16 宗，定稿约五十城／八人类宗门的删并关系与 [ADR-0055](43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md) 的旧 Site 身份保留要求冲突。**本轮未改作者地形、Site、运行发布物或通行代码；未启动 Unity、未运行自动测试、未提交推送。**
+
+## 2026-10-25 — 108 城镇与五级范围完整 PNG 草图（Proposed）
+
+制作人要求当前只画小幅 PNG 草图、不改正式游戏地图，同时沿用此前二维世界图的画风与完整信息。[377 PNG 草图](377-world-geography-108-sites-raster-sketch-2026-10-25.md)直接取作者数据中的全部 108 个固定 Site 身份、名称、当前等级与现有归属：实色框表示当前范围，浅色虚框表示同址五级满级范围；同势力城镇在图面上聚拢，拟议妖域和特殊区域内部不保留人类城镇。已否决的简化 v17 图、隐藏站位、无正式 Site 的候选城框和旧 SVG 交付口径从当前方案撤下。**坐标仅是草图**；正式 Site、五级精确间距、地形、导航、建筑、归属及包版本未改，也未进入 Unity、未提交推送。
+
+## 2026-10-25 — 开局无主旧营与高原坡口图（待制作人验收；v15 图面 Superseded）
+
+按 [ADR-0058](43-decisions/ADR-0058-unclaimed-opening-site-and-player-faction-identity.md) 移除「行路旧营」的开局玩家归属，保留原 Site、固定议政厅和玩家势力身份；无主固定议政厅的占领入口不再误套双方战争门槛，正式内容版本升为 `0.0.26-unclaimed-origin`。新开局及后续占领取得所有权待制作人手动验收。[375 新地图草案](375-unclaimed-origin-and-plateau-entrances-2026-10-25.md)只用城镇当前管辖框显示势力颜色，去掉大片势力晕染与模糊绿色过渡带；按 [ADR-0059](43-decisions/ADR-0059-plateau-entrances-and-flight-crossing.md) 画出可走高原、三处步行坡口和金丹飞行越崖语义。**高原正式地形、道路与导航尚未实施；本轮未进 Unity、未提交推送。**
+
+## 2026-10-25 — 不规则险地与势力活动区图（Superseded）
+
+按制作人对旧图棕色虚线、圆形险地和势力颜色的反馈，[374 二维世界图](374-irregular-hazards-and-faction-influence-map-proposal-2026-10-25.md)删除未落地的拟议交通虚线，把火山、磁乱、飓风、雷暴边界改为更自然的边缘地带。当前作者源中有归属且仍在概念图上显示的据点按正式 `mapColor` 着色，淡色势力活动区仅按这些据点外推，候选城镇与无主青石镇不虚构归属。正式 Surface、Site、道路、领地权限与导航均未改；373 图面为 Superseded。**Proposed / 未实施 / 未提交推送**。
+
+## 2026-10-25 — 火脉边城与风暴城险地走廊修订（Superseded）
+
+按制作人在 v12 图上的红／蓝框，[373 二维世界图](373-fire-rim-towns-and-storm-city-hazard-corridor-proposal-2026-10-25.md)将左下三处框定为火山外围人类城镇候选：火脉西城、火脉镇和火脉城；右侧蓝框的旧据点从图面隐去，雷暴区覆盖其位置。飓风与雷暴向东包住风暴城的北／南两侧，并在西面接合，城址与五级范围保留安全间隙。补充山脊图例语义：灰线与三角形只示地貌，具体步行、山口和飞行通行规则未获本轮批准。正式 Site、Surface、道路与导航均未改；372 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 荒村避河、旧盆地清理与边城贴近险地（Superseded）
+
+按制作人对 v11 的局部标注，[372 二维世界图](372-huangcun-river-clearance-and-frontier-town-spacing-proposal-2026-10-25.md)将荒村悬崖盆地整体西移，与西界河留出草地缓冲；删除盆地下方残留的旧半圆崖线和旧山路占位标注。危险地貌外围的人类候选城镇向各区边缘微调，并在图面说明棕色虚线为拟议交通联系、灰色起伏线与三角形为山脊／崖线。正式 Site、Surface、道路和地形未改；371 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 荒村河畔盆地与东部风暴门户修订（Superseded）
+
+按制作人对 v10 的红框修订，[371 二维世界图](371-huangcun-riverside-basin-and-eastern-storm-gateway-proposal-2026-10-25.md)把荒村及闭合悬崖盆地整体上移到魔兽山脉西南缘、折河西岸；飓风区和雷暴区缩为东部上下相接的危险带，全部人类城镇五级预留框均避开危险区。适居地带和极端地貌外围补入概念候选城镇，最东侧增设“风暴城”，形成穿越飓风或雷暴后抵达的门户结构。正式 Site、Surface、道路、导航及地形规则未改；370 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 人类城镇避让地貌与荒村悬崖盆地修订（Superseded）
+
+按制作人标注，[370 二维世界图](370-human-settlement-biome-exclusion-and-huangcun-cliff-proposal-2026-10-25.md)将雷暴区从西南移到东侧飓风区以南，西南仅留火山群；人类城镇与预留范围从魔兽山脉、蛇人沙漠及极端地貌内部的图面暂隐，相关旧 Site 待重排，魔兽／蛇人聚落符号尚未添加。荒村图面拟迁至山脉西南麓的闭合悬崖盆地，旧荒村点改标山路；西界河走向保留。仅交付 PNG／SVG 概念图，正式 Site、Surface、导航与地形未改；369 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 西南折河、人兽边界与气候区修订（Superseded）
+
+按制作人在概念图上的红线，[369 新版二维图](369-southwestern-river-bend-beast-border-and-biomes-proposal-2026-10-25.md)把西界河改为西南麓东折、向东南出图，缩小蛇人沙漠，将火山／雷暴移往左下角，并把原雷暴区改为飓风区。图面 14 个山地外缘 Site 拟迁，108 个全五级范围均不横跨人域与山脉、彼此不接触；山内高密度现有据点暂作待重整底稿，不代表最终人类城市分布。正式 Surface、Site、宗门身份和道路均未改；368 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 西侧河流南下与荒村近山麓修订（Superseded）
+
+按制作人反馈，[368 二维图](368-western-river-and-near-foothill-huangcun-proposal-2026-10-25.md)撤去 [367](367-beast-range-rim-river-and-five-level-spacing-proposal-2026-10-25.md) 中伸入蛇人沙漠、沿山脉南东缘形成环绕感的河段；西界河从山脉西侧独立南下至地图边缘。荒村图面拟迁点向东北靠近西南山麓，保留开局盆地及与其他 Site 的五级预留间距。正式作者地图、水系、城镇和导航未改；367 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 山脉外围河道与全五级城镇间距草案（Superseded）
+
+按制作人反馈，[367 二维图](367-beast-range-rim-river-and-five-level-spacing-proposal-2026-10-25.md)小幅收缩魔兽山脉核心和外围，把西界河改成沿西麓转向南缘的弧线，东侧来水也沿外缘汇入。荒村拟迁图面点位改为 `(5400,750)`，避开上版盆地与邻近据点的交叠；叠绘 108 处 Site 全部升至五级时的 540×540 预留方框，静态坐标核对无接触或重叠，最近理论净距 160 格。正式作者点位、河道、桥、导航与地形未修改；[366](366-western-boundary-river-geography-proposal-2026-10-25.md) 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 西界河与人兽交界地理草案（Superseded）
+
+按制作人建议，[366 二维地图草案](366-western-boundary-river-geography-proposal-2026-10-25.md)把靠西河流调整到荒村拟迁位置东侧，沿魔兽山脉西麓南下；增绘山地汇入支流与三处概念过河点，使部分人域／魔兽活动区边界、山口通行和渡河生活有共同地理依据。作者源现有两段河与一处桥仍在原位，未改正式水系、道路、Site 或势力规则。上版 [365](365-worldmap-site-control-and-huangcun-basin-scale-2026-10-25.md) 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 据点范围与荒村盆地比例对照（Superseded）
+
+在 [365 二维范围图](365-worldmap-site-control-and-huangcun-basin-scale-2026-10-25.md)上按现有作者数据绘出 108 处固定 Site 的理论控制方框：5 处一级 180×180，103 处三级 360×360；另用蓝色虚线标出 720×720 荒村开局盆地。该盆地约占 15200×6800 世界图面积 0.50%，长宽为荒村一级城镇的 4 倍。比例核对发现，上轮拟迁荒村图面位置会让盆地与合欢宗一处现有据点范围相交，外围山带还触及百草丹宗一处据点；此坐标仍为不可直接落地的提案。正式地图和城镇数据未改，上一版 [364](364-beast-range-foothills-and-huangcun-location-proposal-2026-10-25.md) 图标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 魔兽山脉外围、荒村拟迁与边缘危险地貌（Superseded）
+
+制作人要求山脉核心缩小、外围扩大并略向南延伸，同时把荒村置于山脉西南侧山外，把磁乱区和火山移到地图边缘。[364 新版二维图](364-beast-range-foothills-and-huangcun-location-proposal-2026-10-25.md)已按此重新排布，蛇人沙漠仍在东南、寒地仍在东北。荒村新点位仅为图面提案，其正式作者坐标、盆地与开局内容未动；其他据点仍按现有点位绘制。上一版 [363](363-broader-central-beast-range-proposal-2026-10-25.md) 标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 扩大中部魔兽山脉视觉范围（Superseded）
+
+制作人要求将中部魔兽山脉画得更大。[363 新版二维图](363-broader-central-beast-range-proposal-2026-10-25.md)向东西两端及南北山麓扩展不规则山地，并延长多条支脉；中部山口、北麓和南缘绕行仍可辨认。16 宗门主城和 108 固定 Site 点位不变；仅新增 PNG／SVG 概念图，正式地图与导航未修改。上一版 [362](362-central-beast-range-and-canyon-valleys-proposal-2026-10-25.md) 标为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 中部魔兽山脉与多峡谷二维地图草案（Superseded）
+
+按制作人反馈修订[二维世界图](362-central-beast-range-and-canyon-valleys-proposal-2026-10-25.md)：把魔兽山脉放在大陆中部，保留中部山口、北麓与南缘绕行三种概念路线；在荒村之外另画镇岳峡谷、铸星裂谷与凝霜冰谷。既有 16 宗门主城及 108 固定 Site 坐标仍读取当前作者数据，蛇人沙漠仍在东南、远离荒村。只生成 PNG／SVG 视觉草案，正式 Surface、导航、势力和城镇数据均未修改。上一版 [361](361-world-map-2d-geography-and-factions-proposal-2026-10-25.md) 记为 Superseded。**Proposed / 未实施**。
+
+## 2026-10-25 — 二维世界图地貌与宗门分布草案（Superseded）
+
+制作人否决上一版立体插画，要求贴近现有游戏大地图，并在真实据点位置标注宗门。新[二维草案](361-world-map-2d-geography-and-factions-proposal-2026-10-25.md)读取 15200×6800 作者源中的 108 个 Site 坐标，标出 16 宗门主城、荒村和青石镇；荒村保持西部绿地盆地，东部妖域和东南蛇人沙漠仅作拟议地貌。上一张立体图记为 Superseded；正式 Surface、势力归属和宗门种族均未改。**Proposed / 未实施**。
+
+## 2026-10-25 — 大陆地貌概念草图（Superseded）
+
+制作人要求先画更自然、完整的大陆地貌，不接入游戏。本轮保存[概念图及区域关系](360-world-geography-concept-2026-10-25.md)：荒村为不规则支脉盆地，东部／东北部约三分之一为连续妖族野域，雪原、雨影沙漠、火山、雷暴和磁异常依山脉与气候关系布置。尚未决定现有宗门归属、108 Site 精确迁移或地形玩法；未修改正式地图数据。**Proposed / 未实施**。
+
+## 2026-10-25 — 荒村公库食物与盆地厚山脉（待制作人验收）
+
+- 发现荒村初始公库无粮导致村民取食规划直接报“没有合法食物来源”。新开局有限配置 80 份粗粮，保留农田收获入库、村民经储藏室合法领取的生产／消费链；公库空但权限和库房正常时改报“公库无粮”。
+- 保留 720×720 新手盆地，在外侧新增约 80～100 格的不规则山带；崖外返程阵及实际交互坐标同步外移。生成并接入俯视陡峭岩层素材替换山地纯色表现，不增加碰撞实体。作者组合已重发布为正式 Surface 数据，内容版本 `0.0.25-huangcun-food-and-ridge`，需新开局。实施细节见 [359](359-huangcun-food-and-basin-ridge-2026-10-25.md)。
+- 基础编译与静态文件检查记录见 359；未运行自动测试、Unity、PlayMode 或 batchmode。**Implemented / Producer Acceptance Pending / 未提交推送**。
+
+## 2026-10-25 — 荒村墙外盆地、巡视出村与古灵阵（待制作人验收）
+
+- 按 [ADR-0057](43-decisions/ADR-0057-huangcun-enclave-patrol-and-exit.md) 和 [358](358-huangcun-opening-basin-implementation-2026-10-25.md) 将开局准入从 180×180 围墙扩为 720×720 地理盆地，保留现有村内实体坐标；洞府移到东北墙外，东侧布置可占领后启用的传送灵阵，外围山地/岩色占位形成无法步行穿越的崖壁。
+- 巡卫甲乙与主管以真实排班及近场位置决定是否阻止出村，返村不拦；盆地增加林地、树木、四类散矿、崖石、小灵泉和三处可调查旧碑。既有洞内功法/斗技秘本与学习链沿用；开局说明、洞府任务指引和洞府／双向灵阵／旧碑现场事件补齐新位置及解锁提示。
+- 作者组合与正式 Runtime 三份数据已同步发布，内容版本 `0.0.24-huangcun-enclave`。离线基础编译通过；未运行自动测试、Unity、PlayMode 或 batchmode。高级社交追查/处罚、特殊功法斗技机制及专用悬崖美术尚未完成，详见 358；当前为 **Implemented / Producer Acceptance Pending**，未提交推送。
+
+
 ## 2026-10-25 — 金丹精力与 108 城镇 0.8 实体范围
 
 制作人以 [357](357-golden-core-energy-and-town-footprints-2026-10-25.md) 覆写上一轮 0.75：等级 1～5 长宽现为 180／270／360／450／540 格，108 处固定 Site 蓝图按当前等级重设实体范围并把外墙放在控制边缘。荒村 180×180、103 处三级城镇 360×360；保留 8,988 个功能及环境对象，重发 660 格荒村木墙和 3,819 段其他城墙，内容版本 `0.0.23-town-footprints-080`。金丹及以上不再因日常需求或打坐扣精力，已耗尽者恢复行动阈值。正式运行地图已重发布，Core 基础编译与作者格式／边界静态检查完成；未跑自动测试或自行启动 Unity，路线取消的其他来源和游戏内进出／帧时仍待制作人验收。**Implemented / Producer Acceptance Pending / 未提交推送**。

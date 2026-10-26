@@ -293,26 +293,6 @@
           "localLocationId": "base:loc_sect_xuansha_capital_auction_hall"
         },
         {
-          "definitionId": "base:character_sect_wanling_capital_shop",
-          "entityKind": "npc",
-          "displayName": "栖灵城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_wanling_capital",
-          "localLocationId": "base:loc_sect_wanling_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_wanling_capital_auction",
-          "entityKind": "npc",
-          "displayName": "栖灵城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_wanling_capital",
-          "localLocationId": "base:loc_sect_wanling_capital_auction_hall"
-        },
-        {
           "definitionId": "base:character_sect_qingxiao_capital_shop",
           "entityKind": "npc",
           "displayName": "凌霄城·坊市行商",
@@ -393,26 +373,6 @@
           "localLocationId": "base:loc_sect_taiyan_capital_auction_hall"
         },
         {
-          "definitionId": "base:character_sect_tianlu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "承箓城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_tianlu_capital",
-          "localLocationId": "base:loc_sect_tianlu_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_tianlu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "承箓城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_tianlu_capital",
-          "localLocationId": "base:loc_sect_tianlu_capital_auction_hall"
-        },
-        {
           "definitionId": "base:character_sect_zhenyue_capital_shop",
           "entityKind": "npc",
           "displayName": "磐岳城·坊市行商",
@@ -471,86 +431,6 @@
           "recruitable": false,
           "worldSiteId": "site:runtime:base:flag_sect_ningshuang_capital",
           "localLocationId": "base:loc_sect_ningshuang_capital_auction_hall"
-        },
-        {
-          "definitionId": "base:character_sect_qiangu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "青瘴城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_qiangu_capital",
-          "localLocationId": "base:loc_sect_qiangu_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_qiangu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "青瘴城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_qiangu_capital",
-          "localLocationId": "base:loc_sect_qiangu_capital_auction_hall"
-        },
-        {
-          "definitionId": "base:character_sect_tingyu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "听澜城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_tingyu_capital",
-          "localLocationId": "base:loc_sect_tingyu_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_tingyu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "听澜城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_tingyu_capital",
-          "localLocationId": "base:loc_sect_tingyu_capital_auction_hall"
-        },
-        {
-          "definitionId": "base:character_sect_guiming_capital_shop",
-          "entityKind": "npc",
-          "displayName": "长明城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_guiming_capital",
-          "localLocationId": "base:loc_sect_guiming_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_guiming_capital_auction",
-          "entityKind": "npc",
-          "displayName": "长明城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_guiming_capital",
-          "localLocationId": "base:loc_sect_guiming_capital_auction_hall"
-        },
-        {
-          "definitionId": "base:character_sect_guanxing_capital_shop",
-          "entityKind": "npc",
-          "displayName": "照微城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_guanxing_capital",
-          "localLocationId": "base:loc_sect_guanxing_capital_market_hall"
-        },
-        {
-          "definitionId": "base:character_sect_guanxing_capital_auction",
-          "entityKind": "npc",
-          "displayName": "照微城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false,
-          "recruitable": false,
-          "worldSiteId": "site:runtime:base:flag_sect_guanxing_capital",
-          "localLocationId": "base:loc_sect_guanxing_capital_auction_hall"
         },
         {
           "definitionId": "base:character_site_guanai_shop",

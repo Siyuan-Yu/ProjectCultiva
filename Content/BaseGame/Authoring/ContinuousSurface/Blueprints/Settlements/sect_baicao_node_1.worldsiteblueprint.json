@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_baicao_node_1",
-  "displayName": "百草圃",
+  "displayName": "草木关",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1449,11 +1449,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "百草圃·宗门据点·议政厅",
+        "label": "草木关·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_baicao_node_1",
         "boundLocationId": "base:loc_sect_baicao_node_1_core",
-        "localPlaceName": "百草圃·宗门据点·议政厅",
+        "localPlaceName": "草木关·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

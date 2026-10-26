@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_zhuxing_node_3",
-  "displayName": "锻石庄",
+  "displayName": "熔河镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1449,11 +1449,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "锻石庄·宗门据点·议政厅",
+        "label": "熔河镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_zhuxing_node_3",
         "boundLocationId": "base:loc_sect_zhuxing_node_3_core",
-        "localPlaceName": "锻石庄·宗门据点·议政厅",
+        "localPlaceName": "熔河镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

@@ -891,6 +891,9 @@ namespace XianXia.Unity.Host
                 world, party, new WorldVec2(wx, wy));
             if (result.IsFailure)
             {
+                if (string.Equals(result.Error.Message,
+                    HuangcunOpeningAccess.PatrolBlockedMessage, StringComparison.Ordinal))
+                    active.SetActivityText(HuangcunOpeningAccess.PatrolBlockedMessage);
                 if (HasValidPartySurfaceAuthority(world, motion))
                     ReportLegalityBlocked();
                 else
@@ -961,7 +964,8 @@ namespace XianXia.Unity.Host
             var oldCovered = nav != null && nav.Contains(from.X, from.Y);
             var newCovered = nav != null && nav.Contains(to.X, to.Y);
             return oldCovered && newCovered &&
-                HuangcunOpeningAccess.AllowsPosition(world, nav.SurfaceId, to.X, to.Y) &&
+                HuangcunOpeningAccess.AllowsPlayerMove(world, nav.SurfaceId,
+                    from.X, from.Y, to.X, to.Y) &&
                 nav.IsSegmentWalkable(from.X, from.Y, to.X, to.Y);
         }
 

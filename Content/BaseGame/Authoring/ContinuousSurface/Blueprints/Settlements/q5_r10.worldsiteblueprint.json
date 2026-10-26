@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_q5_r10",
-  "displayName": "南稷庄",
+  "displayName": "西界驿",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1333,11 +1333,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "执衡宗·南稷庄前哨·议政厅",
+        "label": "西界驿·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_q5_r10",
         "boundLocationId": "base:loc_q5_r10_core",
-        "localPlaceName": "执衡宗·南稷庄前哨·议政厅",
+        "localPlaceName": "西界驿·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

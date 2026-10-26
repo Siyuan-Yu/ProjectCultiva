@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_baicao_node_4",
-  "displayName": "春雨庄",
+  "displayName": "南河驿",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1483,11 +1483,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "春雨庄·宗门据点·议政厅",
+        "label": "南河驿·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_baicao_node_4",
         "boundLocationId": "base:loc_sect_baicao_node_4_core",
-        "localPlaceName": "春雨庄·宗门据点·议政厅",
+        "localPlaceName": "南河驿·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

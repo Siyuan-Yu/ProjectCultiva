@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_xuansha_capital",
-  "displayName": "烬夜城",
+  "displayName": "玄衡城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2294,11 +2294,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "烬夜城·主城领地·议政厅",
+        "label": "玄衡城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_xuansha_capital",
         "boundLocationId": "base:loc_sect_xuansha_capital_core",
-        "localPlaceName": "烬夜城·主城领地·议政厅",
+        "localPlaceName": "玄衡城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

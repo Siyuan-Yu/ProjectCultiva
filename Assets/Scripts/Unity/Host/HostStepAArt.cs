@@ -403,6 +403,8 @@ namespace XianXia.Unity.Host
 
         public static Sprite StoneFloorTile() => SurfaceTile("ART-GROUND-004_stone_mine_floor_v01", 512f);
 
+        public static Sprite BasinCliffTile() => SurfaceTile("ART-GROUND-011_basin_cliff_stone_v01", 256f);
+
         public static Sprite StoneWallTile() => SolidWallSprite("ART-ROOM-012_stone_wall_solid_v01");
 
         // Source artwork is split at runtime so the visual opening follows the real two-cell doorway.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_hehuan_capital",
-  "displayName": "同心城",
+  "displayName": "合欢城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2311,11 +2311,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "同心城·主城领地·议政厅",
+        "label": "合欢城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_hehuan_capital",
         "boundLocationId": "base:loc_sect_hehuan_capital_core",
-        "localPlaceName": "同心城·主城领地·议政厅",
+        "localPlaceName": "合欢城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

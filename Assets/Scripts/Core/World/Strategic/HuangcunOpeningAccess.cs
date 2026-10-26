@@ -4,10 +4,13 @@ using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
+using XianXia.Core.Schedule;
+using XianXia.Core.Results;
+using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Immutable opening perimeter, rebound from authored Surface walls after NewGame/Load.</summary>
+    /// <summary>Opening basin and its inner village wall, rebound from authored Surface walls.</summary>
     public sealed class HuangcunOpeningArea
     {
         public string SurfaceId { get; private set; } = string.Empty;
@@ -16,6 +19,10 @@ namespace XianXia.Core.World.Strategic
         public float MaxX { get; private set; }
         public float MaxY { get; private set; }
         public float CellSize { get; private set; }
+        public float VillageMinX { get; private set; }
+        public float VillageMinY { get; private set; }
+        public float VillageMaxX { get; private set; }
+        public float VillageMaxY { get; private set; }
         public bool IsConfigured => !string.IsNullOrEmpty(SurfaceId) && MaxX > MinX && MaxY > MinY;
 
         // Session-only development override; deliberately absent from Snapshot and story flags.
@@ -26,8 +33,17 @@ namespace XianXia.Core.World.Strategic
         public void Configure(string surfaceId, float minX, float minY, float maxX, float maxY, float cellSize)
         {
             SurfaceId = surfaceId ?? string.Empty;
-            MinX = minX; MinY = minY; MaxX = maxX; MaxY = maxY; CellSize = cellSize;
+            VillageMinX = minX; VillageMinY = minY;
+            VillageMaxX = maxX; VillageMaxY = maxY;
+            var extraX = (maxX - minX) * 1.5f;
+            var extraY = (maxY - minY) * 1.5f;
+            MinX = minX - extraX; MinY = minY - extraY;
+            MaxX = maxX + extraX; MaxY = maxY + extraY; CellSize = cellSize;
         }
+
+        public bool ContainsVillage(string surfaceId, float x, float y) =>
+            IsConfigured && string.Equals(SurfaceId, surfaceId, StringComparison.Ordinal) &&
+            x >= VillageMinX && x <= VillageMaxX && y >= VillageMinY && y <= VillageMaxY;
 
         public bool Contains(string surfaceId, float x, float y)
         {
@@ -38,12 +54,13 @@ namespace XianXia.Core.World.Strategic
         }
     }
 
-    /// <summary>ADR-0052. Flags persist progress; existing Site ownership alone grants liberation.</summary>
+    /// <summary>ADR-0057. The basin is initially isolated; the village wall has a separate patrol gate.</summary>
     public static class HuangcunOpeningAccess
     {
         public const string ConfinedFlag = "story:huangcun_confined_opening";
         public const string UnlockedFlag = "story:huangcun_world_unlocked";
-        public const string BlockedMessage = "村界仍被封锁；取得荒村后才能离开。";
+        public const string BlockedMessage = "荒村周边的天险尚不能通过；取得荒村后才能前往外界。";
+        public const string PatrolBlockedMessage = "巡卫正在附近巡视，暂时不能擅自出村。";
         public const string ManagementLockedMessage = "取得荒村后，才能经营领地与建造。";
 
         public static bool IsLocked(SimulationWorld world) =>
@@ -67,6 +84,82 @@ namespace XianXia.Core.World.Strategic
 
         public static bool AllowsPosition(SimulationWorld world, string surfaceId, float x, float y) =>
             !IsMovementLocked(world) || world.OpeningArea.Contains(surfaceId, x, y);
+
+        /// <summary>Only an outward crossing can be stopped. Once outside, patrols never strand the player.</summary>
+        public static bool AllowsPlayerMove(SimulationWorld world, string surfaceId,
+            float fromX, float fromY, float toX, float toY)
+        {
+            if (!AllowsPosition(world, surfaceId, toX, toY)) return false;
+            if (!IsMovementLocked(world) || world.OpeningArea.DebugBypassMovementRestriction ||
+                !world.OpeningArea.ContainsVillage(surfaceId, fromX, fromY) ||
+                world.OpeningArea.ContainsVillage(surfaceId, toX, toY)) return true;
+            var area = world.OpeningArea;
+            var fraction = 1f;
+            var stepX = toX - fromX;
+            var stepY = toY - fromY;
+            if (stepX > 0f) fraction = Math.Min(fraction, (area.VillageMaxX - fromX) / stepX);
+            else if (stepX < 0f) fraction = Math.Min(fraction, (area.VillageMinX - fromX) / stepX);
+            if (stepY > 0f) fraction = Math.Min(fraction, (area.VillageMaxY - fromY) / stepY);
+            else if (stepY < 0f) fraction = Math.Min(fraction, (area.VillageMinY - fromY) / stepY);
+            fraction = Math.Max(0f, Math.Min(1f, fraction));
+            var exitX = fromX + stepX * fraction;
+            var exitY = fromY + stepY * fraction;
+            var watchRadius = world.OpeningArea.CellSize * 22f;
+            var radiusSquared = watchRadius * watchRadius;
+            foreach (var entity in world.Entities.All)
+            {
+                var id = entity.DefinitionId.ToString();
+                if (id != "base:character_ch01_ref_supervisor" &&
+                    id != "base:character_ch01_ref_guard_a" &&
+                    id != "base:character_ch01_ref_guard_b") continue;
+                if (!entity.TryGet<ScheduleComponent>(out var schedule) ||
+                    !world.TryGetSchedule(schedule.DefinitionId, out var definition) ||
+                    !definition.TryResolve(world.Tick, out var block) ||
+                    block.Activity != ScheduleActivity.Inspect && block.Activity != ScheduleActivity.Patrol ||
+                    !CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) ||
+                    !at.HasWorldPosition || !string.Equals(at.SurfaceId, surfaceId, StringComparison.Ordinal))
+                    continue;
+                var dx = at.WorldPosition.X - exitX;
+                var dy = at.WorldPosition.Y - exitY;
+                if (dx * dx + dy * dy <= radiusSquared) return false;
+            }
+            return true;
+        }
+
+        /// <summary>The old formation is a local, exact-position Surface handoff after liberation.</summary>
+        public static Result UseSpiritGate(SimulationWorld world, PlayerPartyRuntime party)
+        {
+            if (world == null || party == null || !party.HasActive ||
+                world.OpeningArea == null || !world.OpeningArea.IsConfigured ||
+                world.LocalMap.IsInInterior ||
+                CharacterEncounterService.BlocksOrdinaryContinuousSurface(world) || IsLocked(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "取得荒村后，才能启用城外传送灵阵。");
+            var motion = world.PlayerPartyTravel;
+            var area = world.OpeningArea;
+            if (motion == null || !motion.HasPosition || motion.IsMoving ||
+                !string.Equals(motion.SurfaceId, area.SurfaceId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "需要在荒村城外的灵阵前停下。");
+            var innerGate = new WorldVec2(area.MaxX - area.CellSize * 30f,
+                (area.MinY + area.MaxY) * .5f);
+            var outerGate = new WorldVec2(area.MaxX + area.CellSize * 125f, innerGate.Y);
+            var radius = area.CellSize * 10f;
+            var innerDx = motion.WorldPosition.X - innerGate.X;
+            var innerDy = motion.WorldPosition.Y - innerGate.Y;
+            var outerDx = motion.WorldPosition.X - outerGate.X;
+            var outerDy = motion.WorldPosition.Y - outerGate.Y;
+            var atInner = innerDx * innerDx + innerDy * innerDy <= radius * radius;
+            var atOuter = outerDx * outerDx + outerDy * outerDy <= radius * radius;
+            if (!atInner && !atOuter)
+                return Result.Failure(ErrorCode.InvalidOperation, "请靠近荒村山崖两侧的传送灵阵。");
+            var destination = atInner ? outerGate : innerGate;
+            if (!world.SurfaceGround.TryGet(area.SurfaceId, out var navigation) ||
+                !navigation.IsWalkable(destination.X, destination.Y))
+                return Result.Failure(ErrorCode.InvalidOperation, "灵阵另一端的落脚点暂不可用。");
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            motion.SetAtSurfacePosition(area.SurfaceId, destination);
+            PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(world, party);
+            return Result.Success();
+        }
 
         public static bool IsSimulated(SimulationWorld world, Entity entity)
         {

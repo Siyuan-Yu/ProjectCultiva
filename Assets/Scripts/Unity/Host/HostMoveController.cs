@@ -617,7 +617,7 @@ namespace XianXia.Unity.Host
 
             if (!IsOpeningMoveAllowed(id, point))
             {
-                view.SetActivityText(HuangcunOpeningAccess.BlockedMessage);
+                view.SetActivityText(OpeningMoveBlockReason(id, point));
                 return false;
             }
 

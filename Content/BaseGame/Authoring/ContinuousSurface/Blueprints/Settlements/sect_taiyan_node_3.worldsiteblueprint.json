@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_taiyan_node_3",
-  "displayName": "石枢坞",
+  "displayName": "花影关",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1398,11 +1398,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "石枢坞·宗门据点·议政厅",
+        "label": "花影关·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_taiyan_node_3",
         "boundLocationId": "base:loc_sect_taiyan_node_3_core",
-        "localPlaceName": "石枢坞·宗门据点·议政厅",
+        "localPlaceName": "花影关·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

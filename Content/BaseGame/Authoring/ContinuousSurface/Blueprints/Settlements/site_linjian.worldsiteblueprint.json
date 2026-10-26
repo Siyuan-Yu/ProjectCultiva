@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "base:site_linjian",
-  "displayName": "林间",
+  "displayName": "柏溪镇",
   "widthCells": 180,
   "heightCells": 180,
   "fineTerrainSources": [],
@@ -17,12 +17,12 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间·议政厅",
+        "label": "柏溪镇·议政厅",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "8",
         "boundLocationId": "base:loc_site_linjian_core",
-        "localPlaceName": "林间·议政厅",
+        "localPlaceName": "柏溪镇·议政厅",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "structureDurability": "200"
       }
@@ -38,7 +38,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -46,7 +46,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_0",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -61,14 +61,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_0",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_0"
       }
@@ -84,7 +84,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -92,7 +92,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_1",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -107,14 +107,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_1",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_1"
       }
@@ -130,7 +130,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -138,7 +138,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_2",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -153,14 +153,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_2",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_2"
       }
@@ -176,7 +176,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -184,7 +184,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_3",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -199,14 +199,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_3",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_3"
       }
@@ -222,7 +222,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -230,7 +230,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_4",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -245,14 +245,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_4",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_4"
       }
@@ -268,7 +268,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -276,7 +276,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_5",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -291,14 +291,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_5",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_5"
       }
@@ -314,7 +314,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -322,7 +322,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_6",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -337,14 +337,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_6",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_6"
       }
@@ -360,7 +360,7 @@
       "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋",
+        "label": "柏溪镇木屋",
         "blocksMovement": "true",
         "sourceCellsW": "4",
         "sourceCellsH": "6",
@@ -368,7 +368,7 @@
         "structureDurability": "100",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_7",
-        "localPlaceName": "林间木屋",
+        "localPlaceName": "柏溪镇木屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -383,14 +383,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间木屋床位",
+        "label": "柏溪镇木屋床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_home_7",
-        "localPlaceName": "林间木屋床位",
+        "localPlaceName": "柏溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:home_7"
       }
@@ -406,7 +406,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间小功法阁",
+        "label": "柏溪镇小功法阁",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -414,7 +414,7 @@
         "structureDurability": "140",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_manual_hall",
-        "localPlaceName": "林间小功法阁",
+        "localPlaceName": "柏溪镇小功法阁",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -469,7 +469,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间修炼屋",
+        "label": "柏溪镇修炼屋",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -477,7 +477,7 @@
         "structureDurability": "140",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_practice_hall",
-        "localPlaceName": "林间修炼屋",
+        "localPlaceName": "柏溪镇修炼屋",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -532,7 +532,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间驿舍",
+        "label": "柏溪镇驿舍",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -540,7 +540,7 @@
         "structureDurability": "140",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_inn",
-        "localPlaceName": "林间驿舍",
+        "localPlaceName": "柏溪镇驿舍",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -555,14 +555,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间驿舍床位",
+        "label": "柏溪镇驿舍床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_inn",
-        "localPlaceName": "林间驿舍床位",
+        "localPlaceName": "柏溪镇驿舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:inn"
       }
@@ -578,14 +578,14 @@
       "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间驿舍床位",
+        "label": "柏溪镇驿舍床位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
         "buildingId": "base:furniture_bed",
         "structureDurability": "60",
         "boundLocationId": "base:loc_site_linjian_inn",
-        "localPlaceName": "林间驿舍床位",
+        "localPlaceName": "柏溪镇驿舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
         "parentRoomId": "base:site_linjian:town:inn"
       }
@@ -601,7 +601,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间低级丹室",
+        "label": "柏溪镇低级丹室",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -609,7 +609,7 @@
         "structureDurability": "140",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_workshop",
-        "localPlaceName": "林间低级丹室",
+        "localPlaceName": "柏溪镇低级丹室",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -624,7 +624,7 @@
       "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间坊市",
+        "label": "柏溪镇坊市",
         "blocksMovement": "true",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
@@ -632,7 +632,7 @@
         "structureDurability": "260",
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_market_hall",
-        "localPlaceName": "林间坊市",
+        "localPlaceName": "柏溪镇坊市",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
       }
     },
@@ -647,7 +647,7 @@
       "heightCells": 3,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "林间公库",
+        "label": "柏溪镇公库",
         "blocksMovement": "true",
         "sourceCellsW": "3",
         "sourceCellsH": "3",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_zhenyue_node_3",
-  "displayName": "担山庄",
+  "displayName": "北岭镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1316,11 +1316,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "担山庄·宗门据点·议政厅",
+        "label": "北岭镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_zhenyue_node_3",
         "boundLocationId": "base:loc_sect_zhenyue_node_3_core",
-        "localPlaceName": "担山庄·宗门据点·议政厅",
+        "localPlaceName": "北岭镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

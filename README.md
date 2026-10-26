@@ -1,5 +1,7 @@
 # 修仙游戏项目（暂定名 XianXia）
 
+> **2026-10-26 当前正式世界地理：** [378 定稿实施](docs/40-process/378-final-world-geography-gate-handoff-2026-10-26.md)与 [ADR-0060](docs/40-process/43-decisions/ADR-0060-final-world-geography-and-site-retirement.md) 已将新开局主世界改为 57 城、八个人类宗门，另有朔风堡边境城和无主城；51 个图外 Site 在新内容中退役。内容包 `0.0.27-final-world-geography` 须新开局，Unity 人工验收待制作人进行。下文 108 城／16 宗属此前阶段。
+
 > 当前实施以 [357 金丹精力与城镇实体范围](docs/40-process/357-golden-core-energy-and-town-footprints-2026-10-25.md)为准：等级 1～5 的控制范围长宽为 180／270／360／450／540 格；108 座固定城镇实体和外墙已按当前等级调整，荒村为 180×180 格。金丹及以上日常与打坐不再扣精力。内容包 `0.0.23-town-footprints-080` 需新开局；**Implemented / Producer Acceptance Pending**，世界图偶发旅行取消仍待现场追踪。下文为此前阶段记录。
 
 > 最新：[350 城镇墙体与石屋／Chunk 接缝返修](docs/40-process/350-town-walls-stone-room-art-and-chunk-seams-2026-10-25.md)。青石与其余 79 处原无墙据点补石墙并留门，108 处固定 Site 均有墙；石屋改用独立石墙贴图，草地 Chunk 边缘重新铺齐。内容包 `0.0.21-town-walls-and-art` 需新开局；基础编译通过，Unity 视觉／通行／帧时待制作人人工验收，未提交推送。

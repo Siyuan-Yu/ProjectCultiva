@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_tingyue_node_1",
-  "displayName": "雷鸣台",
+  "displayName": "风暴城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1364,11 +1364,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "雷鸣台·宗门据点·议政厅",
+        "label": "风暴城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_tingyue_node_1",
         "boundLocationId": "base:loc_sect_tingyue_node_1_core",
-        "localPlaceName": "雷鸣台·宗门据点·议政厅",
+        "localPlaceName": "风暴城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

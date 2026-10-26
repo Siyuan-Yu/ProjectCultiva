@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_taiyan_capital",
-  "displayName": "衍枢城",
+  "displayName": "太衍城",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2311,11 +2311,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "衍枢城·主城领地·议政厅",
+        "label": "太衍城·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_taiyan_capital",
         "boundLocationId": "base:loc_sect_taiyan_capital_core",
-        "localPlaceName": "衍枢城·主城领地·议政厅",
+        "localPlaceName": "太衍城·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

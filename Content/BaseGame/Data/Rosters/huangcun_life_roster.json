@@ -237,20 +237,6 @@
           "bindDailyTask": false
         },
         {
-          "definitionId": "base:character_sect_wanling_capital_shop",
-          "entityKind": "npc",
-          "displayName": "栖灵城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_wanling_capital_auction",
-          "entityKind": "npc",
-          "displayName": "栖灵城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
           "definitionId": "base:character_sect_qingxiao_capital_shop",
           "entityKind": "npc",
           "displayName": "凌霄城·坊市行商",
@@ -307,20 +293,6 @@
           "bindDailyTask": false
         },
         {
-          "definitionId": "base:character_sect_tianlu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "承箓城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_tianlu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "承箓城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
           "definitionId": "base:character_sect_zhenyue_capital_shop",
           "entityKind": "npc",
           "displayName": "磐岳城·坊市行商",
@@ -359,62 +331,6 @@
           "definitionId": "base:character_sect_ningshuang_capital_auction",
           "entityKind": "npc",
           "displayName": "寒璧城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_qiangu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "青瘴城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_qiangu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "青瘴城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_tingyu_capital_shop",
-          "entityKind": "npc",
-          "displayName": "听澜城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_tingyu_capital_auction",
-          "entityKind": "npc",
-          "displayName": "听澜城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_guiming_capital_shop",
-          "entityKind": "npc",
-          "displayName": "长明城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_guiming_capital_auction",
-          "entityKind": "npc",
-          "displayName": "长明城·拍卖执事",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_guanxing_capital_shop",
-          "entityKind": "npc",
-          "displayName": "照微城·坊市行商",
-          "bindSchedule": false,
-          "bindDailyTask": false
-        },
-        {
-          "definitionId": "base:character_sect_guanxing_capital_auction",
-          "entityKind": "npc",
-          "displayName": "照微城·拍卖执事",
           "bindSchedule": false,
           "bindDailyTask": false
         },

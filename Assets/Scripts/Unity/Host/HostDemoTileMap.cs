@@ -207,9 +207,14 @@ namespace XianXia.Unity.Host
                     {
                         mapper.WorldToPresentation(worldLeft, worldBottom, out var fl, out var fb);
                         mapper.WorldToPresentation(worldRight, worldTop, out var fr, out var ft);
-                        PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
-                            "terrain_" + chunk + "_" + y + "_" + x,
-                            fr - fl, ft - fb, color);
+                        var overlayName = "terrain_" + chunk + "_" + y + "_" + x;
+                        if (kind == 'M')
+                            PlaceSurfaceArtOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                                overlayName, fr - fl, ft - fb,
+                                HostStepAArt.BasinCliffTile(), color, -20);
+                        else
+                            PlaceZoneOverlay((fl + fr) * .5f, (fb + ft) * .5f,
+                                overlayName, fr - fl, ft - fb, color);
                     }
                     x = end;
                 }

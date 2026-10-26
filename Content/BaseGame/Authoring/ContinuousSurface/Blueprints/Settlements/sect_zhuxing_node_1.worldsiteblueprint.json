@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_zhuxing_node_1",
-  "displayName": "星铁矿",
+  "displayName": "火脉镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1415,11 +1415,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "星铁矿·宗门据点·议政厅",
+        "label": "火脉镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_zhuxing_node_1",
         "boundLocationId": "base:loc_sect_zhuxing_node_1_core",
-        "localPlaceName": "星铁矿·宗门据点·议政厅",
+        "localPlaceName": "火脉镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

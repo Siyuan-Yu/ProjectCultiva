@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_tingyu_node_3",
-  "displayName": "丝弦坊",
+  "displayName": "沙西关",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1415,11 +1415,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "丝弦坊·宗门据点·议政厅",
+        "label": "沙西关·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_tingyu_node_3",
         "boundLocationId": "base:loc_sect_tingyu_node_3_core",
-        "localPlaceName": "丝弦坊·宗门据点·议政厅",
+        "localPlaceName": "沙西关·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

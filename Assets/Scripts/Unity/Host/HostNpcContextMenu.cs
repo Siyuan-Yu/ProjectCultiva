@@ -48,6 +48,7 @@ namespace XianXia.Unity.Host
         string _aggressionAttackerFactionId = string.Empty;
         string _aggressionDefenderFactionId = string.Empty;
         string _dismantleStatus = string.Empty;
+        string _spiritGateStatus = string.Empty;
         bool _holdingDismantlePause;
         const string AggressionPauseOwner = "SiteCoreAggressionConfirmation";
         Vector2 _menuScreen;
@@ -92,10 +93,12 @@ namespace XianXia.Unity.Host
         bool IsPrisonDropOffTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.PrisonDropOff &&
                                       _worldObjectTarget.Plot != null;
         bool IsLootMenuTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Loot;
+        bool IsSpiritGateTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.SpiritGate;
         bool IsReadOnlyWorldObjectTarget =>
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea ||
-            _worldObjectTarget.Kind == WorldObjectTargetKind.StorageRoom;
+            _worldObjectTarget.Kind == WorldObjectTargetKind.StorageRoom ||
+            _worldObjectTarget.Kind == WorldObjectTargetKind.Waystone;
         bool HasInspectEvent
         {
             get
@@ -222,6 +225,7 @@ namespace XianXia.Unity.Host
         void SetWorldObjectTarget(WorldObjectInteractionTarget target)
         {
             _worldObjectTarget = target;
+            _spiritGateStatus = string.Empty;
             _targetControlCoreWorkAreaId = target.Kind == WorldObjectTargetKind.ControlCore ? target.WorkAreaId : string.Empty;
             _targetFactionFlagId = target.Kind == WorldObjectTargetKind.FactionFlag ? target.FactionFlagId : string.Empty;
             _targetDestructible = target.Kind == WorldObjectTargetKind.Destructible ? target.Destructible : null;
@@ -232,6 +236,50 @@ namespace XianXia.Unity.Host
         {
             bootstrap?.GetComponent<HostHousingAreaSelection>()?.Inspect.Set(_worldObjectTarget);
             CloseAll();
+        }
+
+        void DrawSpiritGateMenu()
+        {
+            const float width = 224f;
+            const float height = 130f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - width - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - height - 4f);
+            _menuGuiRect = new Rect(x, y, width, height);
+            HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 9f, y + 6f, width - 18f, 22f), _targetLabel, _label);
+            var actionY = y + 32f;
+            DrawInspectButton(x, ref actionY, width, 30f);
+            if (GUI.Button(new Rect(x + 9f, actionY, width - 18f, 28f), "启用灵阵·穿越山崖", _button))
+            {
+                var world = bootstrap?.Session?.World;
+                var party = bootstrap?.Session?.PlayerParty;
+                var result = HuangcunOpeningAccess.UseSpiritGate(world, party);
+                if (result.IsFailure)
+                    _spiritGateStatus = result.Error.Message;
+                else
+                {
+                    CloseAll();
+                    var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+                    surface.DeactivateForSuccessionReanchor();
+                    if (surface.TryActivateAtCurrentWorldPosition())
+                    {
+                        surface.ReconcileOutdoorEntityMaterializationForScopeChange();
+                        bootstrap.NotifyOutdoorEntityScopeChanged();
+                        bootstrap.FlushLoadedDestinationArrivals();
+                        bootstrap.TryFocusContinuousWorldPosition(world.PlayerPartyTravel.SurfaceId,
+                            world.PlayerPartyTravel.WorldPosition, out _);
+                    }
+                    return;
+                }
+            }
+            GUI.Label(new Rect(x + 9f, actionY + 33f, width - 18f, 28f),
+                string.IsNullOrEmpty(_spiritGateStatus)
+                    ? HuangcunOpeningAccess.IsLocked(bootstrap?.Session?.World)
+                        ? "占领荒村后可使用" : "两端灵阵已连通，可往返"
+                    : _spiritGateStatus, _label);
+            TryDismissOnOutsideClick(_menuGuiRect);
         }
 
         void Update()
@@ -281,6 +329,8 @@ namespace XianXia.Unity.Host
                         DrawDestructibleMenu();
                     else if (IsLootMenuTarget)
                         DrawLootMenu();
+                    else if (IsSpiritGateTarget)
+                        DrawSpiritGateMenu();
                     else if (IsBedTarget)
                         DrawBedMenu();
                     else if (IsRecoverySpotTarget)

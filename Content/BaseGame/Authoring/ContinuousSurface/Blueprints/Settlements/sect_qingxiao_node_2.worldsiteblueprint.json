@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_qingxiao_node_2",
-  "displayName": "青锋矿",
+  "displayName": "青草镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1398,11 +1398,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "青锋矿·宗门据点·议政厅",
+        "label": "青草镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_qingxiao_node_2",
         "boundLocationId": "base:loc_sect_qingxiao_node_2_core",
-        "localPlaceName": "青锋矿·宗门据点·议政厅",
+        "localPlaceName": "青草镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

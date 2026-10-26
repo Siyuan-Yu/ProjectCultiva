@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_q3_r11",
-  "displayName": "赤铁坞",
+  "displayName": "衡水镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1415,11 +1415,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "执衡宗·赤铁坞前哨·议政厅",
+        "label": "衡水镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_q3_r11",
         "boundLocationId": "base:loc_q3_r11_core",
-        "localPlaceName": "执衡宗·赤铁坞前哨·议政厅",
+        "localPlaceName": "衡水镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_guiming_node_3",
-  "displayName": "守夜驿",
+  "displayName": "云泽镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1398,11 +1398,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "守夜驿·宗门据点·议政厅",
+        "label": "云泽镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_guiming_node_3",
         "boundLocationId": "base:loc_sect_guiming_node_3_core",
-        "localPlaceName": "守夜驿·宗门据点·议政厅",
+        "localPlaceName": "云泽镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

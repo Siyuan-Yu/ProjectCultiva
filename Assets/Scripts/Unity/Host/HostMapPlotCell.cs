@@ -49,6 +49,8 @@ namespace XianXia.Unity.Host
             string.Equals(kind, "grainField", System.StringComparison.OrdinalIgnoreCase);
 
         public bool IsLeisureFurniture => kind == "cushion" || kind == "chessBoard";
+        public bool IsSpiritGate => string.Equals(kind, "spiritGate", System.StringComparison.Ordinal);
+        public bool IsWaystone => string.Equals(kind, "waystone", System.StringComparison.Ordinal);
 
         public bool IsRecoverySpot =>
             interactKind == HostInteractSpotKind.Recovery ||
@@ -301,6 +303,8 @@ namespace XianXia.Unity.Host
                 case "loot": return "地上物";
                 case "cushion": return "蒲团";
                 case "chessboard": return "棋盘";
+                case "spiritgate": return string.IsNullOrEmpty(label) ? "传送灵阵" : label;
+                case "waystone": return string.IsNullOrEmpty(label) ? "荒野石碑" : label;
                 case "ore":
                 case "mine": return string.IsNullOrEmpty(label) ? "矿点" : label;
                 default: return string.IsNullOrEmpty(label) ? kind : label;

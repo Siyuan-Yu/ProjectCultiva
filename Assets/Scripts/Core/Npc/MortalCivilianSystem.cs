@@ -1148,7 +1148,18 @@ namespace XianXia.Core.Npc
             state.FoodFetchStatus = "需要进食";
             state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
             if (!TryResolveFoodSource(world, entity, state, out var siteId, out var room))
-            { FailFoodPlan(world, entity, state, FoodFetchPhase.NoFoodSource, "饥饿·附近没有合法且可达的食物来源"); return; }
+            {
+                var current = MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id);
+                if (!string.IsNullOrEmpty(current) &&
+                    world.Strategic.Sites.TryGet(current, out var currentSite) &&
+                    currentSite.IsCoreActive && CanUseSiteFood(world, entity, state, currentSite) &&
+                    world.SiteStorageRooms.TryGetBySite(current, out _) && CountSiteFood(world, current) == 0)
+                    FailFoodPlan(world, entity, state, FoodFetchPhase.NoFoodAvailable, "饥饿·公库无粮");
+                else
+                    FailFoodPlan(world, entity, state, FoodFetchPhase.NoFoodSource,
+                        "饥饿·附近没有合法且可达的食物来源");
+                return;
+            }
             if (!CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var presence) ||
                 !presence.HasWorldPosition || !string.Equals(presence.SurfaceId, room.SurfaceId, StringComparison.Ordinal))
             { FailFoodPlan(world, entity, state, FoodFetchPhase.PathUnavailable, "取食受阻：人物与储藏室不在同一地表"); return; }

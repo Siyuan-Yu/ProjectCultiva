@@ -1,5 +1,7 @@
 # 连续世界制作、合成与去 Hex 产品方向
 
+> **2026-10-26 内容覆写：** [378](../40-process/378-final-world-geography-gate-handoff-2026-10-26.md) 与 [ADR-0060](../40-process/43-decisions/ADR-0060-final-world-geography-and-site-retirement.md) 将新开局主世界改为 57 座实际 Site、八个人类宗门，旧 108 据点中的 51 座退役；本页旧数是历史实施状态。Continuous Surface 与精确 WorldPosition 权威、等级 1～5 的 180／270／360／450／540 格规则不变。
+
 > **2026-10-25 实施覆写，待人工验收：** [ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)要求 102 个已存在的旗 Site 保留稳定 Site ID，改由作者源显式固定 `controlCore` 构成；本轮已按[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)逐 Site 迁移并重新发布。同一 Site 不再由旗 bootstrap 创建。下方「关联旗蓝图禁止 controlCore」仅描述旧版本历史。
 
 > 2026-10-24内容接线增补见[342](../40-process/342-world-settlements-and-public-techniques-2026-10-24.md)：Blueprint可关联当前Surface显式createsWorldSite旗帜产生的既有runtime SiteId，发布器禁止该类蓝图另带controlCore。该身份可承载地点、设施与精确NPC锚点；它仍不属于静态SiteRegion。开局先建立旗帜Site再绑定居民／资产；Host按Site→Chunk索引加载固定及旗帜据点居民与地点。Snapshot authority不变。

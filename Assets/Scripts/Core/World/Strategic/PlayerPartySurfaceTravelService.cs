@@ -118,6 +118,12 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < RouteScratch.Count; i++)
                 if (!HuangcunOpeningAccess.AllowsPosition(world, navigation.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y))
                     return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPlayerMove(world, navigation.SurfaceId,
+                    i == 0 ? motion.WorldPosition.X : RouteScratch[i - 1].X,
+                    i == 0 ? motion.WorldPosition.Y : RouteScratch[i - 1].Y,
+                    RouteScratch[i].X, RouteScratch[i].Y))
+                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PatrolBlockedMessage);
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             motion.SetCurrentOutdoorWorldSiteContext(string.Empty);
@@ -145,6 +151,11 @@ namespace XianXia.Core.World.Strategic
                 return false;
             for (var i = 0; i < RouteScratch.Count; i++)
                 if (!HuangcunOpeningAccess.AllowsPosition(world, navigation.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y)) return false;
+            for (var i = 0; i < RouteScratch.Count; i++)
+                if (!HuangcunOpeningAccess.AllowsPlayerMove(world, navigation.SurfaceId,
+                    i == 0 ? motion.WorldPosition.X : RouteScratch[i - 1].X,
+                    i == 0 ? motion.WorldPosition.Y : RouteScratch[i - 1].Y,
+                    RouteScratch[i].X, RouteScratch[i].Y)) return false;
             motion.BeginSurfaceAutoTravel(navigation.SurfaceId, destination, targetSiteId,
                 Math.Max(0.001f, arrivalRadius), RouteScratch);
             return true;
@@ -163,6 +174,13 @@ namespace XianXia.Core.World.Strategic
             var motion = world?.PlayerPartyTravel;
             if (!HuangcunOpeningAccess.AllowsPosition(world, motion?.SurfaceId, position.X, position.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
+            if (motion != null && !HuangcunOpeningAccess.AllowsPlayerMove(world, motion.SurfaceId,
+                motion.WorldPosition.X, motion.WorldPosition.Y, position.X, position.Y))
+            {
+                if (motion.IsMoving)
+                    PlayerPartyTravelRuntimeService.CancelTravel(world, party);
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PatrolBlockedMessage);
+            }
             if (motion == null || party == null || string.IsNullOrEmpty(motion.SurfaceId) ||
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 !world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation) || navigation == null)

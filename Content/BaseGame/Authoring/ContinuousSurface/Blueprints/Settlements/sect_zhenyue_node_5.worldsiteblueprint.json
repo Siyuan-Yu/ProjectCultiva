@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_zhenyue_node_5",
-  "displayName": "重岩驿",
+  "displayName": "北都镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1381,11 +1381,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "重岩驿·宗门据点·议政厅",
+        "label": "北都镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_zhenyue_node_5",
         "boundLocationId": "base:loc_sect_zhenyue_node_5_core",
-        "localPlaceName": "重岩驿·宗门据点·议政厅",
+        "localPlaceName": "北都镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

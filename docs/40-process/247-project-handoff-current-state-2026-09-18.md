@@ -1,5 +1,7 @@
 # Project Handoff — Continuous World Current State
 
+> **2026-10-26 新增地图专项：** [378 地理定稿与实施](378-final-world-geography-gate-handoff-2026-10-26.md)及 [ADR-0060](43-decisions/ADR-0060-final-world-geography-and-site-retirement.md) 现为新开局世界布局权威：57 城、八个人类宗门、旧档版本隔离；Unity 关口／飞行人工验收待进行。本页下方 108 城／16 宗为此前阶段记录。
+
 > **2026-10-25 当前待验收改动：** [357](357-golden-core-energy-and-town-footprints-2026-10-25.md)已覆写 [356](356-world-map-flight-travel-and-level-one-size-2026-10-25.md) 的 0.75：等级 1～5 理论长宽为 180／270／360／450／540 cells，108 处固定城镇实体蓝图按现等级重做，围墙沿控制边缘；荒村现为 180×180 格。金丹及以上不再因日常或打坐扣精力，已耗尽者恢复行动阈值。作者源已重发三份正式运行世界数据，运行包 `0.0.23-town-footprints-080` 需新开局。此前世界图中断预检与开发调用栈保留；其他取消来源仍待现场复现，基础编译／静态检查已完成，未运行自动测试、未提交推送。
 
 > **2026-10-25 最新世界图旅行返修：** [351](351-world-map-long-route-and-player-marker-2026-10-25.md)将远距离受阻寻路移出地图主线程，限制长路径简化成本，局部前沿须产生实际位移；村界／无路拒绝显式提示，主控小队使用固定屏幕像素标志。Core／Data 与 Unity Core／Host 基础编译 0 错误；Unity 现场帧时、远路可达性仍待制作人验收。未提交推送。

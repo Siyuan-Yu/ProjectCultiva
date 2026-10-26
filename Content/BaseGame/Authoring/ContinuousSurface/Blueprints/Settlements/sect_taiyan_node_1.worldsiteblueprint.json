@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_taiyan_node_1",
-  "displayName": "方寸台",
+  "displayName": "星律镇",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1466,11 +1466,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "方寸台·宗门据点·议政厅",
+        "label": "星律镇·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_taiyan_node_1",
         "boundLocationId": "base:loc_sect_taiyan_node_1_core",
-        "localPlaceName": "方寸台·宗门据点·议政厅",
+        "localPlaceName": "星律镇·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

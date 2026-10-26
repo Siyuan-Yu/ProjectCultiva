@@ -1497,7 +1497,9 @@ namespace XianXia.Data.Content
             string.Equals(kind, "workArea", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "recoverySpot", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "prisonDropOff", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(kind, "storageRoom", StringComparison.OrdinalIgnoreCase);
+            string.Equals(kind, "storageRoom", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "spiritGate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "waystone", StringComparison.OrdinalIgnoreCase);
 
         void ValidateChapters(
             DefinitionRegistry registry,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_ningshuang_capital",
-  "displayName": "寒璧城",
+  "displayName": "寒原驿",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -2294,11 +2294,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "寒璧城·主城领地·议政厅",
+        "label": "寒原驿·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_ningshuang_capital",
         "boundLocationId": "base:loc_sect_ningshuang_capital_core",
-        "localPlaceName": "寒璧城·主城领地·议政厅",
+        "localPlaceName": "寒原驿·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",

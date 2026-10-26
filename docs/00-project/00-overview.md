@@ -1,5 +1,7 @@
 # 修仙游戏策划案总览
 
+> **2026-10-26 当前地图内容：** [378](../40-process/378-final-world-geography-gate-handoff-2026-10-26.md) 与 [ADR-0060](../40-process/43-decisions/ADR-0060-final-world-geography-and-site-retirement.md) 覆写下文旧城数：新开局 57 城、八个人类宗门；作者源和运行地图已发布，制作人人工验收待进行。
+
 > 2026-10-25 当前城镇尺寸与实体状态以 [357](../40-process/357-golden-core-energy-and-town-footprints-2026-10-25.md)为准：等级 1～5 控制范围长宽为 180／270／360／450／540 格，108 座固定城镇的实体边界与围墙按当前等级调整；荒村为 180×180 格。内容包 `0.0.23-town-footprints-080` 需新开局；**Implemented / Producer Acceptance Pending**。下文旧尺寸、旧间距与旧版本均为历史阶段记录。
 
 > 2026-10-25 最新城镇布局以 [348 实施](../40-process/348-natural-town-layout-and-qingshi-urban-quarter-2026-10-25.md)为准：世界上的 108 座固定 Site 错列且不等距；全部五级时最近行政边界仍隔 96 格。青石镇内部保持正交街道，实体蓝图扩至 240×210 格并补公共房、街边内容与东缘田圃；其他 106 处据点补少量沿街空间。内容包 `0.0.20-natural-towns` 需新开局；**Implemented / Producer Acceptance Pending**。

@@ -403,6 +403,7 @@ namespace XianXia.Unity.Host
                 HostSurfaceActualControlRenderer.Draw(world, nav.SurfaceId, projection, Texture2D.whiteTexture);
             DrawRoute(projection, world);
             DrawSites(projection, world, nav);
+            DrawHuangcunSpiritGate(projection, world, nav);
             DrawSquads(projection, world, nav);
             DrawPlayer(projection, world, nav);
         }
@@ -566,6 +567,34 @@ namespace XianXia.Unity.Host
                 _siteHits.Add((site.SiteId, Rect.MinMaxRect(
                     Mathf.Min(marker.xMin, label.xMin), Mathf.Min(marker.yMin, label.yMin),
                     Mathf.Max(marker.xMax, label.xMax), Mathf.Max(marker.yMax, label.yMax))));
+            }
+        }
+
+        void DrawHuangcunSpiritGate(SurfaceWorldMapViewportProjection projection,
+            SimulationWorld world, SurfaceGroundNavigation nav)
+        {
+            var area = world?.OpeningArea;
+            if (Event.current.type != EventType.Repaint || area == null || !area.IsConfigured ||
+                !string.Equals(area.SurfaceId, nav.SurfaceId, StringComparison.Ordinal) ||
+                nav.CellSize * projection.Scale < 2.5f) return;
+            var at = projection.ProjectWorld(area.MaxX - area.CellSize * 30f,
+                (area.MinY + area.MaxY) * .5f);
+            if (projection.MapRect.Contains(at))
+            {
+                var marker = new Rect(at.x - 5f, at.y - 5f, 10f, 10f);
+                Fill(marker, HuangcunOpeningAccess.IsLocked(world)
+                    ? new Color(.28f, .49f, .52f, .95f)
+                    : new Color(.19f, .88f, .94f, .98f));
+                GUI.Label(new Rect(at.x + 8f, at.y - 11f, 116f, 22f), "古传送灵阵", _body);
+            }
+            var outside = projection.ProjectWorld(area.MaxX + area.CellSize * 125f,
+                (area.MinY + area.MaxY) * .5f);
+            if (projection.MapRect.Contains(outside))
+            {
+                Fill(new Rect(outside.x - 5f, outside.y - 5f, 10f, 10f),
+                    new Color(.19f, .88f, .94f, .98f));
+                GUI.Label(new Rect(outside.x + 8f, outside.y - 11f, 116f, 22f),
+                    "荒村返程灵阵", _body);
             }
         }
 
@@ -1015,6 +1044,8 @@ namespace XianXia.Unity.Host
             // Expected interaction rejection is already visible on the map. Logging a stack
             // for every exploratory far click can itself stall the Editor Console.
             if (string.Equals(reason, HuangcunOpeningAccess.BlockedMessage,
+                    StringComparison.Ordinal) ||
+                string.Equals(reason, HuangcunOpeningAccess.PatrolBlockedMessage,
                     StringComparison.Ordinal) ||
                 reason != null && (reason.StartsWith("目标地面", StringComparison.Ordinal) ||
                     reason.StartsWith("目标不在", StringComparison.Ordinal) ||

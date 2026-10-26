@@ -168,6 +168,10 @@ namespace XianXia.Unity.Host
 
             new("cave", Cave, StampMode.SingleCentered, 4, 4, false, HostInteractSpotKind.Explore,
                 new UnityEngine.Color(0.42f, 0.36f, 0.40f)),
+            new("spiritGate", Spirit, StampMode.SingleCentered, 4, 4, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(0.22f, 0.82f, 0.85f)),
+            new("waystone", Rock, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(0.47f, 0.52f, 0.55f)),
             new("chessBoard", ChessBoard, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Inspect,
                 new UnityEngine.Color(.65f,.46f,.25f)),
             new("loot", Cushion, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Loot,

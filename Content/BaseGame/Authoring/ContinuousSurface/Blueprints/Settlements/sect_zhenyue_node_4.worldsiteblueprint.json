@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "blueprintId": "site:runtime:base:flag_sect_zhenyue_node_4",
-  "displayName": "镇门哨",
+  "displayName": "苦崖关",
   "widthCells": 360,
   "heightCells": 360,
   "fineTerrainSources": [],
@@ -1381,11 +1381,11 @@
       "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
-        "label": "镇门哨·宗门据点·议政厅",
+        "label": "苦崖关·议政厅",
         "blocksMovement": "true",
         "siteId": "site:runtime:base:flag_sect_zhenyue_node_4",
         "boundLocationId": "base:loc_sect_zhenyue_node_4_core",
-        "localPlaceName": "镇门哨·宗门据点·议政厅",
+        "localPlaceName": "苦崖关·议政厅",
         "localPlaceKind": "Settlement",
         "localPlaceTags": "[\"site\",\"controlCore\"]",
         "sourceCellsW": "8",
