@@ -1,5 +1,7 @@
 # 势力、军队、外交与战略占领
 
+> **2026-10-26 地图主城展示约定：** `strategicFaction.mapCapitalSiteId` 为可选地图导航偏好，不改变 WorldSite 所有权、FactionLeader、占领或存档 authority。双击图例只聚焦当前仍归该势力的指定主城；不可用时选当前 Surface 已有最高等级城镇（同级按 SiteId），无城不聚焦。悬停只强调当前真实所有权。详见 [386](../40-process/386-river-network-and-faction-navigation-2026-10-26.md)。
+
 > **2026-10-25 实施覆写，待人工验收：** 正常新游戏只占领既有固定议政厅 Site；102 个历史旗 Site 已保留身份迁为固定核心，不再允许新建旗 Site。战斗仍须正式战争关系、真实 CharacterEncounter、攻破核心及持续接管，不因击破自动易主。见[ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)与[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)；下方旗战斗属于已验收旧实现与兼容语义。
 
 > **2026-10-21 追加确认与实施：** 外交支持多轮停战谈判；条款限实际公库赔偿、双方实际俘虏释放及对方势力附庸，不交易正常自由人物、不新增押送、不自动招募。成交结束双方所在的现有绑定战争；附庸沿用既有边界，不套娃、不转让地点。见 [318](../40-process/318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)／[ADR-0051](../40-process/43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。已接线待人工验收，下文历史“谈判暂缓”不再代表本轮状态。

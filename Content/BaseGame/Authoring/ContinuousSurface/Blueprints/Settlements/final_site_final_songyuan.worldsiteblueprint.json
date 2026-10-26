@@ -1,0 +1,512 @@
+{
+  "schemaVersion": 4,
+  "blueprintId": "base:site_final_songyuan",
+  "displayName": "松原镇",
+  "widthCells": 180,
+  "heightCells": 180,
+  "fineTerrainSources": [],
+  "objectPlacements": [
+    {
+      "placementId": "base:site_final_songyuan:core",
+      "kindId": "controlCore",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 86,
+      "localSurfaceY": 86,
+      "widthCells": 8,
+      "heightCells": 8,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇议政厅",
+        "blocksMovement": "true",
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "boundLocationId": "base:site_final_songyuan:core_place",
+        "localPlaceName": "松原镇议政厅",
+        "localPlaceKind": "Settlement",
+        "localPlaceTags": "[\"site\",\"controlCore\"]",
+        "siteId": "base:site_final_songyuan"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:0",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 106,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇住宅",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "6",
+        "buildingId": "base:room_normal_wood",
+        "structureDurability": "100",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:site_final_songyuan:home_place:0",
+        "localPlaceName": "松原镇住宅",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:0:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 61,
+      "localSurfaceY": 108,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "parentRoomId": "base:site_final_songyuan:home:0",
+        "boundLocationId": "base:site_final_songyuan:home_place:0"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:1",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 114,
+      "localSurfaceY": 106,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇住宅",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "6",
+        "buildingId": "base:room_normal_wood",
+        "structureDurability": "100",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:site_final_songyuan:home_place:1",
+        "localPlaceName": "松原镇住宅",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:1:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 115,
+      "localSurfaceY": 108,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "parentRoomId": "base:site_final_songyuan:home:1",
+        "boundLocationId": "base:site_final_songyuan:home_place:1"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:2",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 60,
+      "localSurfaceY": 60,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇住宅",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "6",
+        "buildingId": "base:room_normal_wood",
+        "structureDurability": "100",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:site_final_songyuan:home_place:2",
+        "localPlaceName": "松原镇住宅",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:2:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 61,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "parentRoomId": "base:site_final_songyuan:home:2",
+        "boundLocationId": "base:site_final_songyuan:home_place:2"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:3",
+      "kindId": "room",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 114,
+      "localSurfaceY": 60,
+      "widthCells": 4,
+      "heightCells": 6,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇住宅",
+        "blocksMovement": "true",
+        "sourceCellsW": "4",
+        "sourceCellsH": "6",
+        "buildingId": "base:room_normal_wood",
+        "structureDurability": "100",
+        "roomUsage": "Residential",
+        "boundLocationId": "base:site_final_songyuan:home_place:3",
+        "localPlaceName": "松原镇住宅",
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:home:3:bed",
+      "kindId": "bed",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 115,
+      "localSurfaceY": 62,
+      "widthCells": 1,
+      "heightCells": 2,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇床位",
+        "blocksMovement": "false",
+        "sourceCellsW": "1",
+        "sourceCellsH": "2",
+        "buildingId": "base:furniture_bed",
+        "structureDurability": "60",
+        "parentRoomId": "base:site_final_songyuan:home:3",
+        "boundLocationId": "base:site_final_songyuan:home_place:3"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:0:0",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 0,
+      "widthCells": 50,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "50",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:0:50",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 50,
+      "localSurfaceY": 0,
+      "widthCells": 34,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "34",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:0:96",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 96,
+      "localSurfaceY": 0,
+      "widthCells": 50,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "50",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:0:146",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 146,
+      "localSurfaceY": 0,
+      "widthCells": 34,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "34",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:1:0",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 179,
+      "widthCells": 50,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "50",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:1:50",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 50,
+      "localSurfaceY": 179,
+      "widthCells": 34,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "34",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:1:96",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 96,
+      "localSurfaceY": 179,
+      "widthCells": 50,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "50",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:1:146",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 146,
+      "localSurfaceY": 179,
+      "widthCells": 34,
+      "heightCells": 1,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "34",
+        "sourceCellsH": "1",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:2:0",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 0,
+      "widthCells": 1,
+      "heightCells": 50,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "50",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:2:50",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 50,
+      "widthCells": 1,
+      "heightCells": 34,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "34",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:2:96",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 96,
+      "widthCells": 1,
+      "heightCells": 50,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "50",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:2:146",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 0,
+      "localSurfaceY": 146,
+      "widthCells": 1,
+      "heightCells": 34,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "34",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:3:0",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 179,
+      "localSurfaceY": 0,
+      "widthCells": 1,
+      "heightCells": 50,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "50",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:3:50",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 179,
+      "localSurfaceY": 50,
+      "widthCells": 1,
+      "heightCells": 34,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "34",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:3:96",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 179,
+      "localSurfaceY": 96,
+      "widthCells": 1,
+      "heightCells": 50,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "50",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    },
+    {
+      "placementId": "base:site_final_songyuan:final_wall:3:146",
+      "kindId": "wall",
+      "contentRef": null,
+      "assetRef": null,
+      "localSurfaceX": 179,
+      "localSurfaceY": 146,
+      "widthCells": 1,
+      "heightCells": 34,
+      "rotationQuarterTurns": 0,
+      "metadata": {
+        "label": "松原镇城墙",
+        "blocksMovement": "true",
+        "sourceCellsW": "1",
+        "sourceCellsH": "34",
+        "buildingId": "base:wall_segment_stone",
+        "structureDurability": "300"
+      }
+    }
+  ]
+}

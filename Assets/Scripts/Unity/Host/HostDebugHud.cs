@@ -51,6 +51,12 @@ namespace XianXia.Unity.Host
         internal static readonly ProfilerMarker PathPreviewLateUpdate = new ProfilerMarker("XianXia.PathPreview.LateUpdate");
         internal static readonly ProfilerMarker CrowdLateUpdate = new ProfilerMarker("XianXia.Crowd.LateUpdate");
         internal static readonly ProfilerMarker ChessLateUpdate = new ProfilerMarker("XianXia.Chess.LateUpdate");
+        internal static readonly ProfilerMarker HudGui = new ProfilerMarker("XianXia.Hud.OnGUI");
+        internal static readonly ProfilerMarker VitalsGui = new ProfilerMarker("XianXia.Vitals.OnGUI");
+        internal static readonly ProfilerMarker AutonomousCombatUpdate = new ProfilerMarker("XianXia.AutonomousCombat.Update");
+        internal static readonly ProfilerMarker EncounterUpdate = new ProfilerMarker("XianXia.Encounter.Update");
+        internal static readonly ProfilerMarker WorldMapUpdate = new ProfilerMarker("XianXia.WorldMap.Update");
+        internal static readonly ProfilerMarker LootUpdate = new ProfilerMarker("XianXia.Loot.Update");
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool visible;

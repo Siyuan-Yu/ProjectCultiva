@@ -163,6 +163,8 @@ public sealed class WorldCompositionDocument
     // Optional authored business anchors, in Surface Cells. Publishing converts these through
     // RuntimeSurfaceBinding, so a republish does not resurrect pre-relocation runtime positions.
     public JsonObject? RuntimeLayout { get; set; }
+    // Display-only biome polygons in the same Surface Cell coordinate system as terrain.
+    public List<WorldMapRegionSource> WorldMapRegions { get; set; } = [];
     public List<CoarseTerrainSourceCell> CoarseTerrainSources { get; set; } = [];
     public List<CoarseFeatureSourceCell> CoarseFeatureSources { get; set; } = [];
     public List<RiverPathSource> Rivers { get; set; } = [];
@@ -173,6 +175,15 @@ public sealed class WorldCompositionDocument
     public List<WorldObjectPlacement> WorldObjectPlacements { get; set; } = [];
     [JsonIgnore] public int WorldEditorGridWidth => (int)Math.Ceiling(SurfaceWidthCells / 10d);
     [JsonIgnore] public int WorldEditorGridHeight => (int)Math.Ceiling(SurfaceHeightCells / 10d);
+}
+
+public sealed class WorldMapRegionSource
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public int ColorRgb { get; set; }
+    public List<PathControlPoint> Points { get; set; } = [];
+    public PathControlPoint LabelPoint { get; set; } = new();
 }
 
 public sealed class WorldSiteBlueprintDocument

@@ -1,0 +1,58 @@
+{
+  "targetLinearScale": 0.85,
+  "siteOwnerOverrides": {
+    "base:site_guanai": "base:sect_zhenyue",
+    "base:site_zhuangyuan": "base:sect_zhenyue",
+    "site:runtime:base:flag_sect_zhenyue_node_5": "base:sect_tianlu",
+    "site:runtime:base:flag_sect_tianlu_node_1": "base:sect_tianlu",
+    "base:site_beast_north_gate": "base:sect_tianlu",
+    "base:site_thunder_south_gate": "base:sect_tingyu",
+    "base:site_final_songyuan": "base:faction_shuofeng",
+    "base:site_final_dongye": "base:faction_shuofeng",
+    "site:runtime:base:flag_sect_tingyue_node_1": "",
+    "site:runtime:base:flag_sect_ningshuang_node_3": "",
+    "base:site_final_yunfeng": "base:sect_qingxiao",
+    "base:site_final_qingcao_camp": "",
+    "base:site_thunder_west_gate": "base:sect_hehuan",
+    "base:site_beast_east_gate": "base:sect_hehuan",
+    "site:runtime:base:flag_sect_hehuan_capital": "",
+    "site:runtime:base:flag_sect_hehuan_node_1": "",
+    "site:runtime:base:flag_sect_tianlu_node_2": "base:sect_tianlu",
+    "site:runtime:base:flag_sect_hehuan_node_5": "base:sect_tingyu",
+    "site:runtime:base:flag_sect_tingyu_node_1": "",
+    "site:runtime:base:flag_sect_tingyu_node_2": "base:sect_tingyu",
+    "site:runtime:base:flag_sect_tingyu_node_3": "base:sect_tingyu"
+  },
+  "minimumFreeScale": 0.70,
+  "townReserveCells": 540,
+  "minimumTownGapCells": 47.5,
+  "gateBufferCells": 50,
+  "rigidRegions": ["huangcun", "west_array", "south_basin"],
+  "squadDeployments": [
+    {"id": "base:npc_squad_bandit_patrol", "anchorSiteId": "base:site_huangcun", "mapX": 843.14, "mapY": 392.4},
+    {"id": "base:npc_squad_bandit_weak", "anchorSiteId": "base:site_huangcun", "mapX": 867.14, "mapY": 500.88},
+    {"id": "base:npc_squad_bandit_casualty_test", "anchorSiteId": "base:site_huangcun", "mapX": 843.14, "mapY": 609.04}
+  ],
+  "openingBasinSizeCells": 960,
+  "additionalGateSites": [
+    {"oldSiteId":"base:site_beast_north_gate","displayName":"镇魔北关","ownerFactionId":"","level":3,"mapX":785,"mapY":70,"entryRegion":"beast","gateAxis":"vertical"},
+    {"oldSiteId":"base:site_beast_east_gate","displayName":"镇魔东关","ownerFactionId":"","level":3,"mapX":1145,"mapY":395,"entryRegion":"beast","gateAxis":"horizontal"},
+    {"oldSiteId":"base:site_beast_south_gate","displayName":"镇魔南关","ownerFactionId":"","level":3,"mapX":880,"mapY":529,"entryRegion":"beast","gateAxis":"vertical"},
+    {"oldSiteId":"base:site_beast_west_gate","displayName":"镇魔西关","ownerFactionId":"","level":3,"mapX":626,"mapY":300,"entryRegion":"beast","gateAxis":"horizontal"},
+    {"oldSiteId":"base:site_thunder_west_gate","displayName":"雷西关","ownerFactionId":"","level":3,"mapX":1344,"mapY":365,"entryRegion":"thunder","gateAxis":"horizontal"},
+    {"oldSiteId":"base:site_thunder_south_gate","displayName":"雷南关","ownerFactionId":"","level":3,"mapX":1598,"mapY":494,"entryRegion":"thunder","gateAxis":"vertical"}
+  ],
+  "beastPerimeter": [[560,180],[594,143],[615,115],[650,62],[695,62],[739,78],[785,70],[833,80],[891,73],[939,83],[983,91],[1031,114],[1085,127],[1127,158],[1175,183],[1180,212],[1155,251],[1152,282],[1151,318],[1134,353],[1145,395],[1161,436],[1135,478],[1117,499],[1070,500],[1026,513],[975,527],[929,537],[880,529],[834,541],[793,527],[748,518],[707,495],[679,462],[649,435],[599,419],[626,380],[626,340],[626,300],[626,260],[600,220]],
+  "closedBasins": ["west_array", "south_basin"],
+  "regionCellOffsets": {"south_basin": [0,-360]},
+  "siteRelocations": {
+    "site:runtime:base:flag_sect_hehuan_capital": {"offsetCells": [0,-360]},
+    "base:site_linjian": {"mapPoint": [1120,70]},
+    "site:runtime:base:flag_sect_tingyue_node_1": {"mapPoint": [1672,356]}
+  },
+  "regionOverrides": {
+    "gale": {"points": [[1320,191],[1382,178],[1437,192],[1490,176],[1549,193],[1598,181],[1657,191],[1705,223],[1705,400],[1650,390],[1610,370],[1580,330],[1533,301],[1476,308],[1420,290],[1370,300],[1354,288],[1327,252]]},
+    "thunder": {"wall": true,"points": [[1370,300],[1420,290],[1476,308],[1533,301],[1580,330],[1610,370],[1650,390],[1705,400],[1705,490],[1650,478],[1598,494],[1545,490],[1510,486],[1470,460],[1450,430],[1410,398],[1344,385],[1344,365],[1344,335]]}
+  },
+  "contentVersion": "0.0.37-two-compact-sects"
+}

@@ -41,6 +41,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.AutonomousCombatUpdate.Auto();
             if (_host?.Session?.World == null || _host.Session.IsPaused) return;
             var world = _host.Session.World;
             if (!ReferenceEquals(_trackedWorld, world))

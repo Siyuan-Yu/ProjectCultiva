@@ -60,6 +60,10 @@ namespace XianXia.Unity.Host
             new Dictionary<string, List<HostInteractSpot>>(System.StringComparer.Ordinal);
         static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
         static bool _flattenDirty;
+        const float PickBucketSize = 8f;
+        static readonly Dictionary<(HostInteractSpotKind Kind, int X, int Y), List<int>> PickBuckets =
+            new Dictionary<(HostInteractSpotKind, int, int), List<int>>();
+        static readonly Stack<List<int>> FreePickBuckets = new Stack<List<int>>();
         static string _currentOwner = string.Empty;
 
         /// <summary>
@@ -94,6 +98,7 @@ namespace XianXia.Unity.Host
 
         public static void ClearAll()
         {
+            ClearPickBuckets();
             Dynamic.Clear();
             DynamicByOwner.Clear();
             _flattenDirty = false;
@@ -152,6 +157,29 @@ namespace XianXia.Unity.Host
             Dynamic.Clear();
             foreach (var owner in DynamicByOwner)
                 Dynamic.AddRange(owner.Value);
+            ClearPickBuckets();
+            for (var i = 0; i < Dynamic.Count; i++)
+            {
+                var spot = Dynamic[i];
+                var key = (spot.Kind, Mathf.FloorToInt(spot.PresentationX / PickBucketSize),
+                    Mathf.FloorToInt(spot.PresentationZ / PickBucketSize));
+                if (!PickBuckets.TryGetValue(key, out var bucket))
+                {
+                    bucket = FreePickBuckets.Count > 0 ? FreePickBuckets.Pop() : new List<int>();
+                    PickBuckets.Add(key, bucket);
+                }
+                bucket.Add(i);
+            }
+        }
+
+        static void ClearPickBuckets()
+        {
+            foreach (var bucket in PickBuckets.Values)
+            {
+                bucket.Clear();
+                FreePickBuckets.Push(bucket);
+            }
+            PickBuckets.Clear();
         }
 
         public static bool TryFindNearest(
@@ -167,6 +195,35 @@ namespace XianXia.Unity.Host
             var found = false;
             HostInteractSpot bestSpot = default;
             var list = GetSpots(world);
+            // Ordinary mouse queries only inspect nearby buckets of the required kind.
+            // Rebuild shares the existing owner/layout invalidation; clicks never use stale geometry.
+            var radius = Mathf.Abs(maxDist);
+            if (!float.IsNaN(radius) && !float.IsInfinity(radius) && radius <= 64f)
+            {
+                var bestIndex = -1;
+                var minX = Mathf.FloorToInt((p.x - radius) / PickBucketSize);
+                var maxX = Mathf.FloorToInt((p.x + radius) / PickBucketSize);
+                var minY = Mathf.FloorToInt((p.y - radius) / PickBucketSize);
+                var maxY = Mathf.FloorToInt((p.y + radius) / PickBucketSize);
+                for (var y = minY; y <= maxY; y++)
+                for (var x = minX; x <= maxX; x++)
+                {
+                    if (!PickBuckets.TryGetValue((kind, x, y), out var bucket)) continue;
+                    foreach (var index in bucket)
+                    {
+                        var candidate = list[index];
+                        var dx = candidate.PresentationX - p.x;
+                        var dy = candidate.PresentationZ - p.y;
+                        var distance = dx * dx + dy * dy;
+                        if (distance > best || distance == best && index < bestIndex) continue;
+                        best = distance;
+                        bestIndex = index;
+                    }
+                }
+                if (bestIndex < 0) return false;
+                spot = list[bestIndex];
+                return true;
+            }
             for (var i = 0; i < list.Count; i++)
             {
                 var s = list[i];

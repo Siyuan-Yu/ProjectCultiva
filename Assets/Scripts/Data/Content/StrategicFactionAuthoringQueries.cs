@@ -15,6 +15,7 @@ namespace XianXia.Data.Content
         public string MapColor { get; set; } = "#B3945C";
         public bool TerritorySelectable { get; set; } = true;
         public int SortOrder { get; set; }
+        public string MapCapitalSiteId { get; set; } = string.Empty;
     }
 
     /// <summary>从已加载 registry 投影 faction read model（编辑器优先复用 Loader 结果，不做二次文件 IO）。</summary>
@@ -36,7 +37,8 @@ namespace XianXia.Data.Content
                     Name = def.Name,
                     MapColor = def.MapColor,
                     TerritorySelectable = def.TerritorySelectable,
-                    SortOrder = def.SortOrder
+                    SortOrder = def.SortOrder,
+                    MapCapitalSiteId = def.MapCapitalSiteId
                 });
             }
 

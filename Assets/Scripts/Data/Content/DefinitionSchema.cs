@@ -43,7 +43,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> StrategicFactionFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "mapColor", "territorySelectable", "sortOrder"
+            "id", "type", "name", "mapColor", "territorySelectable", "sortOrder", "mapCapitalSiteId"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)
@@ -115,7 +115,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "originWorldX", "originWorldY", "movementScale", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
-            "siteRegions", "factionFlags", "sitePlacements", "sitePlaces", "openingEntityAnchors"
+            "siteRegions", "factionFlags", "sitePlacements", "sitePlaces", "openingEntityAnchors", "openingBasin"
         };
         public static readonly HashSet<string> WorldSpatialRulesFields = new HashSet<string>(StringComparer.Ordinal)
         {

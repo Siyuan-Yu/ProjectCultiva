@@ -10,8 +10,8 @@
       "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
         "anchorSiteId": "base:site_huangcun",
-        "offsetCellsX": 2964,
-        "offsetCellsY": 1370
+        "offsetCellsX": 2453,
+        "offsetCellsY": 1371
       },
       "members": [
         {
@@ -43,8 +43,8 @@
       "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
         "anchorSiteId": "base:site_huangcun",
-        "offsetCellsX": 3264,
-        "offsetCellsY": 14
+        "offsetCellsX": 2681,
+        "offsetCellsY": 15
       },
       "members": [
         {
@@ -64,8 +64,8 @@
       "initialSurfaceDeployment": {
         "surfaceId": "base:surface_main_wilderness_v1",
         "anchorSiteId": "base:site_huangcun",
-        "offsetCellsX": 2964,
-        "offsetCellsY": -1338
+        "offsetCellsX": 2453,
+        "offsetCellsY": -1334
       },
       "members": [
         {

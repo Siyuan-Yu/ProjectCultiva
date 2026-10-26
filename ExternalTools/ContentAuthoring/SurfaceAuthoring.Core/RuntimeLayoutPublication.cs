@@ -60,6 +60,18 @@ public static class RuntimeLayoutPublication
         var errors = Validate(source).ToList();
         if (errors.Count > 0) throw new InvalidDataException(string.Join("\n", errors.Select(x => x.Message)));
         var binding = source.RuntimeSurface!;
+        runtime.Remove("openingBasin");
+        if (source.RuntimeLayout["openingBasin"] is JsonObject basin)
+        {
+            var published = basin.DeepClone().AsObject();
+            var points = published["boundary"]!.AsArray();
+            for (var i = 0; i < points.Count; i += 2)
+            {
+                points[i] = binding.OriginWorldX + points[i]!.GetValue<double>() * binding.SurfaceCellWorldSize;
+                points[i + 1] = binding.OriginWorldY + points[i + 1]!.GetValue<double>() * binding.SurfaceCellWorldSize;
+            }
+            runtime["openingBasin"] = published;
+        }
         foreach (var (key, _) in Collections)
         {
             var result = new JsonArray();

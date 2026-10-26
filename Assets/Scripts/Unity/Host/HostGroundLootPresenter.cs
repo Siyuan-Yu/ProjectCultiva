@@ -20,6 +20,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.LootUpdate.Auto();
             if (_host == null) _host = GetComponent<PlayableHostBootstrap>();
             if (_host?.Session?.World == null)
             {

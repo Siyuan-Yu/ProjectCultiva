@@ -23,12 +23,15 @@ namespace XianXia.Core.World.Strategic
         public float VillageMinY { get; private set; }
         public float VillageMaxX { get; private set; }
         public float VillageMaxY { get; private set; }
+        readonly System.Collections.Generic.List<WorldVec2> _boundary = new System.Collections.Generic.List<WorldVec2>();
+        public WorldVec2 InnerGate { get; private set; }
+        public WorldVec2 OuterGate { get; private set; }
         public bool IsConfigured => !string.IsNullOrEmpty(SurfaceId) && MaxX > MinX && MaxY > MinY;
 
         // Session-only development override; deliberately absent from Snapshot and story flags.
         public bool DebugBypassMovementRestriction { get; set; }
 
-        public void Clear() { SurfaceId = string.Empty; DebugBypassMovementRestriction = false; }
+        public void Clear() { SurfaceId = string.Empty; _boundary.Clear(); DebugBypassMovementRestriction = false; }
 
         public void Configure(string surfaceId, float minX, float minY, float maxX, float maxY, float cellSize)
         {
@@ -39,6 +42,20 @@ namespace XianXia.Core.World.Strategic
             var extraY = (maxY - minY) * 1.5f;
             MinX = minX - extraX; MinY = minY - extraY;
             MaxX = maxX + extraX; MaxY = maxY + extraY; CellSize = cellSize;
+            _boundary.Clear();
+            InnerGate = new WorldVec2(MaxX - CellSize * 30f, (MinY + MaxY) * .5f);
+            OuterGate = new WorldVec2(MaxX + CellSize * 125f, InnerGate.Y);
+        }
+
+        // The authored closed basin can be irregular and is independent of the village's level.
+        public void ConfigureBasin(System.Collections.Generic.IReadOnlyList<WorldVec2> boundary,
+            WorldVec2 innerGate, WorldVec2 outerGate)
+        {
+            _boundary.Clear(); _boundary.AddRange(boundary);
+            MinX = MinY = float.PositiveInfinity; MaxX = MaxY = float.NegativeInfinity;
+            foreach (var p in _boundary)
+            { MinX = Math.Min(MinX, p.X); MaxX = Math.Max(MaxX, p.X); MinY = Math.Min(MinY, p.Y); MaxY = Math.Max(MaxY, p.Y); }
+            InnerGate = innerGate; OuterGate = outerGate;
         }
 
         public bool ContainsVillage(string surfaceId, float x, float y) =>
@@ -47,6 +64,18 @@ namespace XianXia.Core.World.Strategic
 
         public bool Contains(string surfaceId, float x, float y)
         {
+            if (!IsConfigured || !string.Equals(SurfaceId, surfaceId, StringComparison.Ordinal)) return false;
+            if (_boundary.Count >= 3)
+            {
+                var inside = false;
+                for (var i = 0; i < _boundary.Count; i++)
+                {
+                    var a = _boundary[i]; var b = _boundary[(i + 1) % _boundary.Count];
+                    if ((a.Y > y) != (b.Y > y) && x < (b.X - a.X) * (y - a.Y) / (b.Y - a.Y) + a.X)
+                        inside = !inside;
+                }
+                return inside;
+            }
             // Half a cell keeps the entire one-cell footprint inside, not just its centre.
             var inset = CellSize * .5f;
             return IsConfigured && string.Equals(SurfaceId, surfaceId, StringComparison.Ordinal) &&
@@ -139,9 +168,8 @@ namespace XianXia.Core.World.Strategic
             if (motion == null || !motion.HasPosition || motion.IsMoving ||
                 !string.Equals(motion.SurfaceId, area.SurfaceId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "需要在荒村城外的灵阵前停下。");
-            var innerGate = new WorldVec2(area.MaxX - area.CellSize * 30f,
-                (area.MinY + area.MaxY) * .5f);
-            var outerGate = new WorldVec2(area.MaxX + area.CellSize * 125f, innerGate.Y);
+            var innerGate = area.InnerGate;
+            var outerGate = area.OuterGate;
             var radius = area.CellSize * 10f;
             var innerDx = motion.WorldPosition.X - innerGate.X;
             var innerDy = motion.WorldPosition.Y - innerGate.Y;

@@ -74,6 +74,18 @@ namespace XianXia.Unity.Host
         bool _showGrid = true;
         bool _showGeography = true;
         bool _showTerritory = true;
+        bool _showFactionLegend = true;
+        string _hoverFaction;
+        string _lastLegendClick;
+        float _lastLegendClickTime = -1f;
+        readonly Dictionary<string, int> _legendCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        readonly List<(string Id, int Count, string Label, Color Tint)> _legendRows =
+            new List<(string, int, string, Color)>();
+        SimulationWorld _legendWorld;
+        string _legendSurface;
+        int _legendFrame = -1;
+        int _legendTotal;
+        string _legendTitle = string.Empty;
         bool _viewReady;
         bool _panning;
         Vector2 _panLast;
@@ -134,6 +146,8 @@ namespace XianXia.Unity.Host
         public void CloseWithLocalMapTakeover() => CloseInternal(true);
         void CloseInternal(bool resumeLocal)
         {
+            _hoverFaction = null;
+            _lastLegendClick = null;
             open = false;
             _acceptedTravelPlanVersion = -1;
             _acceptedTravelActorId = EntityId.None;
@@ -251,6 +265,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.WorldMapUpdate.Auto();
             FinishPendingRoute();
             ReportInterruptedRoute();
             if (open) HostInputGate.Acquire(InputOwner);
@@ -294,8 +309,11 @@ namespace XianXia.Unity.Host
                 HostUiHitTest.EndFrame();
                 return;
             }
+            RefreshFactionLegend(world, nav.SurfaceId);
+            var legendRect = FactionLegendRect();
+            HandleLegendInput(legendRect, world, nav);
             var mapRect = new Rect(12f, HeaderHeight, Screen.width - 24f,
-                Mathf.Max(64f, Screen.height - HeaderHeight - FooterHeight));
+                Mathf.Max(64f, legendRect.y - HeaderHeight - 4f));
             var fullViewHalf = FullSurfaceViewHalf(mapRect, nav);
             if (!_viewReady)
             {
@@ -321,6 +339,7 @@ namespace XianXia.Unity.Host
             HandleMapInput(local, mapRect, projection, world, nav);
             DrawCoordinateReference(local, projection, world, nav, pointerAvailable, pointerWorld);
             GUI.EndGroup();
+            DrawFactionLegend(legendRect);
             GUI.Label(new Rect(16, Screen.height - FooterHeight + 3, Screen.width - 32, 26), _status, _body);
             if (_statusIsError || _pendingRoute != null)
             {
@@ -544,8 +563,17 @@ namespace XianXia.Unity.Host
                 var markerWorld = new Rect(site.CoreWorldX - sizeWorld * .5f,
                     site.CoreWorldY - sizeWorld * .5f, sizeWorld, sizeWorld);
                 var marker = projection.ProjectWorldRect(markerWorld);
+                var highlighted = _hoverFaction != null && !site.CoreIsRemovable &&
+                    string.Equals(_hoverFaction, site.OwnerFactionId ?? string.Empty, StringComparison.Ordinal);
+                if (highlighted)
+                {
+                    var enlarged = Mathf.Max(marker.width * 1.65f, 18f);
+                    marker = new Rect(marker.center.x - enlarged * .5f,
+                        marker.center.y - enlarged * .5f, enlarged, enlarged);
+                }
                 var fontWorld = nav.CellSize * SiteLabelHeightCells;
                 var fontSize = Mathf.Clamp(Mathf.RoundToInt(fontWorld * projection.Scale), 11, 48);
+                if (highlighted) fontSize = Mathf.Min(48, fontSize + 2);
                 var style = SiteLabelStyle(fontSize);
                 _siteLabelContent.text = site.DisplayName;
                 var measured = SiteLabelSize(site.DisplayName, fontSize, style);
@@ -555,13 +583,21 @@ namespace XianXia.Unity.Host
                     site.CoreWorldY);
                 var label = new Rect(anchor.x, anchor.y - labelHeight * .5f,
                     Mathf.Ceil(measured.x + 8f), labelHeight);
+                if (highlighted) label.x = marker.xMax + 4f;
                 if (!marker.Overlaps(projection.MapRect) && !label.Overlaps(projection.MapRect))
                     continue;
                 if (Event.current.type == EventType.Repaint)
                 {
                     var selected = string.Equals(_selectedSiteId, site.SiteId, StringComparison.Ordinal);
+                    if (highlighted)
+                    {
+                        StrategicFactionCatalog.MapTint(_hoverFaction, out var r, out var g, out var b);
+                        Fill(new Rect(marker.x - 3f, marker.y - 3f, marker.width + 6f, marker.height + 6f),
+                            new Color(r, g, b, .85f));
+                        Fill(marker, new Color(.96f, .93f, .8f, 1f));
+                    }
                     if (site.CoreIsRemovable) DrawSiteFlag(marker, selected);
-                    else DrawCouncilHall(marker, selected);
+                    else DrawCouncilHall(marker, selected || highlighted);
                     GUI.Label(label, _siteLabelContent, style);
                 }
                 _siteHits.Add((site.SiteId, Rect.MinMaxRect(
@@ -719,6 +755,7 @@ namespace XianXia.Unity.Host
 
         void RegisterOverlayInputRects()
         {
+            HostUiHitTest.Block(FactionLegendRect());
             HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, HeaderHeight));
             HostUiHitTest.Block(new Rect(0f, Screen.height - FooterHeight,
                 Screen.width, FooterHeight));
@@ -731,7 +768,152 @@ namespace XianXia.Unity.Host
                     Mathf.Min(740f, Screen.width - 32f), 42f));
         }
 
-        static Rect InspectRect() => new Rect(Screen.width - 310, HeaderHeight + 8, 292, 102);
+        static Rect InspectRect() => new Rect(Screen.width - 330, HeaderHeight + 8, 312, 132);
+
+        int LegendColumns => Mathf.Max(1, Mathf.FloorToInt((Screen.width - 48f) / 190f));
+
+        Rect FactionLegendRect()
+        {
+            var rows = (_legendRows.Count + LegendColumns - 1) / LegendColumns;
+            var height = 28f + (_showFactionLegend ? rows * 27f + 8f : 0f);
+            return new Rect(12f, Screen.height - FooterHeight - height,
+                Screen.width - 24f, height);
+        }
+
+        void RefreshFactionLegend(SimulationWorld world, string surfaceId)
+        {
+            var sameWorld = ReferenceEquals(world, _legendWorld) && _legendSurface == surfaceId;
+            if (sameWorld && _legendFrame == Time.frameCount) return;
+            _legendWorld = world;
+            _legendSurface = surfaceId;
+            _legendFrame = Time.frameCount;
+            _legendCounts.Clear();
+            var player = world.Strategic.PlayerFactionId;
+            if (!string.IsNullOrEmpty(player)) _legendCounts[player] = 0;
+            _legendCounts[string.Empty] = 0;
+            var total = 0;
+            foreach (var pair in world.Strategic.Sites.Sites)
+            {
+                var site = pair.Value;
+                if (site == null || !site.IsCoreActive || site.CoreIsRemovable || !site.HasContinuousCore ||
+                    !string.Equals(site.CoreSurfaceId, surfaceId, StringComparison.Ordinal)) continue;
+                var owner = site.OwnerFactionId ?? string.Empty;
+                _legendCounts.TryGetValue(owner, out var count);
+                _legendCounts[owner] = count + 1;
+                total++;
+            }
+            var changed = !sameWorld || total != _legendTotal || _legendRows.Count != _legendCounts.Count;
+            if (!changed)
+                foreach (var row in _legendRows)
+                    if (!_legendCounts.TryGetValue(row.Id, out var count) || count != row.Count)
+                    { changed = true; break; }
+            if (!changed) return;
+            _legendTotal = total;
+            _legendTitle = "势力图例 · 当前地图 " + total + " 城镇 · 悬停高亮 / 双击主城";
+            _legendRows.Clear();
+            foreach (var pair in _legendCounts)
+            {
+                StrategicFactionCatalog.MapTint(pair.Key, out var r, out var g, out var b);
+                var name = pair.Key.Length == 0 ? "无归属" : StrategicFactionCatalog.DisplayName(pair.Key);
+                if (pair.Key == player) name += "（玩家）";
+                _legendRows.Add((pair.Key, pair.Value, name + "  " + pair.Value + " 城", new Color(r, g, b)));
+            }
+            _legendRows.Sort((a, b) =>
+            {
+                if (a.Id == b.Id) return 0;
+                if (a.Id == player) return -1;
+                if (b.Id == player) return 1;
+                if (a.Id.Length == 0) return 1;
+                if (b.Id.Length == 0) return -1;
+                var sa = StrategicFactionCatalog.TryGetInstalled(a.Id, out var fa) ? fa.SortOrder : int.MaxValue;
+                var sb = StrategicFactionCatalog.TryGetInstalled(b.Id, out var fb) ? fb.SortOrder : int.MaxValue;
+                return sa != sb ? sa.CompareTo(sb) : string.CompareOrdinal(a.Id, b.Id);
+            });
+        }
+
+        Rect LegendItemRect(Rect rect, int index)
+        {
+            var width = (rect.width - 24f) / LegendColumns;
+            return new Rect(rect.x + 12f + index % LegendColumns * width,
+                rect.y + 30f + index / LegendColumns * 27f, width, 24f);
+        }
+
+        void HandleLegendInput(Rect rect, SimulationWorld world, SurfaceGroundNavigation nav)
+        {
+            _hoverFaction = null;
+            if (!_showFactionLegend || _characterPanel?.IsOpen == true || _factionPanel?.IsOpen == true)
+            { _lastLegendClick = null; return; }
+            var e = Event.current;
+            for (var i = 0; i < _legendRows.Count; i++)
+            {
+                if (!LegendItemRect(rect, i).Contains(e.mousePosition)) continue;
+                var id = _legendRows[i].Id;
+                _hoverFaction = id;
+                if (e.type != EventType.MouseDown || e.button != 0) return;
+                var twice = _lastLegendClick == id && Time.realtimeSinceStartup - _lastLegendClickTime < .4f;
+                _lastLegendClick = twice ? null : id;
+                _lastLegendClickTime = Time.realtimeSinceStartup;
+                e.Use();
+                if (twice) FocusFactionCapital(id, world, nav);
+                return;
+            }
+            if (e.type == EventType.MouseDown) _lastLegendClick = null;
+        }
+
+        void FocusFactionCapital(string factionId, SimulationWorld world, SurfaceGroundNavigation nav)
+        {
+            _statusIsError = false;
+            if (string.IsNullOrEmpty(factionId)) { _status = "无归属城镇没有统一主城。"; return; }
+            var preferred = StrategicFactionCatalog.TryGetInstalled(factionId, out var faction)
+                ? faction.MapCapitalSiteId : string.Empty;
+            WorldSite target = null;
+            foreach (var pair in world.Strategic.Sites.Sites)
+            {
+                var site = pair.Value;
+                if (site == null || !site.IsCoreActive || site.CoreIsRemovable || !site.HasContinuousCore ||
+                    site.CoreSurfaceId != nav.SurfaceId || site.OwnerFactionId != factionId) continue;
+                if (site.SiteId == preferred) { target = site; break; }
+                if (target == null || site.CoreLevel > target.CoreLevel ||
+                    (site.CoreLevel == target.CoreLevel && string.CompareOrdinal(site.SiteId, target.SiteId) < 0)) target = site;
+            }
+            if (target == null) { _status = "该势力在当前地图没有城镇。"; return; }
+            _centerX = target.CoreWorldX;
+            _centerY = target.CoreWorldY;
+            _viewHalf = 12f;
+            _viewReady = true;
+            _selectedSiteId = target.SiteId;
+            _selectedSquadId = string.Empty;
+            _statusIsError = false;
+            _status = target.SiteId == preferred ? "已聚焦主城：" + target.DisplayName :
+                "原主城不属于该势力，已聚焦现有城镇：" + target.DisplayName;
+        }
+
+        void DrawFactionLegend(Rect rect)
+        {
+            Fill(rect, new Color(.055f, .105f, .12f, 1f));
+            if (GUI.Button(new Rect(rect.x + 6f, rect.y + 2f, 28f, 24f),
+                _showFactionLegend ? "▼" : "▶"))
+            {
+                var oldHeight = Mathf.Max(64f, rect.y - HeaderHeight - 4f);
+                _showFactionLegend = !_showFactionLegend;
+                var newHeight = Mathf.Max(64f, FactionLegendRect().y - HeaderHeight - 4f);
+                _viewHalf *= newHeight / oldHeight;
+            }
+            GUI.Label(new Rect(rect.x + 40f, rect.y + 3f, rect.width - 48f, 23f), _legendTitle, _body);
+            if (!_showFactionLegend) return;
+            var columns = LegendColumns;
+            var width = (rect.width - 24f) / columns;
+            for (var i = 0; i < _legendRows.Count; i++)
+            {
+                var row = _legendRows[i];
+                if (_hoverFaction == row.Id)
+                    Fill(LegendItemRect(rect, i), new Color(row.Tint.r, row.Tint.g, row.Tint.b, .25f));
+                var x = rect.x + 12f + (i % columns) * width;
+                var y = rect.y + 30f + (i / columns) * 27f;
+                Fill(new Rect(x, y + 3f, 16f, 16f), row.Tint);
+                GUI.Label(new Rect(x + 23f, y, width - 27f, 24f), row.Label, _body);
+            }
+        }
 
         void HandleMapInput(Rect local, Rect mapRect, SurfaceWorldMapViewportProjection projection,
             SimulationWorld world, SurfaceGroundNavigation nav)
@@ -799,7 +981,7 @@ namespace XianXia.Unity.Host
                     {
                         _selectedSiteId = hit.Id;
             _selectedSquadId = string.Empty;
-                        _status = "已选中地点 " + hit.Id;
+                        _status = "已选中地点：" + SiteDisplayName(world, hit.Id);
                         _statusIsError = false;
                         e.Use(); return;
                     }
@@ -978,7 +1160,7 @@ namespace XianXia.Unity.Host
                     bootstrap.Session.World, _acceptedTravelActorId);
             _status = string.IsNullOrEmpty(siteId)
                 ? "已规划前往地面位置，关闭地图后出发"
-                : "已规划前往 " + siteId + "，关闭地图后出发";
+                : "已规划前往 " + SiteDisplayName(bootstrap?.Session?.World, siteId) + "，关闭地图后出发";
             if (!open)
                 bootstrap?.PlayerPartyController?.ResumeSurfaceTravelAfterPlanning();
         }
@@ -1062,14 +1244,36 @@ namespace XianXia.Unity.Host
                 destination.y.ToString("0.###") + ")");
         }
 
+        static string SiteDisplayName(SimulationWorld world, string siteId)
+        {
+            return world != null && world.Strategic.Sites.TryGet(siteId, out var site) &&
+                site != null && !string.IsNullOrEmpty(site.DisplayName) ? site.DisplayName : "未知地点";
+        }
+
         void DrawInspect(SimulationWorld world)
         {
             var rect = InspectRect();
             Fill(rect, new Color(.08f, .11f, .13f, .93f));
             if (!string.IsNullOrEmpty(_selectedSiteId) &&
                 world.Strategic.Sites.TryGet(_selectedSiteId, out var site) && site != null)
-                GUI.Label(new Rect(rect.x + 10, rect.y + 8, rect.width - 20, 84),
-                    site.DisplayName + "\n" + site.SiteType + "  ·  " + site.OwnerFactionId, _body);
+            {
+                var owner = site.OwnerFactionId ?? string.Empty;
+                var owned = owner.Length > 0;
+                var ownerName = owned ? StrategicFactionCatalog.DisplayName(owner) : "无主城镇";
+                var capital = owned && StrategicFactionCatalog.TryGetInstalled(owner, out var faction) &&
+                    string.Equals(faction.MapCapitalSiteId, site.SiteId, StringComparison.Ordinal);
+                StrategicFactionCatalog.MapTint(owner, out var r, out var g, out var b);
+                GUI.Label(new Rect(rect.x + 10, rect.y + 8, rect.width - 20, 24),
+                    site.DisplayName + "  ·  " + site.CoreLevel + " 级", _body);
+                Fill(new Rect(rect.x + 10, rect.y + 38, 12, 12), new Color(r, g, b));
+                GUI.Label(new Rect(rect.x + 29, rect.y + 32, rect.width - 39, 24),
+                    "所属势力：" + ownerName, _body);
+                GUI.Label(new Rect(rect.x + 10, rect.y + 58, rect.width - 20, 24),
+                    capital ? "势力主城" : site.CoreIsRemovable ? "临时据点" : "固定城镇", _body);
+                GUI.Label(new Rect(rect.x + 10, rect.y + 84, rect.width - 20, 24),
+                    string.Format(CultureInfo.InvariantCulture, "坐标：X {0:0.0}  Y {1:0.0}",
+                        site.CoreWorldX, site.CoreWorldY), _body);
+            }
             else if (!string.IsNullOrEmpty(_selectedSquadId) &&
                      SquadWorldMotionService.TryGetActiveNpcSquadAuthority(
                          world, _selectedSquadId, out var squad, out _))

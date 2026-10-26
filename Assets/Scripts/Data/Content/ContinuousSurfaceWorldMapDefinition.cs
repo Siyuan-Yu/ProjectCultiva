@@ -14,5 +14,7 @@ namespace XianXia.Data.Content
         public int WidthCells, HeightCells;
         public readonly List<string> BaseTerrainRows = new List<string>(); // P plain, M mountain, W water
         public readonly List<string> ForestRows = new List<string>(); // 0..9 density
+        public readonly List<int> PresentationPalette = new List<int>(); // RGB, display only
+        public readonly List<string> PresentationRows = new List<string>(); // A..Z palette indices
     }
 }

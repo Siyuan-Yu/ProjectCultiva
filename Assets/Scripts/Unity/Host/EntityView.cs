@@ -532,9 +532,10 @@ namespace XianXia.Unity.Host
             SyncFromCore(entity);
             using (HostDebugHud.EntitySleep.Auto()) UpdateSleepVisual(entity);
             using (HostDebugHud.EntityArt.Auto()) UpdateRuntimeArt(entity);
+            using (HostDebugHud.EntityDepth.Auto()) ApplyDepthSort();
+            // Wings must consume this frame's depth, not the preceding position's order.
             UpdateFlightVisual(entity);
             using (HostDebugHud.EntityBounds.Auto()) SyncBodyCollider();
-            using (HostDebugHud.EntityDepth.Auto()) ApplyDepthSort();
             ApplyHitFlash();
             ApplyRemovedHide(entity);
         }
@@ -1008,9 +1009,7 @@ namespace XianXia.Unity.Host
         }
 
         bool TryGetValidOccupiedRestBed(out OutdoorConstructedAssetState bed) =>
-            RoomBedFacilityService.IsValidOccupiedBed(_world, _entityId, RoomUsage.Residential, out bed) ||
-            RoomBedFacilityService.IsValidOccupiedBed(_world, _entityId, RoomUsage.Prison, out bed) ||
-            RoomBedFacilityService.IsValidOccupiedBed(_world, _entityId, RoomUsage.Medical, out bed);
+            HostCharacterVisualContext.TryGetValidOccupiedRestBed(_world, _entityId, out bed);
 
         bool TryApplyBedRest(Sprite sprite, OutdoorConstructedAssetState bed)
         {

@@ -137,6 +137,10 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            // This HUD exclusively uses fixed Rect GUI controls, never GUILayout.
+            // Keep input and repaint passes; Layout needs neither snapshots nor strings.
+            if (Event.current.type == EventType.Layout) return;
+            using var timing = HostDebugHud.HudGui.Auto();
             if (bootstrap?.GetComponent<HostShopTradePanel>()?.IsOpen == true) return;
             if (!visible)
                 return;

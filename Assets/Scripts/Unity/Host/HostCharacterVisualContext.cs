@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Actions;
+using XianXia.Core.Construction;
 using XianXia.Core.Entities;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
@@ -35,6 +36,53 @@ namespace XianXia.Unity.Host
         static readonly HashSet<EntityId> CargoCarriers = new HashSet<EntityId>();
         static readonly HashSet<EntityId> PersonCarriers = new HashSet<EntityId>();
         static readonly HashSet<EntityId> CarriedPeople = new HashSet<EntityId>();
+
+        static SimulationWorld _bedWorld;
+        static int _bedFrame = -1;
+        static readonly Dictionary<(EntityId, RoomUsage), OutdoorConstructedAssetState> OccupiedBeds =
+            new Dictionary<(EntityId, RoomUsage), OutdoorConstructedAssetState>();
+
+        // Presentation-only index, rebuilt each frame: never caches permission or
+        // navigation results across ticks, demolition, room usage changes or loading.
+        public static bool TryGetValidOccupiedRestBed(SimulationWorld world, EntityId id,
+            out OutdoorConstructedAssetState bed)
+        {
+            bed = null;
+            if (world == null || id.IsNone) return false;
+            if (!ReferenceEquals(_bedWorld, world) || _bedFrame != Time.frameCount)
+            {
+                _bedWorld = world; _bedFrame = Time.frameCount;
+                OccupiedBeds.Clear();
+                var beds = world.OutdoorConstructedAssets.Beds;
+                for (var i = 0; i < beds.Count; i++)
+                {
+                    var candidate = beds[i];
+                    if (candidate.OccupantCharacterId.IsNone) continue;
+                    var usage = RoomUsage.Residential;
+                    if (!string.IsNullOrEmpty(candidate.ParentRoomId))
+                    {
+                        if (!world.OutdoorConstructedAssets.Assets.TryGetValue(candidate.ParentRoomId, out var room) ||
+                            !RoomBedGeometry.IsRoom(room)) continue;
+                        usage = room.RoomUsage;
+                    }
+                    var key = (candidate.OccupantCharacterId, usage);
+                    if (!OccupiedBeds.ContainsKey(key)) OccupiedBeds.Add(key, candidate);
+                }
+            }
+            return Valid(RoomUsage.Residential, world, id, out bed) ||
+                   Valid(RoomUsage.Prison, world, id, out bed) ||
+                   Valid(RoomUsage.Medical, world, id, out bed);
+        }
+
+        static bool Valid(RoomUsage usage, SimulationWorld world, EntityId id,
+            out OutdoorConstructedAssetState bed)
+        {
+            return OccupiedBeds.TryGetValue((id, usage), out bed) && bed.OccupantCharacterId == id &&
+                world.OutdoorConstructedAssets.Assets.TryGetValue(bed.StableAssetId, out var current) &&
+                ReferenceEquals(current, bed) && RoomBedFacilityService.BedHasUsage(world, bed, usage) &&
+                RoomBedFacilityService.CanUseBed(world, bed, id, out _) &&
+                RoomBedFacilityService.IsAtBed(world, bed, id);
+        }
 
         public static void ResolveCarry(SimulationWorld world, EntityId id,
             out bool cargo, out bool person, out bool carried)

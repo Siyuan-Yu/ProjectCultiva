@@ -1113,7 +1113,8 @@ namespace XianXia.Data.Content
                 Name = name,
                 MapColor = mapColor,
                 TerritorySelectable = item.GetBool("territorySelectable", true),
-                SortOrder = (int)item.GetNumber("sortOrder", 0)
+                SortOrder = (int)item.GetNumber("sortOrder", 0),
+                MapCapitalSiteId = item.GetString("mapCapitalSiteId", string.Empty)
             };
 
             var registered = registry.RegisterStrategicFaction(def);
@@ -1999,6 +2000,28 @@ namespace XianXia.Data.Content
                 { report.Add(ErrorCode.InvalidArgument, "Invalid continuousSurfaceWorldMap raster row.", id + ".rows[" + row + "]"); return; }
                 definition.BaseTerrainRows.Add(terrain.String); definition.ForestRows.Add(forest.String);
             }
+            if (item.TryGetProperty("presentationPalette", out var palette) ||
+                item.TryGetProperty("presentationRows", out _))
+            {
+                if (palette == null || palette.Kind != JsonValueKind.Array || palette.Array.Count < 1 || palette.Array.Count > 26 ||
+                    !item.TryGetProperty("presentationRows", out var colors) || colors.Kind != JsonValueKind.Array || colors.Array.Count != height)
+                { report.Add(ErrorCode.InvalidArgument, "Invalid WorldMap presentation palette/rows.", id.ToString()); return; }
+                foreach (var value in palette.Array)
+                {
+                    if (value.Kind != JsonValueKind.Number || value.Number < 0 || value.Number > 0xffffff || value.Number != (int)value.Number)
+                    { report.Add(ErrorCode.InvalidArgument, "Invalid WorldMap RGB color.", id.ToString()); return; }
+                    definition.PresentationPalette.Add((int)value.Number);
+                }
+                foreach (var row in colors.Array)
+                {
+                    if (row.Kind != JsonValueKind.String || row.String.Length != width)
+                    { report.Add(ErrorCode.InvalidArgument, "Invalid WorldMap presentation row.", id.ToString()); return; }
+                    foreach (var value in row.String)
+                        if (value < 'A' || value - 'A' >= definition.PresentationPalette.Count)
+                        { report.Add(ErrorCode.InvalidArgument, "Invalid WorldMap palette index.", id.ToString()); return; }
+                    definition.PresentationRows.Add(row.String);
+                }
+            }
             var registered=registry.RegisterContinuousSurfaceWorldMap(definition); if (registered.IsFailure) report.Add(registered.Error);
         }
 
@@ -2458,6 +2481,29 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.DuplicateDefinitionId,
                         "Duplicate Outdoor opening entity anchor spawnKey within the same Site.",
                         id + ".openingEntityAnchors." + anchor.SpawnKey);
+            }
+            if (item.TryGetProperty("openingBasin", out var basin))
+            {
+                if (basin.Kind != JsonValueKind.Object || !basin.TryGetProperty("boundary", out var boundary) ||
+                    boundary.Kind != JsonValueKind.Array || boundary.Array.Count < 6 || boundary.Array.Count % 2 != 0)
+                { report.Add(ErrorCode.InvalidArgument, "Invalid opening basin polygon.", id.ToString()); return; }
+                for (var i = 0; i < boundary.Array.Count; i += 2)
+                {
+                    var bx = boundary.Array[i]; var by = boundary.Array[i + 1];
+                    if (bx.Kind != JsonValueKind.Number || by.Kind != JsonValueKind.Number ||
+                        double.IsNaN(bx.Number) || double.IsInfinity(bx.Number) || double.IsNaN(by.Number) || double.IsInfinity(by.Number) ||
+                        Math.Abs(bx.Number) > float.MaxValue || Math.Abs(by.Number) > float.MaxValue)
+                    { report.Add(ErrorCode.InvalidArgument, "Invalid opening basin vertex.", id.ToString()); return; }
+                    surface.OpeningBasinBoundary.Add(new XianXia.Core.World.WorldVec2((float)bx.Number, (float)by.Number));
+                }
+                surface.OpeningInnerGateId = basin.GetString("innerGateId", string.Empty);
+                surface.OpeningOuterGateId = basin.GetString("outerGateId", string.Empty);
+                var innerFound = false; var outerFound = false;
+                foreach (var placement in surface.SitePlacements)
+                    if (placement.Kind == "spiritGate")
+                    { innerFound |= placement.StableId == surface.OpeningInnerGateId; outerFound |= placement.StableId == surface.OpeningOuterGateId; }
+                if (!innerFound || !outerFound || surface.OpeningInnerGateId == surface.OpeningOuterGateId)
+                { report.Add(ErrorCode.InvalidArgument, "Opening basin requires two authored spirit gates.", id.ToString()); return; }
             }
             var result = registry.RegisterOutdoorSurface(surface);
             if (result.IsFailure) report.Add(result.Error);

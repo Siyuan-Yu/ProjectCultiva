@@ -272,6 +272,7 @@ namespace XianXia.Core.World.Strategic
         public readonly float B;
         public readonly bool TerritorySelectable;
         public readonly int SortOrder;
+        public readonly string MapCapitalSiteId;
 
         public StrategicFactionPresentation(
             string factionId,
@@ -280,7 +281,7 @@ namespace XianXia.Core.World.Strategic
             float g,
             float b,
             bool territorySelectable,
-            int sortOrder)
+            int sortOrder, string mapCapitalSiteId = "")
         {
             FactionId = factionId ?? string.Empty;
             DisplayName = displayName ?? string.Empty;
@@ -289,6 +290,7 @@ namespace XianXia.Core.World.Strategic
             B = b;
             TerritorySelectable = territorySelectable;
             SortOrder = sortOrder;
+            MapCapitalSiteId = mapCapitalSiteId ?? string.Empty;
         }
     }
 }

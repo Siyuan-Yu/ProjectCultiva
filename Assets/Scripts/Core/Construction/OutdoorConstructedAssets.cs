@@ -260,6 +260,34 @@ namespace XianXia.Core.Construction
                 }
             }
         }
+        // Boolean bedside query: duplicate bucket visits are harmless. Unlike the
+        // public enumeration this needs neither an iterator nor a dedup HashSet.
+        internal bool AnyFurnitureAtAccessCell(OutdoorConstructedAssetState bed,
+            OutdoorConstructedAssetState room, WorldVec2 point, float cellX, float cellY)
+        {
+            var left = (double)point.X - cellX * .5;
+            var bottom = (double)point.Y - cellY * .5;
+            for (var y = Bucket((float)bottom); y <= Bucket((float)(bottom + cellY)); y++)
+            for (var x = Bucket((float)left); x <= Bucket((float)(left + cellX)); x++)
+            {
+                if (!_spatial.TryGetValue((bed.SurfaceId, x, y), out var items)) continue;
+                for (var i = 0; i < items.Count; i++)
+                {
+                    var asset = items[i];
+                    if (ReferenceEquals(asset, bed) || ReferenceEquals(asset, room) ||
+                        asset.StableAssetId == bed.StableAssetId || room != null && asset.StableAssetId == room.StableAssetId)
+                        continue;
+                    var epsilon = 2 * RoomBedGeometry.CoordinateTolerance(Math.Min(cellX, cellY),
+                        point.X, point.Y, asset.WorldX, asset.WorldY);
+                    var dx = asset.WorldX - left;
+                    var dy = asset.WorldY - bottom;
+                    if (dx + asset.WorldWidth > epsilon && dx < cellX - epsilon &&
+                        dy + asset.WorldHeight > epsilon && dy < cellY - epsilon) return true;
+                }
+            }
+            return false;
+        }
+
         internal void AdvanceSequence() { NextSequence = checked(NextSequence + 1); }
         public bool RestoreSequence(long sequence)
         {
@@ -292,15 +320,27 @@ namespace XianXia.Core.Construction
         }
         public static bool Overlaps(OutdoorConstructedAssetState a, OutdoorConstructedAssetState b)
         {
-            var epsilon = Math.Min(a.WorldWidth / a.CellsW, b.WorldWidth / b.CellsW) * .001f;
-            return a.SurfaceId == b.SurfaceId && a.WorldX < b.WorldX + b.WorldWidth - epsilon &&
-                b.WorldX < a.WorldX + a.WorldWidth - epsilon && a.WorldY < b.WorldY + b.WorldHeight - epsilon &&
-                b.WorldY < a.WorldY + a.WorldHeight - epsilon;
+            var epsilon = RoomBedGeometry.CoordinateTolerance(
+                Math.Min(a.WorldWidth / a.CellsW, b.WorldWidth / b.CellsW),
+                a.WorldX, a.WorldY, b.WorldX, b.WorldY);
+            var dx = (double)b.WorldX - a.WorldX;
+            var dy = (double)b.WorldY - a.WorldY;
+            return a.SurfaceId == b.SurfaceId && dx + b.WorldWidth > epsilon &&
+                dx < a.WorldWidth - epsilon && dy + b.WorldHeight > epsilon && dy < a.WorldHeight - epsilon;
         }
     }
 
     public static class RoomBedGeometry
     {
+        // A float origin past 512 has a larger ULP than .001 of a .028-world-unit cell.
+        // Keep arithmetic local and double; also account for quantization of the stored float origins.
+        internal static double CoordinateTolerance(double cellSize, double ax, double ay, double bx, double by)
+        {
+            var magnitude = Math.Max(Math.Max(Math.Abs(ax), Math.Abs(ay)), Math.Max(Math.Abs(bx), Math.Abs(by)));
+            const double floatRelativeSpacing = 1.1920928955078125e-7; // 2^-23, not System.Single.Epsilon
+            return Math.Max(cellSize * .001, magnitude * floatRelativeSpacing);
+        }
+
         public static bool IsRoom(OutdoorConstructedAssetState asset) => asset != null &&
             string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal);
 
@@ -333,13 +373,14 @@ namespace XianXia.Core.Construction
         {
             if (!IsRoom(room) || !IsBed(bed) || room.SurfaceId != bed.SurfaceId || room.CellsW < 3 || room.CellsH < 3)
                 return false;
-            var cellX = room.WorldWidth / room.CellsW;
-            var cellY = room.WorldHeight / room.CellsH;
-            var epsilon = Math.Min(cellX, cellY) * .001f;
-            return bed.WorldX >= room.WorldX + cellX - epsilon &&
-                bed.WorldY >= room.WorldY + cellY - epsilon &&
-                bed.WorldX + bed.WorldWidth <= room.WorldX + room.WorldWidth - cellX + epsilon &&
-                bed.WorldY + bed.WorldHeight <= room.WorldY + room.WorldHeight - cellY + epsilon;
+            var cellX = (double)room.WorldWidth / room.CellsW;
+            var cellY = (double)room.WorldHeight / room.CellsH;
+            var epsilon = CoordinateTolerance(Math.Min(cellX, cellY), room.WorldX, room.WorldY, bed.WorldX, bed.WorldY);
+            var dx = (double)bed.WorldX - room.WorldX;
+            var dy = (double)bed.WorldY - room.WorldY;
+            return dx >= cellX - epsilon && dy >= cellY - epsilon &&
+                dx + bed.WorldWidth <= room.WorldWidth - cellX + epsilon &&
+                dy + bed.WorldHeight <= room.WorldHeight - cellY + epsilon;
         }
 
         public static Result ValidatePlacement(OutdoorConstructedAssetBoard board, OutdoorConstructedAssetState candidate)
@@ -458,10 +499,10 @@ namespace XianXia.Core.Construction
             // Preserve the authored preference: below, right, left, then above.
             switch (index)
             {
-                case 0: return new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY - cellY * .5f);
-                case 1: return new WorldVec2(bed.WorldX + bed.WorldWidth + cellX * .5f, bed.WorldY + bed.WorldHeight * .5f);
-                case 2: return new WorldVec2(bed.WorldX - cellX * .5f, bed.WorldY + bed.WorldHeight * .5f);
-                default: return new WorldVec2(bed.WorldX + bed.WorldWidth * .5f, bed.WorldY + bed.WorldHeight + cellY * .5f);
+                case 0: return new WorldVec2((float)((double)bed.WorldX + bed.WorldWidth * .5), (float)((double)bed.WorldY - cellY * .5));
+                case 1: return new WorldVec2((float)((double)bed.WorldX + bed.WorldWidth + cellX * .5), (float)((double)bed.WorldY + bed.WorldHeight * .5));
+                case 2: return new WorldVec2((float)((double)bed.WorldX - cellX * .5), (float)((double)bed.WorldY + bed.WorldHeight * .5));
+                default: return new WorldVec2((float)((double)bed.WorldX + bed.WorldWidth * .5), (float)((double)bed.WorldY + bed.WorldHeight + cellY * .5));
             }
         }
 
@@ -477,13 +518,15 @@ namespace XianXia.Core.Construction
 
         static bool CellFitsInterior(OutdoorConstructedAssetState room, WorldVec2 point, float cellX, float cellY)
         {
-            var roomCellX = room.WorldWidth / room.CellsW;
-            var roomCellY = room.WorldHeight / room.CellsH;
-            var epsilon = Math.Min(roomCellX, roomCellY) * .001f;
-            return point.X - cellX * .5f >= room.WorldX + roomCellX - epsilon &&
-                   point.Y - cellY * .5f >= room.WorldY + roomCellY - epsilon &&
-                   point.X + cellX * .5f <= room.WorldX + room.WorldWidth - roomCellX + epsilon &&
-                   point.Y + cellY * .5f <= room.WorldY + room.WorldHeight - roomCellY + epsilon;
+            var roomCellX = (double)room.WorldWidth / room.CellsW;
+            var roomCellY = (double)room.WorldHeight / room.CellsH;
+            // The derived float access point has one additional rounding step beyond its stored bed origin.
+            var epsilon = 2 * CoordinateTolerance(Math.Min(roomCellX, roomCellY), room.WorldX, room.WorldY, point.X, point.Y);
+            var dx = (double)point.X - room.WorldX;
+            var dy = (double)point.Y - room.WorldY;
+            return dx - cellX * .5 >= roomCellX - epsilon && dy - cellY * .5 >= roomCellY - epsilon &&
+                   dx + cellX * .5 <= room.WorldWidth - roomCellX + epsilon &&
+                   dy + cellY * .5 <= room.WorldHeight - roomCellY + epsilon;
         }
 
         static bool CellOverlapsFurniture(
@@ -493,22 +536,7 @@ namespace XianXia.Core.Construction
             WorldVec2 point,
             float cellX,
             float cellY)
-        {
-            var left = point.X - cellX * .5f;
-            var bottom = point.Y - cellY * .5f;
-            var epsilon = Math.Min(cellX, cellY) * .001f;
-            foreach (var asset in board.QueryOverlapping(bed.SurfaceId,
-                         left, bottom, cellX, cellY))
-            {
-                if (ReferenceEquals(asset, bed) || ReferenceEquals(asset, room) ||
-                    asset.StableAssetId == bed.StableAssetId || room != null && asset.StableAssetId == room.StableAssetId)
-                    continue;
-                if (asset.SurfaceId == bed.SurfaceId && left < asset.WorldX + asset.WorldWidth - epsilon &&
-                    asset.WorldX < left + cellX - epsilon && bottom < asset.WorldY + asset.WorldHeight - epsilon &&
-                    asset.WorldY < bottom + cellY - epsilon) return true;
-            }
-            return false;
-        }
+            => board.AnyFurnitureAtAccessCell(bed, room, point, cellX, cellY);
     }
 
     /// <summary>Room-level usage and bed assignment/reservation/occupancy authority.</summary>
@@ -727,7 +755,6 @@ namespace XianXia.Core.Construction
         public static bool IsAtBed(
             SimulationWorld world, OutdoorConstructedAssetState bed, EntityId characterId)
         {
-            if (IsAtAccessPoint(world, bed, characterId)) return true;
             if (world == null || bed == null ||
                 !CharacterWorldPresenceQuery.TryResolve(world, characterId, out var presence) ||
                 !presence.HasWorldPosition || presence.SurfaceId != bed.SurfaceId) return false;
@@ -739,7 +766,12 @@ namespace XianXia.Core.Construction
                 ? metric.CellSize
                 : Math.Min(bed.WorldWidth / Math.Max(1, bed.CellsW),
                     bed.WorldHeight / Math.Max(1, bed.CellsH));
-            return dx * dx + dy * dy <= cell * cell * .75f * .75f;
+            var rangeSquared = cell * cell * .75f * .75f;
+            // Occupants displayed on the bed need no second presence lookup or
+            // four-neighbour access scan. Access/ownership is still checked by CanUseBed.
+            return dx * dx + dy * dy <= rangeSquared ||
+                   RoomBedGeometry.IsWithinAccessPointRange(world.OutdoorConstructedAssets, bed,
+                       presence.WorldPosition, rangeSquared);
         }
 
         public static void Release(SimulationWorld world, EntityId characterId)

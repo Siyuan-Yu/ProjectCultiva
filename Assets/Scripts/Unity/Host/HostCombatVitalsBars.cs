@@ -43,6 +43,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            using var timing = HostDebugHud.VitalsGui.Auto();
             // This overlay has no controls: layout/key events need no entity scan or projection.
             if (Event.current.type != EventType.Repaint) return;
             if (bootstrap?.Session?.World == null || viewSpawner == null)

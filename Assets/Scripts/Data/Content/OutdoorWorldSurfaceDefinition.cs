@@ -19,6 +19,9 @@ namespace XianXia.Data.Content
         public float ChunkHeight { get; set; } = 50f;
         /// <summary>Acceptance/diagnostic surfaces never participate in normal runtime authority.</summary>
         public bool AcceptanceOnly { get; set; }
+        public List<XianXia.Core.World.WorldVec2> OpeningBasinBoundary { get; } = new List<XianXia.Core.World.WorldVec2>();
+        public string OpeningInnerGateId { get; set; }
+        public string OpeningOuterGateId { get; set; }
         public List<OutdoorSurfaceChunkDefinition> Chunks { get; set; } = new List<OutdoorSurfaceChunkDefinition>();
         public List<WorldSitePhysicalRegionDefinition> SiteRegions { get; set; } = new List<WorldSitePhysicalRegionDefinition>();
         public List<SurfaceFactionFlagDefinition> FactionFlags { get; set; } = new List<SurfaceFactionFlagDefinition>();

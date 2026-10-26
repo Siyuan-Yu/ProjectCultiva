@@ -39,10 +39,13 @@ namespace XianXia.Unity.Host
         SpriteRenderer _bedRenderer;
         SpriteRenderer _foregroundRenderer;
         Sprite _configuredBedSprite;
-        Vector2 _pillowSourcePixels;
+        Vector2 _pillowLocal;
         bool _configured;
         bool _sortingGroupReported;
         bool _sourceMismatchReported;
+        int _ancestorCheckFrame = -1;
+        Transform _ancestorCheckChild;
+        bool _ancestorHasSortingGroup;
 
         public bool IsForegroundRenderer(SpriteRenderer renderer) => renderer != null &&
             (renderer == _foregroundRenderer || renderer.name == ForegroundName &&
@@ -50,6 +53,7 @@ namespace XianXia.Unity.Host
 
         public void ClearConfiguration()
         {
+            _ancestorCheckFrame = -1;
             _configured = false;
             _bedRenderer = null;
             _configuredBedSprite = null;
@@ -94,8 +98,10 @@ namespace XianXia.Unity.Host
             }
             _bedRenderer = bedRenderer;
             _configuredBedSprite = sprite;
-            _pillowSourcePixels = new Vector2(201f,
-                usage == RoomUsage.Prison ? 156f : usage == RoomUsage.Medical ? 154f : 153f);
+            // Source sprite registration is immutable until Configure/clear.
+            // Position, rotation, flips and sorting remain live at each query.
+            _pillowLocal = SourcePoint(sprite, new Vector2(201f,
+                usage == RoomUsage.Prison ? 156f : usage == RoomUsage.Medical ? 154f : 153f));
             if (_foregroundRenderer == null)
             {
                 var child = new GameObject(ForegroundName);
@@ -128,8 +134,7 @@ namespace XianXia.Unity.Host
                 _bedRenderer.sprite == null || !_bedRenderer.gameObject.activeInHierarchy ||
                 HasActiveSortingGroupAncestor(_bedRenderer.transform)) return false;
             RefreshForegroundStyle();
-            var sprite = _bedRenderer.sprite;
-            var local = SourcePoint(sprite, _pillowSourcePixels);
+            var local = _pillowLocal;
             if (_bedRenderer.flipX) local.x = -local.x;
             if (_bedRenderer.flipY) local.y = -local.y;
             pillowWorld = _bedRenderer.transform.TransformPoint(local);
@@ -149,6 +154,11 @@ namespace XianXia.Unity.Host
 
         bool HasActiveSortingGroupAncestor(Transform child)
         {
+            if (_ancestorCheckFrame == Time.frameCount && _ancestorCheckChild == child)
+                return _ancestorHasSortingGroup;
+            _ancestorCheckFrame = Time.frameCount;
+            _ancestorCheckChild = child;
+            _ancestorHasSortingGroup = false;
             for (var current = child; current != null; current = current.parent)
             {
                 var group = current.GetComponent<SortingGroup>();
@@ -160,6 +170,7 @@ namespace XianXia.Unity.Host
                         "through an ancestor SortingGroup: " + gameObject.name, this);
                 }
                 if (_foregroundRenderer != null) _foregroundRenderer.enabled = false;
+                _ancestorHasSortingGroup = true;
                 return true;
             }
             return false;
@@ -186,12 +197,14 @@ namespace XianXia.Unity.Host
 
         void OnEnable()
         {
+            _ancestorCheckFrame = -1;
             if (_configured && _bedRenderer != null &&
                 !HasActiveSortingGroupAncestor(_bedRenderer.transform)) RefreshForegroundStyle();
         }
 
         void OnDisable()
         {
+            _ancestorCheckFrame = -1;
             if (_foregroundRenderer != null) _foregroundRenderer.enabled = false;
         }
 

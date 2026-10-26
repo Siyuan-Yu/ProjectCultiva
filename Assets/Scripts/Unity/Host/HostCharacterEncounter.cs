@@ -421,6 +421,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            using var timing = HostDebugHud.EncounterUpdate.Auto();
             if (_host?.Session?.World == null) return;
             var world = _host.Session.World;
             if (!ReferenceEquals(_world, world))

@@ -405,7 +405,22 @@ namespace XianXia.Data.Bootstrap
                 wallCount++;
             }
             if (wallCount >= 4)
+            {
                 area.Configure(surface.SurfaceId, minX, minY, maxX, maxY, surface.CellSize);
+                if (surface.OpeningBasinBoundary.Count >= 3)
+                {
+                    var inner = default(XianXia.Core.World.WorldVec2);
+                    var outer = default(XianXia.Core.World.WorldVec2);
+                    foreach (var placement in surface.SitePlacements)
+                    {
+                        var center = new XianXia.Core.World.WorldVec2(placement.WorldX + placement.WorldWidth * .5f,
+                            placement.WorldY + placement.WorldHeight * .5f);
+                        if (placement.StableId == surface.OpeningInnerGateId) inner = center;
+                        if (placement.StableId == surface.OpeningOuterGateId) outer = center;
+                    }
+                    area.ConfigureBasin(surface.OpeningBasinBoundary, inner, outer);
+                }
+            }
         }
 
         public static Result RebindPresetWorldSiteCoreMetadata(

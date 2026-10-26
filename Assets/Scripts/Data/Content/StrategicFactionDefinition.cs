@@ -23,5 +23,6 @@ namespace XianXia.Data.Content
         public bool TerritorySelectable { get; set; } = true;
 
         public int SortOrder { get; set; }
+        public string MapCapitalSiteId { get; set; } = string.Empty;
     }
 }

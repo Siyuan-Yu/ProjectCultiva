@@ -2,9 +2,28 @@
   "schemaVersion": 1,
   "definitions": [
     {
+      "id": "base:sect_tianlu",
+      "type": "strategicFaction",
+      "name": "天麓宗",
+      "mapCapitalSiteId": "base:site_beast_north_gate",
+      "mapColor": "#D2AE45",
+      "territorySelectable": true,
+      "sortOrder": 200
+    },
+    {
+      "id": "base:sect_tingyu",
+      "type": "strategicFaction",
+      "name": "听雨宗",
+      "mapCapitalSiteId": "base:site_thunder_south_gate",
+      "mapColor": "#3AA79A",
+      "territorySelectable": true,
+      "sortOrder": 210
+    },
+    {
       "id": "base:sect_hehuan",
       "type": "strategicFaction",
       "name": "合欢宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_hehuan_node_3",
       "mapColor": "#CB739C",
       "territorySelectable": true,
       "sortOrder": 110
@@ -13,6 +32,7 @@
       "id": "base:sect_xuansha",
       "type": "strategicFaction",
       "name": "玄煞门",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_xuansha_capital",
       "mapColor": "#7A536C",
       "territorySelectable": true,
       "sortOrder": 120
@@ -21,6 +41,7 @@
       "id": "base:sect_qingxiao",
       "type": "strategicFaction",
       "name": "青霄剑宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_qingxiao_capital",
       "mapColor": "#639FBF",
       "territorySelectable": true,
       "sortOrder": 140
@@ -29,6 +50,7 @@
       "id": "base:sect_baicao",
       "type": "strategicFaction",
       "name": "百草丹宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_baicao_capital",
       "mapColor": "#6FAC79",
       "territorySelectable": true,
       "sortOrder": 150
@@ -37,6 +59,7 @@
       "id": "base:sect_zhuxing",
       "type": "strategicFaction",
       "name": "铸星谷",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_zhuxing_capital",
       "mapColor": "#B7804E",
       "territorySelectable": true,
       "sortOrder": 160
@@ -45,6 +68,7 @@
       "id": "base:sect_taiyan",
       "type": "strategicFaction",
       "name": "太衍阵宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_taiyan_capital",
       "mapColor": "#9C8DB8",
       "territorySelectable": true,
       "sortOrder": 170
@@ -53,6 +77,7 @@
       "id": "base:sect_zhenyue",
       "type": "strategicFaction",
       "name": "镇岳宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_sect_zhenyue_capital",
       "mapColor": "#98876C",
       "territorySelectable": true,
       "sortOrder": 190

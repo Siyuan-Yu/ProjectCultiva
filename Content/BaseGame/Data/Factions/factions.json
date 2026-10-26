@@ -5,6 +5,7 @@
       "id": "base:faction_player",
       "type": "strategicFaction",
       "name": "主角团",
+      "mapCapitalSiteId": "base:site_huangcun",
       "mapColor": "#59B86B",
       "territorySelectable": true,
       "sortOrder": 10
@@ -13,6 +14,7 @@
       "id": "base:sect_huangcun_labor",
       "type": "strategicFaction",
       "name": "执衡宗",
+      "mapCapitalSiteId": "site:runtime:base:flag_q1_r10",
       "mapColor": "#C75247",
       "territorySelectable": true,
       "sortOrder": 20
@@ -37,6 +39,7 @@
       "id": "base:faction_shuofeng",
       "type": "strategicFaction",
       "name": "朔风堡",
+      "mapCapitalSiteId": "base:site_lingdi",
       "mapColor": "#8CADC7",
       "territorySelectable": true,
       "sortOrder": 50

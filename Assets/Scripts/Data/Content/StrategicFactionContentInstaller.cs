@@ -42,7 +42,7 @@ namespace XianXia.Data.Content
                     g,
                     b,
                     def.TerritorySelectable,
-                    def.SortOrder));
+                    def.SortOrder, def.MapCapitalSiteId));
             }
 
             StrategicFactionCatalog.Install(list);

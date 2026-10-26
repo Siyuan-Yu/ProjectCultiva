@@ -32,7 +32,11 @@ namespace XianXia.Unity.Host
 
     public static class HostArtDepth
     {
-        public static int Order(float footY) => Mathf.Clamp(24000 - Mathf.RoundToInt(footY * 4f), -30000, 30000);
+        // Presentation units are surface cells, not Core world units. The former 4x
+        // formula crossed the terrain's negative orders north of cell 6000.
+        // Two slots/cell cover the full authored world and keep every prop/actor
+        // above fixed ground overlays (<= 710), including a safe lower bound.
+        public static int Order(float footY) => Mathf.Clamp(28000 - Mathf.RoundToInt(footY * 2f), 1024, 30000);
 
         public static int ObjectOrder(string kind, float centerY, float height, int groundOrder = -25)
         {

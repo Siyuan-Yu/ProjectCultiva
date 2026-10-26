@@ -51,7 +51,7 @@
     {
       "id": "base:workarea_supervisor_mansion",
       "type": "workArea",
-      "name": "议政厅",
+      "name": "荒村·议政厅",
       "locationId": "base:loc_ref_road_hub",
       "tags": [
         "controlCore",
@@ -177,7 +177,7 @@
     {
       "id": "base:workarea_core_chengzhen",
       "type": "workArea",
-      "name": "青石镇·议政厅",
+      "name": "云泽镇·议政厅",
       "locationId": "base:loc_site_chengzhen_core",
       "tags": [
         "controlCore",
@@ -203,7 +203,7 @@
     {
       "id": "base:workarea_core_guanai",
       "type": "workArea",
-      "name": "青石关·议政厅",
+      "name": "北坪镇·议政厅",
       "locationId": "base:loc_site_guanai_core",
       "tags": [
         "controlCore",
@@ -229,7 +229,7 @@
     {
       "id": "base:workarea_core_lingdi",
       "type": "workArea",
-      "name": "灵地·议政厅",
+      "name": "霜原城·议政厅",
       "locationId": "base:loc_site_lingdi_core",
       "tags": [
         "controlCore",
@@ -255,7 +255,7 @@
     {
       "id": "base:workarea_core_linjian",
       "type": "workArea",
-      "name": "林间·议政厅",
+      "name": "桐溪镇·议政厅",
       "locationId": "base:loc_site_linjian_core",
       "tags": [
         "controlCore",
@@ -281,7 +281,7 @@
     {
       "id": "base:workarea_core_zhuangyuan",
       "type": "workArea",
-      "name": "庄院·议政厅",
+      "name": "北原镇·议政厅",
       "locationId": "base:loc_site_zhuangyuan_core",
       "tags": [
         "controlCore",
@@ -553,7 +553,7 @@
     {
       "id": "base:workarea_core_player_origin",
       "type": "workArea",
-      "name": "行路旧营·议政厅",
+      "name": "丰禾镇·议政厅",
       "locationId": "base:loc_player_origin_core",
       "tags": [
         "controlCore",
@@ -579,7 +579,7 @@
     {
       "id": "base:workarea_core_q1_r10",
       "type": "workArea",
-      "name": "玄衡城·主城领地·议政厅",
+      "name": "衡岳城·议政厅",
       "locationId": "base:loc_q1_r10_core",
       "tags": [
         "controlCore",
@@ -605,7 +605,7 @@
     {
       "id": "base:workarea_core_q3_r11",
       "type": "workArea",
-      "name": "执衡宗·赤铁坞前哨·议政厅",
+      "name": "衡水镇·议政厅",
       "locationId": "base:loc_q3_r11_core",
       "tags": [
         "controlCore",
@@ -657,7 +657,7 @@
     {
       "id": "base:workarea_core_q5_r10",
       "type": "workArea",
-      "name": "执衡宗·南稷庄前哨·议政厅",
+      "name": "西界驿·议政厅",
       "locationId": "base:loc_q5_r10_core",
       "tags": [
         "controlCore",
@@ -839,7 +839,7 @@
     {
       "id": "base:workarea_core_huangcun_forest_outpost",
       "type": "workArea",
-      "name": "执衡宗·衡河西岸驿·议政厅",
+      "name": "衡河南关·议政厅",
       "locationId": "base:loc_huangcun_forest_outpost_core",
       "tags": [
         "controlCore",
@@ -865,7 +865,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_capital",
       "type": "workArea",
-      "name": "同心城·主城领地·议政厅",
+      "name": "南赢镇·议政厅",
       "locationId": "base:loc_sect_hehuan_capital_core",
       "tags": [
         "controlCore",
@@ -891,7 +891,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_node_1",
       "type": "workArea",
-      "name": "并蒂坞·宗门据点·议政厅",
+      "name": "东崖关·议政厅",
       "locationId": "base:loc_sect_hehuan_node_1_core",
       "tags": [
         "controlCore",
@@ -917,7 +917,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_node_2",
       "type": "workArea",
-      "name": "暖玉坊·宗门据点·议政厅",
+      "name": "平风镇·议政厅",
       "locationId": "base:loc_sect_hehuan_node_2_core",
       "tags": [
         "controlCore",
@@ -943,7 +943,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_node_3",
       "type": "workArea",
-      "name": "桃溪庄·宗门据点·议政厅",
+      "name": "西阵镇·议政厅",
       "locationId": "base:loc_sect_hehuan_node_3_core",
       "tags": [
         "controlCore",
@@ -969,7 +969,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_node_4",
       "type": "workArea",
-      "name": "合鸣驿·宗门据点·议政厅",
+      "name": "东阵镇·议政厅",
       "locationId": "base:loc_sect_hehuan_node_4_core",
       "tags": [
         "controlCore",
@@ -995,7 +995,7 @@
     {
       "id": "base:workarea_core_sect_hehuan_node_5",
       "type": "workArea",
-      "name": "望月台·宗门据点·议政厅",
+      "name": "天行镇·议政厅",
       "locationId": "base:loc_sect_hehuan_node_5_core",
       "tags": [
         "controlCore",
@@ -1021,7 +1021,7 @@
     {
       "id": "base:workarea_core_sect_xuansha_capital",
       "type": "workArea",
-      "name": "烬夜城·主城领地·议政厅",
+      "name": "玄衡城·议政厅",
       "locationId": "base:loc_sect_xuansha_capital_core",
       "tags": [
         "controlCore",
@@ -1047,7 +1047,7 @@
     {
       "id": "base:workarea_core_sect_xuansha_node_1",
       "type": "workArea",
-      "name": "黑炉坞·宗门据点·议政厅",
+      "name": "玄衡镇·议政厅",
       "locationId": "base:loc_sect_xuansha_node_1_core",
       "tags": [
         "controlCore",
@@ -1073,7 +1073,7 @@
     {
       "id": "base:workarea_core_sect_xuansha_node_2",
       "type": "workArea",
-      "name": "赤砂矿·宗门据点·议政厅",
+      "name": "石门镇·议政厅",
       "locationId": "base:loc_sect_xuansha_node_2_core",
       "tags": [
         "controlCore",
@@ -1333,7 +1333,7 @@
     {
       "id": "base:workarea_core_sect_qingxiao_capital",
       "type": "workArea",
-      "name": "凌霄城·主城领地·议政厅",
+      "name": "青霄城·议政厅",
       "locationId": "base:loc_sect_qingxiao_capital_core",
       "tags": [
         "controlCore",
@@ -1359,7 +1359,7 @@
     {
       "id": "base:workarea_core_sect_qingxiao_node_1",
       "type": "workArea",
-      "name": "试剑坪·宗门据点·议政厅",
+      "name": "青霄镇·议政厅",
       "locationId": "base:loc_sect_qingxiao_node_1_core",
       "tags": [
         "controlCore",
@@ -1385,7 +1385,7 @@
     {
       "id": "base:workarea_core_sect_qingxiao_node_2",
       "type": "workArea",
-      "name": "青锋矿·宗门据点·议政厅",
+      "name": "青草镇·议政厅",
       "locationId": "base:loc_sect_qingxiao_node_2_core",
       "tags": [
         "controlCore",
@@ -1411,7 +1411,7 @@
     {
       "id": "base:workarea_core_sect_qingxiao_node_3",
       "type": "workArea",
-      "name": "回云驿·宗门据点·议政厅",
+      "name": "南关口·议政厅",
       "locationId": "base:loc_sect_qingxiao_node_3_core",
       "tags": [
         "controlCore",
@@ -1489,7 +1489,7 @@
     {
       "id": "base:workarea_core_sect_baicao_capital",
       "type": "workArea",
-      "name": "回春城·主城领地·议政厅",
+      "name": "百草城·议政厅",
       "locationId": "base:loc_sect_baicao_capital_core",
       "tags": [
         "controlCore",
@@ -1515,7 +1515,7 @@
     {
       "id": "base:workarea_core_sect_baicao_node_1",
       "type": "workArea",
-      "name": "百草圃·宗门据点·议政厅",
+      "name": "草木关·议政厅",
       "locationId": "base:loc_sect_baicao_node_1_core",
       "tags": [
         "controlCore",
@@ -1567,7 +1567,7 @@
     {
       "id": "base:workarea_core_sect_baicao_node_3",
       "type": "workArea",
-      "name": "济生驿·宗门据点·议政厅",
+      "name": "灵药镇·议政厅",
       "locationId": "base:loc_sect_baicao_node_3_core",
       "tags": [
         "controlCore",
@@ -1593,7 +1593,7 @@
     {
       "id": "base:workarea_core_sect_baicao_node_4",
       "type": "workArea",
-      "name": "春雨庄·宗门据点·议政厅",
+      "name": "南河驿·议政厅",
       "locationId": "base:loc_sect_baicao_node_4_core",
       "tags": [
         "controlCore",
@@ -1645,7 +1645,7 @@
     {
       "id": "base:workarea_core_sect_zhuxing_capital",
       "type": "workArea",
-      "name": "熔星城·主城领地·议政厅",
+      "name": "火脉城·议政厅",
       "locationId": "base:loc_sect_zhuxing_capital_core",
       "tags": [
         "controlCore",
@@ -1671,7 +1671,7 @@
     {
       "id": "base:workarea_core_sect_zhuxing_node_1",
       "type": "workArea",
-      "name": "星铁矿·宗门据点·议政厅",
+      "name": "火脉镇·议政厅",
       "locationId": "base:loc_sect_zhuxing_node_1_core",
       "tags": [
         "controlCore",
@@ -1697,7 +1697,7 @@
     {
       "id": "base:workarea_core_sect_zhuxing_node_2",
       "type": "workArea",
-      "name": "炉心坞·宗门据点·议政厅",
+      "name": "火脉西城·议政厅",
       "locationId": "base:loc_sect_zhuxing_node_2_core",
       "tags": [
         "controlCore",
@@ -1723,34 +1723,8 @@
     {
       "id": "base:workarea_core_sect_zhuxing_node_3",
       "type": "workArea",
-      "name": "锻石庄·宗门据点·议政厅",
+      "name": "熔河镇·议政厅",
       "locationId": "base:loc_sect_zhuxing_node_3_core",
-      "tags": [
-        "controlCore",
-        "hub",
-        "defense"
-      ],
-      "allowedActivities": [
-        "Inspect",
-        "Patrol"
-      ],
-      "isControlCore": true,
-      "maxDurability": 100,
-      "defense": 0,
-      "capacity": 4,
-      "offsetX": 0,
-      "offsetZ": 0,
-      "occupyHoldSeconds": 10,
-      "grantsPrivileges": [
-        "manageHousing",
-        "manageSchedules"
-      ]
-    },
-    {
-      "id": "base:workarea_core_sect_zhuxing_node_4",
-      "type": "workArea",
-      "name": "铜火驿·宗门据点·议政厅",
-      "locationId": "base:loc_sect_zhuxing_node_4_core",
       "tags": [
         "controlCore",
         "hub",
@@ -1801,7 +1775,7 @@
     {
       "id": "base:workarea_core_sect_taiyan_capital",
       "type": "workArea",
-      "name": "衍枢城·主城领地·议政厅",
+      "name": "太衍城·议政厅",
       "locationId": "base:loc_sect_taiyan_capital_core",
       "tags": [
         "controlCore",
@@ -1827,7 +1801,7 @@
     {
       "id": "base:workarea_core_sect_taiyan_node_1",
       "type": "workArea",
-      "name": "方寸台·宗门据点·议政厅",
+      "name": "星律镇·议政厅",
       "locationId": "base:loc_sect_taiyan_node_1_core",
       "tags": [
         "controlCore",
@@ -1853,7 +1827,7 @@
     {
       "id": "base:workarea_core_sect_taiyan_node_2",
       "type": "workArea",
-      "name": "测脉庄·宗门据点·议政厅",
+      "name": "月华镇·议政厅",
       "locationId": "base:loc_sect_taiyan_node_2_core",
       "tags": [
         "controlCore",
@@ -1879,7 +1853,7 @@
     {
       "id": "base:workarea_core_sect_taiyan_node_3",
       "type": "workArea",
-      "name": "石枢坞·宗门据点·议政厅",
+      "name": "花影关·议政厅",
       "locationId": "base:loc_sect_taiyan_node_3_core",
       "tags": [
         "controlCore",
@@ -1983,7 +1957,7 @@
     {
       "id": "base:workarea_core_sect_tianlu_node_1",
       "type": "workArea",
-      "name": "青纸坊·宗门据点·议政厅",
+      "name": "平原驿·议政厅",
       "locationId": "base:loc_sect_tianlu_node_1_core",
       "tags": [
         "controlCore",
@@ -2009,7 +1983,7 @@
     {
       "id": "base:workarea_core_sect_tianlu_node_2",
       "type": "workArea",
-      "name": "朱砂岭·宗门据点·议政厅",
+      "name": "北崖关·议政厅",
       "locationId": "base:loc_sect_tianlu_node_2_core",
       "tags": [
         "controlCore",
@@ -2113,7 +2087,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_capital",
       "type": "workArea",
-      "name": "磐岳城·主城领地·议政厅",
+      "name": "镇岳城·议政厅",
       "locationId": "base:loc_sect_zhenyue_capital_core",
       "tags": [
         "controlCore",
@@ -2139,7 +2113,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_node_1",
       "type": "workArea",
-      "name": "砺骨坪·宗门据点·议政厅",
+      "name": "玄岳镇·议政厅",
       "locationId": "base:loc_sect_zhenyue_node_1_core",
       "tags": [
         "controlCore",
@@ -2165,7 +2139,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_node_2",
       "type": "workArea",
-      "name": "磐石矿·宗门据点·议政厅",
+      "name": "灵峰镇·议政厅",
       "locationId": "base:loc_sect_zhenyue_node_2_core",
       "tags": [
         "controlCore",
@@ -2191,7 +2165,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_node_3",
       "type": "workArea",
-      "name": "担山庄·宗门据点·议政厅",
+      "name": "北岭镇·议政厅",
       "locationId": "base:loc_sect_zhenyue_node_3_core",
       "tags": [
         "controlCore",
@@ -2217,7 +2191,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_node_4",
       "type": "workArea",
-      "name": "镇门哨·宗门据点·议政厅",
+      "name": "苦崖关·议政厅",
       "locationId": "base:loc_sect_zhenyue_node_4_core",
       "tags": [
         "controlCore",
@@ -2243,7 +2217,7 @@
     {
       "id": "base:workarea_core_sect_zhenyue_node_5",
       "type": "workArea",
-      "name": "重岩驿·宗门据点·议政厅",
+      "name": "北都镇·议政厅",
       "locationId": "base:loc_sect_zhenyue_node_5_core",
       "tags": [
         "controlCore",
@@ -2269,7 +2243,7 @@
     {
       "id": "base:workarea_core_sect_tingyue_capital",
       "type": "workArea",
-      "name": "惊霆城·主城领地·议政厅",
+      "name": "首航关·议政厅",
       "locationId": "base:loc_sect_tingyue_capital_core",
       "tags": [
         "controlCore",
@@ -2295,7 +2269,7 @@
     {
       "id": "base:workarea_core_sect_tingyue_node_1",
       "type": "workArea",
-      "name": "雷鸣台·宗门据点·议政厅",
+      "name": "风暴城·议政厅",
       "locationId": "base:loc_sect_tingyue_node_1_core",
       "tags": [
         "controlCore",
@@ -2425,7 +2399,7 @@
     {
       "id": "base:workarea_core_sect_ningshuang_capital",
       "type": "workArea",
-      "name": "寒璧城·主城领地·议政厅",
+      "name": "寒原驿·议政厅",
       "locationId": "base:loc_sect_ningshuang_capital_core",
       "tags": [
         "controlCore",
@@ -2451,7 +2425,7 @@
     {
       "id": "base:workarea_core_sect_ningshuang_node_1",
       "type": "workArea",
-      "name": "冰泉谷·宗门据点·议政厅",
+      "name": "增风关·议政厅",
       "locationId": "base:loc_sect_ningshuang_node_1_core",
       "tags": [
         "controlCore",
@@ -2477,7 +2451,7 @@
     {
       "id": "base:workarea_core_sect_ningshuang_node_2",
       "type": "workArea",
-      "name": "寒玉坞·宗门据点·议政厅",
+      "name": "冷湖镇·议政厅",
       "locationId": "base:loc_sect_ningshuang_node_2_core",
       "tags": [
         "controlCore",
@@ -2503,7 +2477,7 @@
     {
       "id": "base:workarea_core_sect_ningshuang_node_3",
       "type": "workArea",
-      "name": "雪灯驿·宗门据点·议政厅",
+      "name": "风峡关·议政厅",
       "locationId": "base:loc_sect_ningshuang_node_3_core",
       "tags": [
         "controlCore",
@@ -2763,7 +2737,7 @@
     {
       "id": "base:workarea_core_sect_tingyu_node_1",
       "type": "workArea",
-      "name": "竹声坞·宗门据点·议政厅",
+      "name": "黄沙关·议政厅",
       "locationId": "base:loc_sect_tingyu_node_1_core",
       "tags": [
         "controlCore",
@@ -2789,7 +2763,7 @@
     {
       "id": "base:workarea_core_sect_tingyu_node_2",
       "type": "workArea",
-      "name": "回音谷·宗门据点·议政厅",
+      "name": "沙海关·议政厅",
       "locationId": "base:loc_sect_tingyu_node_2_core",
       "tags": [
         "controlCore",
@@ -2815,7 +2789,7 @@
     {
       "id": "base:workarea_core_sect_tingyu_node_3",
       "type": "workArea",
-      "name": "丝弦坊·宗门据点·议政厅",
+      "name": "沙西关·议政厅",
       "locationId": "base:loc_sect_tingyu_node_3_core",
       "tags": [
         "controlCore",
@@ -2919,7 +2893,7 @@
     {
       "id": "base:workarea_core_sect_guiming_node_1",
       "type": "workArea",
-      "name": "长明台·宗门据点·议政厅",
+      "name": "平野镇·议政厅",
       "locationId": "base:loc_sect_guiming_node_1_core",
       "tags": [
         "controlCore",
@@ -2945,7 +2919,7 @@
     {
       "id": "base:workarea_core_sect_guiming_node_2",
       "type": "workArea",
-      "name": "照骨谷·宗门据点·议政厅",
+      "name": "岩前驿·议政厅",
       "locationId": "base:loc_sect_guiming_node_2_core",
       "tags": [
         "controlCore",
@@ -2971,7 +2945,7 @@
     {
       "id": "base:workarea_core_sect_guiming_node_3",
       "type": "workArea",
-      "name": "守夜驿·宗门据点·议政厅",
+      "name": "南驿驿·议政厅",
       "locationId": "base:loc_sect_guiming_node_3_core",
       "tags": [
         "controlCore",
@@ -3181,6 +3155,266 @@
       "type": "workArea",
       "name": "望野关·宗门据点·议政厅",
       "locationId": "base:loc_sect_guanxing_node_5_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_final_qingcao_camp",
+      "type": "workArea",
+      "name": "青草营·议政厅",
+      "locationId": "base:site_final_qingcao_camp:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_final_yunfeng",
+      "type": "workArea",
+      "name": "云峰镇·议政厅",
+      "locationId": "base:site_final_yunfeng:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_final_dongye",
+      "type": "workArea",
+      "name": "东野驿·议政厅",
+      "locationId": "base:site_final_dongye:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_final_songyuan",
+      "type": "workArea",
+      "name": "松原镇·议政厅",
+      "locationId": "base:site_final_songyuan:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_beast_north_gate",
+      "type": "workArea",
+      "name": "镇魔北关·议政厅",
+      "locationId": "base:site_beast_north_gate:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_beast_east_gate",
+      "type": "workArea",
+      "name": "镇魔东关·议政厅",
+      "locationId": "base:site_beast_east_gate:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_beast_south_gate",
+      "type": "workArea",
+      "name": "镇魔南关·议政厅",
+      "locationId": "base:site_beast_south_gate:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_beast_west_gate",
+      "type": "workArea",
+      "name": "镇魔西关·议政厅",
+      "locationId": "base:site_beast_west_gate:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_thunder_west_gate",
+      "type": "workArea",
+      "name": "雷西关·议政厅",
+      "locationId": "base:site_thunder_west_gate:core_place",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_site_thunder_south_gate",
+      "type": "workArea",
+      "name": "雷南关·议政厅",
+      "locationId": "base:site_thunder_south_gate:core_place",
       "tags": [
         "controlCore",
         "hub",
