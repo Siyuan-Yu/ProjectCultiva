@@ -123,7 +123,8 @@ namespace XianXia.Core.World.Strategic
                     i == 0 ? motion.WorldPosition.X : RouteScratch[i - 1].X,
                     i == 0 ? motion.WorldPosition.Y : RouteScratch[i - 1].Y,
                     RouteScratch[i].X, RouteScratch[i].Y))
-                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PatrolBlockedMessage);
+                    return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PlayerMoveBlockedMessage(
+                        world, navigation.SurfaceId, RouteScratch[i].X, RouteScratch[i].Y));
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             motion.SetCurrentOutdoorWorldSiteContext(string.Empty);
@@ -179,7 +180,8 @@ namespace XianXia.Core.World.Strategic
             {
                 if (motion.IsMoving)
                     PlayerPartyTravelRuntimeService.CancelTravel(world, party);
-                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PatrolBlockedMessage);
+                return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.PlayerMoveBlockedMessage(
+                    world, motion.SurfaceId, position.X, position.Y));
             }
             if (motion == null || party == null || string.IsNullOrEmpty(motion.SurfaceId) ||
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||

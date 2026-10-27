@@ -28,6 +28,7 @@ namespace XianXia.Core.Schedule
 
             foreach (var entity in world.Entities.All)
             {
+                if (XianXia.Core.Social.SupervisorAngerDriver.OwnsPursuit(world, entity.Id)) continue;
                 if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 // Character = 玩家可直接控制单位：不跟课表自动走。
                 if ((entity.Tags & EntityTag.Character) != 0)

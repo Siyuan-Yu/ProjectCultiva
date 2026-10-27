@@ -1,5 +1,14 @@
 ﻿# 术语表
 
+## 昏迷与弥留（ADR-0065）
+
+| 中文 | Code | 含义 |
+|---|---|---|
+| 昏迷 | `LifecycleComponent.IsUnconscious` | 战斗击败后的失能阶段，通常保留一 HP，剩余时间为 `UnconsciousSecondsRemaining`，默认一倍约一百秒，暂停不推进。不是弥留或死亡。 |
+| 弥留 | `LifecycleComponent.IsDying` | 昏迷后继续遭主动攻击，或既有非战斗严重伤势形成的危重阶段；普通受击不确认死亡，显式杀死与既有自然恶化仍走正式死亡确认。 |
+| 失能总类 | `LifecycleState.Incapacitated` | 既有稳定枚举值 1 保留，涵盖昏迷、弥留与治疗后恢复中昏迷；具体阶段由 LifecycleComponent 区分。 |
+| 主管压力／怒气 | `SupervisorAngerBoard` | 荒村巡查二十格内发现原开局劳役人物违背工作／休息日程，连续五世界秒加一点，满一百触发真实接近和惩戒战斗。 |
+
 ## 荒村封闭开局（ADR-0052）
 
 | 中文 | Code | 含义 |

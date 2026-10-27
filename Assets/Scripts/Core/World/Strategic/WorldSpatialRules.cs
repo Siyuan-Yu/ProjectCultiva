@@ -40,6 +40,8 @@ namespace XianXia.Core.World.Strategic
     public sealed class WorldSpatialRules
     {
         public string Id { get; set; } = string.Empty;
+        public float WalkSpeedMultiplier { get; set; } = 1f;
+        public float FlightSpeedMultiplier { get; set; } = 2f;
         public List<CoreLevelControlRange> CoreLevels { get; } = new List<CoreLevelControlRange>();
         public float WildernessEncounterWidthCells { get; set; }
         public float WildernessEncounterHeightCells { get; set; }

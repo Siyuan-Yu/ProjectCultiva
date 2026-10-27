@@ -272,7 +272,7 @@ namespace XianXia.Unity.Host
 
                 if (atkLife.IsIncapacitated)
                 {
-                    Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
+                    Toast(atkId, CombatLifeStateService.ResolveLifeStateLabel(atkEnt) + "，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);
                     continue;
                 }
@@ -280,9 +280,9 @@ namespace XianXia.Unity.Host
                 CombatDamageRules.EnsureVitals(atkEnt);
                 if (atkEnt.TryGet<CombatVitalsComponent>(out var atkHp) && atkHp.CurrentHp <= 0)
                 {
-                    CombatLifeStateService.TryEnterIncapacitated(world, atkEnt, _defender);
+                    CombatLifeStateService.TryEnterUnconscious(world, atkEnt, _defender);
                     ApplyDownPresentation(atkId);
-                    Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
+                    Toast(atkId, "昏迷，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);
                     continue;
                 }
@@ -346,7 +346,7 @@ namespace XianXia.Unity.Host
                                 var name = string.IsNullOrEmpty(defEnt.DisplayName)
                                     ? _defender.ToString()
                                     : defEnt.DisplayName;
-                                Toast(atkId, name + " 弥留", new Color(1f, 0.72f, 0.45f));
+                                Toast(atkId, name + " " + CombatLifeStateService.ResolveLifeStateLabel(defEnt), new Color(1f, 0.72f, 0.45f));
                             }
                             else if (postLife.IsDead)
                             {
@@ -481,7 +481,7 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.World.Entities.TryGet(AttackerId, out var atkBanner) &&
                 SpiritVeilService.IsActive(atkBanner))
                 veilHint = "　·　纱衣远程";
-            var line = "交战中　" + atkLabel + " ↔ " + defName + veilHint + "　·　0 血弥留，补刀致死　·　右键地面／S 打断";
+            var line = "交战中　" + atkLabel + " ↔ " + defName + veilHint + "　·　击败先昏迷，再攻击转弥留，右键杀死　·　右键地面／S 打断";
             const float w = 560f;
             const float h = 28f;
             var r = new Rect((Screen.width - w) * 0.5f, 56f, w, h);

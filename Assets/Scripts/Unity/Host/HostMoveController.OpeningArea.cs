@@ -17,6 +17,7 @@ namespace XianXia.Unity.Host
             var runtime = bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (runtime?.Mapper == null || !runtime.IsActive) return false;
             runtime.Mapper.PresentationToWorld(point.x, point.y, out var x, out var y);
+            if (!HuangcunOpeningAccess.AllowsFacilityPosition(world, id, runtime.ActiveSurfaceId, x, y)) return false;
             if (!HuangcunOpeningAccess.AllowsPosition(world, runtime.ActiveSurfaceId, x, y)) return false;
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.HasPosition &&
                 world.Strategic.PlayerPartyContext?.ActiveCharacterId == id)
@@ -29,6 +30,12 @@ namespace XianXia.Unity.Host
         {
             var world = bootstrap?.Session?.World;
             var runtime = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (runtime?.Mapper != null && world != null)
+            {
+                runtime.Mapper.PresentationToWorld(point.x, point.y, out var facilityX, out var facilityY);
+                if (!HuangcunOpeningAccess.AllowsFacilityPosition(world, id, runtime.ActiveSurfaceId, facilityX, facilityY))
+                    return HuangcunOpeningAccess.FacilityRestrictedMessage;
+            }
             if (world?.PlayerPartyTravel == null || runtime?.Mapper == null ||
                 world.Strategic.PlayerPartyContext?.ActiveCharacterId != id)
                 return HuangcunOpeningAccess.BlockedMessage;

@@ -147,7 +147,7 @@ namespace XianXia.Unity.Host
             else if (stage == OutdoorFarmCropStage.Mature)
                 growth01 = 1f;
 
-            if (stage == OutdoorFarmCropStage.Growing && growth01 >= 0.999f)
+            if (stage == OutdoorFarmCropStage.Growing && growth01 >= 1f)
             {
                 cropStage = OutdoorFarmCropStage.Mature;
                 growth01 = 1f;
@@ -268,7 +268,10 @@ namespace XianXia.Unity.Host
                     return "空闲（未种植）";
                 case OutdoorFarmCropStage.Growing:
                     return "成长中 · " + CropName() + " · " +
-                           Mathf.RoundToInt(growth01 * 100f) + "%";
+                           Mathf.FloorToInt(growth01 * 100f) + "% · " +
+                           (OutdoorFarmGrowthService.MaturityTicks(plantedCropId) == 0 ? "周期未配置" :
+                            "周期 " + (OutdoorFarmGrowthService.MaturityTicks(plantedCropId) /
+                                XianXia.Core.Domain.Time.WorldTick.TicksPerDay) + " 天");
                 case OutdoorFarmCropStage.Mature:
                     return "已成熟 · " + CropName() + " · 可收获";
                 case OutdoorFarmCropStage.Ruined:

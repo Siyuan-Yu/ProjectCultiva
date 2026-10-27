@@ -232,7 +232,7 @@
     {
       "id": "base:schedule_huangcun_guard_day",
       "type": "schedule",
-      "name": "荒村双巡卫同班作息",
+      "name": "荒村日班巡卫",
       "blocks": [
         {
           "startTick": 0,
@@ -242,27 +242,27 @@
         },
         {
           "startTick": 60,
-          "endTick": 120,
-          "activity": "Inspect",
-          "orderDurationTicks": 4
-        },
-        {
-          "startTick": 120,
-          "endTick": 156,
+          "endTick": 72,
           "activity": "Cultivate",
           "orderDurationTicks": 6
         },
         {
-          "startTick": 156,
+          "startTick": 72,
           "endTick": 216,
-          "activity": "Inspect",
+          "activity": "Patrol",
           "orderDurationTicks": 4
         },
         {
           "startTick": 216,
+          "endTick": 240,
+          "activity": "Idle",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 240,
           "endTick": 288,
-          "activity": "Patrol",
-          "orderDurationTicks": 4
+          "activity": "Rest",
+          "orderDurationTicks": 6
         }
       ]
     },
@@ -312,6 +312,43 @@
           "endTick": 288,
           "activity": "Rest",
           "orderDurationTicks": 6
+        }
+      ]
+    },
+    {
+      "id": "base:schedule_huangcun_guard_night",
+      "type": "schedule",
+      "name": "荒村夜班巡卫",
+      "blocks": [
+        {
+          "startTick": 0,
+          "endTick": 72,
+          "activity": "Patrol",
+          "orderDurationTicks": 4
+        },
+        {
+          "startTick": 72,
+          "endTick": 96,
+          "activity": "Idle",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 96,
+          "endTick": 204,
+          "activity": "Rest",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 204,
+          "endTick": 216,
+          "activity": "Cultivate",
+          "orderDurationTicks": 6
+        },
+        {
+          "startTick": 216,
+          "endTick": 288,
+          "activity": "Patrol",
+          "orderDurationTicks": 4
         }
       ]
     }

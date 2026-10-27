@@ -17,6 +17,9 @@ namespace XianXia.Unity.Host
     [DefaultExecutionOrder(200)]
     public sealed class EntityView : MonoBehaviour
     {
+        // Presentation only. Navigation and character spacing retain their cell-based footprint.
+        public const float VisualSizeMultiplier = 2f;
+
         [SerializeField] SpriteRenderer bodyRenderer;
         [SerializeField] SpriteRenderer selectionRing;
         [SerializeField] TextMesh label;
@@ -501,7 +504,8 @@ namespace XianXia.Unity.Host
         }
 
         HostFlightVisual _flightVisual;
-        public Vector3 CombatVisualPoint => transform.position + Vector3.up * (.35f + (_flightVisual != null ? _flightVisual.Height : 0f));
+        public Vector3 CombatVisualPoint => transform.position + Vector3.up *
+            ((.35f + (_flightVisual != null ? _flightVisual.Height : 0f)) * VisualSizeMultiplier);
 
         void UpdateFlightVisual(Entity entity)
         {
@@ -1041,8 +1045,8 @@ namespace XianXia.Unity.Host
                 if (bodyRenderer != null) bodyRenderer.enabled = false;
                 if (label != null)
                     label.transform.position = sleeping
-                        ? new Vector3(position.x, position.y + .72f, label.transform.position.z)
-                        : new Vector3(transform.position.x, transform.position.y + 1.48f,
+                        ? new Vector3(position.x, position.y + .72f * VisualSizeMultiplier, label.transform.position.z)
+                        : new Vector3(transform.position.x, transform.position.y + 1.48f * VisualSizeMultiplier,
                             label.transform.position.z);
                 return;
             }
@@ -1081,7 +1085,7 @@ namespace XianXia.Unity.Host
             _sleepRenderer.transform.position = sleepTarget;
             _sleepRenderer.enabled = true;
             if (label != null)
-                label.transform.position = new Vector3(position.x, position.y + 0.72f,
+                label.transform.position = new Vector3(position.x, position.y + 0.72f * VisualSizeMultiplier,
                     label.transform.position.z);
             bodyRenderer.enabled = false;
         }

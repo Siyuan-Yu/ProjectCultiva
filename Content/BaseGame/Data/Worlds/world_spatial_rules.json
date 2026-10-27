@@ -4,6 +4,8 @@
     {
       "id": "base:world_spatial_rules_v1",
       "type": "worldSpatialRules",
+      "walkSpeedMultiplier": 1.5,
+      "flightSpeedMultiplier": 2,
       "coreLevels": [
         {
           "level": 1,

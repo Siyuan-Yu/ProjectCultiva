@@ -116,7 +116,8 @@ namespace XianXia.Unity.Host
             {
                 var friendly = requestWorld.Strategic.PlayerPartyContext?.IsMember(attacker) == true;
                 foreach (var id in a.MemberCharacterIds)
-                    if (CharacterEncounterService.IsLiving(requestWorld, id))
+                    if (CharacterEncounterService.IsLiving(requestWorld, id) &&
+                        (!XianXia.Core.Social.SupervisorAngerDriver.IsPunishmentPair(requestWorld, attacker, target) || id == attacker.Value))
                         (friendly ? _previewFriendly : _previewEnemy).Add(new EntityId(id));
                 foreach (var id in b.MemberCharacterIds)
                     if (CharacterEncounterService.IsLiving(requestWorld, id))

@@ -29,6 +29,8 @@ namespace XianXia.Core.Cultivation
 
             if (!world.Entities.TryGet(subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            var facility = XianXia.Core.World.Strategic.HuangcunOpeningAccess.ValidateCurrentFacilityUse(world, subject);
+            if (facility.IsFailure) return facility;
             if (!entity.TryGet<CultivationComponent>(out var cultivation))
                 return Result.Failure(ErrorCode.ComponentMissing, "CultivationComponent missing.");
             if (!entity.TryGet<AttributesComponent>(out var attrs))

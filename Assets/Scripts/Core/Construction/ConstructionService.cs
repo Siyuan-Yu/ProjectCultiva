@@ -130,8 +130,8 @@ namespace XianXia.Core.Construction
             quarterTurns = ((quarterTurns % 4) + 4) % 4;
             var cellsW = quarterTurns % 2 == 0 ? spec.FootprintCellsW : spec.FootprintCellsH;
             var cellsH = quarterTurns % 2 == 0 ? spec.FootprintCellsH : spec.FootprintCellsW;
-            var cx = worldX + cellsW * metric.CellSize * .5f;
-            var cy = worldY + cellsH * metric.CellSize * .5f;
+            var cx = worldX + cellsW * metric.CellSize * spec.PhysicalScale * .5f;
+            var cy = worldY + cellsH * metric.CellSize * spec.PhysicalScale * .5f;
             if (!WorldSiteAdministrativeControlResolver.TryResolve(world, surfaceId, cx, cy, out var site, out _) ||
                 site == null || site.OwnerFactionId != actingFactionId || !site.HasContinuousCore)
                 return Result.Failure(ErrorCode.InvalidOperation, "工地必须位于己方据点内。");
@@ -139,8 +139,8 @@ namespace XianXia.Core.Construction
                 StableAssetId = world.OutdoorConstructedAssets.NextIdForKind(spec.OutdoorKind),
                 BuildingId = buildingId, Kind = spec.OutdoorKind, SurfaceId = surfaceId,
                 WorldX = worldX, WorldY = worldY,
-                WorldWidth = cellsW * metric.CellSize,
-                WorldHeight = cellsH * metric.CellSize,
+                WorldWidth = cellsW * metric.CellSize * spec.PhysicalScale,
+                WorldHeight = cellsH * metric.CellSize * spec.PhysicalScale,
                 CellsW = cellsW, CellsH = cellsH, QuarterTurns = quarterTurns,
                 ParentRoomId = parentRoomId ?? string.Empty,
                 RoomUsage = ParseRoomUsage(spec.DefaultRoomUsage),
@@ -282,14 +282,14 @@ namespace XianXia.Core.Construction
             if (placementKind == ConstructionPlacementKind.StorageRoom)
             {
                 var storageSite = WorldSiteStorageRoomPlacementService.ResolveSiteForFootprint(world, actingFactionId, surfaceId,
-                    worldX, worldY, spec.FootprintCellsW, spec.FootprintCellsH, metric.CellSize, out boundSiteId);
+                    worldX, worldY, spec.FootprintCellsW, spec.FootprintCellsH, metric.CellSize * spec.PhysicalScale, out boundSiteId);
                 if (storageSite.IsFailure) return storageSite;
             }
             else if (placementKind == ConstructionPlacementKind.Room || placementKind == ConstructionPlacementKind.Bed ||
                      placementKind == ConstructionPlacementKind.WallSegment)
             {
-                var cx = worldX + cellsW * metric.CellSize * .5f;
-                var cy = worldY + cellsH * metric.CellSize * .5f;
+                var cx = worldX + cellsW * metric.CellSize * spec.PhysicalScale * .5f;
+                var cy = worldY + cellsH * metric.CellSize * spec.PhysicalScale * .5f;
                 if (!WorldSiteAdministrativeControlResolver.TryResolve(world, surfaceId, cx, cy, out var roomSite, out _) ||
                     roomSite == null || roomSite.OwnerFactionId != actingFactionId)
                     return Result.Failure(ErrorCode.InvalidOperation, "房间或家具必须位于己方据点内。");
@@ -299,7 +299,7 @@ namespace XianXia.Core.Construction
             var asset = new OutdoorConstructedAssetState {
                 StableAssetId = nextId, BuildingId = buildingId,
                 Kind = spec.OutdoorKind, SurfaceId = surfaceId, WorldX = worldX, WorldY = worldY,
-                WorldWidth = cellsW * metric.CellSize, WorldHeight = cellsH * metric.CellSize,
+                WorldWidth = cellsW * metric.CellSize * spec.PhysicalScale, WorldHeight = cellsH * metric.CellSize * spec.PhysicalScale,
                 CellsW = cellsW, CellsH = cellsH, QuarterTurns = quarterTurns,
                 ParentRoomId = parentRoomId ?? string.Empty,
                 RoomUsage = ParseRoomUsage(spec.DefaultRoomUsage),

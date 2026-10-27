@@ -1,5 +1,19 @@
 # 修仙游戏项目（暂定名 XianXia）
 
+> **当前统一交接（2026-10-27）：** [400 荒村当前完整阶段快照与 GitHub 交接](docs/40-process/400-huangcun-current-checkpoint-and-github-handoff-2026-10-27.md) 汇总 394 生存首版与 395～399 的全部比例、布局、田块周期、树矿、移动、巡查惩戒、昏迷救护、范围圈和待验事项。当前 `0.0.46-huangcun-discipline-unconscious` / Snapshot v20，Implemented / Producer Acceptance Pending。制作人明确授权本轮文档化、commit＋push；结果以 Git 记录为准，不等同体验封板或自动开启下一轮。下方旧版本、范围和“未提交”均为历史阶段记录，当前以 400 为准。
+
+> **巡查链路复核与范围圈：** [399](docs/40-process/399-huangcun-discipline-chain-audit-and-watch-rings.md) 确认主管压力随倍速和暂停，补追赶被普通活动覆盖、停在旧目标点和床上目标寻路的接线问题；在岗人员显示二十格金圈，追赶红圈，休班／失能隐藏。沿用 `0.0.46` / Snapshot v20，可继续现有存档；四程序集基础编译通过，实际完整流程待人工验收，未启动 Unity／自动测试，未提交推送。
+
+> **当前荒村巡查与身体流程：** [398](docs/40-process/398-huangcun-discipline-and-unconscious-combat.md) / [ADR-0065](docs/40-process/43-decisions/ADR-0065-huangcun-discipline-and-unconscious-combat.md)。巡卫昼夜交班、二十格观察违规五秒增一点压力、满值真实接近并发起正常惩戒战斗；首败一 HP 昏迷，默认一百秒可苏醒，再受攻击转弥留，弥留需右键显式杀死，战后保留真实状态。昏迷／弥留均接医疗和住宅床搬运。`0.0.46-huangcun-discipline-unconscious` / Snapshot v20，须新开局；四程序集基础编译通过，未启动 Unity 或自动测试，待人工验收，未提交推送。本轮未改地图布局，不表示其他旧待办或全部体验封板。
+
+> **荒村村内疏树追加：** [397](docs/40-process/397-thin-room-walls-resources-and-movement.md) 已从城外移回八棵现有中树，分散在村内空地，保留两倍大小并避开房门、中央道路及田地；其他城市、建筑与资源总数不变。当前 `0.0.45-huangcun-sparse-trees`，须新开局，发布及验收状态见 397。下方 0.0.44 的“城内资源全移城外”在荒村由此覆写。
+
+> **当前房墙、资源和移动：** [397](docs/40-process/397-thin-room-walls-resources-and-movement.md) / [ADR-0064](docs/40-process/43-decisions/ADR-0064-thin-room-walls-larger-resources-and-movement.md)。房间外框仍两倍，房墙恢复与城墙一格等厚；1944 树／250 矿按 0.0.43 长宽各乘二并疏排至城外，保留资源数量与城市建筑位置。步行当前 1.5 倍、飞行为新步行两倍，参数在 world_spatial_rules.json。内容 `0.0.44-thin-walls-resources-movement` / Snapshot v19，须新开局；基础编译通过，发布状态见 397，待人工验收，未提交推送。下方 396 的资源大小与房墙厚度由本轮覆盖，粮草周期仍保留。
+
+> **当前尺寸与作物周期：** [396](docs/40-process/396-world-building-scale-and-crop-cycles.md) / [ADR-0063](docs/40-process/43-decisions/ADR-0063-world-building-scale-and-basic-crop-cycles.md)。所有 66 城建筑、房间及家具实际长宽统一为最初两倍；248 块农田为 12×8、181 块药田为 15×12，普通粮食五日、基础药草十日成熟，照料不直接催熟。荒村保留 12 间普通住房、邻田与主管巡卫设施权限。版本 `0.0.43-world-scale-and-crop-cycles` / Snapshot v19，须新开局；基础编译完成，正式发布状态见 396，待制作人人工验收，未提交推送。下方 395 的 1.5 倍及仅荒村范围为上一轮记录。
+
+> **2026-10-26 荒村比例与布局最新轮次：** [395](docs/40-process/395-huangcun-furniture-scale-and-layout-2026-10-26.md) / [ADR-0062](docs/40-process/43-decisions/ADR-0062-huangcun-physical-furniture-scale.md)。人物显示两倍，荒村房间／床／家具实际长宽 1.5 倍；普通住房按 10 人＋2 间空房保留，扩大农田药田并紧邻住宿，三处修行设施集中到主管巡卫区且占领前限其使用、解放后开放。其他城市既有布局不改。`0.0.42-huangcun-neighborhood` / Snapshot v19，须新开局；正式发布与基础编译完成，待制作人人工验收，未提交。下方 394 是本轮之前的生存阶段快照。
+
 > **当前统一交接（2026-10-26）：** [394 荒村生存首版阶段快照与剩余工作](docs/40-process/394-huangcun-survival-checkpoint-and-backlog-2026-10-26.md)。当前 `0.0.40-huangcun-survival` / Snapshot v19，需新开局。可选帮助、两座炉具、生存／营地／同伴营救首版已实现；完整实玩、节奏与存读档验收尚未完成，不是体验封板。本次按制作人明确要求整理文档并提交上传；Git 结果以提交和远端记录为准。下方版本、授权与“未提交”是各轮发生时的历史记录，当前状态以 394 为准。
 
 > **2026-10-26 荒村生存首版已接线：** [393](docs/40-process/393-huangcun-survival-and-hidden-camp-design-2026-10-26.md) / [ADR-0061](docs/40-process/43-decisions/ADR-0061-huangcun-survival-camp-and-captive-companion.md)。新开局两人同行、第三人被囚；维生配给、额外短工／采集、私人营地、送粮送药与三种营救接入现有时间／伤势／存档。内容 `0.0.40-huangcun-survival`，Snapshot v19，须新开局；左下角“荒村生活 / 同伴营救”进入。Implemented / 待人工验收，无强制教程；复杂追捕、自由营地扩建和完整制作暂不做，不能把基础编译当作体验验收。未提交推送。

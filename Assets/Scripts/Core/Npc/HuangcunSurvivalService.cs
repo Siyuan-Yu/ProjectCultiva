@@ -116,12 +116,12 @@ namespace XianXia.Core.Npc
         {
             var a = w.OpeningArea; var c = a.CellSize;
             if (!w.SurfaceGround.TryGet(a.SurfaceId, out var ground)) return false;
-            for (var y = -2; y <= 8; y++) for (var x = -2; x <= 6; x++)
+            for (var y = -2; y <= 14; y++) for (var x = -2; x <= 10; x++)
             {
                 var px = p.X + (x + .5f) * c; var py = p.Y + (y + .5f) * c;
                 if (!a.Contains(a.SurfaceId, px, py) || a.ContainsVillage(a.SurfaceId, px, py) || !ground.IsWalkable(px, py)) return false;
             }
-            foreach (var asset in w.OutdoorConstructedAssets.QueryOverlapping(a.SurfaceId, p.X - c, p.Y - c, 8*c, 10*c)) return false;
+            foreach (var asset in w.OutdoorConstructedAssets.QueryOverlapping(a.SurfaceId, p.X - 2*c, p.Y - 2*c, 13*c, 17*c)) return false;
             return true;
         }
         public static bool TryDestination(SimulationWorld w, string task, out WorldVec2 point)
@@ -139,7 +139,7 @@ namespace XianXia.Core.Npc
             if (string.IsNullOrEmpty(w.HuangcunSurvival.CampRoomId) ||
                 !w.OutdoorConstructedAssets.Assets.TryGetValue(w.HuangcunSurvival.CampRoomId,out var room) ||
                 !CharacterWorldPresenceQuery.TryResolve(w,id,out var at) || !at.HasWorldPosition || at.SurfaceId!=room.SurfaceId) return false;
-            var c=w.OpeningArea.CellSize;
+            var c=room.WorldWidth/room.CellsW;
             return at.WorldPosition.X>=room.WorldX+c && at.WorldPosition.X<=room.WorldX+room.WorldWidth-c &&
                 at.WorldPosition.Y>=room.WorldY+c && at.WorldPosition.Y<=room.WorldY+room.WorldHeight-c;
         }
@@ -245,7 +245,7 @@ namespace XianXia.Core.Npc
 
         static Result BuildCamp(SimulationWorld w, EntityId id, string task)
         {
-            var a=w.OpeningArea; var c=a.CellSize; var p=w.HuangcunSurvival.Places[task];
+            var a=w.OpeningArea; var c=a.CellSize * World.Surface.SurfaceCellGeometry.FurnitureScale; var p=w.HuangcunSurvival.Places[task];
             var room=new OutdoorConstructedAssetState { StableAssetId=CampId, BuildingId="base:room_survival_camp", Kind="room", SurfaceId=a.SurfaceId,
                 WorldX=p.X,WorldY=p.Y,WorldWidth=4*c,WorldHeight=6*c,CellsW=4,CellsH=6,BoundLocationId="runtime:huangcun_private_camp",StructureDurability=100 };
             var bed=new OutdoorConstructedAssetState { StableAssetId=CampId+":bed", BuildingId="base:furniture_bed",Kind="bed",SurfaceId=a.SurfaceId,
@@ -265,6 +265,8 @@ namespace XianXia.Core.Npc
 
         public static Result ValidateCultivation(SimulationWorld w, Entity e)
         {
+            var facility = HuangcunOpeningAccess.ValidateCurrentFacilityUse(w, e.Id);
+            if (facility.IsFailure) return facility;
             if(!Applies(w,e) || !HuangcunOpeningAccess.IsLocked(w)) return Result.Success();
             if(!CharacterWorldPresenceQuery.TryResolve(w,e.Id,out var at) || !at.HasWorldPosition ||
                 w.OpeningArea.ContainsVillage(at.SurfaceId,at.WorldPosition.X,at.WorldPosition.Y)) return Fail("城内修炼设施不向劳役开放。可到村外修炼，搭好私人营地更有效。");

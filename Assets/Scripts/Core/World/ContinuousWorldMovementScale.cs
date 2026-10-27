@@ -7,6 +7,13 @@ namespace XianXia.Core.World
     /// </summary>
     public static class ContinuousWorldMovementScale
     {
+        public static float MovementMultiplier(SimulationWorld world, bool airborne) =>
+            (world?.Strategic?.SpatialRules?.WalkSpeedMultiplier ?? 1f) *
+            (airborne ? world?.Strategic?.SpatialRules?.FlightSpeedMultiplier ?? 2f : 1f);
+
+        public static float CharacterMultiplier(SimulationWorld world, Domain.Ids.EntityId id) =>
+            MovementMultiplier(world, Combat.FlightService.IsAirborne(world, id));
+
         public static float Resolve(SimulationWorld world)
         {
             var value = world?.ContinuousWorldMovementScale ?? 1f;

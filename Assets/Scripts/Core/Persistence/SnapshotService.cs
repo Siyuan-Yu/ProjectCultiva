@@ -109,6 +109,7 @@ namespace XianXia.Core.Persistence
                     dto.DyingReserveMilli = life.DyingReserveMilli;
                     dto.HerbDoses = life.HerbDoses;
                     dto.Convalescing = life.Convalescing;
+                    dto.UnconsciousSecondsRemaining = life.UnconsciousSecondsRemaining;
                     dto.RecoveryHpMilli = life.RecoveryHpMilli;
 
                 }
@@ -713,7 +714,11 @@ namespace XianXia.Core.Persistence
                         ErrorCode.SnapshotInvalid,
                         "Snapshot lacks current EntityLocation authority and requires offline conversion.",
                         "EntityIndex=" + i + " EntityId=" + (entity?.Id ?? 0UL));
-                if (entity.DyingReserveMilli < 0 || entity.DyingReserveMilli > 200000 ||
+                if (float.IsNaN(entity.UnconsciousSecondsRemaining) || float.IsInfinity(entity.UnconsciousSecondsRemaining) ||
+                    entity.UnconsciousSecondsRemaining < 0 || entity.UnconsciousSecondsRemaining > CombatLifeStateService.UnconsciousSeconds ||
+                    entity.UnconsciousSecondsRemaining > 0 && (entity.Lifecycle != (int)LifecycleState.Incapacitated && entity.Lifecycle != (int)LifecycleState.Captured ||
+                        entity.Convalescing || entity.DyingReserveMilli != 0 || entity.BleedOutAfterTick != 0 || entity.CurrentHp < 1) ||
+                    entity.DyingReserveMilli < 0 || entity.DyingReserveMilli > 200000 ||
                     entity.HerbDoses < 0 || entity.HerbDoses > 1000000 ||
                     entity.RecoveryHpMilli < 0 || entity.RecoveryHpMilli >= 1000 ||
                     entity.Convalescing && (!entity.HasMedicalProgress || entity.Lifecycle != (int)LifecycleState.Incapacitated && entity.Lifecycle != (int)LifecycleState.Captured) ||
@@ -891,6 +896,7 @@ namespace XianXia.Core.Persistence
                     DyingReserveMilli = e.DyingReserveMilli,
                     HerbDoses = e.HerbDoses,
                     Convalescing = e.Convalescing,
+                    UnconsciousSecondsRemaining = e.UnconsciousSecondsRemaining,
                     RecoveryHpMilli = e.RecoveryHpMilli
                 };
                 entity.AddComponent(life);
@@ -1347,7 +1353,18 @@ namespace XianXia.Core.Persistence
             var farmRestore = RestoreConstructedAssets(world, snap);
             if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
             world.HuangcunSurvival = (snap.HuangcunSurvival ?? new XianXia.Core.Npc.HuangcunSurvivalState()).Copy();
+            world.SupervisorAnger.Value = world.HuangcunSurvival.SupervisorAnger;
             var survivalState = world.HuangcunSurvival;
+            var savedPunisher = snap.CharacterEncounter?.Find(survivalState.PunisherId);
+            var savedPunished = snap.CharacterEncounter?.Find(survivalState.PunishmentTargetId);
+            if (survivalState.SupervisorAnger < 0 || survivalState.SupervisorAnger > 100 ||
+                survivalState.ObservationSeconds < 0 || survivalState.ObservationSeconds >= 5 || survivalState.LastObservationTick > snap.WorldTick ||
+                (survivalState.PunisherId == 0) != (survivalState.PunishmentTargetId == 0) ||
+                survivalState.PunisherId != 0 && (!world.Entities.TryGet(new EntityId(survivalState.PunisherId), out _) ||
+                    !world.Entities.TryGet(new EntityId(survivalState.PunishmentTargetId), out _)) ||
+                survivalState.PunishmentBattleActive && (savedPunisher == null || savedPunished == null ||
+                    savedPunisher.Enemy == savedPunished.Enemy))
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Invalid disciplinary encounter state.");
             if (survivalState.Enabled &&
                 (!world.Entities.TryGet(new EntityId(survivalState.PrisonerId), out _) ||
                  !world.OutdoorConstructedAssets.Assets.ContainsKey(survivalState.PrisonRoomId) ||

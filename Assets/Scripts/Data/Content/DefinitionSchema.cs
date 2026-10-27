@@ -119,7 +119,7 @@ namespace XianXia.Data.Content
         };
         public static readonly HashSet<string> WorldSpatialRulesFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "coreLevels",
+            "id", "type", "coreLevels", "walkSpeedMultiplier", "flightSpeedMultiplier",
             "wildernessEncounterWidthCells", "wildernessEncounterHeightCells",
             "wildernessEncounterWidthWorld", "wildernessEncounterHeightWorld",
             "interventionDecisionSeconds", "interventionArrivalSeconds",

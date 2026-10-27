@@ -35,7 +35,9 @@ namespace XianXia.Core.World.Surface
         public float PresentationUnitsPerWorldUnit { get; }
         public float OriginWorldX { get; }
         public float OriginWorldY { get; }
-        public SurfaceChunkCoord WorldToChunk(float worldX, float worldY) => new SurfaceChunkCoord(Floor((worldX - OriginWorldX) / ChunkWidth), Floor((worldY - OriginWorldY) / ChunkHeight));
+        public SurfaceChunkCoord WorldToChunk(float worldX, float worldY) => new SurfaceChunkCoord(
+            SurfaceCellGeometry.ChunkCoordinate(worldX, OriginWorldX, ChunkWidth),
+            SurfaceCellGeometry.ChunkCoordinate(worldY, OriginWorldY, ChunkHeight));
         public void WorldToChunkLocal(float worldX, float worldY, out SurfaceChunkCoord chunk, out float localX, out float localY)
         {
             chunk = WorldToChunk(worldX, worldY); localX = worldX - (OriginWorldX + chunk.X * ChunkWidth); localY = worldY - (OriginWorldY + chunk.Y * ChunkHeight);
@@ -54,6 +56,5 @@ namespace XianXia.Core.World.Surface
         }
         public SurfaceChunkCoord PresentationToChunk(float presentationX, float presentationY)
         { PresentationToWorld(presentationX, presentationY, out var x, out var y); return WorldToChunk(x, y); }
-        static int Floor(float value) => (int)Math.Floor(value);
     }
 }

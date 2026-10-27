@@ -91,6 +91,48 @@ namespace XianXia.Core.World.Strategic
         public const string BlockedMessage = "荒村周边的天险尚不能通过；取得荒村后才能前往外界。";
         public const string PatrolBlockedMessage = "巡卫正在附近巡视，暂时不能擅自出村。";
         public const string ManagementLockedMessage = "取得荒村后，才能经营领地与建造。";
+        public const string FacilityRestrictedMessage = "占领荒村前，练功室、斗技坊与功法阁只供主管和巡卫使用。";
+        static readonly string[] RestrictedFacilityRoomIds =
+        {
+            "base:site_huangcun:practice_house", "base:site_huangcun:manual_hall", "base:site_huangcun:combat_hall"
+        };
+
+        public static bool IsRestrictedFacilityLocation(string locationId) =>
+            locationId == "base:loc_huangcun_practice" || locationId == "base:loc_huangcun_manual_hall" ||
+            locationId == "base:loc_huangcun_combat_hall";
+
+        public static bool IsOpeningStaff(SimulationWorld world, EntityId id)
+        {
+            if (world == null || !world.Entities.TryGet(id, out var entity)) return false;
+            var definition = entity.DefinitionId.ToString();
+            return definition == "base:character_ch01_ref_supervisor" ||
+                definition == "base:character_ch01_ref_guard_a" || definition == "base:character_ch01_ref_guard_b";
+        }
+
+        public static Result ValidateFacilityUse(SimulationWorld world, EntityId id, string locationId) =>
+            !IsLocked(world) || !IsRestrictedFacilityLocation(locationId) || IsOpeningStaff(world, id)
+                ? Result.Success() : Result.Failure(ErrorCode.ActionCannotStart, FacilityRestrictedMessage);
+
+        public static bool AllowsFacilityPosition(SimulationWorld world, EntityId id, string surfaceId, float x, float y)
+        {
+            if (!IsLocked(world) || IsOpeningStaff(world, id)) return true;
+            for (var i = 0; i < RestrictedFacilityRoomIds.Length; i++)
+                if (world.OutdoorConstructedAssets.Assets.TryGetValue(RestrictedFacilityRoomIds[i], out var room) &&
+                    room.SurfaceId == surfaceId && room.Kind == "room" &&
+                    x >= room.WorldX && x < room.WorldX+room.WorldWidth &&
+                    y >= room.WorldY && y < room.WorldY+room.WorldHeight)
+                    return false;
+            return true;
+        }
+
+        public static Result ValidateCurrentFacilityUse(SimulationWorld world, EntityId id)
+        {
+            if (!IsLocked(world) || world.LocalMap.IsInInterior ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, id)) return Result.Success();
+            return CharacterWorldPresenceQuery.TryResolve(world, id, out var at) && at.HasWorldPosition &&
+                !AllowsFacilityPosition(world, id, at.SurfaceId, at.WorldPosition.X, at.WorldPosition.Y)
+                    ? Result.Failure(ErrorCode.ActionCannotStart, FacilityRestrictedMessage) : Result.Success();
+        }
 
         public static bool IsLocked(SimulationWorld world) =>
             world != null && world.Flags.Has(ConfinedFlag) && !world.Flags.Has(UnlockedFlag) &&
@@ -114,11 +156,18 @@ namespace XianXia.Core.World.Strategic
         public static bool AllowsPosition(SimulationWorld world, string surfaceId, float x, float y) =>
             !IsMovementLocked(world) || world.OpeningArea.Contains(surfaceId, x, y);
 
+        public static string PlayerMoveBlockedMessage(SimulationWorld world, string surfaceId, float x, float y) =>
+            !AllowsPosition(world, surfaceId, x, y) ? BlockedMessage :
+            !AllowsFacilityPosition(world, world?.Strategic.PlayerPartyContext?.ActiveCharacterId ?? EntityId.None,
+                surfaceId, x, y) ? FacilityRestrictedMessage : PatrolBlockedMessage;
+
         /// <summary>Only an outward crossing can be stopped. Once outside, patrols never strand the player.</summary>
         public static bool AllowsPlayerMove(SimulationWorld world, string surfaceId,
             float fromX, float fromY, float toX, float toY)
         {
             if (!AllowsPosition(world, surfaceId, toX, toY)) return false;
+            if (!AllowsFacilityPosition(world, world?.Strategic.PlayerPartyContext?.ActiveCharacterId ?? EntityId.None,
+                    surfaceId, toX, toY)) return false;
             if (!IsMovementLocked(world) || world.OpeningArea.DebugBypassMovementRestriction ||
                 !world.OpeningArea.ContainsVillage(surfaceId, fromX, fromY) ||
                 world.OpeningArea.ContainsVillage(surfaceId, toX, toY)) return true;
@@ -133,18 +182,11 @@ namespace XianXia.Core.World.Strategic
             fraction = Math.Max(0f, Math.Min(1f, fraction));
             var exitX = fromX + stepX * fraction;
             var exitY = fromY + stepY * fraction;
-            var watchRadius = world.OpeningArea.CellSize * 22f;
+            var watchRadius = world.OpeningArea.CellSize * XianXia.Core.Social.SupervisorAngerDriver.ObservationRangeCells;
             var radiusSquared = watchRadius * watchRadius;
             foreach (var entity in world.Entities.All)
             {
-                var id = entity.DefinitionId.ToString();
-                if (id != "base:character_ch01_ref_supervisor" &&
-                    id != "base:character_ch01_ref_guard_a" &&
-                    id != "base:character_ch01_ref_guard_b") continue;
-                if (!entity.TryGet<ScheduleComponent>(out var schedule) ||
-                    !world.TryGetSchedule(schedule.DefinitionId, out var definition) ||
-                    !definition.TryResolve(world.Tick, out var block) ||
-                    block.Activity != ScheduleActivity.Inspect && block.Activity != ScheduleActivity.Patrol ||
+                if (!XianXia.Core.Social.SupervisorAngerDriver.IsOnWatch(world, entity) ||
                     !CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) ||
                     !at.HasWorldPosition || !string.Equals(at.SurfaceId, surfaceId, StringComparison.Ordinal))
                     continue;

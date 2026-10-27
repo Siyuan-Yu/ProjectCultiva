@@ -193,6 +193,8 @@ namespace XianXia.Core.Npc
                 var area = kv.Value;
                 if (area == null || string.IsNullOrEmpty(area.Id))
                     continue;
+                if (HuangcunOpeningAccess.ValidateFacilityUse(world, entity.Id, area.LocationId).IsFailure)
+                    continue;
                 if (!AllowsActivity(area, activity))
                     continue;
                 if (!EntityMayUseArea(entity, area, activity))

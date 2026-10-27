@@ -295,10 +295,12 @@ def bed_spawn_point(bp, bed):
     room=next((o for o in bp['objectPlacements'] if o['placementId']==parent and o['kindId']=='room'),None)
     if room is None:raise ValueError('Assigned bed has no authored room: '+bed['placementId'])
     x,y,w,h=(bed[k] for k in ('localSurfaceX','localSurfaceY','widthCells','heightCells'))
+    inset = float(room.get('metadata',{}).get('physicalScale','1'))
     candidates=((x+w/2,y-.5),(x+w+.5,y+h/2),(x-.5,y+h/2),(x+w/2,y+h+.5))
     for cx,cy in candidates:
-        if not (cx-.5>=room['localSurfaceX']+1 and cy-.5>=room['localSurfaceY']+1 and
-                cx+.5<=room['localSurfaceX']+room['widthCells']-1 and cy+.5<=room['localSurfaceY']+room['heightCells']-1):continue
+        cx,cy=math.floor(cx)+.5,math.floor(cy)+.5
+        if not (cx-.5>=room['localSurfaceX']+inset and cy-.5>=room['localSurfaceY']+inset and
+                cx+.5<=room['localSurfaceX']+room['widthCells']-inset and cy+.5<=room['localSurfaceY']+room['heightCells']-inset):continue
         blocked=False
         for o in bp['objectPlacements']:
             if o is room:continue
@@ -344,7 +346,8 @@ for row in plan:
         local_center=(cx-origin[0],cy-origin[1])
         shift=(local_center[0]-old_center[0],local_center[1]-old_center[1])
         for o in bp['objectPlacements']:
-            o['localSurfaceX']=round(o['localSurfaceX']+shift[0]);o['localSurfaceY']=round(o['localSurfaceY']+shift[1])
+            snap = 2 if o.get('metadata',{}).get('physicalScale') == '1.5' else 1
+            o['localSurfaceX']=round((o['localSurfaceX']+shift[0])*snap)/snap;o['localSurfaceY']=round((o['localSurfaceY']+shift[1])*snap)/snap
             if o['kindId']=='spiritGate':
                 key='outerGate' if o['placementId'].endswith('_outer') else 'innerGate'
                 gx,gy=point(geo['openingBasin'][key]);o['localSurfaceX']=round(gx-origin[0]-2);o['localSurfaceY']=round(gy-origin[1]-2)

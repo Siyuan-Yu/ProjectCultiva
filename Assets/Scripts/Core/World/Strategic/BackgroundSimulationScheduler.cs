@@ -105,7 +105,8 @@ namespace XianXia.Core.World.Strategic
             // Current Surface movement scale; travel ownership, routing and destination remain
             // on the existing continuous Surface/background-motion authorities.
             var scale = ContinuousWorldMovementScale.Resolve(world);
-            var budget = DistanceBudgetFromElapsedSimulationTicks(scale, elapsedSimulationTicks);
+            var budget = DistanceBudgetFromElapsedSimulationTicks(scale, elapsedSimulationTicks) *
+                ContinuousWorldMovementScale.CharacterMultiplier(world, characterId);
             if (budget <= 0f)
                 return;
 

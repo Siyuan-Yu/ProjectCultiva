@@ -152,10 +152,44 @@ public static class LegacyWorldMigration
         {
             var w = (int)Math.Round(Number(item,"worldWidth")/binding.SurfaceCellWorldSize);
             var h = (int)Math.Round(Number(item,"worldHeight")/binding.SurfaceCellWorldSize);
+            var logicalW = item["sourceCellsW"]?.GetValue<int>() ?? 0;
+            var logicalH = item["sourceCellsH"]?.GetValue<int>() ?? 0;
+            var furniture = Text(item, "kind") is "room" or "bed" or "storageRoom" or
+                "recoverySpot" or "prisonDropOff" or "cushion" or "chessBoard" or
+                "alchemyFurnace" or "smithingFurnace" or "controlCore";
+            var scale = logicalW > 0 ? Number(item,"worldWidth")/binding.SurfaceCellWorldSize/logicalW : 0;
+            var supportedScale = Math.Abs(scale-2) < .002 ? 2d : Math.Abs(scale-1.5) < .002 ? 1.5d : 0;
+            var scaledFurniture = furniture && logicalW > 0 && logicalH > 0 && supportedScale > 0 &&
+                Math.Abs(Number(item,"worldHeight")/binding.SurfaceCellWorldSize-logicalH*supportedScale) < .002;
+            if (scaledFurniture)
+            { w = logicalW; h = logicalH; }
             item["sourceCellsW"] = w; item["sourceCellsH"] = h;
-            item["chunkX"] = (int)Math.Floor(((Number(item,"worldX")-binding.OriginWorldX)/binding.SurfaceCellWorldSize+w*.5)/50);
-            item["chunkY"] = (int)Math.Floor(((Number(item,"worldY")-binding.OriginWorldY)/binding.SurfaceCellWorldSize+h*.5)/50);
+            // Runtime definitions and SingleCentered materialization use float world
+            // coordinates. Reproduce that arithmetic, including boundary rounding;
+            // a double cell-space calculation can select the adjacent chunk.
+            var centerX = (float)Number(item,"worldX") + (float)Number(item,"worldWidth") * .5f;
+            var centerY = (float)Number(item,"worldY") + (float)Number(item,"worldHeight") * .5f;
+            var chunkWidth = (float)Number(main,"chunkWidth");
+            var chunkHeight = (float)Number(main,"chunkHeight");
+            item["chunkX"] = (int)Math.Floor(((double)centerX-(float)binding.OriginWorldX)/chunkWidth);
+            item["chunkY"] = (int)Math.Floor(((double)centerY-(float)binding.OriginWorldY)/chunkHeight);
         }
+    }
+
+    /// <summary>Reapply derived chunk ownership after a publisher arithmetic fix, without rebaking terrain.</summary>
+    public static void ReconcilePublishedPlacementChunks(string runtimePath, RuntimeSurfaceBinding binding)
+    {
+        var root = JsonNode.Parse(File.ReadAllText(runtimePath))!.AsObject();
+        var definition = root["definitions"]![0]!.AsObject();
+        if (Text(definition, "id") != binding.SurfaceId ||
+            Math.Abs(Number(definition, "originWorldX")-binding.OriginWorldX) > 1e-9 ||
+            Math.Abs(Number(definition, "originWorldY")-binding.OriginWorldY) > 1e-9 ||
+            Math.Abs(Number(definition, "cellSize")-binding.SurfaceCellWorldSize) > 1e-9)
+            throw new InvalidDataException("物件 Chunk 修正目标与当前 Surface 绑定不一致。");
+        FinalizeGridPlacements(definition, binding);
+        var pending = runtimePath + ".chunks.pending";
+        File.WriteAllText(pending, root.ToJsonString(SurfaceAuthoringJson.Options), new System.Text.UTF8Encoding(false));
+        File.Replace(pending, runtimePath, null);
     }
 
     private static void PublishAdditionalBlueprints(WorldCompositionDocument composition, LinkedSourceSet linked, JsonObject main)

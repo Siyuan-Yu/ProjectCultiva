@@ -5,7 +5,8 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 19;
+        public const int CurrentSchemaVersion = 20;
+        public const int PreDisciplineSchemaVersion = 19;
         public const int PreSurvivalSchemaVersion = 18;
         public XianXia.Core.Npc.HuangcunSurvivalState HuangcunSurvival { get; set; } = new XianXia.Core.Npc.HuangcunSurvivalState();
         public const int PreFlightSchemaVersion = 17;
@@ -875,6 +876,7 @@ namespace XianXia.Core.Persistence
         public int DyingReserveMilli { get; set; }
         public int HerbDoses { get; set; }
         public bool Convalescing { get; set; }
+        public float UnconsciousSecondsRemaining { get; set; }
         public int RecoveryHpMilli { get; set; }
         public ulong MedicTargetId { get; set; }
         public bool MedicCarryingHerb { get; set; }

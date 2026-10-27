@@ -197,12 +197,15 @@ namespace XianXia.Data.Content
                 foreach (var p in surface.SitePlacements)
                 {
                     if (p == null) continue;
-                    if (!XianXia.Core.World.Surface.SurfaceCellGeometry.IsAlignedRectangle(
+                    var scaledFurniture = XianXia.Core.World.Surface.SurfaceCellGeometry.IsScaledFurniture(
+                        p.Kind, p.WorldWidth, p.WorldHeight, p.SourceCellsW, p.SourceCellsH, surface.CellSize);
+                    if (!XianXia.Core.World.Surface.SurfaceCellGeometry.IsAlignedFurnitureRectangle(p.Kind,
                         p.WorldX, p.WorldY, p.WorldWidth, p.WorldHeight,
+                        p.SourceCellsW, p.SourceCellsH,
                         surface.OriginWorldX, surface.OriginWorldY, surface.CellSize))
                         report.Add(ErrorCode.InvalidArgument,
                             "Outdoor object requires integer-cell footprint and grid-line origin.", p.StableId);
-                    if (surface.CellSize > 0 &&
+                    if (!scaledFurniture && surface.CellSize > 0 &&
                         (Math.Abs(p.WorldWidth/surface.CellSize-p.SourceCellsW) > .002 ||
                          Math.Abs(p.WorldHeight/surface.CellSize-p.SourceCellsH) > .002))
                         report.Add(ErrorCode.InvalidArgument,
@@ -288,8 +291,8 @@ namespace XianXia.Data.Content
                     if (surface.ChunkWidth > 0f && surface.ChunkHeight > 0f)
                     {
                         var centerChunk = new XianXia.Core.World.Surface.SurfaceChunkCoord(
-                            (int)Math.Floor((centerX - surface.OriginWorldX) / surface.ChunkWidth),
-                            (int)Math.Floor((centerY - surface.OriginWorldY) / surface.ChunkHeight));
+                            XianXia.Core.World.Surface.SurfaceCellGeometry.ChunkCoordinate(centerX, surface.OriginWorldX, surface.ChunkWidth),
+                            XianXia.Core.World.Surface.SurfaceCellGeometry.ChunkCoordinate(centerY, surface.OriginWorldY, surface.ChunkHeight));
                         centerIsAuthored = chunks.Contains(centerChunk);
                     }
                     if (!centerIsAuthored)
@@ -334,8 +337,8 @@ namespace XianXia.Data.Content
                     var centerX = placement.WorldX + placement.WorldWidth * .5f;
                     var centerY = placement.WorldY + placement.WorldHeight * .5f;
                     var materializationChunk = new XianXia.Core.World.Surface.SurfaceChunkCoord(
-                        (int)Math.Floor((centerX - surface.OriginWorldX) / surface.ChunkWidth),
-                        (int)Math.Floor((centerY - surface.OriginWorldY) / surface.ChunkHeight));
+                        XianXia.Core.World.Surface.SurfaceCellGeometry.ChunkCoordinate(centerX, surface.OriginWorldX, surface.ChunkWidth),
+                        XianXia.Core.World.Surface.SurfaceCellGeometry.ChunkCoordinate(centerY, surface.OriginWorldY, surface.ChunkHeight));
                     if (placement.ChunkX != materializationChunk.X || placement.ChunkY != materializationChunk.Y)
                         report.Add(ErrorCode.InvalidArgument,
                             "Outdoor storageRoom declared chunk must own its physical center for SingleCentered materialization.",

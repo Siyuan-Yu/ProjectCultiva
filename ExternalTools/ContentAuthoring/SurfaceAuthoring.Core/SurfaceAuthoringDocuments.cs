@@ -252,15 +252,17 @@ public static class SurfaceAuthoringValidation
         foreach (var o in d.ObjectPlacements) { if(string.IsNullOrWhiteSpace(o.PlacementId)||string.IsNullOrWhiteSpace(o.KindId))Error(issues,"对象放置必须提供 placementId 和 kindId。");if(o.RotationQuarterTurns is <0 or >3)Error(issues,$"对象 {o.PlacementId} 的 rotationQuarterTurns 必须为 0 到 3。");if (o.WidthCells <= 0 || o.HeightCells <= 0 || o.LocalSurfaceX < 0 || o.LocalSurfaceY < 0 || o.LocalSurfaceX + o.WidthCells > d.WidthCells || o.LocalSurfaceY + o.HeightCells > d.HeightCells) Error(issues, $"对象 {o.PlacementId} 的范围无效或超出文档。"); }
         foreach (var o in d.ObjectPlacements)
         {
-            if (!GridInteger(o.LocalSurfaceX) || !GridInteger(o.LocalSurfaceY) ||
-                !GridInteger(o.WidthCells) || !GridInteger(o.HeightCells))
+            var scale = PhysicalScale(o);
+            var snap = scale == 1.5 ? 2d : 1d;
+            if (!GridInteger(o.LocalSurfaceX * snap) || !GridInteger(o.LocalSurfaceY * snap) ||
+                !GridInteger(o.WidthCells * snap) || !GridInteger(o.HeightCells * snap))
                 Error(issues, $"对象 {o.PlacementId} 的坐标与占地宽高必须为整数格。");
-            if ((o.KindId is "cushion" or "chessBoard") && (o.WidthCells != 1 || o.HeightCells != 1))
+            if ((o.KindId is "cushion" or "chessBoard") && (o.WidthCells != scale || o.HeightCells != scale))
                 Error(issues, $"蒲团／棋盘 {o.PlacementId} 的本体占地必须为 1×1 格。");
         }
         var rooms=d.ObjectPlacements.Where(x=>x.KindId=="room").ToDictionary(x=>x.PlacementId,StringComparer.Ordinal);
-        foreach(var room in rooms.Values)if(!((room.WidthCells==4&&room.HeightCells==6)||(room.WidthCells==6&&room.HeightCells==4)||(room.WidthCells==8&&room.HeightCells==12)||(room.WidthCells==12&&room.HeightCells==8)||(room.WidthCells==16&&room.HeightCells==24)||(room.WidthCells==24&&room.HeightCells==16)))Error(issues,$"房间 {room.PlacementId} 必须使用正式 4×6、8×12 或 16×24 外轮廓。");
-        foreach(var bed in d.ObjectPlacements.Where(x=>x.KindId=="bed")){if(!((bed.WidthCells==1&&bed.HeightCells==2)||(bed.WidthCells==2&&bed.HeightCells==1)))Error(issues,$"床 {bed.PlacementId} 必须为 1×2。 ");if(bed.Metadata.TryGetValue("parentRoomId",out var parent)&&!string.IsNullOrEmpty(parent)){if(!rooms.TryGetValue(parent,out var room))Error(issues,$"床 {bed.PlacementId} 引用了不存在的父房间 {parent}。");else if(bed.LocalSurfaceX<room.LocalSurfaceX+1||bed.LocalSurfaceY<room.LocalSurfaceY+1||bed.LocalSurfaceX+bed.WidthCells>room.LocalSurfaceX+room.WidthCells-1||bed.LocalSurfaceY+bed.HeightCells>room.LocalSurfaceY+room.HeightCells-1)Error(issues,$"床 {bed.PlacementId} 未完整位于父房间可用内区。");}}
+        foreach(var room in rooms.Values)if(!(((room.WidthCells/PhysicalScale(room))==4&&(room.HeightCells/PhysicalScale(room))==6)||((room.WidthCells/PhysicalScale(room))==6&&(room.HeightCells/PhysicalScale(room))==4)||((room.WidthCells/PhysicalScale(room))==8&&(room.HeightCells/PhysicalScale(room))==12)||((room.WidthCells/PhysicalScale(room))==12&&(room.HeightCells/PhysicalScale(room))==8)||((room.WidthCells/PhysicalScale(room))==16&&(room.HeightCells/PhysicalScale(room))==24)||((room.WidthCells/PhysicalScale(room))==24&&(room.HeightCells/PhysicalScale(room))==16)))Error(issues,$"房间 {room.PlacementId} 必须使用正式 4×6、8×12 或 16×24 外轮廓。");
+        foreach(var bed in d.ObjectPlacements.Where(x=>x.KindId=="bed")){if(!(((bed.WidthCells/PhysicalScale(bed))==1&&(bed.HeightCells/PhysicalScale(bed))==2)||((bed.WidthCells/PhysicalScale(bed))==2&&(bed.HeightCells/PhysicalScale(bed))==1)))Error(issues,$"床 {bed.PlacementId} 必须为 1×2。 ");if(bed.Metadata.TryGetValue("parentRoomId",out var parent)&&!string.IsNullOrEmpty(parent)){if(!rooms.TryGetValue(parent,out var room))Error(issues,$"床 {bed.PlacementId} 引用了不存在的父房间 {parent}。");else if(bed.LocalSurfaceX<room.LocalSurfaceX+1||bed.LocalSurfaceY<room.LocalSurfaceY+1||bed.LocalSurfaceX+bed.WidthCells>room.LocalSurfaceX+room.WidthCells-1||bed.LocalSurfaceY+bed.HeightCells>room.LocalSurfaceY+room.HeightCells-1)Error(issues,$"床 {bed.PlacementId} 未完整位于父房间可用内区。");}}
         foreach(var duplicate in d.ObjectPlacements.Where(x=>x.KindId=="bed"&&x.Metadata.ContainsKey("initialAssigneeSpawnKey")).GroupBy(x=>x.Metadata["initialAssigneeSpawnKey"],StringComparer.Ordinal).Where(x=>!string.IsNullOrEmpty(x.Key)&&x.Count()>1))Error(issues,$"初始住户 SpawnKey 重复分配：{duplicate.Key}");
         return issues;
     }
@@ -273,6 +275,11 @@ public static class SurfaceAuthoringValidation
     private static void Duplicates(List<SurfaceAuthoringValidationIssue> r, IEnumerable<string> ids) { foreach (var id in ids.Where(x => !string.IsNullOrWhiteSpace(x)).GroupBy(x => x, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key)) Error(r, $"技术 ID 重复：{id}"); }
     private static void Error(List<SurfaceAuthoringValidationIssue> r, string m) => r.Add(new(ValidationSeverity.Error, m));
     private static void Warn(List<SurfaceAuthoringValidationIssue> r, string m) => r.Add(new(ValidationSeverity.Warning, m));
+    internal static double PhysicalScale(BlueprintObjectPlacement o) =>
+        o.KindId is "room" or "bed" or "storageRoom" or "recoverySpot" or "prisonDropOff" or
+            "cushion" or "chessBoard" or "alchemyFurnace" or "smithingFurnace" or "controlCore" &&
+        o.Metadata.TryGetValue("physicalScale", out var scale) ? scale == "2" ? 2 : scale == "1.5" ? 1.5 : 1 : 1;
+
     internal static bool GridInteger(double value) => double.IsFinite(value) && Math.Abs(value-Math.Round(value)) < .000001;
 }
 

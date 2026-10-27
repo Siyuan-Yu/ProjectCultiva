@@ -1,5 +1,7 @@
 # RPG-First：Active Character、PlayerParty、Continuous Surface 与 Legacy Compatibility
 
+> **当前移动倍率：** 步行相对 0.0.43 为 1.5 倍，斗气化翼起飞后为调整后步行的 2 倍。倍率读取 worldSpatialRules 内容的 `walkSpeedMultiplier`／`flightSpeedMultiplier`，WASD、点击、NPC 热冷移动和小队统一消费；混合空地小队按地面倍率，全员飞行才使用飞行倍率。世界时间倍率、移动 authority、化翼资格与消耗不变。见 [ADR-0064](../40-process/43-decisions/ADR-0064-thin-room-walls-larger-resources-and-movement.md)／[397](../40-process/397-thin-room-walls-resources-and-movement.md)。
+
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。

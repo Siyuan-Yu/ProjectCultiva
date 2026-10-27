@@ -98,12 +98,12 @@ namespace XianXia.Data.Serialization
             {
                 var root = SimpleJson.Parse(json);
                 var sourceSchema = (int)root.GetNumber("schemaVersion");
-                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreSurvivalSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
+                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreDisciplineSchemaVersion && sourceSchema != WorldSnapshot.PreSurvivalSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "支持v15至v19存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
+                        "支持v15至v20存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
                 var snapshot = new WorldSnapshot
                 {
-                    // v15-v18 -> v19: upgrade in memory; old saves do not seed survival state.
+                    // Append the v20 unconscious timer; existing dying states keep their meaning.
                     SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
                     SnapshotId = ReadU(root, "snapshotId"),
                     WorldTick = ReadU(root, "worldTick"),
@@ -134,6 +134,9 @@ namespace XianXia.Data.Serialization
                 {
                     foreach (var e in entities.Array)
                     {
+                        if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion &&
+                            (!e.TryGetProperty("unconsciousSecondsRemaining", out var unconsciousTime) || unconsciousTime.Kind != JsonValueKind.Number))
+                            return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少昏迷剩余时间。");
                         if (sourceSchema >= WorldSnapshot.PreGroundLootSchemaVersion)
                             foreach (var key in new[] { "hasMedicalProgress", "dyingReserveMilli", "herbDoses", "convalescing",
                                 "recoveryHpMilli", "medicTargetId", "medicCarryingHerb", "medicTreatmentSeconds", "medicLastTreatmentTick" })
@@ -477,10 +480,21 @@ namespace XianXia.Data.Serialization
                     ? CommerceJson.Read(XianXia.Data.Content.ShopContent.Required(root,"commerce"))
                     : new XianXia.Core.Inventory.CommerceState();
                 if (root.TryGetProperty("chessGames", out var games)) snapshot.ChessGames = ReadChessGames(games);
-                if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion)
+                if (sourceSchema >= WorldSnapshot.PreDisciplineSchemaVersion)
                 {
                     if (!root.TryGetProperty("huangcunSurvival", out var survival))
                         return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少荒村生存状态。");
+                    if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion)
+                    {
+                        foreach (var key in new[] { "supervisorAnger", "observationSeconds", "lastObservationTick", "punisherId", "punishmentTargetId", "punishmentBattleActive" })
+                            if (!survival.TryGetProperty(key, out _))
+                                return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少巡查惩戒状态：" + key);
+                        foreach (var key in new[] { "supervisorAnger", "observationSeconds" })
+                            if (!survival.TryGetProperty(key, out var count) || count.Kind != JsonValueKind.Number || count.Number != System.Math.Floor(count.Number))
+                                return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "无效的巡查计数：" + key);
+                        if (!survival.TryGetProperty("punishmentBattleActive", out var activePunishment) || activePunishment.Kind != JsonValueKind.Boolean)
+                            return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "无效的惩戒战斗标记。");
+                    }
                     snapshot.HuangcunSurvival = ReadHuangcunSurvival(survival, snapshot.WorldTick);
                 }
                 if (root.TryGetProperty("peaceNegotiations", out var offers))
@@ -818,6 +832,10 @@ namespace XianXia.Data.Serialization
                 ["startedTick"] = U(s.StartedTick), ["lastProcessedTick"] = U(s.LastProcessedTick), ["prisonerId"] = U(s.PrisonerId),
                 ["prisonRoomId"] = JsonValue.FromString(s.PrisonRoomId), ["campRoomId"] = JsonValue.FromString(s.CampRoomId),
                 ["ownerFactionId"] = JsonValue.FromString(s.OwnerFactionId),
+                ["supervisorAnger"] = JsonValue.FromNumber(s.SupervisorAnger),
+                ["observationSeconds"] = JsonValue.FromNumber(s.ObservationSeconds),
+                ["lastObservationTick"] = U(s.LastObservationTick), ["punisherId"] = U(s.PunisherId),
+                ["punishmentTargetId"] = U(s.PunishmentTargetId), ["punishmentBattleActive"] = JsonValue.FromBool(s.PunishmentBattleActive),
                 ["message"] = JsonValue.FromString(s.Message), ["places"] = JsonValue.FromArray(places), ["items"] = JsonValue.FromArray(items) });
         }
         static XianXia.Core.Npc.HuangcunSurvivalState ReadHuangcunSurvival(JsonValue v, ulong tick)
@@ -828,8 +846,13 @@ namespace XianXia.Data.Serialization
                 !v.TryGetProperty("items", out var items) || items.Kind != JsonValueKind.Array)
                 throw new System.FormatException("Invalid survival state.");
             var s = new XianXia.Core.Npc.HuangcunSurvivalState { Enabled = enabled.Bool, Released = released.Bool,
+                SupervisorAnger = (int)v.GetNumber("supervisorAnger", 0), ObservationSeconds = (int)v.GetNumber("observationSeconds", 0),
+                LastObservationTick = ReadU(v,"lastObservationTick"), PunisherId = ReadU(v,"punisherId"), PunishmentTargetId = ReadU(v,"punishmentTargetId"),
+                PunishmentBattleActive = v.TryGetProperty("punishmentBattleActive", out var discipline) && discipline.Kind == JsonValueKind.Boolean && discipline.Bool,
                 StartedTick = ReadU(v,"startedTick"), LastProcessedTick = ReadU(v,"lastProcessedTick"), PrisonerId = ReadU(v,"prisonerId"),
                 PrisonRoomId = v.GetString("prisonRoomId", ""), CampRoomId = v.GetString("campRoomId", ""), OwnerFactionId = v.GetString("ownerFactionId", ""), Message = v.GetString("message", "") };
+            if (s.SupervisorAnger < 0 || s.SupervisorAnger > 100 || s.ObservationSeconds < 0 || s.ObservationSeconds >= 5 || s.LastObservationTick > tick)
+                throw new System.FormatException("Invalid disciplinary observation state.");
             foreach (var p in places.Array)
             {
                 var key=p.GetString("key", ""); var x=(float)p.GetNumber("x"); var y=(float)p.GetNumber("y");
@@ -1055,6 +1078,7 @@ namespace XianXia.Data.Serialization
                     ["dyingReserveMilli"] = JsonValue.FromNumber(e.DyingReserveMilli),
                     ["herbDoses"] = JsonValue.FromNumber(e.HerbDoses),
                     ["convalescing"] = JsonValue.FromBool(e.Convalescing),
+                    ["unconsciousSecondsRemaining"] = JsonValue.FromNumber(e.UnconsciousSecondsRemaining),
                     ["recoveryHpMilli"] = JsonValue.FromNumber(e.RecoveryHpMilli),
                     ["medicTargetId"] = U(e.MedicTargetId),
                     ["medicCarryingHerb"] = JsonValue.FromBool(e.MedicCarryingHerb),
@@ -1549,6 +1573,7 @@ namespace XianXia.Data.Serialization
                 DyingReserveMilli = (int)e.GetNumber("dyingReserveMilli"),
                 HerbDoses = (int)e.GetNumber("herbDoses"),
                 Convalescing = e.TryGetProperty("convalescing", out var medicalConvalescing) && medicalConvalescing.Kind == JsonValueKind.Boolean && medicalConvalescing.Bool,
+                UnconsciousSecondsRemaining = (float)e.GetNumber("unconsciousSecondsRemaining", 0),
                 RecoveryHpMilli = (int)e.GetNumber("recoveryHpMilli"),
                 MedicTargetId = ReadU(e, "medicTargetId"),
                 MedicCarryingHerb = e.TryGetProperty("medicCarryingHerb", out var medicalMedicCarryingHerb) && medicalMedicCarryingHerb.Kind == JsonValueKind.Boolean && medicalMedicCarryingHerb.Bool,

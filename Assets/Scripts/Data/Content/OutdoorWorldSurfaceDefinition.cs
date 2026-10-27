@@ -94,6 +94,7 @@ namespace XianXia.Data.Content
         /// <summary>Authored semantic subdivision. Physical size must never be used as a cell count.</summary>
         public int SourceGridX { get; set; }
         public int SourceGridY { get; set; }
+        /// <summary>Logical subdivisions; furniture uses two-cell physical units, with prior 1.5-cell inputs retained.</summary>
         public int SourceCellsW { get; set; } = 1;
         public int SourceCellsH { get; set; } = 1;
         public string Kind { get; set; }

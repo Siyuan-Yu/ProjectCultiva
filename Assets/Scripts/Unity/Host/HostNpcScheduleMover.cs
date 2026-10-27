@@ -249,11 +249,11 @@ namespace XianXia.Unity.Host
                         continue;
                     }
 
-                    if (intent.ArrivalRadiusWorld > 0f && !IsRescuePickupIntent(intent) &&
+                    if (intent.ArrivalRadiusWorld > 0f && !IsPersonApproachIntent(intent) &&
                         TryRetargetUnreachableBedAccess(session.World, entity.Id, intent, pos, rawCenter))
                         continue;
 
-                    if (intent.ArrivalRadiusWorld > 0f && !IsRescuePickupIntent(intent) && grid != null &&
+                    if (intent.ArrivalRadiusWorld > 0f && !IsPersonApproachIntent(intent) && grid != null &&
                         (!grid.TryWorldToCell(rawCenter.x, rawCenter.y, out var exactX, out var exactY) ||
                          !grid.IsWalkable(exactX, exactY)))
                     {
@@ -263,6 +263,7 @@ namespace XianXia.Unity.Host
                         continue;
                     }
                     _resolvedCenter[id] = intent.ArrivalRadiusWorld > 0f ||
+                        IsCultivationSlotTarget(session.World, intent) ||
                         IsGenericConstructionTarget(session.World, entity.Id, intent)
                         ? rawCenter : SnapGoalToWalkable(grid, rawCenter, goalSnapCells);
                     _resolvedSpotGeneration[id] = spotGeneration;
@@ -371,14 +372,15 @@ namespace XianXia.Unity.Host
                 _repathRequestsInWindow++;
 
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
-            var rescuePickup = IsRescuePickupIntent(intent);
-            var freeStandRadius = rescuePickup
+            var personApproach = IsPersonApproachIntent(intent);
+            var cultivationSlot = IsCultivationSlotTarget(world, intent);
+            var freeStandRadius = cultivationSlot ? 0f : personApproach
                 ? ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f
                 : intent.ArrivalRadiusWorld > 0f
                     ? ResolveStandingArrivalRadius(world, request.Entity, intent) * .95f :
                     Mathf.Min(1.25f, ResolveStandingArrivalRadius(world, request.Entity, intent) * .8f);
             var standPoint = center;
-            if (intent.ArrivalRadiusWorld > 0f && !rescuePickup &&
+            if (intent.ArrivalRadiusWorld > 0f && !personApproach &&
                 !moveController.TryResolveFreeStandPoint(request.Entity, center, freeStandRadius, out standPoint))
             {
                 intent.MarkRetryablePathUnavailable("目标到达范围内没有可达的空闲站位");
@@ -388,10 +390,10 @@ namespace XianXia.Unity.Host
             }
             var accepted = moveController.OrderEntityToWorldPoint(
                 request.Entity, standPoint, null, issueStop: false,
-                exactGoal: !rescuePickup && (intent.ArrivalRadiusWorld > 0f ||
+                exactGoal: !personApproach && (cultivationSlot || intent.ArrivalRadiusWorld > 0f ||
                     IsGenericConstructionTarget(world, request.Entity, intent)),
                 speedMultiplier: intent.SpeedMultiplier,
-                freeStandRadius: rescuePickup || intent.ArrivalRadiusWorld <= 0f ? freeStandRadius : 0f);
+                freeStandRadius: personApproach || intent.ArrivalRadiusWorld <= 0f ? freeStandRadius : 0f);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
             LastNpcPathBuildMs = elapsedMs;
@@ -497,9 +499,9 @@ namespace XianXia.Unity.Host
             (intent.TargetWorkAreaId ?? string.Empty) + "|" +
             (intent.TargetLocationId ?? string.Empty) + "|" + intent.SlotIndex;
 
-        static bool IsRescuePickupIntent(MovementIntentComponent intent) =>
-            intent != null && (intent.DestinationKey ?? string.Empty).StartsWith(
-                "rescue-target:", System.StringComparison.Ordinal);
+        static bool IsPersonApproachIntent(MovementIntentComponent intent) =>
+            intent != null && (intent.DestinationKey == "huangcun:discipline" ||
+                (intent.DestinationKey ?? string.Empty).StartsWith("rescue-target:", System.StringComparison.Ordinal));
 
         void SyncCarriedCharacters(XianXia.Core.Simulation.SimulationWorld world)
         {
@@ -629,6 +631,10 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world, EntityId id, MovementIntentComponent intent)
         {
             var radius = ResolveArrivalRadiusPresentation(intent);
+            // A cushion is a specific work slot. A broad arrival disk can include the
+            // doorway and let a scheduled cultivator stop there, blocking everyone else.
+            if (IsCultivationSlotTarget(world, intent))
+                return Mathf.Min(radius, .75f); // A 2x2 cushion can have its centre on a grid intersection.
             // Construction already checks a 3-world-unit radius in Core. Its generic
             // (zero-radius) intent must not inherit a larger presentation-only arrival disk.
             if (!IsGenericConstructionTarget(world, id, intent))
@@ -639,6 +645,20 @@ namespace XianXia.Unity.Host
             surface.Mapper.WorldToPresentation(intent.TargetWorldX, intent.TargetWorldY, out var x0, out var y0);
             surface.Mapper.WorldToPresentation(intent.TargetWorldX + 3f, intent.TargetWorldY, out var x1, out var y1);
             return Mathf.Min(radius, Vector2.Distance(new Vector2(x0, y0), new Vector2(x1, y1)));
+        }
+
+        static bool IsCultivationSlotTarget(
+            XianXia.Core.Simulation.SimulationWorld world, MovementIntentComponent intent)
+        {
+            if (world == null || intent == null || intent.HasWorldTarget || intent.SlotIndex < 0 ||
+                string.IsNullOrEmpty(intent.TargetWorkAreaId) ||
+                !world.TryGetWorkArea(intent.TargetWorkAreaId, out var area) ||
+                area.AllowedActivities == null)
+                return false;
+            for (var i = 0; i < area.AllowedActivities.Count; i++)
+                if (string.Equals(area.AllowedActivities[i], "Cultivate", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
         }
 
         static bool IsGenericConstructionTarget(
@@ -709,10 +729,13 @@ namespace XianXia.Unity.Host
             var key = intent.DestinationKey ?? string.Empty;
             const string sleepPrefix = "sleep-bed:";
             const string personalPrefix = "personal-bed:";
+            const string schedulePrefix = "schedule-home-bed:";
             var bedId = key.StartsWith(sleepPrefix, System.StringComparison.Ordinal)
                 ? key.Substring(sleepPrefix.Length) :
                 key.StartsWith(personalPrefix, System.StringComparison.Ordinal)
-                    ? key.Substring(personalPrefix.Length) : key;
+                    ? key.Substring(personalPrefix.Length) :
+                key.StartsWith(schedulePrefix, System.StringComparison.Ordinal)
+                    ? key.Substring(schedulePrefix.Length) : key;
             if (!world.OutdoorConstructedAssets.Assets.TryGetValue(bedId, out var bed) ||
                 !RoomBedGeometry.IsBed(bed))
                 return false;

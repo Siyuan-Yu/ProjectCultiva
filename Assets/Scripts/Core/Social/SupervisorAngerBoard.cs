@@ -1,7 +1,7 @@
 namespace XianXia.Core.Social
 {
     /// <summary>
-    /// Demo [49] supervisor anger 0–100, display-only (no punishment events).
+    /// Supervisor anger 0–100; Huangcun discipline persists and consumes this value.
     /// </summary>
     public sealed class SupervisorAngerBoard
     {

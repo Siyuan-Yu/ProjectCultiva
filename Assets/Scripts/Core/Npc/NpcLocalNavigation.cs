@@ -40,13 +40,14 @@ namespace XianXia.Core.Npc
                     asset.WorldY > grid.OriginY + grid.Height*cell || asset.WorldY + asset.WorldHeight < grid.OriginY) continue;
                 if (RoomBedGeometry.IsRoom(asset))
                 {
-                    var cw = asset.WorldWidth / Math.Max(1, asset.CellsW);
-                    var ch = asset.WorldHeight / Math.Max(1, asset.CellsH);
                     for (int y = 0; y < asset.CellsH; y++)
                     for (int x = 0; x < asset.CellsW; x++)
                         if (RoomBedGeometry.IsRoomWallCell(asset, x, y) &&
                             !world.OutdoorStatefulObjects.IsDestructibleDestroyed(RoomBedGeometry.RoomWallCellId(asset, x, y)))
-                            Block(grid, asset.WorldX + x*cw, asset.WorldY + y*ch, cw, ch);
+                            for (var part = 0; part < 2; part++)
+                                if (RoomBedGeometry.TryRoomWallRectangle(asset, x, y, cell, part == 1,
+                                    out var wx, out var wy, out var ww, out var wh))
+                                    Block(grid, wx, wy, ww, wh);
                 }
                 else if (RoomBedGeometry.IsBed(asset) || asset.Kind == OutdoorConstructedAssetSemantics.WallSegmentKind ||
                          asset.Kind == OutdoorConstructedAssetSemantics.StorageRoomKind)

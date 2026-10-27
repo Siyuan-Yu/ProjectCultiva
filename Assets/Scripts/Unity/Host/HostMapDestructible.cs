@@ -148,6 +148,20 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrEmpty(placementId))
                 _world?.OutdoorStatefulObjects.SetDestructible(
                     placementId, Mathf.Max(0, currentHp), currentHp <= 0);
+            // A thin room corner may have two rendered rectangles with one
+            // persistent wall ID (also across chunk owners). Share its health.
+            if (!string.IsNullOrEmpty(placementId))
+                for (var i = HostMapObjectRegistry.AllDestructibles.Count - 1; i >= 0; i--)
+                {
+                    var other = HostMapObjectRegistry.AllDestructibles[i];
+                    if (other == null || other == this || other._world != _world ||
+                        other.placementId != placementId) continue;
+                    other.currentHp = Mathf.Max(0, currentHp);
+                    if (currentHp > 0) continue;
+                    other.destroyed = true;
+                    HostMapObjectRegistry.Unregister(other);
+                    Destroy(other.gameObject);
+                }
             if (currentHp > 0)
                 return before - currentHp;
 

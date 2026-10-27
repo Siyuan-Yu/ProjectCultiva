@@ -17,12 +17,60 @@ using XianXia.Core.Npc;
 namespace XianXia.Core.Combat
 {
     /// <summary>
-    /// 0 血 → 弥留；弥留超时未治／再受主动攻击 → 阵亡+尸体；
+    /// 战斗击败先昏迷，继续受击才弥留；普通受击不确认死亡。
+    /// 显式处决／弥留超时未治 → 阵亡+尸体；
     /// 尸体超时腐烂 → Removed，并从大地图抹掉 WorldPresence。
     /// 暂定：弥留与尸体均不可移动／不可战斗（表现层可区分状态文案）。
     /// </summary>
     public static class CombatLifeStateService
     {
+        public const int UnconsciousSeconds = 100;
+
+        public static bool TryEnterUnconscious(SimulationWorld world, Entity entity, EntityId attacker)
+        {
+            var doses = entity != null && entity.TryGet<LifecycleComponent>(out var prior) ? prior.HerbDoses : 0;
+            if (!TryEnterIncapacitated(world, entity, attacker)) return false;
+            entity.TryGet<LifecycleComponent>(out var life);
+            life.ResetMedicalProgress(); life.ClearBleedOut();
+            life.HerbDoses = doses;
+            life.UnconsciousSecondsRemaining = UnconsciousSeconds;
+            if (entity.TryGet<CombatVitalsComponent>(out var vitals)) vitals.CurrentHp = 1;
+            life.RecordTransition(LifecycleState.Alive, LifecycleState.Incapacitated, "Unconscious");
+            return true;
+        }
+
+        public static bool TryEnterDyingFromUnconscious(SimulationWorld world, Entity entity, EntityId attacker)
+        {
+            if (world == null || entity == null || !entity.TryGet<LifecycleComponent>(out var life) ||
+                !life.IsUnconscious && !(life.IsIncapacitated && life.Convalescing))
+                return false;
+            var doses = life.HerbDoses;
+            life.ResetMedicalProgress(); life.HasMedicalProgress = true;
+            life.HerbDoses = doses;
+            life.DyingReserveMilli = BleedOutRealSeconds * 1000;
+            life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
+            if (entity.TryGet<CombatVitalsComponent>(out var vitals)) vitals.CurrentHp = 0;
+            if (!attacker.IsNone)
+            {
+                if (!entity.TryGet<CombatDeathAttributionComponent>(out var attribution))
+                { attribution = new CombatDeathAttributionComponent(); entity.AddComponent(attribution); }
+                attribution.Set(attacker);
+            }
+            life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Incapacitated, "UnconsciousToDying");
+            return true;
+        }
+
+        public static void AdvanceUnconscious(SimulationWorld world, Entity entity, float seconds)
+        {
+            if (seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds) ||
+                !entity.TryGet<LifecycleComponent>(out var life) || !life.IsUnconscious) return;
+            if (life.UnconsciousSecondsRemaining > seconds)
+            { life.UnconsciousSecondsRemaining -= seconds; return; }
+            var hp = entity.TryGet<CombatVitalsComponent>(out var vitals) ? Math.Max(1, vitals.CurrentHp) : 1;
+            var doses = life.HerbDoses; var fraction = life.RecoveryHpMilli;
+            if (TryRecoverFromIncapacitated(world, entity, hp))
+            { life.HerbDoses = doses; life.RecoveryHpMilli = fraction; life.HasMedicalProgress = doses > 0 || fraction > 0; }
+        }
         /// <summary>弥留未治疗 → 阵亡（现实秒；1x 下 1 tick≈1 秒）。</summary>
         public const int BleedOutRealSeconds = 200;
 
@@ -51,7 +99,7 @@ namespace XianXia.Core.Combat
                 return false;
             if (life.IsRemoved)
                 return false;
-            // 弥留可被补刀；尸体／已移除不可再打
+            // 昏迷可受击转弥留；弥留受普通攻击不确认死亡。
             return life.State == LifecycleState.Alive || life.IsIncapacitated;
         }
 
@@ -82,7 +130,7 @@ namespace XianXia.Core.Combat
             if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                 return null;
             if (life.IsIncapacitated)
-                return life.Convalescing ? "恢复中·昏迷" : "弥留";
+                return life.IsUnconscious ? "昏迷" : life.Convalescing ? "恢复中·昏迷" : "弥留";
             if (life.State == LifecycleState.Captured)
                 return "被俘";
             if (life.IsDead && entity.TryGet<CorpseComponent>(out _))
@@ -108,6 +156,8 @@ namespace XianXia.Core.Combat
                 return false;
 
             var now = world.Tick.Value;
+            if (life.IsUnconscious)
+            { label = "昏迷"; remainingSeconds = (int)Math.Ceiling(life.UnconsciousSecondsRemaining); return true; }
             if (life.IsDying && life.BleedOutAfterTick > 0)
             {
                 label = "弥留";
@@ -245,7 +295,7 @@ namespace XianXia.Core.Combat
                 return false;
 
             if (!entity.TryGet<AttributesComponent>(out var attributes) ||
-                (long)restoreHp * 2 <= Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)))
+                !life.IsUnconscious && (long)restoreHp * 2 <= Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)))
                 return false;
 
             var recoveredState = life.State == LifecycleState.Captured ? LifecycleState.Captured : LifecycleState.Alive;
@@ -294,7 +344,7 @@ namespace XianXia.Core.Combat
                 return false;
             // First lethal hit is always Alive -> Incapacitated. Death confirmation is a
             // separate operation and can never collapse the same strike into Alive -> Dead.
-            if (!life.IsIncapacitated)
+            if (!life.IsIncapacitated || life.IsUnconscious)
                 return false;
 
             CaptureSquadWorldMotionHandoff(world, target.Id);
@@ -390,6 +440,7 @@ namespace XianXia.Core.Combat
                     continue;
                 if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
 
+                AdvanceUnconscious(world, entity, 1f);
                 MedicalRecoveryService.AdvanceSecond(world, entity);
 
                 if (life.IsDead &&

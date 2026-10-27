@@ -2232,6 +2232,8 @@ namespace XianXia.Data.Content
             var rules = new XianXia.Core.World.Strategic.WorldSpatialRules
             {
                 Id = id.ToString(),
+                WalkSpeedMultiplier = ReadFloat(item, "walkSpeedMultiplier", 1f),
+                FlightSpeedMultiplier = ReadFloat(item, "flightSpeedMultiplier", 2f),
                 // Legacy *World names carried cell counts. Accept them only as an old Content alias.
                 WildernessEncounterWidthCells = ReadFloat(item,
                     hasEncounterCells ? "wildernessEncounterWidthCells" : "wildernessEncounterWidthWorld", 0f),
@@ -2287,7 +2289,9 @@ namespace XianXia.Data.Content
                     { report.Add(ErrorCode.InvalidArgument, "Upgradable core level requires resource costs.", id.ToString()); return; }
                     rules.CoreLevels.Add(coreLevel);
                 }
-            if (!levels.Contains(1) || !(rules.WildernessEncounterWidthCells > 0f) ||
+            if (!(rules.WalkSpeedMultiplier > 0f) || float.IsInfinity(rules.WalkSpeedMultiplier) ||
+                !(rules.FlightSpeedMultiplier > 0f) || float.IsInfinity(rules.FlightSpeedMultiplier) ||
+                !levels.Contains(1) || !(rules.WildernessEncounterWidthCells > 0f) ||
                 !(rules.WildernessEncounterHeightCells > 0f) || float.IsInfinity(rules.WildernessEncounterWidthCells) ||
                 float.IsInfinity(rules.WildernessEncounterHeightCells) || !(rules.InterventionDecisionSeconds >= 0f) ||
                 !(rules.InterventionArrivalSeconds >= 0f) || rules.InterventionChanceBasisPoints < 0 ||

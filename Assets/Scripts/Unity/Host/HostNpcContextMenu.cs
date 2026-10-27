@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Entities;
 using XianXia.Core.Combat;
 using XianXia.Core.Construction;
 using XianXia.Core.Content;
@@ -978,6 +979,9 @@ namespace XianXia.Unity.Host
             const float itemH = 30f;
             var hostile = HostNpcInteraction.IsHostileNpc(bootstrap?.Session, _targetNpc);
             var canAttack = CanInitiatePlayerHostileAction(_actor, _targetNpc);
+            LifecycleComponent downedLife = null;
+            if (bootstrap.Session.World.Entities.TryGet(_targetNpc, out var downedTarget)) downedTarget.TryGet(out downedLife);
+            var downedAction = downedLife != null && (downedLife.IsUnconscious || downedLife.IsDying || downedLife.Convalescing);
             var canTrade = !hostile && bootstrap.Session.World.Commerce.TryGetProvider(bootstrap.Session.World, _targetNpc, out _);
             var canAuction = !hostile && AuctionHouseService.TryGetProvider(bootstrap.Session.World.Commerce, bootstrap.Session.World, _targetNpc, out _);
             MortalCivilianState civilian = null;
@@ -988,7 +992,7 @@ namespace XianXia.Unity.Host
                 civilian.Disposition == CivilianDisposition.Fleeing ? 2 :
                 civilian.Disposition == CivilianDisposition.CapturedEscorted && civilian.CarrierId == _actor ? 1 :
                 civilian.Disposition == CivilianDisposition.Detained ? 3 : 0;
-            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows;
+            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows + (downedAction ? 1 : 0);
             var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
@@ -1003,6 +1007,13 @@ namespace XianXia.Unity.Host
                 hostile ? _targetLabel + "（敌对）" : _targetLabel,
                 _label);
             var y = guiY + 30f;
+            if (downedAction)
+            {
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
+                    downedLife.IsDying ? "杀死" : "攻击昏迷者（使其弥留）", _button))
+                    BeginPersonApproach(HostNpcArriveAction.Execute);
+                y += itemH;
+            }
             if (!hostile && !civilianActions)
             {
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "对话", _button))
@@ -1773,8 +1784,25 @@ namespace XianXia.Unity.Host
         public void OnNpcArriveExecute(EntityId actor, EntityId npc)
         {
             var world = bootstrap?.Session?.World;
-            if (world != null && IsWithinPersonInteractionRange(actor, npc))
-                RunCivilianCommand(MortalCivilianService.Execute(world, actor, npc));
+            if (world != null && IsWithinPersonInteractionRange(actor, npc) &&
+                world.Entities.TryGet(actor, out var acting) && CombatLifeStateService.CanFight(acting) &&
+                MortalTransportConstraintService.ValidateAttack(world, actor).IsSuccess &&
+                world.Entities.TryGet(npc, out var target) && target.TryGet<LifecycleComponent>(out var life))
+            {
+                if (life.IsUnconscious || life.Convalescing)
+                    RunCivilianCommand(new MeleeCombatService().ApplyStrike(world, actor, npc, out _, out _));
+                else if (life.IsDying)
+                {
+                    CombatLifeStateService.TryConfirmDeath(world, actor, target, DeathConfirmationReason.FinishingStrike, out _);
+                    bootstrap.DispatchDrainedEvents();
+                }
+                else if (world.Civilians.TryGet(npc, out var captive) && captive.Disposition == CivilianDisposition.Detained)
+                    RunCivilianCommand(MortalCivilianService.Execute(world, actor, npc));
+                else HostWorldSiteCoreWarfare.Feedback(bootstrap, "目标已苏醒或脱离弥留，指令取消。");
+                HostLifeStatePresentationSync.RefreshDownedOrDead(world, bootstrap.ViewSpawner, moveController, npc,
+                    captureOrdinaryPlacement: world.Strategic.CharacterEncounter == null);
+                bootstrap.DispatchDrainedEvents();
+            }
             ReleaseInteractionNpcNow(npc);
         }
 

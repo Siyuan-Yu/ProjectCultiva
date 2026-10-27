@@ -20,6 +20,8 @@
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`21-core-loop-and-time.md`、`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`、[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)
 
+> **身体阶段当前覆写（ADR-0065）：** 战斗首次击败保留一 HP 并进入默认一百世界秒昏迷；继续主动攻击昏迷者才转零 HP 弥留，弥留普通受击不转尸体，右键显式“杀死”才确认死亡。原有自然恶化、治疗和尸体腐烂保留。失能总类仍为原 Incapacitated，稳定枚举值不变；战后保留实际生命与身体阶段，所有敌方不能战斗即可胜利，未结束战斗内昏迷者可以苏醒重返战斗。搬运同时接受昏迷／弥留，优先医疗床，再选本人住宅床。详见 [ADR-0065](../40-process/43-decisions/ADR-0065-huangcun-discipline-and-unconscious-combat.md)／[398](../40-process/398-huangcun-discipline-and-unconscious-combat.md)，下方旧“零血直接弥留／补刀致死”由本条覆写。
+
 ## 1. 这个系统解决什么问题
 
 战斗是检验角色构筑与境界能力是否成立的考场。它必须能表达"高境界压制低境界"的爽感，同时不能退化成纯数值对撞，也不能变成需要高速操作的动作游戏。

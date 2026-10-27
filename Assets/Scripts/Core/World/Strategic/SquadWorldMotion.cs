@@ -278,6 +278,7 @@ namespace XianXia.Core.World.Strategic
                 if (CharacterLifeStateQuery.IsLivingForMacroOrder(world,
                     new EntityId(squad.MemberCharacterIds[i]))) { hasLiving = true; break; }
             if (!hasLiving) return;
+            budget *= ContinuousWorldMovementScale.MovementMultiplier(world, Combat.FlightService.AllAirborne(world, squad));
             if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation)) return;
             if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId,
                     motion.WorldPosition.X, motion.WorldPosition.Y) ||

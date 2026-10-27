@@ -215,11 +215,11 @@ namespace XianXia.Unity.Host
     public static class HostFarmFieldRules
     {
         public const float WorkSeconds = 2.4f;
-        public const float TendGrowthGain = 0.34f;
+        public const float TendGrowthGain = 0f; // Growth is owned exclusively by Core WorldTick.
         public const float ArriveEpsilon = 0.55f;
 
-        public const string HerbCropId = "crop_spirit_herb";
-        public const string GrainCropId = "crop_grain";
+        public const string HerbCropId = OutdoorFarmGrowthService.HerbCropId;
+        public const string GrainCropId = OutdoorFarmGrowthService.GrainCropId;
         public const string HerbItemId = "base:resource_spirit_herb";
         public const string GrainItemId = "base:resource_grain";
 

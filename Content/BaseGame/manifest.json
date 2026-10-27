@@ -1,7 +1,7 @@
 {
   "modId": "base",
   "namespace": "base",
-  "version": "0.0.40-huangcun-survival",
+  "version": "0.0.46-huangcun-discipline-unconscious",
   "compatibleGameVersion": "0.1.0",
   "dependencies": [],
   "optionalDependencies": [],

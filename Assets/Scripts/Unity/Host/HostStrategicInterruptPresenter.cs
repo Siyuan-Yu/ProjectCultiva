@@ -472,7 +472,7 @@ namespace XianXia.Unity.Host
                 case ManualBattleReportCondition.Intact: label = "完好"; break;
                 case ManualBattleReportCondition.Injured: label = "负伤"; break;
                 case ManualBattleReportCondition.SeriouslyInjured: label = "重伤"; break;
-                case ManualBattleReportCondition.Incapacitated: label = "弥留"; break;
+                case ManualBattleReportCondition.Incapacitated: label = "倒地失能"; break;
                 case ManualBattleReportCondition.Dead: label = "阵亡"; break;
                 case ManualBattleReportCondition.Captured: label = "被俘"; break;
                 case ManualBattleReportCondition.Removed: label = "已移除"; break;

@@ -54,7 +54,7 @@
           "displayName": "巡卫乙",
           "bindSchedule": true,
           "bindDailyTask": false,
-          "scheduleId": "base:schedule_huangcun_guard_day",
+          "scheduleId": "base:schedule_huangcun_guard_night",
           "aiRole": "Mortal"
         },
         {

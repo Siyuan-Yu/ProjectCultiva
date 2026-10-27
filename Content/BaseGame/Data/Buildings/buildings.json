@@ -10,8 +10,8 @@
       "placementKind": "farmField",
       "createsWorldSite": false,
       "outdoorKind": "grainField",
-      "footprintCellsW": 5,
-      "footprintCellsH": 4,
+      "footprintCellsW": 12,
+      "footprintCellsH": 8,
       "dismantleRefundRate": 0.0,
       "costs": [
         {
@@ -76,13 +76,18 @@
       "structureDurability": 100,
       "createsWorldSite": false,
       "dismantleRefundRate": 0,
-      "costs": [{ "itemId": "base:resource_rough_wood", "count": 12 }]
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 12
+        }
+      ]
     },
     {
       "id": "base:room_normal_wood",
       "type": "building",
       "name": "普通木屋",
-      "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -107,7 +112,7 @@
       "id": "base:room_normal_stone",
       "type": "building",
       "name": "普通石屋",
-      "description": "4×6 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -132,7 +137,7 @@
       "id": "base:room_medium_wood",
       "type": "building",
       "name": "中型木屋",
-      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -157,7 +162,7 @@
       "id": "base:room_medium_stone",
       "type": "building",
       "name": "中型石屋",
-      "description": "8×12 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -182,7 +187,7 @@
       "id": "base:room_advanced_wood",
       "type": "building",
       "name": "高级木屋",
-      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "32×48 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -207,7 +212,7 @@
       "id": "base:room_advanced_stone",
       "type": "building",
       "name": "高级石屋",
-      "description": "16×24 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
+      "description": "32×48 外轮廓；成本与工时为 ROOM-01 首轮暂定值。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -232,7 +237,7 @@
       "id": "base:furniture_bed",
       "type": "building",
       "name": "床",
-      "description": "独立 1×2 家具，不随房间自动生成。",
+      "description": "独立 2×4 家具，不随房间自动生成。",
       "unlockedByDefault": true,
       "placementKind": "bed",
       "outdoorKind": "bed",
@@ -298,7 +303,7 @@
       "id": "base:building_manual_hall_low",
       "type": "building",
       "name": "低级功法阁",
-      "description": "低级木制，8×12格。供读书、整理功法和静坐；书册学习沿用现有规则。",
+      "description": "低级木制，16×24格。供读书、整理功法和静坐；书册学习沿用现有规则。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -323,7 +328,7 @@
       "id": "base:building_alchemy_room_low",
       "type": "building",
       "name": "低级丹室",
-      "description": "低级木制，8×12格。功能房建筑；配方与生产流程尚未开放。",
+      "description": "低级木制，16×24格。功能房建筑；配方与生产流程尚未开放。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -348,7 +353,7 @@
       "id": "base:building_smithy_room_low",
       "type": "building",
       "name": "低级炼器室",
-      "description": "低级木制，8×12格。功能房建筑；配方与生产流程尚未开放。",
+      "description": "低级木制，16×24格。功能房建筑；配方与生产流程尚未开放。",
       "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
@@ -891,6 +896,31 @@
         {
           "itemId": "base:resource_rough_stone",
           "count": 192
+        }
+      ]
+    },
+    {
+      "id": "base:building_combat_hall_low",
+      "type": "building",
+      "name": "低级斗技坊",
+      "description": "低级木制，16×24格。斗技研习与练功空间，沿用现有秘籍学习与蒲团规则；不额外产生熟练或修为加成。",
+      "unlockedByDefault": true,
+      "placementKind": "room",
+      "outdoorKind": "room",
+      "footprintCellsW": 8,
+      "footprintCellsH": 12,
+      "constructionLabor": 60,
+      "roomTier": "medium",
+      "materialKind": "wood",
+      "defaultRoomUsage": "Residential",
+      "doorWidthCells": 2,
+      "structureDurability": 140,
+      "createsWorldSite": false,
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 60
         }
       ]
     }

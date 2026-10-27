@@ -136,7 +136,14 @@ namespace XianXia.Core.Exploration
     /// <summary>WorldTick authority for natural crop growth; independent of manager and streaming.</summary>
     public static class OutdoorFarmGrowthService
     {
-        public const float PassiveGrowthPerWorldTick = 0.012f;
+        public const string GrainCropId = "crop_grain";
+        public const string HerbCropId = "crop_spirit_herb";
+        public const ulong GrainMaturityTicks = (ulong)Domain.Time.WorldTick.TicksPerDay * 5;
+        public const ulong HerbMaturityTicks = (ulong)Domain.Time.WorldTick.TicksPerDay * 10;
+        public const float PassiveGrowthPerWorldTick = 1f / GrainMaturityTicks;
+
+        public static ulong MaturityTicks(string cropId) => cropId == GrainCropId ? GrainMaturityTicks :
+            cropId == HerbCropId ? HerbMaturityTicks : 0;
 
         public static int Advance(Simulation.SimulationWorld world, ulong ticks = 1)
         {
@@ -152,8 +159,15 @@ namespace XianXia.Core.Exploration
                 if (!world.OutdoorStatefulObjects.TryGetFarmPlot(ids[i], out var state) ||
                     state.Stage != OutdoorFarmCropStage.Growing)
                     continue;
-                var growth = Math.Min(1f, state.Growth + PassiveGrowthPerWorldTick * ticks);
-                var stage = growth >= 1f ? OutdoorFarmCropStage.Mature : OutdoorFarmCropStage.Growing;
+                var duration = MaturityTicks(state.CropId);
+                if (duration == 0) continue; // Future seed types require an explicit growth definition.
+                // The saved fraction encodes a precise integer WorldTick age for these crops.
+                // Re-quantizing each update avoids accumulated float error across five/ten days.
+                var age = (ulong)Math.Round(Math.Max(0d, Math.Min(1d, state.Growth)) * duration);
+                var elapsed = Math.Min(ticks, duration - Math.Min(age, duration));
+                age = Math.Min(age, duration) + elapsed;
+                var growth = (float)((double)age / duration);
+                var stage = age >= duration ? OutdoorFarmCropStage.Mature : OutdoorFarmCropStage.Growing;
                 world.OutdoorStatefulObjects.SetFarmPlot(ids[i], state.CropId, stage, growth);
                 changed++;
             }

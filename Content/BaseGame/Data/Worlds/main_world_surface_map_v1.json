@@ -7,7 +7,7 @@
       "name": "主世界连续地图表现缓存",
       "compositionId": "main_world",
       "surfaceId": "base:surface_main_wilderness_v1",
-      "sourceHash": "ac35a249c0af12dff8e771a7c4e47c09a19855b600d92bdf3387beaa40bdf397",
+      "sourceHash": "a3c0572f040a0c195dcf2a03d90bb5758d6ed275fee993104b815fd3012e44e7",
       "originWorldX": -1.4,
       "originWorldY": -1.4,
       "cellSize": 0.112,

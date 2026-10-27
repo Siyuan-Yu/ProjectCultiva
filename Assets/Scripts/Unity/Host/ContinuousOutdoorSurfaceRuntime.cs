@@ -892,8 +892,9 @@ namespace XianXia.Unity.Host
             if (result.IsFailure)
             {
                 if (string.Equals(result.Error.Message,
-                    HuangcunOpeningAccess.PatrolBlockedMessage, StringComparison.Ordinal))
-                    active.SetActivityText(HuangcunOpeningAccess.PatrolBlockedMessage);
+                    HuangcunOpeningAccess.PatrolBlockedMessage, StringComparison.Ordinal) ||
+                    string.Equals(result.Error.Message, HuangcunOpeningAccess.FacilityRestrictedMessage, StringComparison.Ordinal))
+                    active.SetActivityText(result.Error.Message);
                 if (HasValidPartySurfaceAuthority(world, motion))
                     ReportLegalityBlocked();
                 else
@@ -1791,8 +1792,6 @@ namespace XianXia.Unity.Host
                     continue;
                 if (string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.RoomKind, StringComparison.Ordinal))
                 {
-                    var cw = asset.WorldWidth / asset.CellsW;
-                    var ch = asset.WorldHeight / asset.CellsH;
                     for (var gy = 0; gy < asset.CellsH; gy++)
                     for (var gx = 0; gx < asset.CellsW; gx++)
                     {
@@ -1800,8 +1799,10 @@ namespace XianXia.Unity.Host
                             OutdoorStatefulPlacementResolver.IsDestroyed(
                                 _bootstrap.Session.World.OutdoorStatefulObjects,
                                 RoomBedGeometry.RoomWallCellId(asset, gx, gy))) continue;
-                        RasterBlocker(grid, originX, originY, cell,
-                            asset.WorldX + gx * cw, asset.WorldY + gy * ch, cw, ch);
+                        for (var part = 0; part < 2; part++)
+                            if (RoomBedGeometry.TryRoomWallRectangle(asset, gx, gy, _mapper.CellSize,
+                                part == 1, out var wx, out var wy, out var ww, out var wh))
+                                RasterBlocker(grid, originX, originY, cell, wx, wy, ww, wh);
                         any = true;
                     }
                 }

@@ -141,7 +141,9 @@ namespace XianXia.Core.Combat
             defenderDefeated = false;
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "World null.");
-            if (CharacterEncounterService.RequiresEntry(world, attackerId, defenderId))
+            var downedTarget = world.Entities.TryGet(defenderId, out var downed) &&
+                downed.TryGet<LifecycleComponent>(out var downedLife) && downedLife.IsIncapacitated;
+            if (!downedTarget && CharacterEncounterService.RequiresEntry(world, attackerId, defenderId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Independent encounter confirmation required before damage.");
             var continuousCombat = world.Strategic?.ContinuousManualCombat;
             if (continuousCombat != null && continuousCombat.IsActive &&
@@ -173,9 +175,11 @@ namespace XianXia.Core.Combat
 
             if (defender.TryGet<LifecycleComponent>(out var defLife) && defLife.IsIncapacitated)
             {
-                if (CombatLifeStateService.TryConfirmDeath(
-                        world, attackerId, defender, DeathConfirmationReason.FinishingStrike, out defenderDefeated))
-                    damageApplied = Math.Max(1, damageOverride >= 0 ? damageOverride : 1);
+                if ((defLife.IsUnconscious || defLife.Convalescing) && !Social.SupervisorAngerDriver.IsNonlethalAttacker(world, attackerId))
+                {
+                    defenderDefeated = CombatLifeStateService.TryEnterDyingFromUnconscious(world, defender, attackerId);
+                    if (defenderDefeated) damageApplied = 1;
+                }
                 return Result.Success();
             }
 
@@ -192,7 +196,7 @@ namespace XianXia.Core.Combat
                 return Result.Success();
 
             defenderDefeated = true;
-            CombatLifeStateService.TryEnterIncapacitated(world, defender, attackerId);
+            CombatLifeStateService.TryEnterUnconscious(world, defender, attackerId);
 
             world.Events.Publish(
                 EventType.CombatantDefeated,

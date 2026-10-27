@@ -808,6 +808,7 @@ namespace XianXia.Unity.Host
             var dt = Time.deltaTime;
             var pos = view.transform.position;
             var startPos = pos;
+            speed = ScaleMovementSpeed(id, speed);
             var dx = dir.x * speed * dt;
             var dy = dir.y * speed * dt;
 
@@ -953,7 +954,7 @@ namespace XianXia.Unity.Host
             var session = bootstrap?.Session;
             if (session?.Loop == null || id.IsNone)
                 return;
-            var seconds = worldDistance / Mathf.Max(0.5f, moveSpeed);
+            var seconds = worldDistance / Mathf.Max(0.5f, GetEffectiveMoveSpeed(id));
             var tickSeconds = bootstrap != null
                 ? Mathf.Max(0.01f, bootstrap.SecondsPerAutoTickAt1x)
                 : SimulationTickPacing.SecondsPerTickAt1x;
@@ -1028,7 +1029,7 @@ namespace XianXia.Unity.Host
                 }
                 var multiplier = _moveSpeedMultiplierByEntity.TryGetValue(view.EntityId.Value, out var configured)
                     ? configured : 1f;
-                var next = AdvanceAlongPath(view, pos, moveSpeed * multiplier * dt, dt);
+                var next = AdvanceAlongPath(view, pos, ScaleMovementSpeed(view.EntityId, moveSpeed) * multiplier * dt, dt);
                 view.transform.position = next;
                 view.RecordLocomotion(next - pos);
                 CaptureIndependentTacticalPosition(view);
@@ -1540,7 +1541,10 @@ namespace XianXia.Unity.Host
             !id.IsNone && _moveSpeedMultiplierByEntity.TryGetValue(id.Value, out var multiplier)
                 ? multiplier : 1f;
 
-        public float GetEffectiveMoveSpeed(EntityId id) => moveSpeed * GetMoveSpeedMultiplier(id);
+        public float ScaleMovementSpeed(EntityId id, float baseSpeed) => baseSpeed *
+            XianXia.Core.World.ContinuousWorldMovementScale.CharacterMultiplier(bootstrap?.Session?.World, id);
+
+        public float GetEffectiveMoveSpeed(EntityId id) => ScaleMovementSpeed(id, moveSpeed) * GetMoveSpeedMultiplier(id);
 
         /// <summary>Presentation-only time step for gait filtering; never drives Core motion.</summary>
         public float GaitPresentationDeltaTime => bootstrap != null

@@ -59,6 +59,7 @@ namespace XianXia.Core.Npc
                 { personal.LastProcessedTick = world.Tick.Value; personal.Status = "囚禁中：缺粮与伤势持续恶化"; continue; }
                 AdvanceNeeds(world, entity, personal);
                 HuangcunSurvivalService.TryRation(world, entity, personal);
+                if (XianXia.Core.Social.SupervisorAngerDriver.OwnsPursuit(world, entity.Id)) continue;
                 var partyMember = world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true;
                 if (!string.IsNullOrEmpty(personal.MeditationSpotId) &&
                     (!world.MeditationSpots.Spots.ContainsKey(personal.MeditationSpotId) ||
@@ -337,7 +338,9 @@ namespace XianXia.Core.Npc
                 return false;
             var candidates = new List<MeditationSpot>();
             foreach (var spot in world.MeditationSpots.Spots.Values)
-                if (spot.SiteId == siteId && spot.SurfaceId == presence.SurfaceId)
+                if (spot.SiteId == siteId && spot.SurfaceId == presence.SurfaceId &&
+                    HuangcunOpeningAccess.AllowsFacilityPosition(world, entity.Id, spot.SurfaceId,
+                        spot.Position.X, spot.Position.Y))
                     candidates.Add(spot);
             candidates.Sort((a, b) =>
             {

@@ -314,6 +314,12 @@ namespace XianXia.Unity.Host
                 }
 
                 TickWorker(w, bootstrap.PresentationDeltaTime);
+                if (w.Phase != Phase.Idle && bootstrap.Session.World.Entities.TryGet(w.Id, out var laborer))
+                {
+                    if (!laborer.TryGet<XianXia.Core.Social.ObservedLaborComponent>(out var observed))
+                    { observed = new XianXia.Core.Social.ObservedLaborComponent(); laborer.AddComponent(observed); }
+                    observed.ValidUntilTick = bootstrap.Session.World.Tick.Value + 1;
+                }
                 if (w.Phase == Phase.Idle)
                 {
                     ReleaseReserve(w);
@@ -592,14 +598,13 @@ namespace XianXia.Unity.Host
                         Toast(w.Id, verb + " · " + cell.CropName(), new Color(0.65f, 0.95f, 0.55f));
                     break;
                 case OutdoorFarmCropStage.Growing:
-                    cell.SetCropStage(OutdoorFarmCropStage.Growing,
-                        cell.Growth01 + HostFarmFieldRules.TendGrowthGain);
-                    if (cell.Growth01 >= 0.999f)
-                        cell.SetCropStage(OutdoorFarmCropStage.Mature, 1f);
+                    // Tending is labour, not a second growth clock or a percent-growth shortcut.
+                    // Pull the authoritative state; never overwrite a WorldTick that just advanced.
+                    cell.RefreshFromWorldState();
                     cell.RefreshCropVisual();
                     if (!isNpc)
                         Toast(w.Id,
-                            verb + " · " + Mathf.RoundToInt(cell.Growth01 * 100f) + "%",
+                            verb + " · " + Mathf.FloorToInt(cell.Growth01 * 100f) + "%（成熟随世界时间推进）",
                             new Color(0.7f, 0.9f, 0.5f));
                     break;
                 case OutdoorFarmCropStage.Mature:

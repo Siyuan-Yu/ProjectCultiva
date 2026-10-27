@@ -892,7 +892,8 @@ namespace XianXia.Core.Cultivation
         {
             entity = null;
             return world != null && !subject.IsNone && world.Entities.TryGet(subject, out entity) &&
-                   entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Alive;
+                   entity.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Alive &&
+                   XianXia.Core.World.Strategic.HuangcunOpeningAccess.ValidateCurrentFacilityUse(world, subject).IsSuccess;
         }
     }
 }

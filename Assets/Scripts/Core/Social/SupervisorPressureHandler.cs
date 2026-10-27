@@ -22,7 +22,9 @@ namespace XianXia.Core.Social
 
         public void OnDayEnded(SimulationWorld world, ulong endedDayIndex)
         {
-            if (world == null)
+            // Formal Huangcun discipline requires a real observer and proximity.
+            // The older abstract day-end reference event must not bypass that chain.
+            if (world == null || world.HuangcunSurvival.Enabled)
                 return;
 
             var pressure = false;

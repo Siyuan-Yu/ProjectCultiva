@@ -722,7 +722,7 @@ namespace XianXia.Unity.Host
                 }
 
                 // Crossing Intent 必须在 WalkGrid Clamp 之前处理，否则永远无法 OutOfBounds。
-                if (TryConsumeSurfaceEdgeCrossingFromMovement(active, dir, wasdMoveSpeed))
+                if (TryConsumeSurfaceEdgeCrossingFromMovement(active, dir, _move.ScaleMovementSpeed(active, wasdMoveSpeed)))
                 {
                     _wasdHeldLastFrame = true;
                     return;

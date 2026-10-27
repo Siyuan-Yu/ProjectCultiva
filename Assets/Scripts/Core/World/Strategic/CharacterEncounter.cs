@@ -148,6 +148,7 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Participants.Clear(); world.Strategic.ClockFreeze.Clear();
             world.Strategic.CharacterEncounter = null;
             RestorePlayerPartyMembersFromGroup(world, state);
+            world.HuangcunSurvival.PunishmentBattleActive = false;
             MortalCivilianService.ReconcileEscortsAfterEncounter(world, state);
         }
 
@@ -263,6 +264,7 @@ namespace XianXia.Core.World.Strategic
                 state.Width = site.CoreRangeWidth; state.Height = site.CoreRangeHeight;
             }
             var player = world.Strategic.PlayerPartyContext;
+            var disciplinary = XianXia.Core.Social.SupervisorAngerDriver.IsPunishmentPair(world, attacker, target);
             var attackerFriendly = player != null && player.IsMember(attacker);
             if (!attackerFriendly && (player == null || !player.IsMember(target)))
                 return Fail("Player encounter requires a physically involved player squad.");
@@ -270,6 +272,7 @@ namespace XianXia.Core.World.Strategic
                 foreach (var raw in squad.MemberCharacterIds)
                 {
                     var id = new EntityId(raw);
+                    if (disciplinary && squad == attackers && id != attacker) continue;
                     // Squad identity survives incapacitation/death, but execution eligibility does not.
                     // Only living members join a new encounter; downed/corpse/removed members remain
                     // in their authoritative Squad and retain their existing residual position.
@@ -295,7 +298,7 @@ namespace XianXia.Core.World.Strategic
             state.ArrivalDelay = world.Strategic.SpatialRules.InterventionArrivalSeconds;
             state.RelationThreshold = world.Strategic.SpatialRules.InterventionRelationThreshold;
             state.ChanceBasisPoints = world.Strategic.SpatialRules.InterventionChanceBasisPoints;
-            FreezeCandidates(world, state);
+            if (!disciplinary) FreezeCandidates(world, state);
             prepared = state;
             return Result.Success();
         }
@@ -375,6 +378,9 @@ namespace XianXia.Core.World.Strategic
             }
             state.Phase = CharacterEncounterPhase.Active;
             world.Strategic.CharacterEncounter = state;
+            if (state.Objective == null && world.HuangcunSurvival.PunisherId != 0 && state.Find(world.HuangcunSurvival.PunisherId) != null &&
+                state.Find(world.HuangcunSurvival.PunishmentTargetId) != null)
+                world.HuangcunSurvival.PunishmentBattleActive = true;
             SiteCoreEncounterDefenseService.EnsureJoined(world, state);
             MortalCivilianService.InterruptTransportsForEncounter(world, state);
             BindRuntime(world);
@@ -738,6 +744,9 @@ namespace XianXia.Core.World.Strategic
             float realSeconds)
         {
             state.ElapsedSeconds += tacticalSeconds;
+            foreach (var participant in state.Participants)
+                if (world.Entities.TryGet(new EntityId(participant.CharacterId), out var unconscious))
+                    CombatLifeStateService.AdvanceUnconscious(world, unconscious, tacticalSeconds);
             // BleedOutRealSeconds and corpse lifetime are real-time promises. Tactical speed
             // accelerates movement/cooldowns, but never makes a downed character die 20x faster.
             state.DecayAccumulator += realSeconds;
@@ -779,6 +788,8 @@ namespace XianXia.Core.World.Strategic
             foreach (var c in state.Candidates)
                 if (c.Phase != EncounterCandidatePhase.Joined) c.Phase = EncounterCandidatePhase.Closed;
             state.Phase = CharacterEncounterPhase.Committed;
+            if (world.HuangcunSurvival.PunishmentBattleActive)
+                XianXia.Core.Social.SupervisorAngerDriver.FinishPunishment(world);
             world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
             world.Strategic.Participants.Clear();
             world.Strategic.ClockFreeze.Clear();
@@ -1153,7 +1164,7 @@ namespace XianXia.Core.World.Strategic
                 ? "factionFlag" : "councilHall";
             if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp <= 0)
             {
-                defeated = CombatLifeStateService.TryEnterIncapacitated(world, target);
+                defeated = CombatLifeStateService.TryEnterUnconscious(world, target, EntityId.None);
                 if (defeated)
                     world.Events.Publish(EventType.CombatantDefeated, world.Tick,
                         actor: EntityId.None, target: targetId,
@@ -1167,6 +1178,7 @@ namespace XianXia.Core.World.Strategic
 
         static void TryJoin(SimulationWorld world, CharacterEncounterState state)
         {
+            if (world.HuangcunSurvival.PunishmentBattleActive) return;
             if (state.SiteCoreDefense != null || string.IsNullOrEmpty(state.SourceSiteId) ||
                 !world.Strategic.Sites.TryGet(state.SourceSiteId, out var site) ||
                 !site.IsCoreActive || site.CoreSurfaceId != state.SourceSurfaceId ||

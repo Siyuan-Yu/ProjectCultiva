@@ -2,8 +2,8 @@
   "schemaVersion": 4,
   "blueprintId": "base:site_linjian",
   "displayName": "桐溪镇",
-  "widthCells": 270,
-  "heightCells": 270,
+  "widthCells": 430,
+  "heightCells": 430,
   "fineTerrainSources": [],
   "objectPlacements": [
     {
@@ -11,10 +11,10 @@
       "kindId": "controlCore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 131,
-      "localSurfaceY": 131,
-      "widthCells": 8,
-      "heightCells": 8,
+      "localSurfaceX": 207,
+      "localSurfaceY": 207,
+      "widthCells": 16,
+      "heightCells": 16,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇·议政厅",
@@ -24,7 +24,9 @@
         "boundLocationId": "base:loc_site_linjian_core",
         "localPlaceName": "桐溪镇·议政厅",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "structureDurability": "200"
+        "structureDurability": "200",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -32,10 +34,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 75,
-      "localSurfaceY": 79,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 144,
+      "localSurfaceY": 126,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -47,7 +49,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_0",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -55,10 +59,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 76,
-      "localSurfaceY": 81,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 146,
+      "localSurfaceY": 130,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -70,7 +74,9 @@
         "boundLocationId": "base:loc_site_linjian_home_0",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_0"
+        "parentRoomId": "base:site_linjian:town:home_0",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -78,10 +84,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 89,
-      "localSurfaceY": 79,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 116,
+      "localSurfaceY": 152,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -93,7 +99,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_1",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -101,10 +109,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 90,
-      "localSurfaceY": 81,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 118,
+      "localSurfaceY": 156,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -116,7 +124,9 @@
         "boundLocationId": "base:loc_site_linjian_home_1",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_1"
+        "parentRoomId": "base:site_linjian:town:home_1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -125,9 +135,9 @@
       "contentRef": null,
       "assetRef": null,
       "localSurfaceX": 131,
-      "localSurfaceY": 79,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceY": 146,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -139,7 +149,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_2",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -147,10 +159,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 132,
-      "localSurfaceY": 81,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 133,
+      "localSurfaceY": 150,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -162,7 +174,9 @@
         "boundLocationId": "base:loc_site_linjian_home_2",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_2"
+        "parentRoomId": "base:site_linjian:town:home_2",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -170,10 +184,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 145,
-      "localSurfaceY": 79,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 160,
+      "localSurfaceY": 100,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -185,7 +199,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_3",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -193,10 +209,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 146,
-      "localSurfaceY": 81,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 162,
+      "localSurfaceY": 104,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -208,7 +224,9 @@
         "boundLocationId": "base:loc_site_linjian_home_3",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_3"
+        "parentRoomId": "base:site_linjian:town:home_3",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -216,10 +234,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 75,
-      "localSurfaceY": 97,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 84,
+      "localSurfaceY": 164,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -231,7 +249,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_4",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -239,10 +259,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 76,
-      "localSurfaceY": 99,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 86,
+      "localSurfaceY": 168,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -254,7 +274,9 @@
         "boundLocationId": "base:loc_site_linjian_home_4",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_4"
+        "parentRoomId": "base:site_linjian:town:home_4",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -262,10 +284,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 89,
-      "localSurfaceY": 97,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 152,
+      "localSurfaceY": 122,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -277,7 +299,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_5",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -285,10 +309,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 90,
-      "localSurfaceY": 99,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 154,
+      "localSurfaceY": 126,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -300,7 +324,9 @@
         "boundLocationId": "base:loc_site_linjian_home_5",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_5"
+        "parentRoomId": "base:site_linjian:town:home_5",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -308,10 +334,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 131,
-      "localSurfaceY": 97,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 92,
+      "localSurfaceY": 164,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -323,7 +349,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_6",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -331,10 +359,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 132,
-      "localSurfaceY": 99,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 94,
+      "localSurfaceY": 168,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -346,7 +374,9 @@
         "boundLocationId": "base:loc_site_linjian_home_6",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_6"
+        "parentRoomId": "base:site_linjian:town:home_6",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -354,10 +384,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 145,
-      "localSurfaceY": 97,
-      "widthCells": 4,
-      "heightCells": 6,
+      "localSurfaceX": 163,
+      "localSurfaceY": 86,
+      "widthCells": 8,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋",
@@ -369,7 +399,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_home_7",
         "localPlaceName": "桐溪镇木屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -377,10 +409,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 146,
-      "localSurfaceY": 99,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 165,
+      "localSurfaceY": 90,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇木屋床位",
@@ -392,7 +424,9 @@
         "boundLocationId": "base:loc_site_linjian_home_7",
         "localPlaceName": "桐溪镇木屋床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:home_7"
+        "parentRoomId": "base:site_linjian:town:home_7",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -400,10 +434,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 75,
-      "localSurfaceY": 137,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇小功法阁",
@@ -415,7 +449,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_manual_hall",
         "localPlaceName": "桐溪镇小功法阁",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -423,10 +459,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 77,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 120,
+      "localSurfaceY": 120,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
@@ -435,7 +471,9 @@
         "sourceCellsH": "1",
         "boundLocationId": "base:loc_site_linjian_manual_hall",
         "localPlaceName": "静坐蒲团",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -443,10 +481,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 80,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 126,
+      "localSurfaceY": 120,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
@@ -455,7 +493,9 @@
         "sourceCellsH": "1",
         "boundLocationId": "base:loc_site_linjian_manual_hall",
         "localPlaceName": "静坐蒲团",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -463,10 +503,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 93,
-      "localSurfaceY": 137,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇修炼屋",
@@ -478,7 +518,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_practice_hall",
         "localPlaceName": "桐溪镇修炼屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -486,10 +528,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 95,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 88,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
@@ -498,7 +540,9 @@
         "sourceCellsH": "1",
         "boundLocationId": "base:loc_site_linjian_practice_hall",
         "localPlaceName": "静坐蒲团",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -506,10 +550,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 94,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
@@ -518,7 +562,9 @@
         "sourceCellsH": "1",
         "boundLocationId": "base:loc_site_linjian_practice_hall",
         "localPlaceName": "静坐蒲团",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -526,10 +572,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 165,
-      "localSurfaceY": 163,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇驿舍",
@@ -541,7 +587,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_inn",
         "localPlaceName": "桐溪镇驿舍",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -549,10 +597,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 166,
-      "localSurfaceY": 165,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 118,
+      "localSurfaceY": 90,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇驿舍床位",
@@ -564,7 +612,9 @@
         "boundLocationId": "base:loc_site_linjian_inn",
         "localPlaceName": "桐溪镇驿舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:inn"
+        "parentRoomId": "base:site_linjian:town:inn",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -572,10 +622,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 169,
-      "localSurfaceY": 165,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 124,
+      "localSurfaceY": 90,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇驿舍床位",
@@ -587,7 +637,9 @@
         "boundLocationId": "base:loc_site_linjian_inn",
         "localPlaceName": "桐溪镇驿舍床位",
         "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
-        "parentRoomId": "base:site_linjian:town:inn"
+        "parentRoomId": "base:site_linjian:town:inn",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -595,10 +647,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 149,
-      "localSurfaceY": 137,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇低级丹室",
@@ -610,7 +662,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_workshop",
         "localPlaceName": "桐溪镇低级丹室",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -618,10 +672,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 75,
-      "localSurfaceY": 163,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇坊市",
@@ -633,7 +687,9 @@
         "roomUsage": "Residential",
         "boundLocationId": "base:loc_site_linjian_market_hall",
         "localPlaceName": "桐溪镇坊市",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -641,10 +697,10 @@
       "kindId": "storageRoom",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 147,
-      "localSurfaceY": 127,
-      "widthCells": 3,
-      "heightCells": 3,
+      "localSurfaceX": 124,
+      "localSurfaceY": 152,
+      "widthCells": 6,
+      "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "桐溪镇公库",
@@ -652,7 +708,9 @@
         "sourceCellsW": "3",
         "sourceCellsH": "3",
         "buildingId": "base:building_storage_room",
-        "structureDurability": "0"
+        "structureDurability": "0",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -660,10 +718,10 @@
       "kindId": "recoverySpot",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 189,
-      "localSurfaceY": 129,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 100,
+      "localSurfaceY": 164,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "歇息恢复处",
@@ -671,7 +729,9 @@
         "sourceCellsW": "2",
         "sourceCellsH": "2",
         "buildingId": "base:building_recovery_spot",
-        "structureDurability": "0"
+        "structureDurability": "0",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -679,16 +739,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 119,
-      "localSurfaceY": 145,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 147,
+      "localSurfaceY": 122,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "露天棋桌",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -696,16 +758,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 155,
-      "localSurfaceY": 117,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 149,
+      "localSurfaceY": 122,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "露天棋桌",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -713,16 +777,17 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 75,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 132,
+      "localSurfaceY": 126,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "粮田",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -730,16 +795,17 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 81,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 148,
+      "localSurfaceY": 100,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "粮田",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -747,16 +813,17 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 87,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 147,
+      "localSurfaceY": 112,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "粮田",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -764,16 +831,17 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 93,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 132,
+      "localSurfaceY": 136,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "粮田",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -781,16 +849,17 @@
       "kindId": "herbField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 161,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 132,
+      "localSurfaceY": 112,
+      "widthCells": 15,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "药圃",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "15",
+        "sourceCellsH": "12",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -798,16 +867,17 @@
       "kindId": "herbField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 167,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 116,
+      "localSurfaceY": 138,
+      "widthCells": 15,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "药圃",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "15",
+        "sourceCellsH": "12",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -815,16 +885,17 @@
       "kindId": "herbField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 173,
-      "localSurfaceY": 193,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 148,
+      "localSurfaceY": 86,
+      "widthCells": 15,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "药圃",
         "blocksMovement": "false",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4"
+        "sourceCellsW": "15",
+        "sourceCellsH": "12",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -832,19 +903,21 @@
       "kindId": "ore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 67,
-      "localSurfaceY": 115,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 70,
+      "localSurfaceY": 219,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "铁矿",
         "blocksMovement": "true",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "boundLocationId": "base:loc_site_linjian_ore_iron",
         "localPlaceName": "铁矿",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -852,19 +925,21 @@
       "kindId": "ore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 199,
-      "localSurfaceY": 97,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 374,
+      "localSurfaceY": 176,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "铜矿",
         "blocksMovement": "true",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "boundLocationId": "base:loc_site_linjian_ore_copper",
         "localPlaceName": "铜矿",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -872,19 +947,21 @@
       "kindId": "ore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 195,
-      "localSurfaceY": 183,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 356,
+      "localSurfaceY": 257,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银矿",
         "blocksMovement": "true",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "boundLocationId": "base:loc_site_linjian_ore_silver",
         "localPlaceName": "银矿",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -892,19 +969,21 @@
       "kindId": "ore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 67,
-      "localSurfaceY": 177,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 56,
+      "localSurfaceY": 256,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "灵矿",
         "blocksMovement": "true",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "boundLocationId": "base:loc_site_linjian_ore_spirit",
         "localPlaceName": "灵矿",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -912,16 +991,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 155,
-      "localSurfaceY": 170,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 232,
+      "localSurfaceY": 357,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -929,16 +1010,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 183,
-      "localSurfaceY": 68,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 261,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -946,16 +1029,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 200,
-      "localSurfaceY": 80,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 357,
+      "localSurfaceY": 110,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -963,16 +1048,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 107,
-      "localSurfaceY": 194,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 163,
+      "localSurfaceY": 357,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -980,16 +1067,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 178,
-      "localSurfaceY": 75,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 289,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -997,16 +1086,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 112,
-      "localSurfaceY": 170,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 217,
+      "localSurfaceY": 357,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1014,16 +1105,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 114,
-      "localSurfaceY": 68,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 191,
+      "localSurfaceY": 61,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1031,16 +1124,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 84,
-      "localSurfaceY": 179,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 303,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1048,16 +1143,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 116,
-      "localSurfaceY": 114,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 163,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1065,16 +1162,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 173,
-      "localSurfaceY": 95,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 170,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1082,16 +1181,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 110,
-      "localSurfaceY": 77,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 177,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1099,16 +1200,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 116,
-      "localSurfaceY": 185,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 194,
+      "localSurfaceY": 375,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1116,16 +1219,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 122,
-      "localSurfaceY": 145,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 199,
+      "localSurfaceY": 357,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1133,16 +1238,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 100,
-      "localSurfaceY": 153,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 247,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1150,16 +1257,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 145,
-      "localSurfaceY": 172,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 181,
+      "localSurfaceY": 357,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1167,16 +1276,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 67,
-      "localSurfaceY": 194,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 275,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1184,16 +1295,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 196,
-      "localSurfaceY": 85,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 357,
+      "localSurfaceY": 138,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1201,16 +1314,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 163,
-      "localSurfaceY": 103,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 240,
+      "localSurfaceY": 61,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1218,16 +1333,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 165,
-      "localSurfaceY": 135,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 375,
+      "localSurfaceY": 210,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1235,16 +1352,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 195,
-      "localSurfaceY": 171,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 357,
+      "localSurfaceY": 284,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1252,16 +1371,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 192,
-      "localSurfaceY": 189,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 266,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1269,16 +1390,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 112,
-      "localSurfaceY": 137,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 188,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1286,16 +1409,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 194,
-      "localSurfaceY": 66,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 303,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1303,16 +1428,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 184,
-      "localSurfaceY": 195,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 261,
+      "localSurfaceY": 357,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1320,16 +1447,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 94,
-      "localSurfaceY": 157,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 261,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1337,16 +1466,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 121,
-      "localSurfaceY": 153,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 149,
+      "localSurfaceY": 357,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1354,16 +1485,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 144,
-      "localSurfaceY": 105,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 221,
+      "localSurfaceY": 61,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1371,16 +1504,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 82,
-      "localSurfaceY": 110,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 174,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1388,16 +1523,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 198,
-      "localSurfaceY": 131,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 357,
+      "localSurfaceY": 224,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1405,16 +1542,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 190,
-      "localSurfaceY": 100,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 152,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1422,16 +1561,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 114,
-      "localSurfaceY": 102,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 149,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1439,16 +1580,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 90,
-      "localSurfaceY": 183,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 65,
+      "localSurfaceY": 289,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1456,16 +1599,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 190,
-      "localSurfaceY": 111,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 188,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1473,16 +1618,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 115,
-      "localSurfaceY": 199,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 217,
+      "localSurfaceY": 371,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1490,16 +1637,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 81,
-      "localSurfaceY": 66,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 135,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1507,16 +1656,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 86,
-      "localSurfaceY": 129,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 61,
+      "localSurfaceY": 202,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1524,16 +1675,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 182,
-      "localSurfaceY": 96,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 357,
+      "localSurfaceY": 124,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1541,16 +1694,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 189,
-      "localSurfaceY": 82,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 275,
+      "localSurfaceY": 65,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1558,16 +1713,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 103,
-      "localSurfaceY": 152,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 61,
+      "localSurfaceY": 229,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1575,16 +1732,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 152,
-      "localSurfaceY": 190,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 279,
+      "localSurfaceY": 357,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1592,16 +1751,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 179,
-      "localSurfaceY": 150,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 371,
+      "localSurfaceY": 224,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1609,16 +1770,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 181,
-      "localSurfaceY": 114,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 206,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1626,16 +1789,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 116,
-      "localSurfaceY": 95,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 177,
+      "localSurfaceY": 51,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1643,16 +1808,18 @@
       "kindId": "treeS",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 197,
-      "localSurfaceY": 118,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 375,
+      "localSurfaceY": 196,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青松",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1660,16 +1827,18 @@
       "kindId": "treeL",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 187,
-      "localSurfaceY": 161,
-      "widthCells": 6,
-      "heightCells": 6,
+      "localSurfaceX": 357,
+      "localSurfaceY": 238,
+      "widthCells": 12,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阔叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "6",
-        "sourceCellsH": "6"
+        "sourceCellsW": "12",
+        "sourceCellsH": "12",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1677,16 +1846,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 93,
-      "localSurfaceY": 200,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 135,
+      "localSurfaceY": 357,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "赤枫",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1694,16 +1865,18 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 156,
-      "localSurfaceY": 101,
-      "widthCells": 4,
-      "heightCells": 4,
+      "localSurfaceX": 258,
+      "localSurfaceY": 51,
+      "widthCells": 8,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "银叶树",
         "blocksMovement": "true",
-        "sourceCellsW": "4",
-        "sourceCellsH": "4"
+        "sourceCellsW": "8",
+        "sourceCellsH": "8",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1711,10 +1884,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 195,
-      "localSurfaceY": 146,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "临街货屋",
@@ -1723,7 +1896,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_wood"
+        "buildingId": "base:room_medium_wood",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1731,10 +1906,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 97,
-      "localSurfaceY": 163,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "巡守值房",
@@ -1743,7 +1918,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_wood"
+        "buildingId": "base:room_medium_wood",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1751,10 +1928,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 97,
-      "localSurfaceY": 65,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "路口客舍",
@@ -1763,7 +1940,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_wood"
+        "buildingId": "base:room_medium_wood",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1771,10 +1950,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 161,
-      "localSurfaceY": 65,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "茶屋",
@@ -1783,387 +1962,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_wood"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:bottom:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 46,
-      "localSurfaceY": 45,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:bottom:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 96,
-      "localSurfaceY": 45,
-      "widthCells": 33,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "33",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:bottom:096",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 141,
-      "localSurfaceY": 45,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:bottom:146",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 191,
-      "localSurfaceY": 45,
-      "widthCells": 33,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "33",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:top:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 46,
-      "localSurfaceY": 224,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:top:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 96,
-      "localSurfaceY": 224,
-      "widthCells": 33,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "33",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:top:096",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 141,
-      "localSurfaceY": 224,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:top:146",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 191,
-      "localSurfaceY": 224,
-      "widthCells": 33,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "33",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:left:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 46,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:left:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 96,
-      "widthCells": 1,
-      "heightCells": 20,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "20",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:left:096",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:left:146",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 191,
-      "widthCells": 1,
-      "heightCells": 33,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "33",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:right:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 46,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:right:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 96,
-      "widthCells": 1,
-      "heightCells": 33,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "33",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:right:096",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 141,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:right:146",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 191,
-      "widthCells": 1,
-      "heightCells": 33,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "33",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:corner:0:0",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 45,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:corner:0:179",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 45,
-      "localSurfaceY": 224,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:corner:179:0",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 45,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_linjian:perimeter080:stone:corner:179:179",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 224,
-      "localSurfaceY": 224,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
+        "buildingId": "base:room_medium_wood",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2171,8 +1972,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 0,
+      "localSurfaceX": 80,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2190,8 +1991,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 50,
-      "localSurfaceY": 0,
+      "localSurfaceX": 130,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2209,8 +2010,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 100,
-      "localSurfaceY": 0,
+      "localSurfaceX": 180,
+      "localSurfaceY": 80,
       "widthCells": 29,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2228,8 +2029,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 141,
-      "localSurfaceY": 0,
+      "localSurfaceX": 221,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2247,8 +2048,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 191,
-      "localSurfaceY": 0,
+      "localSurfaceX": 271,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2266,8 +2067,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 241,
-      "localSurfaceY": 0,
+      "localSurfaceX": 321,
+      "localSurfaceY": 80,
       "widthCells": 29,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2285,8 +2086,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 269,
+      "localSurfaceX": 80,
+      "localSurfaceY": 349,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2304,8 +2105,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 50,
-      "localSurfaceY": 269,
+      "localSurfaceX": 130,
+      "localSurfaceY": 349,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2323,8 +2124,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 100,
-      "localSurfaceY": 269,
+      "localSurfaceX": 180,
+      "localSurfaceY": 349,
       "widthCells": 29,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2342,8 +2143,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 141,
-      "localSurfaceY": 269,
+      "localSurfaceX": 221,
+      "localSurfaceY": 349,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2361,8 +2162,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 191,
-      "localSurfaceY": 269,
+      "localSurfaceX": 271,
+      "localSurfaceY": 349,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2380,8 +2181,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 241,
-      "localSurfaceY": 269,
+      "localSurfaceX": 321,
+      "localSurfaceY": 349,
       "widthCells": 29,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -2399,8 +2200,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 0,
+      "localSurfaceX": 80,
+      "localSurfaceY": 80,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2418,8 +2219,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 50,
+      "localSurfaceX": 80,
+      "localSurfaceY": 130,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2437,8 +2238,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 100,
+      "localSurfaceX": 80,
+      "localSurfaceY": 180,
       "widthCells": 1,
       "heightCells": 29,
       "rotationQuarterTurns": 0,
@@ -2456,8 +2257,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 141,
+      "localSurfaceX": 80,
+      "localSurfaceY": 221,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2475,8 +2276,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 191,
+      "localSurfaceX": 80,
+      "localSurfaceY": 271,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2494,8 +2295,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 241,
+      "localSurfaceX": 80,
+      "localSurfaceY": 321,
       "widthCells": 1,
       "heightCells": 29,
       "rotationQuarterTurns": 0,
@@ -2513,8 +2314,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 0,
+      "localSurfaceX": 349,
+      "localSurfaceY": 80,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2532,8 +2333,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 50,
+      "localSurfaceX": 349,
+      "localSurfaceY": 130,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2551,8 +2352,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 100,
+      "localSurfaceX": 349,
+      "localSurfaceY": 180,
       "widthCells": 1,
       "heightCells": 29,
       "rotationQuarterTurns": 0,
@@ -2570,8 +2371,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 141,
+      "localSurfaceX": 349,
+      "localSurfaceY": 221,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2589,8 +2390,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 191,
+      "localSurfaceX": 349,
+      "localSurfaceY": 271,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -2608,8 +2409,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 269,
-      "localSurfaceY": 241,
+      "localSurfaceX": 349,
+      "localSurfaceY": 321,
       "widthCells": 1,
       "heightCells": 29,
       "rotationQuarterTurns": 0,

@@ -54,6 +54,7 @@ namespace XianXia.Core.Npc
                 !at.HasWorldPosition || at.SurfaceId != surfaceId ||
                 !world.SurfaceGround.TryGet(surfaceId, out var nav) || nav == null) return false;
             if (!HuangcunOpeningAccess.IsSimulated(world, actor) ||
+                !HuangcunOpeningAccess.AllowsFacilityPosition(world, actor.Id, surfaceId, goal.X, goal.Y) ||
                 !HuangcunOpeningAccess.AllowsPosition(world, surfaceId, goal.X, goal.Y)) return false;
             arrived = WorldVec2.Distance(at.WorldPosition, goal) <= radius;
             if (arrived) return true;
@@ -68,10 +69,12 @@ namespace XianXia.Core.Npc
                 XianXia.Core.World.Surface.SurfaceGroundRouteStatus.Found) return false; }
             else if (!NpcLocalNavigation.TryRoute(world, nav, at.WorldPosition, goal, route)) return false;
             for (var i = 0; i < route.Count; i++)
-                if (!HuangcunOpeningAccess.AllowsPosition(world, surfaceId, route[i].X, route[i].Y)) return false;
+                if (!HuangcunOpeningAccess.AllowsPosition(world, surfaceId, route[i].X, route[i].Y) ||
+                    !HuangcunOpeningAccess.AllowsFacilityPosition(world, actor.Id, surfaceId, route[i].X, route[i].Y)) return false;
             var position = at.WorldPosition;
             var budget = BackgroundSimulationScheduler.DistanceBudgetFromElapsedSimulationTicks(
-                ContinuousWorldMovementScale.Resolve(world), elapsed);
+                ContinuousWorldMovementScale.Resolve(world), elapsed) *
+                ContinuousWorldMovementScale.CharacterMultiplier(world, actor.Id);
             for (int i = 1; i < route.Count && budget > 0; i++)
             {
                 var d = WorldVec2.Distance(position, route[i]);

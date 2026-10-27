@@ -440,7 +440,11 @@ namespace XianXia.Unity.Host
                     _session.World.ConstructionCatalog.TryGet(source.BuildingId, out var roomSpec) &&
                     roomSpec.MaterialKind == "stone";
                 var cellW = width / source.SourceCellsW;
-                var cellH = height / source.SourceCellsH;
+                var wallUnit = mapper.CellSize * mapper.PresentationUnitsPerWorldUnit;
+                var roomGeometry = new OutdoorConstructedAssetState {
+                    Kind = "room", WorldX = source.WorldX, WorldY = source.WorldY,
+                    WorldWidth = source.WorldWidth, WorldHeight = source.WorldHeight,
+                    CellsW = source.SourceCellsW, CellsH = source.SourceCellsH };
                 var doorLeft = (source.SourceCellsW - 2) / 2;
                 mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
                 var ix0 = Mathf.Max(source.WorldX, chunkWorldX);
@@ -466,23 +470,27 @@ namespace XianXia.Unity.Host
                     var perimeter = gx == 0 || gy == 0 || gx == source.SourceCellsW - 1 ||
                                     gy == source.SourceCellsH - 1;
                     if (!perimeter || gy == 0 && gx >= doorLeft && gx < doorLeft + 2) continue;
-                    var cx = minX + (gx + .5f) * cellW;
-                    var cy = minY + (gy + .5f) * cellH;
-                    mapper.PresentationToWorld(cx, cy, out var wallWorldX, out var wallWorldY);
-                    if (mapper.WorldToChunk(wallWorldX, wallWorldY) != ownerChunk) continue;
                     var wallId = OutdoorStatefulObjectId.ForCell(id + ":wall", gx, gy);
                     if (OutdoorStatefulPlacementResolver.IsDestroyed(
                             _session?.World?.OutdoorStatefulObjects, wallId)) continue;
-                    var wall = PlacePrefab("wall", stoneRoom ? MapKindCatalog.Wall : MapKindCatalog.WoodWall, cx, cy, wallId, cellW, cellH,
-                        new Color(.35f, .35f, .38f), sortingOrder: -5,
-                        visualQuarterTurns: gx == 0 || gx == source.SourceCellsW - 1 ? 1 : 0);
-                    AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
-                    actual++;
+                    for (var part = 0; part < 2; part++)
+                    {
+                        if (!RoomBedGeometry.TryRoomWallRectangle(roomGeometry, gx, gy, mapper.CellSize,
+                            part == 1, out var wx, out var wy, out var ww, out var wh)) continue;
+                        if (mapper.WorldToChunk(wx + ww*.5f, wy + wh*.5f) != ownerChunk) continue;
+                        mapper.WorldToPresentation(wx + ww*.5f, wy + wh*.5f, out var cx, out var cy);
+                        var wall = PlacePrefab("wall", stoneRoom ? MapKindCatalog.Wall : MapKindCatalog.WoodWall,
+                            cx, cy, wallId, ww * mapper.PresentationUnitsPerWorldUnit,
+                            wh * mapper.PresentationUnitsPerWorldUnit, new Color(.35f, .35f, .38f),
+                            sortingOrder: -5, visualQuarterTurns: wh > ww ? 1 : 0);
+                        AttachDestructibleIfNeeded(wall, metadata, "wall", wallId);
+                        actual++;
+                    }
                 }
                 // Decoration follows the same two-cell opening as RoomBedGeometry. It never
                 // creates a blocker or changes the room/door interaction footprint.
                 var doorCenterX = minX + (doorLeft + 1f) * cellW;
-                var doorCenterY = minY + .5f * cellH;
+                var doorCenterY = minY + .5f * wallUnit;
                 mapper.PresentationToWorld(doorCenterX, doorCenterY, out var doorWorldX, out var doorWorldY);
                 if (mapper.WorldToChunk(doorWorldX, doorWorldY) == ownerChunk)
                 {
@@ -490,13 +498,13 @@ namespace XianXia.Unity.Host
                     var rightEdge = leftEdge + 2f * cellW;
                     // Wall prefabs use depth-sorted orders (~HostArtDepth.Order), not their
                     // -5 fallback. Match that layer so the posts and sign are not hidden by walls.
-                    var wallOrder = HostArtDepth.ObjectOrder("wall", doorCenterY, cellH, -5);
+                    var wallOrder = HostArtDepth.ObjectOrder("wall", doorCenterY, wallUnit, -5);
                     PlaceRoomDecoration(id + ":door-post-left", HostStepAArt.RoomDoorPart(0),
-                        leftEdge - .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
+                        leftEdge - .075f * wallUnit, doorCenterY, .15f * wallUnit, wallUnit, wallOrder + 1);
                     PlaceRoomDecoration(id + ":door-post-right", HostStepAArt.RoomDoorPart(1),
-                        rightEdge + .075f * cellW, doorCenterY, .15f * cellW, cellH, wallOrder + 1);
+                        rightEdge + .075f * wallUnit, doorCenterY, .15f * wallUnit, wallUnit, wallOrder + 1);
                     var door = PlaceRoomDecoration(id + ":door-lintel", HostStepAArt.RoomDoorPart(2),
-                        doorCenterX, minY + cellH, 2f * cellW, .20f * cellH, wallOrder + 1);
+                        doorCenterX, minY + wallUnit, 2f * cellW, .20f * wallUnit, wallOrder + 1);
                     if (door != null)
                     {
                         var doorPlot = door.AddComponent<HostMapPlotCell>();
@@ -504,13 +512,13 @@ namespace XianXia.Unity.Host
                             HostInteractSpotKind.Room, "房门", source.SourceGridX + doorLeft,
                             source.SourceGridY, "roomDoor");
                         doorPlot.ConfigureInteractionBounds(new Rect(leftEdge,
-                            minY, 2f * cellW, cellH));
+                            minY, 2f * cellW, wallUnit));
                     }
                     var sign = PlaceRoomDecoration(id + ":usage-marker", null,
-                        leftEdge - .5f * cellW, doorCenterY, .55f * cellW, .90f * cellH, wallOrder + 2);
+                        leftEdge - .5f * wallUnit, doorCenterY, .55f * wallUnit, .90f * wallUnit, wallOrder + 2);
                     if (sign != null)
                         sign.AddComponent<HostRoomUsageMarker>().Configure(_session?.World, id,
-                            .55f * cellW, .90f * cellH);
+                            .55f * wallUnit, .90f * wallUnit);
                 }
                 expectedForOwner = actual;
             }

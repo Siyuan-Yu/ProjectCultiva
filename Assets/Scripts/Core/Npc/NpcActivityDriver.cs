@@ -27,6 +27,7 @@ namespace XianXia.Core.Npc
 
             foreach (var entity in world.Entities.All)
             {
+                if (XianXia.Core.Social.SupervisorAngerDriver.OwnsPursuit(world, entity.Id)) continue;
                 if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 if (MortalCivilianQuery.IsManagedCivilian(world, entity))
                 {

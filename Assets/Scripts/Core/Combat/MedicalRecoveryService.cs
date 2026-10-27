@@ -29,7 +29,9 @@ namespace XianXia.Core.Combat
             if (!entity.TryGet<LifecycleComponent>(out var life)) return 0;
             long rate = entity.TryGet<AttributesComponent>(out var attrs)
                 ? attrs.GetFinal(AttributeId.HealthRecoveryRateMilli) : 0;
-            if (life.IsIncapacitated || life.HerbDoses > 0)
+            if (life.IsUnconscious)
+                rate += (long)life.HerbDoses * HerbRateMilli;
+            else if (life.IsIncapacitated || life.HerbDoses > 0)
                 rate += BaseDyingRateMilli + (long)life.HerbDoses * HerbRateMilli;
             if (TryGetPatientBed(world, entity, out var bed) &&
                 RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical))
@@ -42,7 +44,7 @@ namespace XianXia.Core.Combat
         {
             if (!entity.TryGet<LifecycleComponent>(out var life) ||
                 !(life.IsIncapacitated || life.State == LifecycleState.Alive || life.State == LifecycleState.Captured)) return;
-            if (!life.HasMedicalProgress && life.IsIncapacitated)
+            if (!life.HasMedicalProgress && life.IsIncapacitated && !life.IsUnconscious)
             {
                 life.HasMedicalProgress = true;
                 var remaining = life.BleedOutAfterTick > world.Tick.Value
@@ -84,7 +86,7 @@ namespace XianXia.Core.Combat
             var total = (long)life.RecoveryHpMilli + rate;
             vitals.CurrentHp = (int)Math.Min(maxHp, (long)vitals.CurrentHp + total / 1000);
             life.RecoveryHpMilli = (int)(total % 1000);
-            if (life.IsIncapacitated && (long)vitals.CurrentHp * 2 > maxHp)
+            if (life.IsIncapacitated && !life.IsUnconscious && (long)vitals.CurrentHp * 2 > maxHp)
             {
                 var doses = life.HerbDoses;
                 var fraction = life.RecoveryHpMilli;
@@ -93,7 +95,7 @@ namespace XianXia.Core.Combat
                 life.HerbDoses = doses;
                 life.RecoveryHpMilli = fraction;
             }
-            if (vitals.CurrentHp >= maxHp) life.ResetMedicalProgress();
+            if (vitals.CurrentHp >= maxHp && !life.IsUnconscious) life.ResetMedicalProgress();
         }
     }
 }

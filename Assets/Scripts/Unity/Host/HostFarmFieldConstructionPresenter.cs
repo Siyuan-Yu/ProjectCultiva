@@ -189,13 +189,14 @@ namespace XianXia.Unity.Host
             continuous.Mapper.PresentationToWorld(point.x, point.y, out var wx, out var wy);
             var cellsW = _quarterTurns % 2 == 0 ? _spec.FootprintCellsW : _spec.FootprintCellsH;
             var cellsH = _quarterTurns % 2 == 0 ? _spec.FootprintCellsH : _spec.FootprintCellsW;
-            var x = metric.OriginWorldX + (float)Math.Floor((wx - metric.OriginWorldX) / metric.CellSize - cellsW * .5f + .5f) * metric.CellSize;
-            var y = metric.OriginWorldY + (float)Math.Floor((wy - metric.OriginWorldY) / metric.CellSize - cellsH * .5f + .5f) * metric.CellSize;
+            var physicalCell = metric.CellSize * _spec.PhysicalScale;
+            var x = metric.OriginWorldX + (float)Math.Floor((wx - metric.OriginWorldX) / metric.CellSize - cellsW * _spec.PhysicalScale * .5f + .5f) * metric.CellSize;
+            var y = metric.OriginWorldY + (float)Math.Floor((wy - metric.OriginWorldY) / metric.CellSize - cellsH * _spec.PhysicalScale * .5f + .5f) * metric.CellSize;
             candidate = new OutdoorConstructedAssetState {
                 StableAssetId = _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind), BuildingId = _spec.BuildingId,
                 Kind = _spec.OutdoorKind, SurfaceId = continuous.ActiveSurfaceId,
-                WorldX = x, WorldY = y, WorldWidth = cellsW * metric.CellSize,
-                WorldHeight = cellsH * metric.CellSize,
+                WorldX = x, WorldY = y, WorldWidth = cellsW * physicalCell,
+                WorldHeight = cellsH * physicalCell,
                 CellsW = cellsW, CellsH = cellsH, QuarterTurns = _quarterTurns,
                 BoundLocationId = "location:runtime:" +
                     (_placementKind == ConstructionPlacementKind.RecoverySpot ? "recovery:" :
@@ -215,7 +216,7 @@ namespace XianXia.Unity.Host
             {
                 var storageSite = WorldSiteStorageRoomPlacementService.ResolveSiteForFootprint(
                     _world, _world.Strategic.PlayerFactionId, candidate.SurfaceId, candidate.WorldX, candidate.WorldY,
-                    candidate.CellsW, candidate.CellsH, metric.CellSize, out var boundSiteId);
+                    candidate.CellsW, candidate.CellsH, physicalCell, out var boundSiteId);
                 if (storageSite.IsFailure) { reason = storageSite.Error.Message; return false; }
                 candidate.BoundWorldSiteId = boundSiteId;
             }
@@ -229,7 +230,7 @@ namespace XianXia.Unity.Host
             { reason = "建造材料不足。"; return false; }
             if (!continuous.TryGetCompositeWalkGrid(out var grid))
             { reason = "超出当前已加载区域。"; return false; }
-            foreach (var cell in candidate.EnumerateGridCells())
+            foreach (var cell in candidate.EnumeratePhysicalCells(metric.OriginWorldX, metric.OriginWorldY, metric.CellSize))
             {
                 if (!continuous.IsWorldPositionLoaded(candidate.SurfaceId, cell.WorldX, cell.WorldY))
                 { reason = "超出当前已加载区域。"; return false; }

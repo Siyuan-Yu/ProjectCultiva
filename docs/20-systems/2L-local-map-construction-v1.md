@@ -1,5 +1,11 @@
 # LocalMap 建造系统 V1
 
+> **房墙厚度修正：** [ADR-0064](../40-process/43-decisions/ADR-0064-thin-room-walls-larger-resources-and-movement.md)／[397](../40-process/397-thin-room-walls-resources-and-movement.md) 保留房间整体两倍尺寸，房墙与外城墙同为一 Surface cell 厚，门洞宽度保留。显示与冷热通行共用薄墙矩形，墙角两段共用原有墙段 ID 和生命值。全图树木／矿石按 0.0.43 长宽各乘二并疏排至城外，建筑与城墙位置不变。
+
+> **最新实体尺度：** [ADR-0063](../40-process/43-decisions/ADR-0063-world-building-scale-and-basic-crop-cycles.md)／[396](../40-process/396-world-building-scale-and-crop-cycles.md) 将主体建筑、房间和家具定为最初尺寸的长宽两倍，扩展到全部城市，覆盖下方 1.5 倍试版范围；城址、外墙边界和行政范围不放大。普通房 8×12、中级房 16×24、高级房 32×48，床 2×4，逻辑分格及稳定 ID 保留。农田 12×8，药田 15×12。
+
+> **2026-10-26 荒村实体比例调整：** 制作人批准房间、床和家具的实际长宽各放大 1.5 倍，并要求先整体重排荒村，其他城市既有布局不动。物件逻辑分格及稳定 ID 保留，精确物理矩形扩大，人物仍为 1×1 通行占地；详见 [ADR-0062](../40-process/43-decisions/ADR-0062-huangcun-physical-furniture-scale.md)。旧尺寸是调整前记录；本轮仍待实际游玩验收。
+
 > **2026-09-21 FINAL-SEAL override：** FactionFlag 建造已迁至 Continuous SiteCore 链：
 > `TryConstructFactionFlagSite → ValidateSiteCorePlacement → TryPlaceSiteCore`。旧 Hex
 > placement 描述只保留历史语境，不再是可调用的 runtime API。

@@ -342,7 +342,8 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(viewsRoot, worldPositionStays: true);
             go.transform.position = position;
             go.transform.rotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one * 1.15f;
+            go.transform.localScale = new Vector3(
+                1.15f * EntityView.VisualSizeMultiplier, 1.15f * EntityView.VisualSizeMultiplier, 1.15f);
 
             var body = go.AddComponent<SpriteRenderer>();
             body.sprite = HostSpriteFactory.UnitSprite();
@@ -364,6 +365,9 @@ namespace XianXia.Unity.Host
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
             labelGo.transform.localPosition = new Vector3(0f, 0.95f, -0.1f);
+            // Keep world text readable at its existing size while the actor grows around its feet.
+            labelGo.transform.localScale = new Vector3(
+                1f / EntityView.VisualSizeMultiplier, 1f / EntityView.VisualSizeMultiplier, 1f);
             var text = labelGo.AddComponent<TextMesh>();
             text.characterSize = 0.11f;
             text.anchor = TextAnchor.LowerCenter;

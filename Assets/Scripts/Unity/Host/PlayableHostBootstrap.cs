@@ -743,6 +743,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)
                 gameObject.AddComponent<HostPartyPathPreview>();
+            if (GetComponent<HostPatrolWatchRings>() == null)
+                gameObject.AddComponent<HostPatrolWatchRings>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();

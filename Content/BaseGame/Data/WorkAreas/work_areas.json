@@ -3435,6 +3435,21 @@
         "manageHousing",
         "manageSchedules"
       ]
+    },
+    {
+      "id": "base:workarea_huangcun_combat_hall",
+      "type": "workArea",
+      "name": "斗技坊练功席",
+      "locationId": "base:loc_huangcun_combat_hall",
+      "tags": [
+        "cultivate"
+      ],
+      "allowedActivities": [
+        "Cultivate"
+      ],
+      "capacity": 3,
+      "offsetX": 0,
+      "offsetZ": 0
     }
   ]
 }

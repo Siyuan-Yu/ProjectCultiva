@@ -237,7 +237,7 @@ namespace XianXia.Core.Simulation
             _npcActivityDriver.Drive(_world, this);
             PersonalLifeService.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
-            _supervisorAngerDriver.Tick(_world);
+            _supervisorAngerDriver.Tick(_world, this);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
             SampleTickPhase(phaseSample, "npc-after", ref phaseStarted);

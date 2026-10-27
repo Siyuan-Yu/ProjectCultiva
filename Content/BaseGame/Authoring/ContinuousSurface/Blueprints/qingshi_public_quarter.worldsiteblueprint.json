@@ -2,8 +2,8 @@
   "schemaVersion": 4,
   "blueprintId": "base:site_chengzhen",
   "displayName": "云泽镇",
-  "widthCells": 180,
-  "heightCells": 180,
+  "widthCells": 340,
+  "heightCells": 340,
   "fineTerrainSources": [],
   "objectPlacements": [
     {
@@ -11,10 +11,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 19,
-      "localSurfaceY": 20,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 181,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石书院·公开书架",
@@ -23,7 +23,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -31,10 +33,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 39,
-      "localSurfaceY": 20,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇·拍卖行",
@@ -43,7 +45,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -51,10 +55,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 55,
-      "localSurfaceY": 20,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇·联络驿舍",
@@ -63,7 +67,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -71,10 +77,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 57,
-      "localSurfaceY": 24,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 120,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇·联络驿舍床位",
@@ -84,7 +90,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:contact",
         "initialAssigneeSpawnKey": "base:character_ch01_ref_guard_c",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -92,10 +100,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 190,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿青药材行",
@@ -104,7 +112,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -112,10 +122,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 100,
-      "localSurfaceY": 14,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 194,
+      "localSurfaceY": 94,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿青药材行床位",
@@ -125,7 +135,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:herbs",
         "initialAssigneeSpawnKey": "base:character_ch01_ref_mortal_b",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -133,10 +145,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 11,
-      "localSurfaceY": 40,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 228,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿柴木料行",
@@ -145,7 +157,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -153,10 +167,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 13,
-      "localSurfaceY": 44,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 120,
+      "localSurfaceY": 236,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿柴木料行床位",
@@ -166,7 +180,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:timber",
         "initialAssigneeSpawnKey": "base:character_ch01_ref_wood_b",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -174,10 +190,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 27,
-      "localSurfaceY": 40,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 136,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿枝医舍",
@@ -186,7 +202,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Medical",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -194,10 +212,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 29,
-      "localSurfaceY": 44,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 104,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "医舍病床",
@@ -206,7 +224,9 @@
         "sourceCellsH": "2",
         "parentRoomId": "base:site_chengzhen:quarter:clinic",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -214,10 +234,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 108,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 190,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿生暂住客舍",
@@ -226,7 +246,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -234,10 +256,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 110,
-      "localSurfaceY": 14,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 194,
+      "localSurfaceY": 120,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "阿生暂住客舍床位",
@@ -247,7 +269,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:inn",
         "initialAssigneeSpawnKey": "base:character_village_recruit",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -255,10 +279,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 118,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 181,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "行商住处",
@@ -267,7 +291,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -275,10 +301,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 120,
-      "localSurfaceY": 14,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 185,
+      "localSurfaceY": 184,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "行商住处床位",
@@ -288,7 +314,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:shop_home",
         "initialAssigneeSpawnKey": "base:character_qingshi_shopkeeper",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -296,10 +324,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "执事住处",
@@ -308,7 +336,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -316,10 +346,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 130,
-      "localSurfaceY": 14,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 136,
+      "localSurfaceY": 94,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "执事住处床位",
@@ -329,7 +359,9 @@
         "parentRoomId": "base:site_chengzhen:quarter:auction_home",
         "initialAssigneeSpawnKey": "base:character_qingshi_auction_attendant",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -337,10 +369,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 33,
-      "localSurfaceY": 44,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 112,
+      "localSurfaceY": 144,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石医舍备用医疗床",
@@ -349,7 +381,9 @@
         "sourceCellsH": "2",
         "parentRoomId": "base:site_chengzhen:quarter:clinic",
         "structureDurability": "60",
-        "buildingId": "base:furniture_bed"
+        "buildingId": "base:furniture_bed",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -357,16 +391,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 21,
-      "localSurfaceY": 33,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 92,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "书院门前棋盘",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -374,16 +410,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 29,
-      "localSurfaceY": 33,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 94,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "书院静坐位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -391,16 +429,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 32,
-      "localSurfaceY": 33,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 96,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "书院静坐位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -408,16 +448,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 35,
-      "localSurfaceY": 33,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 98,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "书院静坐位",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -425,10 +467,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 138,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "true",
@@ -437,7 +479,9 @@
         "roomUsage": "Residential",
         "sourceCellsW": "8",
         "sourceCellsH": "12",
-        "structureDurability": "260"
+        "structureDurability": "260",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -445,10 +489,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 140,
-      "localSurfaceY": 14,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 88,
+      "localSurfaceY": 210,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "true",
@@ -458,7 +502,9 @@
         "initialAssigneeSpawnKey": "base:character_ch01_ref_wood_c",
         "sourceCellsW": "1",
         "sourceCellsH": "2",
-        "structureDurability": "60"
+        "structureDurability": "60",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -466,17 +512,19 @@
       "kindId": "controlCore",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 86,
-      "localSurfaceY": 86,
-      "widthCells": 8,
-      "heightCells": 8,
+      "localSurfaceX": 162,
+      "localSurfaceY": 162,
+      "widthCells": 16,
+      "heightCells": 16,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇·议政厅",
         "blocksMovement": "true",
         "boundLocationId": "base:loc_site_chengzhen_core",
         "sourceCellsW": "8",
-        "sourceCellsH": "8"
+        "sourceCellsH": "8",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -484,18 +532,18 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 10,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 174,
+      "localSurfaceY": 228,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石近镇粮田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4",
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
         "boundLocationId": "base:loc_qingshi_farm"
       }
     },
@@ -504,18 +552,18 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 54,
-      "localSurfaceY": 10,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 206,
+      "localSurfaceY": 202,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石近镇粮田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4",
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
         "boundLocationId": "base:loc_qingshi_farm"
       }
     },
@@ -524,18 +572,18 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 28,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 229,
+      "localSurfaceY": 176,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石近镇粮田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4",
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
         "boundLocationId": "base:loc_qingshi_farm"
       }
     },
@@ -544,18 +592,18 @@
       "kindId": "grainField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 54,
-      "localSurfaceY": 34,
-      "widthCells": 5,
-      "heightCells": 4,
+      "localSurfaceX": 186,
+      "localSurfaceY": 228,
+      "widthCells": 12,
+      "heightCells": 8,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石近镇粮田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "5",
-        "sourceCellsH": "4",
+        "sourceCellsW": "12",
+        "sourceCellsH": "8",
         "boundLocationId": "base:loc_qingshi_farm"
       }
     },
@@ -564,18 +612,18 @@
       "kindId": "herbField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 20,
-      "widthCells": 7,
-      "heightCells": 5,
+      "localSurfaceX": 148,
+      "localSurfaceY": 138,
+      "widthCells": 15,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石医舍药田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "7",
-        "sourceCellsH": "5",
+        "sourceCellsW": "15",
+        "sourceCellsH": "12",
         "boundLocationId": "base:loc_qingshi_herb_farm"
       }
     },
@@ -584,18 +632,18 @@
       "kindId": "herbField",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 30,
-      "localSurfaceY": 20,
-      "widthCells": 7,
-      "heightCells": 5,
+      "localSurfaceX": 148,
+      "localSurfaceY": 235,
+      "widthCells": 15,
+      "heightCells": 12,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
         "label": "青石医舍药田",
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
-        "sourceCellsW": "7",
-        "sourceCellsH": "5",
+        "sourceCellsW": "15",
+        "sourceCellsH": "12",
         "boundLocationId": "base:loc_qingshi_herb_farm"
       }
     },
@@ -604,10 +652,10 @@
       "kindId": "storageRoom",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 18,
-      "localSurfaceY": 10,
-      "widthCells": 3,
-      "heightCells": 3,
+      "localSurfaceX": 148,
+      "localSurfaceY": 152,
+      "widthCells": 6,
+      "heightCells": 6,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "true",
@@ -615,7 +663,8 @@
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
         "sourceCellsW": "3",
-        "sourceCellsH": "3"
+        "sourceCellsH": "3",
+        "physicalScale": "2"
       }
     },
     {
@@ -623,10 +672,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 55,
-      "localSurfaceY": 42,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "true",
@@ -638,7 +687,8 @@
         "siteId": "base:site_chengzhen",
         "legacyGeometryState": "edited",
         "sourceCellsW": "8",
-        "sourceCellsH": "12"
+        "sourceCellsH": "12",
+        "physicalScale": "2"
       }
     },
     {
@@ -646,10 +696,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 55,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 100,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
@@ -658,7 +708,8 @@
         "legacyGeometryState": "edited",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice"
+        "boundLocationId": "base:loc_qingshi_practice",
+        "physicalScale": "2"
       }
     },
     {
@@ -666,10 +717,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 58,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 102,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
@@ -678,7 +729,8 @@
         "legacyGeometryState": "edited",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice"
+        "boundLocationId": "base:loc_qingshi_practice",
+        "physicalScale": "2"
       }
     },
     {
@@ -686,10 +738,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 61,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 104,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
@@ -698,7 +750,8 @@
         "legacyGeometryState": "edited",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice"
+        "boundLocationId": "base:loc_qingshi_practice",
+        "physicalScale": "2"
       }
     },
     {
@@ -706,10 +759,10 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 64,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 164,
+      "localSurfaceY": 86,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "blocksMovement": "false",
@@ -718,7 +771,8 @@
         "legacyGeometryState": "edited",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice"
+        "boundLocationId": "base:loc_qingshi_practice",
+        "physicalScale": "2"
       }
     },
     {
@@ -726,10 +780,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇中级丹室",
@@ -739,7 +793,9 @@
         "buildingId": "base:room_medium_stone",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "boundLocationId": "base:loc_qingshi_alchemy_room"
+        "boundLocationId": "base:loc_qingshi_alchemy_room",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -747,10 +803,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 10,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 222,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇中级炼器室",
@@ -760,7 +816,9 @@
         "buildingId": "base:room_medium_stone",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "boundLocationId": "base:loc_qingshi_smithy_room"
+        "boundLocationId": "base:loc_qingshi_smithy_room",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -768,10 +826,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 35,
-      "localSurfaceY": 111,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 197,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇修炼堂",
@@ -781,7 +839,9 @@
         "buildingId": "base:room_medium_stone",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "boundLocationId": "base:loc_qingshi_practice_hall"
+        "boundLocationId": "base:loc_qingshi_practice_hall",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -789,17 +849,19 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 37,
-      "localSurfaceY": 115,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 201,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice_hall"
+        "boundLocationId": "base:loc_qingshi_practice_hall",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -807,17 +869,19 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 40,
-      "localSurfaceY": 115,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 207,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "静坐蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
         "sourceCellsH": "1",
-        "boundLocationId": "base:loc_qingshi_practice_hall"
+        "boundLocationId": "base:loc_qingshi_practice_hall",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -825,10 +889,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 148,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋",
@@ -840,7 +904,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_0_0",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -848,10 +914,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 100,
-      "localSurfaceY": 28,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 152,
+      "localSurfaceY": 94,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋床位",
@@ -863,7 +929,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_0_0",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -871,10 +939,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 118,
-      "localSurfaceY": 39,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 148,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋",
@@ -886,7 +954,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_0_1",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -894,10 +964,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 120,
-      "localSurfaceY": 43,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 152,
+      "localSurfaceY": 120,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋床位",
@@ -909,7 +979,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_0_1",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -917,10 +989,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 118,
-      "localSurfaceY": 93,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋",
@@ -932,7 +1004,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_0_2",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -940,10 +1014,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 120,
-      "localSurfaceY": 97,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 136,
+      "localSurfaceY": 146,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋床位",
@@ -955,7 +1029,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_0_2",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -963,10 +1039,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 118,
-      "localSurfaceY": 123,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 174,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋",
@@ -978,7 +1054,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_0_3",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -986,10 +1064,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 120,
-      "localSurfaceY": 127,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 178,
+      "localSurfaceY": 94,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋床位",
@@ -1001,7 +1079,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_0_3",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1009,10 +1089,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 108,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋",
@@ -1024,7 +1104,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_1_0",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1032,10 +1114,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 110,
-      "localSurfaceY": 28,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 88,
+      "localSurfaceY": 184,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋床位",
@@ -1047,7 +1129,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_1_0",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1055,10 +1139,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 39,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋",
@@ -1070,7 +1154,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_1_1",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1078,10 +1164,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 150,
-      "localSurfaceY": 43,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 104,
+      "localSurfaceY": 184,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇东街石屋床位",
@@ -1093,7 +1179,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_1_1",
         "localPlaceName": "云泽镇东街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1101,10 +1189,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 93,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 174,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋",
@@ -1116,7 +1204,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_1_2",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1124,10 +1214,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 150,
-      "localSurfaceY": 97,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 178,
+      "localSurfaceY": 120,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋床位",
@@ -1139,7 +1229,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_1_2",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1147,10 +1239,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 123,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋",
@@ -1162,7 +1254,9 @@
         "buildingId": "base:room_medium_stone",
         "boundLocationId": "base:loc_qingshi_east_home_1_3",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1170,10 +1264,10 @@
       "kindId": "bed",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 150,
-      "localSurfaceY": 127,
-      "widthCells": 1,
-      "heightCells": 2,
+      "localSurfaceX": 120,
+      "localSurfaceY": 184,
+      "widthCells": 2,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "云泽镇南街石屋床位",
@@ -1185,7 +1279,9 @@
         "buildingId": "base:furniture_bed",
         "boundLocationId": "base:loc_qingshi_east_home_1_3",
         "localPlaceName": "云泽镇南街石屋",
-        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]"
+        "localPlaceTags": "[\"settlement\",\"hideMapLabel\"]",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1193,10 +1289,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 66,
-      "localSurfaceY": 10,
-      "widthCells": 16,
-      "heightCells": 24,
+      "localSurfaceX": 84,
+      "localSurfaceY": 86,
+      "widthCells": 32,
+      "heightCells": 48,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街商馆",
@@ -1205,7 +1301,9 @@
         "sourceCellsH": "24",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_advanced_stone"
+        "buildingId": "base:room_advanced_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1213,10 +1311,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 103,
-      "localSurfaceY": 56,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 197,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石茶肆",
@@ -1225,7 +1323,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1233,10 +1333,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 61,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 228,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "灵材货栈",
@@ -1245,7 +1345,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1253,10 +1355,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 55,
-      "localSurfaceY": 84,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 174,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "巡守值房",
@@ -1265,7 +1367,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1273,10 +1377,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 102,
-      "localSurfaceY": 83,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 136,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "镇务文库",
@@ -1285,7 +1389,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1293,10 +1399,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 118,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 238,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "西街商屋",
@@ -1305,7 +1411,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1313,10 +1421,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "东街作坊",
@@ -1325,7 +1433,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1333,10 +1443,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 138,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "行商客舍",
@@ -1345,7 +1455,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1353,16 +1465,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 89,
-      "localSurfaceY": 55,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 112,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "街边棋盘",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1370,16 +1484,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 95,
-      "localSurfaceY": 55,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 164,
+      "localSurfaceY": 102,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "街边棋盘",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1387,16 +1503,18 @@
       "kindId": "chessBoard",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 89,
-      "localSurfaceY": 62,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 114,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "街边棋盘",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1404,16 +1522,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 57,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 106,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1421,16 +1541,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 61,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 164,
+      "localSurfaceY": 90,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1438,16 +1560,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 65,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 108,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1455,16 +1579,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 69,
-      "localSurfaceY": 61,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 164,
+      "localSurfaceY": 94,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1472,16 +1598,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 43,
-      "localSurfaceY": 116,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 110,
+      "localSurfaceY": 162,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1489,16 +1617,18 @@
       "kindId": "cushion",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 46,
-      "localSurfaceY": 116,
-      "widthCells": 1,
-      "heightCells": 1,
+      "localSurfaceX": 164,
+      "localSurfaceY": 98,
+      "widthCells": 2,
+      "heightCells": 2,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "修炼蒲团",
         "blocksMovement": "false",
         "sourceCellsW": "1",
-        "sourceCellsH": "1"
+        "sourceCellsH": "1",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1506,10 +1636,10 @@
       "kindId": "recoverySpot",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 36,
-      "localSurfaceY": 49,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 84,
+      "localSurfaceY": 162,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "医馆休养位",
@@ -1517,7 +1647,9 @@
         "sourceCellsW": "2",
         "sourceCellsH": "2",
         "buildingId": "base:building_recovery_spot",
-        "structureDurability": "0"
+        "structureDurability": "0",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1525,10 +1657,10 @@
       "kindId": "recoverySpot",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 38,
-      "localSurfaceY": 52,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 88,
+      "localSurfaceY": 162,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "医馆休养位",
@@ -1536,7 +1668,9 @@
         "sourceCellsW": "2",
         "sourceCellsH": "2",
         "buildingId": "base:building_recovery_spot",
-        "structureDurability": "0"
+        "structureDurability": "0",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -1544,18 +1678,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 62,
-      "localSurfaceY": 10,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 163,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1563,18 +1699,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 17,
-      "localSurfaceY": 91,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 163,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1582,18 +1720,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 62,
-      "localSurfaceY": 14,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 153,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1601,18 +1741,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 30,
-      "localSurfaceY": 28,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 173,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1620,18 +1762,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 34,
-      "localSurfaceY": 28,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 143,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1639,18 +1783,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 14,
-      "localSurfaceY": 99,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 153,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1658,18 +1804,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 39,
-      "localSurfaceY": 90,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 173,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1677,18 +1825,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 62,
-      "localSurfaceY": 34,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 183,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1696,18 +1846,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 48,
-      "localSurfaceY": 80,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 143,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1715,18 +1867,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 62,
-      "localSurfaceY": 38,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 133,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1734,18 +1888,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 24,
-      "localSurfaceY": 91,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 183,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1753,18 +1909,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 22,
-      "localSurfaceY": 40,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 163,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1772,18 +1930,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 47,
-      "localSurfaceY": 99,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 133,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1791,18 +1951,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 193,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1810,18 +1972,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 132,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 135,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1829,18 +1993,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 56,
-      "localSurfaceY": 117,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 193,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1848,18 +2014,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 136,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 145,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1867,18 +2035,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 140,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 125,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1886,18 +2056,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 12,
-      "localSurfaceY": 161,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 91,
+      "localSurfaceY": 267,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1905,18 +2077,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 144,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 155,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1924,18 +2098,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 115,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1943,18 +2119,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 57,
-      "localSurfaceY": 75,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 123,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1962,18 +2140,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 162,
-      "localSurfaceY": 42,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 105,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -1981,18 +2161,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 38,
-      "localSurfaceY": 61,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 153,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2000,18 +2182,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 22,
-      "localSurfaceY": 44,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 173,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2019,18 +2203,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 48,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 123,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2038,18 +2224,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 24,
-      "localSurfaceY": 12,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 163,
+      "localSurfaceY": 59,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2057,18 +2245,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 162,
-      "localSurfaceY": 133,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 212,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2076,18 +2266,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 203,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2095,18 +2287,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 132,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 213,
+      "localSurfaceY": 69,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2114,18 +2308,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 136,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 277,
+      "localSurfaceY": 141,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2133,18 +2329,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 140,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 277,
+      "localSurfaceY": 131,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2152,18 +2350,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 144,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 277,
+      "localSurfaceY": 121,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2171,18 +2371,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 277,
+      "localSurfaceY": 111,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2190,18 +2392,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 162,
-      "localSurfaceY": 46,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 95,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2209,18 +2413,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 22,
-      "localSurfaceY": 48,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 143,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2228,18 +2434,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 164,
-      "localSurfaceY": 107,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 186,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2247,18 +2455,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 40,
-      "localSurfaceY": 48,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 183,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2266,18 +2476,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 167,
-      "localSurfaceY": 75,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 165,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2285,18 +2497,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 167,
-      "localSurfaceY": 167,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 246,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2304,18 +2518,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 164,
-      "localSurfaceY": 148,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 227,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2323,18 +2539,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 44,
-      "localSurfaceY": 48,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 69,
+      "localSurfaceY": 203,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2342,18 +2560,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 167,
-      "localSurfaceY": 116,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 267,
+      "localSurfaceY": 196,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "resourcePhysicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2361,18 +2581,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 48,
-      "localSurfaceY": 50,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 59,
+      "localSurfaceY": 133,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2380,18 +2602,20 @@
       "kindId": "treeM",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 66,
-      "localSurfaceY": 50,
-      "widthCells": 2,
-      "heightCells": 2,
+      "localSurfaceX": 153,
+      "localSurfaceY": 59,
+      "widthCells": 4,
+      "heightCells": 4,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "青石街树",
         "blocksMovement": "false",
-        "sourceCellsW": "2",
-        "sourceCellsH": "2",
+        "sourceCellsW": "4",
+        "sourceCellsH": "4",
         "siteId": "base:site_chengzhen",
-        "boundLocationId": "base:loc_qingshi_forest"
+        "boundLocationId": "base:loc_qingshi_forest",
+        "legacyGeometryState": "edited",
+        "resourcePhysicalScale": "2"
       }
     },
     {
@@ -2399,10 +2623,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 85,
-      "localSurfaceY": 120,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 100,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街石屋甲",
@@ -2411,7 +2635,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2419,10 +2645,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 101,
-      "localSurfaceY": 120,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 148,
+      "localSurfaceY": 183,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街石屋乙",
@@ -2431,7 +2657,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2439,10 +2667,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 85,
-      "localSurfaceY": 145,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 116,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街石屋丙",
@@ -2451,7 +2679,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2459,10 +2689,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 101,
-      "localSurfaceY": 145,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 206,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街石屋丁",
@@ -2471,7 +2701,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2479,10 +2711,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 148,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 132,
+      "localSurfaceY": 228,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "西巷住屋甲",
@@ -2491,7 +2723,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2499,10 +2733,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 24,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 238,
+      "localSurfaceY": 86,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "西巷住屋乙",
@@ -2511,7 +2745,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2519,10 +2755,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 35,
-      "localSurfaceY": 141,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 229,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "西巷住屋丙",
@@ -2531,7 +2767,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2539,10 +2777,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 11,
-      "localSurfaceY": 72,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 190,
+      "localSurfaceY": 202,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "工匠住屋甲",
@@ -2551,7 +2789,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2559,10 +2799,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 27,
-      "localSurfaceY": 72,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 213,
+      "localSurfaceY": 176,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "工匠住屋乙",
@@ -2571,7 +2811,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2579,10 +2821,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 38,
-      "localSurfaceY": 34,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 148,
+      "localSurfaceY": 209,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "南街石屋甲",
@@ -2591,7 +2833,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2599,10 +2843,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 66,
-      "localSurfaceY": 36,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 213,
+      "localSurfaceY": 138,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "南街石屋乙",
@@ -2611,7 +2855,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2619,10 +2865,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 38,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 222,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "南街石屋丙",
@@ -2631,7 +2877,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2639,10 +2887,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 53,
-      "localSurfaceY": 145,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 206,
+      "localSurfaceY": 112,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "北街石屋戊",
@@ -2651,7 +2899,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -2659,10 +2909,10 @@
       "kindId": "room",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 108,
-      "localSurfaceY": 38,
-      "widthCells": 8,
-      "heightCells": 12,
+      "localSurfaceX": 84,
+      "localSurfaceY": 228,
+      "widthCells": 16,
+      "heightCells": 24,
       "rotationQuarterTurns": 0,
       "metadata": {
         "label": "南街石屋丁",
@@ -2671,691 +2921,9 @@
         "sourceCellsH": "12",
         "roomUsage": "Residential",
         "structureDurability": "260",
-        "buildingId": "base:room_medium_stone"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 16,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 114,
-      "localSurfaceY": 54,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:101",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 56,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:151",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 38,
-      "widthCells": 16,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "16",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:186",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 114,
-      "localSurfaceY": 58,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:236",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 66,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:286",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 76,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:bottom:336",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 28,
-      "localSurfaceY": 10,
-      "widthCells": 23,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "23",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 80,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 104,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:101",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 108,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:151",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 38,
-      "widthCells": 8,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "8",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:186",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 108,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:236",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 112,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:286",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 98,
-      "localSurfaceY": 116,
-      "widthCells": 50,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "50",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:top:336",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 10,
-      "localSurfaceY": 36,
-      "widthCells": 23,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "23",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 168,
-      "localSurfaceY": 10,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 64,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:101",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 68,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:151",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 50,
-      "localSurfaceY": 20,
-      "widthCells": 1,
-      "heightCells": 23,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "23",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:186",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 72,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:236",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 76,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:286",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 80,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:left:336",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 76,
-      "localSurfaceY": 36,
-      "widthCells": 1,
-      "heightCells": 23,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "23",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:001",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 158,
-      "localSurfaceY": 98,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:051",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 16,
-      "localSurfaceY": 112,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:101",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 20,
-      "localSurfaceY": 112,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:151",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 80,
-      "localSurfaceY": 36,
-      "widthCells": 1,
-      "heightCells": 23,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "23",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:193",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 24,
-      "localSurfaceY": 112,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:243",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 28,
-      "localSurfaceY": 112,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:293",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 32,
-      "localSurfaceY": 112,
-      "widthCells": 1,
-      "heightCells": 50,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "50",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:right:343",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 72,
-      "localSurfaceY": 50,
-      "widthCells": 1,
-      "heightCells": 16,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "16",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:corner:0:0",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 52,
-      "localSurfaceY": 46,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:corner:0:359",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 52,
-      "localSurfaceY": 50,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:corner:359:0",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 128,
-      "localSurfaceY": 50,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
-      }
-    },
-    {
-      "placementId": "base:site_chengzhen:perimeter080:stone:corner:359:359",
-      "kindId": "wallSegment",
-      "contentRef": null,
-      "assetRef": null,
-      "localSurfaceX": 132,
-      "localSurfaceY": 50,
-      "widthCells": 1,
-      "heightCells": 1,
-      "rotationQuarterTurns": 0,
-      "metadata": {
-        "label": "石城墙",
-        "blocksMovement": "true",
-        "sourceCellsW": "1",
-        "sourceCellsH": "1",
-        "buildingId": "base:wall_segment_stone",
-        "structureDurability": "130"
+        "buildingId": "base:room_medium_stone",
+        "physicalScale": "2",
+        "legacyGeometryState": "edited"
       }
     },
     {
@@ -3363,8 +2931,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 0,
+      "localSurfaceX": 80,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3382,8 +2950,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 50,
-      "localSurfaceY": 0,
+      "localSurfaceX": 130,
+      "localSurfaceY": 80,
       "widthCells": 34,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3401,8 +2969,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 96,
-      "localSurfaceY": 0,
+      "localSurfaceX": 176,
+      "localSurfaceY": 80,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3420,8 +2988,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 146,
-      "localSurfaceY": 0,
+      "localSurfaceX": 226,
+      "localSurfaceY": 80,
       "widthCells": 34,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3439,8 +3007,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 179,
+      "localSurfaceX": 80,
+      "localSurfaceY": 259,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3458,8 +3026,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 50,
-      "localSurfaceY": 179,
+      "localSurfaceX": 130,
+      "localSurfaceY": 259,
       "widthCells": 34,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3477,8 +3045,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 96,
-      "localSurfaceY": 179,
+      "localSurfaceX": 176,
+      "localSurfaceY": 259,
       "widthCells": 50,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3496,8 +3064,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 146,
-      "localSurfaceY": 179,
+      "localSurfaceX": 226,
+      "localSurfaceY": 259,
       "widthCells": 34,
       "heightCells": 1,
       "rotationQuarterTurns": 0,
@@ -3515,8 +3083,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 0,
+      "localSurfaceX": 80,
+      "localSurfaceY": 80,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -3534,8 +3102,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 50,
+      "localSurfaceX": 80,
+      "localSurfaceY": 130,
       "widthCells": 1,
       "heightCells": 34,
       "rotationQuarterTurns": 0,
@@ -3553,8 +3121,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 96,
+      "localSurfaceX": 80,
+      "localSurfaceY": 176,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -3572,8 +3140,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 0,
-      "localSurfaceY": 146,
+      "localSurfaceX": 80,
+      "localSurfaceY": 226,
       "widthCells": 1,
       "heightCells": 34,
       "rotationQuarterTurns": 0,
@@ -3591,8 +3159,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 179,
-      "localSurfaceY": 0,
+      "localSurfaceX": 259,
+      "localSurfaceY": 80,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -3610,8 +3178,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 179,
-      "localSurfaceY": 50,
+      "localSurfaceX": 259,
+      "localSurfaceY": 130,
       "widthCells": 1,
       "heightCells": 34,
       "rotationQuarterTurns": 0,
@@ -3629,8 +3197,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 179,
-      "localSurfaceY": 96,
+      "localSurfaceX": 259,
+      "localSurfaceY": 176,
       "widthCells": 1,
       "heightCells": 50,
       "rotationQuarterTurns": 0,
@@ -3648,8 +3216,8 @@
       "kindId": "wall",
       "contentRef": null,
       "assetRef": null,
-      "localSurfaceX": 179,
-      "localSurfaceY": 146,
+      "localSurfaceX": 259,
+      "localSurfaceY": 226,
       "widthCells": 1,
       "heightCells": 34,
       "rotationQuarterTurns": 0,

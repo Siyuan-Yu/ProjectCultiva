@@ -30,6 +30,8 @@ namespace XianXia.Core.Construction
         public string OutdoorKind { get; set; } = string.Empty;
         public int FootprintCellsW { get; set; }
         public int FootprintCellsH { get; set; }
+        public float PhysicalScale => World.Surface.SurfaceCellGeometry.IsFurnitureKind(OutdoorKind)
+            ? World.Surface.SurfaceCellGeometry.FurnitureScale : 1f;
         public int ConstructionLabor { get; set; } = 12;
         public string RoomTier { get; set; } = string.Empty;
         public string MaterialKind { get; set; } = string.Empty;

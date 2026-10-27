@@ -553,6 +553,16 @@ namespace XianXia.Core.Npc
 
     public static partial class MortalCivilianService
     {
+        static bool CanRescueCommunity(SimulationWorld world, Entity rescuer, Entity injured)
+        {
+            if (!rescuer.TryGet<FactionMembershipComponent>(out var own) || !own.IsAffiliated ||
+                !injured.TryGet<FactionMembershipComponent>(out var patient) || !patient.IsAffiliated) return false;
+            if (own.FactionId == patient.FactionId) return true;
+            return HuangcunSurvivalService.Applies(world, injured) && !HuangcunSurvivalService.IsPrisoner(world, injured.Id) &&
+                world.Strategic.Sites.TryGet(Ch01ScenarioProgressionHooks.HuangcunSiteId, out var village) &&
+                village.OwnerFactionId == own.FactionId && CharacterWorldPresenceQuery.TryResolve(world, injured.Id, out var at) &&
+                at.HasWorldPosition && world.OpeningArea.ContainsVillage(at.SurfaceId, at.WorldPosition.X, at.WorldPosition.Y);
+        }
         public const string GrainResourceId = "base:resource_grain";
         public const string HerbResourceId = "base:resource_spirit_herb";
         public const string WoodResourceId = "base:resource_rough_wood";
@@ -685,6 +695,12 @@ namespace XianXia.Core.Npc
                     CivilianConstructionJobService.ReleaseCarrier(world, entity.Id);
                     SyncEscort(world, entity, state);
                     state.Activity = MortalActivity.Escorted;
+                    state.LastUpdateTick = world.Tick.Value;
+                    continue;
+                }
+                if (SupervisorAngerDriver.OwnsPursuit(world, entity.Id))
+                {
+                    state.Activity = MortalActivity.DedicatedDuty;
                     state.LastUpdateTick = world.Tick.Value;
                     continue;
                 }
@@ -1466,7 +1482,7 @@ namespace XianXia.Core.Npc
             foreach (var entity in world.Entities.All)
                 if (entity.Id != rescuer.Id &&
                     entity.TryGet<FactionMembershipComponent>(out var faction) && faction.IsAffiliated &&
-                    string.Equals(faction.FactionId, own.FactionId, StringComparison.Ordinal) &&
+                    CanRescueCommunity(world, rescuer, entity) &&
                     entity.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated &&
                     !world.RecoverySpotDeliveries.ContainsInjured(entity.Id) &&
                     !IsRescueReserved(world, entity.Id) &&
@@ -1489,7 +1505,7 @@ namespace XianXia.Core.Npc
             {
                 if (other.Id == rescuer.Id || HuangcunSurvivalService.IsPrisoner(world,other.Id) ||
                     !other.TryGet<FactionMembershipComponent>(out var faction) || !faction.IsAffiliated ||
-                    !string.Equals(faction.FactionId, own.FactionId, StringComparison.Ordinal) ||
+                    !CanRescueCommunity(world, rescuer, other) ||
                     !other.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated ||
                     !CharacterWorldPresenceQuery.TryResolve(world, other.Id, out var presence) || !presence.HasWorldPosition ||
                     !string.Equals(presence.SurfaceId, rescuerPresence.SurfaceId, StringComparison.Ordinal) ||
@@ -1504,6 +1520,7 @@ namespace XianXia.Core.Npc
             {
                 a.TryGet<LifecycleComponent>(out var al);
                 b.TryGet<LifecycleComponent>(out var bl);
+                if (al.IsDying != bl.IsDying) return al.IsDying ? -1 : 1;
                 var deadline = al.BleedOutAfterTick.CompareTo(bl.BleedOutAfterTick);
                 return deadline != 0 ? deadline : a.Id.Value.CompareTo(b.Id.Value);
             });
@@ -1621,7 +1638,7 @@ namespace XianXia.Core.Npc
                 return false;
             if (!rescuer.TryGet<FactionMembershipComponent>(out var own) || !own.IsAffiliated ||
                 !injuredEntity.TryGet<FactionMembershipComponent>(out var injuredFaction) || !injuredFaction.IsAffiliated ||
-                !string.Equals(own.FactionId, injuredFaction.FactionId, StringComparison.Ordinal) ||
+                !CanRescueCommunity(world, rescuer, injuredEntity) ||
                 !CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var rescuerPresence) ||
                 !rescuerPresence.HasWorldPosition ||
                 !CharacterWorldPresenceQuery.TryResolve(world, injured, out var injuredPresence) ||

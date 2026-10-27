@@ -58,8 +58,8 @@ namespace XianXia.Core.World.Surface
         {
             if (!IsFinite(worldX) || !IsFinite(worldY)) return false;
             var chunk = new SurfaceChunkCoord(
-                (int)Math.Floor((worldX - OriginWorldX) / ChunkWidth),
-                (int)Math.Floor((worldY - OriginWorldY) / ChunkHeight));
+                SurfaceCellGeometry.ChunkCoordinate(worldX, OriginWorldX, ChunkWidth),
+                SurfaceCellGeometry.ChunkCoordinate(worldY, OriginWorldY, ChunkHeight));
             return ContainsChunk(chunk);
         }
 

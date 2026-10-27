@@ -75,6 +75,7 @@ namespace XianXia.Core.Construction
         public float WorldY { get; set; }
         public float WorldWidth { get; set; }
         public float WorldHeight { get; set; }
+        /// <summary>Logical local subdivisions; scaled furniture keeps IDs while its physical rectangle grows.</summary>
         public int CellsW { get; set; }
         public int CellsH { get; set; }
         public string BoundLocationId { get; set; } = string.Empty;
@@ -112,6 +113,20 @@ namespace XianXia.Core.Construction
                     OutdoorStatefulObjectId.ForCell(StableAssetId, x, y), cell.SurfaceId,
                     cell.WorldX, cell.WorldY, Kind, BoundLocationId);
             }
+        }
+
+        public IEnumerable<OutdoorConstructedAssetCell> EnumeratePhysicalCells(float originX, float originY, float cellSize)
+        {
+            if (cellSize <= 0f) yield break;
+            var x0 = (int)Math.Floor((WorldX-originX)/cellSize + .002f);
+            var y0 = (int)Math.Floor((WorldY-originY)/cellSize + .002f);
+            var x1 = (int)Math.Ceiling((WorldX+WorldWidth-originX)/cellSize - .002f);
+            var y1 = (int)Math.Ceiling((WorldY+WorldHeight-originY)/cellSize - .002f);
+            for (var y = y0; y < y1; y++)
+            for (var x = x0; x < x1; x++)
+                yield return new OutdoorConstructedAssetCell(SurfaceId,
+                    (Math.Max(WorldX, originX+x*cellSize)+Math.Min(WorldX+WorldWidth, originX+(x+1)*cellSize))*.5f,
+                    (Math.Max(WorldY, originY+y*cellSize)+Math.Min(WorldY+WorldHeight, originY+(y+1)*cellSize))*.5f);
         }
 
         public IEnumerable<OutdoorAdministrativeAssetAnchor> CellAnchors() => AdministrativeCellAnchors();
@@ -361,6 +376,36 @@ namespace XianXia.Core.Construction
 
         public static string RoomWallCellId(OutdoorConstructedAssetState room, int cellX, int cellY) =>
             OutdoorStatefulObjectId.ForCell((room?.StableAssetId ?? string.Empty) + ":wall", cellX, cellY);
+
+        public static bool TryRoomWallRectangle(OutdoorConstructedAssetState room, int gx, int gy,
+            float thickness, bool cornerSide, out float x, out float y, out float width, out float height)
+        {
+            x = y = width = height = 0;
+            if (!IsRoomWallCell(room, gx, gy) || thickness <= 0) return false;
+            var cw = room.WorldWidth / room.CellsW; var ch = room.WorldHeight / room.CellsH;
+            thickness = Math.Min(thickness, Math.Min(cw, ch));
+            var horizontal = gy == 0 || gy == room.CellsH - 1;
+            var vertical = gx == 0 || gx == room.CellsW - 1;
+            x = room.WorldX + gx*cw; y = room.WorldY + gy*ch;
+            if (cornerSide)
+            {
+                if (!horizontal || !vertical || ch <= thickness) return false;
+                if (gx != 0) x += cw-thickness;
+                if (gy == 0) y += thickness;
+                width = thickness; height = ch-thickness;
+            }
+            else if (horizontal)
+            {
+                if (gy != 0) y += ch-thickness;
+                width = cw; height = thickness;
+            }
+            else
+            {
+                if (gx != 0) x += cw-thickness;
+                width = thickness; height = ch;
+            }
+            return true;
+        }
 
         public static bool IsAllowedNestedPair(OutdoorConstructedAssetState a, OutdoorConstructedAssetState b)
         {
@@ -886,7 +931,8 @@ namespace XianXia.Core.Construction
             if (string.IsNullOrWhiteSpace(factionId)) return Result.Failure(ErrorCode.InvalidArgument, "建造势力无效。");
             var physical = ValidatePhysicalPlacement(world, candidate);
             if (physical.IsFailure) return physical;
-            foreach (var cell in candidate.EnumerateGridCells())
+            world.SurfaceSpatial.TryGet(candidate.SurfaceId, out var metric);
+            foreach (var cell in candidate.EnumeratePhysicalCells(metric.OriginWorldX, metric.OriginWorldY, metric.CellSize))
             {
                 WorldSiteAdministrativeControlResolver.TryResolve(world, cell.SurfaceId, cell.WorldX, cell.WorldY, out var site, out _);
                 if (site == null)
@@ -903,12 +949,18 @@ namespace XianXia.Core.Construction
                 !world.SurfaceSpatial.TryGet(candidate.SurfaceId, out var metric))
                 return Result.Failure(ErrorCode.InvalidArgument, "建筑位置或 Surface 无效。");
             var epsilon = metric.CellSize * .001f;
-            if (Math.Abs(candidate.WorldWidth - candidate.CellsW * metric.CellSize) > epsilon ||
+            var scaledFurniture = World.Surface.SurfaceCellGeometry.IsScaledFurniture(
+                candidate.Kind, candidate.WorldWidth, candidate.WorldHeight,
+                candidate.CellsW, candidate.CellsH, metric.CellSize);
+            if (!scaledFurniture && (Math.Abs(candidate.WorldWidth - candidate.CellsW * metric.CellSize) > epsilon ||
                 Math.Abs(candidate.WorldHeight - candidate.CellsH * metric.CellSize) > epsilon ||
                 Math.Abs((candidate.WorldX - metric.OriginWorldX) / metric.CellSize - Math.Round((candidate.WorldX - metric.OriginWorldX) / metric.CellSize)) > .001f ||
-                Math.Abs((candidate.WorldY - metric.OriginWorldY) / metric.CellSize - Math.Round((candidate.WorldY - metric.OriginWorldY) / metric.CellSize)) > .001f)
+                Math.Abs((candidate.WorldY - metric.OriginWorldY) / metric.CellSize - Math.Round((candidate.WorldY - metric.OriginWorldY) / metric.CellSize)) > .001f) ||
+                scaledFurniture && !World.Surface.SurfaceCellGeometry.IsAlignedFurnitureRectangle(
+                    candidate.Kind, candidate.WorldX, candidate.WorldY, candidate.WorldWidth, candidate.WorldHeight,
+                    candidate.CellsW, candidate.CellsH, metric.OriginWorldX, metric.OriginWorldY, metric.CellSize))
                 return Result.Failure(ErrorCode.InvalidArgument, "建筑必须对齐 Surface 网格。");
-            foreach (var cell in candidate.EnumerateGridCells())
+            foreach (var cell in candidate.EnumeratePhysicalCells(metric.OriginWorldX, metric.OriginWorldY, metric.CellSize))
                 if (!metric.ContainsWorldPosition(cell.WorldX, cell.WorldY))
                     return Result.Failure(ErrorCode.InvalidArgument, "建筑超出有效 Surface。");
             return Result.Success();
