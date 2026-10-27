@@ -936,6 +936,7 @@
       "footprintCellsW": 1,
       "footprintCellsH": 1,
       "structureDurability": 60,
+      "dismantleRefundRate": 0.0,
       "costs": [
         {
           "itemId": "base:resource_rough_wood",
