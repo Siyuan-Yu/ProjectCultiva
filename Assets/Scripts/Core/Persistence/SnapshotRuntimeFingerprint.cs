@@ -104,11 +104,15 @@ namespace XianXia.Core.Persistence
                 sb.Append("|HerbDoses=").Append(life.HerbDoses);
                 sb.Append("|Convalescing=").Append(life.Convalescing);
                 sb.Append("|RecoveryHpMilli=").Append(life.RecoveryHpMilli);
+                sb.Append("|CombatUnconscious=").Append(life.CombatUnconscious);
 
             }
             else
                 sb.Append(" life=-");
 
+            if (entity.TryGet<CombatInjuryComponent>(out var injury))
+                sb.Append(" injuries=").Append(injury.CutRecovery).Append(',').Append(injury.SevereRecovery)
+                    .Append(',').Append(injury.MissingLimbs).Append(',').Append(injury.MeridiansBroken);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals) && vitals != null)
             {
                 sb.Append(" hp=").Append(vitals.CurrentHp);

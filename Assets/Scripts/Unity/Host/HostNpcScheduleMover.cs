@@ -167,6 +167,13 @@ namespace XianXia.Unity.Host
             {
                 if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
                     continue;
+                // Release only the old schedule path before examining intent revisions.
+                // Tactical pursuit now owns this body and must never be reconciled as work.
+                if (CharacterEncounterService.OwnsParticipantSpatialState(session.World, entity.Id))
+                {
+                    CancelCivilianIntent(entity.Id);
+                    continue;
+                }
                 if ((entity.Tags & EntityTag.Character) != 0 &&
                     !entity.TryGet<PersonalLifeComponent>(out _)) continue;
                 if ((entity.Tags & EntityTag.Character) != 0 &&
@@ -182,7 +189,7 @@ namespace XianXia.Unity.Host
                 if (!LocalMapVisibility.IsEntityVisible(session.World, entity.Id))
                     continue;
                 // 弥留／尸体不跑日程寻路
-                if (!CombatLifeStateService.CanFight(entity))
+                if (!CombatLifeStateService.CanFight(entity) && !PrisonConfinementService.CanWalk(session.World, entity))
                     continue;
                 MortalCivilianState civilian = null;
                 var managedMortal = MortalCivilianQuery.IsManagedCivilian(session.World, entity) &&
@@ -507,18 +514,20 @@ namespace XianXia.Unity.Host
         {
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
             if (surface == null || !surface.IsActive || viewSpawner?.Registry == null) return;
+            var battle = world.Strategic.CharacterEncounter;
+            if (battle != null && (battle.Phase == CharacterEncounterPhase.Active || battle.Phase == CharacterEncounterPhase.ReadyToEnd))
+                MortalCivilianService.ReconcileEscortsForEncounter(world, battle);
             foreach (var pair in world.Civilians.All)
             {
                 var state = pair.Value;
                 var targetId = state.RescueCarrying ? state.RescueTargetId :
                     state.Disposition == CivilianDisposition.CapturedEscorted ? pair.Key : EntityId.None;
-                var carrierId = state.RescueCarrying ? pair.Key : state.CarrierId;
-                if (targetId.IsNone || carrierId.IsNone ||
+                if (!HostCharacterVisualContext.TryGetCarrier(world, targetId, out var carrierId) ||
                     !viewSpawner.Registry.TryGet(carrierId, out var carrier) || carrier == null ||
                     !viewSpawner.Registry.TryGet(targetId, out var target) || target == null) continue;
                 // The transported body stays in front of the carrier in every facing.
                 // This is only a View offset; WorldPresence remains at the carrier's feet.
-                target.transform.position = carrier.transform.position + carrier.CarryFacing * .38f;
+                target.transform.position = HostCharacterVisualContext.CarriedPresentationPosition(carrier);
                 target.SetCarriedPresentationOrder(HostArtDepth.Order(carrier.transform.position.y) + 1);
                 surface.Mapper.PresentationToWorld(carrier.transform.position.x,
                     carrier.transform.position.y, out var wx, out var wy);
@@ -527,6 +536,9 @@ namespace XianXia.Unity.Host
                     (encounter.Phase == CharacterEncounterPhase.Active ||
                      encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
                 {
+                    var participant = encounter.Find(targetId.Value);
+                    if (participant != null)
+                    { participant.TacticalX = wx; participant.TacticalY = wy; }
                     var presence = world.WorldPresence.GetOrCreate(targetId);
                     presence.Mode = PartyWorldPresenceMode.InEncounter;
                     presence.SiteId = string.Empty;

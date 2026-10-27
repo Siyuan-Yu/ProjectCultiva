@@ -47,6 +47,7 @@ namespace XianXia.Core.Social
                 return Result.Failure(ErrorCode.InvalidArgument, "社会事件双方必须是不同的 Character。");
 
             var objective = world.Events.Publish(type, world.Tick, actor, target);
+            if (type == EventType.SocialCharacterAttacked) XianXia.Core.Npc.PrisonManagementService.RecordAttack(world, target);
             return consequence(objective);
         }
     }

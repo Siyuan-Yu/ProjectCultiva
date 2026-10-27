@@ -84,6 +84,24 @@ namespace XianXia.Unity.Host
                 RoomBedFacilityService.IsAtBed(world, bed, id);
         }
 
+        public static Vector3 CarriedPresentationPosition(EntityView carrier) =>
+            carrier.transform.position + carrier.CarryFacing * .38f;
+
+        public static bool TryGetCarrier(SimulationWorld world, EntityId target, out EntityId carrier)
+        {
+            carrier = EntityId.None;
+            if (world == null || target.IsNone) return false;
+            if (world.Civilians.TryGet(target, out var custody) &&
+                custody.Disposition == CivilianDisposition.CapturedEscorted)
+                carrier = custody.CarrierId;
+            else if (MortalCivilianService.CanReceiveAutomaticRescue(world, target))
+                foreach (var pair in world.Civilians.All)
+                    if (pair.Value.RescueCarrying && pair.Value.RescueTargetId == target)
+                    { carrier = pair.Key; break; }
+            return !carrier.IsNone && world.Entities.TryGet(carrier, out var holder) &&
+                XianXia.Core.Combat.CombatLifeStateService.CanFight(holder);
+        }
+
         public static void ResolveCarry(SimulationWorld world, EntityId id,
             out bool cargo, out bool person, out bool carried)
         {
@@ -98,7 +116,8 @@ namespace XianXia.Unity.Host
                 {
                     var state = pair.Value;
                     if (state == null) continue;
-                    if (state.RescueCarrying && !state.RescueTargetId.IsNone)
+                    if (state.RescueCarrying && !state.RescueTargetId.IsNone &&
+                        MortalCivilianService.CanReceiveAutomaticRescue(world, state.RescueTargetId))
                     { PersonCarriers.Add(pair.Key); CarriedPeople.Add(state.RescueTargetId); }
                     if (state.Disposition == CivilianDisposition.CapturedEscorted && !state.CarrierId.IsNone)
                     { PersonCarriers.Add(state.CarrierId); CarriedPeople.Add(pair.Key); }
@@ -111,6 +130,7 @@ namespace XianXia.Unity.Host
             HostFarmFieldLabor farm, HostDestructibleAssault assault)
         {
             if (world == null || entity == null) return default;
+            if (XianXia.Core.World.Strategic.CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id)) return default;
             if (farm != null && farm.TryGetWorkVisual(entity.Id, out var farming)) return farming;
             if (assault != null && assault.TryGetWorkVisual(entity.Id, out var logging)) return logging;
             // An executor in its approach/wait phase must not inherit a stale scheduled action.

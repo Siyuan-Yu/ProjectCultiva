@@ -210,6 +210,8 @@ namespace XianXia.Core.Cultivation
                 return false;
             }
 
+            if (XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity))
+            { reason = "经脉断裂，无法冲击瓶颈"; return false; }
             // 感应境突破不依赖功法；炼气及以后才需已得功法。
             if (cultivation.Realm >= RealmStage.QiRefining && !cultivation.HasLearnedManual)
             {

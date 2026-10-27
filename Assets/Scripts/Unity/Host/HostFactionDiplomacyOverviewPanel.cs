@@ -215,7 +215,7 @@ namespace XianXia.Unity.Host
                         "\n饱食 " + state.Satiety + "  精力 " + state.Energy + "  忠诚 " +
                         (CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out var loyalty) ? loyalty.ToString() : "—"),
                         _body, 40f);
-                    var buttonWidth = Mathf.Max(54f, (viewport.width - 24f) / 5f);
+                    var buttonWidth = (viewport.width - 24f) / Enum.GetValues(typeof(MortalProfession)).Length;
                     foreach (MortalProfession profession in Enum.GetValues(typeof(MortalProfession)))
                     {
                         if (GUI.Button(new Rect((int)profession * buttonWidth, y, buttonWidth - 3f, 22f), ProfessionLabel(profession)))
@@ -279,6 +279,7 @@ namespace XianXia.Unity.Host
                 case MortalProfession.HerbFarmer: return "药农";
                 case MortalProfession.Logger: return "伐木";
                 case MortalProfession.Medic: return "医者";
+                case MortalProfession.Warden: return "监管";
                 default: return "未分配";
             }
         }

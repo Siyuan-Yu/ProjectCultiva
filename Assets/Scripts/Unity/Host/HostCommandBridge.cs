@@ -818,6 +818,14 @@ namespace XianXia.Unity.Host
                 }
 
                 // 新指令打断待命 Wait／旧行动，避免「点了劳动却排在 Wait 后面」
+                if ((kind == PlayerCommandKind.Labor || kind == PlayerCommandKind.Cultivate) &&
+                    AutonomousActionContinuationService.BlocksOrdinaryWork(_session.World, id))
+                {
+                    _lastFailureCount++;
+                    _lastStatus = AutonomousActionContinuationService.EncounterWorkBlockedReason;
+                    HostWorldSiteCoreWarfare.Feedback(hostBootstrap, _lastStatus);
+                    continue;
+                }
                 if (!utility)
                     _session.Loop.StopSubject(id);
 

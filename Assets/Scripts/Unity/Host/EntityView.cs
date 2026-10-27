@@ -52,6 +52,7 @@ namespace XianXia.Unity.Host
         Color _baseColor = Color.white;
         bool _highlight;
         float _hitFlashRemaining;
+        string _encounterActivity;
         HostStepAArt.Profile _artProfile;
         HostStepAArt.RigSkin _artSkin;
         HostStepAArt.Direction _artDirection = HostStepAArt.Direction.South;
@@ -731,6 +732,14 @@ namespace XianXia.Unity.Host
                     activityText = string.Empty;
             }
 
+            var encounterActivity = HostCharacterEncounter.DescribeParticipantActivity(_world, entity.Id);
+            if (encounterActivity != null)
+                activityText = _encounterActivity = encounterActivity;
+            else if (_encounterActivity != null)
+            {
+                if (activityText == _encounterActivity) activityText = string.Empty;
+                _encounterActivity = null;
+            }
             RefreshLabel(display);
             ApplyLifeStateVisual(entity);
         }
@@ -756,7 +765,8 @@ namespace XianXia.Unity.Host
             }
             else if (_lifeTint)
             {
-                if (life.State == LifecycleState.Alive && life.LastLifeTransitionReason == "Recovery")
+                if ((life.State == LifecycleState.Alive || life.State == LifecycleState.Captured) &&
+                    life.LastLifeTransitionReason == "Recovery")
                     SyncRecoveredStandingPosition();
                 _lifeTint = false;
                 if (activityText == _lifeActivity) activityText = string.Empty;
@@ -767,6 +777,7 @@ namespace XianXia.Unity.Host
 
         void SyncRecoveredStandingPosition()
         {
+            if (CharacterEncounterService.OwnsParticipantSpatialState(_world, _entityId)) return;
             // Core has stood the patient at a real bed access point. Consume that exact position
             // once, before a new civilian path starts from the obsolete bed-centre view position.
             var host = _moveController != null ? _moveController.GetComponent<PlayableHostBootstrap>() : null;
@@ -826,6 +837,8 @@ namespace XianXia.Unity.Host
             if (!canAct || sleeping) ClearProjectedLocomotion();
             var moved = !paused && canAct && !sleeping && distance > .0001f && IsFinite(movement);
             var work = HostCharacterVisualContext.ResolveWork(_world, entity, _farmLabor, _destructibleAssault);
+            if (CharacterEncounterService.OwnsParticipantSpatialState(_world, _entityId))
+            { _pendingWorkContact = false; _workContactRemaining = 0f; }
             if ((work.Motion == HumanWorkMotion.BoardPlace || work.Motion == HumanWorkMotion.BoardThink) &&
                 ChessRecreationService.IsPlaying(_world, _entityId, out _, out var boardDirection))
             { work.HasTarget = true; work.Target = transform.position + new Vector3(boardDirection.X, boardDirection.Y, 0).normalized; }
@@ -873,13 +886,15 @@ namespace XianXia.Unity.Host
             if (_useModularRig && _modularRig != null)
             {
                 if (entity.TryGet<LifecycleComponent>(out var rigLife))
-                    _modularRig.SetLifePose(rigLife.IsIncapacitated, rigLife.IsDead, beingCarried);
+                    _modularRig.SetLifePose(rigLife.IsIncapacitated, rigLife.IsDead, beingCarried,
+                        !FlightService.IsAirborne(entity) && !CombatInjuryService.CanWalk(entity));
                 if (_pendingWorkContact && !paused && work.Motion == _workContactVisual.Motion)
                     _modularRig.NotifyWorkContact(work.Motion);
                 _modularRig.Apply(_artAction, _artDirection, _artState.WalkPhase01,
                     _artState.Clock, work.Tool, carryingCargo, carryingPerson, work.Motion, _attackStyle,
                     paused ? 0f : Time.unscaledDeltaTime, _artState.IsLocomoting,
                     aiming ? (Vector3?)aimDirection : null, airborne);
+                _modularRig.SetMissingLimbs(entity.TryGet<CombatInjuryComponent>(out var injury) ? injury.MissingLimbs : 0);
                 if (bodyRenderer != null) bodyRenderer.enabled = false;
                 rigWalkBlend = _modularRig.WalkBlend;
                 rigBodyVisible = _modularRig.HasVisibleBody;
@@ -972,7 +987,9 @@ namespace XianXia.Unity.Host
                 // Consume that existing occupancy without assigning beds or granting treatment.
                 if (TryGetValidOccupiedRestBed(out var occupiedBed) && TryApplyBedRest(sprite, occupiedBed))
                     return;
-                SetSleepVisual(null, transform.position);
+                // The modular rig owns its downed pose. The legacy sprite driver must also
+                // display a lying body rather than merely stop on its standing idle frame.
+                SetSleepVisual(sprite, transform.position, !_useModularRig);
                 return;
             }
             var ground = _world.Civilians.TryGet(_entityId, out var civilian) &&

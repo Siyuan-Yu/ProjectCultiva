@@ -168,7 +168,8 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(card.x + 10f, card.y + 72f, card.width - 20f, 20f),
                 "前往地点：" + targetWork + "    住处床位：" + targetBed, _small);
             GUI.Label(new Rect(card.x + 10f, card.y + 92f, card.width - 20f, 20f),
-                "状态：" + (string.IsNullOrEmpty(state.ScheduleStatus) ? scheduleReason : state.ScheduleStatus), _small);
+                "状态：" + (state.Profession == MortalProfession.Warden ? state.WardenStatus :
+                    string.IsNullOrEmpty(state.ScheduleStatus) ? scheduleReason : state.ScheduleStatus), _small);
             var buttonW = Mathf.Min(112f, (card.width - 20f) / Professions.Length);
             GUI.enabled = manageable;
             for (var p = 0; p < Professions.Length; p++)

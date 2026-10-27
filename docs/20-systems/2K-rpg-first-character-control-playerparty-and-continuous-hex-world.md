@@ -1,5 +1,9 @@
 # RPG-First：Active Character、PlayerParty、Continuous Surface 与 Legacy Compatibility
 
+> **2026-10-27 战斗工作互斥：** [416](../40-process/416-encounter-pursuit-and-work-lock-2026-10-27.md)规定实际 CharacterEncounter 参战者至结算前不能执行普通劳动、耕田、伐木、资源采集或修炼；入战清理旧普通行动／睡眠／日程移动，工作拒绝不得打断战斗指令。正式战斗破墙沿原规则。追击独立于攻击冷却，用实时冷却更新并沿有效路线持续跟随；普通日程与渲染不能接管战场寻路。Implemented，运行待人工验收。
+
+> **2026-10-27 人物导航补充：** [415](../40-process/415-character-navigation-recovery-2026-10-27.md)将静态墙／床／门路径与动态脚底避让串联：有效追击路线复用；短步扫掠、局部绕人、原范围落点重选；中途失效只重建路线，不改原命令所有权或提前触发交互。载荷无独立占位／路径，抱持者沿脚底通行。持续堵路有界重试后提示，暂停不计超时；不得穿墙／瞬移或扩大原交付半径。Implemented，运行待人工验收。
+
 > **当前移动倍率：** 步行相对 0.0.43 为 1.5 倍，斗气化翼起飞后为调整后步行的 2 倍。倍率读取 worldSpatialRules 内容的 `walkSpeedMultiplier`／`flightSpeedMultiplier`，WASD、点击、NPC 热冷移动和小队统一消费；混合空地小队按地面倍率，全员飞行才使用飞行倍率。世界时间倍率、移动 authority、化翼资格与消耗不变。见 [ADR-0064](../40-process/43-decisions/ADR-0064-thin-room-walls-larger-resources-and-movement.md)／[397](../40-process/397-thin-room-walls-resources-and-movement.md)。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）

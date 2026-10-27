@@ -279,6 +279,12 @@ namespace XianXia.Core.World.Strategic
                     new EntityId(squad.MemberCharacterIds[i]))) { hasLiving = true; break; }
             if (!hasLiving) return;
             budget *= ContinuousWorldMovementScale.MovementMultiplier(world, Combat.FlightService.AllAirborne(world, squad));
+            var bodyMultiplier = 1f;
+            for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
+                if (world.Entities.TryGet(new EntityId(squad.MemberCharacterIds[i]), out var member) &&
+                    Combat.CombatLifeStateService.CanFight(member) && !Combat.FlightService.IsAirborne(member))
+                    bodyMultiplier = Math.Min(bodyMultiplier, Combat.CombatInjuryService.GroundMovementMultiplier(member));
+            budget *= bodyMultiplier;
             if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation)) return;
             if (!HuangcunOpeningAccess.AllowsPosition(world, motion.SurfaceId,
                     motion.WorldPosition.X, motion.WorldPosition.Y) ||

@@ -29,17 +29,21 @@ namespace XianXia.Core.Combat
             if (!entity.TryGet<LifecycleComponent>(out var life)) return 0;
             long rate = entity.TryGet<AttributesComponent>(out var attrs)
                 ? attrs.GetFinal(AttributeId.HealthRecoveryRateMilli) : 0;
-            if (life.IsUnconscious)
-                rate += (long)life.HerbDoses * HerbRateMilli;
-            else if (life.IsIncapacitated || life.HerbDoses > 0)
-                rate += BaseDyingRateMilli + (long)life.HerbDoses * HerbRateMilli;
+            if (life.IsDying) rate += BaseDyingRateMilli;
+            else if (entity.TryGet<AttributesComponent>(out var body))
+                rate += Math.Max(1, body.GetFinal(AttributeId.MaxHp)); // 0.1% max HP/second, in milli-HP.
+            rate += (long)life.HerbDoses * HerbRateMilli;
             if (TryGetPatientBed(world, entity, out var bed) &&
                 RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Medical))
                 rate += MedicalBedRateMilli;
+            if (rate > 0 && entity.TryGet<XianXia.Core.Npc.PersonalLifeComponent>(out var needs) && needs.Satiety == 0)
+                rate = 0;
+            if (rate > 0 && world.Civilians.TryGet(entity.Id, out var civilian) && civilian.Satiety == 0)
+                rate = 0;
             return (int)Math.Max(-1000000L, Math.Min(1000000L, rate));
         }
 
-        // Called once per existing world second, or once per encounter real second while WorldTick is frozen.
+        // Called once per world second, or per tactical simulation second while WorldTick is frozen.
         public static void AdvanceSecond(SimulationWorld world, Entity entity)
         {
             if (!entity.TryGet<LifecycleComponent>(out var life) ||
@@ -55,6 +59,7 @@ namespace XianXia.Core.Combat
             // world's bed inventory; it cannot change a full-health character with no
             // pending medical progress or herb treatment, regardless of recovery rate.
             if (life.State == LifecycleState.Alive && !life.HasMedicalProgress && life.HerbDoses == 0 &&
+                !CombatInjuryService.HasRecoverable(entity) &&
                 entity.TryGet<CombatVitalsComponent>(out var currentVitals) &&
                 entity.TryGet<AttributesComponent>(out var currentAttributes) &&
                 currentVitals.CurrentHp >= Math.Max(1, currentAttributes.GetFinal(AttributeId.MaxHp)))
@@ -86,7 +91,8 @@ namespace XianXia.Core.Combat
             var total = (long)life.RecoveryHpMilli + rate;
             vitals.CurrentHp = (int)Math.Min(maxHp, (long)vitals.CurrentHp + total / 1000);
             life.RecoveryHpMilli = (int)(total % 1000);
-            if (life.IsIncapacitated && !life.IsUnconscious && (long)vitals.CurrentHp * 2 > maxHp)
+            CombatInjuryService.AdvanceHealing(entity, rate);
+            if (life.IsIncapacitated && (long)vitals.CurrentHp * 2 > maxHp)
             {
                 var doses = life.HerbDoses;
                 var fraction = life.RecoveryHpMilli;
@@ -95,7 +101,7 @@ namespace XianXia.Core.Combat
                 life.HerbDoses = doses;
                 life.RecoveryHpMilli = fraction;
             }
-            if (vitals.CurrentHp >= maxHp && !life.IsUnconscious) life.ResetMedicalProgress();
+            if (vitals.CurrentHp >= maxHp && !life.IsUnconscious && !CombatInjuryService.HasRecoverable(entity)) life.ResetMedicalProgress();
         }
     }
 }

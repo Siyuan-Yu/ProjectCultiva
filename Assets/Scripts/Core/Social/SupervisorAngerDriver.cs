@@ -22,6 +22,7 @@ namespace XianXia.Core.Social
     public sealed class SupervisorAngerDriver
     {
         public const int ObservationRangeCells = 20;
+        public const int PrisonTrespassBufferCells = 3;
         public static bool IsOnWatch(SimulationWorld world, Entity candidate) =>
             HuangcunOpeningAccess.IsOpeningStaff(world, candidate.Id) && CombatLifeStateService.CanFight(candidate) &&
             MortalTransportConstraintService.ValidateAttack(world, candidate.Id).IsSuccess &&
@@ -53,6 +54,8 @@ namespace XianXia.Core.Social
                     loop.StopSubject(pursuing.Id);
                 Pursue(world); return;
             }
+            foreach (var member in world.Entities.All)
+                if (TryBeginPrisonTrespass(world, loop, member.Id)) return;
             var id = world.Strategic.PlayerPartyContext?.ActiveCharacterId ?? EntityId.None;
             if (!world.Entities.TryGet(id, out var subject) || !HuangcunSurvivalService.Applies(world, subject) ||
                 HuangcunSurvivalService.IsPrisoner(world, id) || !CombatLifeStateService.CanFight(subject) ||
@@ -73,11 +76,58 @@ namespace XianXia.Core.Social
             if (++s.ObservationSeconds < 5) return;
             s.ObservationSeconds = 0; world.SupervisorAnger.Add(1); s.SupervisorAnger = world.SupervisorAnger.Value;
             if (s.SupervisorAnger < 100) return;
+            BeginPursuit(world, loop, observer, id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
+        }
+
+        public static bool TryFindPrisonObserver(SimulationWorld world, EntityId id, out Entity observer)
+        {
+            observer = null;
+            if (world?.HuangcunSurvival.Enabled != true || !HuangcunOpeningAccess.IsLocked(world) ||
+                world.LocalMap.IsInInterior || world.Strategic.CharacterEncounter != null ||
+                world.Strategic.PlayerPartyContext?.IsMember(id) != true ||
+                !world.Entities.TryGet(id, out var intruder) || !HuangcunSurvivalService.Applies(world, intruder) ||
+                HuangcunSurvivalService.IsPrisoner(world, id) || !CombatLifeStateService.CanFight(intruder) ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(world.HuangcunSurvival.PrisonRoomId, out var room) ||
+                room.RoomUsage != XianXia.Core.Construction.RoomUsage.Prison ||
+                !CharacterWorldPresenceQuery.TryResolve(world, id, out var at) || !at.HasWorldPosition ||
+                at.SurfaceId != room.SurfaceId) return false;
+            var dx = Math.Max(room.WorldX - at.WorldPosition.X, Math.Max(0, at.WorldPosition.X - room.WorldX - room.WorldWidth));
+            var dy = Math.Max(room.WorldY - at.WorldPosition.Y, Math.Max(0, at.WorldPosition.Y - room.WorldY - room.WorldHeight));
+            var buffer = world.OpeningArea.CellSize * PrisonTrespassBufferCells;
+            if (dx * dx + dy * dy > buffer * buffer) return false;
+            var best = double.MaxValue;
+            foreach (var candidate in world.Entities.All)
+            {
+                if (!IsOnWatch(world, candidate) || CharacterEncounterService.OwnsParticipantSpatialState(world, candidate.Id) ||
+                    !CharacterWorldPresenceQuery.TryResolve(world, candidate.Id, out var there) || !there.HasWorldPosition ||
+                    there.SurfaceId != at.SurfaceId) continue;
+                var distance = WorldVec2.Distance(at.WorldPosition, there.WorldPosition);
+                if (distance > world.OpeningArea.CellSize * ObservationRangeCells || distance > best ||
+                    distance == best && observer != null && candidate.Id.Value > observer.Id.Value) continue;
+                observer = candidate; best = distance;
+            }
+            return observer != null;
+        }
+
+        public static bool TryBeginPrisonTrespass(SimulationWorld world, SimulationLoop loop, EntityId id)
+        {
+            if (world?.HuangcunSurvival.Enabled != true || !HuangcunOpeningAccess.IsLocked(world)) return false;
+            var s = world.HuangcunSurvival;
+            if (s.PunisherId != 0) return s.PunishmentTargetId == id.Value;
+            if (!TryFindPrisonObserver(world, id, out var observer)) return false;
+            BeginPursuit(world, loop, observer, id, "靠近牢房禁区被" + observer.DisplayName + "发现，正在追赶你！");
+            return true;
+        }
+
+        static void BeginPursuit(SimulationWorld world, SimulationLoop loop, Entity observer, EntityId id, string message)
+        {
+            var s = world.HuangcunSurvival;
+            s.ObservationSeconds = 0;
             s.PunisherId = observer.Id.Value; s.PunishmentTargetId = id.Value;
             loop?.StopSubject(observer.Id);
             world.WorkAreaOccupancy.Release(observer.Id);
             world.Strategic.SuppressedCharacterContacts.Remove(CharacterEncounterService.ContactKey(observer.Id, id));
-            s.Message = "违规被巡查者发现，主管怒气已满，正前来惩戒。";
+            s.Message = message;
             Pursue(world);
         }
 
@@ -122,7 +172,12 @@ namespace XianXia.Core.Social
 
         public static bool IsPunishmentPair(SimulationWorld world, EntityId attacker, EntityId target) =>
             world?.HuangcunSurvival?.Enabled == true && world.HuangcunSurvival.PunisherId == attacker.Value &&
-            world.HuangcunSurvival.PunishmentTargetId == target.Value && !attacker.IsNone && !target.IsNone;
+            world.HuangcunSurvival.PunishmentTargetId == target.Value && !attacker.IsNone && !target.IsNone &&
+            !IsDeclaredWarPair(world, attacker, target);
+        static bool IsDeclaredWarPair(SimulationWorld world, EntityId attacker, EntityId target) =>
+            world.Entities.TryGet(attacker, out var a) && world.Entities.TryGet(target, out var b) &&
+            a.TryGet<FactionMembershipComponent>(out var af) && b.TryGet<FactionMembershipComponent>(out var bf) &&
+            WarGateService.CanAttack(world, af.FactionId, bf.FactionId);
         public static bool IsNonlethalAttacker(SimulationWorld world, EntityId actor) =>
             world?.HuangcunSurvival?.PunishmentBattleActive == true && world.HuangcunSurvival.PunisherId == actor.Value;
         public static void FinishPunishment(SimulationWorld world)

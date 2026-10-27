@@ -69,12 +69,14 @@ namespace XianXia.Core.World.Strategic
         public string SourceSurfaceId = "";
         public string SourceSiteId = "";
         public float CenterX, CenterY, Width, Height;
-        public float ElapsedSeconds, DecayAccumulator;
+        public float ElapsedSeconds, DecayAccumulator, MedicalAccumulator;
         public float NextRetreatAttemptAt;
         public bool Retreated;
         public CharacterEncounterPhase Phase;
         public bool PlayerWon;
         public bool CoreOnlyAssault;
+        // Optional structure-only battle identity; not a SiteCore capture objective.
+        public string PrisonAssaultRoomId = "";
         public SiteCoreEncounterObjective Objective;
         public EncounterSiteCoreDefense SiteCoreDefense;
         public readonly List<string> ObjectiveDefenderSquads = new List<string>();
@@ -211,6 +213,61 @@ namespace XianXia.Core.World.Strategic
             if (state.SiteCoreDefense == null ||
                 state.SiteCoreDefense.CoreKind != WorldSiteCoreKind.RemovableFactionFlag)
                 return Fail("Unmanned flag defense cannot join the frozen field.");
+            state.EncounterId = "encounter:" + world.Entities.Ids.Next().Value;
+            state.DecisionAt = world.Strategic.SpatialRules.InterventionDecisionSeconds;
+            state.ArrivalDelay = world.Strategic.SpatialRules.InterventionArrivalSeconds;
+            state.RelationThreshold = world.Strategic.SpatialRules.InterventionRelationThreshold;
+            state.ChanceBasisPoints = world.Strategic.SpatialRules.InterventionChanceBasisPoints;
+            FreezeCandidates(world, state);
+            prepared = state;
+            return Result.Success();
+        }
+
+        public static Result PrepareForPrisonAssault(SimulationWorld world, EntityId attacker,
+            EntityId defender, string roomId, out CharacterEncounterState prepared)
+        {
+            prepared = null;
+            if (!world.OutdoorConstructedAssets.Assets.TryGetValue(roomId, out var room) ||
+                room.RoomUsage != XianXia.Core.Construction.RoomUsage.Prison ||
+                !PrisonWallBreachService.TryOwner(world, room, out var site) ||
+                !world.Entities.TryGet(attacker, out var entity) ||
+                !entity.TryGet<FactionMembershipComponent>(out var faction) ||
+                !WarGateService.CanAttack(world, faction.FactionId, site.OwnerFactionId))
+                return Fail("攻击监狱需要真实房间及已宣战的所属势力。");
+            if (!defender.IsNone)
+            {
+                var result = PrepareInternal(world, attacker, defender, room.SurfaceId, site.SiteId, out prepared);
+                if (result.IsSuccess)
+                {
+                    if (!prepared.Contains(room.WorldX, room.WorldY) ||
+                        !prepared.Contains(room.WorldX + room.WorldWidth, room.WorldY + room.WorldHeight))
+                    { prepared = null; return Fail("监狱不在所属据点的冻结战场范围内。"); }
+                    prepared.PrisonAssaultRoomId = roomId;
+                }
+                return result;
+            }
+            if (world.Strategic.CharacterEncounter != null || StrategicClockFreezeService.IsWorldTickFrozen(world) ||
+                world.Strategic.PlayerPartyContext?.IsMember(attacker) != true || !IsLiving(world, attacker.Value) ||
+                !world.Strategic.Squads.TryGetForCharacter(attacker, out var squad))
+                return Fail("当前不能进入监狱墙体战场。");
+            var state = new CharacterEncounterState
+            {
+                SourceSurfaceId = room.SurfaceId, SourceSiteId = site.SiteId, PrisonAssaultRoomId = roomId,
+                CenterX = site.CoreWorldX, CenterY = site.CoreWorldY,
+                Width = site.CoreRangeWidth, Height = site.CoreRangeHeight, Phase = CharacterEncounterPhase.Preparing
+            };
+            if (!state.Contains(room.WorldX, room.WorldY) || !state.Contains(room.WorldX + room.WorldWidth, room.WorldY + room.WorldHeight))
+                return Fail("监狱不在所属据点的冻结战场范围内。");
+            foreach (var raw in squad.MemberCharacterIds)
+            {
+                if (!IsLiving(world, raw)) continue;
+                var id = new EntityId(raw);
+                if (!CharacterEncounterSpatialAuthorityResolver.TryResolveEncounterWorldPosition(world, id,
+                        room.SurfaceId, out var point, out var owner, out var ownerId, out _) || !state.Contains(point.X, point.Y) ||
+                    world.Strategic.Participants.FindByEntity(id) != null)
+                    return Fail("队伍成员不在可进入的监狱战场范围内。");
+                state.Participants.Add(CreateEntry(world, id, squad.SquadId, false, point, owner, ownerId));
+            }
             state.EncounterId = "encounter:" + world.Entities.Ids.Next().Value;
             state.DecisionAt = world.Strategic.SpatialRules.InterventionDecisionSeconds;
             state.ArrivalDelay = world.Strategic.SpatialRules.InterventionArrivalSeconds;
@@ -378,7 +435,9 @@ namespace XianXia.Core.World.Strategic
             }
             state.Phase = CharacterEncounterPhase.Active;
             world.Strategic.CharacterEncounter = state;
-            if (state.Objective == null && world.HuangcunSurvival.PunisherId != 0 && state.Find(world.HuangcunSurvival.PunisherId) != null &&
+            if (state.Objective == null && string.IsNullOrEmpty(state.PrisonAssaultRoomId) &&
+                SupervisorAngerDriver.IsPunishmentPair(world, new EntityId(world.HuangcunSurvival.PunisherId), new EntityId(world.HuangcunSurvival.PunishmentTargetId)) &&
+                state.Find(world.HuangcunSurvival.PunisherId) != null &&
                 state.Find(world.HuangcunSurvival.PunishmentTargetId) != null)
                 world.HuangcunSurvival.PunishmentBattleActive = true;
             SiteCoreEncounterDefenseService.EnsureJoined(world, state);
@@ -399,7 +458,8 @@ namespace XianXia.Core.World.Strategic
                 (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return Fail("Invalid independent encounter snapshot.");
             if (!Finite(state.DecisionAt) || state.DecisionAt < 0 || !Finite(state.ArrivalDelay) || state.ArrivalDelay < 0 ||
                 state.RelationThreshold < 1 || state.RelationThreshold > 100 || state.ChanceBasisPoints < 0 || state.ChanceBasisPoints > 10000 ||
-                !Finite(state.DecayAccumulator) || state.DecayAccumulator < 0 || state.DecayAccumulator >= 1 || state.RosterVersion < 1)
+                !Finite(state.DecayAccumulator) || state.DecayAccumulator < 0 || state.DecayAccumulator >= 1 ||
+                !Finite(state.MedicalAccumulator) || state.MedicalAccumulator < 0 || state.MedicalAccumulator >= 1 || state.RosterVersion < 1)
                 return Fail("Invalid encounter timing or intervention rules.");
             if (!SiteCoreEncounterDefenseService.ValidateRestored(world, state))
                 return Fail("Invalid SiteCore battle defense snapshot.");
@@ -470,7 +530,8 @@ namespace XianXia.Core.World.Strategic
                 if ((o.Kind != SiteCoreObjectiveKind.FixedSiteCoreCapture && o.Kind != SiteCoreObjectiveKind.RemovableFactionFlagDestruction) ||
                     string.IsNullOrEmpty(o.AssetId) || string.IsNullOrEmpty(o.AttackerFactionId) || string.IsNullOrEmpty(o.DefenderFactionId) ||
                     o.AttackerFactionId == o.DefenderFactionId || string.IsNullOrWhiteSpace(o.SiteId) ||
-                    (o.Resolved && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return Fail("Invalid SiteCore objective snapshot.");
+                    (o.Resolved && state.Phase != CharacterEncounterPhase.ReadyToEnd &&
+                     state.Phase != CharacterEncounterPhase.Active)) return Fail("Invalid SiteCore objective snapshot.");
             }
             var coreOnlyFlag = state.CoreOnlyAssault &&
                                state.Objective?.Kind == SiteCoreObjectiveKind.RemovableFactionFlagDestruction &&
@@ -478,7 +539,14 @@ namespace XianXia.Core.World.Strategic
                                state.Objective.SiteId == state.SiteCoreDefense.SiteId;
             if (state.CoreOnlyAssault && !coreOnlyFlag)
                 return Fail("Invalid unmanned flag encounter identity.");
-            return friendly > 0 && (enemy > 0 || coreOnlyFlag)
+            var prisonAssault = !string.IsNullOrEmpty(state.PrisonAssaultRoomId);
+            if (prisonAssault && (state.CoreOnlyAssault || state.Objective != null ||
+                !world.OutdoorConstructedAssets.Assets.TryGetValue(state.PrisonAssaultRoomId, out var prison) ||
+                prison.RoomUsage != XianXia.Core.Construction.RoomUsage.Prison || prison.SurfaceId != state.SourceSurfaceId ||
+                string.IsNullOrEmpty(state.SourceSiteId) || !state.Contains(prison.WorldX, prison.WorldY) ||
+                !state.Contains(prison.WorldX + prison.WorldWidth, prison.WorldY + prison.WorldHeight)))
+                return Fail("Invalid prison structure encounter identity.");
+            return friendly > 0 && (enemy > 0 || coreOnlyFlag || prisonAssault)
                 ? Result.Success() : Fail("Encounter lacks two sides.");
         }
 
@@ -561,6 +629,7 @@ namespace XianXia.Core.World.Strategic
             state.PlayerWon = true;
             state.Phase = CharacterEncounterPhase.ReadyToEnd;
             world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.PostBattle;
+            RefreshCombatReadiness(world);
         }
 
         public static void BindRuntime(SimulationWorld world)
@@ -574,6 +643,7 @@ namespace XianXia.Core.World.Strategic
             foreach (var p in state.Participants)
             {
                 var id = new EntityId(p.CharacterId);
+                XianXia.Core.Actions.AutonomousActionContinuationService.CancelForEncounter(world, id, releaseBed: true);
                 snapshot.Add(new BattleParticipantRecord { EntityId = id, SquadId = p.SquadId, Selected = true,
                     Kind = p.Enemy ? BattleParticipantKind.EnemyPrimary : BattleParticipantKind.MandatoryFriendly,
                     IncludedReason = p.JoinedAt > 0f ? "FrozenRangeIntervention" : "InitiatingSquads" });
@@ -605,6 +675,7 @@ namespace XianXia.Core.World.Strategic
                 if (!world.Entities.TryGet(id, out var entity) || entity == null ||
                     entity.TryGet<LifecycleComponent>(out var life) && life.IsRemoved)
                     continue;
+                XianXia.Core.Actions.AutonomousActionContinuationService.CancelForEncounter(world, id);
                 var presence = world.WorldPresence.GetOrCreate(id);
                 if (presence.Mode != PartyWorldPresenceMode.InEncounter ||
                     !string.Equals(presence.PersonalSurfaceId, state.SourceSurfaceId,
@@ -678,6 +749,25 @@ namespace XianXia.Core.World.Strategic
             AdvanceTacticalTime(world, state, tacticalSeconds, realSeconds);
             foreach (var participant in state.Participants)
                 participant.Cooldown = Math.Max(0, participant.Cooldown - tacticalSeconds);
+            RefreshCombatReadiness(world);
+        }
+
+        /// <summary>ReadyToEnd is provisional until commit; recovered combatants can resume the battle.</summary>
+        public static bool RefreshCombatReadiness(SimulationWorld world)
+        {
+            DefeatedMercyService.ReconcileOldAutomaticWithdrawals(world);
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.ReadyToEnd || state.Retreated) return false;
+            MortalCivilianService.ReconcileEscortsForEncounter(world, state);
+            var friendly = false; var enemy = false;
+            foreach (var p in state.Participants)
+                if (!p.Withdrawn && IsLiving(world, p.CharacterId))
+                { if (p.Enemy) enemy = true; else friendly = true; }
+            if (!friendly || !enemy) return false;
+            state.PlayerWon = false;
+            state.Phase = CharacterEncounterPhase.Active;
+            world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.ManualEncounter;
+            return true;
         }
 
         public const float RetreatUnlockSeconds = 300f;
@@ -743,25 +833,30 @@ namespace XianXia.Core.World.Strategic
             float tacticalSeconds,
             float realSeconds)
         {
+            MortalCivilianService.ReconcileEscortsForEncounter(world, state);
             state.ElapsedSeconds += tacticalSeconds;
-            foreach (var participant in state.Participants)
-                if (world.Entities.TryGet(new EntityId(participant.CharacterId), out var unconscious))
-                    CombatLifeStateService.AdvanceUnconscious(world, unconscious, tacticalSeconds);
-            // BleedOutRealSeconds and corpse lifetime are real-time promises. Tactical speed
-            // accelerates movement/cooldowns, but never makes a downed character die 20x faster.
-            state.DecayAccumulator += realSeconds;
+            // Body recovery and deterioration consume the existing tactical clock, not a
+            // fixed wake timer or a second world clock. Pause and speed apply consistently.
+            state.MedicalAccumulator += tacticalSeconds;
+            state.DecayAccumulator += realSeconds; // Existing corpse lifetime remains real-time.
             foreach (var participant in state.Participants)
                 for (var i = 0; i < participant.ArtCooldowns.Length; i++)
                     participant.ArtCooldowns[i] = Math.Max(0, participant.ArtCooldowns[i] - tacticalSeconds);
+            while (state.MedicalAccumulator >= 1f)
+            {
+                state.MedicalAccumulator -= 1f;
+                CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants, advanceCorpses: false);
+            }
             while (state.DecayAccumulator >= 1f)
             {
                 state.DecayAccumulator -= 1f;
-                CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants);
+                CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants, advanceMedical: false);
             }
         }
 
         public static Result CommitAndReturn(SimulationWorld world)
         {
+            RefreshCombatReadiness(world);
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.ReadyToEnd) return Fail("Encounter cannot finish yet.");
             var settlement = world.Strategic.ManualBattleSettlement;
@@ -775,7 +870,7 @@ namespace XianXia.Core.World.Strategic
                 state.PlayerWon, state.Retreated
                     ? "我方已撤出战场；失能成员留在交战地点，伤亡与物资变化保留。"
                     : coreOnlyFlagWon ? "敌方势力旗已摧毁。" :
-                    withdrawals > 0 ? "本场有" + withdrawals + "名 NPC 撤离／投降；未自动俘虏。" : "");
+                    withdrawals > 0 ? "本场有" + withdrawals + "名 NPC 已退出交战；未自动俘虏。" : "");
             if (report != null) report.Retreated = state.Retreated;
             if (!settlement.Commit(report)) return Fail("Encounter report was already committed.");
             RestoreAnchors(world, state);
@@ -1159,10 +1254,13 @@ namespace XianXia.Core.World.Strategic
                 ? Math.Max(0, attrs.GetFinal(AttributeId.Defense)) : 0;
             var damage = Math.Max(1, Attack - defense / 2);
             if (FlightService.TryEvade(world, null, target)) return false;
+            var hpBefore = target.TryGet<CombatVitalsComponent>(out var previousHp) ? previousHp.CurrentHp : 0;
             var applied = CombatDamageRules.ApplyIncoming(target, damage);
+            CombatInjuryService.RecordBodyHit(world, target, hpBefore);
+            if (applied > 0) PrisonManagementService.RecordAttack(world, targetId);
             var source = ward.CoreKind == WorldSiteCoreKind.RemovableFactionFlag
                 ? "factionFlag" : "councilHall";
-            if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp <= 0)
+            if (target.TryGet<CombatVitalsComponent>(out var vitals) && vitals.CurrentHp <= CombatLifeStateService.DefeatHpFloor(target) && vitals.CurrentHp < hpBefore)
             {
                 defeated = CombatLifeStateService.TryEnterUnconscious(world, target, EntityId.None);
                 if (defeated)

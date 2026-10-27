@@ -20,13 +20,13 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
 {
-    public enum MortalProfession { Unassigned = 0, Farmer = 1, HerbFarmer = 2, Logger = 3, Medic = 4 }
+    public enum MortalProfession { Unassigned = 0, Farmer = 1, HerbFarmer = 2, Logger = 3, Medic = 4, Warden = 5 }
     public enum MortalActivity
     {
         Idle = 0, Eat = 1, SleepAtResidence = 2, SleepOnGround = 3,
         FarmerWork = 4, HerbFarmerWork = 5, Logging = 6, MedicCare = 7,
         Rescue = 8, Haul = 9, Construction = 10, Flee = 11,
-        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15, Chess = 16
+        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15, Chess = 16, PrisonCare = 17
     }
     public enum CivilianDisposition
     {
@@ -148,6 +148,13 @@ namespace XianXia.Core.Npc
         public ulong MedicLastTreatmentTick { get; set; }
         public ulong MedicRetryAfterTick { get; set; }
         public string MedicStatus { get; set; } = string.Empty;
+        public EntityId WardenTargetId { get; set; }
+        public string WardenCarriedResourceId { get; set; } = string.Empty;
+        public string WardenSourceSiteId { get; set; } = string.Empty;
+        public string WardenSourceRoomId { get; set; } = string.Empty;
+        public string WardenStatus { get; set; } = string.Empty;
+        public ulong WardenRetryAfterTick { get; set; }
+        public readonly Dictionary<ulong, ulong> WardenTargetRetryAfter = new Dictionary<ulong, ulong>();
         // Session-only food trip. Stock remains SitePublicStock authority and is removed only on arrival.
         public string FoodFetchStorageRoomId { get; set; } = string.Empty;
         public string FoodFetchSourceSiteId { get; set; } = string.Empty;
@@ -518,6 +525,7 @@ namespace XianXia.Core.Npc
             { state.ScheduleStatus = "工作受阻：无正式势力归属"; return MortalActivity.Idle; }
             switch (state.Profession)
             {
+                case MortalProfession.Warden: return MortalActivity.PrisonCare;
                 case MortalProfession.Farmer:
                     if (MortalCivilianQuery.TryFindProfessionArea(world, entity, "grain", out _)) return MortalActivity.FarmerWork;
                     state.ScheduleStatus = "工作受阻：无合法粮田工区";
@@ -553,8 +561,36 @@ namespace XianXia.Core.Npc
 
     public static partial class MortalCivilianService
     {
+        public static bool CanReceiveAutomaticRescue(SimulationWorld world, EntityId target)
+        {
+            if (world == null || target.IsNone || !world.Entities.TryGet(target, out var injured) ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, target) ||
+                injured.TryGet<LifecycleComponent>(out var life) && life.State == LifecycleState.Captured)
+                return false;
+            return !world.Civilians.TryGet(target, out var state) ||
+                state.Disposition != CivilianDisposition.CapturedEscorted && state.Disposition != CivilianDisposition.Detained;
+        }
+
+        static void ReconcileAutomaticRescues(SimulationWorld world)
+        {
+            foreach (var pair in world.Civilians.All)
+                if (!pair.Value.RescueTargetId.IsNone && !CanReceiveAutomaticRescue(world, pair.Value.RescueTargetId) &&
+                    world.Entities.TryGet(pair.Key, out var rescuer))
+                {
+                    if (rescuer.TryGet<MovementIntentComponent>(out var intent) && intent.Active &&
+                        (intent.DestinationKey == "rescue-target:" + pair.Value.RescueTargetId.Value ||
+                         !string.IsNullOrEmpty(pair.Value.RescueDestinationId) && intent.DestinationKey == pair.Value.RescueDestinationId))
+                        intent.Clear();
+                    DropRescue(world, rescuer, pair.Value);
+                    pair.Value.RescueStatus = "救护已取消：伤员受拘押或已进入战场。";
+                }
+        }
+
         static bool CanRescueCommunity(SimulationWorld world, Entity rescuer, Entity injured)
         {
+            if (world == null || rescuer == null || injured == null ||
+                !CanReceiveAutomaticRescue(world, injured.Id) ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, rescuer.Id)) return false;
             if (!rescuer.TryGet<FactionMembershipComponent>(out var own) || !own.IsAffiliated ||
                 !injured.TryGet<FactionMembershipComponent>(out var patient) || !patient.IsAffiliated) return false;
             if (own.FactionId == patient.FactionId) return true;
@@ -584,12 +620,16 @@ namespace XianXia.Core.Npc
 
         public static Result SetProfession(SimulationWorld world, EntityId id, MortalProfession profession)
         {
+            if (!Enum.IsDefined(typeof(MortalProfession), profession)) return Result.Failure(ErrorCode.InvalidArgument, "未知凡人职业。");
             if (!CanSetProfession(world, id, out var reason))
                 return Result.Failure(ErrorCode.InvalidOperation, reason);
             world.Entities.TryGet(id, out var entity);
             var state = Ensure(world, entity);
+            var changed = state.Profession != profession;
             state.Profession = profession;
             if (profession != MortalProfession.Medic) SettleCarriedMedicine(world, entity, state);
+            if (profession != MortalProfession.Warden) SettleWardenPayload(world, entity, state);
+            if (changed && entity.TryGet<MovementIntentComponent>(out var previousWork)) previousWork.Clear();
             return Result.Success();
         }
 
@@ -641,6 +681,13 @@ namespace XianXia.Core.Npc
             var diagnosticStart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
             long siteTicks = 0, needsTicks = 0, evaluateTicks = 0, applyTicks = 0;
             CivilianConstructionJobService.CancelInvalidJobs(world);
+            ReconcileAutomaticRescues(world);
+            // Custody also supports cultivators; it must not enroll them as mortal workers.
+            foreach (var pair in world.Civilians.All)
+                if (pair.Value.Disposition == CivilianDisposition.CapturedEscorted &&
+                    world.Entities.TryGet(pair.Key, out var escorted) &&
+                    !MortalCivilianQuery.IsManagedCivilian(world, escorted))
+                    SyncEscort(world, escorted, pair.Value);
             foreach (var pair in world.Civilians.All)
                 if (!pair.Value.RescueTargetId.IsNone && !world.Entities.TryGet(pair.Key, out _))
                 {
@@ -654,6 +701,9 @@ namespace XianXia.Core.Npc
                 if (state == null) continue;
                 if (!HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
                 ReconcileMedicAssignment(world, entity, state);
+                if (state.Profession != MortalProfession.Warden ||
+                    entity.TryGet<LifecycleComponent>(out var workerLife) && (workerLife.IsDead || workerLife.IsRemoved))
+                    SettleWardenPayload(world, entity, state);
                 if (!entity.TryGet<LifecycleComponent>(out var life) || life.State == LifecycleState.Dead || life.State == LifecycleState.Removed)
                 {
                     EndCivilianSleep(world, entity.Id, state); DropRescue(world, entity, state);
@@ -747,6 +797,8 @@ namespace XianXia.Core.Npc
                     movementOwner == CivilianMovementOwner.ActiveSquadTravel ||
                     movementOwner == CivilianMovementOwner.BackgroundTravel)
                 { EndCivilianSleep(world, entity.Id, state); ClearCivilianMovement(entity); DropRescue(world, entity, state); CivilianConstructionJobService.ReleaseCarrier(world, entity.Id); state.Activity = MortalActivity.Idle; continue; }
+                if (PrisonWallBreachService.DriveExitIntent(world, entity))
+                { state.Activity = MortalActivity.Flee; state.LastUpdateTick = world.Tick.Value; continue; }
                 if (state.Disposition == CivilianDisposition.Fleeing) AdvanceFlee(world, entity, state);
                 if (state.Disposition == CivilianDisposition.CapturedEscorted) SyncEscort(world, entity, state);
                 diagnosticPart = phaseSample == null ? 0L : System.Diagnostics.Stopwatch.GetTimestamp();
@@ -780,8 +832,7 @@ namespace XianXia.Core.Npc
         static void AdvanceDayCare(SimulationWorld world, EntityId characterId, MortalCivilianState state, ulong day)
         {
             if (state.CareDayIndex == day) return;
-            if (state.Disposition == CivilianDisposition.Detained && state.AteToday && state.SleptToday)
-                CharacterFactionLoyaltyService.AdjustLoyalty(world, characterId, -MortalCivilianTuning.DetainedCareLoyaltyLossPerDay);
+            // Captivity resistance is separate from loyalty to the original faction (405).
             state.CareDayIndex = day; state.AteToday = false; state.SleptToday = false;
         }
 
@@ -1009,6 +1060,9 @@ namespace XianXia.Core.Npc
                     // Do not manufacture a fake civilian action or clear an intent owned by the
                     // existing squad/duty system. ScheduleStatus exposes the unsupported bridge.
                     break;
+                case MortalActivity.PrisonCare:
+                    WorkAsWarden(world, entity, state);
+                    break;
                 case MortalActivity.Escorted:
                 case MortalActivity.Detained:
                     if (state.Activity == MortalActivity.Escorted)
@@ -1017,8 +1071,7 @@ namespace XianXia.Core.Npc
                         EndCivilianSleep(world, entity.Id, state);
                         break;
                     }
-                    if (state.Satiety <= MortalCivilianTuning.HungerThreshold && TryConsumeFoodAbstract(world, entity.Id, state.CurrentSiteId))
-                    { state.Satiety += MortalCivilianTuning.MealRestore; state.AteToday = true; state.Clamp(); }
+                    // Detained people cannot fetch abstract public food: a real keeper must deliver it.
                     if (state.Energy <= MortalCivilianTuning.SleepThreshold ||
                         state.SleepPhase == CivilianSleepPhase.SleepingAtResidence &&
                         state.Energy < MortalCivilianTuning.WakeThreshold)
@@ -1081,6 +1134,13 @@ namespace XianXia.Core.Npc
                     destinationKey: "sleep-bed:" + bed.StableAssetId, arrivalRadiusWorld: arrivalRadius);
             state.SleepPhase = CivilianSleepPhase.TravelingToResidence;
             state.SleepStartedTick = 0;
+            if (state.Profession == MortalProfession.Warden && !world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+            {
+                if (!NpcColdMovement.Advance(world, entity, bed.SurfaceId, target, arrivalRadius, out var coldArrived))
+                { state.ScheduleStatus = "监管离屏返床受阻，就地休息"; StartGroundSleep(world, entity, state); return; }
+                if (!coldArrived) return;
+                intent.MarkPathRequested(); intent.HostArrived = true;
+            }
             if (intent.HostPathState == MovementHostPathState.RetryablePathUnavailable ||
                 intent.HostPathState == MovementHostPathState.PermanentFailure)
             {
@@ -1117,6 +1177,13 @@ namespace XianXia.Core.Npc
         static void EndCivilianSleep(SimulationWorld world, EntityId id, MortalCivilianState state)
         {
             if (state == null || state.SleepPhase == CivilianSleepPhase.None) return;
+            if (world.Entities.TryGet(id, out var waking) &&
+                (CombatLifeStateService.CanFight(waking) || PrisonConfinementService.CanWalk(world, waking)) &&
+                RoomBedFacilityService.TryGetOccupiedBed(world, id, RoomUsage.Prison, out var bed) &&
+                RoomBedFacilityService.IsAtBed(world, bed, id) &&
+                RoomBedFacilityService.TryResolveAccessPoint(world, bed, out var standing) &&
+                PrisonConfinementService.AllowsPosition(world, id, bed.SurfaceId, standing))
+                world.WorldPresence.SetAtWorldPosition(id, standing, bed.SurfaceId);
             RoomBedFacilityService.Release(world, id);
             ClearSleep(state);
         }
@@ -1219,6 +1286,15 @@ namespace XianXia.Core.Npc
                     "取食受阻" + (string.IsNullOrEmpty(intent.HostPathFailureReason)
                         ? string.Empty : "：" + intent.HostPathFailureReason));
                 return;
+            }
+            if (state.Profession == MortalProfession.Warden && !world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+            {
+                if (!NpcColdMovement.Advance(world, entity, room.SurfaceId, destination,
+                        world.SurfaceSpatial.TryGet(room.SurfaceId, out var foodMetric) ? foodMetric.CellSize * .25f : .01f,
+                        out var coldArrived))
+                { FailFoodPlan(world, entity, state, FoodFetchPhase.PathUnavailable, "监管离屏取食路径受阻"); return; }
+                if (!coldArrived) { state.FoodFetchStatus = "监管离屏前往储藏室取食"; return; }
+                intent.MarkPathRequested(); intent.HostArrived = true;
             }
             if (!intent.HostPathRequested)
             {
@@ -1874,7 +1950,9 @@ namespace XianXia.Core.Npc
             SimulationWorld world, Entity rescuer, MortalCivilianState state, bool preserveRetry = false)
         {
             var rescued = state.RescueTargetId;
-            if (state.RescueCarrying && !state.RescueTargetId.IsNone &&
+            var ownsTarget = CanReceiveAutomaticRescue(world, rescued);
+            var destinationId = state.RescueDestinationId;
+            if (ownsTarget && state.RescueCarrying && !state.RescueTargetId.IsNone &&
                 CharacterWorldPresenceQuery.TryResolve(world, rescuer.Id, out var presence) && presence.HasWorldPosition)
                 world.WorldPresence.SetAtWorldPosition(state.RescueTargetId, presence.WorldPosition, presence.SurfaceId);
             state.RescueTargetId = EntityId.None; state.RescueCarrying = false;
@@ -1882,7 +1960,13 @@ namespace XianXia.Core.Npc
             state.RescueRejectedDestinationId = string.Empty;
             if (!preserveRetry)
             { state.RescueRejectedTargetId = EntityId.None; state.RescueRetryAfterTick = 0; }
-            RoomBedFacilityService.Release(world, rescued);
+            if (ownsTarget) RoomBedFacilityService.Release(world, rescued);
+            else if (!string.IsNullOrEmpty(destinationId) &&
+                world.OutdoorConstructedAssets.Assets.TryGetValue(destinationId, out var oldBed) &&
+                oldBed.ReservedCharacterId == rescued && oldBed.OccupantCharacterId.IsNone &&
+                (RoomBedFacilityService.BedHasUsage(world, oldBed, RoomUsage.Medical) ||
+                 RoomBedFacilityService.BedHasUsage(world, oldBed, RoomUsage.Residential)))
+                oldBed.ReservedCharacterId = EntityId.None;
         }
 
         public static Result ValidateRecoverySpotPlacements(SimulationWorld world, bool rejectInvalid = false)
@@ -1945,6 +2029,13 @@ namespace XianXia.Core.Npc
                     !world.Entities.TryGet(pair.Key, out var captive)) continue;
                 var carrier = encounter.Find(state.CarrierId.Value);
                 if (carrier == null) continue;
+                var participant = encounter.Find(captive.Id.Value);
+                if (participant != null)
+                {
+                    participant.TacticalX = carrier.TacticalX;
+                    participant.TacticalY = carrier.TacticalY;
+                    participant.TargetId = 0;
+                }
                 var presence = world.WorldPresence.GetOrCreate(captive.Id);
                 if (presence.Mode != PartyWorldPresenceMode.InEncounter ||
                     presence.PersonalSurfaceId != encounter.SourceSurfaceId ||
@@ -1956,6 +2047,9 @@ namespace XianXia.Core.Npc
                 presence.WorldPosX = carrier.TacticalX;
                 presence.WorldPosY = carrier.TacticalY;
                 presence.HasContinuousWorldPosition = true;
+                if (!world.Entities.TryGet(state.CarrierId, out var carrierEntity) ||
+                    !CombatLifeStateService.CanFight(carrierEntity))
+                    ReleaseEscortedAtCarrier(world, captive, state);
             }
             return repaired;
         }
@@ -2009,7 +2103,9 @@ namespace XianXia.Core.Npc
             foreach (var entity in world.Entities.All)
             {
                 var state = Ensure(world, entity);
-                if (state == null || !entity.TryGet<FactionMembershipComponent>(out var member) || !member.IsAffiliated ||
+                if (state == null || state.Disposition == CivilianDisposition.Detained ||
+                    state.Disposition == CivilianDisposition.CapturedEscorted ||
+                    !entity.TryGet<FactionMembershipComponent>(out var member) || !member.IsAffiliated ||
                     !string.Equals(member.FactionId, oldFactionId, StringComparison.Ordinal) ||
                     !string.Equals(MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id), siteId, StringComparison.Ordinal)) continue;
                 state.Disposition = CharacterFactionLoyaltyService.TryGetLoyalty(world, entity.Id, out var loyalty) &&
@@ -2202,12 +2298,17 @@ namespace XianXia.Core.Npc
 
         public static Result Recruit(SimulationWorld world, EntityId actor, EntityId target)
         {
+            if (PrisonManagementService.IsOriginalCompanion(world, target)) return Invalid("同伴乙无需招募，请直接释放。");
             if (!TryInteractive(world, target, out var entity, out var state)) return Invalid("Target is not an interactive mortal civilian.");
             if (state.Disposition != CivilianDisposition.SurrenderWaiting && state.Disposition != CivilianDisposition.Detained)
                 return Invalid("Recruitment requires surrender or detention.");
-            if (!CharacterFactionLoyaltyService.TryGetLoyalty(world, target, out var loyalty) ||
-                loyalty >= MortalCivilianTuning.SurrenderLoyaltyThreshold)
-                return Invalid("此人仍不愿归降。");
+            if (state.Disposition == CivilianDisposition.Detained)
+            {
+                var consent = PrisonManagementService.ValidateRecruit(world, actor, target);
+                if (consent.IsFailure) return consent;
+            }
+            else if (!CharacterFactionLoyaltyService.TryGetLoyalty(world, target, out var loyalty) ||
+                     loyalty >= MortalCivilianTuning.SurrenderLoyaltyThreshold) return Invalid("此人仍不愿归降。");
             if (string.IsNullOrEmpty(world.Strategic.PlayerFactionId)) return Invalid("Player faction is missing.");
             if (!entity.TryGet<FactionMembershipComponent>(out var membership)) { membership = new FactionMembershipComponent(); entity.AddComponent(membership); }
             membership.Assign(world.Strategic.PlayerFactionId, FactionRoleKind.Member);
@@ -2217,7 +2318,8 @@ namespace XianXia.Core.Npc
             state.Profession = MortalProfession.Unassigned;
             state.Disposition = CivilianDisposition.Normal; state.CarrierId = EntityId.None;
             state.DetainedResidenceWorkAreaId = string.Empty; state.PendingCaptureCarrierId = EntityId.None;
-            RoomBedFacilityService.Release(world, target);
+            ClearSleep(state); ClearCivilianMovement(entity);
+            PrisonConfinementService.ReleasePlacementInPlace(world, target);
             return Result.Success();
         }
 
@@ -2228,7 +2330,7 @@ namespace XianXia.Core.Npc
                 life.State = life.IsIncapacitated ? LifecycleState.Incapacitated : LifecycleState.Alive;
             state.DetainedResidenceWorkAreaId = string.Empty; state.CarrierId = EntityId.None;
             state.Disposition = CivilianDisposition.Fleeing;
-            RoomBedFacilityService.Release(world, target);
+            PrisonConfinementService.ReleasePlacementInPlace(world, target);
             var site = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
             BeginFlee(world, entity, state, site);
             return Result.Success();
@@ -2237,6 +2339,7 @@ namespace XianXia.Core.Npc
         public static Result ValidateTransportPlacements(SimulationWorld world)
         {
             if (world == null) return Invalid("World is required.");
+            ReconcileAutomaticRescues(world);
             var rescueTargets = new HashSet<EntityId>();
             var escortCarriers = new HashSet<EntityId>();
             foreach (var pair in world.Civilians.All)
@@ -2274,17 +2377,20 @@ namespace XianXia.Core.Npc
                         "Saved detainee does not reference a formal Prison room.", "Detainee=" + pair.Key.Value);
                 var occupied = 0;
                 foreach (var bed in RoomBedFacilityService.BedsInRoom(world, room.StableAssetId))
-                    if (bed.OccupantCharacterId == pair.Key)
+                    if (bed.OccupantCharacterId == pair.Key || bed.ReservedCharacterId == pair.Key)
                     {
                         occupied++;
                         if (!RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Prison) ||
-                            !RoomBedFacilityService.IsAtBed(world, bed, pair.Key))
+                            !(bed.OccupantCharacterId == pair.Key && RoomBedFacilityService.IsAtBed(world, bed, pair.Key) ||
+                              bed.OccupantCharacterId.IsNone && bed.ReservedCharacterId == pair.Key &&
+                              PrisonConfinementService.IsInside(world, room, pair.Key) &&
+                              state.SleepPhase != CivilianSleepPhase.SleepingAtResidence))
                             return Result.Failure(ErrorCode.SnapshotInvalid,
                                 "Saved detainee bed placement is invalid.", bed.StableAssetId);
                     }
                 if (occupied != 1)
                     return Result.Failure(ErrorCode.SnapshotInvalid,
-                        "Saved detainee must occupy exactly one real prison bed.", "Detainee=" + pair.Key.Value);
+                        "Saved detainee must hold exactly one real prison bed.", "Detainee=" + pair.Key.Value);
             }
             // Host arrival callbacks are presentation-transient. An escorted captive with a
             // prison-bed reservation but no occupancy is therefore an interrupted command after
@@ -2292,14 +2398,16 @@ namespace XianXia.Core.Npc
             foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
                 if (RoomBedGeometry.IsBed(asset) &&
                     RoomBedFacilityService.BedHasUsage(world, asset, RoomUsage.Prison) &&
-                    !asset.ReservedCharacterId.IsNone && asset.OccupantCharacterId.IsNone)
+                    !asset.ReservedCharacterId.IsNone && asset.OccupantCharacterId.IsNone &&
+                    !(world.Civilians.TryGet(asset.ReservedCharacterId, out var detained) &&
+                      detained.Disposition == CivilianDisposition.Detained && detained.DetainedResidenceWorkAreaId == asset.ParentRoomId))
                     asset.ReservedCharacterId = EntityId.None;
             return Result.Success();
         }
 
         public static Result ReleaseEscorted(SimulationWorld world, EntityId actor, EntityId target)
         {
-            if (!TryInteractive(world, target, out _, out var state) ||
+            if (!TryInteractive(world, target, out var captiveEntity, out var state) ||
                 state.Disposition != CivilianDisposition.CapturedEscorted || state.CarrierId != actor)
                 return Invalid("只能由实际押送者主动释放所押送的囚犯。");
             if (world.Strategic.PlayerPartyContext?.IsMember(actor) != true)
@@ -2308,7 +2416,16 @@ namespace XianXia.Core.Npc
             if (encounter != null && encounter.Find(actor.Value) != null &&
                 (encounter.Phase == CharacterEncounterPhase.Active ||
                  encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
-                return Invalid("独立战斗结束返场后才能安全释放囚犯。");
+            {
+                if (world.Strategic.PlayerPartyContext.ActiveCharacterId != actor ||
+                    !world.Entities.TryGet(actor, out var acting) || !CombatLifeStateService.CanFight(acting))
+                    return Invalid("需由当前清醒的抱持者放下俘虏。");
+                ReconcileEscortsForEncounter(world, encounter);
+                if (state.CarrierId != actor) return Invalid("抱持关系已变化。");
+                ReleaseEscortedAtCarrier(world, captiveEntity, state);
+                CharacterEncounterService.RefreshCombatReadiness(world);
+                return Result.Success();
+            }
             if (!CharacterWorldPresenceQuery.TryResolve(world, actor, out var carrier) ||
                 !carrier.HasWorldPosition ||
                 !CharacterWorldPresenceQuery.TryResolve(world, target, out var captive) ||
@@ -2316,6 +2433,34 @@ namespace XianXia.Core.Npc
                 return Invalid("押送者与囚犯不在同一合法世界空间。");
             world.WorldPresence.SetAtWorldPosition(target, carrier.WorldPosition, carrier.SurfaceId);
             return Release(world, target);
+        }
+
+        public static Result CaptureDefeatedInBattle(SimulationWorld world, EntityId carrier, EntityId target)
+        {
+            var valid = DefeatedMercyService.Validate(world, carrier, target, DefeatedMercyService.Episode(world, target));
+            if (valid.IsFailure) return valid;
+            if (world.Civilians.TryGet(carrier, out var carried) &&
+                (!carried.RescueTargetId.IsNone || carried.RescueCarrying))
+                return Invalid("已在搬运另一人，不能再抱持俘虏。");
+            foreach (var job in world.CivilianConstructionJobs.Jobs.Values)
+                if (job.CarrierId == carrier && job.PayloadCount > 0)
+                    return Invalid("已在搬运建材，不能同时抱持俘虏。");
+            if (!world.Entities.TryGet(target, out var victim) ||
+                !CombatLifeStateService.TryEnterCaptured(world, victim, world.Strategic.PlayerFactionId))
+                return Invalid("目标已不能被俘虏。");
+            var state = world.Civilians.GetOrCreate(target);
+            state.CarrierId = carrier;
+            state.Disposition = CivilianDisposition.CapturedEscorted;
+            state.PendingCaptureCarrierId = EntityId.None;
+            state.DetainedResidenceWorkAreaId = string.Empty;
+            ClearSleep(state); ClearCivilianMovement(victim);
+            ReconcileAutomaticRescues(world);
+            CancelEscortIncompatibleActions(world, carrier);
+            var encounter = world.Strategic.CharacterEncounter;
+            encounter.Find(target.Value).TargetId = 0;
+            encounter.Find(carrier.Value).TargetId = ulong.MaxValue;
+            ReconcileEscortsForEncounter(world, encounter);
+            return Result.Success();
         }
 
         public static Result RequestCapture(SimulationWorld world, EntityId carrier, EntityId target)
@@ -2432,7 +2577,20 @@ namespace XianXia.Core.Npc
 
         static void DropEscort(SimulationWorld world, Entity entity, MortalCivilianState state)
         {
-            if (!state.CarrierId.IsNone &&
+            var encounter = world.Strategic.CharacterEncounter;
+            var participant = encounter?.Find(entity.Id.Value);
+            var holder = encounter?.Find(state.CarrierId.Value);
+            if (participant != null && holder != null &&
+                CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id))
+            {
+                participant.TacticalX = holder.TacticalX; participant.TacticalY = holder.TacticalY;
+                var presence = world.WorldPresence.GetOrCreate(entity.Id);
+                presence.Mode = PartyWorldPresenceMode.InEncounter;
+                presence.SiteId = string.Empty; presence.PersonalSurfaceId = encounter.SourceSurfaceId;
+                presence.WorldPosX = holder.TacticalX; presence.WorldPosY = holder.TacticalY;
+                presence.HasContinuousWorldPosition = true;
+            }
+            else if (!state.CarrierId.IsNone &&
                 CharacterWorldPresenceQuery.TryResolve(world, state.CarrierId, out var carrier) &&
                 carrier.HasWorldPosition)
                 world.WorldPresence.SetAtWorldPosition(entity.Id, carrier.WorldPosition, carrier.SurfaceId);
@@ -2545,6 +2703,7 @@ namespace XianXia.Core.Npc
             var state = world.Civilians.GetOrCreate(target);
             state.Disposition = CivilianDisposition.Detained;
             state.DetainedResidenceWorkAreaId = roomId;
+            PrisonManagementService.BeginDetention(world, target);
             state.CarrierId = EntityId.None;
             state.CurrentSiteId = MortalCivilianQuery.ResolveCurrentSiteId(world, target);
             if (entity.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();
@@ -2702,6 +2861,10 @@ namespace XianXia.Core.Npc
         static bool TryInteractive(SimulationWorld world, EntityId target, out Entity entity, out MortalCivilianState state)
         {
             entity = null; state = null;
+            if (world != null && world.Entities.TryGet(target, out entity) &&
+                world.Civilians.TryGet(target, out state) &&
+                (state.Disposition == CivilianDisposition.CapturedEscorted || state.Disposition == CivilianDisposition.Detained))
+                return true;
             return world != null && world.Entities.TryGet(target, out entity) &&
                    MortalCivilianQuery.IsManagedCivilian(world, entity) && (state = Ensure(world, entity)) != null;
         }

@@ -47,6 +47,8 @@ namespace XianXia.Core.Actions
 
         public Result CanStart(SimulationWorld world)
         {
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(world, Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart, AutonomousActionContinuationService.EncounterWorkBlockedReason);
             if (!world.Entities.TryGet(Subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
             var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
@@ -89,6 +91,8 @@ namespace XianXia.Core.Actions
 
         public Result Advance(SimulationWorld world)
         {
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(world, Subject))
+            { Cancel(); return Result.Failure(ErrorCode.ActionCannotStart, AutonomousActionContinuationService.EncounterWorkBlockedReason); }
             if (Status != ActionStatus.Running)
                 return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
 

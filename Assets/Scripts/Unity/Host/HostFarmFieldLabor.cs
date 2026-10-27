@@ -188,6 +188,8 @@ namespace XianXia.Unity.Host
         public int BeginForSelection(HostMapPlotCell clickedPlot)
         {
             var world = bootstrap?.Session?.World;
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(world, bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None))
+            { ToastSelectionOrActive(AutonomousActionContinuationService.EncounterWorkBlockedReason); return 0; }
             if (world == null || clickedPlot == null || !clickedPlot.IsPlantableField ||
                 string.IsNullOrEmpty(clickedPlot.LocationId) ||
                 string.IsNullOrEmpty(clickedPlot.StableCellId) || selectionController == null)
@@ -232,6 +234,7 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap?.Session?.World;
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, id)) return false;
             if (MortalTransportConstraintService.ValidateUnburdenedAction(world, id).IsFailure)
                 return false;
             if (!AutonomousActionContinuationService.CanContinue(world, id))
@@ -303,7 +306,8 @@ namespace XianXia.Unity.Host
             for (var i = _workers.Count - 1; i >= 0; i--)
             {
                 var w = _workers[i];
-                if (!AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id) ||
+                if (CharacterEncounterService.OwnsParticipantSpatialState(bootstrap.Session.World, w.Id) ||
+                    !AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id) ||
                     MortalTransportConstraintService.ValidateUnburdenedAction(
                         bootstrap.Session.World, w.Id).IsFailure)
                 {
@@ -366,6 +370,7 @@ namespace XianXia.Unity.Host
             locationId = null;
             if (world == null || entity == null)
                 return false;
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id)) return false;
             if (XianXia.Core.Npc.MortalCivilianQuery.IsManagedCivilian(world, entity))
             {
                 if (world.Civilians.TryGet(entity.Id, out var civilian) &&
@@ -579,6 +584,7 @@ namespace XianXia.Unity.Host
         {
             var cell = w.Cell;
             var world = bootstrap.Session.World;
+            if (CharacterEncounterService.OwnsParticipantSpatialState(world, w.Id)) return false;
             if (cell == null || !world.Entities.TryGet(w.Id, out var entity))
                 return false;
             if (!IsCellAuthorized(w, cell))

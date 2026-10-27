@@ -5,6 +5,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Npc;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.Actions;
 using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
@@ -70,6 +71,15 @@ namespace XianXia.Unity.Host
 
         public void Cancel() => SetArmed(ArmKind.None);
 
+        bool RejectBattleWork()
+        {
+            var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
+            if (!AutonomousActionContinuationService.BlocksOrdinaryWork(bootstrap?.Session?.World, actor)) return false;
+            HostWorldSiteCoreWarfare.Feedback(bootstrap, AutonomousActionContinuationService.EncounterWorkBlockedReason);
+            SetArmed(ArmKind.None);
+            return true;
+        }
+
         /// <summary>
         /// 未武装时：右键热点＝前往并交互／修炼；返回 true 表示已消费（MoveController 勿再纯移动）。
         /// </summary>
@@ -130,6 +140,7 @@ namespace XianXia.Unity.Host
         public bool TryHandleContextTarget(WorldObjectInteractionTarget target)
         {
             if (target.Kind != WorldObjectTargetKind.FarmPlot || target.Plot == null) return false;
+            if (RejectBattleWork()) return true;
             var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
             if (farm == null)
                 return false;
@@ -547,6 +558,7 @@ namespace XianXia.Unity.Host
 
             if (HostMapObjectRegistry.TryPickDestructible(point, out var destructible))
             {
+                if (!destructible.IsWall && RejectBattleWork()) return;
                 Resume();
                 var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
                 if (actor.IsNone)
@@ -645,6 +657,7 @@ namespace XianXia.Unity.Host
 
         void IssueWorkAtSpot(HostInteractSpot spot, Vector3 clickWorld)
         {
+            if (RejectBattleWork()) return;
             Resume();
             // 必须用玩家点击点判断是否落在田格上；勿用热点中心，否则点田外绿底仍会吸到最近田格
             var locId = spot.LocationId;
@@ -682,6 +695,7 @@ namespace XianXia.Unity.Host
 
         void IssueCultivateAtSpot(HostInteractSpot spot)
         {
+            if (RejectBattleWork()) return;
             Resume();
             if (moveController != null)
                 moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Cultivate);

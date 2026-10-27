@@ -31,6 +31,7 @@ namespace XianXia.Unity.Host
         {
             if (id.IsNone)
                 return;
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(bootstrap?.Session?.World, id)) return;
             if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
                 kind = PlayerCommandKind.Labor;
             _looping[id.Value] = kind;
@@ -105,7 +106,8 @@ namespace XianXia.Unity.Host
             {
                 var id = new EntityId(scratch[i].Key);
                 var kind = scratch[i].Value;
-                if (!AutonomousActionContinuationService.CanContinue(world, id))
+                if (!AutonomousActionContinuationService.CanContinue(world, id) ||
+                    AutonomousActionContinuationService.BlocksOrdinaryWork(world, id))
                 {
                     _looping.Remove(scratch[i].Key);
                     _partyDerived.Remove(scratch[i].Key);

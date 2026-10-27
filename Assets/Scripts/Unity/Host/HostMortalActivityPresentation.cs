@@ -15,6 +15,10 @@ namespace XianXia.Unity.Host
             SimulationWorld world, Entity entity, MortalCivilianState state, bool isMoving = false)
         {
             if (state == null) return "待命";
+            var encounterActivity = entity == null ? null : HostCharacterEncounter.DescribeParticipantActivity(world, entity.Id);
+            if (encounterActivity != null) return encounterActivity;
+            if (state.Activity == MortalActivity.PrisonCare)
+                return string.IsNullOrEmpty(state.WardenStatus) ? "监管：照顾囚犯" : state.WardenStatus;
             if (state.Activity == MortalActivity.MedicCare && !string.IsNullOrEmpty(state.MedicStatus))
                 return state.MedicStatus;
             if (state.SleepPhase == CivilianSleepPhase.TravelingToResidence) return "前往床位";
@@ -81,6 +85,7 @@ namespace XianXia.Unity.Host
                 case MortalProfession.HerbFarmer: return "药农";
                 case MortalProfession.Logger: return "樵夫";
                 case MortalProfession.Medic: return "医者";
+                case MortalProfession.Warden: return "监管";
                 default: return "未分配";
             }
         }

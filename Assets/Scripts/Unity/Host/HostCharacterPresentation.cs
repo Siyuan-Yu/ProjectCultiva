@@ -152,6 +152,8 @@ namespace XianXia.Unity.Host
         {
             if (session?.World == null || entity == null) return emptyWhenIdle ? string.Empty : "待命";
             var world = session.World;
+            var encounterActivity = HostCharacterEncounter.DescribeParticipantActivity(world, entity.Id);
+            if (encounterActivity != null) return encounterActivity;
             var life = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
             if (!string.IsNullOrEmpty(life)) return life;
 

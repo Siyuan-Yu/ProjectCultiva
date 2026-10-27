@@ -77,6 +77,26 @@ namespace XianXia.Unity.Host
         public bool TryStartInteraction(EntityId actor, EntityId target, string definitionId)
             => TryStartInteraction(ContentInteractionContext.ForNpc(actor, target, definitionId), "onTalk");
 
+        public bool TryStartDefeatedMercy(EntityId actor, EntityId target)
+        {
+            var session = bootstrap?.Session;
+            if (!_controller.TryStartDefeatedMercy(session, actor, target)) return false;
+            session.AcquireModalPause(PauseOwner);
+            _holdingPause = true;
+            HostInputGate.AcquireInteraction(InputOwner);
+            return true;
+        }
+
+        public bool TryStartPrisonVisit(EntityId actor)
+        {
+            var session = bootstrap?.Session;
+            if (!_controller.TryStartPrisonVisit(session, actor)) return false;
+            session.AcquireModalPause(PauseOwner);
+            _holdingPause = true;
+            HostInputGate.AcquireInteraction(InputOwner);
+            return true;
+        }
+
         public bool TryStartInteraction(ContentInteractionContext context, string trigger)
         {
             var session = bootstrap?.Session;

@@ -12,8 +12,8 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostDialogueUguiView : MonoBehaviour
     {
-        const float PanelWidth = 720f;
-        const float BarHeight = 168f;
+        const float PanelWidth = 1040f;
+        const float BarHeight = 240f;
         const float BottomOffset = 72f;
         const float PortraitSize = 96f;
         const float ChoiceColumnWidth = 228f;
@@ -45,6 +45,10 @@ namespace XianXia.Unity.Host
         HostDialogueModel _model;
         Font _font;
         ScrollRect _choiceScroll;
+        int _choiceColumns = 1;
+        float _choiceCellWidth;
+        string _layoutKey = string.Empty;
+        const float ChoiceStep = 60f;
 
         public bool IsVisible => panelRoot != null && panelRoot.gameObject.activeSelf;
 
@@ -110,6 +114,7 @@ namespace XianXia.Unity.Host
             if (bodyText != null)
                 bodyText.text = _typewriter.VisibleText;
 
+            ApplyAdaptiveLayout(model);
             SyncChoices(model);
             ApplyChoiceInteractable(model);
             HandleSkipInput();
@@ -125,6 +130,7 @@ namespace XianXia.Unity.Host
             if (speakerText != null)
                 speakerText.text = model.SpeakerName ?? string.Empty;
             _typewriter.Begin(model.Body ?? string.Empty);
+            if (model.IsDefeatedMercy) _typewriter.Skip();
             SyncPortrait(model.PortraitResourceId);
         }
 
@@ -141,9 +147,53 @@ namespace XianXia.Unity.Host
                 portraitImage.gameObject.name = "Portrait_" + resourceId;
         }
 
+        void ApplyAdaptiveLayout(HostDialogueModel model)
+        {
+            EnsureChoiceScroll();
+            if (_canvas == null) _canvas = panelRoot.GetComponentInParent<Canvas>();
+            var scale = _canvas != null ? Mathf.Max(0.01f, _canvas.scaleFactor) : 1f;
+            var availableWidth = Screen.width / scale;
+            var availableHeight = Screen.height / scale;
+            var width = Mathf.Min(PanelWidth, availableWidth - 32f);
+            _choiceColumns = model.Choices.Count > 6 && width >= 920f ? 2 : 1;
+            var choiceWidth = model.Choices.Count == 0 ? 0f : width * (_choiceColumns == 2 ? 0.55f : 0.40f);
+            _choiceCellWidth = (choiceWidth - 18f - (_choiceColumns - 1) * 8f) / _choiceColumns;
+            var key = _contentKey + "|" + width + "|" + availableHeight + "|" + model.Choices.Count;
+            if (key == _layoutKey) return;
+            _layoutKey = key;
+            var content = speakerText != null ? speakerText.transform.parent as RectTransform : null;
+            var bodyWidth = Mathf.Max(40f, width - 160f - choiceWidth);
+            var bodyHeight = 0f;
+            if (bodyText != null)
+            {
+                var settings = bodyText.GetGenerationSettings(new Vector2(bodyWidth, 0f));
+                bodyHeight = bodyText.cachedTextGeneratorForLayout.GetPreferredHeight(model.Body ?? string.Empty, settings)
+                    / bodyText.pixelsPerUnit;
+            }
+            var rows = Mathf.CeilToInt((float)model.Choices.Count / _choiceColumns);
+            var choicesHeight = Mathf.Max(0f, rows * ChoiceStep - 8f);
+            var bottom = Mathf.Min(BottomOffset, availableHeight * 0.08f);
+            var height = Mathf.Min(Mathf.Max(BarHeight, Mathf.Max(choicesHeight + 36f, bodyHeight + 76f)),
+                Mathf.Max(120f, availableHeight - bottom - 32f));
+            ApplyCenteredBottomPanel(panelRoot, width, height, bottom);
+            if (content != null)
+            {
+                content.offsetMin = new Vector2(128f, 18f);
+                content.offsetMax = new Vector2(-choiceWidth - 32f, -18f);
+            }
+            if (_choiceScroll != null)
+            {
+                _choiceScroll.viewport.sizeDelta = new Vector2(choiceWidth, -36f);
+                _choiceScroll.vertical = choicesHeight > height - 36f;
+                _choiceScroll.StopMovement();
+                choicesRoot.sizeDelta = new Vector2(0f, choicesHeight);
+                choicesRoot.anchoredPosition = Vector2.zero;
+            }
+        }
+
         void SyncChoices(HostDialogueModel model)
         {
-            var key = BuildChoicesKey(model);
+            var key = model.PageKey + "|" + _layoutKey + "|" + BuildChoicesKey(model);
             if (key == _choicesKey)
                 return;
 
@@ -152,8 +202,8 @@ namespace XianXia.Unity.Host
             if (choicesRoot == null)
                 return;
 
-            choicesRoot.sizeDelta = new Vector2(0f, model.Choices.Count * 54f);
-            if (_choiceScroll != null) _choiceScroll.verticalNormalizedPosition = 1f;
+            if (_choiceScroll != null) _choiceScroll.StopMovement();
+            choicesRoot.anchoredPosition = Vector2.zero;
             for (var i = 0; i < model.Choices.Count; i++)
             {
                 var index = i;
@@ -267,7 +317,10 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _choiceButtons.Count; i++)
             {
                 if (_choiceButtons[i] != null)
+                {
+                    _choiceButtons[i].gameObject.SetActive(false);
                     Destroy(_choiceButtons[i].gameObject);
+                }
             }
 
             _choiceButtons.Clear();
@@ -318,24 +371,24 @@ namespace XianXia.Unity.Host
             contentRect.offsetMin = new Vector2(16f + PortraitSize + 16f, 14f);
             contentRect.offsetMax = new Vector2(-ChoiceColumnWidth - 16f, -14f);
 
-            speakerText = CreateText(contentGo.transform, "Speaker", 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            speakerText = CreateText(contentGo.transform, "Speaker", 22, FontStyle.Bold, TextAnchor.UpperLeft);
             var speakerRect = speakerText.rectTransform;
             speakerRect.anchorMin = new Vector2(0f, 1f);
             speakerRect.anchorMax = new Vector2(1f, 1f);
             speakerRect.pivot = new Vector2(0f, 1f);
             speakerRect.anchoredPosition = Vector2.zero;
-            speakerRect.sizeDelta = new Vector2(0f, 24f);
+            speakerRect.sizeDelta = new Vector2(0f, 32f);
 
             var bodyGo = CreateUiObject("Body", contentGo.transform);
             var bodyRect = bodyGo.GetComponent<RectTransform>();
             bodyRect.anchorMin = new Vector2(0f, 0f);
             bodyRect.anchorMax = new Vector2(1f, 1f);
             bodyRect.offsetMin = new Vector2(0f, 0f);
-            bodyRect.offsetMax = new Vector2(0f, -28f);
-            bodyText = CreateText(bodyGo.transform, "Body", 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            bodyRect.offsetMax = new Vector2(0f, -38f);
+            bodyText = CreateText(bodyGo.transform, "Body", 18, FontStyle.Normal, TextAnchor.UpperLeft);
             StretchFill(bodyText.rectTransform);
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            bodyText.verticalOverflow = VerticalWrapMode.Overflow;
+            bodyText.verticalOverflow = VerticalWrapMode.Truncate;
 
             bodySkipButton = bodyGo.AddComponent<Button>();
             bodySkipButton.transition = Selectable.Transition.None;
@@ -359,11 +412,12 @@ namespace XianXia.Unity.Host
             var go = CreateUiObject("Choice", choicesRoot);
             var rect = go.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.sizeDelta = new Vector2(0f, 48f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = new Vector2(_choiceCellWidth, ChoiceStep - 8f);
             var index = _choiceButtons.Count; // Destroy is deferred; old children must not offset the next step.
-            rect.anchoredPosition = new Vector2(0f, -index * 54f);
+            rect.anchoredPosition = new Vector2((index % _choiceColumns) * (_choiceCellWidth + 8f),
+                -(index / _choiceColumns) * ChoiceStep);
 
             var image = go.AddComponent<Image>();
             image.color = enabled ? ChoiceNormal : ChoiceDisabled;
@@ -378,8 +432,11 @@ namespace XianXia.Unity.Host
             button.targetGraphic = image;
             button.interactable = enabled;
 
-            var text = CreateText(go.transform, "Label", 13, FontStyle.Normal, TextAnchor.MiddleCenter);
+            var text = CreateText(go.transform, "Label", 18, FontStyle.Normal, TextAnchor.MiddleCenter);
             StretchFill(text.rectTransform);
+            text.rectTransform.offsetMin = new Vector2(8f, 4f);
+            text.rectTransform.offsetMax = new Vector2(-8f, -4f);
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.text = label ?? string.Empty;
 
             return button;

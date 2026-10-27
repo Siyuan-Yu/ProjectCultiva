@@ -47,6 +47,10 @@ namespace XianXia.Core.Combat
                 out damageApplied, out defenderDefeated);
         }
 
+        internal Result ApplyDispositionRefusal(SimulationWorld world, EntityId attackerId, EntityId defenderId,
+            out int damageApplied, out bool defenderDefeated) =>
+            ApplyDamageStrike(world, attackerId, defenderId, -1, out damageApplied, out defenderDefeated, dispositionRefusal: true);
+
         /// <summary>
         /// 释放装备栏主动斗技：按 <see cref="CombatArtSpec.HitCount"/> 段，
         /// 每段伤害＝攻击力 × <see cref="CombatArtSpec.DamageAttackMult"/>（再减半防）。
@@ -135,7 +139,8 @@ namespace XianXia.Core.Combat
             EntityId defenderId,
             int damageOverride,
             out int damageApplied,
-            out bool defenderDefeated)
+            out bool defenderDefeated,
+            bool dispositionRefusal = false)
         {
             damageApplied = 0;
             defenderDefeated = false;
@@ -175,6 +180,9 @@ namespace XianXia.Core.Combat
 
             if (defender.TryGet<LifecycleComponent>(out var defLife) && defLife.IsIncapacitated)
             {
+                if (!dispositionRefusal && DefeatedMercyService.IsEncounterOpponent(world, attackerId, defenderId) &&
+                    (defLife.IsUnconscious || defLife.Convalescing))
+                    return Result.Failure(ErrorCode.InvalidOperation, "请先右键进行战败处置；不能绕过求饶选择直接补击。");
                 if ((defLife.IsUnconscious || defLife.Convalescing) && !Social.SupervisorAngerDriver.IsNonlethalAttacker(world, attackerId))
                 {
                     defenderDefeated = CombatLifeStateService.TryEnterDyingFromUnconscious(world, defender, attackerId);
@@ -191,8 +199,11 @@ namespace XianXia.Core.Combat
             var damage = damageOverride >= 0
                 ? Math.Max(1, damageOverride)
                 : ComputeStrikeDamage(world, attacker, defender);
+            var hpBefore = vitals.CurrentHp;
             damageApplied = CombatDamageRules.ApplyIncoming(defender, damage);
-            if (vitals.CurrentHp > 0)
+            CombatInjuryService.RecordBodyHit(world, defender, hpBefore);
+            if (damageApplied > 0) XianXia.Core.Npc.PrisonManagementService.RecordAttack(world, defenderId);
+            if (vitals.CurrentHp > CombatLifeStateService.DefeatHpFloor(defender) || vitals.CurrentHp >= hpBefore)
                 return Result.Success();
 
             defenderDefeated = true;

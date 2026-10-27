@@ -24,17 +24,22 @@ namespace XianXia.Unity.Host
         Pursuit = 1
     }
 
+    /// <summary>Session-only single-hit intent; never infer a stronger action on arrival.</summary>
+    public enum HostNpcFinishIntent { None, AttackDowned, ConfirmDyingDeath, ExecuteCaptive }
+
     /// <summary>Transient person-to-person approach/pursuit; never persisted.</summary>
     public sealed class HostNpcArriveIntent
     {
         public HostNpcArriveIntent(
             EntityId actorId, EntityId npcId, HostNpcArriveAction action,
-            HostNpcApproachPolicy policy, float requiredRange, Vector3 targetPosition)
+            HostNpcApproachPolicy policy, float requiredRange, Vector3 targetPosition,
+            HostNpcFinishIntent finishIntent = HostNpcFinishIntent.None)
         {
             ActorId = actorId;
             NpcId = npcId;
             Action = action;
             Policy = policy;
+            FinishIntent = finishIntent;
             RequiredRange = requiredRange;
             LastTargetPosition = targetPosition;
             LastRepathTime = Time.unscaledTime;
@@ -44,6 +49,7 @@ namespace XianXia.Unity.Host
         public EntityId NpcId { get; }
         public HostNpcArriveAction Action { get; }
         public HostNpcApproachPolicy Policy { get; }
+        public HostNpcFinishIntent FinishIntent { get; }
         public float RequiredRange { get; }
         public Vector3 LastTargetPosition { get; set; }
         public float LastRepathTime { get; set; }

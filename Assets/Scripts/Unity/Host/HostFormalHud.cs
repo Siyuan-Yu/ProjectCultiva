@@ -69,6 +69,10 @@ namespace XianXia.Unity.Host
         bool _stylesReady;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
+        string _roomPanelId = string.Empty;
+        string _roomFeedback = string.Empty;
+        bool _confirmRoomUsage;
+        RoomUsage _pendingRoomUsage;
         EntityId _personalLifeDropdown = EntityId.None;
         // 左上角头像：双击左键 -> 镜头立即定位到当前 Active（不切换主控、不 Cancel Travel）。
         EntityId _partyBarLastClickId = EntityId.None;
@@ -567,6 +571,8 @@ namespace XianXia.Unity.Host
                 return;
 
             var inspect = housingAreaSelection.Inspect;
+            if (inspect == null || !inspect.HasTarget || inspect.Kind != WorldObjectInspectKind.Room)
+            { _roomPanelId = string.Empty; _confirmRoomUsage = false; }
             if (inspect == null || !inspect.HasTarget)
                 return;
 
@@ -852,6 +858,7 @@ namespace XianXia.Unity.Host
 
         void DrawInspectRoom(PlayableHostSession session, HostMapPlotCell plot)
         {
+            if (ShouldHideUnitPanelForDialogue()) return;
             var roomId = plot?.StableCellId ?? string.Empty;
             if (session?.World == null || !session.World.OutdoorConstructedAssets.Assets.TryGetValue(roomId, out var room) ||
                 !RoomBedGeometry.IsRoom(room)) return;
@@ -870,19 +877,61 @@ namespace XianXia.Unity.Host
                     active.Add(FormatEntityName(session, bed.ReservedCharacterId) + "（预约）");
             }
             var title = !string.IsNullOrWhiteSpace(plot.Label) ? plot.Label : spec?.DisplayName ?? room.StableAssetId;
-            DrawInspectShell(218f, "房间 · " + title, () =>
+            if (_roomPanelId != roomId)
+            { _roomPanelId = roomId; _roomFeedback = string.Empty; _confirmRoomUsage = false; }
+            var width = Mathf.Min(760f, Screen.width - 32f);
+            var r = new Rect((Screen.width - width) * .5f, Screen.height - 264f, width, 254f);
+            Fill(r, Parchment); DrawFrame(r, ParchmentDark); HostUiHitTest.Block(r);
+            GUI.Label(new Rect(r.x + 14f, r.y + 10f, width - 60f, 26f), "房间 · " + title, _parchmentTitle);
+            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 8f, 26f, 24f), "×"))
+            { housingAreaSelection.Clear(); return; }
+            var infoWidth = width * .58f;
+            GUI.Label(new Rect(r.x + 14f, r.y + 48f, infoWidth - 24f, 24f),
+                "用途：" + RoomUsageName(room.RoomUsage) + "　床位：" + bedCount, _parchmentBody);
+            GUI.Label(new Rect(r.x + 14f, r.y + 78f, infoWidth - 24f, 24f),
+                "等级：" + (spec?.RoomTier ?? "—") + "　材料：" + (spec?.MaterialKind ?? "—"), _parchmentBody);
+            var label = room.RoomUsage == RoomUsage.Residential ? "分配住户：" :
+                room.RoomUsage == RoomUsage.Medical ? "医疗使用：" : "关押使用：";
+            var values = room.RoomUsage == RoomUsage.Residential ? assignments : active;
+            GUI.Label(new Rect(r.x + 14f, r.y + 110f, infoWidth - 24f, 76f),
+                label + (values.Count == 0 ? "无人" : string.Join("、", values)), _parchmentBody);
+            GUI.Label(new Rect(r.x + 14f, r.yMax - 60f, infoWidth - 24f, 52f), _roomFeedback, _parchmentBody);
+            var canManage = RoomBedFacilityService.CanManageRoom(session.World, room, out var reason);
+            var enabled = GUI.enabled;
+            GUI.enabled = enabled && canManage;
+            var controlX = r.x + infoWidth;
+            var controlWidth = width - infoWidth - 14f;
+            for (var i = 0; i < 3; i++)
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 218f);
-                GUI.Label(new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 22f),
-                    "等级：" + (spec?.RoomTier ?? "—") + "　材料：" + (spec?.MaterialKind ?? "—"), _body);
-                GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 22f),
-                    "用途：" + RoomUsageName(room.RoomUsage) + "　床位：" + bedCount, _body);
-                var label = room.RoomUsage == RoomUsage.Residential ? "分配住户：" :
-                    room.RoomUsage == RoomUsage.Medical ? "医疗使用：" : "关押使用：";
-                var values = room.RoomUsage == RoomUsage.Residential ? assignments : active;
-                GUI.Label(new Rect(r.x + 10f, r.y + 92f, r.width - 20f, 92f),
-                    label + (values.Count == 0 ? "无人" : string.Join("、", values)), _body);
-            });
+                var usage = i == 0 ? RoomUsage.Residential : i == 1 ? RoomUsage.Medical : RoomUsage.Prison;
+                var current = room.RoomUsage == usage;
+                GUI.enabled = enabled && canManage && !current;
+                var confirming = _confirmRoomUsage && _pendingRoomUsage == usage;
+                if (!GUI.Button(new Rect(controlX, r.y + 46f + i * 36f, controlWidth, 30f),
+                    current ? "当前：" + RoomUsageName(usage) : confirming ? "确认改为" + RoomUsageName(usage) : "设为" + RoomUsageName(usage))) continue;
+                if (!confirming && RoomBedFacilityService.HasDormantAssignments(session.World, roomId))
+                {
+                    _confirmRoomUsage = true; _pendingRoomUsage = usage;
+                    _roomFeedback = "将解除房内长期床位分配。\n再次点击同一用途确认，或取消。";
+                }
+                else
+                {
+                    var result = RoomBedFacilityService.SetRoomUsage(session.World, roomId, usage, confirming);
+                    _roomFeedback = result.IsFailure ? result.Error.Message : "用途已改为" + RoomUsageName(usage) + "。";
+                    _confirmRoomUsage = false;
+                    if (result.IsSuccess) HostBedVisualStyle.RefreshRoom(session.World, roomId);
+                }
+            }
+            GUI.enabled = enabled && canManage;
+            if (_confirmRoomUsage && GUI.Button(new Rect(controlX, r.y + 160f, controlWidth, 30f), "取消用途变更"))
+            { _confirmRoomUsage = false; _roomFeedback = string.Empty; }
+            else if (!_confirmRoomUsage && room.RoomUsage == RoomUsage.Prison &&
+                MortalTransportConstraintService.TryGetEscortedCaptive(session.World, session.PlayerParty.ActiveCharacterId, out _) &&
+                GUI.Button(new Rect(controlX, r.y + 160f, controlWidth, 30f), "安置抱持的俘虏"))
+                bootstrap.GetComponent<HostNpcContextMenu>()?.OrderPlaceCaptiveInRoom(roomId);
+            GUI.enabled = enabled;
+            if (!canManage)
+                GUI.Label(new Rect(controlX, r.y + 162f, controlWidth, 76f), reason, _parchmentBody);
         }
 
         void DrawInspectBed(PlayableHostSession session, HostMapPlotCell plot)
@@ -1410,6 +1459,7 @@ namespace XianXia.Unity.Host
 
         void DrawAcsUnitPanel(PlayableHostSession session)
         {
+            if (housingAreaSelection?.Inspect.Kind == WorldObjectInspectKind.Room) return;
             if (ShouldHideUnitPanelForDialogue())
                 return;
 

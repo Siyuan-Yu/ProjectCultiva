@@ -1,5 +1,9 @@
 # 势力、军队、外交与战略占领
 
+> **2026-10-27 拘押优先于普通救护：** [413](../40-process/413-carried-view-alignment-and-custody-rescue-guard-2026-10-27.md)补412直接接线：普通凡人救护不得接管Captured／CapturedEscorted／Detained或独立战场所有权中的人物，即使伤员仍属其原势力；候选、旧任务、床位提交复验。建立俘虏关系会撤销失权旧救护，不能因取消任务把人挪回旧救援者或清掉正式拘押床。合法Prison交接和原照料不变。Implemented / 待人工验收，无新夺俘机制或Snapshot字段。
+
+> **2026-10-27 战内俘虏追加：** [412](../40-process/412-battle-recovery-capture-and-room-panel-2026-10-27.md)／ADR-0069允许本场昏迷敌人在近身后立即建立CapturedEscorted／CarrierId，不再只限逃亡凡人战后捕获。每名搬运者只抱一人，保留移动与原有飞行、禁止战斗，俘虏不治疗、不改势力、不入队；战内掉落／放下保留Tactical，正式返场跟随抱持者位置，之后沿现有牢房真实床位安置。修士拘押不成为凡人劳动。房间本体改左键选择、底栏按实际管理权限更改用途，不用右键房间菜单。Implemented / 待人工验收，现有Snapshot v21字段承载。
+
 > **2026-10-26 地图主城展示约定：** `strategicFaction.mapCapitalSiteId` 为可选地图导航偏好，不改变 WorldSite 所有权、FactionLeader、占领或存档 authority。双击图例只聚焦当前仍归该势力的指定主城；不可用时选当前 Surface 已有最高等级城镇（同级按 SiteId），无城不聚焦。悬停只强调当前真实所有权。详见 [386](../40-process/386-river-network-and-faction-navigation-2026-10-26.md)。
 
 > **2026-10-25 实施覆写，待人工验收：** 正常新游戏只占领既有固定议政厅 Site；102 个历史旗 Site 已保留身份迁为固定核心，不再允许新建旗 Site。战斗仍须正式战争关系、真实 CharacterEncounter、攻破核心及持续接管，不因击破自动易主。见[ADR-0055](../40-process/43-decisions/ADR-0055-fixed-council-hall-sites-and-five-level-control-range.md)与[345](../40-process/345-fixed-sites-and-town-levels-architecture-change-2026-10-25.md)；下方旗战斗属于已验收旧实现与兼容语义。

@@ -110,10 +110,18 @@ namespace XianXia.Core.Persistence
                     dto.HerbDoses = life.HerbDoses;
                     dto.Convalescing = life.Convalescing;
                     dto.UnconsciousSecondsRemaining = life.UnconsciousSecondsRemaining;
+                    dto.CombatUnconscious = life.CombatUnconscious;
                     dto.RecoveryHpMilli = life.RecoveryHpMilli;
 
                 }
 
+                if (entity.TryGet<CombatInjuryComponent>(out var injury))
+                {
+                    dto.InjuryCutRecovery = injury.CutRecovery;
+                    dto.InjurySevereRecovery = injury.SevereRecovery;
+                    dto.InjuryMissingLimbs = injury.MissingLimbs;
+                    dto.InjuryMeridiansBroken = injury.MeridiansBroken;
+                }
                 if (entity.TryGet<AttributesComponent>(out var attrs))
                 {
                     foreach (var kv in attrs.BaseValues)
@@ -331,6 +339,11 @@ namespace XianXia.Core.Persistence
                     dto.MedicLastTreatmentTick = civilian.MedicLastTreatmentTick;
                     dto.MedicRetryAfterTick = civilian.MedicRetryAfterTick;
                     dto.MedicStatus = civilian.MedicStatus;
+                    dto.WardenTargetId = civilian.WardenTargetId.Value;
+                    dto.WardenCarriedResourceId = civilian.WardenCarriedResourceId;
+                    dto.WardenSourceSiteId = civilian.WardenSourceSiteId;
+                    dto.WardenSourceRoomId = civilian.WardenSourceRoomId;
+                    dto.WardenStatus = civilian.WardenStatus;
 
                     dto.MortalRescueCarrying = civilian.RescueCarrying;
                     dto.MortalRescueDestinationId = civilian.RescueDestinationId;
@@ -715,9 +728,12 @@ namespace XianXia.Core.Persistence
                         "Snapshot lacks current EntityLocation authority and requires offline conversion.",
                         "EntityIndex=" + i + " EntityId=" + (entity?.Id ?? 0UL));
                 if (float.IsNaN(entity.UnconsciousSecondsRemaining) || float.IsInfinity(entity.UnconsciousSecondsRemaining) ||
-                    entity.UnconsciousSecondsRemaining < 0 || entity.UnconsciousSecondsRemaining > CombatLifeStateService.UnconsciousSeconds ||
-                    entity.UnconsciousSecondsRemaining > 0 && (entity.Lifecycle != (int)LifecycleState.Incapacitated && entity.Lifecycle != (int)LifecycleState.Captured ||
+                    entity.UnconsciousSecondsRemaining != 0 ||
+                    entity.CombatUnconscious && (entity.Lifecycle != (int)LifecycleState.Incapacitated && entity.Lifecycle != (int)LifecycleState.Captured ||
                         entity.Convalescing || entity.DyingReserveMilli != 0 || entity.BleedOutAfterTick != 0 || entity.CurrentHp < 1) ||
+                    entity.InjuryCutRecovery < 0 || entity.InjuryCutRecovery > CombatInjuryService.CutRecoveryLoad ||
+                    entity.InjurySevereRecovery < 0 || entity.InjurySevereRecovery > CombatInjuryService.SevereRecoveryLoad ||
+                    entity.InjuryMissingLimbs < 0 || entity.InjuryMissingLimbs > 15 ||
                     entity.DyingReserveMilli < 0 || entity.DyingReserveMilli > 200000 ||
                     entity.HerbDoses < 0 || entity.HerbDoses > 1000000 ||
                     entity.RecoveryHpMilli < 0 || entity.RecoveryHpMilli >= 1000 ||
@@ -732,6 +748,9 @@ namespace XianXia.Core.Persistence
                      entity.MortalEnergy < 0 || entity.MortalEnergy > 100 ||
                      !Enum.IsDefined(typeof(MortalProfession), entity.MortalProfession) ||
                      !Enum.IsDefined(typeof(MortalActivity), entity.MortalActivity) ||
+                     entity.WardenTargetId != 0 && !snapshotEntityIds.Contains(entity.WardenTargetId) ||
+                     !string.IsNullOrEmpty(entity.WardenCarriedResourceId) &&
+                        (string.IsNullOrWhiteSpace(entity.WardenSourceSiteId) || string.IsNullOrWhiteSpace(entity.WardenSourceRoomId)) ||
                      !Enum.IsDefined(typeof(CivilianSleepPhase), entity.MortalSleepPhase) ||
                      !Enum.IsDefined(typeof(CivilianDisposition), entity.CivilianDisposition) ||
                      entity.MortalCarrierId != 0 && !snapshotEntityIds.Contains(entity.MortalCarrierId) ||
@@ -897,9 +916,14 @@ namespace XianXia.Core.Persistence
                     HerbDoses = e.HerbDoses,
                     Convalescing = e.Convalescing,
                     UnconsciousSecondsRemaining = e.UnconsciousSecondsRemaining,
+                    CombatUnconscious = e.CombatUnconscious,
                     RecoveryHpMilli = e.RecoveryHpMilli
                 };
                 entity.AddComponent(life);
+                entity.AddComponent(new CombatInjuryComponent {
+                    CutRecovery = e.InjuryCutRecovery, SevereRecovery = e.InjurySevereRecovery,
+                    MissingLimbs = e.InjuryMissingLimbs, MeridiansBroken = e.InjuryMeridiansBroken });
+                CombatInjuryService.RefreshModifiers(entity);
                 var actionState = new ActionStateComponent
                 {
                     ActiveActionId = new ActionId(e.ActiveActionId),
@@ -1160,6 +1184,11 @@ namespace XianXia.Core.Persistence
                     civilian.MedicLastTreatmentTick = e.MedicLastTreatmentTick;
                     civilian.MedicRetryAfterTick = e.MedicRetryAfterTick;
                     civilian.MedicStatus = e.MedicStatus ?? string.Empty;
+                    civilian.WardenTargetId = new EntityId(e.WardenTargetId);
+                    civilian.WardenCarriedResourceId = e.WardenCarriedResourceId ?? string.Empty;
+                    civilian.WardenSourceSiteId = e.WardenSourceSiteId ?? string.Empty;
+                    civilian.WardenSourceRoomId = e.WardenSourceRoomId ?? string.Empty;
+                    civilian.WardenStatus = e.WardenStatus ?? string.Empty;
 
                     civilian.RescueCarrying = e.MortalRescueCarrying;
                     civilian.RescueDestinationId = e.MortalRescueDestinationId ?? string.Empty;
@@ -1714,7 +1743,8 @@ namespace XianXia.Core.Persistence
                     !world.OutdoorConstructedAssets.Assets.TryGetValue(dto.RecoverySpotId, out var spot) ||
                     !(RoomBedGeometry.IsBed(spot) &&
                       (RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Medical) ||
-                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential))) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Residential) ||
+                       RoomBedFacilityService.BedHasUsage(world, spot, RoomUsage.Prison))) ||
                     spot.OccupantCharacterId != injured || spot.ReservedCharacterId != injured ||
                     !world.RecoverySpotDeliveries.TryRestore(dto.RecoverySpotId, injured))
                     return Result.Failure(ErrorCode.SnapshotInvalid,

@@ -303,6 +303,12 @@ namespace XianXia.Unity.Host
                 return false;
             }
             var participant = state.Find(id.Value);
+            if (participant == null && PrisonWallBreachService.IsEncounterBystander(world, id))
+            {
+                reason = "PrisonNoncombatantAtExactWorldPosition";
+                return binding.IsMaterialized(id) && entity.TryGet<EntityLocationComponent>(out var placed) &&
+                    placed.HasPresentationOverride;
+            }
             var carriedCaptive = participant == null && world.Civilians.TryGet(id, out var civilian) &&
                                  civilian.Disposition == CivilianDisposition.CapturedEscorted &&
                                  !civilian.CarrierId.IsNone && state.Find(civilian.CarrierId.Value) != null;

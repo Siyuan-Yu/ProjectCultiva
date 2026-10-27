@@ -9,6 +9,14 @@ namespace XianXia.Unity.Host
         bool IsOpeningMoveAllowed(EntityId id, Vector3 point)
         {
             var world = bootstrap?.Session?.World;
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (XianXia.Core.Npc.PrisonConfinementService.IsConfinedOutdoor(world, id))
+            {
+                if (surface?.Mapper == null || !surface.IsActive) return false;
+                surface.Mapper.PresentationToWorld(point.x, point.y, out var confinedX, out var confinedY);
+                if (!XianXia.Core.Npc.PrisonConfinementService.AllowsPosition(world, id, surface.ActiveSurfaceId,
+                    new XianXia.Core.World.WorldVec2(confinedX, confinedY))) return false;
+            }
             if (!HuangcunOpeningAccess.IsLocked(world)) return true;
             // Tactical/interior coordinates are not outdoor canonical coordinates.
             if (world.LocalMap.IsInInterior || CharacterEncounterService.OwnsParticipantSpatialState(world, id))

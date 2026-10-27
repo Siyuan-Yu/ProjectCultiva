@@ -35,6 +35,8 @@ namespace XianXia.Core.Actions
         {
             if (world == null || string.IsNullOrWhiteSpace(RecoverySpotId))
                 return Result.Failure(ErrorCode.InvalidArgument, "恢复处无效。");
+            if (!AutonomousActionContinuationService.CanContinue(world, Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart, "当前生命状态不能自行使用恢复处。");
             var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
             if (burden.IsFailure) return burden;
             if (world.Strategic != null &&
@@ -58,6 +60,9 @@ namespace XianXia.Core.Actions
         {
             if (Status != ActionStatus.Running)
                 return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
+            var can = CanStart(world);
+            if (can.IsFailure)
+            { Status = ActionStatus.Failed; return can; }
             Clock = Clock.Consume(1);
             if (!Clock.IsComplete) return Result.Success();
             if (!world.Entities.TryGet(Subject, out var entity))

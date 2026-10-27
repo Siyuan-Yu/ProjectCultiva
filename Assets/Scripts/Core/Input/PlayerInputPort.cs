@@ -45,6 +45,10 @@ namespace XianXia.Core.Input
         {
             if (request == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "PlayerCommandRequest is null.");
+            if ((request.Kind == PlayerCommandKind.Labor || request.Kind == PlayerCommandKind.Cultivate) &&
+                XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(_loop.World, request.Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart,
+                    XianXia.Core.Actions.AutonomousActionContinuationService.EncounterWorkBlockedReason);
 
             if (_loop.World.Strategic.PlayerPartyContext != null &&
                 !XianXia.Core.World.PlayerPartyRuntime.CanPlayerControlCharacter(_loop.World,request.Subject))

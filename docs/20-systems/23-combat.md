@@ -1,5 +1,15 @@
 ﻿# 战斗
 
+> **当前战斗完整快照（2026-10-27）：** [417](../40-process/417-prison-combat-navigation-checkpoint-and-github-handoff-2026-10-27.md)汇总最新身体、半血苏醒续战、求饶与财物、抱持俘虏、战后保留及 v21 边界；[415](../40-process/415-character-navigation-recovery-2026-10-27.md)／[416](../40-process/416-encounter-pursuit-and-work-lock-2026-10-27.md)补寻路、独立追击更新及工作互斥。实际参战者至结算前禁普通劳动／耕田／伐木／采集／修炼，入战取消旧普通工作与睡眠，合法战斗破墙保留。Implemented / Producer Acceptance Pending；GitHub 交付不替代人工验收。
+
+> **2026-10-27 放过语义最新覆盖：** [414](../40-process/414-mercy-without-permanent-withdrawal-2026-10-27.md)／[ADR-0070](../40-process/43-decisions/ADR-0070-mercy-does-not-withdraw-combatants.md)覆盖ADR-0068／0069旧Spared：放你一马同暂不处置，只关闭当次对话，不退出、不锁后续处置、不产生已获放过状态；未结算场中醒来正常续战。索财成功也不永久退出，已有索财事实只禁止同次再次索财，不禁止俘虏或拒绝求饶；伤势、拘押、敌我和真实资产规则保留。旧未提交Spared清理，已提交战果不重开。Implemented / 待人工验收，v21不变。
+
+> **2026-10-27 苏醒续战与战内俘虏补充：** [412](../40-process/412-battle-recovery-capture-and-room-panel-2026-10-27.md)／[ADR-0069](../40-process/43-decisions/ADR-0069-live-battle-recovery-and-carried-captives.md)覆盖待结算锁与旧目标OR即时结束口径：未提交且未正式撤退，双方重新有未退出的清醒人物即续战，结束按钮和提交复验；已达成目标不撤销，但不能跳过仍可战敌人。昏迷敌人可近身俘虏，一对一抱持保留真实伤势，抱持者可步行／原有飞行但不能攻击，其他可控人物继续参战。俘虏苏醒仍拘押，放下或抱持者失能则原战术位置解除抱持、可重新参战。已放过和已提交战果不自动重开。Implemented / 待人工验收，v21不变。
+
+> **2026-10-27 战中操作与战败处置覆盖：** [410](../40-process/410-rts-attack-and-defeated-mercy-2026-10-27.md)／[ADR-0068](../40-process/43-decisions/ADR-0068-rts-attacks-and-defeated-mercy.md)按制作人最新要求取消独立战斗NPC30%低血自动撤离／投降。继续战至约1%HP昏迷，清醒敌人红光标右键直攻，倒地者再右键菜单继续攻击到求饶；放过／索取真实财物后放过，或拒绝转弥留；弥留显式击杀才生成尸体。伤势／身体恢复保留408规则，首次HP保留改约1%。当前独立战斗处置已实施，复杂空间求饶／通用个人背包／移接尚未实施，人工验收及数据边界见410。
+
+> **2026-10-27 简化伤势定向覆写：** [408](../40-process/408-simplified-injuries-and-remains-grafting-2026-10-27.md)／[ADR-0067](../40-process/43-decisions/ADR-0067-simplified-combat-injuries-and-remains-grafting.md)按最后确认实施：HP低于50%可能割伤、低于25%可能重伤，打昏可能断肢／断经脉，转弥留95%断经脉；不做疼痛、出血、止血或具体部位割伤。废止固定100秒苏醒，改为实际恢复超过50%HP；普通伤渐愈，断肢／经脉不会因回血消除。身体恢复／恶化随既有世界／战术倍速推进，尸体原计时不改。非弥留者不再有固定−1恢复惩罚；数值、v21兼容和人工验收见408。金丹遗骸移接仅设计、未实施；下文冲突的旧苏醒／医疗口径为历史。
+
 > 2026-10-24：制作人批准[筑基定向射击](../40-process/43-decisions/ADR-0053-directional-ranged-basic-attack.md)，F2展开后主控WASD移动、鼠标瞄准、长按左键发射。状态与验收见336；不会绕过原独立战斗确认。
 
 > **2026-10-21 当前追加规则与实施：** 多轮谈判支持实际资源赔偿、双方释放俘虏及整个对方势力附庸；不交易自由人物，不新增押送。成交结束既有双方战争，非一次接触停火。冷区接敌／撤离、现场遮挡及六槽冷却存档已补齐，仍待人工验收。见 [318](../40-process/318-npc-ai-closure-and-peace-negotiation-2026-10-21.md)／[ADR-0051](../40-process/43-decisions/ADR-0051-party-exhaustion-and-negotiated-peace.md)。下文赎金／谈判暂缓为旧阶段记录。

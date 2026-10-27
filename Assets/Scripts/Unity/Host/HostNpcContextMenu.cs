@@ -8,6 +8,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
@@ -17,7 +18,7 @@ namespace XianXia.Unity.Host
     /// <summary>
     /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府／阵营旗／树／墙＝攻击。
     /// </summary>
-    public sealed class HostNpcContextMenu : MonoBehaviour
+    public sealed partial class HostNpcContextMenu : MonoBehaviour
     {
         const string InputOwner = "NpcContextMenu:Interaction";
         const string DismantlePauseOwner = "NpcContext.DismantleConfirm";
@@ -51,6 +52,7 @@ namespace XianXia.Unity.Host
         string _dismantleStatus = string.Empty;
         string _spiritGateStatus = string.Empty;
         bool _holdingDismantlePause;
+        bool _prisonVisitMenu;
         const string AggressionPauseOwner = "SiteCoreAggressionConfirmation";
         Vector2 _menuScreen;
         Rect _menuGuiRect;
@@ -58,8 +60,6 @@ namespace XianXia.Unity.Host
         EntityId _recruitTarget = EntityId.None;
         float _recruitRemaining;
         const float RecruitInteractionSeconds = 5f;
-        string _pendingRoomUsageId = string.Empty;
-        RoomUsage _pendingRoomUsage;
         SimulationWorld _pendingPrisonWorld;
         EntityId _pendingPrisonCarrier = EntityId.None;
         EntityId _pendingPrisonCaptive = EntityId.None;
@@ -68,6 +68,8 @@ namespace XianXia.Unity.Host
         uint _pendingPrisonMoveRevision;
         readonly List<WorldVec2> _prisonAccessScratch = new List<WorldVec2>(4);
         readonly List<Vector3> _prisonPathScratch = new List<Vector3>(32);
+        readonly List<WorldVec2> _restAccessScratch = new List<WorldVec2>(4);
+        readonly List<Vector3> _restPathScratch = new List<Vector3>(32);
 
         Texture2D _px;
         GUIStyle _label;
@@ -89,8 +91,6 @@ namespace XianXia.Unity.Host
                                      _worldObjectTarget.Plot != null;
         bool IsBedTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Bed &&
                             _worldObjectTarget.Plot != null;
-        bool IsRoomTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Room &&
-                             _worldObjectTarget.Plot != null;
         bool IsPrisonDropOffTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.PrisonDropOff &&
                                       _worldObjectTarget.Plot != null;
         bool IsLootMenuTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.Loot;
@@ -153,7 +153,7 @@ namespace XianXia.Unity.Host
                 !selectionController.IsPartyUnit(npc))
             {
                 if (bootstrap.Session.World.Civilians.TryGet(npc, out var captured) &&
-                    captured.Disposition == CivilianDisposition.CapturedEscorted)
+                    captured.Disposition == CivilianDisposition.CapturedEscorted && captured.CarrierId != actor)
                     return false;
                 _actor = actor;
                 _targetNpc = npc;
@@ -162,6 +162,10 @@ namespace XianXia.Unity.Host
                 _targetEntranceLocationId = string.Empty;
                 _targetDestructible = null;
                 _targetLabel = ResolveDisplayName(npc);
+                if (CanRtsAttack(actor, npc))
+                { BeginAttack(); return true; }
+                _prisonVisitMenu = HuangcunPrisonVisitService.Applies(bootstrap.Session.World) &&
+                    HuangcunSurvivalService.IsPrisoner(bootstrap.Session.World, npc);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.AcquireInteraction(InputOwner);
@@ -204,6 +208,8 @@ namespace XianXia.Unity.Host
             if (HostWorldObjectPicker.TryPickAtScreenPoint(
                     bootstrap, worldCamera, Input.mousePosition, out var objectTarget))
             {
+                // Room floors use left-click inspection; right-click remains ordinary movement.
+                if (objectTarget.Kind == WorldObjectTargetKind.Room) return false;
                 if (objectTarget.Kind == WorldObjectTargetKind.FarmPlot &&
                     (!objectTarget.TryCreateContentContext(actor, out var farmContext) ||
                      new ContentEventService().ResolveInteractionCandidates(
@@ -214,6 +220,7 @@ namespace XianXia.Unity.Host
                 _targetNpc = EntityId.None;
                 _targetEntranceLocationId = string.Empty;
                 SetWorldObjectTarget(objectTarget);
+                _prisonVisitMenu = false;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.AcquireInteraction(InputOwner);
@@ -320,7 +327,9 @@ namespace XianXia.Unity.Host
             switch (_phase)
             {
                 case Phase.Menu:
-                    if (IsCaveEntranceTarget)
+                    if (_prisonVisitMenu)
+                        DrawPrisonVisitMenu();
+                    else if (IsCaveEntranceTarget)
                         DrawCaveMenu();
                     else if (IsControlCoreTarget)
                         DrawControlCoreMenu();
@@ -338,8 +347,6 @@ namespace XianXia.Unity.Host
                         DrawRecoverySpotMenu();
                     else if (IsPrisonDropOffTarget)
                         DrawPrisonDropOffMenu();
-                    else if (IsRoomTarget)
-                        DrawRoomMenu();
                     else if (_worldObjectTarget.Kind == WorldObjectTargetKind.FarmPlot)
                         DrawFarmPlotMenu();
                     else if (IsReadOnlyWorldObjectTarget)
@@ -449,8 +456,13 @@ namespace XianXia.Unity.Host
             y += itemH;
             DrawInspectButton(guiX, ref y, w, itemH);
             var verb = _targetDestructible != null && _targetDestructible.IsTree ? "砍伐" : "拆毁";
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), verb, _button))
+            var workBlocked = _targetDestructible != null && !_targetDestructible.IsWall &&
+                XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(bootstrap?.Session?.World, _actor);
+            var wasEnabled = GUI.enabled;
+            GUI.enabled = wasEnabled && !workBlocked;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), workBlocked ? "战斗中禁止工作" : verb, _button))
                 BeginDestructibleAttack();
+            GUI.enabled = wasEnabled;
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -581,56 +593,42 @@ namespace XianXia.Unity.Host
                 ? HousingAssignmentService.EntityDisplayName(entity) : id.ToString();
         }
 
-        void DrawRoomMenu()
+        void DrawPrisonVisitMenu()
         {
-            const float w = 220f;
-            const float itemH = 30f;
-            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
-            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - 188f);
-            _menuGuiRect = new Rect(x, y, w, 184f);
+            var world = bootstrap?.Session?.World;
+            var prisoner = world != null ? HuangcunSurvivalService.Prisoner(world) : null;
+            if (prisoner == null || !HuangcunPrisonVisitService.Applies(world)) { CloseAll(); return; }
+            const float width = 292f, height = 158f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - width - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - height - 4f);
+            _menuGuiRect = new Rect(x, y, width, height);
             HostUiHitTest.Block(_menuGuiRect);
             Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
-            var world = bootstrap?.Session?.World;
-            var roomId = _worldObjectTarget.Plot?.StableCellId ?? string.Empty;
-            OutdoorConstructedAssetState room = null;
-            world?.OutdoorConstructedAssets.Assets.TryGetValue(roomId, out room);
-            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f),
-                "房间用途：" + (room != null ? room.RoomUsage.ToString() : "?"), _label);
-            var yy = y + 32f;
-            var permissionReason = "房间不存在。";
-            var canManage = room != null && RoomBedFacilityService.CanManageRoom(world, room, out permissionReason);
-            GUI.enabled = canManage;
-            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为住宅", _button)) SetRoomUsage(roomId, RoomUsage.Residential);
-            yy += itemH;
-            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为医疗", _button)) SetRoomUsage(roomId, RoomUsage.Medical);
-            yy += itemH;
-            if (GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "设为囚室", _button)) SetRoomUsage(roomId, RoomUsage.Prison);
-            yy += itemH;
-            if (room != null && room.RoomUsage == RoomUsage.Prison && TryFindEscortedCaptive(_actor, out _) &&
-                GUI.Button(new Rect(x + 8f, yy, w - 16f, itemH - 4f), "安置俘虏", _button))
-                BeginPrisonRoom(roomId);
+            GUI.Label(new Rect(x + 10, y + 8, width - 20, 25), prisoner.DisplayName + "（被囚）", _label);
+            var access = HuangcunPrisonVisitService.ValidateVisit(world, _actor);
+            GUI.enabled = access.IsSuccess;
+            if (GUI.Button(new Rect(x + 8, y + 37, width - 16, 30), "与" + prisoner.DisplayName + "对话", _button))
+            {
+                var actor = _actor;
+                var target = _targetNpc;
+                CloseAll();
+                SupervisorAngerDriver.TryBeginPrisonTrespass(world, bootstrap.Session.Loop, actor);
+                if (dialoguePresenter?.TryStartPrisonVisit(actor) != true)
+                    HostWorldSiteCoreWarfare.Feedback(bootstrap, "无法与" + ResolveDisplayName(target) + "交谈，请查看距离、身体与追赶状态。");
+                GUI.enabled = true;
+                return;
+            }
             GUI.enabled = true;
-            if (!canManage)
-                GUI.Label(new Rect(x + 8f, y + 156f, w - 16f, 22f), permissionReason, _label);
+            GUI.Label(new Rect(x + 10, y + 76, width - 20, 70), access.IsFailure ? access.Error.Message :
+                "可以交谈、接受请求、送饭送药、查看身体。占领前，牢房及外沿三格是禁区，被巡视发现会追赶开战。", _label);
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
-        void SetRoomUsage(string roomId, RoomUsage usage)
+
+        public void OrderPlaceCaptiveInRoom(string roomId)
         {
-            var world = bootstrap?.Session?.World;
-            var confirmed = string.Equals(_pendingRoomUsageId, roomId, System.StringComparison.Ordinal) &&
-                            _pendingRoomUsage == usage;
-            if (!confirmed && RoomBedFacilityService.HasDormantAssignments(world, roomId))
-            {
-                _pendingRoomUsageId = roomId; _pendingRoomUsage = usage;
-                Debug.LogWarning("[Room] 再次选择同一用途以确认解除房内长期床位分配。", this);
-                return;
-            }
-            var result = RoomBedFacilityService.SetRoomUsage(world, roomId, usage, confirmed);
-            if (result.IsFailure) Debug.LogWarning("[Room] " + result.Error.Message, this);
-            else HostBedVisualStyle.RefreshRoom(world, roomId);
-            _pendingRoomUsageId = string.Empty;
-            CloseAll();
+            _actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
+            BeginPrisonRoom(roomId);
         }
 
         void BeginPrisonRoom(string roomId)
@@ -877,16 +875,27 @@ namespace XianXia.Unity.Host
             var stableId = plot != null ? plot.StableCellId : string.Empty;
             var destination = plot != null ? plot.transform.position : Vector3.zero;
             var world = bootstrap?.Session?.World;
-            if (world != null && world.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var bed) &&
-                RoomBedGeometry.IsBed(bed) && bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
-                RoomBedFacilityService.TryResolveAccessPoint(world, bed, out var access) &&
-                bootstrap.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(access, out var bedAccess))
-                destination = bedAccess;
+            OutdoorConstructedAssetState bed = null;
+            var isBed = world != null && world.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out bed) && RoomBedGeometry.IsBed(bed);
             var message = string.Empty;
             CloseAll();
             if (actor.IsNone || string.IsNullOrWhiteSpace(stableId) || !CanBeginRest(actor, stableId, out message))
             {
                 ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处不可用。" : message, false);
+                return;
+            }
+            if (isBed)
+            {
+                if (RoomBedFacilityService.IsAtAccessPoint(world, bed, actor))
+                {
+                    moveController?.CancelPresentationMovementPublic(actor);
+                    CompleteRecoverySpotApproach(actor, stableId);
+                    return;
+                }
+                if (!TryChooseRestAccessPoint(actor, bed, out destination) ||
+                    !moveController.OrderEntityToWorldPointPublic(actor, destination,
+                        () => CompleteRecoverySpotApproach(actor, stableId), exactGoal: true))
+                    ShowRecoveryFeedback(actor, "这张床没有可达的合法床边位置。", false);
                 return;
             }
             if (bootstrap.ViewSpawner != null && bootstrap.ViewSpawner.Registry.TryGet(actor, out var view) &&
@@ -900,6 +909,31 @@ namespace XianXia.Unity.Host
             CompleteRecoverySpotApproach(actor, stableId);
         }
 
+        bool TryChooseRestAccessPoint(EntityId actor, OutdoorConstructedAssetState bed, out Vector3 destination)
+        {
+            destination = default;
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (surface?.IsActive != true || surface.ActiveSurfaceId != bed.SurfaceId || moveController == null ||
+                bootstrap.ViewSpawner == null || !bootstrap.ViewSpawner.Registry.TryGet(actor, out var view) || view == null) return false;
+            var world = bootstrap.Session.World;
+            RoomBedGeometry.CollectAccessPoints(world.OutdoorConstructedAssets, bed, _restAccessScratch);
+            var best = float.MaxValue;
+            var found = false;
+            foreach (var access in _restAccessScratch)
+            {
+                if (!surface.TryWorldToPresentation(access, out var candidate) || moveController.WalkGrid == null ||
+                    !moveController.WalkGrid.TryWorldToCell(candidate.x, candidate.y, out var cellX, out var cellY) ||
+                    !moveController.WalkGrid.IsWalkable(cellX, cellY) ||
+                    !moveController.TryBuildPathPreview(view.transform.position, candidate, _restPathScratch)) continue;
+                var length = 0f;
+                var previous = view.transform.position;
+                foreach (var step in _restPathScratch) { length += Vector3.Distance(previous, step); previous = step; }
+                if (length >= best) continue;
+                best = length; destination = candidate; found = true;
+            }
+            return found;
+        }
+
         void CompleteRecoverySpotApproach(EntityId actor, string stableId)
         {
             var message = string.Empty;
@@ -910,6 +944,8 @@ namespace XianXia.Unity.Host
             }
             var isBed = bootstrap.Session.World.OutdoorConstructedAssets.Assets.TryGetValue(stableId, out var asset) &&
                         RoomBedGeometry.IsBed(asset);
+            if (isBed && !RoomBedFacilityService.IsAtAccessPoint(bootstrap.Session.World, asset, actor))
+            { ShowRecoveryFeedback(actor, "尚未到达这张床的合法使用格，休息未开始。", false); return; }
             var issued = bootstrap.CommandBridge != null && (isBed
                 ? bootstrap.CommandBridge.IssueBedRest(actor, stableId) > 0
                 : bootstrap.CommandBridge.IssueRecovery(actor, stableId) > 0);
@@ -975,24 +1011,28 @@ namespace XianXia.Unity.Host
 
         void DrawContextMenu()
         {
-            const float w = 168f;
+            const float w = 264f;
             const float itemH = 30f;
             var hostile = HostNpcInteraction.IsHostileNpc(bootstrap?.Session, _targetNpc);
             var canAttack = CanInitiatePlayerHostileAction(_actor, _targetNpc);
             LifecycleComponent downedLife = null;
             if (bootstrap.Session.World.Entities.TryGet(_targetNpc, out var downedTarget)) downedTarget.TryGet(out downedLife);
             var downedAction = downedLife != null && (downedLife.IsUnconscious || downedLife.IsDying || downedLife.Convalescing);
+            var battleCapture = downedAction && downedLife.State != LifecycleState.Captured && !downedLife.IsDying &&
+                DefeatedMercyService.IsEncounterOpponent(bootstrap.Session.World, _actor, _targetNpc);
+            if (downedLife?.State == LifecycleState.Captured) downedAction = false;
             var canTrade = !hostile && bootstrap.Session.World.Commerce.TryGetProvider(bootstrap.Session.World, _targetNpc, out _);
             var canAuction = !hostile && AuctionHouseService.TryGetProvider(bootstrap.Session.World.Commerce, bootstrap.Session.World, _targetNpc, out _);
             MortalCivilianState civilian = null;
             bootstrap.Session.World.Civilians.TryGet(_targetNpc, out civilian);
             var civilianActions = civilian != null && civilian.Disposition != CivilianDisposition.Normal && civilian.Disposition != CivilianDisposition.Displaced;
+            var detainedTalk = civilian?.Disposition == CivilianDisposition.Detained;
             var extraRows = civilian == null ? 0 :
                 civilian.Disposition == CivilianDisposition.SurrenderWaiting ? 2 :
                 civilian.Disposition == CivilianDisposition.Fleeing ? 2 :
                 civilian.Disposition == CivilianDisposition.CapturedEscorted && civilian.CarrierId == _actor ? 1 :
-                civilian.Disposition == CivilianDisposition.Detained ? 3 : 0;
-            var rows = (hostile ? 1 : 2) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows + (downedAction ? 1 : 0);
+                civilian.Disposition == CivilianDisposition.Detained ? 2 : 0;
+            var rows = (hostile ? 1 : 2) + (detainedTalk ? 2 : 0) + (canTrade ? 1 : 0) + (canAuction ? 1 : 0) + extraRows + (downedAction ? 1 : 0) + (battleCapture ? 1 : 0);
             var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
@@ -1007,17 +1047,35 @@ namespace XianXia.Unity.Host
                 hostile ? _targetLabel + "（敌对）" : _targetLabel,
                 _label);
             var y = guiY + 30f;
+            if (battleCapture)
+            {
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "俘虏（需一人抱持）", _button))
+                    BeginCapture();
+                y += itemH;
+            }
             if (downedAction)
             {
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
-                    downedLife.IsDying ? "杀死" : "攻击昏迷者（使其弥留）", _button))
+                    downedLife.IsDying ? "击杀" : "继续攻击（战败处置）", _button))
                     BeginPersonApproach(HostNpcArriveAction.Execute);
                 y += itemH;
             }
-            if (!hostile && !civilianActions)
+            if ((!hostile && !civilianActions) || detainedTalk)
             {
                 if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "对话", _button))
                     BeginTalk();
+                y += itemH;
+            }
+
+            if (detainedTalk)
+            {
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "查看身体状况", _button))
+                {
+                    if (PrisonConfinementService.TryGetRoom(bootstrap.Session.World, _targetNpc, out var room) &&
+                        CanInteractWithPrisoner(_actor, _targetNpc, room)) bootstrap.CharacterSheetPanel?.OpenFor(_targetNpc);
+                    else HostWorldSiteCoreWarfare.Feedback(bootstrap, "先进入牢房并靠近这名囚犯。");
+                    CloseAll(); return;
+                }
                 y += itemH;
             }
 
@@ -1033,8 +1091,7 @@ namespace XianXia.Unity.Host
             }
             if (civilian != null)
             {
-                if ((civilian.Disposition == CivilianDisposition.SurrenderWaiting ||
-                     civilian.Disposition == CivilianDisposition.Detained))
+                if (civilian.Disposition == CivilianDisposition.SurrenderWaiting)
                 {
                     if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "招募", _button))
                         BeginPersonApproach(HostNpcArriveAction.Recruit);
@@ -1053,7 +1110,7 @@ namespace XianXia.Unity.Host
                 }
                 if (civilian.Disposition == CivilianDisposition.CapturedEscorted && civilian.CarrierId == _actor)
                 {
-                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "释放囚犯", _button))
+                    if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "放下并释放俘虏", _button))
                         RunCivilianCommand(MortalCivilianService.ReleaseEscorted(
                             bootstrap.Session.World, _actor, _targetNpc));
                     y += itemH;
@@ -1067,7 +1124,7 @@ namespace XianXia.Unity.Host
                     y += itemH;
                 }
             }
-            if (canAttack && GUI.Button(
+            if (!downedAction && canAttack && GUI.Button(
                     new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
                     hostile ? "攻击" : "攻击…",
                     _button))
@@ -1087,6 +1144,9 @@ namespace XianXia.Unity.Host
         {
             var actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
             var target = _targetNpc;
+            if (PrisonConfinementService.TryGetRoom(bootstrap?.Session?.World, target, out var room) &&
+                !CanInteractWithPrisoner(actor, target, room))
+            { HostWorldSiteCoreWarfare.Feedback(bootstrap, "先进入牢房并靠近这名囚犯。"); CloseAll(); return; }
             if (moveController == null || actor.IsNone || target.IsNone ||
                 !moveController.OrderActorToNpc(actor, target, action))
             { CloseAll(); return; }
@@ -1196,12 +1256,17 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), _targetLabel, _label);
             var actionY = y + 30f;
             DrawInspectButton(x, ref actionY, w, itemH);
-            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), "工作", _button))
+            var workBlocked = XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(
+                bootstrap?.Session?.World, _actor);
+            var wasEnabled = GUI.enabled;
+            GUI.enabled = wasEnabled && !workBlocked;
+            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), workBlocked ? "战斗中禁止工作" : "工作", _button))
             {
                 var target = _worldObjectTarget;
                 CloseAll();
                 bootstrap?.WorkTargetMode?.TryHandleContextTarget(target);
             }
+            GUI.enabled = wasEnabled;
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -1454,6 +1519,16 @@ namespace XianXia.Unity.Host
 
         void BeginTalk()
         {
+            var world = bootstrap?.Session?.World;
+            if (PrisonConfinementService.TryGetRoom(world, _targetNpc, out var prison))
+            {
+                if (!CanInteractWithPrisoner(_actor, _targetNpc, prison))
+                { HostWorldSiteCoreWarfare.Feedback(bootstrap, "先走进牢房，靠近这名囚犯再交谈。"); CloseAll(); return; }
+                var actor = _actor; var npc = _targetNpc;
+                OnNpcArriveTalk(actor, npc);
+                CloseAll();
+                return;
+            }
             if (moveController == null || _actor.IsNone || _targetNpc.IsNone)
             {
                 CloseAll();
@@ -1471,12 +1546,47 @@ namespace XianXia.Unity.Host
             CloseAll();
         }
 
+        bool CanInteractWithPrisoner(EntityId actor, EntityId npc, OutdoorConstructedAssetState room)
+        {
+            var world = bootstrap?.Session?.World;
+            return world != null && PrisonConfinementService.IsInside(world, room, actor) &&
+                PrisonConfinementService.IsInside(world, room, npc) &&
+                CharacterWorldPresenceQuery.TryResolve(world, actor, out var from) &&
+                CharacterWorldPresenceQuery.TryResolve(world, npc, out var to) &&
+                world.SurfaceSpatial.TryGet(room.SurfaceId, out var metric) &&
+                WorldVec2.Distance(from.WorldPosition, to.WorldPosition) <= metric.CellSize * 3;
+        }
+
         void BeginDestructibleAttack()
         {
             var target = _targetDestructible;
             if (target == null || target.IsDestroyed || _actor.IsNone)
             {
                 CloseAll();
+                return;
+            }
+
+            var world = bootstrap.Session.World;
+            if (!target.IsWall && XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(world, _actor))
+            {
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, XianXia.Core.Actions.AutonomousActionContinuationService.EncounterWorkBlockedReason);
+                CloseAll();
+                return;
+            }
+            if (PrisonWallBreachService.TryResolveWall(world, target.PlacementId, out var prison, out _, out _))
+            {
+                if (!PrisonWallBreachService.TryOwner(world, prison, out var owner))
+                { HostWorldSiteCoreWarfare.Feedback(bootstrap, "无法确定监狱所属势力。"); CloseAll(); return; }
+                var actor = _actor;
+                var wallId = target.PlacementId;
+                // In an existing battle, reject out-of-range actions before any political mutation.
+                if (world.Strategic.CharacterEncounter != null && !PrisonWallBreachService.CanDamage(world, actor, wallId))
+                { HostWorldSiteCoreWarfare.Feedback(bootstrap, "只能在双方已宣战且墙体位于当前战场时破坏监狱。"); CloseAll(); return; }
+                BeginStrategicAggressionIfNeeded(world.Strategic.PlayerFactionId, owner.OwnerFactionId, () =>
+                {
+                    CloseAll(); ResumeTime();
+                    HostPrisonWallCombat.BeginConfirmed(bootstrap, actor, wallId);
+                });
                 return;
             }
 
@@ -1552,6 +1662,11 @@ namespace XianXia.Unity.Host
                 return;
 
             _targetLabel = ResolveDisplayName(npc);
+            if (SupervisorAngerDriver.TryBeginPrisonTrespass(session.World, session.Loop, actor))
+            { HostWorldSiteCoreWarfare.Feedback(bootstrap, "靠近牢房禁区已被发现！"); ResumeTime(); return; }
+            if (PrisonConfinementService.TryGetRoom(session.World, npc, out var prison) &&
+                !CanInteractWithPrisoner(actor, npc, prison))
+            { HostWorldSiteCoreWarfare.Feedback(bootstrap, "需要在同一牢房内靠近囚犯交谈。"); return; }
 
             if (!HostNpcInteraction.TryResolveDefinitionId(session, npc, out var npcDefId))
             {
@@ -1730,6 +1845,20 @@ namespace XianXia.Unity.Host
         public void OnNpcArriveCapture(EntityId actor, EntityId npc)
         {
             var world = bootstrap?.Session?.World;
+            if (DefeatedMercyService.IsEncounterOpponent(world, actor, npc))
+            {
+                var result = MortalCivilianService.CaptureDefeatedInBattle(world, actor, npc);
+                if (result.IsFailure) HostWorldSiteCoreWarfare.Feedback(bootstrap, result.Error.Message);
+                else
+                {
+                    moveController?.CancelPresentationMovementPublic(actor);
+                    moveController?.CancelPresentationMovementPublic(npc);
+                    HostLifeStatePresentationSync.RefreshDownedOrDead(world, bootstrap.ViewSpawner,
+                        moveController, npc, captureOrdinaryPlacement: false);
+                    HostWorldSiteCoreWarfare.Feedback(bootstrap, "已抱持俘虏，不能攻击；可切换其他我方人物继续战斗。");
+                }
+                return;
+            }
             if (world == null || actor.IsNone || npc.IsNone ||
                 !world.Entities.TryGet(actor, out var actorEntity) || !CombatLifeStateService.CanFight(actorEntity) ||
                 !world.Entities.TryGet(npc, out var targetEntity) || !CombatLifeStateService.CanBeAttacked(targetEntity) ||
@@ -1781,7 +1910,7 @@ namespace XianXia.Unity.Host
             ReleaseInteractionNpcNow(npc);
         }
 
-        public void OnNpcArriveExecute(EntityId actor, EntityId npc)
+        public void OnNpcArriveExecute(EntityId actor, EntityId npc, HostNpcFinishIntent intent)
         {
             var world = bootstrap?.Session?.World;
             if (world != null && IsWithinPersonInteractionRange(actor, npc) &&
@@ -1789,16 +1918,24 @@ namespace XianXia.Unity.Host
                 MortalTransportConstraintService.ValidateAttack(world, actor).IsSuccess &&
                 world.Entities.TryGet(npc, out var target) && target.TryGet<LifecycleComponent>(out var life))
             {
-                if (life.IsUnconscious || life.Convalescing)
-                    RunCivilianCommand(new MeleeCombatService().ApplyStrike(world, actor, npc, out _, out _));
-                else if (life.IsDying)
+                if (intent == HostNpcFinishIntent.AttackDowned && (life.IsUnconscious || life.Convalescing))
+                {
+                    if (DefeatedMercyService.IsEncounterOpponent(world, actor, npc))
+                    {
+                        if (dialoguePresenter?.TryStartDefeatedMercy(actor, npc) != true)
+                            HostWorldSiteCoreWarfare.Feedback(bootstrap, "目标状态已变化，或当前无法进行战败处置。");
+                    }
+                    else RunCivilianCommand(new MeleeCombatService().ApplyStrike(world, actor, npc, out _, out _));
+                }
+                else if (intent == HostNpcFinishIntent.ConfirmDyingDeath && life.IsDying)
                 {
                     CombatLifeStateService.TryConfirmDeath(world, actor, target, DeathConfirmationReason.FinishingStrike, out _);
                     bootstrap.DispatchDrainedEvents();
                 }
-                else if (world.Civilians.TryGet(npc, out var captive) && captive.Disposition == CivilianDisposition.Detained)
+                else if (intent == HostNpcFinishIntent.ExecuteCaptive && !life.IsIncapacitated &&
+                    world.Civilians.TryGet(npc, out var captive) && captive.Disposition == CivilianDisposition.Detained)
                     RunCivilianCommand(MortalCivilianService.Execute(world, actor, npc));
-                else HostWorldSiteCoreWarfare.Feedback(bootstrap, "目标已苏醒或脱离弥留，指令取消。");
+                else HostWorldSiteCoreWarfare.Feedback(bootstrap, "目标身体状态已变化，本次指令取消；不会自动升级为杀死。");
                 HostLifeStatePresentationSync.RefreshDownedOrDead(world, bootstrap.ViewSpawner, moveController, npc,
                     captureOrdinaryPlacement: world.Strategic.CharacterEncounter == null);
                 bootstrap.DispatchDrainedEvents();
@@ -1847,7 +1984,8 @@ namespace XianXia.Unity.Host
                 CharacterEncounterService.OwnsParticipantSpatialState(world, actor) ||
                 CharacterEncounterService.OwnsParticipantSpatialState(world, target) ||
                 !world.Entities.TryGet(actor, out var actorEntity) || !CombatLifeStateService.CanFight(actorEntity) ||
-                !world.Entities.TryGet(target, out var targetEntity) || !CombatLifeStateService.CanFight(targetEntity) ||
+                !world.Entities.TryGet(target, out var targetEntity) ||
+                (!CombatLifeStateService.CanFight(targetEntity) && !PrisonConfinementService.CanWalk(world, targetEntity)) ||
                 !world.Civilians.TryGet(target, out var state) ||
                 state.Disposition != CivilianDisposition.SurrenderWaiting &&
                 state.Disposition != CivilianDisposition.Detained)
@@ -1857,6 +1995,8 @@ namespace XianXia.Unity.Host
 
         bool IsWithinPersonInteractionRange(EntityId actor, EntityId target)
         {
+            if (PrisonConfinementService.TryGetRoom(bootstrap?.Session?.World, target, out var room) &&
+                !CanInteractWithPrisoner(actor, target, room)) return false;
             var registry = bootstrap?.ViewSpawner?.Registry;
             return registry != null && registry.TryGet(actor, out var actorView) && actorView != null &&
                    registry.TryGet(target, out var targetView) && targetView != null &&
@@ -1961,6 +2101,7 @@ namespace XianXia.Unity.Host
             _targetEntranceLocationId = string.Empty;
             _targetDestructible = null;
             _worldObjectTarget = default;
+            _prisonVisitMenu = false;
             _targetLabel = string.Empty;
             _confirmCallback = null;
             _aggressionAttackerFactionId = string.Empty;
@@ -1974,6 +2115,7 @@ namespace XianXia.Unity.Host
 
         void OnDisable()
         {
+            ClearBattleAttackCursor();
             HostInputGate.ReleaseInteraction(InputOwner);
             CancelRecruitInteraction();
             CancelPendingPrisonBedCommand(true, "界面生命周期结束");

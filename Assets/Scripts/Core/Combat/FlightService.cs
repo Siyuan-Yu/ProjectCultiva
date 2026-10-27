@@ -120,8 +120,8 @@ namespace XianXia.Core.Combat
                 !world.SurfaceGround.TryGet(surfaceId, out var surface) || !surface.Contains(groundPoint.X, groundPoint.Y) ||
                 !HuangcunOpeningAccess.AllowsPosition(world, surfaceId, groundPoint.X, groundPoint.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, "请在户外合法落脚点展开化翼。");
-            if (PartyRestService.BlocksMovement(entity) || MortalTransportConstraintService.ValidateAttack(world, id).IsFailure)
-                return Result.Failure(ErrorCode.InvalidOperation, "当前精力或搬运状态不允许起飞。");
+            if (PartyRestService.BlocksMovement(entity))
+                return Result.Failure(ErrorCode.InvalidOperation, "当前休息状态不允许起飞。");
             CombatDamageRules.EnsureVitals(entity);
             if (!entity.TryGet<CombatVitalsComponent>(out var vitals) || vitals.CurrentSpiritPower <= ActivateSpiritCost)
                 return Result.Failure(ErrorCode.InvalidOperation, "化翼需80灵力，且至少保留1点。");

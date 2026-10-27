@@ -314,15 +314,17 @@ namespace XianXia.Unity.Host
 
         void DrawCharacterEncounterEndBar(HostCharacterEncounter coordinator)
         {
+            if (!coordinator.CanFinishBattle) return;
             GUI.depth = -40;
             const float width = 420f;
-            const float height = 116f;
+            const float height = 154f;
             var box = new Rect(Screen.width - width - 16f, Screen.height - height - 72f, width, height);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
             HostUiHitTest.Block(box);
-            GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 140f, 52f),
-                "本场已可结束。结束后生成战报并返回原位置。\n仍可补刀、查看角色或进行战场交互。", _body);
+            GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 20f, 102f),
+                "本场已可结束：" + coordinator.DescribeBattleEndReason() +
+                "\n结束后生成战报并返回原位置。\n退出交战不等于昏迷或死亡；人物在此期间不会恢复农作。", _body);
             if (GUI.Button(new Rect(box.xMax - 128f, box.yMax - 40f, 116f, 32f), "结束战斗") &&
                 !coordinator.TryFinishBattle())
                 ShowTransientToast("无法结束战斗：" + coordinator.Failure);

@@ -56,9 +56,11 @@ namespace XianXia.Core.Npc
                 var personal = Ensure(world, entity);
                 if (personal == null) continue;
                 if (HuangcunSurvivalService.IsPrisoner(world, entity.Id))
-                { personal.LastProcessedTick = world.Tick.Value; personal.Status = "囚禁中：缺粮与伤势持续恶化"; continue; }
+                { personal.LastProcessedTick = world.Tick.Value; personal.Status = "囚禁中：仅可在牢内活动，可接受探视与照料"; continue; }
                 AdvanceNeeds(world, entity, personal);
                 HuangcunSurvivalService.TryRation(world, entity, personal);
+                if (PrisonWallBreachService.DriveExitIntent(world, entity))
+                { personal.Status = "前往监狱墙体缺口，拘押已解除"; continue; }
                 if (XianXia.Core.Social.SupervisorAngerDriver.OwnsPursuit(world, entity.Id)) continue;
                 var partyMember = world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true;
                 if (!string.IsNullOrEmpty(personal.MeditationSpotId) &&
@@ -224,7 +226,8 @@ namespace XianXia.Core.Npc
                 var cultivate = entity.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cultivation) &&
                                 !cultivation.IsAtBottleneck && personal.Energy > ExhaustionThreshold &&
                                 personal.Satiety > HungerThreshold && personal.CurrentMood >= MinCultivationMood;
-                var wantCultivate = cultivate && HuangcunSurvivalService.ValidateCultivation(world, entity).IsSuccess && PreferCultivation(world, personal);
+                var wantCultivate = cultivate && !XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity) &&
+                    HuangcunSurvivalService.ValidateCultivation(world, entity).IsSuccess && PreferCultivation(world, personal);
                 var meditationBlocked = false;
                 if (wantCultivate)
                 {

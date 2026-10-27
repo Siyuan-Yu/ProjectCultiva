@@ -98,12 +98,12 @@ namespace XianXia.Data.Serialization
             {
                 var root = SimpleJson.Parse(json);
                 var sourceSchema = (int)root.GetNumber("schemaVersion");
-                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreDisciplineSchemaVersion && sourceSchema != WorldSnapshot.PreSurvivalSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
+                if (sourceSchema != WorldSnapshot.CurrentSchemaVersion && sourceSchema != WorldSnapshot.PreInjurySchemaVersion && sourceSchema != WorldSnapshot.PreDisciplineSchemaVersion && sourceSchema != WorldSnapshot.PreSurvivalSchemaVersion && sourceSchema != WorldSnapshot.PreFlightSchemaVersion && sourceSchema != WorldSnapshot.PreGroundLootSchemaVersion && sourceSchema != WorldSnapshot.PreMedicalSchemaVersion)
                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotVersionMismatch,
-                        "支持v15至v20存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
+                        "支持v15至v21存档；v1-v14缺少当前房间/床位权威数据，不能直接读取。原存档未删除。更新版本的存档请使用对应版本程序。");
                 var snapshot = new WorldSnapshot
                 {
-                    // Append the v20 unconscious timer; existing dying states keep their meaning.
+                    // v21 replaces wake timers with persistent injury-driven recovery.
                     SchemaVersion = WorldSnapshot.CurrentSchemaVersion,
                     SnapshotId = ReadU(root, "snapshotId"),
                     WorldTick = ReadU(root, "worldTick"),
@@ -134,9 +134,16 @@ namespace XianXia.Data.Serialization
                 {
                     foreach (var e in entities.Array)
                     {
-                        if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion &&
+                        if (sourceSchema >= WorldSnapshot.PreInjurySchemaVersion &&
                             (!e.TryGetProperty("unconsciousSecondsRemaining", out var unconsciousTime) || unconsciousTime.Kind != JsonValueKind.Number))
                             return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少昏迷剩余时间。");
+                        if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion &&
+                            (!e.TryGetProperty("combatUnconscious", out var injuryUnconscious) || injuryUnconscious.Kind != JsonValueKind.Boolean ||
+                             !e.TryGetProperty("injuryCutRecovery", out var injuryCut) || injuryCut.Kind != JsonValueKind.Number ||
+                             !e.TryGetProperty("injurySevereRecovery", out var injurySevere) || injurySevere.Kind != JsonValueKind.Number ||
+                             !e.TryGetProperty("injuryMissingLimbs", out var injuryLimbs) || injuryLimbs.Kind != JsonValueKind.Number ||
+                             !e.TryGetProperty("injuryMeridiansBroken", out var injuryMeridians) || injuryMeridians.Kind != JsonValueKind.Boolean))
+                            return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "缺少v21正式伤势字段。");
                         if (sourceSchema >= WorldSnapshot.PreGroundLootSchemaVersion)
                             foreach (var key in new[] { "hasMedicalProgress", "dyingReserveMilli", "herbDoses", "convalescing",
                                 "recoveryHpMilli", "medicTargetId", "medicCarryingHerb", "medicTreatmentSeconds", "medicLastTreatmentTick" })
@@ -147,6 +154,13 @@ namespace XianXia.Data.Serialization
                                 if (!e.TryGetProperty(key, out _))
                                     return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少飞行状态字段：" + key);
                         var restoredEntity = ReadEntity(e);
+                        if (sourceSchema < WorldSnapshot.CurrentSchemaVersion)
+                        {
+                            restoredEntity.CombatUnconscious = restoredEntity.UnconsciousSecondsRemaining > 0;
+                            restoredEntity.UnconsciousSecondsRemaining = 0;
+                            restoredEntity.InjuryCutRecovery = restoredEntity.InjurySevereRecovery = restoredEntity.InjuryMissingLimbs = 0;
+                            restoredEntity.InjuryMeridiansBroken = false;
+                        }
                         if (sourceSchema < WorldSnapshot.PreSurvivalSchemaVersion) restoredEntity.Flight = null;
                         if (restoredEntity.Flight?.Airborne == true &&
                             (!restoredEntity.HasCultivation || restoredEntity.Realm < (int)XianXia.Core.Cultivation.RealmStage.GoldenCore ||
@@ -484,7 +498,7 @@ namespace XianXia.Data.Serialization
                 {
                     if (!root.TryGetProperty("huangcunSurvival", out var survival))
                         return Result.Fail<WorldSnapshot>(ErrorCode.SnapshotInvalid, "存档缺少荒村生存状态。");
-                    if (sourceSchema >= WorldSnapshot.CurrentSchemaVersion)
+                    if (sourceSchema >= WorldSnapshot.PreInjurySchemaVersion)
                     {
                         foreach (var key in new[] { "supervisorAnger", "observationSeconds", "lastObservationTick", "punisherId", "punishmentTargetId", "punishmentBattleActive" })
                             if (!survival.TryGetProperty(key, out _))
@@ -1079,6 +1093,11 @@ namespace XianXia.Data.Serialization
                     ["herbDoses"] = JsonValue.FromNumber(e.HerbDoses),
                     ["convalescing"] = JsonValue.FromBool(e.Convalescing),
                     ["unconsciousSecondsRemaining"] = JsonValue.FromNumber(e.UnconsciousSecondsRemaining),
+                    ["combatUnconscious"] = JsonValue.FromBool(e.CombatUnconscious),
+                    ["injuryCutRecovery"] = JsonValue.FromNumber(e.InjuryCutRecovery),
+                    ["injurySevereRecovery"] = JsonValue.FromNumber(e.InjurySevereRecovery),
+                    ["injuryMissingLimbs"] = JsonValue.FromNumber(e.InjuryMissingLimbs),
+                    ["injuryMeridiansBroken"] = JsonValue.FromBool(e.InjuryMeridiansBroken),
                     ["recoveryHpMilli"] = JsonValue.FromNumber(e.RecoveryHpMilli),
                     ["medicTargetId"] = U(e.MedicTargetId),
                     ["medicCarryingHerb"] = JsonValue.FromBool(e.MedicCarryingHerb),
@@ -1089,6 +1108,11 @@ namespace XianXia.Data.Serialization
                     ["medicLastTreatmentTick"] = U(e.MedicLastTreatmentTick),
                     ["medicRetryAfterTick"] = U(e.MedicRetryAfterTick),
                     ["medicStatus"] = JsonValue.FromString(e.MedicStatus ?? string.Empty),
+                    ["wardenTargetId"] = U(e.WardenTargetId),
+                    ["wardenCarriedResourceId"] = JsonValue.FromString(e.WardenCarriedResourceId ?? string.Empty),
+                    ["wardenSourceSiteId"] = JsonValue.FromString(e.WardenSourceSiteId ?? string.Empty),
+                    ["wardenSourceRoomId"] = JsonValue.FromString(e.WardenSourceRoomId ?? string.Empty),
+                    ["wardenStatus"] = JsonValue.FromString(e.WardenStatus ?? string.Empty),
                     ["hasCorpse"] = JsonValue.FromBool(e.HasCorpse),
                     ["corpseRemoveAfterTick"] = U(e.CorpseRemoveAfterTick),
                     ["hasResponsibleAttacker"] = JsonValue.FromBool(e.HasResponsibleAttacker),
@@ -1574,6 +1598,11 @@ namespace XianXia.Data.Serialization
                 HerbDoses = (int)e.GetNumber("herbDoses"),
                 Convalescing = e.TryGetProperty("convalescing", out var medicalConvalescing) && medicalConvalescing.Kind == JsonValueKind.Boolean && medicalConvalescing.Bool,
                 UnconsciousSecondsRemaining = (float)e.GetNumber("unconsciousSecondsRemaining", 0),
+                CombatUnconscious = e.GetBool("combatUnconscious"),
+                InjuryCutRecovery = (int)e.GetNumber("injuryCutRecovery"),
+                InjurySevereRecovery = (int)e.GetNumber("injurySevereRecovery"),
+                InjuryMissingLimbs = (int)e.GetNumber("injuryMissingLimbs"),
+                InjuryMeridiansBroken = e.GetBool("injuryMeridiansBroken"),
                 RecoveryHpMilli = (int)e.GetNumber("recoveryHpMilli"),
                 MedicTargetId = ReadU(e, "medicTargetId"),
                 MedicCarryingHerb = e.TryGetProperty("medicCarryingHerb", out var medicalMedicCarryingHerb) && medicalMedicCarryingHerb.Kind == JsonValueKind.Boolean && medicalMedicCarryingHerb.Bool,
@@ -1584,6 +1613,11 @@ namespace XianXia.Data.Serialization
                 MedicLastTreatmentTick = ReadU(e, "medicLastTreatmentTick"),
                 MedicRetryAfterTick = ReadU(e, "medicRetryAfterTick"),
                 MedicStatus = e.GetString("medicStatus", string.Empty),
+                WardenTargetId = ReadU(e, "wardenTargetId"),
+                WardenCarriedResourceId = e.GetString("wardenCarriedResourceId", string.Empty),
+                WardenSourceSiteId = e.GetString("wardenSourceSiteId", string.Empty),
+                WardenSourceRoomId = e.GetString("wardenSourceRoomId", string.Empty),
+                WardenStatus = e.GetString("wardenStatus", string.Empty),
                 HasCorpse = e.TryGetProperty("hasCorpse", out var hco) &&
                             hco.Kind == JsonValueKind.Boolean &&
                             hco.Bool,

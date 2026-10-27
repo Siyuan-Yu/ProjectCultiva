@@ -5,7 +5,8 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 20;
+        public const int CurrentSchemaVersion = 21;
+        public const int PreInjurySchemaVersion = 20;
         public const int PreDisciplineSchemaVersion = 19;
         public const int PreSurvivalSchemaVersion = 18;
         public XianXia.Core.Npc.HuangcunSurvivalState HuangcunSurvival { get; set; } = new XianXia.Core.Npc.HuangcunSurvivalState();
@@ -877,6 +878,11 @@ namespace XianXia.Core.Persistence
         public int HerbDoses { get; set; }
         public bool Convalescing { get; set; }
         public float UnconsciousSecondsRemaining { get; set; }
+        public bool CombatUnconscious { get; set; }
+        public int InjuryCutRecovery { get; set; }
+        public int InjurySevereRecovery { get; set; }
+        public int InjuryMissingLimbs { get; set; }
+        public bool InjuryMeridiansBroken { get; set; }
         public int RecoveryHpMilli { get; set; }
         public ulong MedicTargetId { get; set; }
         public bool MedicCarryingHerb { get; set; }
@@ -887,6 +893,11 @@ namespace XianXia.Core.Persistence
         public ulong MedicLastTreatmentTick { get; set; }
         public ulong MedicRetryAfterTick { get; set; }
         public string MedicStatus { get; set; } = string.Empty;
+        public ulong WardenTargetId { get; set; }
+        public string WardenCarriedResourceId { get; set; } = string.Empty;
+        public string WardenSourceSiteId { get; set; } = string.Empty;
+        public string WardenSourceRoomId { get; set; } = string.Empty;
+        public string WardenStatus { get; set; } = string.Empty;
 
 
         /// <summary>尸体留存；HasCorpse=false 时不恢复 CorpseComponent。</summary>

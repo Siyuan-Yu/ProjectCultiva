@@ -52,6 +52,8 @@ Core/Data/Host/Content 已接通本轮 V1；制作人已确认现有民生整体
 
 ## Implemented V1
 
+> **2026-10-27 监管管理覆盖：** [405](405-prison-warden-care-and-recruitment-2026-10-27.md)／ADR-0066 取代下文囚犯抽象公粮、吃睡降低旧势力忠诚及拘押招募阈值。监管职业通过真实取送公粮灵草照料，抵抗逐日变化但不改旧 Loyalty；对话招募复验管理权、同牢近场、清醒、抵抗及关系，不入队、不移动、不治疗。同伴乙免招募。原投降等待招募保留。已实现、四程序集基础编译通过，人工运行验收待完成。
+
 - `MortalCivilianBoard` 以真实 `EntityId` 保存 Satiety、Energy、Profession、Activity、Disposition、居所、逃亡目标、押送者、囚室与每日照料事实；`MortalActivityEvaluator` 是需求与工作的单一优先级入口。旧版将 Loyalty 存在该 Board 的描述已由 P1 取代。
 - `CharacterFactionLoyaltyLedger` 以真实 Character EntityId 与当前 FactionId 保存唯一 Loyalty（0–100）；凡人、修士、NPC、永久玩家人物及有正式势力归属的 Temporary Quest Companion 均遵循同一规则。无势力人物不适用，人物概况固定显示“忠诚：—”。`initialLoyalty` 是人物对初始势力的配置种子，省略为 50；切换势力时旧值失效，明确招降写新势力 50，其它转移使用配置种子。
 - WorldTick 驱动饥饿、睡眠、进食、专业劳动、真实伤员搬运、逃亡、押送与拘留。食物只识别 `food` tag；农夫、药农连接现有逐格农作，伐木工连接现有树木破坏结算，产物写入 Site 公共库存。通用 Haul/Construction 已改为 Site PublicStock → 工单 transport payload → 工地材料与正式 ConstructionService 完成，不再以 LocationLabor 数值冒充建设。
@@ -129,6 +131,8 @@ Site 完整易主后，旧势力有归属凡人不会自动换阵营、加入玩
 捕获必须通过带 `Capture/Subdue` intent 的正常 Encounter。玩家获胜且目标仍存活、可捕获时才成功；真正死亡的 Character 不能被捕获。
 
 ## Escorted Captive、Prisoner Housing 与 Detention
+
+> **2026-10-27 制作人批准的拘押活动增补：** [402](402-prisoner-person-interaction-and-trespass-2026-10-27.md) 使清醒囚犯可在所属真实Prison房内活动，玩家进入后右键具体人物交互；管理权限不再通过房屋对白提供。DetainedResidenceWorkAreaId仍是正式拘押房间；活动时真实床位使用ReservedCharacterId保留容量、卧床才使用OccupantCharacterId，不新增存档字段。恢复校验允许唯一牢床预约加房内实际位置（含返床和地面失能），睡眠实占仍校验床边。旧「已拘押始终实占床且必须贴床」由本条覆写，押送中未完成预约清理保留，释放／招募／正式押送沿既有权威。Implemented / 待人工验收，未提交推送。
 
 被捕者仍是同一 Character。当前主动发起者成为 carrier／escort；被押送者不能自行移动、工作、被玩家控制或参与玩家劳动，Core 与 Host 将其 WorldPresence／EntityView 同步到真实 carrier。carrier 死亡、移除、进入不兼容 Encounter 或运输取消时，目标安全留在 carrier 最后合法位置并清除 carrier binding；不自动换人或瞬移到囚室。
 

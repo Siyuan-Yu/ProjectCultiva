@@ -73,8 +73,8 @@ namespace XianXia.Core.Npc
         {
             bed = null;
             if (patient == null || patient.Id == doctor.Id ||
-                !patient.TryGet<LifecycleComponent>(out var life) || !life.IsDying ||
-                MedicalRecoveryService.ResolveRateMilli(world, patient) > 0 ||
+                !patient.TryGet<LifecycleComponent>(out var life) || life.IsDead || life.IsRemoved ||
+                !NeedsMedicalHerb(world, patient, life) ||
                 IsRescueReserved(world, patient.Id) ||
                 world.Civilians.TryGet(patient.Id, out var captive) && !captive.CarrierId.IsNone ||
                 CharacterEncounterService.OwnsParticipantSpatialState(world, patient.Id) ||
@@ -105,6 +105,14 @@ namespace XianXia.Core.Npc
             return false;
         }
 
+        static bool NeedsMedicalHerb(SimulationWorld world, Entity patient, LifecycleComponent life)
+        {
+            if (life.IsDying) return MedicalRecoveryService.ResolveRateMilli(world, patient) <= 0 && life.HerbDoses < 5;
+            return life.HerbDoses < 3 && (CombatInjuryService.HasRecoverable(patient) ||
+                patient.TryGet<CombatVitalsComponent>(out var hp) && patient.TryGet<AttributesComponent>(out var attrs) &&
+                hp.CurrentHp < attrs.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp));
+        }
+
         public static bool HasMedicTarget(SimulationWorld world, Entity doctor, MortalCivilianState state)
         {
             if (!CanPracticeMedicine(world, doctor, state) || world.Tick.Value < state.MedicRetryAfterTick)
@@ -122,8 +130,9 @@ namespace XianXia.Core.Npc
                 else
                 {
                     best.TryGet<LifecycleComponent>(out var previous);
-                    if (life.DyingReserveMilli < previous.DyingReserveMilli ||
-                        life.DyingReserveMilli == previous.DyingReserveMilli && patient.Id.Value < best.Id.Value)
+                    if (life.IsDying && !previous.IsDying || life.IsDying == previous.IsDying &&
+                        (life.DyingReserveMilli < previous.DyingReserveMilli ||
+                         life.DyingReserveMilli == previous.DyingReserveMilli && patient.Id.Value < best.Id.Value))
                         best = patient;
                 }
             }
@@ -271,6 +280,7 @@ namespace XianXia.Core.Npc
             if (state.MedicTreatmentSeconds < MedicalRecoveryService.TreatmentSeconds) return;
             patient.TryGet<LifecycleComponent>(out var patientLife);
             patientLife.HerbDoses++;
+            PrisonManagementService.RecordCare(world, patient.Id, true);
             state.MedicCarryingHerb = false;
             state.MedicTreatmentSeconds = 0;
             state.MedicStatus = "施药完成，累计 " + patientLife.HerbDoses + " 份";

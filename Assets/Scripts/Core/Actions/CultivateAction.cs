@@ -34,8 +34,12 @@ namespace XianXia.Core.Actions
 
         public Result CanStart(SimulationWorld world)
         {
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(world, Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart, AutonomousActionContinuationService.EncounterWorkBlockedReason);
             if (!world.Entities.TryGet(Subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            if (XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity))
+                return Result.Failure(ErrorCode.ActionCannotStart, "经脉断裂，无法修炼；需后续专门修复。");
             var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
             if (burden.IsFailure) return burden;
             if (!entity.TryGet<LifecycleComponent>(out var life))
@@ -64,6 +68,8 @@ namespace XianXia.Core.Actions
 
         public Result Advance(SimulationWorld world)
         {
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(world, Subject))
+            { Cancel(); return Result.Failure(ErrorCode.ActionCannotStart, AutonomousActionContinuationService.EncounterWorkBlockedReason); }
             if (Status != ActionStatus.Running)
                 return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
 
@@ -74,6 +80,8 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionFailed, "CultivationComponent missing during cultivate.");
             }
 
+            if (XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity))
+            { Status = ActionStatus.Failed; return Result.Failure(ErrorCode.ActionFailed, "经脉断裂，修炼中断。"); }
             var survivalCheck = HuangcunSurvivalService.ValidateCultivation(world, entity);
             if (survivalCheck.IsFailure) { Status = ActionStatus.Failed; world.HuangcunSurvival.Message = survivalCheck.Error.ToString(); return survivalCheck; }
             Clock = Clock.Consume(1);

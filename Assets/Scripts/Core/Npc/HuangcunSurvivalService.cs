@@ -152,12 +152,6 @@ namespace XianXia.Core.Npc
             task == "pick_lock" ? 12UL : task == "food" || task == "wood" || task == "herb" ? 8UL : 2UL;
         static string Item(string task) => task.EndsWith("wood") ? Wood : task.EndsWith("herb") ? Herb : Grain;
         static int Count(SimulationWorld w, string key) => w.HuangcunSurvival.StoredItems.TryGetValue(key, out var n) ? n : 0;
-        static bool Guard(Entity e) => e.DefinitionId.ToString() == "base:character_ch01_ref_guard_a" ||
-            e.DefinitionId.ToString() == "base:character_ch01_ref_guard_b";
-        static bool GuardNear(SimulationWorld w)
-        { foreach (var e in w.Entities.All) if (Guard(e) && CombatLifeStateService.CanFight(e) && Near(w, e.Id, w.HuangcunSurvival.Places["prison"], 25)) return true; return false; }
-        static bool GuardsDefeated(SimulationWorld w)
-        { foreach (var e in w.Entities.All) if (Guard(e) && CombatLifeStateService.CanFight(e)) return false; return true; }
         static string DailyKey(SimulationWorld w, string task) => "survival:yield:" + task + ":" + (w.Tick.Value / 288 % 2);
         static int UsedToday(SimulationWorld w, string task)
         { var k = DailyKey(w, task); return w.ContentDaily.IsMarkedToday(k, w.Tick) ? w.ContentCounters.Get(k) : 0; }
@@ -166,12 +160,25 @@ namespace XianXia.Core.Npc
 
         public static Result Validate(SimulationWorld w, EntityId id, string task)
         {
+            // Keep the wire task recognizable so an old queued action fails safely on resume.
+            if (task == "pick_lock") return Fail("撬锁已退役；请在正常宣战战斗中破坏监狱墙体营救。");
+            if (task == "force_release" && HuangcunOpeningAccess.IsLocked(w))
+                return Fail("劳役时期不能点击强救；请在正常宣战战斗中打出可通行缺口。");
+            if (task == "force_release" && !PrisonManagementService.TryManagedPrisoner(w, new EntityId(w.HuangcunSurvival.PrisonerId), out _))
+                return Fail("当前未实际控制这座牢房，不能下令释放。");
             if (!w.HuangcunSurvival.Enabled || w.Strategic.PlayerFactionId != w.HuangcunSurvival.OwnerFactionId || !w.Entities.TryGet(id, out var e) || !CombatLifeStateService.CanFight(e) ||
                 w.Strategic.PlayerPartyContext?.IsMember(id) != true || w.LocalMap.IsInInterior ||
                 CharacterEncounterService.OwnsParticipantSpatialState(w, id)) return Fail("当前角色不能进行荒村生活行动。");
             if (w.PlayerPartyTravel.IsMoving) return Fail("先停下，再开始行动。");
             if (!e.TryGet<PersonalLifeComponent>(out var personal)) return Fail("角色生活状态未就绪。");
-            if (TryDestination(w, task, out var point) && !Near(w, id, point)) return Fail("需要先到达对应地点附近。");
+            WorldVec2 point;
+            var secretCare = (task == "feed" || task == "medicine" || task == "force_release" && !HuangcunOpeningAccess.IsLocked(w)) && HuangcunPrisonVisitService.Applies(w);
+            if (secretCare)
+            {
+                var access = HuangcunPrisonVisitService.ValidateVisit(w, id);
+                if (access.IsFailure) return access;
+            }
+            else if (TryDestination(w, task, out point) && !Near(w, id, point)) return Fail("需要先到达对应地点附近。");
             if ((task == "food" || task == "wood" || task == "herb" || task == "work") && personal.Energy <= 15) return Fail("精力不足，先休息。");
             switch (task)
             {
@@ -195,9 +202,8 @@ namespace XianXia.Core.Npc
                     if (task == "feed" && prisoner.TryGet<PersonalLifeComponent>(out var captiveNeeds) && captiveNeeds.Satiety > 65) return Fail("同伴暂时吃饱了，可以把粮食留到下次探视。");
                     if (task == "medicine" && w.Inventory.GetCount(Herb) < 1) return Fail("送药需要灵草 1。");
                     if (task == "medicine" && life.HerbDoses >= 5) return Fail("已敷足药量，先观察恢复情况。");
+                    if (task == "medicine" && !HuangcunPrisonVisitService.Needs(w, task)) return Fail("同伴伤势已恢复，不需要再敷药。");
                     if (task == "ransom" && (w.Inventory.GetCount(Grain) < 6 || w.Inventory.GetCount(Herb) < 3)) return Fail("狱卒索要粮食 6、灵草 3，才肯放人。");
-                    if (task == "pick_lock" && (GuardNear(w) || w.Inventory.GetCount(Wood) < 2)) return Fail("撬锁需要木料 2；附近有清醒巡卫时不能动手。");
-                    if (task == "force_release" && HuangcunOpeningAccess.IsLocked(w) && !GuardsDefeated(w)) return Fail("先击败两名巡卫，或取得荒村后解救。");
                     return Result.Success();
                 default: return Fail("未知生活行动。");
             }
@@ -225,22 +231,38 @@ namespace XianXia.Core.Npc
             else
             {
                 var captive=Prisoner(w); var needs=PersonalLifeService.Ensure(w,captive); captive.TryGet<LifecycleComponent>(out var life);
-                if (task == "feed") { w.Inventory.TryRemoveAll(Grain,1); needs.Satiety+=35; needs.Clamp(); s.Message="送饭成功，同伴饱食 +35；仍被关押。"; }
+                if (task == "feed") { w.Inventory.TryRemoveAll(Grain,1); needs.Satiety+=35; needs.Clamp(); s.Message="送饭成功，同伴饱食 +35；仍被关押。"; HuangcunPrisonVisitService.RecordDelivered(w,id,task); }
                 else if (task == "medicine")
-                { w.Inventory.TryRemoveAll(Herb,1); life.HerbDoses=Math.Min(5,life.HerbDoses+1); s.Message="已敷一份灵草。医疗使用原有药力规则，重伤时需要多份药，仍需观察。"; }
+                { w.Inventory.TryRemoveAll(Herb,1); life.HerbDoses=Math.Min(5,life.HerbDoses+1); s.Message="已敷一份灵草。医疗使用原有药力规则，重伤时需要多份药，仍需观察。"; HuangcunPrisonVisitService.RecordDelivered(w,id,task); }
                 else
                 {
                     if(task=="ransom") { w.Inventory.TryRemoveAll(Grain,6); w.Inventory.TryRemoveAll(Herb,3); }
-                    if(task=="pick_lock") w.Inventory.TryRemoveAll(Wood,2);
-                    var unconscious=life.IsIncapacitated;
-                    life.State=unconscious ? LifecycleState.Incapacitated : LifecycleState.Alive;
-                    life.RecordTransition(LifecycleState.Captured,life.State,"HuangcunRescue"); s.Released=true;
-                    new SocialEventService().RecordCharacterRescued(w,id,captive.Id);
-                    s.Message=unconscious ? "牢门已开，但同伴仍昏迷，需要治疗和搬运，不能直接入队。" : "同伴已获救，伤势和饥饿保留；靠近他后通过队伍界面邀请入队，再安排休养。";
+                    ReleaseInPlace(w,id);
                 }
+                if (task == "feed" || task == "medicine") PrisonManagementService.RecordCare(w, captive.Id, task == "medicine");
             }
             w.Events.Publish(XianXia.Core.Events.EventType.PartyInventoryChanged,w.Tick,actor:id,payload:"huangcun-survival:"+task);
             return Result.Success();
+        }
+
+        public static void ReleaseInPlace(SimulationWorld w, EntityId rescuer)
+        {
+            var captive = Prisoner(w);
+            if (captive == null || w.HuangcunSurvival.Released ||
+                !captive.TryGet<LifecycleComponent>(out var life) || life.IsDead || life.IsRemoved) return;
+            var previous = life.State;
+            var unconscious = life.IsIncapacitated;
+            life.State = unconscious ? LifecycleState.Incapacitated : LifecycleState.Alive;
+            life.RecordTransition(previous, life.State, "HuangcunRescue");
+            w.HuangcunSurvival.Released = true;
+            if (w.Civilians.TryGet(captive.Id, out var civilian) && civilian.Disposition == CivilianDisposition.Detained)
+                MortalCivilianService.Release(w, captive.Id);
+            if (captive.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();
+            PrisonConfinementService.ReleasePlacementInPlace(w, captive.Id);
+            new SocialEventService().RecordCharacterRescued(w, rescuer, captive.Id);
+            HuangcunPrisonVisitService.CloseUnavailableRequests(w);
+            w.HuangcunSurvival.Message = unconscious ? "同伴已解除拘押，但仍昏迷，需治疗或搬运；位置和伤势保留。" :
+                "同伴已解除拘押，可以离开监狱；位置和伤势保留，靠近后可邀请入队。";
         }
 
         static Result BuildCamp(SimulationWorld w, EntityId id, string task)
@@ -265,6 +287,7 @@ namespace XianXia.Core.Npc
 
         public static Result ValidateCultivation(SimulationWorld w, Entity e)
         {
+            if (CombatInjuryService.HasBrokenMeridians(e)) return Fail("经脉断裂，无法修炼；需专门修复。");
             var facility = HuangcunOpeningAccess.ValidateCurrentFacilityUse(w, e.Id);
             if (facility.IsFailure) return facility;
             if(!Applies(w,e) || !HuangcunOpeningAccess.IsLocked(w)) return Result.Success();
@@ -286,6 +309,7 @@ namespace XianXia.Core.Npc
         {
             var s=w.HuangcunSurvival; if(!s.Enabled || s.LastProcessedTick==w.Tick.Value) return;
             s.LastProcessedTick=w.Tick.Value;
+            HuangcunPrisonVisitService.CloseUnavailableRequests(w);
             if (HuangcunOpeningAccess.IsLocked(w) && w.Tick.Value % 12 == 0)
                 foreach (var actor in w.Entities.All)
                     if (Applies(w,actor) && !IsPrisoner(w,actor.Id) && CombatLifeStateService.CanFight(actor) &&
@@ -300,8 +324,11 @@ namespace XianXia.Core.Npc
             var p=PersonalLifeService.Ensure(w,e); p.LastProcessedTick=w.Tick.Value;
             if(w.Tick.Value%12==0) p.Satiety=Math.Max(0,p.Satiety-1);
             var elapsed=w.Tick.Value-s.StartedTick;
-            if(elapsed>0 && elapsed%288==0)
-            { p.Satiety=Math.Min(100,p.Satiety+6); Harm(w,e,12); s.Message="监狱传来消息：同伴又受了殴打，分到的稀粥远远不足。可以先送粮送药延缓恶化。"; }
+            // Barely sustaining prison ration; never overwrite care with scripted daily damage.
+            var rationKey="prison-ration:"+e.Id;
+            var rationUsed=UsedToday(w,rationKey);
+            if(HuangcunOpeningAccess.IsLocked(w) && p.Satiety<=30 && rationUsed<24)
+            { var ration=Math.Min(6,24-rationUsed); p.Satiety+=ration; UseToday(w,rationKey,ration); }
             if(p.Satiety==0 && elapsed%12==0) Harm(w,e,2);
             if(life.IsDying) s.Message="被囚同伴已濒危！可送药稳定伤势，救出不会自动痊愈。";
         }

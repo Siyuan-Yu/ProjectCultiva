@@ -23,6 +23,8 @@ namespace XianXia.Core.Actions
 
         public Result CanStart(SimulationWorld world)
         {
+            if (!AutonomousActionContinuationService.CanContinue(world, Subject))
+                return Result.Failure(ErrorCode.ActionCannotStart, "当前生命状态不能自行上床休息。");
             var burden = MortalTransportConstraintService.ValidateUnburdenedAction(world, Subject);
             if (burden.IsFailure) return burden;
             if (world == null || !world.Entities.TryGet(Subject, out _) ||
@@ -46,6 +48,8 @@ namespace XianXia.Core.Actions
         public Result Advance(SimulationWorld world)
         {
             if (Status != ActionStatus.Running) return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
+            if (!AutonomousActionContinuationService.CanContinue(world, Subject))
+            { Status = ActionStatus.Failed; RoomBedFacilityService.Release(world, Subject); return Result.Failure(ErrorCode.InvalidOperation, "失能后不能继续自行休息。"); }
             if (!world.OutdoorConstructedAssets.Assets.TryGetValue(BedId, out var bed) ||
                 !RoomBedFacilityService.BedHasUsage(world, bed, RoomUsage.Residential) ||
                 bed.OccupantCharacterId != Subject || !RoomBedFacilityService.IsAtAccessPoint(world, bed, Subject))

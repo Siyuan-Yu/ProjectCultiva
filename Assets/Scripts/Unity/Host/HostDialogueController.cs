@@ -5,7 +5,7 @@ using XianXia.Core.Simulation;
 namespace XianXia.Unity.Host
 {
     /// <summary>Builds dialogue view-model and resolves choices (presentation-agnostic).</summary>
-    public sealed class HostDialogueController
+    public sealed partial class HostDialogueController
     {
         ContentInteractionContext _topicContext;
         string _topicTrigger;
@@ -20,6 +20,10 @@ namespace XianXia.Unity.Host
             Model.IsFallback = false;
             Model.IsTopicSelection = false;
             Model.IsQuestDiscussion = false;
+            Model.IsPrisonVisit = false;
+            Model.IsPrisonManagement = false;
+            Model.IsDefeatedMercy = false;
+            _mercyWorld = null;
             _socialTopics.Clear();
             Model.SpeakerName = string.Empty;
             Model.Body = string.Empty;
@@ -60,6 +64,12 @@ namespace XianXia.Unity.Host
         public bool TryStartInteraction(PlayableHostSession session, ContentInteractionContext context, string trigger)
         {
             if (session == null || !session.IsInitialized || context == null) return false;
+            if (trigger == "onTalk" && XianXia.Core.Npc.HuangcunPrisonVisitService.Applies(session.World) &&
+                XianXia.Core.Npc.HuangcunSurvivalService.IsPrisoner(session.World, context.TargetEntityId))
+                return TryStartPrisonVisit(session, context.ActorId);
+            if (trigger == "onTalk" && XianXia.Core.Npc.PrisonManagementService.TryManagedPrisoner(
+                    session.World, context.TargetEntityId, out _))
+                return TryStartPrisonManagement(session, context.ActorId, context.TargetEntityId);
             var service = new ContentEventService();
             var candidates = new System.Collections.Generic.List<ContentEventSpec>(service.ResolveInteractionCandidates(session.World, context, trigger));
             var social = trigger == "onTalk" ? SecretRealmQuestSocialTopicQuery.Query(session.World, context.ActorId, context.TargetEntityId) : new System.Collections.Generic.List<SecretRealmQuestSocialTopic>();
@@ -129,6 +139,9 @@ namespace XianXia.Unity.Host
             }
 
             if (session == null || !session.IsInitialized) return false;
+            if (Model.IsDefeatedMercy) return SelectDefeatedMercy(line.ChoiceId, session, bootstrap);
+            if (Model.IsPrisonVisit) return SelectPrisonChoice(line.ChoiceId, session, bootstrap);
+            if (Model.IsPrisonManagement) return SelectPrisonManagementChoice(line.ChoiceId, session, bootstrap);
             if (Model.IsQuestDiscussion)
             {
                 if (line.ChoiceId == "invite")

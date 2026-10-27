@@ -1,5 +1,13 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0070：放你一马仅结束当前处置](ADR-0070-mercy-does-not-withdraw-combatants.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；覆盖ADR-0068／0069旧Spared退出锁，仅索财防重复，详见414。
+
+- [ADR-0069：未结算战场苏醒续战与一对一抱持俘虏](ADR-0069-live-battle-recovery-and-carried-captives.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；续战与提交复验、真实抱持负担和房间底栏入口，详见412。
+
+- [ADR-0068：RTS攻击与战败求饶处置](ADR-0068-rts-attacks-and-defeated-mercy.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；覆盖NPC低血自动退出，当前独立战斗处置链与真实财物，边界见410。
+
+- [ADR-0067：简化战斗伤势与金丹遗骸移接方向](ADR-0067-simplified-combat-injuries-and-remains-grafting.md) — 基础伤势Implemented / Producer Acceptance Pending（2026-10-27）；替换固定苏醒倒计时，Snapshot v21；移接仅设计、未实施。
+
 - [ADR-0050：直接附庸访问宗主势力仓库](ADR-0050-direct-vassal-overlord-storage-access.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-21）；定向覆写 VASSAL-WORK-01 的仓储隔离。
 - [ADR-0049：NPC 个体生活与冷热战斗权威](ADR-0049-npc-personal-life-and-cold-conflict-authority.md) — Design Confirmed / Partial Implementation / Producer Acceptance Pending（2026-10-21）。
 
@@ -7,6 +15,8 @@
 - [ADR-0042：Shop 钱包 authority 与 Snapshot v12](ADR-0042-shop-wallet-authority-and-snapshot-v12.md) — Producer Accepted / Sealed（2026-09-25）。
 
 ## SOCIAL-QUEST-01 最终封板（2026-09-25）
+
+- [ADR-0066：监管真实照料与拘押抵抗](ADR-0066-prison-warden-care-and-resistance.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；局部覆盖ADR-0044／267的囚犯抽象供给与拘押招募。
 
 **Producer Accepted / Sealed**。制作人已验收主流程和最终不可控、不可手动停止跟随 P1。
 

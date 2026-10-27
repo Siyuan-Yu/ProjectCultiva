@@ -75,6 +75,9 @@ namespace XianXia.Unity.Host
         [SerializeField] float unreachableRetrySeconds = 8f;
 
         readonly List<Session> _sessions = new List<Session>(4);
+        XianXia.Core.Simulation.SimulationWorld _prisonBreachWorld;
+        int _prisonBreachNavigation = -1;
+        ulong _prisonBreachTick;
         readonly List<Session> _updateSnapshot = new List<Session>(4);
         readonly List<CivilianTreeCandidate> _candidateTrees = new List<CivilianTreeCandidate>(64);
         readonly Dictionary<string, float> _retryAfterByLoggerAndTree = new Dictionary<string, float>();
@@ -178,6 +181,11 @@ namespace XianXia.Unity.Host
         {
             if (attacker.IsNone || target == null || target.IsDestroyed)
                 return;
+            if (!target.IsWall && AutonomousActionContinuationService.BlocksOrdinaryWork(bootstrap?.Session?.World, attacker))
+            { Toast(attacker, AutonomousActionContinuationService.EncounterWorkBlockedReason, Color.yellow); return; }
+            if (!PrisonWallBreachService.CanDamage(bootstrap?.Session?.World, attacker, target.PlacementId)) return;
+            if (target.IsWall && bootstrap?.Session?.World?.Strategic?.CharacterEncounter?.Find(attacker.Value) != null)
+                bootstrap.GetComponent<HostCharacterEncounter>()?.StopAutomatic(attacker);
             if (MortalTransportConstraintService.ValidateUnburdenedAction(
                     bootstrap?.Session?.World, attacker).IsFailure)
                 return;
@@ -241,6 +249,18 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.IsPaused)
                 return;
 
+            var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            var currentWorld = bootstrap.Session.World;
+            if (surface != null && surface.IsDestructibleNavigationCurrent &&
+                (!ReferenceEquals(_prisonBreachWorld, currentWorld) || _prisonBreachNavigation != surface.NavigationGeneration ||
+                 _prisonBreachTick != currentWorld.Tick.Value))
+            {
+                _prisonBreachWorld = currentWorld;
+                _prisonBreachNavigation = surface.NavigationGeneration;
+                _prisonBreachTick = currentWorld.Tick.Value;
+                HostPrisonWallCombat.ReconcileBreaches(bootstrap);
+            }
+
             SyncCivilianLoggers();
             if (_sessions.Count == 0)
                 return;
@@ -275,6 +295,13 @@ namespace XianXia.Unity.Host
 
             var world = bootstrap.Session.World;
             var attacker = session.Attacker;
+            if (!target.IsWall && AutonomousActionContinuationService.BlocksOrdinaryWork(world, attacker))
+            {
+                ReleaseOwnedMovement(session);
+                return false;
+            }
+            if (!PrisonWallBreachService.CanDamage(world, attacker, target.PlacementId))
+            { moveController?.CancelPresentationMovementPublic(attacker); return false; }
             if (session.FromCivilianWork &&
                 !IsCivilianSessionStillValid(session, out _, out _, out var invalidReason))
             {
@@ -333,7 +360,7 @@ namespace XianXia.Unity.Host
             var kind = target.Kind;
             var expectedYield = target.ResolveWoodYield();
             var hitPos = target.transform.position;
-            var dealt = target.ApplyDamage(damage, out var destroyed);
+            var dealt = target.ApplyDamage(damage, out var destroyed, attacker);
             if (dealt > 0)
             {
                 if (viewSpawner != null && viewSpawner.Registry.TryGet(attacker, out var artView) && artView != null)

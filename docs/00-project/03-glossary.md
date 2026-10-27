@@ -1,6 +1,30 @@
 ﻿# 术语表
 
+## 战败求饶处置（2026-10-27）
+
+- **RTS直接攻击**：已进入实战时，对本场清醒敌人悬停红攻击光标、右键直接下达攻击；战外中立侵略确认不省略。
+- **战败处置／求饶（DefeatedMercy）**：约1%HP昏迷失能后，由玩家明确“继续攻击”发起的处置对话；不是低血自动投降，更不自动恢复清醒。选择放过／索真实钱物后放过，或拒绝转弥留；弥留再显式击杀。见[410](../40-process/410-rts-attack-and-defeated-mercy-2026-10-27.md)／ADR-0068。
+- **Spared**：本场明确放过的已败人物，不再参与本场索敌／胜负；不治伤、不入队、不改势力或解除已有拘押。战败轮次与处置事实用既有ContentCounter持久化，不能重复领钱物。
+
+
+## 简化战斗伤势与恢复（2026-10-27）
+
+- **战斗伤势（CombatInjury）**：与HP、生命周期、拘押独立的割伤／重伤恢复负担、真实缺肢及经脉断裂；不含疼痛、出血或止血操作。见[408](../40-process/408-simplified-injuries-and-remains-grafting-2026-10-27.md)／ADR-0067。
+- **恢复型昏迷**：废止固定100秒，实际HP严格超过50%上限才清醒；缺肢和断经脉不会因清醒／满血消失。永久身体伤势不等于永久昏迷。
+- **遗骸移接**：金丹后的对应部位遗骸移植及持续炼化方向，受保存状态、契合和自身境界限制；已确认设计、本轮未实现。
+
+
+## 荒村秘密探视（2026-10-27）
+
+> **监管与抵抗：** `Warden` 是真实凡人职业（值5），`PrisonCare` 是活动（值17），不等于战斗巡卫。`PrisonResistance` 表示对当前拘押管理的抵抗，独立于原势力 Loyalty 与五维关系；按人物／玩家势力命名的 ContentCounter／Daily 保存每日实际照料事实。招募只改变 FactionMembership／拘押，不等于 PlayerParty 入队或治疗，同伴乙免招募。见 [405](../40-process/405-prison-warden-care-and-recruitment-2026-10-27.md)／ADR-0066。
+
+> 监狱可通行缺口 `PrisonWallBreach`：正常宣战战斗中，冻结范围内的真实 Prison 房墙被打毁，更新后的导航确认毁坏墙段存在角色宽度的内外直通走廊。原有门洞、仅伤害和堵住的破口不算。`PrisonAssaultRoomId` 是独立战场可选房间身份，不是 SiteCore 占领目标；囚犯保持非参战者与 exact WorldPosition，缺口后解除拘押但不改变伤势／药量／昏迷，不自动入队。旧撬锁只保留 wire 兼容识别，执行拒绝。见 [404](../40-process/404-prison-wall-breach-rescue-2026-10-27.md)。
+
+`HuangcunPrisonVisit`：实际进入牢房、靠近并右键被囚人物本人交谈、接受请求和照料。占领前被有效巡视发现实际擅入立即追赶开战，非牢房右键或巡视覆盖即禁入。`PrisonConfinement` 从既有 PrisonRoomId／DetainedResidenceWorkAreaId 读取拘押范围，清醒人物仅在所属牢房内活动，释放／正式押送解除自主移动约束。供养、身体、任务与拘押仍读取既有真源；规则见 [402](../40-process/402-prisoner-person-interaction-and-trespass-2026-10-27.md)，照料数值沿用401。
+
 ## 昏迷与弥留（ADR-0065）
+
+> 违规分级最新口径见 [403](../40-process/403-offense-tiers-prison-buffer-and-bed-rest-fix-2026-10-27.md)：普通日程违规被发现累计主管压力；牢房禁区为实际矩形及外沿三格，被在岗人员看见直接追赶开战。禁区距离与二十格观察半径是两项不同判定。
 
 | 中文 | Code | 含义 |
 |---|---|---|

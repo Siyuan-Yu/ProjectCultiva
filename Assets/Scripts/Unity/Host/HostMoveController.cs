@@ -60,6 +60,7 @@ namespace XianXia.Unity.Host
         // TickMoves 每帧不再 new List；改用 field 级 scratch。
         readonly List<EntityView> _tickViews = new List<EntityView>(64);
         readonly List<EntityView> _tickDone = new List<EntityView>(32);
+        readonly HashSet<ulong> _blockedMoveIds = new HashSet<ulong>();
         readonly Dictionary<ulong, ulong> _carriedToCarrier = new Dictionary<ulong, ulong>();
         int _transportStateFrame = -1;
 
@@ -163,6 +164,7 @@ namespace XianXia.Unity.Host
             _moveSpeedMultiplierByEntity.Clear();
             _completionPolicies.Clear();
             _carriedToCarrier.Clear();
+            _blockedMoveIds.Clear();
             ResetCharacterSpacing();
             _transportStateFrame = -1;
             _playerPartyPathMoveSerial = 0;
@@ -495,8 +497,17 @@ namespace XianXia.Unity.Host
         {
             if (actor.IsNone)
                 return false;
+            var finishIntent = HostNpcFinishIntent.None;
+            if (action == HostNpcArriveAction.Execute && bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(npc, out var target) &&
+                target.TryGet<LifecycleComponent>(out var life))
+                finishIntent = life.IsUnconscious || life.Convalescing ? HostNpcFinishIntent.AttackDowned :
+                    life.IsDying ? HostNpcFinishIntent.ConfirmDyingDeath :
+                    bootstrap.Session.World.Civilians.TryGet(npc, out var captive) &&
+                    captive.Disposition == CivilianDisposition.Detained && !life.IsDead && !life.IsRemoved
+                        ? HostNpcFinishIntent.ExecuteCaptive : HostNpcFinishIntent.None;
             _pendingNpcIntent[actor.Value] = new HostNpcArriveIntent(
-                actor, npc, action, policy, requiredRange, targetPosition);
+                actor, npc, action, policy, requiredRange, targetPosition, finishIntent);
             return true;
         }
 
@@ -558,7 +569,19 @@ namespace XianXia.Unity.Host
                 return false;
             if (CharacterEncounterService.OwnsParticipantSpatialState(world, intent.ActorId) ||
                 CharacterEncounterService.OwnsParticipantSpatialState(world, intent.NpcId))
-                return false;
+            {
+                // Ordinary conversation/commerce must not cross encounter ownership. Only a
+                // newly issued, one-shot finishing interaction between actual opponents may.
+                var encounter = world.Strategic.CharacterEncounter;
+                var battleCapture = intent.Action == HostNpcArriveAction.Capture &&
+                    targetLife.State != LifecycleState.Captured && (targetLife.IsUnconscious || targetLife.Convalescing);
+                if ((!battleCapture && (intent.Action != HostNpcArriveAction.Execute || intent.FinishIntent == HostNpcFinishIntent.None)) ||
+                    encounter == null || !encounter.Opposing(intent.ActorId.Value, intent.NpcId.Value) ||
+                    (encounter.Phase != CharacterEncounterPhase.Active && encounter.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                    encounter.Phase == CharacterEncounterPhase.ReadyToEnd &&
+                    bootstrap.Session.PlayerParty.ActiveCharacterId != intent.ActorId)
+                    return false;
+            }
             var actorInSpace = SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, intent.ActorId);
             var targetInSpace = SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, intent.NpcId);
             return actorInSpace == targetInSpace;
@@ -615,6 +638,14 @@ namespace XianXia.Unity.Host
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return false;
 
+            // A carried body has no independent route or destination reservation.
+            if (IsTransportAttached(id, out _)) return false;
+            if ((arriveCommand == PlayerCommandKind.Labor || arriveCommand == PlayerCommandKind.Cultivate) &&
+                XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(bootstrap?.Session?.World, id))
+            {
+                view.SetActivityText(XianXia.Core.Actions.AutonomousActionContinuationService.EncounterWorkBlockedReason);
+                return false;
+            }
             if (!IsOpeningMoveAllowed(id, point))
             {
                 view.SetActivityText(OpeningMoveBlockReason(id, point));
@@ -624,7 +655,8 @@ namespace XianXia.Unity.Host
             // 弥留／死亡／已移除：LocalMap 禁止移动（大地图宏观令另有门禁）
             if (bootstrap?.Session?.World != null &&
                 bootstrap.Session.World.Entities.TryGet(id, out var lifeEnt) &&
-                (!CombatLifeStateService.CanFight(lifeEnt) || PartyRestService.BlocksMovement(lifeEnt)))
+                ((!CombatLifeStateService.CanFight(lifeEnt) && !PrisonConfinementService.CanWalk(bootstrap.Session.World, lifeEnt)) ||
+                 !FlightService.IsAirborne(lifeEnt) && !CombatInjuryService.CanWalk(lifeEnt) || PartyRestService.BlocksMovement(lifeEnt)))
             {
                 CancelPresentationMovement(id);
                 return false;
@@ -644,9 +676,15 @@ namespace XianXia.Unity.Host
                 ? 0f : Mathf.Max(0f, freeStandRadius);
             if (freeStandRadius > 0f &&
                 !TryResolveFreeStandPoint(id, requestedCenter, freeStandRadius, out point))
-                point = requestedCenter;
-            if (!TryBuildCharacterPath(id, view.transform.position, point, _wpScratch, exactGoal))
+            {
+                if (!HasActiveMoveTarget(id)) view.SetActivityText("目标附近没有可达的空闲站位");
                 return false;
+            }
+            if (!TryBuildCharacterPath(id, view.transform.position, point, _wpScratch, exactGoal))
+            {
+                if (!HasActiveMoveTarget(id)) view.SetActivityText("目标没有可通行路线");
+                return false;
+            }
             for (var i = 0; i < _wpScratch.Count; i++)
                 if (!IsOpeningMoveAllowed(id, _wpScratch[i])) return false;
 
@@ -676,6 +714,7 @@ namespace XianXia.Unity.Host
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
             ReserveCharacterDestination(id, path[path.Count - 1]);
+            if (freeStandRadius > 0f) _freeStandRequests[id.Value] = (requestedCenter, freeStandRadius);
             _pathIndex[id.Value] = 0;
             _moveSpeedMultiplierByEntity[id.Value] = SanitizeSpeedMultiplier(speedMultiplier);
             _completionPolicies[id.Value] = completionPolicy;
@@ -791,7 +830,7 @@ namespace XianXia.Unity.Host
 
             if (bootstrap?.Session?.World != null &&
                 bootstrap.Session.World.Entities.TryGet(id, out var ent) &&
-                (!CombatLifeStateService.CanFight(ent) || PartyRestService.BlocksMovement(ent)))
+                (!CombatLifeStateService.CanFight(ent) || !FlightService.IsAirborne(ent) && !CombatInjuryService.CanWalk(ent) || PartyRestService.BlocksMovement(ent)))
                 return;
 
             if (bootstrap?.Session?.World != null &&
@@ -916,6 +955,11 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
+            if (GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.x, from.y, to.x, to.y))
+            {
+                waypoints.Add(new Vector3(to.x, to.y, HostPresentationSpace.EntityZ));
+                return true;
+            }
             _pathScratch.Clear();
             if (!GridPathfinder.TryFindWorldPath(
                     _walkGrid, from.x, from.y, to.x, to.y, _pathScratch, 8, exactGoal ? 0 : 4))
@@ -993,7 +1037,8 @@ namespace XianXia.Unity.Host
                 // 途中倒下：立刻停
                 if (bootstrap?.Session?.World != null &&
                     bootstrap.Session.World.Entities.TryGet(view.EntityId, out var movingEnt) &&
-                    (!CombatLifeStateService.CanFight(movingEnt) || PartyRestService.BlocksMovement(movingEnt) ||
+                    ((!CombatLifeStateService.CanFight(movingEnt) && !PrisonConfinementService.CanWalk(bootstrap.Session.World, movingEnt)) ||
+                     !FlightService.IsAirborne(movingEnt) && !CombatInjuryService.CanWalk(movingEnt) || PartyRestService.BlocksMovement(movingEnt) ||
                      PartyRestService.IsResting(bootstrap.Session.World, movingEnt)))
                 {
                     done.Add(view);
@@ -1018,13 +1063,13 @@ namespace XianXia.Unity.Host
                     _walkGrid == null || !GridPathfinder.IsWorldSegmentWalkable(
                         _walkGrid, pos.x, pos.y, target.x, target.y))
                 {
-                    Debug.LogWarning("[HostMoveBlocked] Current path leg became invalid. EntityId=" +
-                                     view.EntityId.Value + " Position=" + pos.x.ToString("0.###") +
-                                     "," + pos.y.ToString("0.###") + " Target=" +
-                                     target.x.ToString("0.###") + "," + target.y.ToString("0.###") +
-                                     " NavigationGeneration=" + _walkGridGeneration, this);
-                    done.Add(view);
-                    ClearPending(view.EntityId);
+                    view.RecordLocomotion(Vector3.zero);
+                    if (!MaintainNavigationProgress(view, pos, pos, invalidLeg: true))
+                    {
+                        _blockedMoveIds.Add(view.EntityId.Value);
+                        done.Add(view);
+                        ClearPending(view.EntityId);
+                    }
                     continue;
                 }
                 var multiplier = _moveSpeedMultiplierByEntity.TryGetValue(view.EntityId.Value, out var configured)
@@ -1033,6 +1078,13 @@ namespace XianXia.Unity.Host
                 view.transform.position = next;
                 view.RecordLocomotion(next - pos);
                 CaptureIndependentTacticalPosition(view);
+                if (!MaintainNavigationProgress(view, pos, next, invalidLeg: false))
+                {
+                    _blockedMoveIds.Add(view.EntityId.Value);
+                    done.Add(view);
+                    ClearPending(view.EntityId);
+                    continue;
+                }
                 if (!_targets.TryGetValue(view, out target))
                     continue;
                 if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
@@ -1044,6 +1096,8 @@ namespace XianXia.Unity.Host
                     idx + 1 < path.Count)
                 {
                     if ((next - target).sqrMagnitude > .0001f) continue;
+                    if (!IsFlying(view.EntityId) && !GridPathfinder.IsWorldSegmentWalkable(
+                            _walkGrid, next.x, next.y, path[idx + 1].x, path[idx + 1].y)) continue;
                     _pathIndex[idv] = idx + 1;
                     _targets[view] = path[idx + 1];
                     continue;
@@ -1061,8 +1115,9 @@ namespace XianXia.Unity.Host
                 _targets.Remove(view);
                 if (view == null)
                     continue;
-                view.SetActivityText(string.Empty);
                 var id = view.EntityId;
+                var blocked = _blockedMoveIds.Remove(id.Value);
+                view.SetActivityText(blocked ? "道路被阻挡，请重新下令" : string.Empty);
                 _movingIds.Remove(id.Value);
                 _playerPartyPathMoveIds.Remove(id.Value);
                 ClearPath(id);
@@ -1071,6 +1126,7 @@ namespace XianXia.Unity.Host
                     : HostMoveCompletionPolicy.HoldStandby;
                 _completionPolicies.Remove(id.Value);
                 SyncLocation(view);
+                if (blocked) continue; // Not an arrival: never run a bed/farm/interaction callback.
                 if (_pendingNpcIntent.ContainsKey(id.Value))
                     ApplyPendingNpcIntent(id);
                 else if (_pendingOnArrive.ContainsKey(id.Value))
@@ -1114,6 +1170,8 @@ namespace XianXia.Unity.Host
                     if (_paths.TryGetValue(idv, out var path) &&
                         _pathIndex.TryGetValue(idv, out var index) && index + 1 < path.Count)
                     {
+                        if (!IsFlying(view.EntityId) && !GridPathfinder.IsWorldSegmentWalkable(
+                                _walkGrid, pos.x, pos.y, path[index + 1].x, path[index + 1].y)) break;
                         _pathIndex[idv] = index + 1;
                         _targets[view] = path[index + 1];
                         continue;
@@ -1121,7 +1179,9 @@ namespace XianXia.Unity.Host
                     break;
                 }
 
-                var routeStep = Mathf.Min(distanceBudget, distance);
+                // Collision steering must not grow to a whole corridor at 20x speed.
+                // Consume the same movement budget using bounded, swept foot-space steps.
+                var routeStep = Mathf.Min(distanceBudget, distance, (_walkGrid?.CellSize ?? 1f) * .25f);
                 var proposed = pos + delta / distance * routeStep;
                 proposed.z = HostPresentationSpace.EntityZ;
                 var moved = FilterCharacterStep(view, pos, (IsFlying(view.EntityId) ? proposed : ClampToWalkable(pos, proposed)), target, deltaTime);
@@ -1188,7 +1248,7 @@ namespace XianXia.Unity.Host
             else if (intent.Action == HostNpcArriveAction.Release)
                 npcContextMenu.OnNpcArriveRelease(id, intent.NpcId);
             else if (intent.Action == HostNpcArriveAction.Execute)
-                npcContextMenu.OnNpcArriveExecute(id, intent.NpcId);
+                npcContextMenu.OnNpcArriveExecute(id, intent.NpcId, intent.FinishIntent);
         }
 
         void SnapOntoWalkableIfNeeded(EntityView view)
@@ -1280,6 +1340,12 @@ namespace XianXia.Unity.Host
             if (view == null || bootstrap?.ContinuousOutdoorSurfaceRuntime == null)
                 return;
             var world = bootstrap.Session?.World;
+            if (PrisonConfinementService.IsConfinedOutdoor(world, view.EntityId) ||
+                PrisonWallBreachService.IsEncounterBystander(world, view.EntityId))
+            {
+                bootstrap.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(view.EntityId, view.transform.position);
+                return;
+            }
             if (world != null && world.Civilians.TryGet(view.EntityId, out var civilian) &&
                 MortalCivilianMovementAuthority.CanCivilianOwnLocalMovement(world, view.EntityId, civilian))
             {
@@ -1313,7 +1379,8 @@ namespace XianXia.Unity.Host
             {
                 var state = pair.Value;
                 if (state == null) continue;
-                if (state.RescueCarrying && !state.RescueTargetId.IsNone)
+                if (state.RescueCarrying && !state.RescueTargetId.IsNone &&
+                    MortalCivilianService.CanReceiveAutomaticRescue(world, state.RescueTargetId))
                     _carriedToCarrier[state.RescueTargetId.Value] = pair.Key.Value;
                 if (state.Disposition == CivilianDisposition.CapturedEscorted && !state.CarrierId.IsNone)
                     _carriedToCarrier[pair.Key.Value] = state.CarrierId.Value;
@@ -1325,14 +1392,14 @@ namespace XianXia.Unity.Host
             if (!_pendingArriveActions.TryGetValue(id.Value, out var action))
                 return;
             _pendingArriveActions.Remove(id.Value);
-            // 先到站回调，Stop（路Traveling 的人跳过 Stop，避免打断宏观移动）
-            action?.Invoke();
-            if (bootstrap?.Session != null &&
+            // Retire the old approach before the callback starts a new action or transition.
+            // Stopping afterwards used to cancel a freshly-created BedRest/Recovery action.
+            var keepSiteMotion = bootstrap?.Session != null &&
                 bootstrap.Session.World.WorldPresence.TryGet(id, out var p) &&
                 p != null &&
-                p.Mode == PartyWorldPresenceMode.AtSite)
-                return;
-            StopOne(id);
+                p.Mode == PartyWorldPresenceMode.AtSite;
+            if (!keepSiteMotion) StopOne(id);
+            action?.Invoke();
         }
 
         void ApplyPendingArrive(EntityId id)

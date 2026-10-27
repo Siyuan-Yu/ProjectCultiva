@@ -136,9 +136,11 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>造成伤害；归零时销毁。掉落由砍伐组件结算。</summary>
-        public int ApplyDamage(int rawDamage, out bool justDestroyed)
+        public int ApplyDamage(int rawDamage, out bool justDestroyed, EntityId actor = default)
         {
             justDestroyed = false;
+            if (!IsWall && XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(_world, actor)) return 0;
+            if (!XianXia.Core.Npc.PrisonWallBreachService.CanDamage(_world, actor, placementId)) return 0;
             if (destroyed || rawDamage <= 0)
                 return 0;
 

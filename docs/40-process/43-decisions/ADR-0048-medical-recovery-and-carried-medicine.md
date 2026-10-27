@@ -1,5 +1,7 @@
 # ADR-0048 医者床边治疗与伤势恢复权威
 
+> **2026-10-27 医疗续接：** [ADR-0067](ADR-0067-simplified-combat-injuries-and-remains-grafting.md)／[408](../408-simplified-injuries-and-remains-grafting-2026-10-27.md)新增非弥留自然恢复与简化伤势愈合，昏迷及稳定后的弥留均实际超过50%HP清醒，固定苏醒计时退役。医者也照料未痊愈的普通床上伤员，普通药不能修残肢／经脉。真实药物取送、床位及拘押权威保留；身体进度随模拟倍速，新增v21存档及旧JSON迁移，不重排稳定枚举和旧版本值。
+
 > 2026-10-20 后续授权补充：[313](../313-medical-closure-and-ground-loot-2026-10-20.md)将未使用药草的转职归还/死亡落地接通；GroundLootState仅记录物品、数量和精确地表落点，Pickup复用原服务，View随加载区派生。Snapshot v17保存此新增权威，v15/v16 JSON在内存补齐，原档不自动改写；v15的零HP Captured由于旧实现已清弥留计时，明确补一次200储备救治窗口。其他医疗数值、库存权威与时间入口不变。
 
 日期：2026-10-20。状态：Accepted（制作人本轮授权），Implemented / Producer Acceptance Pending，未封板。

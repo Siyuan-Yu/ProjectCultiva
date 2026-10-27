@@ -268,7 +268,7 @@ namespace XianXia.Unity.Host
 
         void DrawAttributesPage(Rect rect, Entity entity)
         {
-            var canvas = new Rect(0f, 0f, rect.width - 18f, 810f);
+            var canvas = new Rect(0f, 0f, rect.width - 18f, 990f);
             _attributesScroll = GUI.BeginScrollView(rect, _attributesScroll, canvas);
             HostCharacterPresentationResolver.TryBuild(bootstrap.Session, entity.Id, out var info,
                 bootstrap.GetComponent<HostNpcMeleeAssault>()?.IsInFight(entity.Id) == true);
@@ -282,14 +282,15 @@ namespace XianXia.Unity.Host
 
             const float gap = 12f;
             var colW = (canvas.width - gap * 2f) / 3f;
-            DrawAttributeColumn(new Rect(0f, 258f, colW, 286f), "个人属性", entity, PersonalAttributes, false);
-            DrawAttributeColumn(new Rect(colW + gap, 258f, colW, 286f), "战斗属性", entity, CombatAttributes, true);
-            DrawCultivationColumn(new Rect((colW + gap) * 2f, 258f, colW, 286f), entity);
+            DrawInjuryCard(new Rect(0f, 258f, canvas.width, 160f), entity);
+            DrawAttributeColumn(new Rect(0f, 432f, colW, 286f), "个人属性", entity, PersonalAttributes, false);
+            DrawAttributeColumn(new Rect(colW + gap, 432f, colW, 286f), "战斗属性", entity, CombatAttributes, true);
+            DrawCultivationColumn(new Rect((colW + gap) * 2f, 432f, colW, 286f), entity);
             var lowerW = (canvas.width - gap * 3f) / 4f;
-            DrawTextCard(new Rect(0f, 558f, lowerW, 220f), "性格", JoinTags(info?.PersonalityTags));
-            DrawTextCard(new Rect(lowerW + gap, 558f, lowerW, 220f), "背景", JoinTags(info?.BackgroundTags));
-            DrawTextCard(new Rect((lowerW + gap) * 2f, 558f, lowerW, 220f), "天赋", JoinTags(info?.TalentTags));
-            DrawTextCard(new Rect((lowerW + gap) * 3f, 558f, lowerW, 220f), "活动倾向", BuildTendency(entity));
+            DrawTextCard(new Rect(0f, 732f, lowerW, 220f), "性格", JoinTags(info?.PersonalityTags));
+            DrawTextCard(new Rect(lowerW + gap, 732f, lowerW, 220f), "背景", JoinTags(info?.BackgroundTags));
+            DrawTextCard(new Rect((lowerW + gap) * 2f, 732f, lowerW, 220f), "天赋", JoinTags(info?.TalentTags));
+            DrawTextCard(new Rect((lowerW + gap) * 3f, 732f, lowerW, 220f), "活动倾向", BuildTendency(entity));
             GUI.EndScrollView();
         }
 
@@ -344,6 +345,9 @@ namespace XianXia.Unity.Host
                                "\n押送：" + escort +
                                (civilian.Profession == MortalProfession.Medic
                                    ? "\n医者：" + civilian.MedicStatus + " · 携药 " + (civilian.MedicCarryingHerb ? "1" : "0") : string.Empty) +
+                               (civilian.Profession == MortalProfession.Warden ? "\n监管：" + civilian.WardenStatus +
+                                    " · 携带 " + (string.IsNullOrEmpty(civilian.WardenCarriedResourceId) ? "无" :
+                                        bootstrap.Session.World.InventoryCatalog.GetName(civilian.WardenCarriedResourceId)) : string.Empty) +
                                "\n阻断：" + (string.IsNullOrEmpty(civilian.ScheduleStatus)
                                    ? scheduleReason : civilian.ScheduleStatus) +
                                (string.IsNullOrEmpty(loggingStatus) ? string.Empty :
@@ -359,7 +363,32 @@ namespace XianXia.Unity.Host
             if (entity.TryGet<LifecycleComponent>(out var medicalLife) && medicalLife.IsIncapacitated)
                 text += "\n伤势：" + CombatLifeStateService.FormatLifeStateWithCountdown(bootstrap.Session.World, entity) +
                     " · 已用灵药 " + medicalLife.HerbDoses;
+            if (HuangcunSurvivalService.IsPrisoner(bootstrap.Session.World, entity.Id) &&
+                entity.TryGet<PersonalLifeComponent>(out var captiveNeeds) &&
+                entity.TryGet<LifecycleComponent>(out var captiveLife))
+            {
+                entity.TryGet<CombatVitalsComponent>(out var captiveHp);
+                entity.TryGet<AttributesComponent>(out var captiveAttributes);
+                text = "身份：被囚同伴 · 拘押尚未解除\n生命：" + (captiveHp?.CurrentHp ?? 0) + "/" +
+                    (captiveAttributes?.GetFinal(AttributeId.MaxHp) ?? 1) + " · " + life +
+                    "\n饱食：" + captiveNeeds.Satiety + " /100 · 精力：" + captiveNeeds.Energy + " /100" +
+                    "\n有效药量：" + captiveLife.HerbDoses + "/5 · 净恢复：" +
+                    (MedicalRecoveryService.ResolveRateMilli(bootstrap.Session.World, entity) / 1000f).ToString("+0.0;-0.0;0.0") + " HP/秒" +
+                    "\n普通牢床无医疗床加成；弥留需正净治疗才能稳定。\n吃饭不直接回血；普通伤逐渐恢复，缺肢与断裂经脉不会被普通药修复；养好伤也不会自动获释。";
+            }
             GUI.Label(new Rect(rect.x + 14f, rect.y + 38f, rect.width - 28f, rect.height - 46f), text, _body);
+        }
+
+        void DrawInjuryCard(Rect rect, Entity entity)
+        {
+            DrawCard(rect, "身体伤势与恢复");
+            var text = CombatInjuryService.Describe(entity) + "\n状态：" +
+                CombatLifeStateService.FormatLifeStateWithCountdown(bootstrap.Session.World, entity);
+            if (entity.TryGet<LifecycleComponent>(out var life) && life.IsUnconscious)
+                text += " · 生命严格恢复至上限50%以上才苏醒，不按固定倒计时。";
+            text += "\n普通药物和休养逐渐恢复HP、割伤与重伤；缺肢与断裂经脉不会被补血消除。" +
+                "\n遗骸移接与专门经脉修复尚未开放。";
+            GUI.Label(new Rect(rect.x + 14f, rect.y + 38f, rect.width - 28f, rect.height - 44f), text, _body);
         }
 
         void DrawAttributeColumn(Rect rect, string title, Entity entity, AttributeId[] order, bool currentHp)

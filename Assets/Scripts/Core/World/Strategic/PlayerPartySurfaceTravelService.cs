@@ -52,10 +52,16 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid Surface travel args.");
+            foreach (var memberId in party.Members)
+                if (world.Entities.TryGet(memberId, out var member) && XianXia.Core.Combat.CombatLifeStateService.CanFight(member) &&
+                    !XianXia.Core.Combat.FlightService.IsAirborne(member) && !XianXia.Core.Combat.CombatInjuryService.CanWalk(member))
+                    return Result.Failure(ErrorCode.InvalidOperation, "队伍有双腿缺失、无法步行的成员；请先妥善安置，不能随旅行自动移动。");
             if (!HuangcunOpeningAccess.AllowsPosition(world, world.PlayerPartyTravel?.SurfaceId, destination.X, destination.Y))
                 return Result.Failure(ErrorCode.InvalidOperation, HuangcunOpeningAccess.BlockedMessage);
             if (world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity))
             {
+                if (!XianXia.Core.Combat.FlightService.IsAirborne(activeEntity) && !XianXia.Core.Combat.CombatInjuryService.CanWalk(activeEntity))
+                    return Result.Failure(ErrorCode.InvalidOperation, "主控双腿缺失，不能自行步行旅行。");
                 if (XianXia.Core.Npc.PartyRestService.BlocksMovement(activeEntity) ||
                     activeEntity.TryGet<XianXia.Core.Npc.PersonalLifeComponent>(out var personal) &&
                     personal.Energy <= 0)

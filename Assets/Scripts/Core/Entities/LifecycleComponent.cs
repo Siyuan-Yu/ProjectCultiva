@@ -21,7 +21,8 @@ namespace XianXia.Core.Entities
         public bool Convalescing { get; set; }
         public int RecoveryHpMilli { get; set; }
         public float UnconsciousSecondsRemaining { get; set; }
-        public bool IsUnconscious => IsIncapacitated && UnconsciousSecondsRemaining > 0;
+        public bool CombatUnconscious { get; set; }
+        public bool IsUnconscious => IsIncapacitated && CombatUnconscious;
         public bool IsDying => IsIncapacitated && !IsUnconscious && !Convalescing;
 
         public void ResetMedicalProgress()
@@ -32,6 +33,7 @@ namespace XianXia.Core.Entities
             Convalescing = false;
             RecoveryHpMilli = 0;
             UnconsciousSecondsRemaining = 0;
+            CombatUnconscious = false;
         }
 
         public ulong IncapacitatedAtTick { get; set; }
@@ -45,7 +47,7 @@ namespace XianXia.Core.Entities
         public bool IsRemoved => State == LifecycleState.Removed;
 
         public bool IsIncapacitated => State == LifecycleState.Incapacitated ||
-            State == LifecycleState.Captured && (UnconsciousSecondsRemaining > 0 ||
+            State == LifecycleState.Captured && (CombatUnconscious ||
                 HasMedicalProgress && (DyingReserveMilli > 0 || Convalescing));
 
         public void ClearBleedOut() => BleedOutAfterTick = 0;

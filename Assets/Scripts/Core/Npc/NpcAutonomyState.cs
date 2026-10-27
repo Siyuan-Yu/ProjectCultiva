@@ -44,6 +44,7 @@ namespace XianXia.Core.Npc
             // Personal cold routes must never overwrite Party/Squad/travel or loaded-space authority.
             if (world == null || actor == null ||
                 !XianXia.Core.Combat.CombatLifeStateService.CanFight(actor) ||
+                !XianXia.Core.Combat.FlightService.IsAirborne(actor) && !XianXia.Core.Combat.CombatInjuryService.CanWalk(actor) ||
                 PartyRestService.BlocksMovement(actor) ||
                 world.ContinuousOutdoorMaterialization.IsMaterialized(actor.Id) ||
                 !CharacterWorldMovementAuthorityQuery.TryGetAuthority(world, actor.Id,

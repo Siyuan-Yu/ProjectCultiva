@@ -22,10 +22,13 @@ namespace XianXia.Unity.Host
         public enum PresentationPhase { None, Pending, Preparing, ReadyToCommit, ReadyToStart, Active, ReadyToEnd, Report, Failed }
         PlayableHostBootstrap _host;
         SimulationWorld _world;
+        readonly Dictionary<ulong, float> _nextPursuitAt = new Dictionary<ulong, float>();
+        readonly Dictionary<ulong, string> _pursuitFailures = new Dictionary<ulong, string>();
         EntityId _pendingAttacker, _pendingTarget;
         string _failure = "";
         Action _onEntered;
         string _assaultSiteId;
+        string _prisonAssaultRoomId;
         readonly CharacterEncounterStartGate _startGate = new CharacterEncounterStartGate();
         readonly SpiritVeilService _veil = new SpiritVeilService();
         readonly MeleeCombatService _melee = new MeleeCombatService();
@@ -45,6 +48,34 @@ namespace XianXia.Unity.Host
         public bool IsRestoring => _restoreState != null;
         public PresentationPhase Phase { get; private set; }
         public string Failure => _failure;
+        public static string DescribeParticipantActivity(SimulationWorld world, EntityId id)
+        {
+            if (!CharacterEncounterService.OwnsParticipantSpatialState(world, id)) return null;
+            var state = world.Strategic.CharacterEncounter;
+            var participant = state.Find(id.Value);
+            if (MortalTransportConstraintService.TryGetEscortedCaptive(world, id, out _))
+                return "抱持俘虏（不能战斗）";
+            if (world.Entities.TryGet(id, out var entity) && !CombatLifeStateService.CanFight(entity))
+                return CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
+            if (participant.Withdrawn)
+                return "已退出交战（待结算）";
+            return state.Phase == CharacterEncounterPhase.ReadyToEnd ? "战后待结算" : "交战中";
+        }
+
+        public string DescribeBattleEndReason()
+        {
+            var world = _host?.Session?.World;
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null) return "";
+            var names = new List<string>();
+            foreach (var participant in state.Participants)
+                if (participant.Withdrawn && world.Entities.TryGet(new EntityId(participant.CharacterId), out var entity))
+                    names.Add(entity.DisplayName + "：退出交战");
+            if (state.Retreated) return "我方撤退";
+            if (names.Count > 0) return string.Join("；", names);
+            if (state.Objective?.Resolved == true) return "本场战斗目标已完成";
+            return state.PlayerWon ? "对方已失去可交战人员" : "我方已失去可交战人员";
+        }
         public string Progress => (Phase == PresentationPhase.ReadyToCommit || Phase == PresentationPhase.Preparing) &&
             !string.IsNullOrEmpty(_host?.ContinuousOutdoorSurfaceRuntime?.IndependentPreparationProgress)
                 ? _host.ContinuousOutdoorSurfaceRuntime.IndependentPreparationProgress : _progress;
@@ -71,7 +102,7 @@ namespace XianXia.Unity.Host
                          host.gameObject.AddComponent<HostMeleeStrikeVfx>();
         }
         public bool HasPending => !_pendingAttacker.IsNone &&
-            (!_pendingTarget.IsNone || !string.IsNullOrEmpty(_assaultSiteId));
+            (!_pendingTarget.IsNone || !string.IsNullOrEmpty(_assaultSiteId) || !string.IsNullOrEmpty(_prisonAssaultRoomId));
 
         public void Request(
             EntityId attacker,
@@ -103,6 +134,7 @@ namespace XianXia.Unity.Host
             }
             if (HasPending) return;
             _assaultSiteId = null;
+            _prisonAssaultRoomId = null;
             var requestWorld = _host.Session.World;
             if (automatic && CharacterEncounterService.IsContactSuppressed(requestWorld, attacker, target)) return;
             if (!automatic) requestWorld.Strategic.SuppressedCharacterContacts.Remove(CharacterEncounterService.ContactKey(attacker, target));
@@ -148,6 +180,14 @@ namespace XianXia.Unity.Host
             if (Phase == PresentationPhase.Pending && _pendingAttacker == attacker &&
                 _pendingTarget == defender)
                 _assaultSiteId = siteId;
+        }
+
+        public void RequestPrisonAssault(EntityId attacker, EntityId defender, string roomId, Action onEntered)
+        {
+            if (HasPending) return;
+            Request(attacker, defender, onEntered: onEntered, allowPendingCancel: true);
+            if (Phase == PresentationPhase.Pending && _pendingAttacker == attacker && _pendingTarget == defender)
+                _prisonAssaultRoomId = roomId;
         }
 
         void LogStage(string stage)
@@ -256,7 +296,9 @@ namespace XianXia.Unity.Host
             if (surface == null || !surface.IsActive) { Fail("Continuous source is unavailable."); yield break; }
             surface.CaptureCurrentPersonalPlacements();
             CharacterEncounterState state;
-            var prepared = _assaultSiteId == null
+            var prepared = _prisonAssaultRoomId != null
+                ? CharacterEncounterService.PrepareForPrisonAssault(world, attacker, target, _prisonAssaultRoomId, out state)
+                : _assaultSiteId == null
                 ? CharacterEncounterService.Prepare(world, attacker, target, surface.ActiveSurfaceId, out state)
                 : CharacterEncounterService.PrepareForWorldSiteAssault(world, attacker, target, _assaultSiteId, out state);
             if (prepared.IsFailure) { Fail(prepared.Error.Message); yield break; }
@@ -328,6 +370,7 @@ namespace XianXia.Unity.Host
             action?.Invoke();
             _startGate.Clear();
             _assaultSiteId = null;
+            _prisonAssaultRoomId = null;
             _allowPendingCancel = false;
             _failure = string.Empty;
             _progress = "战斗进行中";
@@ -364,7 +407,7 @@ namespace XianXia.Unity.Host
                 _host.Session.World.Strategic.SuppressedCharacterContacts.Add(
                     CharacterEncounterService.ContactKey(_pendingAttacker, _pendingTarget));
             _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null;
-            _allowPendingCancel = false; _assaultSiteId = null; _startGate.Clear();
+            _allowPendingCancel = false; _assaultSiteId = null; _prisonAssaultRoomId = null; _startGate.Clear();
             _preparedField = null; _failure = ""; _progress = string.Empty; Phase = PresentationPhase.None;
             HostInputGate.EncounterModalLock = false;
             _host.Session.ReleaseModalPause(PauseOwner);
@@ -374,7 +417,28 @@ namespace XianXia.Unity.Host
 
         public void SetTarget(EntityId attacker, EntityId target)
         {
+            if (Phase == PresentationPhase.ReadyToStart) return;
             if (_host?.Session?.PlayerParty?.IsPlayerControllableMember(attacker) != true) return;
+            var world = _host.Session.World;
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || !state.Opposing(attacker.Value, target.Value) ||
+                (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                state.Phase == CharacterEncounterPhase.ReadyToEnd && _host.Session.PlayerParty.ActiveCharacterId != attacker)
+                return;
+            if (world.Entities.TryGet(target, out var victim) &&
+                victim.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated)
+            {
+                // This is a new explicit order, not the previous combat lock continuing to hit
+                // an opponent it just knocked out. The approach retains one immutable intent.
+                if (life.IsUnconscious || life.Convalescing)
+                {
+                    _host.GetComponent<HostDestructibleAssault>()?.DisengageIfAttacker(attacker);
+                    _host.MoveController.OrderActorToNpc(attacker, target, HostNpcArriveAction.Execute);
+                }
+                else _host.StrategicInterrupt?.ShowTransientToast("目标已弥留；确认死亡请使用右键‘杀死’。");
+                return;
+            }
+            _host.GetComponent<HostDestructibleAssault>()?.DisengageIfAttacker(attacker);
             SetTargetAutomatic(attacker,target);
         }
 
@@ -385,6 +449,7 @@ namespace XianXia.Unity.Host
             var world = _host?.Session?.World;
             var state = world?.Strategic?.CharacterEncounter;
             if (state == null || !state.Opposing(attacker.Value, target.Value)) return;
+            if (!world.Entities.TryGet(target, out var livingTarget) || !CombatLifeStateService.CanFight(livingTarget)) return;
             var transportPermission = MortalTransportConstraintService.ValidateAttack(world, attacker);
             if (transportPermission.IsFailure)
             {
@@ -400,7 +465,7 @@ namespace XianXia.Unity.Host
                     !world.Entities.TryGet(attacker, out var attackerEntity) ||
                     !CombatLifeStateService.CanFight(attackerEntity) ||
                     !world.Entities.TryGet(target, out var targetEntity) ||
-                    !CombatLifeStateService.CanBeAttacked(targetEntity))
+                    !CombatLifeStateService.CanFight(targetEntity))
                     return;
             }
             else if (state.Phase != CharacterEncounterPhase.Active)
@@ -425,6 +490,10 @@ namespace XianXia.Unity.Host
             using var timing = HostDebugHud.EncounterUpdate.Auto();
             if (_host?.Session?.World == null) return;
             var world = _host.Session.World;
+            DefeatedMercyService.ReconcileOldAutomaticWithdrawals(world);
+            if (CharacterEncounterService.RefreshCombatReadiness(world)) Phase = PresentationPhase.Active;
+            if (world.Strategic.CharacterEncounter?.Phase == CharacterEncounterPhase.Active)
+                _readyToEndEncounterId = string.Empty;
             if (!ReferenceEquals(_world, world))
             {
                 _host?.ContinuousOutdoorSurfaceRuntime?.CancelPreparedIndependentField();
@@ -433,7 +502,9 @@ namespace XianXia.Unity.Host
                 _restoreState = null;
                 _readyToEndEncounterId = string.Empty;
                 _world = world; _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null;
-                _assaultSiteId = null; _allowPendingCancel = false; _startGate.Clear();
+                _nextPursuitAt.Clear();
+                _pursuitFailures.Clear();
+                _assaultSiteId = null; _prisonAssaultRoomId = null; _allowPendingCancel = false; _startGate.Clear();
                 Phase = PresentationPhase.None;
                 _host.Session.ReleaseModalPause(PauseOwner);
                 HostInputGate.EncounterModalLock = false;
@@ -474,7 +545,9 @@ namespace XianXia.Unity.Host
                     return;
                 var readyDeltaTime = _host.PresentationDeltaTime;
                 CharacterEncounterService.AdvanceReadyToEnd(world, readyDeltaTime, Time.unscaledDeltaTime);
-                TickReadyToEndManualAttack(world, state);
+                if (state.Phase == CharacterEncounterPhase.Active)
+                { Phase = PresentationPhase.Active; _readyToEndEncounterId = string.Empty; }
+                else TickReadyToEndManualAttack(world, state);
                 _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
                 _host.DispatchDrainedEvents();
                 return;
@@ -525,17 +598,18 @@ namespace XianXia.Unity.Host
                             });
                     }
                 }
-                EvaluateNpcWithdrawals(world, state);
                 foreach (var p in state.Participants)
                 {
                     if (p.Withdrawn || !CharacterEncounterService.IsLiving(world, p.CharacterId)) continue;
                     var id = new EntityId(p.CharacterId);
                     p.Cooldown = Mathf.Max(0f, p.Cooldown - dt);
+                    if (_host.GetComponent<HostDestructibleAssault>()?.IsAttacker(id) == true) continue;
                     if (HostDirectionalRangedAttack.OwnsAttack(_host, id)) continue;
                     if (MortalTransportConstraintService.ValidateAttack(world, id).IsFailure)
                     { p.TargetId = 0; continue; }
                     if (p.TargetId == ulong.MaxValue && _host.Session.PlayerParty.IsMember(id)) continue;
-                    if (!state.Opposing(p.CharacterId, p.TargetId) || !CharacterEncounterService.IsLiving(world, p.TargetId))
+                    if (!state.Opposing(p.CharacterId, p.TargetId) || state.Find(p.TargetId)?.Withdrawn == true ||
+                        !CharacterEncounterService.IsLiving(world, p.TargetId))
                     {
                         p.TargetId = 0; var nearest = float.PositiveInfinity;
                         var protectsActive = !p.Enemy && _host.Session.PlayerParty.IsFollower(id);
@@ -568,11 +642,7 @@ namespace XianXia.Unity.Host
                         !_host.MoveController.IsCharacterStandClear(id) ||
                         !HasClearAttackSight(actorView, targetView))
                     {
-                        if (p.Cooldown <= 0f)
-                        {
-                            _host.MoveController.OrderCharacterApproach(id, target, range, requireClearSight: true);
-                            p.Cooldown = .2f;
-                        }
+                        TickPursuit(id, target, range);
                         continue;
                     }
                     _host.MoveController.CancelPresentationMovementPublic(id);
@@ -604,6 +674,26 @@ namespace XianXia.Unity.Host
             }
         }
 
+        void TickPursuit(EntityId actor, EntityId target, float range)
+        {
+            // Pursuit is locomotion, not an attack: a weapon cooldown cannot suppress it.
+            // Real-time throttling also keeps 20x play from rebuilding a long door route per frame.
+            if (_nextPursuitAt.TryGetValue(actor.Value, out var due) && Time.unscaledTime < due) return;
+            _nextPursuitAt[actor.Value] = Time.unscaledTime + .4f;
+            if (_host.MoveController.OrderCharacterApproach(actor, target, range,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand, requireClearSight: true))
+            {
+                _pursuitFailures.Remove(actor.Value);
+                return;
+            }
+            var reason = _host.MoveController.DescribeNavigationAvailability(actor, target);
+            var key = _world.Strategic.CharacterEncounter?.EncounterId + ":" + target.Value + ":" + reason;
+            if (_pursuitFailures.TryGetValue(actor.Value, out var previous) && previous == key) return;
+            _pursuitFailures[actor.Value] = key;
+            Debug.LogWarning("[EncounterPursuitBlocked] Encounter=" + _world.Strategic.CharacterEncounter?.EncounterId +
+                " Actor=" + actor.Value + " Target=" + target.Value + " " + reason, this);
+        }
+
         bool TryCastAutonomousArt(SimulationWorld world, EncounterCharacter participant,
             EntityId caster, EntityId target, EntityView casterView, EntityView targetView)
         {
@@ -630,45 +720,6 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        void EvaluateNpcWithdrawals(SimulationWorld world, CharacterEncounterState state)
-        {
-            var party = world.Strategic.PlayerPartyContext;
-            foreach (var p in state.Participants)
-            {
-                if (p.Withdrawn || party?.IsMember(new EntityId(p.CharacterId)) == true ||
-                    !world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) ||
-                    !CombatLifeStateService.CanFight(entity) ||
-                    !entity.TryGet<AttributesComponent>(out var attrs)) continue;
-                if (entity.TryGet<PersonalityProfileComponent>(out var profile) &&
-                    (profile.HasTag("fanatic") || profile.HasTag("fight_to_death"))) continue;
-                CombatDamageRules.EnsureVitals(entity);
-                if (!entity.TryGet<CombatVitalsComponent>(out var vitals)) continue;
-                var maxHp = Math.Max(1, attrs.GetFinal(AttributeId.MaxHp));
-                if (vitals.CurrentHp * 100 > maxHp * 30) continue;
-                var ownPower = 0; var enemyPower = 0;
-                foreach (var other in state.Participants)
-                {
-                    if (other.Withdrawn || !world.Entities.TryGet(new EntityId(other.CharacterId), out var member) ||
-                        !CombatLifeStateService.CanFight(member)) continue;
-                    CombatDamageRules.EnsureVitals(member);
-                    var hp = member.TryGet<CombatVitalsComponent>(out var pool) ? pool.CurrentHp : 1;
-                    var attack = member.TryGet<AttributesComponent>(out var memberAttrs)
-                        ? Math.Max(1, memberAttrs.GetFinal(AttributeId.Attack)) : 1;
-                    if (other.Enemy == p.Enemy) ownPower += hp + attack * 2;
-                    else enemyPower += hp + attack * 2;
-                }
-                if (ownPower * 3 >= enemyPower * 2 || enemyPower <= 0) continue;
-                p.Withdrawn = true;
-                p.WithdrawalKind = vitals.CurrentHp * 100 <= maxHp * 10 ||
-                    (profile != null && profile.HasTag("surrender_prone"))
-                    ? "Surrender" : "Flee";
-                p.TargetId = 0;
-                _host.MoveController.CancelPresentationMovementPublic(entity.Id);
-                var label = p.WithdrawalKind == "Surrender" ? "投降（待接管）" : "撤离战场";
-                _host.GetComponent<HostFeedbackOverlay>()?.SpawnAtEntity(
-                    _host.ViewSpawner, entity.Id, label, new Color(.95f, .8f, .45f));
-            }
-        }
 
         void EnterReadyToEndOnce(SimulationWorld world, CharacterEncounterState state)
         {
@@ -695,6 +746,7 @@ namespace XianXia.Unity.Host
             CharacterEncounterState state)
         {
             var attackerId = _host.Session.PlayerParty.ActiveCharacterId;
+            if (_host.GetComponent<HostDestructibleAssault>()?.IsAttacker(attackerId) == true) return;
             var attacker = state.Find(attackerId.Value);
             if (attacker == null || attacker.TargetId == 0 || attacker.TargetId == ulong.MaxValue ||
                 !world.Entities.TryGet(attackerId, out var attackerEntity) ||
@@ -704,7 +756,7 @@ namespace XianXia.Unity.Host
             var targetId = new EntityId(attacker.TargetId);
             if (!state.Opposing(attackerId.Value, targetId.Value) ||
                 !world.Entities.TryGet(targetId, out var targetEntity) ||
-                !CombatLifeStateService.CanBeAttacked(targetEntity))
+                !CombatLifeStateService.CanFight(targetEntity))
             {
                 attacker.TargetId = 0;
                 return;
@@ -717,13 +769,7 @@ namespace XianXia.Unity.Host
                 !_host.MoveController.IsCharacterStandClear(attackerId) ||
                 !HasClearAttackSight(attackerView, targetView))
             {
-                if (attacker.Cooldown <= 0f)
-                {
-                    _host.MoveController.OrderCharacterApproach(
-                        attackerId, targetId, range,
-                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand, requireClearSight: true);
-                    attacker.Cooldown = .2f;
-                }
+                TickPursuit(attackerId, targetId, range);
                 return;
             }
             _host.MoveController.CancelPresentationMovementPublic(attackerId);
@@ -731,7 +777,7 @@ namespace XianXia.Unity.Host
                 return;
             attacker.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
             if (SpiritVeilService.IsActive(attackerEntity))
-                LaunchCharacterProjectile(world, state, attackerId, targetId, allowIncapacitated: true);
+                LaunchCharacterProjectile(world, state, attackerId, targetId);
             else
             {
                 var strike = _melee.ApplyStrike(
@@ -741,7 +787,7 @@ namespace XianXia.Unity.Host
                 if (strike.IsSuccess && defenderDefeated)
                     RefreshDefeatedParticipant(targetId);
             }
-            if (!CombatLifeStateService.CanBeAttacked(targetEntity))
+            if (!CombatLifeStateService.CanFight(targetEntity))
                 attacker.TargetId = 0;
         }
 
@@ -757,7 +803,7 @@ namespace XianXia.Unity.Host
         }
 
         void LaunchCharacterProjectile(SimulationWorld world, CharacterEncounterState state,
-            EntityId attacker, EntityId target, bool allowIncapacitated = false)
+            EntityId attacker, EntityId target)
         {
             if (_strikeVfx == null) return;
             var encounterId = state.EncounterId;
@@ -771,7 +817,7 @@ namespace XianXia.Unity.Host
                     !current.Opposing(attacker.Value, target.Value) ||
                     !world.Entities.TryGet(attacker, out var shooter) || !CombatLifeStateService.CanFight(shooter) ||
                     !world.Entities.TryGet(target, out var victim) ||
-                    !(allowIncapacitated ? CombatLifeStateService.CanBeAttacked(victim) : CombatLifeStateService.CanFight(victim)) ||
+                    !CombatLifeStateService.CanFight(victim) ||
                     !_host.ViewSpawner.Registry.TryGet(target, out var currentView) ||
                     currentView == null ||
                     !_host.ViewSpawner.Registry.TryGet(attacker, out var shooterView) ||
@@ -811,16 +857,28 @@ namespace XianXia.Unity.Host
             _host?.Session?.ReleaseModalPause(PauseOwner);
             HostInputGate.EncounterModalLock = false;
             _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null; _entryRoutine = null; _preparedField = null;
-            _restoreState = null; _assaultSiteId = null; _allowPendingCancel = false;
+            _restoreState = null; _assaultSiteId = null; _prisonAssaultRoomId = null; _allowPendingCancel = false;
             _startGate.Clear(); Phase = PresentationPhase.None;
         }
 
         void OnDisable() => CancelPreparation();
 
+        public bool CanFinishBattle
+        {
+            get
+            {
+                var world = _host?.Session?.World;
+                if (CharacterEncounterService.RefreshCombatReadiness(world))
+                { Phase = PresentationPhase.Active; _readyToEndEncounterId = string.Empty; }
+                return world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.ReadyToEnd;
+            }
+        }
+
         public bool TryFinishBattle()
         {
             var world = _host?.Session?.World;
             if (world == null) return false;
+            if (!CanFinishBattle) { _failure = "仍有敌我双方清醒人物，战斗尚未结束。"; return false; }
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.ReadyToEnd) return false;
             _host.ContinuousOutdoorSurfaceRuntime.CaptureIndependentField();

@@ -78,7 +78,7 @@ namespace XianXia.Unity.Host
         bool _supportHandActive;
         bool _sleepPose;
         bool _lifePose;
-        bool _downedPose, _deadPose, _carriedPose;
+        bool _downedPose, _deadPose, _carriedPose, _immobileAwakePose;
         bool _sleepOnBed;
         Vector3 _sleepWorldPosition;
         int _sleepQuarterTurns;
@@ -106,7 +106,7 @@ namespace XianXia.Unity.Host
         public int RendererCount => 8;
 
         RestPose CurrentRestPose => _carriedPose ? RestPose.Carried :
-            _deadPose ? RestPose.Dead : _downedPose ? RestPose.Downed :
+            _deadPose ? RestPose.Dead : _downedPose || _immobileAwakePose ? RestPose.Downed :
             _sleepPose ? RestPose.Sleeping : RestPose.None;
 
         /// <summary>External bed sandwich depth, separate from the rig's internal limb orders.</summary>
@@ -1161,12 +1161,13 @@ namespace XianXia.Unity.Host
             _toolSprite.transform.localRotation = rotation;
         }
 
-        public void SetLifePose(bool downed, bool dead, bool carried = false)
+        public void SetLifePose(bool downed, bool dead, bool carried = false, bool immobileAwake = false)
         {
             _downedPose = downed;
             _deadPose = dead;
             _carriedPose = carried;
-            _lifePose = downed || dead || carried;
+            _immobileAwakePose = immobileAwake;
+            _lifePose = downed || dead || carried || immobileAwake;
             if (_lifePose) _hasPendingWorkContact = false;
             if (dead || carried) _usingBedFrame = false;
         }
@@ -1183,6 +1184,16 @@ namespace XianXia.Unity.Host
             // Positioning happens after this frame's bones in Apply; SetLifePose may be called
             // later in the same frame and must get the final say over stale sleep/bed flags.
             if (!sleeping) _usingBedFrame = false;
+        }
+
+        public void SetMissingLimbs(int mask)
+        {
+            if (_leftArmSprite == null) return;
+            _leftArmSprite.enabled = (mask & 1) == 0;
+            _rightArmSprite.enabled = (mask & 2) == 0;
+            _leftLegSprite.enabled = (mask & 4) == 0;
+            _rightLegSprite.enabled = (mask & 8) == 0;
+            if ((mask & 2) != 0) _toolSprite.enabled = false;
         }
 
         public void SetTint(Color color)

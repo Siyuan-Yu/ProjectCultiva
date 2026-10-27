@@ -46,6 +46,8 @@ namespace XianXia.Core.Actions
         {
             if (!world.Entities.TryGet(Subject, out var entity))
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            if (!XianXia.Core.Combat.FlightService.IsAirborne(entity) && !XianXia.Core.Combat.CombatInjuryService.CanWalk(entity))
+                return Result.Failure(ErrorCode.ActionCannotStart, "双腿缺失，不能自行步行。");
             if (!entity.TryGet<LifecycleComponent>(out var life))
                 return Result.Failure(ErrorCode.ComponentMissing, "Lifecycle missing.");
             if (life.IsDead || life.IsRemoved || life.IsIncapacitated)

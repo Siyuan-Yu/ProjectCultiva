@@ -98,6 +98,9 @@ namespace XianXia.Core.Simulation
                 return Result.Failure(ErrorCode.InvalidArgument, "Order is null.");
             if (!_world.Entities.TryGet(order.Subject, out _))
                 return Result.Failure(ErrorCode.EntityNotFound, "Order subject missing.");
+            if (AutonomousActionContinuationService.BlocksOrdinaryWork(_world, order.Subject) &&
+                AutonomousActionContinuationService.IsAutonomous(order.Type))
+                return Result.Failure(ErrorCode.ActionCannotStart, AutonomousActionContinuationService.EncounterWorkBlockedReason);
 
             if (order.Source == OrderSource.Player)
                 InterruptScheduleForPlayer(order.Subject);
@@ -183,6 +186,7 @@ namespace XianXia.Core.Simulation
             ProcessDayBoundary(previous, _world.Tick);
             CharacterFactionLoyaltyService.EnsureAll(_world);
             SampleTickPhase(phaseSample, "day-loyalty", ref phaseStarted);
+            PrisonManagementService.Tick(_world);
             MortalCivilianService.Tick(_world, phaseSample);
             SampleTickPhase(phaseSample, "civilian", ref phaseStarted);
             ChessRecreationService.Drive(_world, this);
@@ -250,6 +254,7 @@ namespace XianXia.Core.Simulation
             XianXia.Core.Combat.FlightService.MaintainCold(_world);
             SampleTickPhase(phaseSample, "cold-flight", ref phaseStarted);
             CombatLifeStateService.TickCorpseDecay(_world);
+            PrisonConfinementService.Drive(_world);
             SampleTickPhase(phaseSample, "life-decay", ref phaseStarted);
             _worldOpportunityDriver.Tick(_world);
             _worldOpportunityDiscoveryService.Tick(_world);

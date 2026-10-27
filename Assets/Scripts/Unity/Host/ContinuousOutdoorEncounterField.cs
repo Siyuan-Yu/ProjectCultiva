@@ -434,10 +434,12 @@ namespace XianXia.Unity.Host
                 var carrier = state.Find(civilian.CarrierId.Value);
                 if (carrier == null) continue;
                 _mapper.WorldToPresentation(carrier.TacticalX, carrier.TacticalY, out var x, out var y);
-                var position = HostPresentationSpace.FromPresentation(x - .28f, y - .16f);
+                if (!_bootstrap.ViewSpawner.Registry.TryGet(civilian.CarrierId, out var carrierView) || carrierView == null)
+                    continue;
+                var position = HostCharacterVisualContext.CarriedPresentationPosition(carrierView);
                 if (world.Entities.TryGet(pair.Key, out var captive) &&
                     captive.TryGet<EntityLocationComponent>(out var location))
-                    location.SetPresentationOverride(position.x, position.y);
+                    location.SetPresentationOverride(x, y);
                 if (_bootstrap.ViewSpawner.Registry.TryGet(pair.Key, out var view) && view != null)
                     view.transform.position = position;
             }
@@ -464,6 +466,22 @@ namespace XianXia.Unity.Host
                 _mapper == null || _compositeWalkGrid == null)
                 return false;
             var participant = state.Find(id.Value);
+            if (participant != null && HostCharacterVisualContext.TryGetCarrier(world, id, out var carrierId))
+            {
+                var holder = state.Find(carrierId.Value);
+                if (holder == null) return false;
+                participant.TacticalX = holder.TacticalX; participant.TacticalY = holder.TacticalY;
+                _mapper.WorldToPresentation(holder.TacticalX, holder.TacticalY, out var x, out var y);
+                if (world.Entities.TryGet(id, out var carried) && carried.TryGet<EntityLocationComponent>(out var carriedLocation))
+                    carriedLocation.SetPresentationOverride(x, y);
+                var carriedPresence = world.WorldPresence.GetOrCreate(id);
+                carriedPresence.Mode = PartyWorldPresenceMode.InEncounter;
+                carriedPresence.PersonalSurfaceId = state.SourceSurfaceId;
+                carriedPresence.SiteId = string.Empty;
+                carriedPresence.WorldPosX = holder.TacticalX; carriedPresence.WorldPosY = holder.TacticalY;
+                carriedPresence.HasContinuousWorldPosition = true;
+                return true;
+            }
             if (participant == null ||
                 !_compositeWalkGrid.TryWorldToCell(
                     presentationPosition.x, presentationPosition.y, out var cellX, out var cellY) ||
@@ -528,6 +546,12 @@ namespace XianXia.Unity.Host
                                squad != null && squad.SquadId == participant.SquadId;
                 _mapper.WorldToPresentation(participant.TacticalX, participant.TacticalY,
                     out var expectedX, out var expectedY);
+                if (HostCharacterVisualContext.TryGetCarrier(world, id, out var carrierId) &&
+                    _bootstrap.ViewSpawner.Registry.TryGet(carrierId, out var carrierView) && carrierView != null)
+                {
+                    var carriedPosition = HostCharacterVisualContext.CarriedPresentationPosition(carrierView);
+                    expectedX = carriedPosition.x; expectedY = carriedPosition.y;
+                }
                 var aligned = hasView &&
                     Mathf.Abs(view.transform.position.x - expectedX) <= .02f &&
                     Mathf.Abs(view.transform.position.y - expectedY) <= .02f;
@@ -954,10 +978,16 @@ namespace XianXia.Unity.Host
             var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
             if (state == null || state.EncounterId != _independentFieldId || state.Phase == CharacterEncounterPhase.Committed ||
                 !ReferenceEquals(_navigationStateWorld, _bootstrap.Session.World)) return;
+            var world = _bootstrap.Session.World;
             foreach (var p in state.Participants)
-                if (_bootstrap.ViewSpawner.Registry.TryGet(new EntityId(p.CharacterId), out var view) && view != null)
+                if (!HostCharacterVisualContext.TryGetCarrier(world, new EntityId(p.CharacterId), out _) &&
+                    _bootstrap.ViewSpawner.Registry.TryGet(new EntityId(p.CharacterId), out var view) && view != null)
                     TryCaptureIndependentParticipantPosition(
                         new EntityId(p.CharacterId), view.transform.position);
+            MortalCivilianService.ReconcileEscortsForEncounter(world, state);
+            foreach (var p in state.Participants)
+                if (HostCharacterVisualContext.TryGetCarrier(world, new EntityId(p.CharacterId), out _))
+                    TryCaptureIndependentParticipantPosition(new EntityId(p.CharacterId), Vector3.zero);
         }
 
         public void LeaveIndependentField(CharacterEncounterState completed)

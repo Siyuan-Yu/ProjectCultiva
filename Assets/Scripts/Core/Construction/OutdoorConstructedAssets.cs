@@ -595,6 +595,11 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.NotFound, "房间不存在。", roomId);
             if (!CanManageRoom(world, room, out var permissionReason))
                 return Result.Failure(ErrorCode.InvalidOperation, permissionReason);
+            if (usage != RoomUsage.Prison && world.HuangcunSurvival.Enabled && !world.HuangcunSurvival.Released &&
+                world.HuangcunSurvival.PrisonRoomId == roomId &&
+                world.Entities.TryGet(new EntityId(world.HuangcunSurvival.PrisonerId), out var openingCaptive) &&
+                openingCaptive.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var captiveLife) && !captiveLife.IsDead && !captiveLife.IsRemoved)
+                return Result.Failure(ErrorCode.InvalidOperation, "请先释放仍关在这座牢房中的同伴，再修改房间用途。");
             var assigned = false;
             foreach (var bed in BedsInRoom(world, roomId))
             {
@@ -647,6 +652,11 @@ namespace XianXia.Core.Construction
         {
             bed = null;
             if (world == null || characterId.IsNone) return false;
+            if (usage == RoomUsage.Prison)
+                foreach (var retained in Beds(world))
+                    if ((retained.ReservedCharacterId == characterId || retained.OccupantCharacterId == characterId) &&
+                        BedHasUsage(world, retained, usage) && CanUseBed(world, retained, characterId, out _))
+                    { bed = retained; return true; }
             OutdoorConstructedAssetState assigned = null;
             foreach (var candidate in Beds(world))
             {
@@ -744,6 +754,9 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.InvalidArgument, "搬运安置需要有效的搬运者、人物和床位。");
             if (!BedHasUsage(world, bed, requiredUsage))
                 return Result.Failure(ErrorCode.InvalidOperation, "目标床位用途已改变。");
+            if (requiredUsage != RoomUsage.Prison &&
+                !MortalCivilianService.CanReceiveAutomaticRescue(world, occupantId))
+                return Result.Failure(ErrorCode.InvalidOperation, "受拘押或战场中的人物不能通过普通救护转移到床位。");
             if (bed.ReservedCharacterId != occupantId)
                 return Result.Failure(ErrorCode.InvalidOperation, "目标床位没有由当前人物持有预约。");
             if (!CanUseBed(world, bed, occupantId, out var reason))

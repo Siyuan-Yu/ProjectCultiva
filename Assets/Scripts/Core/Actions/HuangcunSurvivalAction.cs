@@ -19,7 +19,16 @@ namespace XianXia.Core.Actions
         public ActionClock Clock { get; private set; }
         public Result CanStart(SimulationWorld world) => HuangcunSurvivalService.Validate(world, Subject, Task);
         public Result Start(SimulationWorld world)
-        { var r = CanStart(world); if (r.IsSuccess) Status = ActionStatus.Running; return r; }
+        {
+            var r = CanStart(world);
+            if (r.IsSuccess)
+            {
+                Status = ActionStatus.Running;
+                if ((Task == "feed" || Task == "medicine" || Task == "force_release") && HuangcunSurvivalService.Prisoner(world) is var prisoner &&
+                    prisoner != null && prisoner.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();
+            }
+            return r;
+        }
         public Result Advance(SimulationWorld world)
         {
             var r = CanStart(world);

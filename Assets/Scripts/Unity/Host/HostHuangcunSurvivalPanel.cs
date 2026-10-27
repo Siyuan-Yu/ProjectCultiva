@@ -33,7 +33,7 @@ namespace XianXia.Unity.Host
                 if(captive!=null && !w.HuangcunSurvival.Released && captive.TryGet<LifecycleComponent>(out var life))
                 {
                     captive.TryGet<PersonalLifeComponent>(out var needs); captive.TryGet<CombatVitalsComponent>(out var hp);
-                    warning=life.IsDead || life.IsRemoved ? "被囚同伴已经死亡" : "被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+"\n送饭、敷药可延缓恶化";
+                    warning=life.IsDead || life.IsRemoved ? "被囚同伴已经死亡" : "被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+"\n走进牢房，右键同伴本人交谈与照料";
                 }
                 GUI.Label(new Rect(notice.x+5,notice.y+3,notice.width-10,notice.height-6),warning,_text);
                 return false;
@@ -86,15 +86,12 @@ namespace XianXia.Unity.Host
             if(prisoner!=null)
             {
                 prisoner.TryGet<CombatVitalsComponent>(out var hp); prisoner.TryGet<PersonalLifeComponent>(out var needs);
-                Label("被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+" · "+(w.HuangcunSurvival.Released?"已解救":CombatLifeStateService.FormatLifeStateWithCountdown(w,prisoner))+"。监狱每日只给少量稀粥，并会殴打；缺粮会持续掉血，放任不管会死亡。",ref y,cw,54);
+                Label("被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+" · "+(w.HuangcunSurvival.Released?"已解救":CombatLifeStateService.FormatLifeStateWithCountdown(w,prisoner))+"。稀粥只能勉强维生。进牢房后右键同伴交谈、接请求、送饭送药；占领前牢房及外沿三格是禁区，被在岗巡视发现会直接追赶开战。",ref y,cw,72);
             }
             if(!w.HuangcunSurvival.Released)
             {
-                Row(session,"feed","探视送饭：粮食 1，同伴饱食 +35",ref y,cw);
-                Row(session,"medicine","探视敷药：灵草 1，按原有医疗规则累积药力",ref y,cw);
                 Row(session,"ransom","交涉赎人：粮食 6 + 灵草 3",ref y,cw);
-                Row(session,"pick_lock","趁隙撬锁：木料 2，持续 60 分钟，巡卫不能靠近",ref y,cw);
-                Row(session,"force_release","强行解救：两名巡卫已失去战力，或已取得荒村",ref y,cw);
+                Label("武力营救：右键监狱墙体，按正常宣战流程开战；打出可通行缺口后自动解除拘押。占领后可对同伴下令释放。",ref y,cw,55);
             }
             else Label("获救不自动痊愈。靠近清醒同伴后邀请入队；昏迷者先治疗、搬运。救援失败不会强制重开，也不会锁住夺取荒村。",ref y,cw,55);
             GUI.EndScrollView();
@@ -113,6 +110,7 @@ namespace XianXia.Unity.Host
                 var p=camera.WorldToScreenPoint(HostPresentationSpace.FromPresentation(pair.Value.X,pair.Value.Y));
                 var y=Screen.height-p.y;
                 if(p.z<=0 || p.x<100 || p.x>Screen.width-350 || y<170 || y>Screen.height-290) continue;
+                if(pair.Key=="prison") continue; // Prison visits use the physical room's right-click menu.
                 var name=pair.Key=="food"?"拾荒口粮点":pair.Key=="wood"?"枯枝采集点":pair.Key=="herb"?"野生灵草点":
                     pair.Key=="camp_near"?"近郊营地选址":pair.Key=="camp_far"?"远郊营地选址":pair.Key=="camp"?"私人修炼棚":pair.Key=="work"?"短工集合点":"监狱探视处";
                 var rect=new Rect(p.x-68,y-14,136,28); HostUiHitTest.Block(rect);

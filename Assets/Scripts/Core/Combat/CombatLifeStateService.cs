@@ -24,6 +24,7 @@ namespace XianXia.Core.Combat
     /// </summary>
     public static class CombatLifeStateService
     {
+        /// <summary>Legacy v20 wire reference only; no longer a wake condition.</summary>
         public const int UnconsciousSeconds = 100;
 
         public static bool TryEnterUnconscious(SimulationWorld world, Entity entity, EntityId attacker)
@@ -33,11 +34,16 @@ namespace XianXia.Core.Combat
             entity.TryGet<LifecycleComponent>(out var life);
             life.ResetMedicalProgress(); life.ClearBleedOut();
             life.HerbDoses = doses;
-            life.UnconsciousSecondsRemaining = UnconsciousSeconds;
-            if (entity.TryGet<CombatVitalsComponent>(out var vitals)) vitals.CurrentHp = 1;
+            life.CombatUnconscious = true;
+            if (entity.TryGet<CombatVitalsComponent>(out var vitals)) vitals.CurrentHp = DefeatHpFloor(entity);
+            DefeatedMercyService.RecordDefeat(world, entity.Id);
+            CombatInjuryService.RecordKnockout(world, entity);
             life.RecordTransition(LifecycleState.Alive, LifecycleState.Incapacitated, "Unconscious");
             return true;
         }
+
+        public static int DefeatHpFloor(Entity entity) => entity != null && entity.TryGet<AttributesComponent>(out var attrs)
+            ? Math.Max(1, attrs.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp) / 100) : 1;
 
         public static bool TryEnterDyingFromUnconscious(SimulationWorld world, Entity entity, EntityId attacker)
         {
@@ -57,19 +63,14 @@ namespace XianXia.Core.Combat
                 attribution.Set(attacker);
             }
             life.RecordTransition(LifecycleState.Incapacitated, LifecycleState.Incapacitated, "UnconsciousToDying");
+            CombatInjuryService.RecordDying(world, entity);
             return true;
         }
 
         public static void AdvanceUnconscious(SimulationWorld world, Entity entity, float seconds)
         {
-            if (seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds) ||
-                !entity.TryGet<LifecycleComponent>(out var life) || !life.IsUnconscious) return;
-            if (life.UnconsciousSecondsRemaining > seconds)
-            { life.UnconsciousSecondsRemaining -= seconds; return; }
-            var hp = entity.TryGet<CombatVitalsComponent>(out var vitals) ? Math.Max(1, vitals.CurrentHp) : 1;
-            var doses = life.HerbDoses; var fraction = life.RecoveryHpMilli;
-            if (TryRecoverFromIncapacitated(world, entity, hp))
-            { life.HerbDoses = doses; life.RecoveryHpMilli = fraction; life.HasMedicalProgress = doses > 0 || fraction > 0; }
+            // Compatibility API only. MedicalRecoveryService owns body-driven recovery;
+            // elapsed time alone must never awaken an untreated character.
         }
         /// <summary>弥留未治疗 → 阵亡（现实秒；1x 下 1 tick≈1 秒）。</summary>
         public const int BleedOutRealSeconds = 200;
@@ -156,8 +157,7 @@ namespace XianXia.Core.Combat
                 return false;
 
             var now = world.Tick.Value;
-            if (life.IsUnconscious)
-            { label = "昏迷"; remainingSeconds = (int)Math.Ceiling(life.UnconsciousSecondsRemaining); return true; }
+            if (life.IsUnconscious) return false;
             if (life.IsDying && life.BleedOutAfterTick > 0)
             {
                 label = "弥留";
@@ -295,15 +295,17 @@ namespace XianXia.Core.Combat
                 return false;
 
             if (!entity.TryGet<AttributesComponent>(out var attributes) ||
-                !life.IsUnconscious && (long)restoreHp * 2 <= Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)))
+                (long)restoreHp * 2 <= Math.Max(1, attributes.GetFinal(XianXia.Core.Attributes.AttributeId.MaxHp)))
                 return false;
 
             var recoveredState = life.State == LifecycleState.Captured ? LifecycleState.Captured : LifecycleState.Alive;
             // Carried patients were placed at the bed centre, which is a furniture blocker.
             // Stand up at the bed's legal access point before releasing its physical occupancy.
-            if (recoveredState == LifecycleState.Alive &&
+            if (!CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) &&
+                (recoveredState == LifecycleState.Alive || PrisonConfinementService.IsConfinedOutdoor(world, entity.Id)) &&
                 MedicalRecoveryService.TryGetPatientBed(world, entity, out var recoveryBed) &&
                 RoomBedFacilityService.TryResolveAccessPoint(world, recoveryBed, out var standingPoint) &&
+                PrisonConfinementService.AllowsPosition(world, entity.Id, recoveryBed.SurfaceId, standingPoint) &&
                 (!world.SurfaceGround.TryGet(recoveryBed.SurfaceId, out var ground) ||
                  ground.IsWalkable(standingPoint.X, standingPoint.Y)))
                 world.WorldPresence.SetAtWorldPosition(entity.Id, standingPoint, recoveryBed.SurfaceId);
@@ -440,7 +442,6 @@ namespace XianXia.Core.Combat
                     continue;
                 if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
 
-                AdvanceUnconscious(world, entity, 1f);
                 MedicalRecoveryService.AdvanceSecond(world, entity);
 
                 if (life.IsDead &&
@@ -457,14 +458,15 @@ namespace XianXia.Core.Combat
 
         /// <summary>尸体腐烂：标记 Removed，从宏观图抹掉，之后不再演算该角色位置。</summary>
         public static void TickEncounterLifeDecay(SimulationWorld world,
-            System.Collections.Generic.IReadOnlyList<XianXia.Core.World.Strategic.EncounterCharacter> participants)
+            System.Collections.Generic.IReadOnlyList<XianXia.Core.World.Strategic.EncounterCharacter> participants,
+            bool advanceMedical = true, bool advanceCorpses = true)
         {
             foreach (var p in participants)
             {
                 if (!world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) ||
                     !entity.TryGet<LifecycleComponent>(out var life)) continue;
-                MedicalRecoveryService.AdvanceSecond(world, entity);
-                if (life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))
+                if (advanceMedical) MedicalRecoveryService.AdvanceSecond(world, entity);
+                if (advanceCorpses && life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))
                 {
                     if (corpse.RemoveAfterTick <= world.Tick.Value + 1) FinalizeRemoval(world, entity);
                     else corpse.RemoveAfterTick--;

@@ -133,6 +133,9 @@ namespace XianXia.Unity.Host
         public int PlaceRefreshGeneration { get; private set; }
         public int EntityReconcileGeneration { get; private set; }
         public int NavigationGeneration { get; private set; }
+        public bool IsDestructibleNavigationCurrent => IsActive && !_dynamicNavigationDirty &&
+            _bootstrap?.Session?.World != null && _observedDestructibleTopologyRevision ==
+            _bootstrap.Session.World.OutdoorStatefulObjects.DestructibleTopologyRevision;
         public OutdoorSurfaceGeographyDefinition ActiveGeography => IsActive ? _geography : null;
 
         /// <summary>Opening population census（startup invariant 一次计算，仅供诊断显示）。</summary>
@@ -243,6 +246,7 @@ namespace XianXia.Unity.Host
                 return false;
             _mapper.PresentationToWorld(
                 presentationPosition.x, presentationPosition.y, out var worldX, out var worldY);
+            if (!PrisonConfinementService.AllowsPosition(world, id, _surfaceId, new WorldVec2(worldX, worldY))) return false;
             if (!HuangcunOpeningAccess.AllowsPosition(world, _surfaceId, worldX, worldY)) return false;
             if (float.IsNaN(worldX) || float.IsInfinity(worldX) ||
                 float.IsNaN(worldY) || float.IsInfinity(worldY) ||
@@ -2121,9 +2125,20 @@ namespace XianXia.Unity.Host
                         !captive.TryGet<EntityLocationComponent>(out var captiveLocation) || captiveLocation == null)
                         continue;
                     captiveLocation.SetPresentationOverride(
-                        carrierLocation.PresentationOverrideX - .28f,
-                        carrierLocation.PresentationOverrideZ - .16f);
+                        carrierLocation.PresentationOverrideX,
+                        carrierLocation.PresentationOverrideZ);
                     _desiredMaterializedEntities.Add(pair.Key);
+                }
+                // Prisoners remain real, non-combatant people at their exact personal position.
+                foreach (var entity in world.Entities.All)
+                {
+                    if (!PrisonWallBreachService.IsEncounterBystander(world, entity.Id) ||
+                        CombatLifeStateService.ShouldHideFromSpawn(entity) ||
+                        !CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) ||
+                        !entity.TryGet<EntityLocationComponent>(out var loc)) continue;
+                    _mapper.WorldToPresentation(at.WorldPosition.X, at.WorldPosition.Y, out var px, out var py);
+                    loc.SetPresentationOverride(px, py);
+                    _desiredMaterializedEntities.Add(entity.Id);
                 }
                 ApplyOutdoorEntityMaterializationReconcile(world);
                 return;
