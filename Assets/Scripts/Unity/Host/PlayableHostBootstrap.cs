@@ -745,6 +745,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostPartyPathPreview>();
             if (GetComponent<HostPatrolWatchRings>() == null)
                 gameObject.AddComponent<HostPatrolWatchRings>();
+            if (GetComponent<HostPrivateCampPresentation>() == null)
+                gameObject.AddComponent<HostPrivateCampPresentation>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -1070,6 +1072,7 @@ namespace XianXia.Unity.Host
             Debug.Log(
                 "[PlayableHost] Initialized. Characters=" + _session.CharacterIds.Count +
                 " Views=" + entityViewSpawner.SpawnedCount +
+                " Scenario=" + openingScenarioId + " Roster=" + characterRosterId +
                 " Content=" + _resolvedContentPath,
                 this);
             return true;

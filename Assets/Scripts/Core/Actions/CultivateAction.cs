@@ -103,6 +103,7 @@ namespace XianXia.Core.Actions
                 if (survival && !cultivation.IsAtBottleneck) personalLife.Satiety--;
                 personalLife.Clamp();
             }
+            if (!cultivation.IsAtBottleneck) gain += BasicCraftService.CultivationBonus(world,Subject);
             var cap = cultivation.BreakthroughProgressRequired;
             var previousProgress = cultivation.Progress;
             if (cap > 0 && cultivation.Progress + gain > cap)

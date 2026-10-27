@@ -46,6 +46,8 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionCannotStart, "Subject cannot labor.", life.State.ToString());
             if (!entity.TryGet<DailyTaskComponent>(out _))
                 return Result.Failure(ErrorCode.ComponentMissing, "DailyTaskComponent missing.");
+            if (entity.TryGet<EntityLocationComponent>(out var location) && MiningService.IsMine(world,location.LocationId))
+                return MiningService.Validate(world,Subject,location.LocationId);
             return Result.Success();
         }
 
@@ -53,6 +55,9 @@ namespace XianXia.Core.Actions
         {
             var can = CanStart(world);
             if (can.IsFailure) return can;
+            if (world.Entities.TryGet(Subject,out var miner) && miner.TryGet<EntityLocationComponent>(out var location) &&
+                MiningService.IsMine(world,location.LocationId))
+                Clock=ActionClock.Start(world.Inventory.GetCount(BasicCraftService.Pick)>0?7UL:MiningService.WorkTicks);
             Status = ActionStatus.Running;
             return Result.Success();
         }
@@ -71,6 +76,8 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ActionFailed, "DailyTaskComponent missing during labor.");
             }
 
+            if (entity.TryGet<EntityLocationComponent>(out var at) && MiningService.IsMine(world,at.LocationId))
+            { var check=MiningService.Validate(world,Subject,at.LocationId); if(check.IsFailure) { Status=ActionStatus.Failed; return check; } }
             Clock = Clock.Consume(1);
             daily.CompletedAmount += 1;
             // Demo work-zone gather is player-driven; schedule labor stays on settlement day-end production.
@@ -80,7 +87,14 @@ namespace XianXia.Core.Actions
                 TrackLocationLabor(world, entity);
                 // ~3s（默认 1 拍）完工发 1 份地点资源，不再每拍掉落。
                 if (Clock.IsComplete)
-                    ProduceOnceFromCurrentLocation(world, entity);
+                {
+                    if (entity.TryGet<EntityLocationComponent>(out var miningLocation) && MiningService.IsMine(world,miningLocation.LocationId))
+                    {
+                        var mined=MiningService.Harvest(world,entity.Id,miningLocation.LocationId,false);
+                        if(mined.IsFailure){Status=ActionStatus.Failed;world.HuangcunSurvival.Message=mined.Error.Message;return mined;}
+                    }
+                    else ProduceOnceFromCurrentLocation(world, entity);
+                }
                 QuestProgressRefresh.AfterWorldChange(world, entity.Id);
             }
 
@@ -99,6 +113,8 @@ namespace XianXia.Core.Actions
             if (string.IsNullOrEmpty(location.ResourceOnExploreId))
                 return;
 
+            if (MiningService.IsOre(location.ResourceOnExploreId))
+            { MiningService.Harvest(world,entity.Id,loc.LocationId,false); return; }
             const int grant = 1;
             var added = world.Inventory.TryAdd(location.ResourceOnExploreId, grant);
             if (added <= 0)

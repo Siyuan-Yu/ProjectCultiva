@@ -17,6 +17,7 @@ namespace XianXia.Unity.Host
             if (state == null) return "待命";
             var encounterActivity = entity == null ? null : HostCharacterEncounter.DescribeParticipantActivity(world, entity.Id);
             if (encounterActivity != null) return encounterActivity;
+            if (state.Activity == MortalActivity.Mining) return state.ScheduleStatus;
             if (state.Activity == MortalActivity.PrisonCare)
                 return string.IsNullOrEmpty(state.WardenStatus) ? "监管：照顾囚犯" : state.WardenStatus;
             if (state.Activity == MortalActivity.MedicCare && !string.IsNullOrEmpty(state.MedicStatus))
@@ -83,6 +84,7 @@ namespace XianXia.Unity.Host
             {
                 case MortalProfession.Farmer: return "粮农";
                 case MortalProfession.HerbFarmer: return "药农";
+                case MortalProfession.Miner: return "矿工";
                 case MortalProfession.Logger: return "樵夫";
                 case MortalProfession.Medic: return "医者";
                 case MortalProfession.Warden: return "监管";

@@ -173,9 +173,9 @@ namespace XianXia.Unity.Host
 
                 var canBuild = ConstructionService.HasRequiredMaterials(world, spec, out _) ||
                                ConstructionService.CanUseCivilianSiteMaterials(world, spec);
-                GUI.enabled = canBuild && !openingLocked;
+                GUI.enabled = canBuild;
                 if (GUI.Button(new Rect(card.xMax - 116f, card.yMax - 48f, 100f, 34f),
-                        openingLocked ? "占领后解锁" : canBuild ? "建造" : "材料不足"))
+                        canBuild ? "建造" : "材料不足"))
                 {
                     CloseForPlacement();
                     var controller = bootstrap.GetComponent<HostConstructionController>();
@@ -194,7 +194,7 @@ namespace XianXia.Unity.Host
 
             if (openingLocked)
                 GUI.Label(new Rect(window.x + 16f, window.yMax - 48f, width - 120f, 28f),
-                    HuangcunOpeningAccess.ManagementLockedMessage, _small);
+                    "村外先立营地标记；圈内房间、床、墙和农田可由人物亲自建造。", _small);
             else if (!string.IsNullOrEmpty(_status))
                 GUI.Label(new Rect(window.x + 16f, window.yMax - 48f, width - 120f, 28f),
                     _status, _small);

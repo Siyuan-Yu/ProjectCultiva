@@ -158,6 +158,11 @@ namespace XianXia.Unity.Host
                     return HostCharacterWorkVisual.For(HumanWorkMotion.Eat);
                 switch (civilian.Activity)
                 {
+                    case MortalActivity.Mining:
+                        if(intent != null && world.TryGetWorkArea(intent.TargetWorkAreaId,out var mineArea) &&
+                            MiningService.IsAt(world,entity.Id,mineArea.LocationId) && MiningService.Remaining(world,mineArea.LocationId)>0)
+                            return HostCharacterWorkVisual.For(HumanWorkMotion.Mine,HumanCommonRigView.Equipment.Pick);
+                        return default;
                     case MortalActivity.MedicCare:
                         return civilian.MedicTreatmentSeconds > 0 && civilian.MedicLastTreatmentTick == world.Tick.Value
                             ? HostCharacterWorkVisual.For(HumanWorkMotion.Generic) : default;
@@ -189,6 +194,13 @@ namespace XianXia.Unity.Host
 
         static HostCharacterWorkVisual FromRunningAction(SimulationWorld world, Entity entity, IAction active)
         {
+            if(active is HuangcunSurvivalAction survival)
+            {
+                if(PrivateCampService.IsTask(survival.Task))return HostCharacterWorkVisual.For(HumanWorkMotion.Build);
+                if(BasicCraftService.IsTask(survival.Task))return HostCharacterWorkVisual.For(HumanWorkMotion.Generic);
+                if(survival.Task=="eat"||survival.Task=="feed")return HostCharacterWorkVisual.For(HumanWorkMotion.Eat);
+                if(survival.Task=="food"||survival.Task=="wood"||survival.Task=="herb"||survival.Task=="work")return HostCharacterWorkVisual.For(HumanWorkMotion.Tend);
+            }
             if (active is CultivateAction || active is RecoveryAction)
                 return HostCharacterWorkVisual.For(HumanWorkMotion.Meditate);
             if (active is WorkAction work)

@@ -129,6 +129,8 @@ namespace XianXia.Unity.Host
 
             new("forest", Forest, StampMode.ZoneOverlay, 14, 12, false, null,
                 new UnityEngine.Color(0.20f, 0.50f, 0.28f, 0.35f)),
+            new("privateCampMarker", Cushion, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Inspect,
+                new UnityEngine.Color(0.2f,0.8f,0.7f)),
             new("mine", Ore, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Work,
                 new UnityEngine.Color(0.55f, 0.48f, 0.35f)),
             new("spring", Spirit, StampMode.ZoneOverlay, 8, 8, false, null,

@@ -956,9 +956,11 @@ namespace XianXia.Data.Content
                 if (building.PlacementKind != "factionFlag" && building.PlacementKind != "farmField" &&
                     building.PlacementKind != "recoverySpot" && building.PlacementKind != "storageRoom" &&
                     building.PlacementKind != "room" && building.PlacementKind != "bed" &&
-                    building.PlacementKind != "wallSegment")
+                    building.PlacementKind != "wallSegment" && building.PlacementKind != "privateCampMarker")
                     report.Add(ErrorCode.InvalidArgument, "Unknown building placementKind.",
                         building.Id + ".placementKind:" + building.PlacementKind);
+                if (building.PlacementKind == "privateCampMarker" && (building.CreatesWorldSite || building.OutdoorKind != "privateCampMarker" || building.FootprintCellsW != 1 || building.FootprintCellsH != 1))
+                    report.Add(ErrorCode.InvalidArgument,"Invalid private camp marker.",building.Id.ToString());
                 if (building.PlacementKind == "farmField" && (building.CreatesWorldSite ||
                     !XianXia.Core.Exploration.OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(building.OutdoorKind) ||
                     building.FootprintCellsW <= 0 || building.FootprintCellsH <= 0))

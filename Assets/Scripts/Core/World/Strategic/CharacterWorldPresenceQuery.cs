@@ -71,7 +71,7 @@ namespace XianXia.Core.World.Strategic
             var partyMotion = world.PlayerPartyTravel;
             if (partyMotion != null && partyMotion.HasPosition &&
                 IsTravelingMember(partyMotion, characterId) &&
-                !(world.Entities.TryGet(characterId, out var tiredEntity) && (PartyRestService.BlocksMovement(tiredEntity) || PartyRestService.HasIndependentPosition(tiredEntity) || Combat.FlightService.Detached(tiredEntity))))
+                !(world.Entities.TryGet(characterId, out var tiredEntity) && (PartyRestService.BlocksMovement(tiredEntity) || PartyRestService.HasIndependentPosition(tiredEntity) || OpeningCompanionDuty.Owns(world,characterId) || Combat.FlightService.Detached(tiredEntity))))
             {
                 resolved = new ResolvedPresence(
                     PresenceState.AtWorldPosition,

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Actions;
@@ -164,6 +164,8 @@ namespace XianXia.Unity.Host
 
             EnsureStyles();
             HostUiHitTest.BeginFrame();
+            if (bootstrap.ContentInterrupt?.HasBlockingInterrupt != true && HostBasicCraftPanel.Draw(session))
+            { HostUiHitTest.EndFrame(); return; }
             if (bootstrap.ContentInterrupt?.HasBlockingInterrupt != true && _survivalPanel.Draw(session))
             { HostUiHitTest.EndFrame(); return; }
             if (bootstrap != null &&
@@ -1136,6 +1138,8 @@ namespace XianXia.Unity.Host
                         _body);
                     GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 20f), "右键农作", _body);
                 }
+                else if (plot.Kind == "ore" || plot.Kind == "mine")
+                { GUI.Label(new Rect(r.x+10f,r.y+58f,r.width-20f,80f),XianXia.Core.Npc.MiningService.Description(session.World,plot.LocationId)+"\n右键实际走近采矿；玩家入背包、矿工入城池公库。",_body); }
                 else if (plot.IsLeisureFurniture)
                 {
                     GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 60f),
@@ -1146,7 +1150,8 @@ namespace XianXia.Unity.Host
                 {
                     GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 80f),
                         (plot.Kind == "alchemyFurnace" ? "炼丹炉" : "炼器炉") +
-                        "：炉具已安置。配方与制作功能暂未开放，不会消耗材料或自动产出。", _body);
+                        "：可进行基础加工。请先走到工坊内操作点，完成时消耗真实材料。", _body);
+                    if (GUI.Button(new Rect(r.x+10f,r.y+138f,260f,28f),"打开配方与丹药")) HostBasicCraftPanel.Open();
                 }
                 else
                 {
@@ -1419,7 +1424,9 @@ namespace XianXia.Unity.Host
                 var mark = tickInDay >= b.StartTickInDay && tickInDay < b.EndTickInDay ? "►" : " ";
                 var label = mark + " " + TickToClock(b.StartTickInDay) + "-" + TickToClock(b.EndTickInDay) +
                             "  " + ActivityName(b.Activity);
-                if (GUI.Button(new Rect(0f, y, listRect.width - 18f, 24f), label))
+                if (SettlementPatrolService.Shift(e) != 0)
+                    GUI.Label(new Rect(0f, y, listRect.width - 18f, 24f), label + "（工作面板换班）", _body);
+                else if (GUI.Button(new Rect(0f, y, listRect.width - 18f, 24f), label))
                 {
                     var next = NextEditableActivity(
                         b.Activity, MortalCivilianQuery.IsManagedCivilian(session.World, e));

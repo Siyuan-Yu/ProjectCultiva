@@ -3450,6 +3450,231 @@
       "capacity": 3,
       "offsetX": 0,
       "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_1",
+      "type": "workArea",
+      "name": "荒村矿点1",
+      "locationId": "base:loc_huangcun_ore_1",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_2",
+      "type": "workArea",
+      "name": "荒村矿点2",
+      "locationId": "base:loc_huangcun_ore_2",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_3",
+      "type": "workArea",
+      "name": "荒村矿点3",
+      "locationId": "base:loc_huangcun_ore_3",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_4",
+      "type": "workArea",
+      "name": "荒村矿点4",
+      "locationId": "base:loc_huangcun_ore_4",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_5",
+      "type": "workArea",
+      "name": "荒村矿点5",
+      "locationId": "base:loc_huangcun_ore_5",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_6",
+      "type": "workArea",
+      "name": "荒村矿点6",
+      "locationId": "base:loc_huangcun_ore_6",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_7",
+      "type": "workArea",
+      "name": "荒村矿点7",
+      "locationId": "base:loc_huangcun_ore_7",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_8",
+      "type": "workArea",
+      "name": "荒村矿点8",
+      "locationId": "base:loc_huangcun_ore_8",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_9",
+      "type": "workArea",
+      "name": "荒村矿点9",
+      "locationId": "base:loc_huangcun_ore_9",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_10",
+      "type": "workArea",
+      "name": "荒村矿点10",
+      "locationId": "base:loc_huangcun_ore_10",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_11",
+      "type": "workArea",
+      "name": "荒村矿点11",
+      "locationId": "base:loc_huangcun_ore_11",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_12",
+      "type": "workArea",
+      "name": "荒村矿点12",
+      "locationId": "base:loc_huangcun_ore_12",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_13",
+      "type": "workArea",
+      "name": "荒村矿点13",
+      "locationId": "base:loc_huangcun_ore_13",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_14",
+      "type": "workArea",
+      "name": "荒村矿点14",
+      "locationId": "base:loc_huangcun_ore_14",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_huangcun_mine_15",
+      "type": "workArea",
+      "name": "荒村矿点15",
+      "locationId": "base:loc_huangcun_ore_15",
+      "tags": [
+        "mine"
+      ],
+      "allowedActivities": [
+        "Labor"
+      ],
+      "capacity": 2,
+      "offsetX": 0,
+      "offsetZ": 0
     }
   ]
 }

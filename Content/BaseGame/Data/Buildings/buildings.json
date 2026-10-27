@@ -5,13 +5,13 @@
       "id": "base:building_grain_field",
       "type": "building",
       "name": "农田",
-      "description": "在己方实际行政控制范围内开垦一片农田。",
+      "description": "在己方实际行政控制范围或合法私人营地标记内开垦一片农田。",
       "unlockedByDefault": true,
       "placementKind": "farmField",
       "createsWorldSite": false,
       "outdoorKind": "grainField",
-      "footprintCellsW": 12,
-      "footprintCellsH": 8,
+      "footprintCellsW": 15,
+      "footprintCellsH": 12,
       "dismantleRefundRate": 0.0,
       "costs": [
         {
@@ -62,8 +62,8 @@
       "id": "base:room_survival_camp",
       "type": "building",
       "name": "临时修炼棚",
-      "description": "荒村私人营地；只通过生活面板在预留空地搭建，不取得领地权限。",
-      "unlockedByDefault": false,
+      "description": "可在私人营地标记范围内亲自搭建的修炼棚；床需另建，不取得行政领地。",
+      "unlockedByDefault": true,
       "placementKind": "room",
       "outdoorKind": "room",
       "footprintCellsW": 4,
@@ -921,6 +921,25 @@
         {
           "itemId": "base:resource_rough_wood",
           "count": 60
+        }
+      ]
+    },
+    {
+      "id": "base:building_private_camp_marker",
+      "type": "building",
+      "name": "私人营地标记",
+      "description": "半径24格的私人建设范围，不产生城池或行政所有权。",
+      "unlockedByDefault": false,
+      "placementKind": "privateCampMarker",
+      "createsWorldSite": false,
+      "outdoorKind": "privateCampMarker",
+      "footprintCellsW": 1,
+      "footprintCellsH": 1,
+      "structureDurability": 60,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 4
         }
       ]
     }

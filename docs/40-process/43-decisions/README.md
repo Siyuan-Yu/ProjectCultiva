@@ -1,5 +1,8 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0072：私人营地标记与荒村首版生产](ADR-0072-private-camp-and-opening-production.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-28），完整交接425；无告密，实际观察后先战人再拆基地，旗帜提供私人建设范围而非行政领地。
+- [ADR-0071：城池可编辑巡视点与真实路线](ADR-0071-settlement-patrol-waypoints.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；地图设点、巡卫顺序／主管随机、到位短停与v21既有进度保存，详见420。
+
 - [ADR-0070：放你一马仅结束当前处置](ADR-0070-mercy-does-not-withdraw-combatants.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；覆盖ADR-0068／0069旧Spared退出锁，仅索财防重复，详见414。
 
 - [ADR-0069：未结算战场苏醒续战与一对一抱持俘虏](ADR-0069-live-battle-recovery-and-carried-captives.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；续战与提交复验、真实抱持负担和房间底栏入口，详见412。

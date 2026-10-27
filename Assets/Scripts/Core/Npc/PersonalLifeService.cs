@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
@@ -139,7 +139,7 @@ namespace XianXia.Core.Npc
                 }
                 if (world.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true &&
                     personal.Satiety <= HungerThreshold &&
-                    (!HuangcunSurvivalService.Applies(world, entity) || !HuangcunOpeningAccess.IsLocked(world)) &&
+                    (!HuangcunSurvivalService.Applies(world, entity) || !HuangcunOpeningAccess.IsLocked(world) || OpeningCompanionDuty.AutoFood(world,entity.Id)) &&
                     !CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) &&
                     TryConsumePartyFood(world))
                 {
@@ -180,6 +180,8 @@ namespace XianXia.Core.Npc
                 var queue = world.GetOrCreateOrderQueue(entity.Id);
                 var urgentNeeds = personal.Satiety <= HungerThreshold ||
                                   personal.Energy <= ExhaustionThreshold;
+                // Scheduled sentries retain needs, but free-time AI must not claim their route or bed.
+                if (SettlementPatrolService.CanRunSchedule(world, entity) && !urgentNeeds) continue;
                 if (queue.HasSource(OrderSource.Player) || queue.HasSource(OrderSource.Event) ||
                     (queue.HasSource(OrderSource.Schedule) && !urgentNeeds) ||
                     (action.HasActiveAction && action.ActiveOrderSource != OrderSource.Ai &&
@@ -198,7 +200,8 @@ namespace XianXia.Core.Npc
                     else continue;
                 }
 
-                var hasNpcSchedule = (entity.Tags & EntityTag.Npc) != 0 &&
+                var leisureWindow = SupervisorRoutineDriver.IsLeisure(world, entity);
+                var hasNpcSchedule = !leisureWindow && (entity.Tags & EntityTag.Npc) != 0 &&
                     entity.TryGet<ScheduleComponent>(out var schedule) &&
                     !string.IsNullOrEmpty(schedule.DefinitionId) &&
                     world.TryGetSchedule(schedule.DefinitionId, out _);
@@ -226,7 +229,7 @@ namespace XianXia.Core.Npc
                 var cultivate = entity.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cultivation) &&
                                 !cultivation.IsAtBottleneck && personal.Energy > ExhaustionThreshold &&
                                 personal.Satiety > HungerThreshold && personal.CurrentMood >= MinCultivationMood;
-                var wantCultivate = cultivate && !XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity) &&
+                var wantCultivate = !leisureWindow && cultivate && !XianXia.Core.Combat.CombatInjuryService.HasBrokenMeridians(entity) &&
                     HuangcunSurvivalService.ValidateCultivation(world, entity).IsSuccess && PreferCultivation(world, personal);
                 var meditationBlocked = false;
                 if (wantCultivate)
@@ -475,7 +478,7 @@ namespace XianXia.Core.Npc
                                 SpotRadius(world, bed.SurfaceId), out _))
                         {
                             personal.BedRetryAfterTick = world.Tick.Value + 8UL;
-                            return StartGroundRest(world, entity, personal, loop);
+                            return WaitForHomeOrEmergencyRest(world, entity, personal, loop);
                         }
                         return true;
                     }
@@ -489,7 +492,7 @@ namespace XianXia.Core.Npc
                         intent.Clear();
                         personal.BedRetryAfterTick = world.Tick.Value + 8UL;
                         personal.Status = "床边到位失败：暂时就地休息";
-                        return StartGroundRest(world, entity, personal, loop);
+                        return WaitForHomeOrEmergencyRest(world, entity, personal, loop);
                     }
                     if (!intent.Active || intent.DestinationKey != key)
                         intent.BeginWorldPoint(bed.SurfaceId, access.X, access.Y,
@@ -500,7 +503,7 @@ namespace XianXia.Core.Npc
                         intent.Clear();
                         personal.BedRetryAfterTick = world.Tick.Value + 8UL;
                         personal.Status = "返床受阻：等待重新寻路";
-                        return StartGroundRest(world, entity, personal, loop);
+                        return WaitForHomeOrEmergencyRest(world, entity, personal, loop);
                     }
                     personal.Activity = PersonalLifeActivity.Resting;
                     personal.Status = "前往床铺休息";
@@ -511,6 +514,19 @@ namespace XianXia.Core.Npc
                 personal.Status = "床上休息";
                 loop.EnqueueOrder(new Order(loop.AllocateOrderId(), entity.Id, OrderType.RestAtBed,
                     OrderSource.Ai, waitTicks: SessionTicks, targetRef: bed.StableAssetId));
+                return true;
+            }
+            return WaitForHomeOrEmergencyRest(world, entity, personal, loop);
+        }
+
+        static bool WaitForHomeOrEmergencyRest(SimulationWorld world, Entity entity,
+            PersonalLifeComponent personal, SimulationLoop loop)
+        {
+            if (personal.Energy > 0 && (SupervisorRoutineDriver.Applies(entity) || SettlementPatrolService.Shift(entity) != 0) &&
+                RoomBedFacilityService.TryGetAssignedBed(world, entity.Id, out _))
+            {
+                personal.Activity = PersonalLifeActivity.None;
+                personal.Status = "返床受阻，等待重试（非睡眠）";
                 return true;
             }
             return StartGroundRest(world, entity, personal, loop);

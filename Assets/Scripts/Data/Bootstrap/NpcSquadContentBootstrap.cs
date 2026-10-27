@@ -6,6 +6,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.Npc;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
@@ -71,10 +72,18 @@ namespace XianXia.Data.Bootstrap
                 members.Add(entity.Id);
                 if (source.Leader) leader = entity.Id;
             }
+            // Stationed staff keep their real combat squad and defended Site, while their
+            // personal schedule owns patrol, bed, cultivation and leisure movement.
+            var individualDuty = atSite && members.Count > 0;
+            foreach (var id in members)
+                if (!world.Entities.TryGet(id, out var actor) || !SettlementPatrolService.HasIndividualDuty(actor))
+                { individualDuty = false; break; }
             var created = SquadMembershipService.Create(world, definition.SquadId, members, leader,
-                SquadCommandKind.SquadWorldMotion, false, definition.Name, definition.FactionId,
+                individualDuty ? SquadCommandKind.None : SquadCommandKind.SquadWorldMotion,
+                false, definition.Name, definition.FactionId,
                 definition.DefendedSiteId);
             if (created.IsFailure) return Result.Failure(created.Error);
+            if (individualDuty) return Result.Success();
             var initialized = atSite
                 ? SquadWorldMotionService.InitializeAtSite(world, definition.SquadId, definition.AssemblySiteId)
                 : SquadWorldMotionService.Initialize(world, definition.SquadId, surfaceId, position);

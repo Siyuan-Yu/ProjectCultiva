@@ -29,6 +29,7 @@ namespace XianXia.Core.Simulation
         readonly SimulationWorld _world;
         readonly ScheduleDriver _scheduleDriver;
         readonly NpcActivityDriver _npcActivityDriver;
+        readonly SupervisorRoutineDriver _supervisorRoutine = new SupervisorRoutineDriver();
         readonly SocialTickDriver _socialTickDriver;
         readonly XianXia.Core.Social.SupervisorAngerDriver _supervisorAngerDriver;
         readonly bool _socialTickEnabled;
@@ -186,6 +187,8 @@ namespace XianXia.Core.Simulation
             ProcessDayBoundary(previous, _world.Tick);
             CharacterFactionLoyaltyService.EnsureAll(_world);
             SampleTickPhase(phaseSample, "day-loyalty", ref phaseStarted);
+            _supervisorRoutine.Ensure(_world);
+            SettlementPatrolService.ReleaseStationaryDutyFormations(_world);
             PrisonManagementService.Tick(_world);
             MortalCivilianService.Tick(_world, phaseSample);
             SampleTickPhase(phaseSample, "civilian", ref phaseStarted);

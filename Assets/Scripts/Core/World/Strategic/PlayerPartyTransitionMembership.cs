@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
@@ -31,6 +31,7 @@ namespace XianXia.Core.World.Strategic
                    entity != null &&
                    CombatLifeStateService.CanFight(entity) && !XianXia.Core.Npc.PartyRestService.BlocksMovement(entity) &&
                    !XianXia.Core.Npc.PartyRestService.HasIndependentPosition(entity) &&
+                   !XianXia.Core.Npc.OpeningCompanionDuty.Owns(world,characterId) &&
                    (party.IsActive(characterId) || !FlightService.Detached(entity));
         }
 

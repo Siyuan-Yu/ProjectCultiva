@@ -25,6 +25,10 @@ namespace XianXia.Unity.Host
         SimulationWorld _world;
         Rect _interactionBounds;
         bool _hasInteractionBounds;
+        SpriteRenderer _herbGlint;
+        static Sprite _herbGlintSprite;
+        ulong _resourceVisualTick=ulong.MaxValue;
+        SpriteRenderer[] _resourceRenderers;
 
         public string LocationId => locationId;
         public HostInteractSpotKind InteractKind => interactKind;
@@ -111,6 +115,31 @@ namespace XianXia.Unity.Host
 
         public bool ContainsInteractionPoint(Vector3 point) =>
             _hasInteractionBounds && _interactionBounds.Contains(new Vector2(point.x, point.y));
+
+        void LateUpdate()
+        {
+            if(_world==null || (kind!="ore" && kind!="mine" && kind!="privateCampMarker") || _resourceVisualTick==_world.Tick.Value) return;
+            _resourceVisualTick=_world.Tick.Value;
+            if(_resourceRenderers==null)_resourceRenderers=GetComponentsInChildren<SpriteRenderer>();
+            if(kind=="privateCampMarker")
+            {
+                foreach(var r in _resourceRenderers)
+                {
+                    var flag=HostStepAArt.FlagSprite(_world.Strategic.PlayerFactionId);
+                    if(r.sprite!=flag && flag!=null)
+                    {
+                        var previousWidth=r.sprite!=null?r.sprite.bounds.size.x:flag.bounds.size.x;
+                        var factor=previousWidth/Mathf.Max(.0001f,flag.bounds.size.x);
+                        r.transform.localScale*=factor;
+                        r.sprite=flag;
+                    }
+                    r.enabled=!_world.OutdoorStatefulObjects.IsDestructibleDestroyed(stableCellId);
+                }
+                return;
+            }
+            var visible=XianXia.Core.Npc.MiningService.Remaining(_world,locationId)>0;
+            foreach(var r in _resourceRenderers)r.enabled=visible;
+        }
 
         public void SetPlanted(string cropId)
         {
@@ -212,7 +241,9 @@ namespace XianXia.Unity.Host
                     sr.transform.position = new Vector3(rect.center.x, rect.center.y, sr.transform.position.z);
                 }
                 sr.color = cropStage == OutdoorFarmCropStage.Ruined
-                    ? new Color(.55f, .49f, .42f, 1f) : Color.white;
+                    ? new Color(.55f, .49f, .42f, 1f)
+                    : IsHerbField ? HerbTint() : Color.white;
+                RefreshHerbGlint(sr);
                 return;
             }
             Color c;
@@ -255,6 +286,59 @@ namespace XianXia.Unity.Host
             }
 
             sr.color = c;
+            RefreshHerbGlint(sr);
+        }
+
+        bool IsHerbField => string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase);
+
+        Color HerbTint()
+        {
+            // Sprite multiplication needs extra blue to cool the warm soil art as well as the foliage.
+            if (cropStage == OutdoorFarmCropStage.Mature) return new Color(.62f, 1.28f, 1.95f, 1f);
+            if (cropStage == OutdoorFarmCropStage.Growing)
+                return Color.Lerp(new Color(.56f, 1.12f, 1.65f, 1f), new Color(.60f, 1.22f, 1.85f, 1f), growth01);
+            return new Color(.58f, 1.08f, 1.55f, 1f);
+        }
+
+        void RefreshHerbGlint(SpriteRenderer crop)
+        {
+            // A sparse static accent batches with the map. No per-cell timer, Update, light or particle system.
+            var visible = IsHerbField && (gridX & 3) == 1 && (gridY & 3) == 1 &&
+                (cropStage == OutdoorFarmCropStage.Growing || cropStage == OutdoorFarmCropStage.Mature);
+            if (!visible) { if (_herbGlint != null) _herbGlint.enabled = false; return; }
+            if (_herbGlint == null)
+            {
+                var go = new GameObject("HerbSpiritGlint");
+                go.transform.SetParent(transform, false);
+                _herbGlint = go.AddComponent<SpriteRenderer>();
+                if (_herbGlintSprite == null)
+                {
+                    const int size = 16;
+                    var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "HerbSpiritGlint", filterMode = FilterMode.Bilinear };
+                    var pixels = new Color[size * size];
+                    for (var y = 0; y < size; y++)
+                        for (var x = 0; x < size; x++)
+                        {
+                            var dx = Mathf.Abs(x - 7.5f) / 7.5f; var dy = Mathf.Abs(y - 7.5f) / 7.5f;
+                            var halo = Mathf.Pow(Mathf.Max(0f, 1f - Mathf.Sqrt(dx * dx + dy * dy)), 3f) * .35f;
+                            var ray = Mathf.Max(Mathf.Max(0f, 1f - dx * 5f) * (1f-dy), Mathf.Max(0f, 1f - dy * 5f) * (1f-dx));
+                            pixels[y * size + x] = new Color(.55f, 1f, 1f, Mathf.Max(halo, ray));
+                        }
+                    texture.SetPixels(pixels); texture.Apply(false, true);
+                    _herbGlintSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f), size);
+                }
+                _herbGlint.sprite = _herbGlintSprite;
+            }
+            _herbGlint.sharedMaterial = crop.sharedMaterial;
+            _herbGlint.sortingLayerID = crop.sortingLayerID;
+            _herbGlint.sortingOrder = crop.sortingOrder + 1;
+            _herbGlint.color = new Color(.55f, 1f, 1f, cropStage == OutdoorFarmCropStage.Mature ? .7f : .4f);
+            var bounds = crop.bounds;
+            _herbGlint.transform.position = bounds.center + new Vector3(bounds.size.x * .12f, bounds.size.y * .12f, -.001f);
+            var scale = transform.lossyScale;
+            _herbGlint.transform.localScale = new Vector3(bounds.size.x * .35f / Mathf.Max(.001f, Mathf.Abs(scale.x)),
+                bounds.size.y * .35f / Mathf.Max(.001f, Mathf.Abs(scale.y)), 1f);
+            _herbGlint.enabled = true;
         }
 
         public string DescribeCropStatus()

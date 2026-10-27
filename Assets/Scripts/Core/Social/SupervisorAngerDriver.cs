@@ -9,6 +9,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using System;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.World;
@@ -21,20 +22,37 @@ namespace XianXia.Core.Social
     /// </summary>
     public sealed class SupervisorAngerDriver
     {
-        public const int ObservationRangeCells = 20;
+        public const int ObservationRangeCells = 45;
         public const int PrisonTrespassBufferCells = 3;
         public static bool IsOnWatch(SimulationWorld world, Entity candidate) =>
-            HuangcunOpeningAccess.IsOpeningStaff(world, candidate.Id) && CombatLifeStateService.CanFight(candidate) &&
-            MortalTransportConstraintService.ValidateAttack(world, candidate.Id).IsSuccess &&
-            !PartyRestService.IsResting(world, candidate) &&
-            (!world.Civilians.TryGet(candidate.Id, out var state) ||
-                state.Activity != MortalActivity.SleepAtResidence && state.Activity != MortalActivity.SleepOnGround &&
-                state.Activity != MortalActivity.Rescue && state.RescueTargetId.IsNone) &&
-            candidate.TryGet<ScheduleComponent>(out var schedule) && world.TryGetSchedule(schedule.DefinitionId, out var definition) &&
-            definition.TryResolve(world.Tick, out var block) &&
-            (block.Activity == ScheduleActivity.Patrol || block.Activity == ScheduleActivity.Inspect);
+            world != null && candidate != null && HuangcunOpeningAccess.IsOpeningStaff(world, candidate.Id) &&
+            CanObserveOutdoors(world, candidate);
+
+        /// <summary>Awake outdoor awareness is independent of the current patrol timetable.</summary>
+        public static bool CanObserveOutdoors(SimulationWorld world, Entity candidate)
+        {
+            if (world == null || candidate == null || world.LocalMap.IsInInterior ||
+                !CombatLifeStateService.CanFight(candidate) || PartyRestService.IsResting(world, candidate) ||
+                MortalTransportConstraintService.ValidateAttack(world, candidate.Id).IsFailure ||
+                CharacterEncounterService.OwnsParticipantSpatialState(world, candidate.Id) ||
+                SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, candidate.Id) ||
+                !CharacterWorldPresenceQuery.TryResolve(world, candidate.Id, out var at) || !at.HasWorldPosition) return false;
+            if (world.Civilians.TryGet(candidate.Id, out var state) &&
+                (state.SleepPhase == CivilianSleepPhase.SleepingAtResidence || state.SleepPhase == CivilianSleepPhase.SleepingOnGround ||
+                 state.Disposition != CivilianDisposition.Normal || state.Activity == MortalActivity.Rescue || !state.RescueTargetId.IsNone)) return false;
+            if (candidate.TryGet<ActionStateComponent>(out var actionState) && actionState.HasActiveAction &&
+                world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action) &&
+                (action is CultivateAction || action is WorkAction work && work.Activity == ScheduleActivity.Cultivate)) return false;
+            var epsilon = world.SurfaceSpatial.TryGet(at.SurfaceId, out var metric) ? metric.CellSize * .01f : .00001f;
+            foreach (var room in world.OutdoorConstructedAssets.QueryOverlapping(at.SurfaceId,
+                at.WorldPosition.X - epsilon, at.WorldPosition.Y - epsilon, epsilon * 2, epsilon * 2))
+                if (RoomBedGeometry.IsRoom(room) && at.WorldPosition.X > room.WorldX &&
+                    at.WorldPosition.X < room.WorldX + room.WorldWidth && at.WorldPosition.Y > room.WorldY &&
+                    at.WorldPosition.Y < room.WorldY + room.WorldHeight) return false;
+            return true;
+        }
         public static bool OwnsPursuit(SimulationWorld world, EntityId id) =>
-            world?.HuangcunSurvival?.Enabled == true && !world.HuangcunSurvival.PunishmentBattleActive &&
+            PrivateCampRaidService.Owns(world,id) || world?.HuangcunSurvival?.Enabled == true && !world.HuangcunSurvival.PunishmentBattleActive &&
             world.HuangcunSurvival.PunisherId == id.Value && world.HuangcunSurvival.PunishmentTargetId != 0 && !id.IsNone;
 
         public void Tick(SimulationWorld world, SimulationLoop loop = null)
@@ -54,29 +72,37 @@ namespace XianXia.Core.Social
                     loop.StopSubject(pursuing.Id);
                 Pursue(world); return;
             }
+            if (PrivateCampRaidService.Observe(world,loop,out var secretObserver,out var secretSubject))
+            { BeginPursuit(world,loop,secretObserver,secretSubject.Id,"秘密修炼或私人营地被发现，巡卫立即追赶开战！"); return; }
+            PrivateCampRaidService.AdvanceOutdoor(world,loop);
             foreach (var member in world.Entities.All)
                 if (TryBeginPrisonTrespass(world, loop, member.Id)) return;
-            var id = world.Strategic.PlayerPartyContext?.ActiveCharacterId ?? EntityId.None;
-            if (!world.Entities.TryGet(id, out var subject) || !HuangcunSurvivalService.Applies(world, subject) ||
-                HuangcunSurvivalService.IsPrisoner(world, id) || !CombatLifeStateService.CanFight(subject) ||
-                !IsViolating(world, subject) || !CharacterWorldPresenceQuery.TryResolve(world, id, out var at) || !at.HasWorldPosition)
-            { s.ObservationSeconds = 0; return; }
-            Entity observer = null; var best = double.MaxValue;
-            foreach (var candidate in world.Entities.All)
+            Entity observer = null; Entity subject = null; var best = double.MaxValue;
+            foreach (var member in world.Entities.All)
             {
-                if (!IsOnWatch(world, candidate) ||
-                    !CharacterWorldPresenceQuery.TryResolve(world, candidate.Id, out var there) || !there.HasWorldPosition ||
-                    there.SurfaceId != at.SurfaceId) continue;
-                var distance = WorldVec2.Distance(at.WorldPosition, there.WorldPosition);
-                if (distance > world.OpeningArea.CellSize*ObservationRangeCells || distance > best ||
-                    distance == best && observer != null && candidate.Id.Value > observer.Id.Value) continue;
-                observer = candidate; best = distance;
+                if (world.Strategic.PlayerPartyContext?.IsMember(member.Id) != true ||
+                    !HuangcunSurvivalService.Applies(world, member) || HuangcunSurvivalService.IsPrisoner(world,member.Id) ||
+                    !CombatLifeStateService.CanFight(member) || !IsViolating(world,member) ||
+                    !CharacterWorldPresenceQuery.TryResolve(world,member.Id,out var at) || !at.HasWorldPosition) continue;
+                foreach (var candidate in world.Entities.All)
+                {
+                    if (!IsOnWatch(world,candidate) ||
+                        !CharacterWorldPresenceQuery.TryResolve(world,candidate.Id,out var there) || !there.HasWorldPosition ||
+                        there.SurfaceId != at.SurfaceId) continue;
+                    var distance = WorldVec2.Distance(at.WorldPosition,there.WorldPosition);
+                    if(distance > world.OpeningArea.CellSize*ObservationRangeCells || distance > best ||
+                        distance == best && subject != null && (member.Id.Value > subject.Id.Value ||
+                        member.Id == subject.Id && candidate.Id.Value >= observer.Id.Value) ||
+                        !WorldObservation.HasLineOfSight(world,at.SurfaceId,there.WorldPosition,at.WorldPosition)) continue;
+                    observer=candidate; subject=member; best=distance;
+                }
             }
             if (observer == null) { s.ObservationSeconds = 0; return; }
-            if (++s.ObservationSeconds < 5) return;
+            // One WorldTick is one base real second; acceleration/pause are owned by the world clock.
+            // Finding several observers still creates only one increment in this Tick.
             s.ObservationSeconds = 0; world.SupervisorAnger.Add(1); s.SupervisorAnger = world.SupervisorAnger.Value;
             if (s.SupervisorAnger < 100) return;
-            BeginPursuit(world, loop, observer, id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
+            BeginPursuit(world, loop, observer, subject.Id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
         }
 
         public static bool TryFindPrisonObserver(SimulationWorld world, EntityId id, out Entity observer)
@@ -103,7 +129,8 @@ namespace XianXia.Core.Social
                     there.SurfaceId != at.SurfaceId) continue;
                 var distance = WorldVec2.Distance(at.WorldPosition, there.WorldPosition);
                 if (distance > world.OpeningArea.CellSize * ObservationRangeCells || distance > best ||
-                    distance == best && observer != null && candidate.Id.Value > observer.Id.Value) continue;
+                    distance == best && observer != null && candidate.Id.Value > observer.Id.Value ||
+                    !WorldObservation.HasLineOfSight(world, at.SurfaceId, there.WorldPosition, at.WorldPosition)) continue;
                 observer = candidate; best = distance;
             }
             return observer != null;
@@ -112,6 +139,7 @@ namespace XianXia.Core.Social
         public static bool TryBeginPrisonTrespass(SimulationWorld world, SimulationLoop loop, EntityId id)
         {
             if (world?.HuangcunSurvival.Enabled != true || !HuangcunOpeningAccess.IsLocked(world)) return false;
+            PrivateCampRaidService.CancelDefeated(world);
             var s = world.HuangcunSurvival;
             if (s.PunisherId != 0) return s.PunishmentTargetId == id.Value;
             if (!TryFindPrisonObserver(world, id, out var observer)) return false;

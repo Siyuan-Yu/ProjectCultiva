@@ -887,8 +887,8 @@
           "Inspect",
           "Patrol"
         ],
-        "surfaceCellX": 6409.5,
-        "surfaceCellY": 2982.0
+        "surfaceCellX": 6420.5,
+        "surfaceCellY": 2983.0
       },
       {
         "siteId": "base:site_huangcun",
@@ -1029,7 +1029,7 @@
           "Labor",
           "Inspect"
         ],
-        "surfaceCellX": 6394.5,
+        "surfaceCellX": 6412.5,
         "surfaceCellY": 2945.0
       },
       {
@@ -1484,8 +1484,8 @@
           "Labor",
           "Inspect"
         ],
-        "surfaceCellX": 3708.5,
-        "surfaceCellY": 3492.0
+        "surfaceCellX": 3711.5,
+        "surfaceCellY": 3494.0
       },
       {
         "siteId": "base:site_chengzhen",

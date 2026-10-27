@@ -143,6 +143,7 @@ namespace XianXia.Data.Bootstrap
             var requiredSchedules = EnsureBuiltinSchedules(world, scheduleId);
             if (requiredSchedules.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(requiredSchedules.Error);
+            new XianXia.Core.Npc.SupervisorRoutineDriver().Ensure(world);
 
             var jobs = JobRuntimeBootstrap.Register(world, registry);
             if (jobs.IsFailure)

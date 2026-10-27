@@ -318,12 +318,14 @@ namespace XianXia.Unity.Host
                 }
 
                 TickWorker(w, bootstrap.PresentationDeltaTime);
-                if (w.Phase != Phase.Idle && bootstrap.Session.World.Entities.TryGet(w.Id, out var laborer))
+                if (w.Phase == Phase.Work && bootstrap.Session.World.Entities.TryGet(w.Id, out var laborer))
                 {
                     if (!laborer.TryGet<XianXia.Core.Social.ObservedLaborComponent>(out var observed))
                     { observed = new XianXia.Core.Social.ObservedLaborComponent(); laborer.AddComponent(observed); }
                     observed.ValidUntilTick = bootstrap.Session.World.Tick.Value + 1;
                 }
+                else if (bootstrap.Session.World.Entities.TryGet(w.Id, out var inactiveLaborer))
+                    inactiveLaborer.RemoveComponent<XianXia.Core.Social.ObservedLaborComponent>();
                 if (w.Phase == Phase.Idle)
                 {
                     ReleaseReserve(w);
@@ -714,6 +716,8 @@ namespace XianXia.Unity.Host
 
         void ClearActivity(EntityId id)
         {
+            if (bootstrap?.Session?.World != null && bootstrap.Session.World.Entities.TryGet(id, out var laborer))
+                laborer.RemoveComponent<XianXia.Core.Social.ObservedLaborComponent>();
             if (viewSpawner == null || id.IsNone)
                 return;
             if (viewSpawner.Registry.TryGet(id, out var view) && view != null &&

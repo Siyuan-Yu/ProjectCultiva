@@ -35,6 +35,7 @@ namespace XianXia.Core.Construction
         public const string WallSegmentKind = "wallSegment";
 
         public static bool IsSupportedRuntimeKind(string kind) =>
+            kind == XianXia.Core.Npc.PrivateCampService.MarkerKind ||
             string.Equals(kind, "grainField", StringComparison.Ordinal) ||
             string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal) ||
             string.Equals(kind, PrisonDropOffKind, StringComparison.Ordinal) ||
@@ -870,6 +871,10 @@ namespace XianXia.Core.Construction
                 (!world.Entities.TryGet(characterId,out var camper) || !camper.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var campFaction) ||
                  campFaction.FactionId != world.HuangcunSurvival.OwnerFactionId))
             { reason = "这是其他势力的私人营地床铺。"; return false; }
+            if (PrivateCampService.IsPrivate(world,bed.StableAssetId) &&
+                (!world.Entities.TryGet(characterId,out var visitor) || !visitor.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var visitorFaction) ||
+                 !PrivateCampService.Owns(world,bed.StableAssetId,visitorFaction.FactionId)))
+            { reason="不能使用他人的私人营地床位。"; return false; }
             if (!bed.AssignedCharacterId.IsNone && bed.AssignedCharacterId != characterId)
             { reason = "该床已分配给其他住户。"; return false; }
             if (!bed.ReservedCharacterId.IsNone && bed.ReservedCharacterId != characterId)
@@ -889,6 +894,7 @@ namespace XianXia.Core.Construction
         public static bool CanManageBed(SimulationWorld world, OutdoorConstructedAssetState bed, out string reason)
         {
             reason = string.Empty;
+            if (bed != null && PrivateCampService.Owns(world,bed.StableAssetId,world.Strategic.PlayerFactionId)) return true;
             var siteId = ResolveBedSiteId(world, bed);
             if (world == null || string.IsNullOrWhiteSpace(siteId) ||
                 !world.Strategic.Sites.TryGet(siteId, out var site) ||
@@ -900,6 +906,7 @@ namespace XianXia.Core.Construction
         public static bool CanManageRoom(SimulationWorld world, OutdoorConstructedAssetState room, out string reason)
         {
             reason = string.Empty;
+            if (world != null && room != null && PrivateCampService.Owns(world,room.StableAssetId,world.Strategic.PlayerFactionId)) return true;
             if (world == null || !RoomBedGeometry.IsRoom(room) || string.IsNullOrWhiteSpace(room.BoundWorldSiteId) ||
                 !world.Strategic.Sites.TryGet(room.BoundWorldSiteId, out var site) ||
                 !string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, StringComparison.Ordinal))
@@ -944,6 +951,7 @@ namespace XianXia.Core.Construction
             if (string.IsNullOrWhiteSpace(factionId)) return Result.Failure(ErrorCode.InvalidArgument, "建造势力无效。");
             var physical = ValidatePhysicalPlacement(world, candidate);
             if (physical.IsFailure) return physical;
+            if (XianXia.Core.Npc.PrivateCampService.TryCover(world,factionId,candidate,out _)) return Result.Success();
             world.SurfaceSpatial.TryGet(candidate.SurfaceId, out var metric);
             foreach (var cell in candidate.EnumeratePhysicalCells(metric.OriginWorldX, metric.OriginWorldY, metric.CellSize))
             {

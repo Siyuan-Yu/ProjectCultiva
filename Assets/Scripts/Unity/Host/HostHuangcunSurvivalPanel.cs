@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using XianXia.Core.Npc;
 using XianXia.Core.Combat;
 using XianXia.Core.Entities;
@@ -45,32 +45,57 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(panel.x+14,panel.y+10,width-100,28),"荒村生活 · 自选行动，世界时间继续流逝",_text);
             if(GUI.Button(new Rect(panel.xMax-70,panel.y+8,58,26),"关闭")) _open=false;
             var view=new Rect(panel.x+12,panel.y+46,width-24,height-140);
-            var content=new Rect(0,0,view.width-22,1350);
+            var content=new Rect(0,0,view.width-22,3100);
             _scroll=GUI.BeginScrollView(view,_scroll,content);
             float y=0; var cw=content.width;
-            Label("每日配给：每人最多 24 饱食，分次在村内领取，只够维生。背包中的粮食留给你主动分配；切换主控即可给同伴进食。修炼须饱食 >40、精力 >15。",ref y,cw,58);
+            Label("每日配给：每人最多 24 饱食，饥饿时到短工集合点附近领取，只够维生。同伴可单独分工，也可允许饥饿时取用队伍私粮；分工者留在当地，不随队移动。修炼须饱食 >40、精力 >15。",ref y,cw,72);
             if(session.PlayerParty.HasActive && w.Entities.TryGet(session.PlayerParty.ActiveCharacterId,out var actor))
             {
                 actor.TryGet<PersonalLifeComponent>(out var needs);
                 Label("当前主控：饱食 "+(needs?.Satiety??0)+" / 精力 "+(needs?.Energy??0)+"    私粮 "+w.Inventory.GetCount(HuangcunSurvivalService.Grain)+" · 木料 "+w.Inventory.GetCount(HuangcunSurvivalService.Wood)+" · 灵草 "+w.Inventory.GetCount(HuangcunSurvivalService.Herb),ref y,cw,30);
             }
+            if(GUI.Button(new Rect(0,y,cw,30),"基础加工与丹药：矿锭、铁镐、疗伤散、培元丸")){HostBasicCraftPanel.Open();_open=false;} y+=38;
             Row(session,"eat","吃一份私粮：饱食 +30",ref y,cw,false);
+            foreach(var member in session.PlayerParty.Members)
+            {
+                if(!w.Entities.TryGet(member,out var companion)||!HuangcunSurvivalService.Applies(w,companion))continue;
+                var eat=OpeningCompanionDuty.AutoFood(w,member);
+                var chosen=GUI.Toggle(new Rect(0,y,cw,28),eat,companion.DisplayName+"：允许饥饿时自动吃私粮");y+=30;
+                if(chosen!=eat)OpeningCompanionDuty.SetAutoFood(w,member,chosen);
+                if(member==session.PlayerParty.ActiveCharacterId)continue;
+                var oldDuty=OpeningCompanionDuty.Duty(w,member);
+                var selectedDuty=oldDuty<OpeningCompanionDuty.Names.Length?oldDuty:-1;
+                var duty=GUI.SelectionGrid(new Rect(0,y,cw,54),selectedDuty,OpeningCompanionDuty.Names,4);y+=60;
+                if(duty>=0&&duty!=selectedDuty)
+                {
+                    var assigned=OpeningCompanionDuty.Assign(w,session.Loop,member,duty);
+                    _feedback=assigned.IsFailure?assigned.Error.Message:"分工已安排；手动下令或切为主控会接管此人。";
+                }
+                companion.TryGet<PersonalLifeComponent>(out var companionNeeds);
+                Label(companionNeeds?.Status??"等待安排",ref y,cw,28);
+            }
             Row(session,"work","短工：60 游戏分钟，粮食 +1，劳动额 +12",ref y,cw);
             Row(session,"food","采集口粮：40 分钟，粮食 +1，每日最多 6 次",ref y,cw);
             Row(session,"wood","捡取木料：40 分钟，木料 +4，每日最多 6 次",ref y,cw);
             Row(session,"herb","采集灵草：40 分钟，灵草 +1，每日最多 3 次",ref y,cw);
-            Label("私人营地：近处往返方便，远处更远离村墙。选一处即可；木料 12，搭建 90 游戏分钟。不要求救人才能建，也不要求建营才能救人。",ref y,cw,52);
-            if(string.IsNullOrEmpty(w.HuangcunSurvival.CampRoomId))
-            { Row(session,"camp_near","西侧近郊：搭临时修炼棚",ref y,cw); Row(session,"camp_far","南侧远郊：搭临时修炼棚",ref y,cw); }
-            else
+            Label("私人营地：先在村外空地立标记（粗木4，半径24格），再从顶部建筑面板选位置建设。由当前人物亲自施工，不需要城池建筑工；巡卫看见会立即追来战斗。",ref y,cw,65);
+            if(GUI.Button(new Rect(0,y,cw,30),"在当前位置立营地标记（粗木4，6秒）"))
+            {
+                var id=session.PlayerParty.ActiveCharacterId;var task=PrivateCampService.MarkerTask(w,id);
+                var check=PrivateCampService.Validate(w,id,task);
+                if(check.IsSuccess)check=session.Loop.EnqueueOrder(new Order(session.Loop.AllocateOrderId(),id,OrderType.HuangcunSurvival,OrderSource.Player,waitTicks:6,targetRef:task));
+                _feedback=check.IsFailure?check.Error.Message:"正在立营地标记。";
+            }
+            y+=40;
+            if(!string.IsNullOrEmpty(w.HuangcunSurvival.CampRoomId))
             {
                 Row(session,"camp_rest","营地休息：精力 +35；不瞬间治愈伤势",ref y,cw);
-                foreach(var item in new[]{"food","wood","herb"})
+                foreach(var item in HuangcunSurvivalService.StorageItems)
                 {
-                    var itemId=item=="wood"?HuangcunSurvivalService.Wood:item=="herb"?HuangcunSurvivalService.Herb:HuangcunSurvivalService.Grain;
-                    w.HuangcunSurvival.StoredItems.TryGetValue(itemId,out var n);
+                    var itemId=HuangcunSurvivalService.StorageItemId(item);
+                    var n=PrivateCampService.Stored(w,session.PlayerParty.ActiveCharacterId,itemId);
                     Row(session,"store_"+item,"存入 "+w.InventoryCatalog.GetName(itemId)+" 1（现存 "+n+" /30）",ref y,cw,false);
-                    Row(session,"take_"+item,"取出 "+w.InventoryCatalog.GetName(itemId)+" 1",ref y,cw,false);
+                    Row(session,"take_"+item,"取出营地 "+w.InventoryCatalog.GetName(itemId)+" 1",ref y,cw,false);
                 }
             }
             if(GUI.Button(new Rect(0,y,cw,28),"在当前位置修炼一阵（可在野外；营地效率更高）"))
@@ -110,7 +135,7 @@ namespace XianXia.Unity.Host
                 var p=camera.WorldToScreenPoint(HostPresentationSpace.FromPresentation(pair.Value.X,pair.Value.Y));
                 var y=Screen.height-p.y;
                 if(p.z<=0 || p.x<100 || p.x>Screen.width-350 || y<170 || y>Screen.height-290) continue;
-                if(pair.Key=="prison") continue; // Prison visits use the physical room's right-click menu.
+                if(pair.Key=="prison" || pair.Key=="camp_near" || pair.Key=="camp_far") continue; // Prison visits use the physical room's right-click menu.
                 var name=pair.Key=="food"?"拾荒口粮点":pair.Key=="wood"?"枯枝采集点":pair.Key=="herb"?"野生灵草点":
                     pair.Key=="camp_near"?"近郊营地选址":pair.Key=="camp_far"?"远郊营地选址":pair.Key=="camp"?"私人修炼棚":pair.Key=="work"?"短工集合点":"监狱探视处";
                 var rect=new Rect(p.x-68,y-14,136,28); HostUiHitTest.Block(rect);

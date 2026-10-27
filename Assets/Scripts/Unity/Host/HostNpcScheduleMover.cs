@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Construction;
@@ -54,6 +54,8 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, uint> _issuedIntentRevision = new Dictionary<ulong, uint>();
         readonly Dictionary<ulong, uint> _issuedHostMovementRevision = new Dictionary<ulong, uint>();
         object _trackedWorld;
+        string _supervisorTraceKey = string.Empty;
+        float _nextSupervisorTrace;
 
         /// <summary>本帧真正执行的 NPC A* 请求数（性能诊断）。</summary>
         public int NpcPathRequestsThisFrame { get; private set; }
@@ -142,6 +144,8 @@ namespace XianXia.Unity.Host
             if (!ReferenceEquals(_trackedWorld, session.World))
             {
                 _trackedWorld = session.World;
+                _supervisorTraceKey = string.Empty;
+                _nextSupervisorTrace = 0f;
                 ClearTrackingCaches();
             }
             var grid = moveController.WalkGrid;
@@ -165,6 +169,7 @@ namespace XianXia.Unity.Host
 
             foreach (var entity in session.World.Entities.All)
             {
+                TraceSupervisorBinding(session.World, entity);
                 if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
                     continue;
                 // Release only the old schedule path before examining intent revisions.
@@ -175,9 +180,9 @@ namespace XianXia.Unity.Host
                     continue;
                 }
                 if ((entity.Tags & EntityTag.Character) != 0 &&
-                    !entity.TryGet<PersonalLifeComponent>(out _)) continue;
+                    !entity.TryGet<PersonalLifeComponent>(out _) && SettlementPatrolService.Shift(entity) == 0) continue;
                 if ((entity.Tags & EntityTag.Character) != 0 &&
-                    session.World.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true) continue;
+                    session.World.Strategic.PlayerPartyContext?.IsMember(entity.Id) == true && !OpeningCompanionDuty.Owns(session.World,entity.Id)) continue;
                 // A valid civilian logging session owns the tree approach and chopping loop.
                 // Do not reconcile its old Core intent revision here: that would cancel the
                 // newly-issued tree path and send the logger back to the work-area center.
@@ -216,7 +221,7 @@ namespace XianXia.Unity.Host
                     // Non-civilian encounter and squad ownership retains the existing gate.
                     if (ActualBattleParticipantQuery.TryFind(
                             session.World.Strategic.Participants, entity.Id, out _) ||
-                        SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id))
+                        SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id) && !OpeningCompanionDuty.Owns(session.World,entity.Id))
                         continue;
                 }
                 if (farmLabor != null && farmLabor.IsFarming(entity.Id))
@@ -353,6 +358,33 @@ namespace XianXia.Unity.Host
             _deferredPathRequestIds.Clear();
             for (var i = executed; i < _orderedPathRequests.Count; i++)
                 _deferredPathRequestIds.Add(_orderedPathRequests[i].Entity.Value);
+        }
+
+        void TraceSupervisorBinding(XianXia.Core.Simulation.SimulationWorld world, Entity entity)
+        {
+            if (!HostPlayerPaths.DevelopmentToolsAllowed || entity.DefinitionId.ToString() != "base:character_ch01_ref_supervisor") return;
+            var binding = entity.TryGet<XianXia.Core.Schedule.ScheduleComponent>(out var schedule) ? schedule.DefinitionId : "None";
+            var block = schedule != null && world.TryGetSchedule(binding, out var definition) && definition.TryResolve(world.Tick, out var current)
+                ? current.Activity.ToString() : "None";
+            var squadText = world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad)
+                ? squad.SquadId + ":" + squad.CommandKind : "None";
+            var owner = SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ? "Squad" : "Individual";
+            var actionText = "None";
+            if (entity.TryGet<ActionStateComponent>(out var actionState) && actionState.HasActiveAction)
+                actionText = world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action)
+                    ? action.GetType().Name + ":" + actionState.ActiveOrderSource : "MissingActiveAction";
+            var moveText = entity.TryGet<MovementIntentComponent>(out var move)
+                ? move.Active + ":" + move.HostPathState + ":" + move.DestinationKey + ":" + move.TargetWorkAreaId : "None";
+            var status = entity.TryGet<PersonalLifeComponent>(out var personal) ? personal.Status : "None";
+            var invalid = bootstrap.ContinuousOutdoorSurfaceRuntime?.IsEntitySpawnPositionInvalid(entity.Id) == true;
+            var key = binding + ":" + block + ":" + squadText + ":" + owner + ":" + actionText + ":" + moveText + ":" + status + ":" + invalid;
+            if (key == _supervisorTraceKey || Time.unscaledTime < _nextSupervisorTrace) return;
+            _supervisorTraceKey = key; _nextSupervisorTrace = Time.unscaledTime + 5f;
+            var position = CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) && at.HasWorldPosition
+                ? at.SurfaceId + ":" + at.WorldPosition : "NoExactPosition";
+            Debug.Log("[SupervisorDutyBinding] Entity=" + entity.Id.Value + " Schedule=" + binding + " Block=" + block +
+                " Squad=" + squadText + " Owner=" + owner + " Action=" + actionText + " Intent=" + moveText +
+                " InvalidSpawn=" + invalid + " Position=" + position + " Status=" + status, this);
         }
 
         /// <summary>真正执行一次 NPC A*（按 per-frame budget 调用）。</summary>

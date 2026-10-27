@@ -717,6 +717,7 @@ namespace XianXia.Core.World.Strategic
                 { if (p.Enemy) enemy = true; else friendly = true; }
             if (!friendly || !enemy)
             {
+                if (enemy && XianXia.Core.Npc.PrivateCampRaidService.KeepsEncounterActive(world)) return;
                 var pendingArrival = state.Candidates.Exists(c => c.Phase == EncounterCandidatePhase.Announced &&
                     !state.ObjectiveDefenderSquads.Contains(c.SquadId));
                 if (pendingArrival)

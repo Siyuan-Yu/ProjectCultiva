@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -632,6 +632,7 @@ namespace XianXia.Unity.Host
                             }
                     }
                     var target = new EntityId(p.TargetId);
+                    if (target.IsNone && p.Enemy && TickCampRaid(world,p,id)) continue;
                     if (target.IsNone || !_host.ViewSpawner.Registry.TryGet(id, out var actorView) || actorView == null ||
                         !_host.ViewSpawner.Registry.TryGet(target, out var targetView) || targetView == null) continue;
                     world.Entities.TryGet(id, out var actorEntity);
@@ -672,6 +673,32 @@ namespace XianXia.Unity.Host
                 _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
                 _host.DispatchDrainedEvents();
             }
+        }
+
+        bool TickCampRaid(SimulationWorld world, EncounterCharacter participant, EntityId actor)
+        {
+            if(!PrivateCampRaidService.TryTarget(world,actor,out var asset,out var goal))return false;
+            if(!_host.ContinuousOutdoorSurfaceRuntime.TryWorldToPresentation(goal,out var point)||
+                !_host.ViewSpawner.Registry.TryGet(actor,out var view)||view==null)return false;
+            if(Vector2.Distance(view.transform.position,point)>1.5f)
+            {
+                if(!_nextPursuitAt.TryGetValue(actor.Value,out var due)||Time.unscaledTime>=due)
+                {
+                    _nextPursuitAt[actor.Value]=Time.unscaledTime+.6f;
+                    if(!_host.MoveController.OrderEntityToWorldPoint(actor,point,null,issueStop:false,
+                        completionPolicy:HostMoveCompletionPolicy.PreserveCurrentCommand,exactGoal:true))
+                    {
+                        world.ContentCounters.Set("base:camp-raid:"+actor+"|"+asset.StableAssetId,0);
+                        world.HuangcunSurvival.Message="巡卫无法接近该建筑，停止此次拆毁，不会隔墙造成伤害。";
+                    }
+                }
+                return true;
+            }
+            _host.MoveController.CancelPresentationMovementPublic(actor);
+            if(participant.Cooldown>0)return true;
+            participant.Cooldown=MeleeCombatService.DefaultMeleeIntervalSeconds;
+            PrivateCampRaidService.Strike(world,actor,asset.StableAssetId);
+            return true;
         }
 
         void TickPursuit(EntityId actor, EntityId target, float range)

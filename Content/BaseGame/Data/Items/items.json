@@ -83,6 +83,66 @@
         "grade": "Low",
         "amount": 1200
       }
+    },
+    {
+      "id": "base:item_iron_pick",
+      "type": "item",
+      "name": "铁镐",
+      "nameKey": "item.iron_pick",
+      "maxStack": 20,
+      "tags": [
+        "tool"
+      ],
+      "tradeCategory": "Material",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 20
+      }
+    },
+    {
+      "id": "base:item_healing_powder",
+      "type": "item",
+      "name": "疗伤散",
+      "nameKey": "item.healing_powder",
+      "maxStack": 20,
+      "tags": [
+        "medicine"
+      ],
+      "tradeCategory": "Material",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 20
+      }
+    },
+    {
+      "id": "base:item_qi_pill",
+      "type": "item",
+      "name": "培元丸",
+      "nameKey": "item.qi_pill",
+      "maxStack": 20,
+      "tags": [
+        "pill"
+      ],
+      "tradeCategory": "Material",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 20
+      }
+    },
+    {
+      "id": "base:item_focus_charm",
+      "type": "item",
+      "name": "凝神器",
+      "nameKey": "item.focus_charm",
+      "maxStack": 20,
+      "tags": [
+        "consumable"
+      ],
+      "tradeCategory": "Material",
+      "baseTradePrice": {
+        "grade": "Low",
+        "amount": 20
+      }
     }
   ]
 }

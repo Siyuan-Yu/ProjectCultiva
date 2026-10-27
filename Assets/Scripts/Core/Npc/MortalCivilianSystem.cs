@@ -20,13 +20,13 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
 {
-    public enum MortalProfession { Unassigned = 0, Farmer = 1, HerbFarmer = 2, Logger = 3, Medic = 4, Warden = 5 }
+    public enum MortalProfession { Unassigned = 0, Farmer = 1, HerbFarmer = 2, Logger = 3, Medic = 4, Warden = 5, Miner = 6 }
     public enum MortalActivity
     {
         Idle = 0, Eat = 1, SleepAtResidence = 2, SleepOnGround = 3,
         FarmerWork = 4, HerbFarmerWork = 5, Logging = 6, MedicCare = 7,
         Rescue = 8, Haul = 9, Construction = 10, Flee = 11,
-        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15, Chess = 16, PrisonCare = 17
+        Escorted = 12, Detained = 13, FetchFood = 14, DedicatedDuty = 15, Chess = 16, PrisonCare = 17, Mining = 18
     }
     public enum CivilianDisposition
     {
@@ -267,6 +267,7 @@ namespace XianXia.Core.Npc
                     !MortalActivityEvaluator.HasTag(candidate, tag) ||
                     !TryResolveAuthorizedLocalAreaSite(world, entity.Id, membership.FactionId,
                         candidate.LocationId, out _)) continue;
+                if (tag == "mine" && MiningService.Remaining(world,candidate.LocationId) <= 0) continue;
                 area = candidate;
                 return true;
             }
@@ -526,6 +527,9 @@ namespace XianXia.Core.Npc
             switch (state.Profession)
             {
                 case MortalProfession.Warden: return MortalActivity.PrisonCare;
+                case MortalProfession.Miner:
+                    if (MortalCivilianQuery.TryFindProfessionArea(world,entity,"mine",out _)) return MortalActivity.Mining;
+                    state.ScheduleStatus="采矿受阻：没有合法或尚未挖空的矿点"; break;
                 case MortalProfession.Farmer:
                     if (MortalCivilianQuery.TryFindProfessionArea(world, entity, "grain", out _)) return MortalActivity.FarmerWork;
                     state.ScheduleStatus = "工作受阻：无合法粮田工区";
@@ -1046,6 +1050,8 @@ namespace XianXia.Core.Npc
                     Work(world, entity, "grain"); break;
                 case MortalActivity.HerbFarmerWork:
                     Work(world, entity, "herb"); break;
+                case MortalActivity.Mining:
+                    MiningService.Work(world,entity,state); break;
                 case MortalActivity.Logging:
                     Work(world, entity, "wood"); break;
                 case MortalActivity.MedicCare:

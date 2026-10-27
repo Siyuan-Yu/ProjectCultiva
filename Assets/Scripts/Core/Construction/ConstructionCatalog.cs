@@ -11,7 +11,8 @@ namespace XianXia.Core.Construction
         StorageRoom = 3,
         Room = 4,
         Bed = 5,
-        WallSegment = 6
+        WallSegment = 6,
+        PrivateCampMarker = 7
     }
 
     public sealed class ConstructionMaterialCost

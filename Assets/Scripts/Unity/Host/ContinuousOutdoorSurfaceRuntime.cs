@@ -1542,6 +1542,25 @@ namespace XianXia.Unity.Host
         public void RefreshRuntimeConstructedPlacementsForLoadedChunks()
         {
             if (!IsActive || _tileMap == null) return;
+            var world = _bootstrap?.Session?.World;
+            if (world == null) return;
+            var stale = new List<string>();
+            foreach (var chunk in _loaded)
+            {
+                var prefix = SitePlacementOwnerKey(chunk, "runtime:");
+                foreach (var owner in _materializedSitePlacementOwners)
+                {
+                    if (!owner.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                    var id = owner.Substring(prefix.Length);
+                    if (!world.OutdoorConstructedAssets.Assets.ContainsKey(id) ||
+                        world.OutdoorStatefulObjects.IsDestructibleDestroyed(id)) stale.Add(owner);
+                }
+            }
+            foreach (var owner in stale)
+            {
+                _tileMap.RemoveLayoutInstance(owner);
+                _materializedSitePlacementOwners.Remove(owner);
+            }
             foreach (var chunk in _loaded) BuildRuntimeConstructedOutdoorPlacements(chunk);
             RecomposeWalkGrid();
         }

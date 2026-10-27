@@ -130,7 +130,16 @@ namespace XianXia.Unity.Host
             var mustUseCivilian = _placementKind == ConstructionPlacementKind.Room ||
                 _placementKind == ConstructionPlacementKind.Bed ||
                 _placementKind == ConstructionPlacementKind.WallSegment;
-            if (mustUseCivilian && !queueForCivilian)
+            var privateBuild = XianXia.Core.Npc.PrivateCampService.TryCover(_world,_world.Strategic.PlayerFactionId,_candidate,out _);
+            if(privateBuild)
+            {
+                var task=XianXia.Core.Npc.PrivateCampService.BuildTask(_candidate);
+                var actor=_bootstrap.Session.PlayerParty.ActiveCharacterId;
+                result=XianXia.Core.Npc.PrivateCampService.Validate(_world,actor,task);
+                if(result.IsSuccess) result=_bootstrap.Session.Loop.EnqueueOrder(new XianXia.Core.Orders.Order(_bootstrap.Session.Loop.AllocateOrderId(),actor,
+                    XianXia.Core.Orders.OrderType.HuangcunSurvival,XianXia.Core.Orders.OrderSource.Player,waitTicks:XianXia.Core.Npc.PrivateCampService.Duration(task),targetRef:task));
+            }
+            else if (mustUseCivilian && !queueForCivilian)
                 result = Result.Failure(ErrorCode.InvalidOperation, "房间、床和墙段必须由有材料的凡人建设工单完成。");
             else if (queueForCivilian)
                 result = ConstructionService.TryQueueCivilianOutdoorConstruction(_world, _spec.BuildingId,

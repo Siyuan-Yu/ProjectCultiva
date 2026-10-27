@@ -5,6 +5,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
@@ -30,7 +31,9 @@ namespace XianXia.Core.Npc
             if (world == null || entity == null)
                 return false;
 
-            if (entity.TryGet<ActivityTendencyComponent>(out var tendency) && !tendency.CanDo(activity))
+            if (entity.TryGet<ActivityTendencyComponent>(out var tendency) && !tendency.CanDo(activity) &&
+                !(SettlementPatrolService.Shift(entity) != 0 &&
+                  (activity == ScheduleActivity.Patrol || activity == ScheduleActivity.Rest)))
                 return false;
 
             if (activity == ScheduleActivity.Idle)
@@ -83,12 +86,35 @@ namespace XianXia.Core.Npc
 
             if (WorldLocationQuery.TryGet(world, area.LocationId, out var loc) &&
                 loc.AllowedActivities.Count > 0 &&
-                !ContainsActivity(loc.AllowedActivities, activity))
+                !ContainsActivity(loc.AllowedActivities, activity) &&
+                !(activity == ScheduleActivity.Patrol && SettlementPatrolService.Shift(entity) != 0 &&
+                  IsPublicPatrolStop(area)))
                 return false;
 
             var atTarget = entity.TryGet<EntityLocationComponent>(out var locComp) &&
                            locComp.HasLocation &&
                            string.Equals(locComp.LocationId, area.LocationId, System.StringComparison.Ordinal);
+            // Opening actors may spawn in their bedroom while retaining a logical duty LocationId.
+            // A matching label must never suppress the real walk to a route point.
+            if (atTarget && IsRouteActivity(activity) &&
+                CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var presence) && presence.HasWorldPosition &&
+                WorldLocationQuery.TryGet(world, area.LocationId, out var physicalPlace) &&
+                world.SurfaceSpatial.TryGet(presence.SurfaceId, out var metric) && metric != null)
+            {
+                var mapper = new OutdoorSurfaceCoordinateMapper(metric.ChunkWidth, metric.ChunkHeight, metric.CellSize,
+                    presentationUnitsPerWorldUnit: 1f / metric.CellSize, originWorldX: metric.OriginWorldX, originWorldY: metric.OriginWorldY);
+                mapper.PresentationToWorld(physicalPlace.PresentationX + area.OffsetX,
+                    physicalPlace.PresentationZ + area.OffsetZ, out var x, out var y);
+                atTarget = WorldVec2.Distance(presence.WorldPosition, new WorldVec2(x, y)) <= metric.CellSize * 3f;
+                if (!atTarget)
+                    foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+                        if (asset.SurfaceId == presence.SurfaceId && asset.BoundLocationId == area.LocationId &&
+                            presence.WorldPosition.X >= asset.WorldX - metric.CellSize * 3 &&
+                            presence.WorldPosition.X <= asset.WorldX + asset.WorldWidth + metric.CellSize * 3 &&
+                            presence.WorldPosition.Y >= asset.WorldY - metric.CellSize * 3 &&
+                            presence.WorldPosition.Y <= asset.WorldY + asset.WorldHeight + metric.CellSize * 3)
+                        { atTarget = true; break; }
+            }
 
             resolved = new ResolvedActivity
             {
@@ -187,6 +213,8 @@ namespace XianXia.Core.Npc
                 return;
 
             var continuousSiteScoped = TryGetContinuousSiteScope(world, entity, out var continuousSiteId);
+            var assignedPatrol = activity == ScheduleActivity.Patrol && SettlementPatrolService.Shift(entity) != 0;
+            var patrolSite = assignedPatrol ? MortalCivilianQuery.ResolveCurrentSiteId(world, entity.Id) : string.Empty;
             var allowed = new List<string>();
             foreach (var kv in world.WorkAreas)
             {
@@ -195,7 +223,10 @@ namespace XianXia.Core.Npc
                     continue;
                 if (HuangcunOpeningAccess.ValidateFacilityUse(world, entity.Id, area.LocationId).IsFailure)
                     continue;
-                if (!AllowsActivity(area, activity))
+                if (assignedPatrol && (string.IsNullOrEmpty(patrolSite) ||
+                    !world.ContinuousOutdoorMaterialization.TryGetPlace(patrolSite, area.LocationId, out _)))
+                    continue;
+                if (!AllowsActivity(area, activity) && !(assignedPatrol && IsPublicPatrolStop(area)))
                     continue;
                 if (!EntityMayUseArea(entity, area, activity))
                     continue;
@@ -215,6 +246,8 @@ namespace XianXia.Core.Npc
                 allowed.Add(area.Id);
             }
 
+            if (assignedPatrol && allowed.Exists(id => world.TryGetWorkArea(id, out var area) && AllowsActivity(area, activity)))
+                allowed.RemoveAll(id => !world.TryGetWorkArea(id, out var area) || !AllowsActivity(area, activity));
             allowed.Sort(System.StringComparer.Ordinal);
 
             if (entity != null &&
@@ -279,6 +312,10 @@ namespace XianXia.Core.Npc
             activity == ScheduleActivity.Patrol ||
             activity == ScheduleActivity.Inspect ||
             activity == ScheduleActivity.Explore;
+
+        static bool IsPublicPatrolStop(WorkAreaDefinition area) =>
+            area != null && area.ResidentTags.Count == 0 && area.Tags.Contains("idle") &&
+            !area.Tags.Contains("housing") && !area.Tags.Contains("farm");
 
         static bool IsHomeActivity(ScheduleActivity activity) =>
             activity == ScheduleActivity.Rest ||

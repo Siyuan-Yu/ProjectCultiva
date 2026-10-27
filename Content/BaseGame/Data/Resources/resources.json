@@ -84,6 +84,36 @@
         "ore",
         "spirit"
       ]
+    },
+    {
+      "id": "base:resource_iron_ingot",
+      "type": "resource",
+      "name": "铁锭",
+      "nameKey": "resource.iron_ingot",
+      "tags": [
+        "metal",
+        "material"
+      ]
+    },
+    {
+      "id": "base:resource_copper_ingot",
+      "type": "resource",
+      "name": "铜锭",
+      "nameKey": "resource.copper_ingot",
+      "tags": [
+        "metal",
+        "material"
+      ]
+    },
+    {
+      "id": "base:resource_silver_ingot",
+      "type": "resource",
+      "name": "银锭",
+      "nameKey": "resource.silver_ingot",
+      "tags": [
+        "metal",
+        "material"
+      ]
     }
   ]
 }

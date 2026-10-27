@@ -186,9 +186,14 @@ namespace XianXia.Unity.Host
                 return "行动中";
             }
 
+            var patrolStatus = SettlementPatrolRouteDriver.Describe(world, entity);
+            if (!string.IsNullOrEmpty(patrolStatus)) return patrolStatus;
             if (civilian != null)
                 return HostMortalActivityPresentation.Describe(world, entity, civilian, isMoving);
             if (isMoving) return "移动中";
+            // The supervisor's timetable is an intention, not evidence of an executing action.
+            if (SupervisorRoutineDriver.Applies(entity))
+                return SquadCommandService.OwnsIndividualSchedule(world, entity.Id) ? "驻军待命" : "等待日程行动";
 
             // Player-managed characters do not pretend to execute an NPC schedule while idle.
             if (!PlayerPartyRuntime.CanPlayerControlCharacter(world, entity.Id) &&

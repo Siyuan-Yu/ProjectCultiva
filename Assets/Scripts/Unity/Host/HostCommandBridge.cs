@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;

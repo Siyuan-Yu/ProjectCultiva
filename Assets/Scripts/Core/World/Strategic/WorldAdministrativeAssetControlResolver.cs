@@ -113,7 +113,8 @@ namespace XianXia.Core.World.Strategic
         AllowedAsVassalWorker = 2,
         Unmanaged = 3,
         ManagedByOtherFaction = 4,
-        NotAdministrativeAsset = 5
+        NotAdministrativeAsset = 5,
+        AllowedAsPrivateOwner = 6
     }
 
     /// <summary>
@@ -132,6 +133,7 @@ namespace XianXia.Core.World.Strategic
 
         public AdministrativeAssetWorkAuthorizationStatus Status { get; }
         public bool IsAllowed =>
+            Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsPrivateOwner ||
             Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsManager ||
             Status == AdministrativeAssetWorkAuthorizationStatus.AllowedAsVassalWorker;
         public bool IsAllowedAsVassalWorker =>
@@ -157,6 +159,9 @@ namespace XianXia.Core.World.Strategic
         {
             var management = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
                 world, stableAssetId, actingFactionId);
+            if (management.Status == AdministrativeAssetAuthorizationStatus.Unmanaged &&
+                XianXia.Core.Npc.PrivateCampService.Owns(world,stableAssetId,actingFactionId))
+                return Result(AdministrativeAssetWorkAuthorizationStatus.AllowedAsPrivateOwner,management);
             switch (management.Status)
             {
                 case AdministrativeAssetAuthorizationStatus.Allowed:

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
@@ -44,9 +44,7 @@ namespace XianXia.Core.Npc
             s.Places["prison"] = new WorldVec2(prison.WorldX + prison.WorldWidth / 2, prison.WorldY - a.CellSize * 2);
             var cx = (a.VillageMinX + a.VillageMaxX) / 2; var cy = (a.VillageMinY + a.VillageMaxY) / 2;
             // Resolve once, persist exact points; never search the world each UI frame.
-            if (!FindClearing(w, "camp_near", a.VillageMinX - a.CellSize * 24, cy - a.CellSize * 20) ||
-                !FindClearing(w, "camp_far", cx + a.CellSize * 25, a.VillageMinY - a.CellSize * 65) ||
-                !FindClearing(w, "food", a.VillageMaxX + a.CellSize * 20, cy) ||
+            if (!FindClearing(w, "food", a.VillageMaxX + a.CellSize * 20, cy) ||
                 !FindClearing(w, "wood", a.VillageMinX - a.CellSize * 25, cy + a.CellSize * 40) ||
                 !FindClearing(w, "herb", cx - a.CellSize * 20, a.VillageMaxY + a.CellSize * 35))
                 return Fail("荒村生存选址未找到安全空地。");
@@ -136,6 +134,7 @@ namespace XianXia.Core.Npc
             at.SurfaceId == w.OpeningArea.SurfaceId && WorldVec2.Distance(at.WorldPosition, point) <= w.OpeningArea.CellSize * cells;
         public static bool AtCamp(SimulationWorld w, EntityId id)
         {
+            if (PrivateCampService.IsInsideOwnedRoom(w,id)) return true;
             if (string.IsNullOrEmpty(w.HuangcunSurvival.CampRoomId) ||
                 !w.OutdoorConstructedAssets.Assets.TryGetValue(w.HuangcunSurvival.CampRoomId,out var room) ||
                 !CharacterWorldPresenceQuery.TryResolve(w,id,out var at) || !at.HasWorldPosition || at.SurfaceId!=room.SurfaceId) return false;
@@ -143,15 +142,23 @@ namespace XianXia.Core.Npc
             return at.WorldPosition.X>=room.WorldX+c && at.WorldPosition.X<=room.WorldX+room.WorldWidth-c &&
                 at.WorldPosition.Y>=room.WorldY+c && at.WorldPosition.Y<=room.WorldY+room.WorldHeight-c;
         }
-        public static bool IsKnownTask(string task) => task == "work" || task == "food" || task == "wood" || task == "herb" ||
+        public static readonly string[] StorageItems={"food","wood","herb","iron_ore","copper_ore","silver_ore","spirit_ore","iron_ingot","copper_ingot","silver_ingot"};
+        public static string StorageItemId(string key)=>key=="food"?Grain:key=="wood"?Wood:key=="herb"?Herb:"base:resource_"+key;
+        static bool IsStorageTask(string task)
+        {
+            if(task==null||(!task.StartsWith("store_")&&!task.StartsWith("take_")))return false;
+            var key=task.Substring(task.StartsWith("store_")?6:5);
+            foreach(var item in StorageItems)if(item==key)return true;
+            return false;
+        }
+        public static bool IsKnownTask(string task) => IsStorageTask(task) || PrivateCampService.IsTask(task) || BasicCraftService.IsTask(task) || task == "work" || task == "food" || task == "wood" || task == "herb" ||
             task == "eat" || task == "camp_near" || task == "camp_far" || task == "camp_rest" ||
             task == "store_food" || task == "store_wood" || task == "store_herb" ||
             task == "take_food" || task == "take_wood" || task == "take_herb" ||
             task == "feed" || task == "medicine" || task == "ransom" || task == "pick_lock" || task == "force_release";
-        public static ulong Duration(string task) => task == "work" ? 12UL : task.StartsWith("camp_") ? 18UL :
+        public static ulong Duration(string task) => PrivateCampService.IsTask(task) ? PrivateCampService.Duration(task) : BasicCraftService.IsTask(task) ? BasicCraftService.Duration(task) : task == "work" ? 12UL : task.StartsWith("camp_") ? 18UL :
             task == "pick_lock" ? 12UL : task == "food" || task == "wood" || task == "herb" ? 8UL : 2UL;
-        static string Item(string task) => task.EndsWith("wood") ? Wood : task.EndsWith("herb") ? Herb : Grain;
-        static int Count(SimulationWorld w, string key) => w.HuangcunSurvival.StoredItems.TryGetValue(key, out var n) ? n : 0;
+        static string Item(string task) => IsStorageTask(task)?StorageItemId(task.Substring(task.StartsWith("store_")?6:5)):task.EndsWith("wood") ? Wood : task.EndsWith("herb") ? Herb : Grain;
         static string DailyKey(SimulationWorld w, string task) => "survival:yield:" + task + ":" + (w.Tick.Value / 288 % 2);
         static int UsedToday(SimulationWorld w, string task)
         { var k = DailyKey(w, task); return w.ContentDaily.IsMarkedToday(k, w.Tick) ? w.ContentCounters.Get(k) : 0; }
@@ -160,6 +167,9 @@ namespace XianXia.Core.Npc
 
         public static Result Validate(SimulationWorld w, EntityId id, string task)
         {
+            if (PrivateCampService.IsTask(task)) return PrivateCampService.Validate(w,id,task);
+            if (BasicCraftService.IsTask(task)) return BasicCraftService.Validate(w,id,task);
+            if (task=="camp_near" || task=="camp_far") return Fail("预设营地入口已退役；请在村外立营地标记，再从建筑面板选位置建设。");
             // Keep the wire task recognizable so an old queued action fails safely on resume.
             if (task == "pick_lock") return Fail("撬锁已退役；请在正常宣战战斗中破坏监狱墙体营救。");
             if (task == "force_release" && HuangcunOpeningAccess.IsLocked(w))
@@ -169,7 +179,7 @@ namespace XianXia.Core.Npc
             if (!w.HuangcunSurvival.Enabled || w.Strategic.PlayerFactionId != w.HuangcunSurvival.OwnerFactionId || !w.Entities.TryGet(id, out var e) || !CombatLifeStateService.CanFight(e) ||
                 w.Strategic.PlayerPartyContext?.IsMember(id) != true || w.LocalMap.IsInInterior ||
                 CharacterEncounterService.OwnsParticipantSpatialState(w, id)) return Fail("当前角色不能进行荒村生活行动。");
-            if (w.PlayerPartyTravel.IsMoving) return Fail("先停下，再开始行动。");
+            if (w.PlayerPartyTravel.IsMoving && !OpeningCompanionDuty.Owns(w,id)) return Fail("先停下，再开始行动。");
             if (!e.TryGet<PersonalLifeComponent>(out var personal)) return Fail("角色生活状态未就绪。");
             WorldVec2 point;
             var secretCare = (task == "feed" || task == "medicine" || task == "force_release" && !HuangcunOpeningAccess.IsLocked(w)) && HuangcunPrisonVisitService.Applies(w);
@@ -178,8 +188,15 @@ namespace XianXia.Core.Npc
                 var access = HuangcunPrisonVisitService.ValidateVisit(w, id);
                 if (access.IsFailure) return access;
             }
-            else if (TryDestination(w, task, out point) && !Near(w, id, point)) return Fail("需要先到达对应地点附近。");
+            else if (!task.StartsWith("store_") && !task.StartsWith("take_") && TryDestination(w, task, out point) && !Near(w, id, point)) return Fail("需要先到达对应地点附近。");
             if ((task == "food" || task == "wood" || task == "herb" || task == "work") && personal.Energy <= 15) return Fail("精力不足，先休息。");
+            if(IsStorageTask(task))
+            {
+                if(string.IsNullOrEmpty(PrivateCampService.StorageRoom(w,id)))return Fail("需要进入存货所在的私人房间。");
+                var count=PrivateCampService.Stored(w,id,Item(task));
+                return task.StartsWith("store_") ? (w.Inventory.GetCount(Item(task))<1||count>=30?Fail("背包无此物，或本房间此类存货已满（30）。"):Result.Success()) :
+                    (count<1?Fail("此房间没有该存货。"):Result.Success());
+            }
             switch (task)
             {
                 case "eat": return w.Inventory.GetCount(Grain) < 1 ? Fail("需要一份私人粮食。") : personal.Satiety > 75 ? Fail("现在不需要再吃一份粮食。") : Result.Success();
@@ -191,10 +208,10 @@ namespace XianXia.Core.Npc
                     return w.Inventory.GetCount(Wood) < 12 ? Fail("搭棚与铺床需要私人木料 12。") : Result.Success();
                 case "camp_rest": return AtCamp(w,id) ? Result.Success() : Fail("需要在自己的营地附近。");
                 case "store_food": case "store_wood": case "store_herb":
-                    if (!AtCamp(w,id)) return Fail("需要在私人营地附近。");
-                    return w.Inventory.GetCount(Item(task)) < 1 || Count(w,Item(task)) >= 30 ? Fail("背包无此物，或此类营地储物已满（30）。") : Result.Success();
+                    if (string.IsNullOrEmpty(PrivateCampService.StorageRoom(w,id))) return Fail("需要进入存货所在的私人房间。");
+                    return w.Inventory.GetCount(Item(task)) < 1 || PrivateCampService.Stored(w,id,Item(task)) >= 30 ? Fail("背包无此物，或此类营地储物已满（30）。") : Result.Success();
                 case "take_food": case "take_wood": case "take_herb":
-                    return !AtCamp(w,id) || Count(w,Item(task)) < 1 ? Fail("需要在营地且有存货。") : Result.Success();
+                    return string.IsNullOrEmpty(PrivateCampService.StorageRoom(w,id)) || PrivateCampService.Stored(w,id,Item(task)) < 1 ? Fail("需要在营地且有存货。") : Result.Success();
                 case "feed": case "medicine": case "ransom": case "pick_lock": case "force_release":
                     var prisoner = Prisoner(w);
                     if (prisoner == null || w.HuangcunSurvival.Released || !prisoner.TryGet<LifecycleComponent>(out var life) || life.IsDead || life.IsRemoved) return Fail("同伴已经获救或无法再营救。");
@@ -211,6 +228,8 @@ namespace XianXia.Core.Npc
 
         public static Result Complete(SimulationWorld w, EntityId id, string task)
         {
+            if (PrivateCampService.IsTask(task)) return PrivateCampService.Complete(w,id,task);
+            if (BasicCraftService.IsTask(task)) return BasicCraftService.Complete(w,id,task);
             var valid = Validate(w,id,task); if (valid.IsFailure) return valid;
             w.Entities.TryGet(id, out var e); var p = PersonalLifeService.Ensure(w,e);
             var s = w.HuangcunSurvival;
@@ -225,9 +244,9 @@ namespace XianXia.Core.Npc
             else if (task == "eat") { w.Inventory.TryRemoveAll(Grain,1); p.Satiety += 30; p.Clamp(); s.Message = "吃下私人口粮，饱食 +30；可把余粮留给同伴或修炼。"; }
             else if (task == "camp_near" || task == "camp_far") return BuildCamp(w,id,task);
             else if (task == "camp_rest") { p.Energy += 35; p.CurrentMood += 8; p.Clamp(); s.Message = "在营地歇息了一阵；没有瞬间恢复伤势。"; }
-            else if (task.StartsWith("store_")) { var item=Item(task); w.Inventory.TryRemoveAll(item,1); s.StoredItems[item]=Count(w,item)+1; s.Message="已存入私人营地 1 份。"; }
+            else if (task.StartsWith("store_")) { var item=Item(task); w.Inventory.TryRemoveAll(item,1); PrivateCampService.ChangeStored(w,id,item,1); s.Message="已存入私人营地 1 份。"; }
             else if (task.StartsWith("take_"))
-            { var item=Item(task); if (!w.Inventory.TryAddAll(item,1)) return Fail("背包已满，存货未变。"); s.StoredItems[item]=Count(w,item)-1; s.Message="已取出营地存货 1 份。"; }
+            { var item=Item(task); if (!w.Inventory.TryAddAll(item,1)) return Fail("背包已满，存货未变。"); PrivateCampService.ChangeStored(w,id,item,-1); s.Message="已取出营地存货 1 份。"; }
             else
             {
                 var captive=Prisoner(w); var needs=PersonalLifeService.Ensure(w,captive); captive.TryGet<LifecycleComponent>(out var life);
@@ -301,6 +320,9 @@ namespace XianXia.Core.Npc
             if(!Applies(w,e) || !HuangcunOpeningAccess.IsLocked(w) || IsPrisoner(w,e.Id) || !CombatLifeStateService.CanFight(e) || p.Satiety>35 ||
                 !CharacterWorldPresenceQuery.TryResolve(w,e.Id,out var at) || !at.HasWorldPosition ||
                 !w.OpeningArea.ContainsVillage(at.SurfaceId,at.WorldPosition.X,at.WorldPosition.Y)) return;
+            if(!w.HuangcunSurvival.Places.TryGetValue("work",out var collection) ||
+                WorldVec2.Distance(at.WorldPosition,collection)>w.OpeningArea.CellSize*8 ||
+                !WorldObservation.HasLineOfSight(w,at.SurfaceId,at.WorldPosition,collection))return;
             var key="ration:"+e.Id; var used=UsedToday(w,key); if(used>=24) return;
             if(used==0 && WorldSitePublicStockService.TryRemove(w,Ch01ScenarioProgressionHooks.HuangcunSiteId,Grain,1,e.Id).IsFailure) return;
             var amount=Math.Min(6,24-used); p.Satiety+=amount; UseToday(w,key,amount); p.Status="领取稀粥配给（仅够维生）";
@@ -309,6 +331,9 @@ namespace XianXia.Core.Npc
         {
             var s=w.HuangcunSurvival; if(!s.Enabled || s.LastProcessedTick==w.Tick.Value) return;
             s.LastProcessedTick=w.Tick.Value;
+            PrivateCampService.RestoreLegacyOwnership(w);
+            PrivateCampService.MigrateStorage(w);
+            OpeningCompanionDuty.Drive(w,loop);
             HuangcunPrisonVisitService.CloseUnavailableRequests(w);
             if (HuangcunOpeningAccess.IsLocked(w) && w.Tick.Value % 12 == 0)
                 foreach (var actor in w.Entities.All)

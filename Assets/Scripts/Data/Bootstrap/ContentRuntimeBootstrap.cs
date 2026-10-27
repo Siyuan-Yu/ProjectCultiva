@@ -1,4 +1,4 @@
-﻿using XianXia.Core.World;
+using XianXia.Core.World;
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Content;
@@ -240,6 +240,7 @@ namespace XianXia.Data.Bootstrap
                     definition.PlacementKind == "storageRoom" ? ConstructionPlacementKind.StorageRoom :
                     definition.PlacementKind == "room" ? ConstructionPlacementKind.Room :
                     definition.PlacementKind == "bed" ? ConstructionPlacementKind.Bed :
+                    definition.PlacementKind == "privateCampMarker" ? ConstructionPlacementKind.PrivateCampMarker :
                     definition.PlacementKind == "wallSegment" ? ConstructionPlacementKind.WallSegment :
                     throw new System.InvalidOperationException("Unknown construction placementKind: " + definition.PlacementKind);
                 var spec = new BuildingConstructionSpec

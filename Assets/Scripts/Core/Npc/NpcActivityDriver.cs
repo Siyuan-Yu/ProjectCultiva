@@ -19,16 +19,48 @@ namespace XianXia.Core.Npc
     {
         readonly List<(ScheduleActivity Activity, int Priority)> _priorityScratch =
             new List<(ScheduleActivity, int)>(8);
+        readonly Dictionary<XianXia.Core.Domain.Ids.EntityId, ScheduleActivity> _lastDuty =
+            new Dictionary<XianXia.Core.Domain.Ids.EntityId, ScheduleActivity>();
+        SimulationWorld _dutyWorld;
+        readonly SettlementPatrolRouteDriver _patrolRoutes = new SettlementPatrolRouteDriver();
 
         public void Drive(SimulationWorld world, SimulationLoop loop)
         {
             if (world == null || loop == null)
                 return;
+            if (!ReferenceEquals(world, _dutyWorld)) { _lastDuty.Clear(); _dutyWorld = world; }
 
             foreach (var entity in world.Entities.All)
             {
                 if (XianXia.Core.Social.SupervisorAngerDriver.OwnsPursuit(world, entity.Id)) continue;
                 if (!World.Strategic.HuangcunOpeningAccess.IsSimulated(world, entity)) continue;
+                if ((SettlementPatrolService.Shift(entity) != 0 || SupervisorRoutineDriver.Applies(entity)) &&
+                    !World.Strategic.CharacterEncounterService.OwnsParticipantSpatialState(world, entity.Id) &&
+                    entity.TryGet<ScheduleComponent>(out var dutyBinding) &&
+                    world.TryGetSchedule(dutyBinding.DefinitionId, out var dutyDef) && dutyDef.TryResolve(world.Tick, out var dutyBlock))
+                {
+                    if (!_lastDuty.TryGetValue(entity.Id, out var previous) || previous != dutyBlock.Activity)
+                    {
+                        loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                        world.WorkAreaOccupancy.Release(entity.Id);
+                        SettlementPatrolRouteDriver.ClearOwnedIntent(entity);
+                        if (entity.TryGet<MovementIntentComponent>(out var oldMove) && oldMove.Active &&
+                            (oldMove.DestinationKey?.StartsWith("schedule-home-bed:") == true ||
+                             oldMove.DestinationKey?.StartsWith("personal-leisure") == true)) oldMove.Clear();
+                        if (SupervisorRoutineDriver.Applies(entity) && dutyBlock.Activity != ScheduleActivity.Idle)
+                        {
+                            ChessRecreationService.Interrupt(world, loop, entity.Id);
+                            if (entity.TryGet<PersonalLifeComponent>(out var personal) && personal.Energy > 30 && personal.Satiety > 35)
+                                loop.CancelOrdersFromSource(entity.Id, OrderSource.Ai);
+                        }
+                        _lastDuty[entity.Id] = dutyBlock.Activity;
+                    }
+                }
+                if (SettlementPatrolService.Shift(entity) != 0 && !SettlementPatrolService.CanRunSchedule(world, entity))
+                {
+                    loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                    continue;
+                }
                 if (MortalCivilianQuery.IsManagedCivilian(world, entity))
                 {
                     // Rest/Labor/Idle and needs are owned by MortalCivilianService. A specialized
@@ -55,7 +87,7 @@ namespace XianXia.Core.Npc
                     loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
                     continue;
                 }
-                if ((entity.Tags & EntityTag.Character) != 0)
+                if ((entity.Tags & EntityTag.Character) != 0 && !SettlementPatrolService.CanRunSchedule(world, entity))
                     continue;
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||
                     string.IsNullOrEmpty(binding.DefinitionId))
@@ -72,7 +104,7 @@ namespace XianXia.Core.Npc
                 if (!entity.TryGet<JobComponent>(out _))
                     entity.AddComponent(new JobComponent());
 
-                DriveEntity(world, loop, entity, definition);
+                DriveEntity(world, loop, entity, definition, allowFallback: SettlementPatrolService.Shift(entity) == 0);
             }
         }
 
@@ -85,6 +117,9 @@ namespace XianXia.Core.Npc
         {
             if (!entity.TryGet<ActionStateComponent>(out var actionState))
                 return;
+            if (definition.TryResolve(world.Tick, out var routeBlock) &&
+                _patrolRoutes.Drive(world, loop, entity, routeBlock.Activity)) return;
+            if (SupervisorRoutineDriver.IsLeisure(world, entity)) return;
             if (actionState.HasActiveAction)
                 return;
 
@@ -99,7 +134,8 @@ namespace XianXia.Core.Npc
             }
 
             entity.TryGet<PersonalityProfileComponent>(out var profile);
-            var choice = PersonalityScheduleBias.Apply(block, profile);
+            var choice = PersonalityScheduleBias.Apply(block,
+                SettlementPatrolService.Shift(entity) != 0 || SupervisorRoutineDriver.Applies(entity) ? null : profile);
 
             var tickInDay = (int)(world.Tick.Value % (ulong)WorldTick.TicksPerDay);
             var remainingInBlock = (ulong)(block.EndTickInDay - tickInDay);
@@ -112,6 +148,8 @@ namespace XianXia.Core.Npc
             if ((choice.Activity == ScheduleActivity.Rest || choice.Activity == ScheduleActivity.Idle) &&
                 TryDriveAssignedHome(world, loop, entity, queue, choice.Activity, duration))
                 return;
+            if (choice.Activity == ScheduleActivity.Rest && RoomBedFacilityService.TryGetAssignedBed(world, entity.Id, out _))
+                return; // A broken/unavailable home is not an outdoor sleeping station.
 
             var resolvedOk = allowFallback
                 ? TryResolveWithFallback(world, entity, choice.Activity, duration, out var resolved)
@@ -189,15 +227,36 @@ namespace XianXia.Core.Npc
             ulong duration)
         {
             if (!RoomBedFacilityService.TryGetAssignedHome(world, entity.Id, out var bed, out _, out var access))
+            {
+                if (entity.TryGet<PersonalLifeComponent>(out var blockedPersonal) &&
+                    RoomBedFacilityService.TryGetAssignedBed(world, entity.Id, out _))
+                    blockedPersonal.Status = "返床受阻：床边没有合法使用格";
                 return false;
-            if (!RoomBedFacilityService.CanUseBed(world, bed, entity.Id, out _))
+            }
+            if (!RoomBedFacilityService.CanUseBed(world, bed, entity.Id, out var bedReason))
+            {
+                if (entity.TryGet<PersonalLifeComponent>(out var blockedPersonal)) blockedPersonal.Status = "返床受阻：" + bedReason;
                 return true; // an invalid assigned bed is reported by the shared query; never fall back to another home
+            }
 
             if (!RoomBedFacilityService.IsAtAccessPoint(world, bed, entity.Id))
             {
+                if (entity.TryGet<PersonalLifeComponent>(out var returning))
+                { returning.Activity = PersonalLifeActivity.None; returning.Status = "前往自己的床铺休息"; }
                 queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
                 if (!entity.TryGet<MovementIntentComponent>(out var intent))
                 { intent = new MovementIntentComponent(); entity.AddComponent(intent); }
+                if (entity.TryGet<PersonalLifeComponent>(out var restState) &&
+                    world.Tick.Value < restState.BedRetryAfterTick) return true;
+                if (intent.Active && intent.DestinationKey?.StartsWith("schedule-home-bed:") == true &&
+                    (intent.HostArrived || intent.HostPathState == MovementHostPathState.PermanentFailure ||
+                     intent.HostPathState == MovementHostPathState.RetryablePathUnavailable))
+                {
+                    intent.Clear();
+                    if (entity.TryGet<PersonalLifeComponent>(out var retryState))
+                    { retryState.BedRetryAfterTick = world.Tick.Value + 8; retryState.Status = "返床受阻：等待重新寻路"; }
+                    return true;
+                }
                 var radius = world.SurfaceSpatial.TryGet(bed.SurfaceId, out var metric) && metric != null
                     ? metric.CellSize * .75f : 0f;
                 var key = "schedule-home-bed:" + bed.StableAssetId;

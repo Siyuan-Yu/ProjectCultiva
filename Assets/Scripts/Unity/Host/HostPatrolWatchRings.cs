@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.Npc;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -26,13 +27,17 @@ namespace XianXia.Unity.Host
             if (!ReferenceEquals(world, _world)) { Clear(); _world = world; }
             foreach (var pair in _rings) if (pair.Value != null) pair.Value.enabled = false;
             var surface = _host?.ContinuousOutdoorSurfaceRuntime;
-            if (world == null || !world.HuangcunSurvival.Enabled || !HuangcunOpeningAccess.IsLocked(world) ||
+            if (world == null ||
                 surface == null || !surface.IsActive || _host.ViewSpawner == null || _host.WorldMapPanel?.IsOpen == true ||
                 world.LocalMap.IsInInterior || world.Strategic.CharacterEncounter != null) return;
 
             foreach (var entity in world.Entities.All)
             {
-                if (!SupervisorAngerDriver.IsOnWatch(world, entity) ||
+                var openingWatch = world.HuangcunSurvival.Enabled && HuangcunOpeningAccess.IsLocked(world) &&
+                    SupervisorAngerDriver.IsOnWatch(world, entity);
+                var outdoorWatch = SettlementPatrolService.HasIndividualDuty(entity) &&
+                    SupervisorAngerDriver.CanObserveOutdoors(world, entity);
+                if ((!openingWatch && !outdoorWatch) ||
                     !_host.ViewSpawner.Registry.TryGet(entity.Id, out var view) || view == null || !view.gameObject.activeInHierarchy ||
                     !CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) || !at.HasWorldPosition ||
                     at.SurfaceId != surface.ActiveSurfaceId ||
