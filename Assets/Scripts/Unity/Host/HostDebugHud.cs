@@ -46,6 +46,8 @@ namespace XianXia.Unity.Host
         internal static readonly ProfilerMarker PartyLateUpdate = new ProfilerMarker("XianXia.Party.LateUpdate");
         internal static readonly ProfilerMarker NpcLateUpdate = new ProfilerMarker("XianXia.Npc.LateUpdate");
         internal static readonly ProfilerMarker ActivityLateUpdate = new ProfilerMarker("XianXia.Activity.LateUpdate");
+        internal static readonly ProfilerMarker PatrolRingsLateUpdate = new ProfilerMarker("XianXia.PatrolRings.LateUpdate");
+        internal static readonly ProfilerMarker PrivateCampLateUpdate = new ProfilerMarker("XianXia.PrivateCamp.LateUpdate");
         internal static readonly ProfilerMarker OpportunityLateUpdate = new ProfilerMarker("XianXia.Opportunity.LateUpdate");
         internal static readonly ProfilerMarker WorkLoopLateUpdate = new ProfilerMarker("XianXia.WorkLoop.LateUpdate");
         internal static readonly ProfilerMarker PathPreviewLateUpdate = new ProfilerMarker("XianXia.PathPreview.LateUpdate");

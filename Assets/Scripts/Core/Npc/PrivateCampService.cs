@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.Globalization;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
 using XianXia.Core.Construction;
@@ -17,22 +19,45 @@ namespace XianXia.Core.Npc
         public const string MarkerKind="privateCampMarker", MarkerBuilding="base:building_private_camp_marker";
         public const int RadiusCells=24, MarkerWoodCost=4;
         static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
+        sealed class AssetIndex
+        {
+            public AssetIndex() {}
+            public ulong Revision=ulong.MaxValue;
+            public readonly List<OutdoorConstructedAssetState> Assets=new List<OutdoorConstructedAssetState>();
+        }
+        static readonly ConditionalWeakTable<SimulationWorld,AssetIndex> AssetIndexes=new ConditionalWeakTable<SimulationWorld,AssetIndex>();
+        public static IReadOnlyList<OutdoorConstructedAssetState> Assets(SimulationWorld w)
+        {
+            var index=AssetIndexes.GetOrCreateValue(w);
+            if(index.Revision!=w.OutdoorConstructedAssets.Revision)
+            {
+                index.Assets.Clear();
+                foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+                    if(IsPrivate(w,a.StableAssetId))index.Assets.Add(a);
+                index.Revision=w.OutdoorConstructedAssets.Revision;
+            }
+            return index.Assets;
+        }
         public static bool Owns(SimulationWorld w,string asset,string faction) => !string.IsNullOrEmpty(faction) && w.ContentCounters.Get("base:camp-owner:"+asset+"|"+faction)>0;
         public static bool IsPrivate(SimulationWorld w,string asset) => w.ContentCounters.Get("base:camp-private:"+asset)>0;
         static void MarkOwner(SimulationWorld w,string asset,string faction)
-        {w.ContentCounters.Set("base:camp-owner:"+asset+"|"+faction,1);w.ContentCounters.Set("base:camp-private:"+asset,1);}
+        {
+            if(Owns(w,asset,faction)&&IsPrivate(w,asset))return;
+            w.ContentCounters.Set("base:camp-owner:"+asset+"|"+faction,1);w.ContentCounters.Set("base:camp-private:"+asset,1);
+            AssetIndexes.GetOrCreateValue(w).Revision=ulong.MaxValue;
+        }
         public static void RestoreLegacyOwnership(SimulationWorld w)
         {
             const string legacy = "asset:huangcun:private_camp";
             if (!w.OutdoorConstructedAssets.Assets.ContainsKey(legacy)) return;
             MarkOwner(w, legacy, w.HuangcunSurvival.OwnerFactionId);
-            foreach (var a in w.OutdoorConstructedAssets.Assets.Values)
+            foreach (var a in w.OutdoorConstructedAssets.BedsInRoom(legacy))
                 if (a.ParentRoomId == legacy) MarkOwner(w, a.StableAssetId, w.HuangcunSurvival.OwnerFactionId);
         }
         public static string StorageRoom(SimulationWorld w,EntityId id)
         {
             if(!CharacterWorldPresenceQuery.TryResolve(w,id,out var at)||!at.HasWorldPosition)return "";
-            foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+            foreach(var a in Assets(w))
                 if(RoomBedGeometry.IsRoom(a)&&a.SurfaceId==at.SurfaceId&&Owns(w,a.StableAssetId,w.Strategic.PlayerFactionId)&&
                     !w.OutdoorStatefulObjects.IsDestructibleDestroyed(a.StableAssetId)&&at.WorldPosition.X>a.WorldX&&at.WorldPosition.X<a.WorldX+a.WorldWidth&&
                     at.WorldPosition.Y>a.WorldY&&at.WorldPosition.Y<a.WorldY+a.WorldHeight)return a.StableAssetId;
@@ -82,7 +107,7 @@ namespace XianXia.Core.Npc
         {
             marker=null;if(w==null||a==null||!w.SurfaceSpatial.TryGet(a.SurfaceId,out var metric))return false;
             if(a.Kind!="room"&&a.Kind!="bed"&&a.Kind!="wallSegment"&&a.Kind!="grainField")return false;
-            foreach(var m in w.OutdoorConstructedAssets.Assets.Values)
+            foreach(var m in Assets(w))
             {
                 if(m.Kind!=MarkerKind||m.SurfaceId!=a.SurfaceId||!Owns(w,m.StableAssetId,faction)||w.OutdoorStatefulObjects.IsDestructibleDestroyed(m.StableAssetId))continue;
                 var cx=m.WorldX+m.WorldWidth*.5f;var cy=m.WorldY+m.WorldHeight*.5f;var r=metric.CellSize*RadiusCells;
@@ -109,7 +134,7 @@ namespace XianXia.Core.Npc
             if(a.Kind==MarkerKind)
             {
                 if(WorldSiteAdministrativeControlResolver.TryResolve(w,a.SurfaceId,a.WorldX,a.WorldY,out var site,out _)&&site!=null)return Fail("营地标记只能放在城池行政范围外。");
-                foreach(var m in w.OutdoorConstructedAssets.Assets.Values)
+                foreach(var m in Assets(w))
                     if(m.Kind==MarkerKind&&m.SurfaceId==a.SurfaceId&&!w.OutdoorStatefulObjects.IsDestructibleDestroyed(m.StableAssetId)&&
                         WorldVec2.Distance(new WorldVec2(m.WorldX,m.WorldY),new WorldVec2(a.WorldX,a.WorldY))<metric.CellSize*RadiusCells*2)
                         return Fail("营地范围不能重叠，请另选空地。");
@@ -157,7 +182,7 @@ namespace XianXia.Core.Npc
         public static bool IsInsideOwnedRoom(SimulationWorld w,EntityId id)
         {
             if(!CharacterWorldPresenceQuery.TryResolve(w,id,out var at)||!at.HasWorldPosition)return false;
-            foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+            foreach(var a in Assets(w))
                 if(RoomBedGeometry.IsRoom(a)&&a.SurfaceId==at.SurfaceId&&Owns(w,a.StableAssetId,w.Strategic.PlayerFactionId)&&
                     !w.OutdoorStatefulObjects.IsDestructibleDestroyed(a.StableAssetId)&&at.WorldPosition.X>a.WorldX&&at.WorldPosition.X<a.WorldX+a.WorldWidth&&at.WorldPosition.Y>a.WorldY&&at.WorldPosition.Y<a.WorldY+a.WorldHeight)return true;
             return false;

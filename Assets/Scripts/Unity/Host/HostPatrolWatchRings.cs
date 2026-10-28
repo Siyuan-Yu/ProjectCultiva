@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
@@ -23,6 +23,7 @@ namespace XianXia.Unity.Host
 
         void LateUpdate()
         {
+            using var timing = HostDebugHud.PatrolRingsLateUpdate.Auto();
             var world = _host?.Session?.World;
             if (!ReferenceEquals(world, _world)) { Clear(); _world = world; }
             foreach (var pair in _rings) if (pair.Value != null) pair.Value.enabled = false;
@@ -31,14 +32,14 @@ namespace XianXia.Unity.Host
                 surface == null || !surface.IsActive || _host.ViewSpawner == null || _host.WorldMapPanel?.IsOpen == true ||
                 world.LocalMap.IsInInterior || world.Strategic.CharacterEncounter != null) return;
 
-            foreach (var entity in world.Entities.All)
+            var opening = world.HuangcunSurvival.Enabled && HuangcunOpeningAccess.IsLocked(world);
+            foreach (var view in _host.ViewSpawner.Registry.All)
             {
-                var openingWatch = world.HuangcunSurvival.Enabled && HuangcunOpeningAccess.IsLocked(world) &&
-                    SupervisorAngerDriver.IsOnWatch(world, entity);
-                var outdoorWatch = SettlementPatrolService.HasIndividualDuty(entity) &&
-                    SupervisorAngerDriver.CanObserveOutdoors(world, entity);
-                if ((!openingWatch && !outdoorWatch) ||
-                    !_host.ViewSpawner.Registry.TryGet(entity.Id, out var view) || view == null || !view.gameObject.activeInHierarchy ||
+                if (view == null || !view.IsBound || !view.gameObject.activeInHierarchy ||
+                    !world.Entities.TryGet(view.EntityId,out var entity)) continue;
+                var eligible = opening && HuangcunOpeningAccess.IsOpeningStaff(world,entity.Id) ||
+                    SettlementPatrolService.HasIndividualDuty(entity);
+                if (!eligible || !SupervisorAngerDriver.CanObserveOutdoors(world,entity) ||
                     !CharacterWorldPresenceQuery.TryResolve(world, entity.Id, out var at) || !at.HasWorldPosition ||
                     at.SurfaceId != surface.ActiveSurfaceId ||
                     !surface.TryWorldToPresentation(at.WorldPosition, out var p0) ||
@@ -53,11 +54,8 @@ namespace XianXia.Unity.Host
                 var color = world.HuangcunSurvival.PunisherId == entity.Id.Value
                     ? new Color(1f, .25f, .15f, .65f) : new Color(1f, .78f, .24f, .45f);
                 ring.startColor = ring.endColor = color;
-                for (var i = 0; i < Segments; i++)
-                {
-                    var angle = Mathf.PI * 2f * i / Segments;
-                    ring.SetPosition(i, center + new Vector3(Mathf.Cos(angle)*radius, Mathf.Sin(angle)*radius));
-                }
+                ring.transform.position = center;
+                ring.transform.localScale = Vector3.one * radius;
                 ring.enabled = true;
             }
         }
@@ -75,13 +73,22 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(transform, false);
             var line = go.AddComponent<LineRenderer>();
             line.sharedMaterial = _material;
-            line.useWorldSpace = true; line.loop = true; line.positionCount = Segments;
+            ConfigureUnitCircle(line, Segments);
             line.alignment = LineAlignment.View; line.textureMode = LineTextureMode.Stretch;
             line.numCornerVertices = 2; line.sortingOrder = 5200;
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
             _rings[id.Value] = line;
             return line;
+        }
+
+        internal static void ConfigureUnitCircle(LineRenderer line,int segments)
+        {
+            line.useWorldSpace=false; line.loop=true; line.positionCount=segments;
+            var points=new Vector3[segments];
+            for(var i=0;i<segments;i++)
+            {var angle=Mathf.PI*2f*i/segments;points[i]=new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0);}
+            line.SetPositions(points);
         }
 
         void Clear()

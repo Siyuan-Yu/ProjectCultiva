@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
@@ -17,8 +17,9 @@ namespace XianXia.Core.Npc
         static string Key(EntityId guard,string asset)=>"base:camp-raid:"+guard+"|"+asset;
         public static bool Owns(SimulationWorld w,EntityId guard)
         {
-            if(!HuangcunOpeningAccess.IsLocked(w)||!w.Entities.TryGet(guard,out var e)||!CombatLifeStateService.CanFight(e))return false;
-            foreach(var a in w.OutdoorConstructedAssets.Assets.Values)if(w.ContentCounters.Get(Key(guard,a.StableAssetId))>0)return true;
+            if(w==null||!HuangcunOpeningAccess.IsLocked(w)||!HuangcunOpeningAccess.IsOpeningStaff(w,guard)||!w.Entities.TryGet(guard,out var e)||!CombatLifeStateService.CanFight(e))return false;
+            var assets=PrivateCampService.Assets(w);
+            for(var i=0;i<assets.Count;i++)if(w.ContentCounters.Get(Key(guard,assets[i].StableAssetId))>0)return true;
             return false;
         }
         static WorldVec2 Facing(OutdoorConstructedAssetState a,WorldVec2 from,float cell)
@@ -33,7 +34,7 @@ namespace XianXia.Core.Npc
             asset=null;approach=default;
             if(!Owns(w,guard)||!CharacterWorldPresenceQuery.TryResolve(w,guard,out var at)||!at.HasWorldPosition||!w.SurfaceSpatial.TryGet(at.SurfaceId,out var metric))return false;
             var best=float.MaxValue;var encounter=w.Strategic.CharacterEncounter;
-            foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+            foreach(var a in PrivateCampService.Assets(w))
             {
                 if(a.SurfaceId!=at.SurfaceId||w.ContentCounters.Get(Key(guard,a.StableAssetId))==0||w.OutdoorStatefulObjects.IsDestructibleDestroyed(a.StableAssetId))continue;
                 var point=Facing(a,at.WorldPosition,metric.CellSize);
@@ -70,7 +71,7 @@ namespace XianXia.Core.Npc
                         !(current is CultivateAction || current is HuangcunSurvivalAction build&&PrivateCampService.IsTask(build.Task)))continue;
                     MarkNearby(w,guard.Id,from.SurfaceId,at.WorldPosition);observer=guard;subject=person;return true;
                 }
-                foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+                foreach(var a in PrivateCampService.Assets(w))
                 {
                     if(!PrivateCampService.Owns(w,a.StableAssetId,w.Strategic.PlayerFactionId)||a.SurfaceId!=from.SurfaceId||
                         w.OutdoorStatefulObjects.IsDestructibleDestroyed(a.StableAssetId))continue;
@@ -91,7 +92,7 @@ namespace XianXia.Core.Npc
         }
         static void MarkNearby(SimulationWorld w,EntityId guard,string surface,WorldVec2 point)
         {
-            foreach(var a in w.OutdoorConstructedAssets.Assets.Values)
+            foreach(var a in PrivateCampService.Assets(w))
                 if(a.SurfaceId==surface&&PrivateCampService.Owns(w,a.StableAssetId,w.Strategic.PlayerFactionId)&&
                     WorldVec2.Distance(point,new WorldVec2(a.WorldX+a.WorldWidth*.5f,a.WorldY+a.WorldHeight*.5f))<=w.OpeningArea.CellSize*PrivateCampService.RadiusCells*2)
                     w.ContentCounters.Set(Key(guard,a.StableAssetId),1);
@@ -121,7 +122,7 @@ namespace XianXia.Core.Npc
             w.HuangcunSurvival.Message="巡卫正在破坏私人营地："+a.Kind+"，耐久 "+hp;
             if(hp==0)
             {
-                var children=new List<OutdoorConstructedAssetState>();foreach(var b in w.OutdoorConstructedAssets.Assets.Values)if(b.ParentRoomId==a.StableAssetId)children.Add(b);
+                var children=new List<OutdoorConstructedAssetState>();foreach(var b in PrivateCampService.Assets(w))if(b.ParentRoomId==a.StableAssetId)children.Add(b);
                 foreach(var b in children)Destroy(w,b);Destroy(w,a);
                 w.ContentCounters.Set("base:camp-visual-revision",w.ContentCounters.Get("base:camp-visual-revision")+1);
             }
@@ -136,7 +137,7 @@ namespace XianXia.Core.Npc
             if(w.HuangcunSurvival.CampRoomId==a.StableAssetId)
             {
                 w.HuangcunSurvival.CampRoomId="";w.HuangcunSurvival.Places.Remove("camp");
-                foreach(var room in w.OutdoorConstructedAssets.Assets.Values)
+                foreach(var room in PrivateCampService.Assets(w))
                     if(RoomBedGeometry.IsRoom(room)&&PrivateCampService.Owns(w,room.StableAssetId,w.Strategic.PlayerFactionId))
                     {w.HuangcunSurvival.CampRoomId=room.StableAssetId;w.HuangcunSurvival.Places["camp"]=BasicCraftService.Point(w,room);break;}
             }
@@ -144,7 +145,7 @@ namespace XianXia.Core.Npc
         public static void CancelDefeated(SimulationWorld w)
         {
             foreach(var guard in w.Entities.All)if(HuangcunOpeningAccess.IsOpeningStaff(w,guard.Id)&&!CombatLifeStateService.CanFight(guard))
-                foreach(var a in w.OutdoorConstructedAssets.Assets.Values)w.ContentCounters.Set(Key(guard.Id,a.StableAssetId),0);
+                foreach(var a in PrivateCampService.Assets(w))w.ContentCounters.Set(Key(guard.Id,a.StableAssetId),0);
         }
     }
 }

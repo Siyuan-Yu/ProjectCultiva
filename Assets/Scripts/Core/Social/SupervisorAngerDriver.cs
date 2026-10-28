@@ -1,4 +1,4 @@
-using XianXia.Core.Actions;
+﻿using XianXia.Core.Actions;
 using XianXia.Core.Concealment;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -22,7 +22,7 @@ namespace XianXia.Core.Social
     /// </summary>
     public sealed class SupervisorAngerDriver
     {
-        public const int ObservationRangeCells = 45;
+        public const int ObservationRangeCells = 50;
         public const int PrisonTrespassBufferCells = 3;
         public static bool IsOnWatch(SimulationWorld world, Entity candidate) =>
             world != null && candidate != null && HuangcunOpeningAccess.IsOpeningStaff(world, candidate.Id) &&
@@ -63,9 +63,12 @@ namespace XianXia.Core.Social
             if (s.LastObservationTick == world.Tick.Value) return;
             s.LastObservationTick = world.Tick.Value;
             world.SupervisorAnger.Value = s.SupervisorAnger;
+            s.SupervisorAnger = world.SupervisorAnger.Value;
             if (s.PunishmentBattleActive || world.Strategic.CharacterEncounter != null) return;
             if (s.PunisherId != 0)
             {
+                FindObservedViolation(world,out var pursuingObserver,out _);
+                ChangePressure(world,pursuingObserver==null?-1:1);
                 // Also handles a v20 save made before pursuit preempted schedule actions.
                 if (loop != null && world.Entities.TryGet(new EntityId(s.PunisherId), out var pursuing) &&
                     pursuing.TryGet<ActionStateComponent>(out var pendingAction) && pendingAction.HasActiveAction)
@@ -77,7 +80,23 @@ namespace XianXia.Core.Social
             PrivateCampRaidService.AdvanceOutdoor(world,loop);
             foreach (var member in world.Entities.All)
                 if (TryBeginPrisonTrespass(world, loop, member.Id)) return;
-            Entity observer = null; Entity subject = null; var best = double.MaxValue;
+            FindObservedViolation(world,out var observer,out var subject);
+            ChangePressure(world,observer==null?-1:1);
+            if (observer == null) return;
+            if (s.SupervisorAnger < SupervisorAngerBoard.MaxValue) return;
+            BeginPursuit(world, loop, observer, subject.Id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
+        }
+
+        static void ChangePressure(SimulationWorld world,int delta)
+        {
+            world.HuangcunSurvival.ObservationSeconds=0;
+            world.SupervisorAnger.Add(delta);
+            world.HuangcunSurvival.SupervisorAnger=world.SupervisorAnger.Value;
+        }
+
+        static void FindObservedViolation(SimulationWorld world,out Entity observer,out Entity subject)
+        {
+            observer = null; subject = null; var best = double.MaxValue;
             foreach (var member in world.Entities.All)
             {
                 if (world.Strategic.PlayerPartyContext?.IsMember(member.Id) != true ||
@@ -97,12 +116,6 @@ namespace XianXia.Core.Social
                     observer=candidate; subject=member; best=distance;
                 }
             }
-            if (observer == null) { s.ObservationSeconds = 0; return; }
-            // One WorldTick is one base real second; acceleration/pause are owned by the world clock.
-            // Finding several observers still creates only one increment in this Tick.
-            s.ObservationSeconds = 0; world.SupervisorAnger.Add(1); s.SupervisorAnger = world.SupervisorAnger.Value;
-            if (s.SupervisorAnger < 100) return;
-            BeginPursuit(world, loop, observer, subject.Id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
         }
 
         public static bool TryFindPrisonObserver(SimulationWorld world, EntityId id, out Entity observer)

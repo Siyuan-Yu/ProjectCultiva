@@ -148,7 +148,7 @@ namespace XianXia.Core.Construction
 
     public sealed class OutdoorConstructedAssetBoard
     {
-        const float SpatialBucketSize = 50f;
+        const float SpatialBucketSize = 2f;
         readonly Dictionary<string, OutdoorConstructedAssetState> _assets =
             new Dictionary<string, OutdoorConstructedAssetState>(StringComparer.Ordinal);
         // Derived query acceleration only. Registered footprints are immutable; snapshot restore
@@ -161,6 +161,8 @@ namespace XianXia.Core.Construction
         readonly Dictionary<string, List<OutdoorConstructedAssetState>> _bedsByRoom =
             new Dictionary<string, List<OutdoorConstructedAssetState>>(StringComparer.Ordinal);
         public IReadOnlyDictionary<string, OutdoorConstructedAssetState> Assets => _assets;
+        // Derived-index invalidation only; not serialized gameplay state.
+        public ulong Revision { get; private set; }
         public IReadOnlyList<OutdoorConstructedAssetState> Beds => _beds;
         public IReadOnlyList<OutdoorConstructedAssetState> BedsInRoom(string roomId) =>
             roomId != null && _bedsByRoom.TryGetValue(roomId, out var beds)
@@ -186,6 +188,7 @@ namespace XianXia.Core.Construction
         }
         public void Clear()
         {
+            Revision++;
             _assets.Clear(); _spatial.Clear(); _exclusiveLocations.Clear();
             _beds.Clear(); _bedsByRoom.Clear(); NextSequence = 1;
         }
@@ -197,6 +200,7 @@ namespace XianXia.Core.Construction
                          asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight))
                 if (Overlaps(existing, asset) && !RoomBedGeometry.IsAllowedNestedPair(existing, asset)) return false;
             _assets.Add(asset.StableAssetId, asset);
+            Revision++;
             if (HasExclusiveLocation(asset)) _exclusiveLocations.Add(asset.BoundLocationId, asset);
             AddToSpatial(asset);
             if (RoomBedGeometry.IsBed(asset))
@@ -225,6 +229,7 @@ namespace XianXia.Core.Construction
                 }
             }
             _assets.Remove(id);
+            Revision++;
         }
         static bool HasExclusiveLocation(OutdoorConstructedAssetState asset) =>
             !string.IsNullOrWhiteSpace(asset.BoundLocationId) &&
@@ -261,15 +266,17 @@ namespace XianXia.Core.Construction
             string surfaceId, float worldX, float worldY, float width, float height)
         {
             if (string.IsNullOrEmpty(surfaceId) || width <= 0f || height <= 0f) yield break;
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            for (var y = Bucket(worldY); y <= Bucket(worldY + height); y++)
-            for (var x = Bucket(worldX); x <= Bucket(worldX + width); x++)
+            var firstX = Bucket(worldX); var firstY = Bucket(worldY);
+            for (var y = firstY; y <= Bucket(worldY + height); y++)
+            for (var x = firstX; x <= Bucket(worldX + width); x++)
             {
                 if (!_spatial.TryGetValue((surfaceId, x, y), out var items)) continue;
                 for (var i = 0; i < items.Count; i++)
                 {
                     var asset = items[i];
-                    if (seen.Add(asset.StableAssetId) &&
+                    // Emit at the first common bucket, exactly once, without a query HashSet.
+                    if (x == Math.Max(firstX, Bucket(asset.WorldX)) &&
+                        y == Math.Max(firstY, Bucket(asset.WorldY)) &&
                         asset.WorldX < worldX + width && worldX < asset.WorldX + asset.WorldWidth &&
                         asset.WorldY < worldY + height && worldY < asset.WorldY + asset.WorldHeight)
                         yield return asset;

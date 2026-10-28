@@ -561,7 +561,7 @@ namespace XianXia.Unity.Host
                 "暴露", exposure, 100, new Color(0.85f, 0.35f, 0.25f));
             DrawInlineMeter(
                 Screen.width - RailW - 200f, 24f, 170f,
-                "主管压", anger, 100, new Color(0.75f, 0.28f, 0.22f));
+                "主管压", anger, XianXia.Core.Social.SupervisorAngerBoard.MaxValue, new Color(0.75f, 0.28f, 0.22f));
 
         }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
 using XianXia.Core.Entities;
@@ -30,9 +30,12 @@ namespace XianXia.Unity.Host
             if (session == null || !session.IsInitialized)
                 return;
 
+            var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+            var logging = bootstrap.GetComponent<HostDestructibleAssault>();
+            var melee = bootstrap.GetComponent<HostNpcMeleeAssault>();
             foreach (var view in viewSpawner.Registry.All)
             {
-                if (view == null || !view.IsBound)
+                if (view == null || !view.IsBound || !view.gameObject.activeInHierarchy)
                     continue;
                 if (!session.World.Entities.TryGet(view.EntityId, out var entity))
                     continue;
@@ -45,9 +48,6 @@ namespace XianXia.Unity.Host
                     specialActivity = "参悟中";
 
                 // 田区农作自管头顶字，勿盖成「发呆中」
-                var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-                var logging = bootstrap.GetComponent<HostDestructibleAssault>();
-                var melee = bootstrap.GetComponent<HostNpcMeleeAssault>();
                 var resolved = HostCharacterActivityPresentation.Resolve(session, entity,
                     inLocalCombat: melee != null && melee.IsInFight(view.EntityId),
                     isMoving: bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(view.EntityId),
