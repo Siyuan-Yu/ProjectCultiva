@@ -283,6 +283,8 @@ namespace XianXia.Unity.Host
 
                 var center = _resolvedCenter[id];
                 if (moveController.IsCharacterStandClear(entity.Id) &&
+                    (intent.DestinationKey != XianXia.Core.Social.SupervisorAngerDriver.SupervisionIntent ||
+                     moveController.HasCharacterSight(entity.Id, new XianXia.Core.Domain.Ids.EntityId(session.World.HuangcunSurvival.PunishmentTargetId))) &&
                     TryMarkArrivedWithinRadius(intent, pos, center,
                         ResolveStandingArrivalRadius(session.World, entity.Id, intent)))
                 {
@@ -427,12 +429,16 @@ namespace XianXia.Unity.Host
                 ReportPathUnavailableOnce(entity, intent, request.TargetKey, view.transform.position, center);
                 return;
             }
-            var accepted = moveController.OrderEntityToWorldPoint(
-                request.Entity, standPoint, null, issueStop: false,
-                exactGoal: !personApproach && (cultivationSlot || intent.ArrivalRadiusWorld > 0f ||
-                    IsGenericConstructionTarget(world, request.Entity, intent)),
-                speedMultiplier: intent.SpeedMultiplier,
-                freeStandRadius: personApproach || intent.ArrivalRadiusWorld <= 0f ? freeStandRadius : 0f);
+            var accepted = intent.DestinationKey == XianXia.Core.Social.SupervisorAngerDriver.SupervisionIntent
+                ? moveController.OrderCharacterApproach(request.Entity,
+                    new XianXia.Core.Domain.Ids.EntityId(world.HuangcunSurvival.PunishmentTargetId), freeStandRadius,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand, requireClearSight: true)
+                : moveController.OrderEntityToWorldPoint(
+                    request.Entity, standPoint, null, issueStop: false,
+                    exactGoal: !personApproach && (cultivationSlot || intent.ArrivalRadiusWorld > 0f ||
+                        IsGenericConstructionTarget(world, request.Entity, intent)),
+                    speedMultiplier: intent.SpeedMultiplier,
+                    freeStandRadius: personApproach || intent.ArrivalRadiusWorld <= 0f ? freeStandRadius : 0f);
             var elapsedMs = (float)((System.Diagnostics.Stopwatch.GetTimestamp() - startedAt) *
                                     1000.0 / System.Diagnostics.Stopwatch.Frequency);
             LastNpcPathBuildMs = elapsedMs;
@@ -540,6 +546,7 @@ namespace XianXia.Unity.Host
 
         static bool IsPersonApproachIntent(MovementIntentComponent intent) =>
             intent != null && (intent.DestinationKey == "huangcun:discipline" ||
+                intent.DestinationKey == XianXia.Core.Social.SupervisorAngerDriver.SupervisionIntent ||
                 (intent.DestinationKey ?? string.Empty).StartsWith("rescue-target:", System.StringComparison.Ordinal));
 
         void SyncCarriedCharacters(XianXia.Core.Simulation.SimulationWorld world)

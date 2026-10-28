@@ -364,7 +364,9 @@ namespace XianXia.Unity.Host
                     // handled
                 }
                 else
-                    IssueMoveToMouse();
+                {
+                    if (HostRpgControls.SceneRts) IssueMoveToMouse();
+                }
             }
 
             if (bootstrap.Session.IsPaused)
@@ -402,6 +404,7 @@ namespace XianXia.Unity.Host
         public bool OrderEntityToWorldPointPublic(EntityId id, Vector3 point, System.Action onArrive,
             bool exactGoal = false)
         {
+            if (!HostRpgControls.RequireNear(bootstrap, id, point)) return false;
             if (!OrderEntityToWorldPoint(id, point, null, issueStop: true, exactGoal: exactGoal))
                 return false;
             if (onArrive != null)
@@ -414,6 +417,12 @@ namespace XianXia.Unity.Host
             if (actor.IsNone || npc.IsNone || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(npc, out var npcView) || npcView == null)
                 return false;
+
+            if (!HostRpgControls.SceneRts && !HostRpgControls.NearNpc(bootstrap, actor, npc))
+            {
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "请先走近人物，再交互。");
+                return false;
+            }
 
             npcContextMenu?.CancelRecruitInteractionForActor(actor);
             var policy = action == HostNpcArriveAction.Attack || action == HostNpcArriveAction.Capture
@@ -491,6 +500,12 @@ namespace XianXia.Unity.Host
         /// <summary>进出洞府等瞬切前：清掉表现层走位，避Location 被错误吸附/summary>
         public void CancelPresentationMovementPublic(EntityId id) => CancelPresentationMovement(id);
 
+        public void CancelForControlMode(EntityId id)
+        {
+            ClearHostMove(id);
+            CancelPresentationMovement(id);
+        }
+
         bool RegisterPendingNpcIntent(
             EntityId actor, EntityId npc, HostNpcArriveAction action,
             HostNpcApproachPolicy policy, float requiredRange, Vector3 targetPosition)
@@ -528,6 +543,8 @@ namespace XianXia.Unity.Host
             {
                 var actorId = new EntityId(_pendingNpcIntentKeys[i]);
                 if (!_pendingNpcIntent.TryGetValue(actorId.Value, out var intent)) continue;
+                if (!HostRpgControls.SceneRts && !HostRpgControls.NearNpc(bootstrap, actorId, intent.NpcId))
+                { CancelPendingNpcIntent(actorId); continue; }
                 if (!TryResolveApproachViews(intent, out var actorView, out var targetView))
                 { CancelPendingNpcIntent(actorId); continue; }
                 var distance = Vector2.Distance(actorView.transform.position, targetView.transform.position);
@@ -754,6 +771,10 @@ namespace XianXia.Unity.Host
             if (active.IsNone)
                 return false;
 
+            if (!HostRpgControls.SceneRts &&
+                (!arriveCommand.HasValue || !HostRpgControls.RequireNear(bootstrap, active, point)))
+                return false;
+
             npcContextMenu?.CancelRecruitInteractionForActor(active);
             if (OrderEntityToWorldPoint(active, point, arriveCommand, issueStop: false, arriveLocationId,
                     freeStandRadius: arriveCommand.HasValue ? 0f : 1.25f,
@@ -844,18 +865,36 @@ namespace XianXia.Unity.Host
                 ClearHostMove(id);
             ResumeTime();
 
-            var dt = Time.deltaTime;
+            var dt = GaitPresentationDeltaTime;
             var pos = view.transform.position;
             var startPos = pos;
             speed = ScaleMovementSpeed(id, speed);
-            var dx = dir.x * speed * dt;
-            var dy = dir.y * speed * dt;
+            var distanceBudget = speed * Mathf.Max(0f, dt);
+            var maxStep = Mathf.Max(.01f, (_walkGrid?.CellSize ?? 1f) * .25f);
+            // Same scaled distance as route movement, with bounded swept steps at high speed.
+            for (var stepIndex = 0; stepIndex < 256 && distanceBudget > .00001f; stepIndex++)
+            {
+                var step = Mathf.Min(distanceBudget, maxStep);
+                var from = pos;
+                if (_walkGrid != null && !IsFlying(id))
+                {
+                    TryAxisStep(view, ref pos, dir.x * step, 0f);
+                    TryAxisStep(view, ref pos, 0f, dir.y * step);
+                }
+                else
+                {
+                    pos.x += dir.x * step;
+                    pos.y += dir.y * step;
+                }
+                pos.z = HostPresentationSpace.EntityZ;
+                pos = FilterCharacterStep(view, from, pos, pos,
+                    speed > 0f ? step / speed : 0f, requireWaypointConnection: false);
+                distanceBudget -= step;
+                if ((pos - from).sqrMagnitude < .00000001f) break;
+            }
 
             if (_walkGrid != null && !IsFlying(id))
             {
-                TryAxisStep(view, ref pos, dx, 0f);
-                TryAxisStep(view, ref pos, 0f, dy);
-
                 // 卡边缘保底：仅当 Active 当前 cell 本身不可走/出界（出生进了 blocked 格或透明
                 // exit / grid 外）时才用 nearest-safe-walkable resolver 拉回最近合法 cell。
                 // 正常撞墙（站在 walkable 格上被阻挡）不触发，避免按向障碍物时瞬移。
@@ -864,15 +903,7 @@ namespace XianXia.Unity.Host
                 else if (!_walkGrid.IsWalkable(gx2, gy2))
                     SnapOntoWalkableIfNeeded(view);
             }
-            else
-            {
-                pos.x += dx;
-                pos.y += dy;
-            }
-
             pos.z = HostPresentationSpace.EntityZ;
-            pos = FilterCharacterStep(view, startPos, pos, pos,
-                Mathf.Max(0f, dt), requireWaypointConnection: false);
             view.transform.position = pos;
             view.RecordLocomotion(pos - startPos);
             CaptureIndependentTacticalPosition(view);
@@ -1353,8 +1384,16 @@ namespace XianXia.Unity.Host
                     view.EntityId, view.transform.position);
                 return;
             }
-            bootstrap.ContinuousOutdoorSurfaceRuntime.TryCaptureIndependentParticipantPosition(
-                view.EntityId, view.transform.position);
+            if (!bootstrap.ContinuousOutdoorSurfaceRuntime.TryCaptureIndependentParticipantPosition(
+                    view.EntityId, view.transform.position))
+            {
+                // Non-civilian personal schedules (notably the supervisor) also move between
+                // destinations. Publish their current feet, not only their eventual arrival,
+                // so Core observation and indoor eligibility follow the visible watch circle.
+                // The runtime retains all personal/squad/party/encounter ownership checks.
+                bootstrap.ContinuousOutdoorSurfaceRuntime.CommitContinuousNpcPosition(
+                    view.EntityId, view.transform.position);
+            }
         }
 
         bool IsTransportAttached(EntityId id, out EntityId carrier)
@@ -1424,7 +1463,7 @@ namespace XianXia.Unity.Host
 
             if (commandBridge != null)
             {
-                var dur = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass
+                var dur = kind == PlayerCommandKind.Stop
                     ? 0UL
                     : kind == PlayerCommandKind.Labor
                         ? commandBridge.GatherDurationTicks()

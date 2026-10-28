@@ -11,6 +11,7 @@ namespace XianXia.Unity.Host
         bool _battleCursorOwned;
         bool CanRtsAttack(EntityId actor, EntityId target)
         {
+            if (!HostRpgControls.SceneRts) return false;
             var world = bootstrap?.Session?.World;
             if (world == null || actor.IsNone || target.IsNone ||
                 bootstrap.Session.PlayerParty.IsPlayerControllableMember(actor) != true ||

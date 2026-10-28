@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using XianXia.Core.Combat;
-using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Labor;
@@ -44,7 +43,6 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new CombatArtsComponent());
             entity.AddComponent(new DailyTaskComponent());
             entity.AddComponent(new KnownSitesComponent());
-            entity.AddComponent(new PersonalConcealmentRiskComponent());
             entity.AddComponent(new PersonalityProfileComponent());
             entity.AddComponent(new RelationshipComponent());
             entity.AddComponent(new FactionMembershipComponent());

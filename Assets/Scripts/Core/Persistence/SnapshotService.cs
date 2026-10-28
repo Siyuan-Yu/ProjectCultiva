@@ -6,7 +6,6 @@ using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Construction;
-using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -218,9 +217,6 @@ namespace XianXia.Core.Persistence
                     foreach (var siteId in known.KnownIds)
                         dto.KnownSiteIds.Add(siteId);
                 }
-
-                if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                    dto.PersonalConcealmentRisk = risk.Value;
 
                 if (entity.TryGet<EntityLocationComponent>(out var location) && location != null)
                 {
@@ -1040,7 +1036,6 @@ namespace XianXia.Core.Persistence
                 var known = new KnownSitesComponent();
                 known.Restore(e.KnownSiteIds);
                 entity.AddComponent(known);
-                entity.AddComponent(new PersonalConcealmentRiskComponent { Value = e.PersonalConcealmentRisk });
 
                 var faction = new FactionMembershipComponent { InitialLoyalty = e.InitialLoyalty };
                 if (!string.IsNullOrEmpty(e.FactionId))

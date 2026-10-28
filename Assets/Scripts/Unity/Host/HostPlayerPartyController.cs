@@ -753,7 +753,7 @@ namespace XianXia.Unity.Host
             {
                 if (_spawner != null && _spawner.Registry.TryGet(active, out var continuousView) && continuousView != null)
                 {
-                    var continuousDeltaTime = Time.deltaTime > 0f ? Time.deltaTime : Time.unscaledDeltaTime;
+                    var continuousDeltaTime = bootstrap.PresentationDeltaTime;
                     return bootstrap.ContinuousOutdoorSurfaceRuntime.TryStepAcrossCoverageBoundary(
                         continuousView.transform.position + new Vector3(dir.x, dir.y, 0f) * speed * continuousDeltaTime);
                 }
@@ -809,6 +809,8 @@ namespace XianXia.Unity.Host
             var party = Party;
             var motion = world?.PlayerPartyTravel;
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (!HostRpgControls.MapClickTravel && motion?.IsMoving == true)
+            { bootstrap.WorldMapPanel?.CancelClickTravel(); ResetSurfaceAutoTravelTracking(); return; }
             if (world == null || party == null || !party.HasActive ||
                 !PlayerPartySurfaceTravelService.IsActiveSurfaceTravel(motion))
             {

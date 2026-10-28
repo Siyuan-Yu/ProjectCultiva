@@ -1,5 +1,4 @@
 ﻿using XianXia.Core.Actions;
-using XianXia.Core.Concealment;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -24,6 +23,30 @@ namespace XianXia.Core.Social
     {
         public const int ObservationRangeCells = 50;
         public const int PrisonTrespassBufferCells = 3;
+        public const string SupervisionIntent = "huangcun:supervision";
+        const string SupervisionModeKey = "base:huangcun_discipline_supervision";
+
+        public static bool IsSupervising(SimulationWorld world) =>
+            world?.HuangcunSurvival?.Enabled == true && !world.HuangcunSurvival.PunishmentBattleActive &&
+            world.HuangcunSurvival.PunisherId != 0 && world.HuangcunSurvival.PunishmentTargetId != 0 &&
+            world.ContentCounters.Get(SupervisionModeKey) == 1;
+
+        public static string DescribeSupervision(SimulationWorld world)
+        {
+            if (!IsSupervising(world) || !HuangcunOpeningAccess.IsLocked(world) || world.Strategic.CharacterEncounter != null ||
+                !world.Entities.TryGet(new EntityId(world.HuangcunSurvival.PunisherId), out var observer) ||
+                !world.Entities.TryGet(new EntityId(world.HuangcunSurvival.PunishmentTargetId), out var subject)) return null;
+            if (!IsViolating(world, subject)) return subject.DisplayName + "已开始履行日程，督工即将结束。";
+            var activity = RequiredActivity(world, subject) == ScheduleActivity.Rest ? "休息" : "劳动";
+            return subject.DisplayName + "被" + observer.DisplayName + "发现没有按时" + activity +
+                "；现在应当" + activity + "。" + observer.DisplayName + "正在跟随督工，实际开始后解除。";
+        }
+
+        public static string DescribeSupervisingObserver(SimulationWorld world, EntityId id) =>
+            IsSupervising(world) && world.Strategic.CharacterEncounter == null &&
+            world.HuangcunSurvival.PunisherId == id.Value &&
+            world.Entities.TryGet(new EntityId(world.HuangcunSurvival.PunishmentTargetId), out var target)
+                ? "督工：跟随" + target.DisplayName : null;
         public static bool IsOnWatch(SimulationWorld world, Entity candidate) =>
             world != null && candidate != null && HuangcunOpeningAccess.IsOpeningStaff(world, candidate.Id) &&
             CanObserveOutdoors(world, candidate);
@@ -65,7 +88,7 @@ namespace XianXia.Core.Social
             world.SupervisorAnger.Value = s.SupervisorAnger;
             s.SupervisorAnger = world.SupervisorAnger.Value;
             if (s.PunishmentBattleActive || world.Strategic.CharacterEncounter != null) return;
-            if (s.PunisherId != 0)
+            if (s.PunisherId != 0 && !IsSupervising(world))
             {
                 FindObservedViolation(world,out var pursuingObserver,out _);
                 ChangePressure(world,pursuingObserver==null?-1:1);
@@ -82,8 +105,47 @@ namespace XianXia.Core.Social
                 if (TryBeginPrisonTrespass(world, loop, member.Id)) return;
             FindObservedViolation(world,out var observer,out var subject);
             ChangePressure(world,observer==null?-1:1);
+            if (IsSupervising(world))
+            {
+                var guardId = new EntityId(s.PunisherId);
+                var targetId = new EntityId(s.PunishmentTargetId);
+                world.Entities.TryGet(guardId, out var guard);
+                world.Entities.TryGet(targetId, out var target);
+                var valid = guard != null && target != null &&
+                    HuangcunOpeningAccess.IsOpeningStaff(world, guardId) &&
+                    world.Strategic.PlayerPartyContext?.IsMember(guardId) != true &&
+                    world.Strategic.PlayerPartyContext?.IsMember(targetId) == true &&
+                    HuangcunSurvivalService.Applies(world, target) && !HuangcunSurvivalService.IsPrisoner(world, targetId) &&
+                    CombatLifeStateService.CanFight(guard) && CombatLifeStateService.CanFight(target) &&
+                    !PartyRestService.IsResting(world, guard) &&
+                    MortalTransportConstraintService.ValidateAttack(world, guardId).IsSuccess &&
+                    !SeparateSpaceTransitionService.IsOwnedByActiveSeparateSpace(world, guardId) &&
+                    !world.BackgroundCharacterTravel.IsTraveling(guardId) &&
+                    !world.GetOrCreateOrderQueue(guardId).HasSource(OrderSource.Player) &&
+                    !world.GetOrCreateOrderQueue(guardId).HasSource(OrderSource.Event) &&
+                    !(guard.TryGet<ActionStateComponent>(out var control) && control.HasActiveAction &&
+                        control.ActiveOrderSource != OrderSource.Schedule) &&
+                    (!world.Civilians.TryGet(guardId, out var custody) ||
+                        custody.Disposition == CivilianDisposition.Normal && custody.SleepPhase == CivilianSleepPhase.None &&
+                        custody.RescueTargetId.IsNone) &&
+                    CharacterWorldPresenceQuery.TryResolve(world, guardId, out var guardAt) && guardAt.HasWorldPosition &&
+                    CharacterWorldPresenceQuery.TryResolve(world, targetId, out var targetAt) && targetAt.HasWorldPosition &&
+                    guardAt.SurfaceId == targetAt.SurfaceId;
+                if (!valid) EndSupervision(world, "督工已结束：人物或所在空间发生变化。");
+                else if (!IsViolating(world, target))
+                    EndSupervision(world, target.DisplayName + "已履行当前日程，巡视者停止督工并返回原安排。");
+                else if (observer == null || s.SupervisorAnger < SupervisorAngerBoard.MaxValue)
+                {
+                    FollowForSupervision(world, guard, target);
+                    return;
+                }
+            }
             if (observer == null) return;
-            if (s.SupervisorAnger < SupervisorAngerBoard.MaxValue) return;
+            if (s.SupervisorAnger < SupervisorAngerBoard.MaxValue)
+            {
+                BeginSupervision(world, loop, observer, subject);
+                return;
+            }
             BeginPursuit(world, loop, observer, subject.Id, "违规被巡查者发现，主管怒气已满，正前来惩戒。");
         }
 
@@ -154,7 +216,7 @@ namespace XianXia.Core.Social
             if (world?.HuangcunSurvival.Enabled != true || !HuangcunOpeningAccess.IsLocked(world)) return false;
             PrivateCampRaidService.CancelDefeated(world);
             var s = world.HuangcunSurvival;
-            if (s.PunisherId != 0) return s.PunishmentTargetId == id.Value;
+            if (s.PunisherId != 0 && !IsSupervising(world)) return s.PunishmentTargetId == id.Value;
             if (!TryFindPrisonObserver(world, id, out var observer)) return false;
             BeginPursuit(world, loop, observer, id, "靠近牢房禁区被" + observer.DisplayName + "发现，正在追赶你！");
             return true;
@@ -162,6 +224,8 @@ namespace XianXia.Core.Social
 
         static void BeginPursuit(SimulationWorld world, SimulationLoop loop, Entity observer, EntityId id, string message)
         {
+            if (IsSupervising(world)) EndSupervision(world, null);
+            world.ContentCounters.Set(SupervisionModeKey, 0);
             var s = world.HuangcunSurvival;
             s.ObservationSeconds = 0;
             s.PunisherId = observer.Id.Value; s.PunishmentTargetId = id.Value;
@@ -170,6 +234,64 @@ namespace XianXia.Core.Social
             world.Strategic.SuppressedCharacterContacts.Remove(CharacterEncounterService.ContactKey(observer.Id, id));
             s.Message = message;
             Pursue(world);
+        }
+
+        static void BeginSupervision(SimulationWorld world, SimulationLoop loop, Entity observer, Entity subject)
+        {
+            var s = world.HuangcunSurvival;
+            s.PunisherId = observer.Id.Value;
+            s.PunishmentTargetId = subject.Id.Value;
+            world.ContentCounters.Set(SupervisionModeKey, 1);
+            loop?.StopSubject(observer.Id);
+            world.WorkAreaOccupancy.Release(observer.Id);
+            s.Message = DescribeSupervision(world);
+            FollowForSupervision(world, observer, subject);
+        }
+
+        static void EndSupervision(SimulationWorld world, string message)
+        {
+            var s = world.HuangcunSurvival;
+            if (world.Entities.TryGet(new EntityId(s.PunisherId), out var actor) &&
+                actor.TryGet<MovementIntentComponent>(out var movement) && movement.DestinationKey == SupervisionIntent)
+                movement.Clear();
+            s.PunisherId = s.PunishmentTargetId = 0;
+            world.ContentCounters.Set(SupervisionModeKey, 0);
+            if (!string.IsNullOrEmpty(message)) s.Message = message;
+        }
+
+        static void FollowForSupervision(SimulationWorld world, Entity observer, Entity subject)
+        {
+            if (!CharacterWorldPresenceQuery.TryResolve(world, observer.Id, out var from) || !from.HasWorldPosition ||
+                !CharacterWorldPresenceQuery.TryResolve(world, subject.Id, out var to) || !to.HasWorldPosition ||
+                from.SurfaceId != to.SurfaceId) return;
+            var radius = world.OpeningArea.CellSize * 3f;
+            var visible = WorldObservation.HasLineOfSight(world, from.SurfaceId, from.WorldPosition, to.WorldPosition);
+            if (WorldVec2.Distance(from.WorldPosition, to.WorldPosition) <= radius &&
+                visible)
+            {
+                if (observer.TryGet<MovementIntentComponent>(out var arrived) && arrived.DestinationKey == SupervisionIntent)
+                    arrived.Clear();
+                return;
+            }
+            if (!world.ContinuousOutdoorMaterialization.IsMaterialized(observer.Id))
+            {
+                NpcColdMovement.Advance(world, observer, to.SurfaceId, to.WorldPosition,
+                    visible ? radius : world.OpeningArea.CellSize * .5f, out _);
+                return;
+            }
+            if (!observer.TryGet<MovementIntentComponent>(out var intent))
+            { intent = new MovementIntentComponent(); observer.AddComponent(intent); }
+            if (!intent.Active || intent.HostArrived || intent.DestinationKey != SupervisionIntent ||
+                WorldVec2.Distance(new WorldVec2(intent.TargetWorldX, intent.TargetWorldY), to.WorldPosition) > radius * .5f)
+                intent.BeginWorldPoint(to.SurfaceId, to.WorldPosition.X, to.WorldPosition.Y,
+                    destinationKey: SupervisionIntent, arrivalRadiusWorld: radius);
+        }
+
+        static ScheduleActivity RequiredActivity(SimulationWorld world, Entity subject)
+        {
+            return subject.TryGet<ScheduleComponent>(out var schedule) &&
+                world.TryGetSchedule(schedule.DefinitionId, out var definition) && definition.TryResolve(world.Tick, out var block)
+                ? block.Activity : ScheduleActivity.Idle;
         }
 
         static bool IsViolating(SimulationWorld world, Entity subject)
@@ -212,7 +334,7 @@ namespace XianXia.Core.Social
         }
 
         public static bool IsPunishmentPair(SimulationWorld world, EntityId attacker, EntityId target) =>
-            world?.HuangcunSurvival?.Enabled == true && world.HuangcunSurvival.PunisherId == attacker.Value &&
+            world?.HuangcunSurvival?.Enabled == true && !IsSupervising(world) && world.HuangcunSurvival.PunisherId == attacker.Value &&
             world.HuangcunSurvival.PunishmentTargetId == target.Value && !attacker.IsNone && !target.IsNone &&
             !IsDeclaredWarPair(world, attacker, target);
         static bool IsDeclaredWarPair(SimulationWorld world, EntityId attacker, EntityId target) =>
@@ -225,7 +347,9 @@ namespace XianXia.Core.Social
         {
             var s = world.HuangcunSurvival;
             if (s.PunisherId != 0 && world.Entities.TryGet(new EntityId(s.PunisherId),out var actor) &&
-                actor.TryGet<MovementIntentComponent>(out var intent) && intent.DestinationKey == "huangcun:discipline") intent.Clear();
+                actor.TryGet<MovementIntentComponent>(out var intent) &&
+                (intent.DestinationKey == "huangcun:discipline" || intent.DestinationKey == SupervisionIntent)) intent.Clear();
+            world.ContentCounters.Set(SupervisionModeKey, 0);
             s.SupervisorAnger = s.ObservationSeconds = 0; s.PunisherId = s.PunishmentTargetId = 0; s.PunishmentBattleActive = false;
             world.SupervisorAnger.Value = 0;
         }

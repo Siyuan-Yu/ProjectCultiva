@@ -846,6 +846,7 @@ namespace XianXia.Core.Persistence
         public string ScheduleDefinitionId { get; set; }
         public int ActiveOrderSource { get; set; }
         public List<string> KnownSiteIds { get; set; } = new List<string>();
+        /// <summary>Retired read-only JSON compatibility slot; never restored to a runtime component or emitted on save.</summary>
         public int PersonalConcealmentRisk { get; set; }
         /// <summary>EntityLocation 是运行时地点真源；false 表示该实体当前无 Interior Location。</summary>
         public bool HasEntityLocation { get; set; }

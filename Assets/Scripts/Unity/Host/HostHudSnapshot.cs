@@ -1,5 +1,4 @@
 using System.Text;
-using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -30,7 +29,6 @@ namespace XianXia.Unity.Host
         public string ActionLine { get; private set; } = "none";
         public string ScheduleLine { get; private set; } = "none";
         public string QuotaLine { get; private set; } = "-";
-        public int Risk { get; private set; }
         public string RealmLine { get; private set; } = "-";
         public bool PendingReprimand { get; private set; }
         public int KnownSites { get; private set; }
@@ -74,7 +72,6 @@ namespace XianXia.Unity.Host
             snap.ActionLine = FormatAction(session, entity);
             snap.ScheduleLine = FormatSchedule(session, entity, session.World.Tick);
             FormatQuota(entity, snap);
-            snap.Risk = entity.TryGet<PersonalConcealmentRiskComponent>(out var risk) ? risk.Value : 0;
             snap.RealmLine = FormatRealm(entity);
             snap.KnownSites = entity.TryGet<KnownSitesComponent>(out var sites) ? sites.KnownIds.Count : 0;
             snap.PersonalityLine = FormatPersonality(entity);
@@ -151,8 +148,7 @@ namespace XianXia.Unity.Host
             sb.Append("Schedule: ").Append(ScheduleLine).Append('\n');
             sb.Append("Quota: ").Append(QuotaLine).Append('\n');
             sb.Append("Travel: ").Append(TravelLine).Append('\n');
-            sb.Append("Risk: ").Append(Risk)
-                .Append("  Realm: ").Append(RealmLine)
+            sb.Append("Realm: ").Append(RealmLine)
                 .Append("  Sites: ").Append(KnownSites);
             if (PendingReprimand)
                 sb.Append("  REPRIMAND");

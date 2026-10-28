@@ -1,5 +1,9 @@
 # 架构决策记录（ADR）索引
 
+- [ADR-0074：退役旧暴露值机制](ADR-0074-retire-personal-exposure-mechanic.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-28）；删除运行组件、修炼累计和敛息草降值入口，旧档只读兼容与稳定命令号保留，详见429。
+
+- [ADR-0073：普通日程违规先提示并跟随督工](ADR-0073-violation-notice-and-supervision-follow.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-28）；低压跟随、实际履行解除、保留正式惩戒，正式HUD旧暴露条退役，详见428。
+
 - [ADR-0072：私人营地标记与荒村首版生产](ADR-0072-private-camp-and-opening-production.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-28），完整交接425；无告密，实际观察后先战人再拆基地，旗帜提供私人建设范围而非行政领地。
 - [ADR-0071：城池可编辑巡视点与真实路线](ADR-0071-settlement-patrol-waypoints.md) — Design Confirmed / Implemented / Producer Acceptance Pending（2026-10-27）；地图设点、巡卫顺序／主管随机、到位短停与v21既有进度保存，详见420。
 

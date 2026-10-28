@@ -69,6 +69,7 @@ namespace XianXia.Unity.Host
             if (spawner == null || selectionCamera == null)
                 return;
             if (HostInputGate.BlockWorldInteraction ||
+                !HostRpgControls.SceneRts && HostRpgControls.InCombat(GetComponent<PlayableHostBootstrap>()) ||
                 HostDirectionalRangedAttack.ClaimsPointer(GetComponent<PlayableHostBootstrap>()))
             {
                 CancelGesture();
@@ -97,7 +98,7 @@ namespace XianXia.Unity.Host
                     CancelGesture();
                     return;
                 }
-                if (!_dragging &&
+                if (HostRpgControls.SceneRts && !_dragging &&
                     Vector2.Distance(_pressScreen, _currentScreen) >= dragThresholdPixels)
                 {
                     _dragging = true;
@@ -146,7 +147,7 @@ namespace XianXia.Unity.Host
 
             // Demo [49]: double-click own unit → select all party characters.
             var now = Time.unscaledTime;
-            if (!shiftToggle &&
+            if (HostRpgControls.SceneRts && !shiftToggle &&
                 best.EntityId == _lastClickId &&
                 now - _lastClickTime <= DoubleClickSeconds &&
                 spawner != null)

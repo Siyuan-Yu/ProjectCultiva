@@ -9,8 +9,7 @@
         { "resourceId": "base:resource_rough_wood", "amount": 500 },
         { "resourceId": "base:resource_rough_stone", "amount": 500 },
         { "resourceId": "base:resource_spirit_herb", "amount": 2 },
-        { "resourceId": "base:resource_grain", "amount": 80 },
-        { "resourceId": "base:resource_conceal_grass", "amount": 3 }
+        { "resourceId": "base:resource_grain", "amount": 80 }
       ]
     }
   ]

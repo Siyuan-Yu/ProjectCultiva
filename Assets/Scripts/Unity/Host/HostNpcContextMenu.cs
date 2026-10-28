@@ -126,6 +126,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ResetNearbyHint();
             CancelRecruitInteraction();
             CancelPendingPrisonBedCommand(true, "会话已重建");
             ReleaseInteractionNpcNow();
@@ -150,26 +151,12 @@ namespace XianXia.Unity.Host
             var spawner = bootstrap.ViewSpawner;
 
             if (HostNpcPicker.TryPickAtMouse(worldCamera, spawner, out var npc, out _) &&
-                !selectionController.IsPartyUnit(npc))
+                // Permanent roster / management eligibility does not make a confined person
+                // a free command target. Let their existing person-to-person prison menu run.
+                (PrisonConfinementService.TryGetRoom(bootstrap.Session.World, npc, out _) ||
+                 !selectionController.IsPartyUnit(npc)))
             {
-                if (bootstrap.Session.World.Civilians.TryGet(npc, out var captured) &&
-                    captured.Disposition == CivilianDisposition.CapturedEscorted && captured.CarrierId != actor)
-                    return false;
-                _actor = actor;
-                _targetNpc = npc;
-                _targetControlCoreWorkAreaId = string.Empty;
-                _targetFactionFlagId = string.Empty;
-                _targetEntranceLocationId = string.Empty;
-                _targetDestructible = null;
-                _targetLabel = ResolveDisplayName(npc);
-                if (CanRtsAttack(actor, npc))
-                { BeginAttack(); return true; }
-                _prisonVisitMenu = HuangcunPrisonVisitService.Applies(bootstrap.Session.World) &&
-                    HuangcunSurvivalService.IsPrisoner(bootstrap.Session.World, npc);
-                _menuScreen = Input.mousePosition;
-                _phase = Phase.Menu;
-                HostInputGate.AcquireInteraction(InputOwner);
-                return true;
+                return OpenNpcMenu(actor, npc, Input.mousePosition);
             }
 
             MapLayoutDefinition layout = null;
@@ -210,21 +197,13 @@ namespace XianXia.Unity.Host
             {
                 // Room floors use left-click inspection; right-click remains ordinary movement.
                 if (objectTarget.Kind == WorldObjectTargetKind.Room) return false;
-                if (objectTarget.Kind == WorldObjectTargetKind.FarmPlot &&
+                if (HostRpgControls.SceneRts && objectTarget.Kind == WorldObjectTargetKind.FarmPlot &&
                     (!objectTarget.TryCreateContentContext(actor, out var farmContext) ||
                      new ContentEventService().ResolveInteractionCandidates(
                          bootstrap.Session.World, farmContext, "onInspect").Count == 0))
                     return bootstrap.WorkTargetMode != null &&
                            bootstrap.WorkTargetMode.TryHandleContextTarget(objectTarget);
-                _actor = actor;
-                _targetNpc = EntityId.None;
-                _targetEntranceLocationId = string.Empty;
-                SetWorldObjectTarget(objectTarget);
-                _prisonVisitMenu = false;
-                _menuScreen = Input.mousePosition;
-                _phase = Phase.Menu;
-                HostInputGate.AcquireInteraction(InputOwner);
-                return true;
+                return OpenObjectMenu(actor, objectTarget, Input.mousePosition);
             }
 
             return false;
@@ -292,6 +271,11 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            TickNearbyHint();
+            if (Input.GetKeyDown(KeyCode.F) && !HostInputGate.TextInputFocused)
+            {
+                if (_phase == Phase.Closed) TryOpenNearby();
+            }
             TickRecruitInteraction();
             TickPendingPrisonBedCommand();
             if (_phase == Phase.Closed)
@@ -301,6 +285,11 @@ namespace XianXia.Unity.Host
                 return;
             }
             HostInputGate.AcquireInteraction(InputOwner);
+
+            if (!HostRpgControls.SceneRts && _phase == Phase.Menu &&
+                ((!_targetNpc.IsNone && !HostRpgControls.NearNpc(bootstrap, _actor, _targetNpc)) ||
+                 (_worldObjectTarget.IsValid && !HostRpgControls.NearObject(bootstrap, _actor, _worldObjectTarget))))
+            { CloseAll(); return; }
 
             if (_worldObjectTarget.IsValid &&
                 !HostWorldObjectPicker.IsTargetLocallyVisible(bootstrap, _worldObjectTarget))
@@ -321,13 +310,15 @@ namespace XianXia.Unity.Host
         void OnGUI()
         {
             if (_phase == Phase.Closed)
-                return;
+            { DrawNearbyHint(); return; }
 
             EnsureStyles();
             switch (_phase)
             {
                 case Phase.Menu:
-                    if (_prisonVisitMenu)
+                    if (_hasNearbySpot)
+                        DrawNearbySpotMenu();
+                    else if (_prisonVisitMenu)
                         DrawPrisonVisitMenu();
                     else if (IsCaveEntranceTarget)
                         DrawCaveMenu();
@@ -349,7 +340,15 @@ namespace XianXia.Unity.Host
                         DrawPrisonDropOffMenu();
                     else if (_worldObjectTarget.Kind == WorldObjectTargetKind.FarmPlot)
                         DrawFarmPlotMenu();
-                    else if (IsReadOnlyWorldObjectTarget)
+                    else if (_worldObjectTarget.Kind == WorldObjectTargetKind.Furniture &&
+                        (_worldObjectTarget.Plot?.InteractKind == HostInteractSpotKind.Work ||
+                         _worldObjectTarget.Plot?.InteractKind == HostInteractSpotKind.Cultivate ||
+                         _worldObjectTarget.Plot?.InteractKind == HostInteractSpotKind.Explore))
+                        DrawNearbySpotMenu();
+                    else if (IsReadOnlyWorldObjectTarget || _worldObjectTarget.Kind == WorldObjectTargetKind.Room ||
+                        _worldObjectTarget.Kind == WorldObjectTargetKind.Door ||
+                        _worldObjectTarget.Kind == WorldObjectTargetKind.Furniture ||
+                        _worldObjectTarget.Kind == WorldObjectTargetKind.OpportunityObject)
                         DrawReadOnlyWorldObjectMenu();
                     else
                         DrawContextMenu();
@@ -1624,6 +1623,11 @@ namespace XianXia.Unity.Host
             var npc = _targetNpc;
             var world = bootstrap?.Session?.World;
             var encounter = world?.Strategic?.CharacterEncounter;
+            if (!HostRpgControls.SceneRts && encounter != null)
+            {
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "使用WASD靠近，朝鼠标方向按住左键普攻。");
+                CloseAll(); return;
+            }
             if (!actor.IsNone && !npc.IsNone && encounter != null &&
                 (encounter.Phase == CharacterEncounterPhase.Active ||
                  encounter.Phase == CharacterEncounterPhase.ReadyToEnd) &&
@@ -2092,6 +2096,7 @@ namespace XianXia.Unity.Host
 
         void CloseAll()
         {
+            _hasNearbySpot = false;
             bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);
             _phase = Phase.Closed;
             _targetNpc = EntityId.None;

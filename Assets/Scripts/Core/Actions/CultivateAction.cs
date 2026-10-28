@@ -1,4 +1,3 @@
-using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -119,9 +118,6 @@ namespace XianXia.Core.Actions
             if (cultivation.HasLearnedManual)
                 new SkillMasteryService().AddManualMasteryProgress(
                     world, Subject, SkillMasteryRules.CultivateManualProgressGain);
-
-            if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                risk.Add(ConcealmentExposureRules.CultivateRiskDelta(world, Subject));
 
             if (Clock.IsComplete)
                 Status = ActionStatus.Completed;

@@ -326,11 +326,19 @@ namespace XianXia.Unity.Host
             var dist = session.FromCivilianWork
                 ? DistanceToTargetFootprint(target, attackerPoint)
                 : Vector2.Distance(new Vector2(ax, ay), new Vector2(targetPoint.x, targetPoint.y));
+            var manualWall = target.IsWall && HostRpgControls.ManualActor(bootstrap, attacker) && HostRpgControls.InCombat(bootstrap);
+            if (manualWall)
+            {
+                // The manual controller already checked aim, reach and the common attack clock.
+                if (bootstrap.GetComponent<HostDirectionalRangedAttack>()?.ConsumeStructureSwing(attacker, target.PlacementId) != true)
+                    return true;
+                dist = 0f; session.Cooldown = 0f;
+            }
             // Preserve the original cooldown clock: it advances while in work range,
             // including a short reposition, and pauses while travelling from farther away.
             if (dist <= engageRange)
                 session.Cooldown -= bootstrap.PresentationDeltaTime;
-            if (dist > engageRange || moveController != null && !moveController.IsCharacterStandClear(attacker))
+            if (!manualWall && (dist > engageRange || moveController != null && !moveController.IsCharacterStandClear(attacker)))
             {
                 if (session.FromCivilianWork)
                 {

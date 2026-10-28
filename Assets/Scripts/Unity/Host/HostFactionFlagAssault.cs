@@ -16,6 +16,7 @@ namespace XianXia.Unity.Host
         readonly List<(float X, float Z)> _points = new List<(float, float)>(8);
         readonly List<EntityId> _actors = new List<EntityId>(8);
         string _flagId = string.Empty;
+        public string TargetFlagId => _flagId;
         float _cooldown;
         XianXia.Core.Simulation.SimulationWorld _world;
 
@@ -59,13 +60,16 @@ namespace XianXia.Unity.Host
                 !HostFactionFlagQuery.IsAnyPointNear(flag, continuous, _points))
                 return;
             var combatActor = encounter?.Find(session.PlayerParty.ActiveCharacterId.Value);
+            var manual = !HostRpgControls.SceneRts;
+            if (manual && _bootstrap.GetComponent<HostDirectionalRangedAttack>()?.ConsumeStructureSwing(
+                    session.PlayerParty.ActiveCharacterId, _flagId) != true) return;
             if (combatActor != null) _cooldown = combatActor.Cooldown;
             else _cooldown -= _bootstrap.PresentationDeltaTime;
-            if (_cooldown > 0f || _actors.Count == 0)
+            if ((!manual && _cooldown > 0f) || _actors.Count == 0)
                 return;
             _cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
             if (combatActor != null) combatActor.Cooldown = _cooldown;
-            var attacker = _actors[0];
+            var attacker = manual ? session.PlayerParty.ActiveCharacterId : _actors[0];
             var hit = FactionFlagService.ApplyStrikeFromAttacker(
                 world, session.PlayerParty, world.Strategic.PlayerFactionId, _flagId, attacker, out var damage);
             if (hit.IsFailure)

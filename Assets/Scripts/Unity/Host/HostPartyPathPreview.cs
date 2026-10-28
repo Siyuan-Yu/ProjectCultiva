@@ -124,6 +124,9 @@ namespace XianXia.Unity.Host
 
         bool CanDraw()
         {
+            // Scene click-move guides are separate from the world-map travel route.
+            if (!HostRpgControls.SceneRts)
+                return false;
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return false;
             if (moveController == null || selectionController == null)

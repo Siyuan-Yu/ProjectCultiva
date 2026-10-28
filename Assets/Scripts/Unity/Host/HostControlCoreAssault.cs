@@ -106,13 +106,17 @@ namespace XianXia.Unity.Host
             {
                 Guidance = "正在攻打核心 · 剩余耐久 " + core.CurrentDurability + "；攻破后仍需留在范围内占领。";
                 var combatActor = encounter?.Find(bootstrap.Session.PlayerParty.ActiveCharacterId.Value);
+                var manual = !HostRpgControls.SceneRts;
+                if (manual && bootstrap.GetComponent<HostDirectionalRangedAttack>()?.ConsumeStructureSwing(
+                        bootstrap.Session.PlayerParty.ActiveCharacterId, _targetWorkAreaId) != true) return;
                 if (combatActor != null) _meleeCooldown = combatActor.Cooldown;
                 else _meleeCooldown -= dt;
+                if (manual) _meleeCooldown = 0f;
                 if (_meleeCooldown <= 0f)
                 {
                     _meleeCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                     if (combatActor != null) combatActor.Cooldown = _meleeCooldown;
-                    var attacker = ResolveAttacker();
+                    var attacker = manual ? bootstrap.Session.PlayerParty.ActiveCharacterId : ResolveAttacker();
                     if (attacker.IsNone)
                         return;
 

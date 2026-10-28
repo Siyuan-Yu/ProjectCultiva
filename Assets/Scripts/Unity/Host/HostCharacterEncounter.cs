@@ -773,6 +773,7 @@ namespace XianXia.Unity.Host
             CharacterEncounterState state)
         {
             var attackerId = _host.Session.PlayerParty.ActiveCharacterId;
+            if (HostDirectionalRangedAttack.OwnsAttack(_host, attackerId)) return;
             if (_host.GetComponent<HostDestructibleAssault>()?.IsAttacker(attackerId) == true) return;
             var attacker = state.Find(attackerId.Value);
             if (attacker == null || attacker.TargetId == 0 || attacker.TargetId == ulong.MaxValue ||

@@ -4,7 +4,6 @@ using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
-using XianXia.Core.Concealment;
 using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
@@ -29,7 +28,7 @@ namespace XianXia.Unity.Host
     /// Play HUD (IMGUI)：顶栏资源／时间 + 右栏任务／课表 + 底部 ACS 风格角色面板。
     /// 非产品 UGUI 皮肤；布局对齐了不起的修仙模拟器底栏信息密度，数据仅绑现有 Core。
     /// </summary>
-    public sealed class HostFormalHud : MonoBehaviour
+    public sealed partial class HostFormalHud : MonoBehaviour
     {
         readonly HostHuangcunSurvivalPanel _survivalPanel = new HostHuangcunSurvivalPanel();
         const float TopH = 48f;
@@ -118,6 +117,11 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (_controlsOpen)
+            {
+                if (Input.GetKeyDown(toggleKey) || Input.GetKeyDown(KeyCode.Escape)) CloseControlSettings();
+                return;
+            }
             if (bootstrap?.GetComponent<HostShopTradePanel>()?.IsOpen == true) return;
             if (Input.GetKeyDown(toggleKey))
                 visible = !visible;
@@ -164,6 +168,7 @@ namespace XianXia.Unity.Host
 
             EnsureStyles();
             HostUiHitTest.BeginFrame();
+            if (DrawControlSettings(session)) { HostUiHitTest.EndFrame(); return; }
             if (bootstrap.ContentInterrupt?.HasBlockingInterrupt != true && HostBasicCraftPanel.Draw(session))
             { HostUiHitTest.EndFrame(); return; }
             if (bootstrap.ContentInterrupt?.HasBlockingInterrupt != true && _survivalPanel.Draw(session))
@@ -345,15 +350,21 @@ namespace XianXia.Unity.Host
             Fill(r, new Color(0.10f, 0.12f, 0.14f, 0.82f));
             HostUiHitTest.Block(r);
             GUI.Label(
-                new Rect(r.x + 8f, r.y + 2f, r.width - 16f, r.height - 4f),
+                new Rect(r.x + 8f, r.y + 2f, r.width - 112f, r.height - 4f),
                 tip,
                 _body);
+            if (GUI.Button(new Rect(r.xMax - 96f, r.y + 5f, 90f, 30f), "操作设置"))
+                OpenControlSettings(session);
         }
 
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
                 "操作：左键选人 · 右键 NPC→攻击／对话 · 交战中 S 停战／右键地面脱离 · 1–6 斗技 · Space暂停 · F10显隐HUD";
+            if (!HostRpgControls.SceneRts)
+                baseOps = "WASD移动 · 战斗左键/长按普攻 · F交互提示目标 · 右键近处菜单 · 非战斗左键查看 · 1–6斗技 · Space暂停";
+            var supervision = SupervisorAngerDriver.DescribeSupervision(session.World);
+            if (!string.IsNullOrEmpty(supervision)) return supervision + "\n" + baseOps;
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -473,7 +484,7 @@ namespace XianXia.Unity.Host
         void DrawTopBar(PlayableHostSession session)
         {
             var day = session.CurrentDayClock;
-            var night = ConcealmentExposureRules.IsNight(session.World.Tick);
+            var night = day.HourOfDay >= 19 || day.HourOfDay < 6;
             var speed = bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : (debugHud != null ? debugHud.SpeedMultiplier : 1);
             var paused = session.IsPaused;
             var pace = bootstrap != null ? bootstrap.EffectiveGameMinutesPerRealSecond() : speed * SimulationTickPacing.GameMinutesPerRealSecondAt1x;
@@ -522,14 +533,12 @@ namespace XianXia.Unity.Host
             var wood = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_rough_wood");
             var herb = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_spirit_herb");
             var grain = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_grain");
-            var grass = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_conceal_grass");
 
             var anger = session.World.SupervisorAnger != null ? session.World.SupervisorAnger.Value : 0;
-            var exposure = ResolvePartyExposure(session);
             var used = bag.UsedSlotCount;
             var cap = bag.SlotCapacity;
             var res = "背包 " + used + "/" + cap + "   " + (network ? "战略物资" : "随身物资") +
-                      "  木 " + wood + "  粮 " + grain + "  药 " + herb + "  敛息草 " + grass;
+                      "  木 " + wood + "  粮 " + grain + "  药 " + herb;
             GUI.Label(new Rect(Screen.width - RailW - 926f, 4f, 604f, 18f), res, _body);
             if (HuangcunOpeningAccess.IsMovementLocked(session.World))
                 GUI.Label(new Rect(Screen.width - RailW - 926f, 24f, 530f, 18f),
@@ -555,10 +564,9 @@ namespace XianXia.Unity.Host
                 panel?.Toggle();
             }
 
-            // 暴露／主管压：全局条（非每人一条）
-            DrawInlineMeter(
-                Screen.width - RailW - 380f, 24f, 170f,
-                "暴露", exposure, 100, new Color(0.85f, 0.35f, 0.25f));
+            // The old exposure number has no discovery consequence; show active supervision instead.
+            if (SupervisorAngerDriver.IsSupervising(session.World))
+                GUI.Label(new Rect(Screen.width - RailW - 380f, 24f, 170f, 18f), "被发现违规 · 督工跟随中", _body);
             DrawInlineMeter(
                 Screen.width - RailW - 200f, 24f, 170f,
                 "主管压", anger, XianXia.Core.Social.SupervisorAngerBoard.MaxValue, new Color(0.75f, 0.28f, 0.22f));
@@ -1242,22 +1250,6 @@ namespace XianXia.Unity.Host
             session?.World != null && session.World.Entities.TryGet(id, out var entity)
                 ? HousingAssignmentService.EntityDisplayName(entity) : "?";
 
-        static int ResolvePartyExposure(PlayableHostSession session)
-        {
-            var max = 0;
-            for (var i = 0; i < session.CharacterIds.Count; i++)
-            {
-                if (!session.World.Entities.TryGet(session.CharacterIds[i], out var e))
-                    continue;
-                if (!e.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                    continue;
-                if (risk.Value > max)
-                    max = risk.Value;
-            }
-
-            return max;
-        }
-
         void DrawInlineMeter(float x, float y, float w, string label, int cur, int max, Color fill)
         {
             GUI.Label(new Rect(x, y - 2f, 48f, 18f), label, _inlineMeterLabel);
@@ -1723,7 +1715,8 @@ namespace XianXia.Unity.Host
         {
             var r = new Rect((Screen.width - 520f) * 0.5f, Screen.height - 36f, 520f, 28f);
             Fill(r, new Color(0.12f, 0.12f, 0.14f, 0.75f));
-            GUI.Label(r, "点选角色查看 · 己方上方下令（默认不自动行动）· 右键也可移动", _body);
+            GUI.Label(r, HostRpgControls.SceneRts ? "点选角色查看 · 己方上方下令 · 右键移动" :
+                "WASD移动 · F附近交互 · 战斗左键/长按普攻 · 点选角色查看", _body);
         }
 
         void DrawActionOrbRow(float x, float y, float width, EntityId focus)
@@ -1748,6 +1741,8 @@ namespace XianXia.Unity.Host
                 };
 
             var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
+            if (!HostRpgControls.SceneRts)
+            { labels[0] = "WASD\n移动"; labels[2] = "F\n交互"; labels[3] = "左键\n普攻"; }
             var gap = showVeil ? 8f : 10f;
             var total = ActionOrb * labels.Length + gap * (labels.Length - 1);
             var startX = x + (width - total) * 0.5f;
@@ -2003,7 +1998,7 @@ namespace XianXia.Unity.Host
             if (focus.IsNone || selectionController == null || !session.PlayerParty.IsActive(focus))
                 return;
 
-            // Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
+            // Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼。
             if (Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
                 InvokeActionIndex(focus, 0);
             else if (Input.GetKeyDown(KeyCode.F1))
@@ -2021,8 +2016,6 @@ namespace XianXia.Unity.Host
                 InvokeActionIndex(focus, 4);
             else if (Input.GetKeyDown(KeyCode.F6))
                 InvokeActionIndex(focus, 5);
-            else if (Input.GetKeyDown(KeyCode.G))
-                IssueFocus(focus, PlayerCommandKind.UseConcealGrass);
         }
 
         void InvokeActionIndex(EntityId focus, int index)
@@ -2235,7 +2228,7 @@ namespace XianXia.Unity.Host
             if (session != null && !session.World.ContentEvents.HasActive &&
                 kind != PlayerCommandKind.Stop)
                 session.IsPaused = false;
-            var dur = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass
+            var dur = kind == PlayerCommandKind.Stop
                 ? 0UL
                 : HostCommandBridge.DefaultDurationTicks;
             commandBridge.IssueOne(focus, kind, dur);

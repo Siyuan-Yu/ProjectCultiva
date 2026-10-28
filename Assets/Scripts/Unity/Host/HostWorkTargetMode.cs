@@ -85,6 +85,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public bool TryHandleContextRightClick()
         {
+            if (!HostRpgControls.SceneRts) return false;
             if (armed != ArmKind.None)
                 return false;
             if (!HasCommandableParty())
@@ -140,7 +141,11 @@ namespace XianXia.Unity.Host
         public bool TryHandleContextTarget(WorldObjectInteractionTarget target)
         {
             if (target.Kind != WorldObjectTargetKind.FarmPlot || target.Plot == null) return false;
+            if (!HostRpgControls.SceneRts && !HostRpgControls.NearObject(bootstrap,
+                    HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap.Session), target)) return false;
             if (RejectBattleWork()) return true;
+            if (!HostRpgControls.SceneRts)
+                selectionController.SelectEntity(HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap.Session), false);
             var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
             if (farm == null)
                 return false;
@@ -152,8 +157,30 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        public bool TryUseNearbySpot(HostInteractSpot spot)
+        {
+            var actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
+            if (!HostRpgControls.RequireNear(bootstrap, actor, spot.WorldPosition)) return false;
+            if (bootstrap.Session.PlayerParty.IsPlayerControllableMember(actor))
+                selectionController.SelectEntity(actor, false);
+            switch (spot.Kind)
+            {
+                case HostInteractSpotKind.Work: IssueWorkAtSpot(spot, spot.WorldPosition); return true;
+                case HostInteractSpotKind.Cultivate: IssueCultivateAtSpot(spot); return true;
+                case HostInteractSpotKind.Explore: IssueExploreAtSpot(spot); return true;
+                case HostInteractSpotKind.Loot: IssueLootAtSpot(spot); return true;
+                default: return false;
+            }
+        }
+
         void SetArmed(ArmKind kind)
         {
+            if (!HostRpgControls.SceneRts && kind != ArmKind.None)
+            {
+                if (kind == ArmKind.Interact) bootstrap?.GetComponent<HostNpcContextMenu>()?.TryOpenNearby();
+                else HostWorldSiteCoreWarfare.Feedback(bootstrap, "RPG操作：WASD移动，战斗左键普攻，F近处交互。");
+                kind = ArmKind.None;
+            }
             armed = kind;
             if (kind == ArmKind.None)
                 ClearCursorOverride();
@@ -192,6 +219,9 @@ namespace XianXia.Unity.Host
                 worldCamera = Camera.main;
             if (moveController == null && bootstrap != null)
                 moveController = bootstrap.GetComponent<HostMoveController>();
+
+            if (!HostRpgControls.SceneRts)
+            { armed = ArmKind.None; ClearCursorOverride(); return; }
 
             if (armed == ArmKind.None)
             {

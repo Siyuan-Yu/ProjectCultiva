@@ -85,7 +85,6 @@ namespace XianXia.Core.Input
             Kind == PlayerCommandKind.AbandonQuest;
 
         public bool IsInstantUtilityIntent =>
-            Kind == PlayerCommandKind.Stop ||
-            Kind == PlayerCommandKind.UseConcealGrass;
+            Kind == PlayerCommandKind.Stop;
     }
 }

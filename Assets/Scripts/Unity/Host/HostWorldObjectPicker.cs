@@ -255,6 +255,14 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
+            if (!HostRpgControls.SceneRts && plot != null && (plot.InteractKind == HostInteractSpotKind.Work ||
+                plot.InteractKind == HostInteractSpotKind.Cultivate || plot.InteractKind == HostInteractSpotKind.Explore))
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Furniture, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
             // Logical schedule anchors have no physical presentation on the continuous map.
             // NPC work selection may still resolve them; legacy LocalMap keeps its click behavior.
             if (continuous != null && continuous.IsActive && purpose == WorldObjectPickPurpose.PlayerInteraction)

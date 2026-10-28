@@ -166,6 +166,8 @@ namespace XianXia.Unity.Host
             if (inLocalCombat && SeparateSpaceCombatPolicy.IsEntityInActiveSpace(world, entity.Id))
                 return "交战中";
 
+            var supervision = XianXia.Core.Social.SupervisorAngerDriver.DescribeSupervisingObserver(world, entity.Id);
+            if (!string.IsNullOrEmpty(supervision)) return supervision;
             if (!string.IsNullOrEmpty(specialActivity)) return specialActivity;
             world.Civilians.TryGet(entity.Id, out var civilian);
             if (entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&

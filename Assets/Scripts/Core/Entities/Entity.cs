@@ -18,7 +18,6 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Labor.DailyTaskComponent),
             typeof(XianXia.Core.Schedule.ScheduleComponent),
             typeof(XianXia.Core.Opportunity.KnownSitesComponent),
-            typeof(XianXia.Core.Concealment.PersonalConcealmentRiskComponent),
             typeof(XianXia.Core.Social.PersonalityProfileComponent),
             typeof(XianXia.Core.Social.RelationshipComponent),
             typeof(XianXia.Core.Social.FactionMembershipComponent),

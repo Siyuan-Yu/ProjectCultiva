@@ -17,6 +17,9 @@ namespace XianXia.Unity.Host
             if (state == null) return "待命";
             var encounterActivity = entity == null ? null : HostCharacterEncounter.DescribeParticipantActivity(world, entity.Id);
             if (encounterActivity != null) return encounterActivity;
+            var supervision = entity == null ? null :
+                XianXia.Core.Social.SupervisorAngerDriver.DescribeSupervisingObserver(world, entity.Id);
+            if (!string.IsNullOrEmpty(supervision)) return supervision;
             if (state.Activity == MortalActivity.Mining) return state.ScheduleStatus;
             if (state.Activity == MortalActivity.PrisonCare)
                 return string.IsNullOrEmpty(state.WardenStatus) ? "监管：照顾囚犯" : state.WardenStatus;

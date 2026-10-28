@@ -1,4 +1,3 @@
-using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Exploration;
@@ -45,6 +44,10 @@ namespace XianXia.Core.Input
         {
             if (request == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "PlayerCommandRequest is null.");
+            // Stable command number 14 is retired. Reject before interrupting any action
+            // or consuming an item, including direct calls made by older clients.
+            if (request.Kind == PlayerCommandKind.UseConcealGrass)
+                return Result.Failure(ErrorCode.InvalidOperation, "暴露值机制已移除，敛息草降暴露指令已停用。");
             if ((request.Kind == PlayerCommandKind.Labor || request.Kind == PlayerCommandKind.Cultivate) &&
                 XianXia.Core.Actions.AutonomousActionContinuationService.BlocksOrdinaryWork(_loop.World, request.Subject))
                 return Result.Failure(ErrorCode.ActionCannotStart,
@@ -97,27 +100,7 @@ namespace XianXia.Core.Input
             if (request.Kind == PlayerCommandKind.Stop)
                 return _loop.StopSubject(request.Subject);
 
-            if (request.Kind == PlayerCommandKind.UseConcealGrass)
-                return UseConcealGrass(request.Subject);
-
             return Result.Failure(ErrorCode.InvalidArgument, "Unsupported utility kind.");
-        }
-
-        Result UseConcealGrass(XianXia.Core.Domain.Ids.EntityId subject)
-        {
-            const string grassId = "base:resource_conceal_grass";
-            const int riskDrop = 15;
-            var world = _loop.World;
-            if (PlayerStrategicResourceService.GetAvailableCount(world, grassId) < 1)
-                return Result.Failure(ErrorCode.InvalidOperation, "No available conceal grass.");
-            if (!world.Entities.TryGet(subject, out var entity) ||
-                !entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                return Result.Failure(ErrorCode.ComponentMissing, "Concealment risk missing.");
-
-            if (PlayerStrategicResourceService.TryConsume(world, grassId, 1, out _).IsFailure)
-                return Result.Failure(ErrorCode.InvalidOperation, "Failed to spend conceal grass.");
-            risk.Add(-riskDrop);
-            return Result.Success();
         }
 
         Result SubmitExploration(PlayerCommandRequest request)

@@ -51,7 +51,8 @@ namespace XianXia.Unity.Host
                 var center = view.transform.position;
                 center.z = HostPresentationSpace.GroundZ;
                 ring.startWidth = ring.endWidth = radius / SupervisorAngerDriver.ObservationRangeCells * .08f;
-                var color = world.HuangcunSurvival.PunisherId == entity.Id.Value
+                var color = world.HuangcunSurvival.PunisherId == entity.Id.Value &&
+                    !SupervisorAngerDriver.IsSupervising(world)
                     ? new Color(1f, .25f, .15f, .65f) : new Color(1f, .78f, .24f, .45f);
                 ring.startColor = ring.endColor = color;
                 ring.transform.position = center;

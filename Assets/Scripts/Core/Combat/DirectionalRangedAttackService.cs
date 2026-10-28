@@ -22,7 +22,15 @@ namespace XianXia.Core.Combat
 
         public static bool CanHit(SimulationWorld world, EntityId actor, EntityId target)
         {
-            if (!CanFire(world, actor) || actor == target ||
+            return CanFire(world, actor) && CanHitMelee(world, actor, target);
+        }
+
+        /// <summary>Shared legal target gate for manual basic attacks; never hits downed actors.</summary>
+        public static bool CanHitMelee(SimulationWorld world, EntityId actor, EntityId target)
+        {
+            if (world == null || !world.Entities.TryGet(actor, out var attacker) ||
+                !CombatLifeStateService.CanFight(attacker) || PartyRestService.BlocksMovement(attacker) ||
+                MortalTransportConstraintService.ValidateAttack(world, actor).IsFailure || actor == target ||
                 !world.Entities.TryGet(target, out var victim) || !CombatLifeStateService.CanFight(victim) ||
                 CharacterEncounterService.RequiresEntry(world, actor, target)) return false;
             var encounter = world.Strategic?.CharacterEncounter;

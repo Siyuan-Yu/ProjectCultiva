@@ -146,6 +146,15 @@ namespace XianXia.Unity.Host
 
         public void Clear() => ClearInternal(toast: null);
 
+        public void HoldAttackForControlMode(EntityId actor)
+        {
+            _cooldownByAttacker.TryGetValue(actor.Value, out var remaining);
+            _cooldownByAttacker[actor.Value] = Mathf.Max(remaining, MeleeCombatService.DefaultMeleeIntervalSeconds);
+            if (actor == _defender) _defenderCooldown = Mathf.Max(_defenderCooldown, MeleeCombatService.DefaultMeleeIntervalSeconds);
+            var participant = bootstrap?.Session?.World?.Strategic?.CharacterEncounter?.Find(actor.Value);
+            if (participant != null) participant.Cooldown = Mathf.Max(participant.Cooldown, MeleeCombatService.DefaultMeleeIntervalSeconds);
+        }
+
         /// <summary>玩家下令移动／Stop：若该单位是攻方则仅他脱离；无人攻则整场结束。</summary>
         public void DisengageIfAttacker(EntityId id)
         {

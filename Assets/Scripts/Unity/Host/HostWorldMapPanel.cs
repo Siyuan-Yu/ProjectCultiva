@@ -191,6 +191,17 @@ namespace XianXia.Unity.Host
             _viewReady = false;
         }
 
+        public void CancelClickTravel()
+        {
+            _pendingRoute?.Cancellation.Cancel();
+            _hasQueuedRoute = false;
+            _discardPendingRoute = _pendingRoute != null;
+            if (bootstrap?.Session?.World != null)
+                PlayerPartySurfaceTravelService.Cancel(bootstrap.Session.World);
+            var actor = bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None;
+            bootstrap?.MoveController?.CancelForControlMode(actor);
+        }
+
         public void RefreshStrategicPresentation(SimulationWorld world)
         {
             if (world == null) return;
@@ -364,6 +375,8 @@ namespace XianXia.Unity.Host
             _showTerritory = GUI.Toggle(new Rect(230, 14, 105, 24), _showTerritory, "势力范围", _toggle);
             _showGeography = GUI.Toggle(new Rect(340, 14, 105, 24), _showGeography, "地理层", _toggle);
             _showGrid = GUI.Toggle(new Rect(450, 14, 105, 24), _showGrid, "坐标网格", _toggle);
+            HostRpgControls.SetMapClickTravel(bootstrap, GUI.Toggle(new Rect(120, 44, 215, 24),
+                HostRpgControls.MapClickTravel, "启用大地图点击赶路", _toggle));
             var openingLocked = HuangcunOpeningAccess.IsLocked(world);
             if (openingLocked)
             {
@@ -1020,6 +1033,8 @@ namespace XianXia.Unity.Host
         void PlanSurfaceRoute(SimulationWorld world, SurfaceGroundNavigation nav,
             WorldVec2 destination, string siteId)
         {
+            if (!HostRpgControls.MapClickTravel)
+            { ShowRouteFailure(world, destination, "大地图点击赶路已关闭，可在操作设置中启用。"); return; }
             _statusIsError = false;
             var party = bootstrap?.Session?.PlayerParty;
             var motion = world?.PlayerPartyTravel;
@@ -1117,6 +1132,7 @@ namespace XianXia.Unity.Host
                 return;
             }
             var planned = pending.Work.Result;
+            if (!HostRpgControls.MapClickTravel) return;
             if (planned.Status != SurfaceGroundRouteStatus.Found)
             {
                 ShowRouteFailure(pending.World, pending.Destination,

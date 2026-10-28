@@ -86,7 +86,7 @@ namespace XianXia.Unity.Host
                         flag, surface, host.MoveController.WalkGrid, out point);
                 if (!hasPoint)
                 { Feedback(host, "找不到势力旗的合法接近位置。"); return; }
-                if (host.MoveController == null || !host.MoveController.OrderPartyToPointPublic(point))
+                if (HostRpgControls.SceneRts && (host.MoveController == null || !host.MoveController.OrderPartyToPointPublic(point)))
                 { Feedback(host, "无法向势力旗下达接近命令。"); return; }
                 var assault = host.GetComponent<HostFactionFlagAssault>();
                 if (assault == null) { Feedback(host, "势力旗攻击执行器不可用。"); return; }
@@ -97,7 +97,7 @@ namespace XianXia.Unity.Host
                 host.GetComponent<HostFactionFlagAssault>()?.Clear();
                 if (!HostControlCoreQuery.TryGetApproachPoint(world, layout, surface, core, out var point))
                 { Feedback(host, "找不到议政厅的合法接近位置。"); return; }
-                if (host.MoveController == null || !host.MoveController.OrderPartyToPointPublic(point))
+                if (HostRpgControls.SceneRts && (host.MoveController == null || !host.MoveController.OrderPartyToPointPublic(point)))
                 { Feedback(host, "无法向议政厅下达接近命令。"); return; }
                 var assault = host.GetComponent<HostControlCoreAssault>();
                 if (assault == null) { Feedback(host, "议政厅攻击执行器不可用。"); return; }

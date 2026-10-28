@@ -732,6 +732,11 @@ namespace XianXia.Unity.Host
                 }
             }
             var pulse = attacking ? clock < .1f ? Smooth(clock / .1f) : 1f - Smooth((clock - .1f) / .26f) : 0f;
+            var punching = attacking && attackStyle == HumanAttackStyle.Unarmed;
+            // Visual-only anticipation, contact and recovery within the existing .36s strike.
+            var punch = !punching ? 0f : clock < .08f ? -.25f * Smooth(clock / .08f) :
+                clock < .14f ? Mathf.Lerp(-.25f, 1f, Smooth((clock - .08f) / .06f)) :
+                1f - Smooth((clock - .14f) / .22f);
             if (attacking)
             {
                 if (attackStyle == HumanAttackStyle.Thrust)
@@ -742,13 +747,19 @@ namespace XianXia.Unity.Host
                 }
                 else if (attackStyle == HumanAttackStyle.Cast)
                 { leftArm = 35f * pulse; rightArm = -35f * pulse; reach = .16f * pulse; }
+                else if (punching)
+                {
+                    leftArm = side ? -32f : back ? 30f : -30f;
+                    rightArm = 0f; reach = .04f * Mathf.Max(0f, punch);
+                    bodyDrop = .025f * Mathf.Max(0f, punch);
+                }
                 else
                 {
                     leftArm = -12f * pulse; rightArm = 38f * pulse;
                     hand += new Vector3(side ? .10f * pulse : 0f, -.04f * pulse, 0f);
                     toolAngle = Mathf.Lerp(15f, side ? -110f : back ? -55f : -160f, pulse);
                 }
-                lean = -5f * pulse;
+                lean = punching ? -12f * punch : -5f * pulse;
             }
             if (carryingCargo || carryingPerson)
             { leftArm = 16f - 2f * stride; rightArm = -16f + 2f * stride; reach = .08f; }
@@ -774,7 +785,7 @@ namespace XianXia.Unity.Host
             // shoulder positions independently would briefly detach the sleeve again.
             _leftArm.localPosition = leftShoulder;
             _rightArm.localPosition = rightShoulder;
-            Move(_upperBody, new Vector3(side ? 0f : .018f * stride,
+            Move(_upperBody, new Vector3(side ? punching ? .055f * punch : 0f : .018f * stride,
                 .94f + .028f * Mathf.Abs(stride) - bodyDrop, 0f), blend);
             var breathing = action == HostStepAArt.Action.Idle && !_lifePose && !_sleepPose ? .003f * Mathf.Sin(clock * 2f) : 0f;
             Move(_footAnchor, new Vector3(0f, breathing, 0f), blend);
@@ -830,7 +841,22 @@ namespace XianXia.Unity.Host
                     if (_supportHandActive) PoseArmToGrip(_leftArm, leftGrip, target, leftShoulder);
                 }
             }
-            if (aimDirection.HasValue && !resting && !carryingCargo && !carryingPerson)
+            if (punching && !resting && !carryingCargo && !carryingPerson)
+            {
+                // Keep the shoulder socket attached. Rotate/reach the real hand, not a hidden
+                // weapon slot; side/back/front views all get a visible guard-to-punch gesture.
+                var forward = new Vector3(side ? 1f : back ? -.22f : .22f,
+                    back ? side ? .25f : 1f : side ? -.1f : -1f, 0f).normalized;
+                var extension = Mathf.Clamp01((punch + .25f) / 1.25f);
+                var armDirection = Vector3.Lerp(new Vector3(side ? -.25f : .7f, -.7f, 0f).normalized,
+                    forward, extension).normalized;
+                var length = rightGrip.magnitude * Mathf.Lerp(.78f, 1.1f, extension);
+                PoseArmToGrip(_rightArm, rightGrip, rightShoulder + armDirection * length, rightShoulder);
+                var guard = new Vector3(side ? .55f : -.45f, side ? .15f : back ? .7f : -.7f, 0f).normalized;
+                PoseArmToGrip(_leftArm, leftGrip, leftShoulder + guard * leftGrip.magnitude * .82f, leftShoulder);
+            }
+            if (aimDirection.HasValue && !resting && !carryingCargo && !carryingPerson &&
+                (!attacking || attackStyle == HumanAttackStyle.Cast))
             {
                 var localAim = _rightArm.parent.InverseTransformVector(aimDirection.Value);
                 localAim.z = 0f;

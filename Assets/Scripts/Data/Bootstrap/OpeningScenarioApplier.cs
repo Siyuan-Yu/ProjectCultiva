@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using XianXia.Core.Concealment;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Labor;
@@ -165,8 +164,6 @@ namespace XianXia.Data.Bootstrap
             if (!entity.TryGet<KnownSitesComponent>(out _))
                 entity.AddComponent(new KnownSitesComponent());
 
-            if (!entity.TryGet<PersonalConcealmentRiskComponent>(out _))
-                entity.AddComponent(new PersonalConcealmentRiskComponent());
         }
 
         static bool TryParseFactionRole(string text, out FactionRoleKind role)

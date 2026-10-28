@@ -44,7 +44,6 @@ namespace XianXia.Tests
                 bootstrap.StepTick();
                 bootstrap.StepTick();
                 Assert.Greater(entity.Get<CultivationComponent>().Progress, 0);
-                Assert.Greater(entity.Get<XianXia.Core.Concealment.PersonalConcealmentRiskComponent>().Value, 0);
 
                 var hud = bootstrap.DebugHud.Refresh();
                 Assert.IsTrue(hud.Ready);

@@ -1,7 +1,6 @@
 using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Actions;
-using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -74,7 +73,6 @@ namespace XianXia.Tests
                 loop.TickOnce();
 
             Assert.Greater(entity.Get<CultivationComponent>().Progress, progressBefore);
-            Assert.AreEqual(3, entity.Get<PersonalConcealmentRiskComponent>().Value);
         }
 
         [Test]
@@ -127,7 +125,6 @@ namespace XianXia.Tests
             loop.TickOnce();
             loop.TickOnce();
             Assert.Greater(entity.Get<CultivationComponent>().Progress, 0);
-            Assert.Greater(entity.Get<PersonalConcealmentRiskComponent>().Value, 0);
 
             // Jump to day boundary
             world.Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1));
@@ -155,7 +152,6 @@ namespace XianXia.Tests
             Assert.IsTrue(e2.Get<KnownSitesComponent>().Knows(SiteId));
             Assert.IsTrue(e2.Get<CultivationComponent>().HasLearnedManual);
             Assert.IsTrue(e2.Get<DailyTaskComponent>().PendingReprimand);
-            Assert.Greater(e2.Get<PersonalConcealmentRiskComponent>().Value, 0);
             Assert.IsTrue(world2.TryGetOpportunitySite(SiteId, out _));
             Assert.IsTrue(world2.TryGetManual(QingyunId, out _));
         }

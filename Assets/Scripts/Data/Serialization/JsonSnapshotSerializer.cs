@@ -1066,7 +1066,6 @@ namespace XianXia.Data.Serialization
                     ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty),
                     ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource),
                     ["knownSiteIds"] = JsonValue.FromArray(SerializeStringList(e.KnownSiteIds)),
-                    ["personalConcealmentRisk"] = JsonValue.FromNumber(e.PersonalConcealmentRisk),
                     ["hasEntityLocation"] = JsonValue.FromBool(e.HasEntityLocation),
                     ["locationId"] = JsonValue.FromString(e.LocationId ?? string.Empty),
                     ["hasPresentationOverride"] = JsonValue.FromBool(e.HasPresentationOverride),
@@ -1568,6 +1567,7 @@ namespace XianXia.Data.Serialization
                 HasSchedule = e.TryGetProperty("hasSchedule", out var hs) && hs.Kind == JsonValueKind.Boolean && hs.Bool,
                 ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty),
                 ActiveOrderSource = (int)e.GetNumber("activeOrderSource"),
+                // Read legacy data only; the retired value is not restored or written again.
                 PersonalConcealmentRisk = (int)e.GetNumber("personalConcealmentRisk"),
                 HasEntityLocation = e.TryGetProperty("hasEntityLocation", out var hel) && hel.Kind == JsonValueKind.Boolean && hel.Bool,
                 EntityLocationSnapshotFieldPresent = e.TryGetProperty("hasEntityLocation", out _),

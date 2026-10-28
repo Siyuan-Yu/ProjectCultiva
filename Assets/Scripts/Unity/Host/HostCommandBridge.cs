@@ -440,7 +440,7 @@ namespace XianXia.Unity.Host
             }
 
             var active = ResolveActiveCharacter();
-            var utility = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass;
+            var utility = kind == PlayerCommandKind.Stop;
             if (!utility && !active.IsNone && subject != active)
             {
                 _lastStatus = "IssueOne: not active character";
@@ -778,6 +778,12 @@ namespace XianXia.Unity.Host
             _lastSuccessCount = 0;
             _lastFailureCount = 0;
 
+            if (kind == PlayerCommandKind.UseConcealGrass)
+            {
+                _lastStatus = "暴露值机制已移除，敛息草降暴露指令已停用。";
+                _lastFailureCount = targets?.Count ?? 1;
+                return 0;
+            }
             if (_session == null || !_session.IsInitialized || _session.Port == null)
             {
                 _lastStatus = "Session／Port not ready";
@@ -790,7 +796,7 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            var utility = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass;
+            var utility = kind == PlayerCommandKind.Stop;
             if (!utility && durationTicks == 0)
             {
                 _lastStatus = "DurationTicks must be > 0";
@@ -1012,10 +1018,6 @@ namespace XianXia.Unity.Host
                 case PlayerCommandKind.Cultivate:
                     text = "入定";
                     color = new Color(0.5f, 0.9f, 1f);
-                    break;
-                case PlayerCommandKind.UseConcealGrass:
-                    text = "敛息";
-                    color = new Color(0.6f, 1f, 0.8f);
                     break;
             }
 

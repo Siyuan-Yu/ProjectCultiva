@@ -33,7 +33,6 @@ namespace XianXia.Tests
                 Assert.IsTrue(snap.ScheduleLine.Contains("Rest") || snap.ScheduleLine.Contains("Labor"));
                 Assert.IsTrue(snap.QuotaLine.Contains("/"));
                 Assert.IsTrue(snap.RealmLine.Contains("Mortal") || snap.RealmLine.Contains("QiRefining"));
-                Assert.GreaterOrEqual(snap.Risk, 0);
                 Assert.IsTrue(snap.ToDebugText().Contains("Day "));
             }
             finally

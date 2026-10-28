@@ -6,7 +6,7 @@ using XianXia.Unity.Host;
 
 namespace XianXia.Tests
 {
-    /// <summary>PKG-A/B smoke: 2D Sprite views + Stop／敛息草.</summary>
+    /// <summary>PKG-A/B smoke: 2D Sprite views + Stop.</summary>
     public sealed class DemoParityHostPresentationTests
     {
         [Test]
@@ -64,29 +64,6 @@ namespace XianXia.Tests
                 for (var i = 0; i < (int)HostCommandBridge.DefaultDurationTicks; i++)
                     Assert.IsTrue(bootstrap.Session.TickOnce().IsSuccess);
                 Assert.Greater(bootstrap.Session.World.Inventory.GetCount("base:resource_rough_wood"), before);
-            }
-            finally
-            {
-                Object.DestroyImmediate(host);
-            }
-        }
-
-        [Test]
-        public void ConcealGrass_LowersRisk()
-        {
-            var host = CreateHost(out var bootstrap, out _);
-            try
-            {
-                var id = bootstrap.Session.CharacterIds[0];
-                Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var entity));
-                var risk = entity.Get<XianXia.Core.Concealment.PersonalConcealmentRiskComponent>();
-                risk.Value = 40;
-                Assert.GreaterOrEqual(bootstrap.Session.World.Inventory.GetCount("base:resource_conceal_grass"), 1);
-                Assert.AreEqual(
-                    1,
-                    bootstrap.CommandBridge.IssueTo(new[] { id }, PlayerCommandKind.UseConcealGrass, 0));
-                Assert.AreEqual(25, risk.Value);
-                Assert.AreEqual(2, bootstrap.Session.World.Inventory.GetCount("base:resource_conceal_grass"));
             }
             finally
             {

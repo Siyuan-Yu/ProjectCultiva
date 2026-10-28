@@ -1,6 +1,5 @@
 using System.IO;
 using NUnit.Framework;
-using XianXia.Core.Concealment;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -37,7 +36,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PlayableDayBootstrap_AssemblesScheduleDailyTaskRisk_AndQuotaHandler()
+        public void PlayableDayBootstrap_AssemblesScheduleDailyTask_AndQuotaHandler()
         {
             var result = new PlayableDayBootstrap().Start(BaseGamePath);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
@@ -50,7 +49,6 @@ namespace XianXia.Tests
                 Assert.IsTrue(entity.TryGet<DailyTaskComponent>(out var daily));
                 Assert.AreEqual(10, daily.RequiredAmount);
                 Assert.IsTrue(entity.TryGet<KnownSitesComponent>(out _));
-                Assert.IsTrue(entity.TryGet<PersonalConcealmentRiskComponent>(out _));
             }
 
             // Day boundary with QuotaConsequenceHandler (default on SimulationLoop).
