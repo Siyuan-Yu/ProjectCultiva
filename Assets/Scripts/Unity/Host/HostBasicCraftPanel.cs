@@ -25,7 +25,11 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(panel.x+12,panel.y+10,panel.width-100,30),"基础加工与丹药 · 时间继续流逝",text);
             if(GUI.Button(new Rect(panel.xMax-75,panel.y+8,60,28),"关闭"))_open=false;
             var view=new Rect(panel.x+12,panel.y+46,panel.width-24,panel.height-130);
-            _scroll=GUI.BeginScrollView(view,_scroll,new Rect(0,0,view.width-20,1350));
+            var recipients=0;
+            foreach(var person in w.Entities.All)
+                if(w.Strategic.PlayerPartyContext?.IsMember(person.Id)==true || HuangcunSurvivalService.IsPrisoner(w,person.Id))recipients++;
+            var contentHeight=110+BasicCraftService.Recipes.Length*62+recipients*70;
+            _scroll=GUI.BeginScrollView(view,_scroll,new Rect(0,0,view.width-20,contentHeight));
             var width=view.width-20;float y=0;
             GUI.Label(new Rect(0,y,width,55),"先前往丹室／炼器室内操作点，再开始制作。材料在完成时扣除；离开或战斗会中断。疗伤散提供药力，培元丸与凝神器须通过实际打坐炼化，不直接突破。",text);y+=60;
             foreach(var r in BasicCraftService.Recipes)
@@ -47,7 +51,7 @@ namespace XianXia.Unity.Host
                 }
                 GUI.enabled=true;y+=62;
             }
-            GUI.Label(new Rect(0,y,width,30),"成品：铁镐在背包中自动将采矿缩短至7秒。丹药／凝神器在下方对人使用。",text);y+=40;
+            GUI.Label(new Rect(0,y,width,40),"工具与兵器：按 B，在背包中装备给主控后生效。装备矿镐采矿为7秒（1×）。丹药／凝神器在下方对人使用。",text);y+=50;
             foreach(var e in w.Entities.All)
             {
                 if(w.Strategic.PlayerPartyContext?.IsMember(e.Id)!=true && !HuangcunSurvivalService.IsPrisoner(w,e.Id))continue;

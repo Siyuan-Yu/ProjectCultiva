@@ -2,6 +2,7 @@
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
 using XianXia.Core.Entities;
+using XianXia.Core.Inventory;
 using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 
@@ -39,6 +40,12 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!session.World.Entities.TryGet(view.EntityId, out var entity))
                     continue;
+                // The existing bound-view pass is sufficient: hidden/unmaterialized characters
+                // need no equipment rendering and Core remains the single ownership authority.
+                if (view.EquipmentVisual != null)
+                    view.EquipmentVisual.SynchronizeEquippedWeapon(
+                        WeaponEquipmentService.GetEquipped(session.World, view.EntityId),
+                        session.PlayerParty?.IsPlayerControllableMember(view.EntityId) == true);
                 var specialActivity = string.Empty;
                 if (bootstrap.BreakthroughRitual != null &&
                     bootstrap.BreakthroughRitual.IsChannelingSubject(view.EntityId))

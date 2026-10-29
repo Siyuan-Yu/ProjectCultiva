@@ -1144,7 +1144,8 @@ namespace XianXia.Unity.Host
                         new Rect(r.x + 10f, r.y + 100f, r.width - 20f, 42f),
                         DescribeFarmAdministration(session.World, plot),
                         _body);
-                    GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 20f), "右键农作", _body);
+                    GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 20f),
+                        HostRpgControls.SceneRts ? "右键农作" : "装备锄头，近处按住左键农作", _body);
                 }
                 else if (plot.Kind == "ore" || plot.Kind == "mine")
                 { GUI.Label(new Rect(r.x+10f,r.y+58f,r.width-20f,80f),XianXia.Core.Npc.MiningService.Description(session.World,plot.LocationId)+"\n右键实际走近采矿；玩家入背包、矿工入城池公库。",_body); }

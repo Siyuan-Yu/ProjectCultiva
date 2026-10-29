@@ -70,6 +70,7 @@ namespace XianXia.Unity.Host
                 return;
             if (HostInputGate.BlockWorldInteraction ||
                 !HostRpgControls.SceneRts && HostRpgControls.InCombat(GetComponent<PlayableHostBootstrap>()) ||
+                HostFarmFieldLabor.ClaimsManualPointer(GetComponent<PlayableHostBootstrap>()) ||
                 HostDirectionalRangedAttack.ClaimsPointer(GetComponent<PlayableHostBootstrap>()))
             {
                 CancelGesture();

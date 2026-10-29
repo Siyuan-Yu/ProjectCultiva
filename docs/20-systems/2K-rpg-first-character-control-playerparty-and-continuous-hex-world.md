@@ -1,5 +1,7 @@
 # RPG-First：Active Character、PlayerParty、Continuous Surface 与 Legacy Compatibility
 
+> **2026-10-28 田间直接劳动：** [435](../40-process/435-manual-field-work-and-melee-weapons-2026-10-28.md)确认默认RPG主控在近处田格点按／长按左键实际农作，松手停止，不通过右键／F自动耕完整片田；NPC及非主控分工保留。锄头等工具使用真实单手持装备位，左键战斗与劳动按上下文互斥。覆盖431“武器延期”，实施与验收状态见435。
+
 > **2026-10-28 F交互覆写：** [432](../40-process/432-rpg-single-target-interaction-hint-2026-10-28.md)以单个具名F提示及直接打开该目标原菜单替代431附近目标选择列表；住宅、房门、房间地板和管理热点不作日常RPG交互候选，非战斗左键检查保留。提示是Host派生表现，不增加人物／空间／存档真源。
 
 > **2026-10-28 操作模式确认：** [431](../40-process/431-rpg-controls-and-independent-map-travel-2026-10-28.md)规定场景RTS默认关闭、地图点击赶路默认开启，两个独立本机选项；主控WASD及战斗鼠标定向左键／长按普攻，F近距离交互并保留右键人物／物体菜单。同伴与敌人AI保留，非战斗左键查看保留，武器延期；操作模式不改变连续空间、宣战、身体或战败处置规则。实施与验收状态见431。

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using XianXia.Core.Npc;
 using XianXia.Core.Combat;
 using XianXia.Core.Entities;
@@ -33,7 +33,7 @@ namespace XianXia.Unity.Host
                 if(captive!=null && !w.HuangcunSurvival.Released && captive.TryGet<LifecycleComponent>(out var life))
                 {
                     captive.TryGet<PersonalLifeComponent>(out var needs); captive.TryGet<CombatVitalsComponent>(out var hp);
-                    warning=life.IsDead || life.IsRemoved ? "被囚同伴已经死亡" : "被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+"\n走进牢房，右键同伴本人交谈与照料";
+                    warning=life.IsDead || life.IsRemoved ? "被囚同伴已经死亡" : "被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+"\n走进牢房，靠近同伴按 F 或右键交谈与照料";
                 }
                 GUI.Label(new Rect(notice.x+5,notice.y+3,notice.width-10,notice.height-6),warning,_text);
                 return false;
@@ -111,7 +111,7 @@ namespace XianXia.Unity.Host
             if(prisoner!=null)
             {
                 prisoner.TryGet<CombatVitalsComponent>(out var hp); prisoner.TryGet<PersonalLifeComponent>(out var needs);
-                Label("被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+" · "+(w.HuangcunSurvival.Released?"已解救":CombatLifeStateService.FormatLifeStateWithCountdown(w,prisoner))+"。稀粥只能勉强维生。进牢房后右键同伴交谈、接请求、送饭送药；占领前牢房及外沿三格是禁区，被在岗巡视发现会直接追赶开战。",ref y,cw,72);
+                Label("被囚同伴：生命 "+(hp?.CurrentHp??0)+" · 饱食 "+(needs?.Satiety??0)+" · "+(w.HuangcunSurvival.Released?"已解救":CombatLifeStateService.FormatLifeStateWithCountdown(w,prisoner))+"。稀粥只能勉强维生。进牢房后靠近同伴按 F 或右键交谈、接请求、送饭送药；占领前牢房及外沿三格是禁区，被室外清醒且未修炼的主管或巡卫看见会直接追赶开战。",ref y,cw,72);
             }
             if(!w.HuangcunSurvival.Released)
             {

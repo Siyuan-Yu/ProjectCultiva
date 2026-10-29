@@ -30,6 +30,12 @@ namespace XianXia.Data.Bootstrap
             if (auction.IsFailure) return auction;
             var inventory = OpeningInventoryBootstrap.Apply(world, openingScenario);
             if (inventory.IsFailure) return inventory;
+            if (openingScenario?.Id.ToString() == "base:scenario_huangcun_life" &&
+                world.Inventory.GetCount(WeaponEquipmentService.Hoe) > 0 && world.PlayerPartyTravel.TravelingMembers.Count > 0)
+            {
+                var equipped = WeaponEquipmentService.EquipOpeningHoe(world, world.PlayerPartyTravel.TravelingMembers[0]);
+                if (equipped.IsFailure) return equipped;
+            }
             var surfaceGround = RehydrateSurfaceGround(world, registry, openingScenario);
             if (surfaceGround.IsFailure) return surfaceGround;
             var transportPoints = AuthoredTransportPointBootstrap.ApplyNewGame(world, registry);

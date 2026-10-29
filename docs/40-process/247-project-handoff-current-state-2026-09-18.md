@@ -1,5 +1,11 @@
 # Project Handoff — Continuous World Current State
 
+> **2026-10-29 最新中文交付汇总：** [437](437-manual-labor-weapons-animation-and-github-handoff-2026-10-29.md)承接已提交774a520f，汇总435／436全部劳动、装备、配方、存读档、统一动作及文案改动。制作人明确授权中文文档化、commit与push至origin/dev_openworld；两份地图备份保留且不上传。内容0.0.49-melee-tools／存档v21，四程序集基础编译通过、运行待人工验收；此前“未提交”为历史状态，本次结果以实际Git记录为准。
+
+> **2026-10-29 当前表现返修：** [436](436-shared-overhead-tool-and-weapon-animation-2026-10-29.md)承接435，将主控／同伴／NPC的工具劳动和持械近战统一为明显举起后向下挥击；补低幅挥锄、空手农作及艺术绑定回退。只改Host表现，四程序集编译通过，未启动Unity／测试，待人工验收，未提交推送。
+
+> **2026-10-28 当前实施：** [435](435-manual-field-work-and-melee-weapons-2026-10-28.md)承接已提交434，主控装备锄头、近田指向田格长按左键劳动，松手／移动停止，原NPC／同伴／RTS自动农作保留。新增七种工具／近战武器、B背包装备卸下、伤害和工具效果、锻造与实际手持；单槽沿原Equipment modifier保存，旧档不重复发工具。内容0.0.49-melee-tools／v21；四程序集基础编译与必要静态检查通过，未启动Unity／测试，未提交推送，两份地图备份保留。现场验收及项目进度／空感评估和后续建议在435，未自动实施后续叙事方向。
+
 > **2026-10-28 最新整轮交付：** [434](434-rpg-controls-supervision-and-github-handoff-2026-10-28.md)为427～433与ADR-0073／0074的完整状态／范围／人工验收汇总，承接425与此前提交0165ed5d。制作人明确授权文档化、commit＋push至origin/dev_openworld，两份本地地图自动备份原样保留且排除。下方各轮“未提交”是实施时历史，最新Git结果以本次交付为准；Implemented／Committed不等于Producer Accepted／Sealed。
 
 > **2026-10-28 最新F交互：** [432](432-rpg-single-target-interaction-hint-2026-10-28.md)取消431目标选择列表，当前有效人物／实际可用物体上方显示具名F提示，F直接原菜单。管理对象、重复住宅工区热点、普通跟随队友及清醒交战敌人不抢占日常提示；身体／照料／战败／原政治权限保留。左键房间检查和核心／旗显式宣战仍可用，未更改地图赶路及RTS开关。Implemented／待人工验收，未提交推送。

@@ -145,7 +145,10 @@ namespace XianXia.Unity.Host
                     HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap.Session), target)) return false;
             if (RejectBattleWork()) return true;
             if (!HostRpgControls.SceneRts)
-                selectionController.SelectEntity(HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap.Session), false);
+            {
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "按B装备锄头，走近田格并指向它，按住左键劳动；松手停止。");
+                return true;
+            }
             var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
             if (farm == null)
                 return false;

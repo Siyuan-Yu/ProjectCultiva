@@ -91,13 +91,75 @@
       "nameKey": "item.iron_pick",
       "maxStack": 20,
       "tags": [
-        "tool"
+        "tool",
+        "weapon",
+        "pick"
       ],
       "tradeCategory": "Material",
       "baseTradePrice": {
         "grade": "Low",
         "amount": 20
       }
+    },
+    {
+      "id": "base:item_iron_hoe",
+      "type": "item",
+      "name": "铁锄",
+      "nameKey": "item.iron_hoe",
+      "maxStack": 20,
+      "tags": ["tool", "weapon", "hoe"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 12 }
+    },
+    {
+      "id": "base:item_iron_axe",
+      "type": "item",
+      "name": "伐木斧",
+      "nameKey": "item.iron_axe",
+      "maxStack": 20,
+      "tags": ["tool", "weapon", "axe"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 16 }
+    },
+    {
+      "id": "base:item_iron_sword",
+      "type": "item",
+      "name": "铁剑",
+      "nameKey": "item.iron_sword",
+      "maxStack": 20,
+      "tags": ["weapon", "sword"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 30 }
+    },
+    {
+      "id": "base:item_iron_saber",
+      "type": "item",
+      "name": "朴刀",
+      "nameKey": "item.iron_saber",
+      "maxStack": 20,
+      "tags": ["weapon", "saber"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 40 }
+    },
+    {
+      "id": "base:item_iron_hammer",
+      "type": "item",
+      "name": "铁锤",
+      "nameKey": "item.iron_hammer",
+      "maxStack": 20,
+      "tags": ["weapon", "hammer"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 50 }
+    },
+    {
+      "id": "base:item_iron_spear",
+      "type": "item",
+      "name": "铁矛",
+      "nameKey": "item.iron_spear",
+      "maxStack": 20,
+      "tags": ["weapon", "spear"],
+      "tradeCategory": "Material",
+      "baseTradePrice": { "grade": "Low", "amount": 35 }
     },
     {
       "id": "base:item_healing_powder",

@@ -92,8 +92,9 @@ namespace XianXia.Core.Npc
             if(w.ContentCounters.Get(key+":last")==tick) return;
             var progress=w.ContentCounters.Get(key+":last")==tick-1 ? w.ContentCounters.Get(key+":progress")+1 : 1;
             w.ContentCounters.Set(key+":last",tick); w.ContentCounters.Set(key+":progress",progress);
-            state.ScheduleStatus="采矿 "+progress+"/10 · "+Description(w,area.LocationId);
-            if(progress<WorkTicks) return;
+            var required = XianXia.Core.Inventory.WeaponEquipmentService.IsEquippedKind(w,entity.Id,XianXia.Core.Inventory.WeaponKind.Pick) ? 7 : WorkTicks;
+            state.ScheduleStatus="采矿 "+progress+"/"+required+" · "+Description(w,area.LocationId);
+            if(progress<required) return;
             var result=Harvest(w,entity.Id,area.LocationId,true); w.ContentCounters.Set(key+":progress",0);
             if(result.IsFailure) state.ScheduleStatus=result.Error.Message;
         }

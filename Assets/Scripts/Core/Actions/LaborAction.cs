@@ -9,6 +9,7 @@ using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Npc;
+using XianXia.Core.Inventory;
 
 namespace XianXia.Core.Actions
 {
@@ -57,7 +58,7 @@ namespace XianXia.Core.Actions
             if (can.IsFailure) return can;
             if (world.Entities.TryGet(Subject,out var miner) && miner.TryGet<EntityLocationComponent>(out var location) &&
                 MiningService.IsMine(world,location.LocationId))
-                Clock=ActionClock.Start(world.Inventory.GetCount(BasicCraftService.Pick)>0?7UL:MiningService.WorkTicks);
+                Clock=ActionClock.Start(WeaponEquipmentService.IsEquippedKind(world, Subject, WeaponKind.Pick)?7UL:MiningService.WorkTicks);
             Status = ActionStatus.Running;
             return Result.Success();
         }

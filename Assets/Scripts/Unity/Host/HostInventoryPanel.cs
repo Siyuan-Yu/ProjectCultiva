@@ -187,6 +187,18 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var actor = bootstrap.Session.PlayerParty.ActiveCharacterId;
+            var equipped = WeaponEquipmentService.GetEquipped(world, actor);
+            GUI.Label(new Rect(x, y, w - 150f, 28f), "主控手持：" +
+                (equipped == null ? "空手" : equipped.Name + "  攻击 +" + equipped.AttackBonus), _small);
+            if (equipped != null && GUI.Button(new Rect(rect.xMax - 120f, y, 100f, 28f), "卸下武器"))
+            {
+                var result = WeaponEquipmentService.TryUnequip(world, actor);
+                _status = result.IsSuccess ? "已卸下，武器放回背包" : result.Error.Message;
+                _selectedSlot = -1;
+            }
+            y += 34f;
+
             DrawFilters(x, y);
             y += 36f;
 
@@ -235,9 +247,13 @@ namespace XianXia.Unity.Host
                 if (_selectedSlot == i)
                     GUI.color = new Color(1f, 0.92f, 0.7f);
                 var icon = slot != null && !slot.IsEmpty ? HostStepAArt.ItemIcon(slot.ItemId) : null;
-                if (GUI.Button(r, SlotLabel(catalog, slot), icon != null ? _iconSlot : _slot))
+                var weaponItem = slot != null && !slot.IsEmpty ? WeaponEquipmentService.Find(slot.ItemId) : null;
+                var weaponIcon = weaponItem == null ? null : HumanCommonRigEquipment.GetWeaponSprite(weaponItem.Kind);
+                if (GUI.Button(r, SlotLabel(catalog, slot), icon != null || weaponIcon != null ? _iconSlot : _slot))
                     _selectedSlot = i;
-                if (icon != null)
+                if (weaponIcon != null)
+                    DrawWeaponIcon(new Rect(r.x + 27f, r.y + 6f, 34f, 34f), weaponIcon);
+                else if (icon != null)
                     GUI.DrawTexture(new Rect(r.x + 27f, r.y + 6f, 34f, 34f), icon, ScaleMode.ScaleToFit, true);
                 GUI.color = Color.white;
                 drawIndex++;
@@ -271,6 +287,10 @@ namespace XianXia.Unity.Host
                     {
                         canUseArt = true;
                         detail += "\n斗技：" + catalog.GetTeachesArtId(s.ItemId);
+                    }
+                    else if (WeaponEquipmentService.Find(s.ItemId) is WeaponSpec weapon)
+                    {
+                        detail += "\n近战攻击 +" + weapon.AttackBonus + " · " + WeaponUse(weapon.Kind);
                     }
                     else
                         detail += "\n" + s.ItemId;
@@ -309,6 +329,37 @@ namespace XianXia.Unity.Host
                         _status = "学斗技面板未就绪";
                 }
             }
+            else if (WeaponEquipmentService.Find(selectedItemId) != null &&
+                     GUI.Button(new Rect(rect.xMax - 120f, detailY + 8f, 100f, 32f), "装备给主控"))
+            {
+                var result = WeaponEquipmentService.TryEquip(world, actor, selectedItemId);
+                _status = result.IsSuccess ? "已装备；原武器已放回背包" : result.Error.Message;
+                _selectedSlot = -1;
+            }
+        }
+
+        static string WeaponUse(WeaponKind kind)
+        {
+            switch (kind)
+            {
+                case WeaponKind.Hoe: return "田边朝田格按住左键劳作";
+                case WeaponKind.Axe: return "伐木工具，也可挥砍作战";
+                case WeaponKind.Pick: return "采矿工具，也可近战作战";
+                case WeaponKind.Spear: return "持矛突刺";
+                case WeaponKind.Hammer: return "近身挥锤";
+                default: return "近身挥砍";
+            }
+        }
+
+        static void DrawWeaponIcon(Rect area, Sprite sprite)
+        {
+            var source = sprite.rect;
+            var scale = Mathf.Min(area.width / source.width, area.height / source.height);
+            var target = new Rect(area.center.x - source.width * scale * .5f,
+                area.center.y - source.height * scale * .5f, source.width * scale, source.height * scale);
+            var texture = sprite.texture;
+            GUI.DrawTextureWithTexCoords(target, texture, new Rect(source.x / texture.width,
+                source.y / texture.height, source.width / texture.width, source.height / texture.height), true);
         }
 
         void DrawViewTabs(float x, float y, float width, bool canAccessWarehouse,

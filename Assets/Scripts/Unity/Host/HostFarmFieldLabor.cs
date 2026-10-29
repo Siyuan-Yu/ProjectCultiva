@@ -4,6 +4,7 @@ using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Inventory;
 using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.World.Strategic;
@@ -14,6 +15,7 @@ namespace XianXia.Unity.Host
     /// 田区自动农作：整片 location 为一区，按格状态选活、走格、播种／照料／收获／清理。
     /// 玩家交互下令；NPC 在日程 Labor＋农田工区 WorkAction 期间自动接入同一套走格。
     /// </summary>
+    [DefaultExecutionOrder(-35)]
     public sealed class HostFarmFieldLabor : MonoBehaviour
     {
         enum Phase
@@ -55,9 +57,24 @@ namespace XianXia.Unity.Host
         readonly HashSet<int> _reserved = new HashSet<int>();
         readonly Dictionary<ulong, float> _npcRetryAt = new Dictionary<ulong, float>();
         ulong _lastPresentedFarmTick = ulong.MaxValue;
+        Worker _manualWorker;
+        XianXia.Core.Simulation.SimulationWorld _manualWorld;
+        EntityId _manualActor;
+        OutdoorFarmCropStage _manualStage;
+        bool _manualNeedsRelease = true;
+        bool _manualClaimsPointer;
+        string _manualHint = string.Empty;
+        const float ManualWorkReach = .85f;
+
+        public static bool ClaimsManualPointer(PlayableHostBootstrap host) =>
+            host != null && host.GetComponent<HostFarmFieldLabor>()?._manualClaimsPointer == true;
 
         public void Bind(PlayableHostBootstrap host)
         {
+            StopManual(clearProgress: true);
+            _manualWorld = null;
+            _manualActor = EntityId.None;
+            _manualNeedsRelease = true;
             bootstrap = host;
             if (host == null)
                 return;
@@ -81,6 +98,8 @@ namespace XianXia.Unity.Host
 
         public bool IsFarming(EntityId id)
         {
+            if (_manualWorker != null && _manualWorker.Id == id && _manualWorker.Phase == Phase.Work)
+                return true;
             for (var i = 0; i < _workers.Count; i++)
             {
                 if (_workers[i].Id == id)
@@ -93,6 +112,14 @@ namespace XianXia.Unity.Host
         public bool TryGetWorkVisual(EntityId id, out HostCharacterWorkVisual visual)
         {
             visual = default;
+            if (_manualWorker != null && _manualWorker.Id == id &&
+                _manualWorker.Phase == Phase.Work && _manualWorker.Cell != null)
+            {
+                visual = HostCharacterWorkVisual.For(HumanWorkMotion.Soil, HumanCommonRigView.Equipment.Hoe);
+                visual.HasTarget = true;
+                visual.Target = _manualWorker.Cell.transform.position;
+                return true;
+            }
             for (var i = 0; i < _workers.Count; i++)
             {
                 var worker = _workers[i];
@@ -115,6 +142,11 @@ namespace XianXia.Unity.Host
         public bool TryGetFarmLocation(EntityId id, out string locationId)
         {
             locationId = null;
+            if (_manualWorker != null && _manualWorker.Id == id && _manualWorker.Phase == Phase.Work)
+            {
+                locationId = _manualWorker.LocationId;
+                return !string.IsNullOrEmpty(locationId);
+            }
             for (var i = 0; i < _workers.Count; i++)
             {
                 if (_workers[i].Id != id)
@@ -140,6 +172,11 @@ namespace XianXia.Unity.Host
 
         public void Stop(EntityId id)
         {
+            if (_manualWorker != null && _manualWorker.Id == id)
+            {
+                StopManual(clearProgress: true);
+                _manualNeedsRelease = true;
+            }
             for (var i = _workers.Count - 1; i >= 0; i--)
             {
                 if (_workers[i].Id != id)
@@ -174,6 +211,8 @@ namespace XianXia.Unity.Host
 
         public void StopAll()
         {
+            StopManual(clearProgress: true);
+            _manualNeedsRelease = true;
             for (var i = 0; i < _workers.Count; i++)
             {
                 ReleaseReserve(_workers[i]);
@@ -220,6 +259,11 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _commandWorkers.Count; i++)
             {
                 var id = _commandWorkers[i];
+                if (HostRpgControls.ManualActor(bootstrap, id))
+                {
+                    Toast(id, "装备锄头后走近田格，指向田格按住左键劳动", new Color(.7f, .95f, .6f));
+                    continue;
+                }
                 if (Begin(id, clickedPlot.LocationId, fromNpcSchedule: false))
                     n++;
             }
@@ -229,6 +273,7 @@ namespace XianXia.Unity.Host
 
         public bool Begin(EntityId id, string locationId, bool fromNpcSchedule = false, bool fromPartyFollow = false)
         {
+            if (HostRpgControls.ManualActor(bootstrap, id)) return false;
             if (id.IsNone || string.IsNullOrEmpty(locationId) ||
                 !HostFarmFieldRegistry.TryGetPlots(locationId, out _))
                 return false;
@@ -293,8 +338,13 @@ namespace XianXia.Unity.Host
         void Update()
         {
             if (bootstrap?.Session?.World == null)
+            {
+                StopManual(clearProgress: true);
+                _manualClaimsPointer = false;
                 return;
+            }
             SyncFarmPresentationFromCore();
+            UpdateManualWork();
             if (bootstrap.Session.IsPaused)
                 return;
 
@@ -306,7 +356,8 @@ namespace XianXia.Unity.Host
             for (var i = _workers.Count - 1; i >= 0; i--)
             {
                 var w = _workers[i];
-                if (CharacterEncounterService.OwnsParticipantSpatialState(bootstrap.Session.World, w.Id) ||
+                if (HostRpgControls.ManualActor(bootstrap, w.Id) ||
+                    CharacterEncounterService.OwnsParticipantSpatialState(bootstrap.Session.World, w.Id) ||
                     !AutonomousActionContinuationService.CanContinue(bootstrap.Session.World, w.Id) ||
                     MortalTransportConstraintService.ValidateUnburdenedAction(
                         bootstrap.Session.World, w.Id).IsFailure)
@@ -333,6 +384,164 @@ namespace XianXia.Unity.Host
                     _workers.RemoveAt(i);
                 }
             }
+        }
+
+        void UpdateManualWork()
+        {
+            _manualClaimsPointer = false;
+            _manualHint = string.Empty;
+            var session = bootstrap.Session;
+            var world = session.World;
+            var actor = session.PlayerParty.ActiveCharacterId;
+            if (!ReferenceEquals(_manualWorld, world) || _manualActor != actor)
+            {
+                StopManual(clearProgress: true);
+                _manualWorld = world;
+                _manualActor = actor;
+                _manualNeedsRelease = true;
+            }
+            if (!HostRpgControls.ManualActor(bootstrap, actor) || session.IsPaused ||
+                HostInputGate.BlockWorldInteraction || HostRpgControls.InCombat(bootstrap) ||
+                world.ContentEvents.HasActive ||
+                bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt ||
+                bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen ||
+                bootstrap.WorkTargetMode != null && bootstrap.WorkTargetMode.IsActive ||
+                HostUiHitTest.ContainsScreenPoint(Input.mousePosition) || !Application.isFocused ||
+                Camera.main == null || !TryGetWorldPos(actor, out var position))
+            {
+                StopManual(clearProgress: true);
+                _manualNeedsRelease = true;
+                return;
+            }
+            if (!Input.GetMouseButton(0)) _manualNeedsRelease = false;
+            if (!HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var pointer) ||
+                !HostFarmFieldRegistry.TryFindPlotAt(pointer, out var cell))
+            {
+                StopManual(clearProgress: true);
+                return;
+            }
+            _manualClaimsPointer = true;
+            if (HostFarmFieldRules.XyDistance(position, cell.transform.position) > ManualWorkReach ||
+                moveController == null || !moveController.HasProjectileSight(position, cell.transform.position))
+            {
+                StopManual(clearProgress: true);
+                _manualHint = "先走近田格，再按住左键劳动";
+                return;
+            }
+            if (!WeaponEquipmentService.IsEquippedKind(world, actor, WeaponKind.Hoe))
+            {
+                StopManual(clearProgress: true);
+                _manualHint = "按B打开背包，先装备锄头";
+                return;
+            }
+            var authorization = WorldAdministrativeAssetWorkAuthorizationService.ResolveForFaction(
+                world, cell.StableCellId, world.Strategic?.PlayerFactionId ?? string.Empty);
+            if (!authorization.IsAllowed)
+            {
+                StopManual(clearProgress: true);
+                _manualHint = DescribeAuthorizationDenial(authorization);
+                return;
+            }
+            if (!AutonomousActionContinuationService.CanContinue(world, actor) ||
+                MortalTransportConstraintService.ValidateUnburdenedAction(world, actor).IsFailure ||
+                !world.Entities.TryGet(actor, out var entity) ||
+                !XianXia.Core.Combat.CombatLifeStateService.CanFight(entity) ||
+                XianXia.Core.Combat.FlightService.IsAirborne(world, actor) ||
+                PartyRestService.BlocksMovement(entity) ||
+                Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D) ||
+                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.DownArrow) ||
+                Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.RightArrow) ||
+                moveController.IsMoving(actor) || !moveController.IsCharacterStandClear(actor))
+            {
+                StopManual(clearProgress: true);
+                _manualHint = "停下后，按住左键劳动";
+                return;
+            }
+            if (_manualWorker != null && (_manualWorker.Cell != cell || _manualStage != cell.CropStage))
+                StopManual(clearProgress: true);
+            var hasReserve = _manualWorker != null && _manualWorker.ReservedCellId != 0;
+            if (!hasReserve && _reserved.Contains(cell.GetInstanceID()))
+            {
+                StopManual(clearProgress: true);
+                _manualHint = "此处有人劳动，请换一个田格";
+                return;
+            }
+            _manualHint = "左键按住" + HostFarmFieldRules.JobVerb(cell.CropStage) + " · 松手停止";
+            if (!Input.GetMouseButton(0) || _manualNeedsRelease)
+            {
+                StopManual(clearProgress: false);
+                return;
+            }
+            if (_manualWorker == null)
+            {
+                Stop(actor);
+                workLoop?.StopLoop(actor);
+                if (entity.TryGet<ActionStateComponent>(out var action) && action.HasActiveAction)
+                    session.Loop.StopSubject(actor);
+                _manualWorker = new Worker
+                {
+                    Id = actor, Cell = cell, LocationId = cell.LocationId,
+                    WorkLeft = HostFarmFieldRules.WorkSeconds,
+                    RequiresAdministrativeAuthorization = true,
+                    ActingFactionId = world.Strategic?.PlayerFactionId ?? string.Empty
+                };
+                _manualStage = cell.CropStage;
+            }
+            var worker = _manualWorker;
+            if (worker.Phase != Phase.Work)
+            {
+                worker.ReservedCellId = cell.GetInstanceID();
+                _reserved.Add(worker.ReservedCellId);
+                worker.Phase = Phase.Work;
+                SetActivity(actor, HostFarmFieldRules.JobVerb(cell.CropStage) + "中");
+            }
+            if (viewSpawner.Registry.TryGet(actor, out var view) && view != null)
+                view.SetPointerFacing(cell.transform.position - position);
+            worker.WorkLeft -= bootstrap.PresentationDeltaTime;
+            if (!entity.TryGet<XianXia.Core.Social.ObservedLaborComponent>(out var observed))
+            {
+                observed = new XianXia.Core.Social.ObservedLaborComponent();
+                entity.AddComponent(observed);
+            }
+            observed.ValidUntilTick = world.Tick.Value + 1;
+            if (worker.WorkLeft <= 0f)
+            {
+                if (!ApplyJob(worker)) { StopManual(clearProgress: true); return; }
+                worker.WorkLeft = HostFarmFieldRules.WorkSeconds;
+                _manualStage = cell.CropStage;
+                SetActivity(actor, HostFarmFieldRules.JobVerb(cell.CropStage) + "中");
+            }
+            _manualHint = HostFarmFieldRules.JobVerb(cell.CropStage) + " " +
+                Mathf.FloorToInt(100f * (1f - worker.WorkLeft / HostFarmFieldRules.WorkSeconds)) + "% · 松手停止";
+        }
+
+        void StopManual(bool clearProgress)
+        {
+            if (_manualWorker == null) return;
+            if (_manualWorker.Phase == Phase.Work)
+            {
+                ReleaseReserve(_manualWorker);
+                ClearActivity(_manualWorker.Id);
+                _manualWorker.Phase = Phase.Idle;
+            }
+            if (clearProgress) _manualWorker = null;
+        }
+
+        void OnDisable()
+        {
+            StopManual(clearProgress: true);
+            _manualClaimsPointer = false;
+            _manualNeedsRelease = true;
+        }
+
+        void OnGUI()
+        {
+            if (!_manualClaimsPointer || string.IsNullOrEmpty(_manualHint) || Event.current.type != EventType.Repaint)
+                return;
+            var width = Mathf.Min(330f, Screen.width);
+            var x = Mathf.Clamp(Input.mousePosition.x + 18f, 0f, Screen.width - width);
+            var y = Mathf.Clamp(Screen.height - Input.mousePosition.y + 20f, 0f, Screen.height - 30f);
+            GUI.Box(new Rect(x, y, width, 27f), _manualHint);
         }
 
         void SyncNpcScheduleFarmers()

@@ -23,6 +23,8 @@ namespace XianXia.Core.Actions
             var r = CanStart(world);
             if (r.IsSuccess)
             {
+                if (Task == "wood" && XianXia.Core.Inventory.WeaponEquipmentService.IsEquippedKind(
+                    world, Subject, XianXia.Core.Inventory.WeaponKind.Axe)) Clock = ActionClock.Start(5);
                 Status = ActionStatus.Running;
                 if ((Task == "feed" || Task == "medicine" || Task == "force_release") && HuangcunSurvivalService.Prisoner(world) is var prisoner &&
                     prisoner != null && prisoner.TryGet<MovementIntentComponent>(out var intent)) intent.Clear();

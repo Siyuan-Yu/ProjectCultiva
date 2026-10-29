@@ -324,8 +324,8 @@ namespace XianXia.Unity.Host
             _pendingWorkContact = false;
             if (_attackRenderer != null) _attackRenderer.enabled = false;
             _moveController = moveController;
-            _farmLabor = farmLabor;
-            _destructibleAssault = destructibleAssault;
+            _farmLabor = farmLabor != null ? farmLabor : moveController != null ? moveController.GetComponent<HostFarmFieldLabor>() : null;
+            _destructibleAssault = destructibleAssault != null ? destructibleAssault : moveController != null ? moveController.GetComponent<HostDestructibleAssault>() : null;
             _artLastPosition = transform.position;
             _artSession = session;
             _artState = new HostCharacterArtState();

@@ -6,6 +6,7 @@ using XianXia.Core.Construction;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
@@ -27,6 +28,12 @@ namespace XianXia.Core.Npc
             Recipe("copper","炼铜锭","base:resource_copper_ingot","smithy",18,"base:resource_copper_ore",2,HuangcunSurvivalService.Wood,1),
             Recipe("silver","炼银锭","base:resource_silver_ingot","smithy",24,"base:resource_silver_ore",2,HuangcunSurvivalService.Wood,1),
             Recipe("pick","锻铁镐",Pick,"smithy",24,"base:resource_iron_ingot",2,HuangcunSurvivalService.Wood,2),
+            Recipe("hoe","打制铁锄",WeaponEquipmentService.Hoe,"smithy",12,"base:resource_iron_ore",1,HuangcunSurvivalService.Wood,1),
+            Recipe("axe","打制伐木斧",WeaponEquipmentService.Axe,"smithy",16,"base:resource_iron_ore",1,HuangcunSurvivalService.Wood,2),
+            Recipe("sword","锻铁剑",WeaponEquipmentService.Sword,"smithy",30,"base:resource_iron_ingot",2,HuangcunSurvivalService.Wood,1),
+            Recipe("saber","锻朴刀",WeaponEquipmentService.Saber,"smithy",30,"base:resource_iron_ingot",3,HuangcunSurvivalService.Wood,1),
+            Recipe("hammer","锻铁锤",WeaponEquipmentService.Hammer,"smithy",36,"base:resource_iron_ingot",4,HuangcunSurvivalService.Wood,2),
+            Recipe("spear","锻铁矛",WeaponEquipmentService.Spear,"smithy",30,"base:resource_iron_ingot",2,HuangcunSurvivalService.Wood,3),
             Recipe("focus","制凝神器",Focus,"smithy",30,"base:resource_silver_ingot",1,"base:resource_copper_ingot",1,"base:resource_spirit_ore",1),
             Recipe("powder","制疗伤散",Powder,"alchemy",18,HuangcunSurvivalService.Herb,2,HuangcunSurvivalService.Wood,1),
             Recipe("pill","炼培元丸",Pill,"alchemy",30,HuangcunSurvivalService.Herb,3,"base:resource_spirit_ore",1)
@@ -106,7 +113,7 @@ namespace XianXia.Core.Npc
                 if(w.ContentCounters.Get(key)>0)return Fail("上次药力尚未炼化，不可重复使用。");
                 w.ContentCounters.Set(key,item==Pill?10:30);
             }
-            else return Fail("此物无需主动使用；铁镐在背包中自动辅助采矿。");
+            else return Fail("此物不能直接服用；工具和武器请在背包中装备后使用。");
             w.Inventory.TryRemoveAll(item,1);
             w.Events.Publish(XianXia.Core.Events.EventType.PartyInventoryChanged,w.Tick,actor:actor,payload:"use:"+item);
             return Result.Success();

@@ -5,6 +5,18 @@
       "id": "base:scenario_huangcun_life",
       "startingInventory": [
         {
+          "itemId": "base:item_iron_hoe",
+          "count": 1
+        },
+        {
+          "itemId": "base:item_iron_axe",
+          "count": 1
+        },
+        {
+          "itemId": "base:item_iron_pick",
+          "count": 1
+        },
+        {
           "itemId": "base:resource_rough_wood",
           "count": 2
         },

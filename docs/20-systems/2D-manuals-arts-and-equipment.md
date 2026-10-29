@@ -1,5 +1,13 @@
 # 功法、斗技与装备
 
+> **2026-10-29 持械表现覆写：** [436](../40-process/436-shared-overhead-tool-and-weapon-animation-2026-10-29.md)按制作人要求将全人物农具劳动及近战武器统一为举起后向下挥击，矛也不再单独突刺。只改变表现，实际生产及战斗规则沿435。
+
+## 2026-10-28 首版工具与近战武器
+
+制作人确认当前接入可装备的锄头、斧头、矿镐、剑、刀、锤、矛；不增加弓弩。规则及本轮实施入口见[435](../40-process/435-manual-field-work-and-melee-weapons-2026-10-28.md)。每人一个手持位，使用真实背包物品，装备／卸下守恒；伤害加成沿AttributeModifier，人物成长仍以境界和功法为主。不设耐久／强化／随机词条。开局配劳动工具，制式兵器由既有锻造入口取得；工具兼作近战。既有斗气纱衣不是远程武器，不受本轮物品类型限制。
+
+当前状态为Design Confirmed / Implemented / Producer Acceptance Pending。单手持位由服务封装现有Equipment来源Attack固定modifier保存，Source携带物品ID和持有者，实际物品从共享背包移出；换装原子归还，读档不重新发物。首版攻击加成为锄2／斧4／镐3／剑6／刀7／锤9／矛6，沿原射程冷却，完整配方、工具作用及人工验收见435。下文旧“只记设计方向／数值未展开”不限制本轮明确批准范围。
+
 ## AUCTION-01 物品托管边界（2026-09-25）
 
 状态：**Producer Accepted / Sealed**。寄拍仅从 PartyInventory 原子移除可交易且有 BaseTradePrice 的物品；grade 固定来自物品基础价，玩家只设置数量与整批起拍金额。竞得／流拍物先进入 Auction Claim，领取完整成功后才进入 PartyInventory。Auction 不读取 WorldSitePublicStock，不重做装备、Crafting 或物品使用。

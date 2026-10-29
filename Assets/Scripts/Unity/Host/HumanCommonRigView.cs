@@ -22,6 +22,8 @@ namespace XianXia.Unity.Host
         static readonly Dictionary<string, Sprite> ClosedHeadCache = new Dictionary<string, Sprite>();
         static readonly HashSet<string> ReportedClosedHeadFailures = new HashSet<string>();
         static Sprite[] _equipment;
+        static bool _equipmentLoadAttempted;
+        static string _equipmentLoadFailure;
         [Serializable] sealed class PieceLayout
         {
             public int x, y, width, height;
@@ -273,17 +275,36 @@ namespace XianXia.Unity.Host
             // optional expression art, never a reason to abandon the whole character rig.
             _frontClosedHead = LoadClosedHead(partsKey, 1);
             _sideClosedHead = LoadClosedHead(sideAtlas, sideIndex);
-            if (_equipment == null)
-            {
-                const string toolsKey = "ART-ANIM-002_004_HumanCommonRig_tools_v01";
-                var texture = Resources.Load<Texture2D>(toolsKey);
-                if (texture == null) return InitializationFailed("Missing Texture2D resource: " + toolsKey + ".");
-                _equipment = LayoutSprites(texture, toolsKey, 6, out var failure);
-                if (_equipment == null) return InitializationFailed(failure);
-            }
+            if (!EnsureEquipmentSprites()) return InitializationFailed(_equipmentLoadFailure);
             BuildHierarchy();
             Apply(HostStepAArt.Action.Idle, HostStepAArt.Direction.South, 0f, 0f, Equipment.None);
             return true;
+        }
+
+        // Shared atlas slices also serve equipped tools and inventory icons. Loading is lazy,
+        // once per domain, rather than repeated by every character's presentation update.
+        static bool EnsureEquipmentSprites()
+        {
+            if (_equipment != null) return true;
+            if (_equipmentLoadAttempted) return false;
+            _equipmentLoadAttempted = true;
+            const string toolsKey = "ART-ANIM-002_004_HumanCommonRig_tools_v01";
+            var texture = Resources.Load<Texture2D>(toolsKey);
+            if (texture == null)
+            {
+                _equipmentLoadFailure = "Missing Texture2D resource: " + toolsKey + ".";
+                return false;
+            }
+            _equipment = LayoutSprites(texture, toolsKey, 6, out _equipmentLoadFailure);
+            return _equipment != null;
+        }
+
+        public static Sprite GetToolSprite(Equipment kind)
+        {
+            var index = kind == Equipment.Spear ? 0 : kind == Equipment.Axe ? 1 :
+                kind == Equipment.Hoe ? 2 : kind == Equipment.Pick ? 3 :
+                kind == Equipment.Sickle ? 4 : -1;
+            return index >= 0 && EnsureEquipmentSprites() ? _equipment[index] : null;
         }
 
         bool InitializationFailed(string reason)
@@ -654,52 +675,13 @@ namespace XianXia.Unity.Host
                 switch (workMotion)
                 {
                     case HumanWorkMotion.Chop:
-                        leftArm = WorkKey(phase, 8f, 16f, 3f);
-                        rightArm = -8f;
-                        lean = WorkKey(phase, 2f, -4f, 10f);
-                        bodyDrop = WorkKey(phase, 0f, 0f, .045f);
-                        hand = new Vector3(WorkKey(phase, side ? .32f : .27f,
-                            side ? .25f : .15f, side ? .46f : .29f),
-                            WorkKey(phase, -.42f, -.34f, -.46f), 0f);
-                        toolAngle = WorkKey(phase, side ? -28f : -18f, side ? 24f : 20f,
-                            side ? -108f : back ? -48f : -165f);
-                        break;
                     case HumanWorkMotion.Mine:
-                        lean = WorkKey(phase, 3f, -3f, 9f);
-                        bodyDrop = WorkKey(phase, 0f, 0f, .04f);
-                        hand = new Vector3(WorkKey(phase, side ? .02f : .18f,
-                            side ? -.02f : .13f, side ? .09f : back ? .18f : .14f),
-                            WorkKey(phase, back ? -.48f : -.40f, back ? -.48f : -.43f,
-                                back ? -.51f : side ? -.44f : -.32f), 0f);
-                        toolAngle = WorkKey(phase, side ? -25f : -15f, side ? 35f : 25f,
-                            side ? -112f : back ? -48f : -165f);
-                        break;
                     case HumanWorkMotion.Soil:
-                        lean = WorkKey(phase, 5f, 2f, 11f);
-                        bodyDrop = WorkKey(phase, .01f, 0f, .045f);
-                        hand = new Vector3(WorkKey(phase, side ? .02f : back ? .16f : .10f,
-                            side ? -.04f : back ? .12f : .07f, side ? .09f : back ? .18f : .14f),
-                            back ? -.49f : side ? -.41f : -.31f, 0f);
-                        toolAngle = WorkKey(phase, side ? -80f : back ? -15f : -155f,
-                            side ? -38f : back ? -45f : -110f,
-                            side ? -118f : back ? -5f : -178f);
-                        break;
                     case HumanWorkMotion.Sow:
                     case HumanWorkMotion.Tend:
-                        leftArm = WorkKey(phase, 8f, 20f, 14f);
-                        rightArm = WorkKey(phase, -6f, -27f, -10f);
-                        lean = WorkKey(phase, 4f, 2f, 10f);
-                        reach = WorkKey(phase, .02f, 0f, .10f);
-                        bodyDrop = WorkKey(phase, .01f, 0f, .04f);
-                        break;
                     case HumanWorkMotion.Harvest:
-                        leftArm = WorkKey(phase, 14f, 8f, 22f);
-                        lean = WorkKey(phase, 5f, 3f, 11f);
-                        hand = new Vector3(WorkKey(phase, side ? .31f : .27f,
-                            side ? .39f : .34f, side ? .22f : .16f), -.45f, 0f);
-                        toolAngle = WorkKey(phase, side ? -65f : -130f, side ? -105f : -165f,
-                            side ? -30f : back ? -30f : -95f);
-                        bodyDrop = WorkKey(phase, .015f, 0f, .04f);
+                        OverheadSwing(phase, side, back, out hand, out toolAngle,
+                            out leftArm, out rightArm, out lean, out bodyDrop);
                         break;
                     case HumanWorkMotion.Build:
                         leftArm = 12f;
@@ -739,13 +721,7 @@ namespace XianXia.Unity.Host
                 1f - Smooth((clock - .14f) / .22f);
             if (attacking)
             {
-                if (attackStyle == HumanAttackStyle.Thrust)
-                {
-                    hand = new Vector3(side ? .02f + .12f * pulse : .14f,
-                        back ? -.48f + .08f * pulse : side ? -.34f : -.32f - .02f * pulse, 0f);
-                    toolAngle = side ? -90f : back ? 0f : 180f;
-                }
-                else if (attackStyle == HumanAttackStyle.Cast)
+                if (attackStyle == HumanAttackStyle.Cast)
                 { leftArm = 35f * pulse; rightArm = -35f * pulse; reach = .16f * pulse; }
                 else if (punching)
                 {
@@ -755,11 +731,11 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    leftArm = -12f * pulse; rightArm = 38f * pulse;
-                    hand += new Vector3(side ? .10f * pulse : 0f, -.04f * pulse, 0f);
-                    toolAngle = Mathf.Lerp(15f, side ? -110f : back ? -55f : -160f, pulse);
+                    OverheadSwing(Mathf.Clamp01(clock / .36f), side, back,
+                        out hand, out toolAngle, out leftArm, out rightArm, out lean, out bodyDrop);
                 }
-                lean = punching ? -12f * punch : -5f * pulse;
+                if (punching) lean = -12f * punch;
+                else if (attackStyle == HumanAttackStyle.Cast) lean = -5f * pulse;
             }
             if (carryingCargo || carryingPerson)
             { leftArm = 16f - 2f * stride; rightArm = -16f + 2f * stride; reach = .08f; }
@@ -792,11 +768,8 @@ namespace XianXia.Unity.Host
 
             var chosen = _lifePose || _sleepPose || carryingCargo || carryingPerson ||
                 attacking && (attackStyle == HumanAttackStyle.Cast || attackStyle == HumanAttackStyle.Unarmed) ? Equipment.None :
-                working ? equipment : _equipmentBinding != null ? _equipmentBinding.WeaponKind : Equipment.None;
-            var index = chosen == Equipment.Spear ? 0 : chosen == Equipment.Axe ? 1 :
-                chosen == Equipment.Hoe ? 2 : chosen == Equipment.Pick ? 3 :
-                chosen == Equipment.Sickle ? 4 : -1;
-            var fallback = index >= 0 && _equipment != null ? _equipment[index] : null;
+                working ? WorkEquipment(workMotion, equipment) : _equipmentBinding != null ? _equipmentBinding.DefaultWeaponKind : Equipment.None;
+            var fallback = GetToolSprite(chosen);
             var attachment = _equipmentBinding == null ? HumanCommonRigEquipment.Default(fallback, chosen) :
                 working ? _equipmentBinding.ResolveWorkTool(workMotion, fallback, chosen) : _equipmentBinding.ResolveWeapon(fallback);
             if (_lifePose || _sleepPose || carryingCargo || carryingPerson ||
@@ -987,14 +960,47 @@ namespace XianXia.Unity.Host
             return t * t * (3f - 2f * t);
         }
 
+        static Equipment WorkEquipment(HumanWorkMotion motion, Equipment authored)
+        {
+            if (authored != Equipment.None) return authored;
+            switch (motion)
+            {
+                case HumanWorkMotion.Chop: return Equipment.Axe;
+                case HumanWorkMotion.Mine: return Equipment.Pick;
+                case HumanWorkMotion.Soil:
+                case HumanWorkMotion.Sow:
+                case HumanWorkMotion.Tend:
+                case HumanWorkMotion.Harvest: return Equipment.Hoe;
+                default: return Equipment.None;
+            }
+        }
+
+        // One visible shoulder-high lift, downward strike and recovery for every held
+        // tool/weapon. The hand itself moves above the shoulder, rather than rotating a
+        // tool around a nearly stationary low grip. This is presentation, never hit timing.
+        static void OverheadSwing(float phase, bool side, bool back, out Vector3 hand,
+            out float angle, out float leftArm, out float rightArm, out float lean, out float drop)
+        {
+            hand = new Vector3(WorkKey(phase, side ? .33f : .27f,
+                side ? -.08f : back ? .04f : .12f, side ? .60f : .35f),
+                WorkKey(phase, -.40f, .78f, -.64f), 0f);
+            angle = WorkKey(phase, 10f, 40f, -145f);
+            leftArm = WorkKey(phase, 10f, 70f, -15f);
+            rightArm = WorkKey(phase, -8f, -125f, 30f);
+            lean = WorkKey(phase, 0f, -7f, 14f);
+            drop = WorkKey(phase, 0f, -.025f, .06f);
+        }
+
         static float WorkCycleSeconds(HumanWorkMotion motion)
         {
             switch (motion)
             {
-                case HumanWorkMotion.Chop: return .9f;
-                case HumanWorkMotion.Mine: return 1.02f;
-                case HumanWorkMotion.Soil: return 1.2f;
-                case HumanWorkMotion.Tend: return 1.4f;
+                case HumanWorkMotion.Chop:
+                case HumanWorkMotion.Mine:
+                case HumanWorkMotion.Soil:
+                case HumanWorkMotion.Sow:
+                case HumanWorkMotion.Tend:
+                case HumanWorkMotion.Harvest: return .9f;
                 case HumanWorkMotion.Eat: return 1.8f;
                 default: return 1.15f;
             }

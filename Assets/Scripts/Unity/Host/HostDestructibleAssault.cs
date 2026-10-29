@@ -365,6 +365,8 @@ namespace XianXia.Unity.Host
                 damage = Mathf.Max(1, attrs.GetFinal(AttributeId.Attack));
 
             var isTree = target.IsTree;
+            if (isTree)
+                damage = XianXia.Core.Inventory.WeaponEquipmentService.TreeWorkDamage(world, attacker, damage);
             var kind = target.Kind;
             var expectedYield = target.ResolveWoodYield();
             var hitPos = target.transform.position;

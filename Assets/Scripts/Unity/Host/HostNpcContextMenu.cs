@@ -1259,7 +1259,8 @@ namespace XianXia.Unity.Host
                 bootstrap?.Session?.World, _actor);
             var wasEnabled = GUI.enabled;
             GUI.enabled = wasEnabled && !workBlocked;
-            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), workBlocked ? "战斗中禁止工作" : "工作", _button))
+            if (GUI.Button(new Rect(x + 8f, actionY, w - 16f, itemH - 4f), workBlocked ? "战斗中禁止工作" :
+                    HostRpgControls.SceneRts ? "工作" : "左键劳动说明", _button))
             {
                 var target = _worldObjectTarget;
                 CloseAll();
