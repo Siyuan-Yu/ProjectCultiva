@@ -635,7 +635,8 @@ namespace XianXia.Core.Persistence
                 { StableId = kv.Key, CurrentHp = kv.Value.Hp, Destroyed = kv.Value.Destroyed });
             foreach (var kv in world.OutdoorStatefulObjects.FarmPlots)
                 snap.OutdoorFarmPlots.Add(new OutdoorFarmPlotSnapshotDto
-                { StableCellId = kv.Key, CropId = kv.Value.CropId, CropStage = kv.Value.CropStage, Growth = kv.Value.Growth });
+                { StableCellId = kv.Key, CropId = kv.Value.CropId, CropStage = kv.Value.CropStage, Growth = kv.Value.Growth,
+                    LastTendedDayPlusOne = kv.Value.LastTendedDayPlusOne });
         }
 
         static void CaptureCivilianConstructionJobs(SimulationWorld world, WorldSnapshot snap)
@@ -1835,7 +1836,7 @@ namespace XianXia.Core.Persistence
                 {
                     var state = snap.OutdoorFarmPlots[i];
                     if (state != null) world.OutdoorStatefulObjects.SetFarmPlot(
-                        state.StableCellId, state.CropId, state.CropStage, state.Growth);
+                        state.StableCellId, state.CropId, state.CropStage, state.Growth, state.LastTendedDayPlusOne);
                 }
         }
 

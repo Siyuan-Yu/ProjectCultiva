@@ -38,6 +38,8 @@ namespace XianXia.Unity.Host
         public string Kind => kind;
         public string PlantedCropId => plantedCropId;
         public OutdoorFarmCropStage CropStage => cropStage;
+        public bool IsDailyTendingComplete => cropStage == OutdoorFarmCropStage.Growing &&
+            OutdoorFarmGrowthService.IsTendedToday(_world, stableCellId);
         public float Growth01 => growth01;
         public string LootSpotId => lootSpotId;
         public string LootItemId => lootItemId;
@@ -355,7 +357,8 @@ namespace XianXia.Unity.Host
                            Mathf.FloorToInt(growth01 * 100f) + "% · " +
                            (OutdoorFarmGrowthService.MaturityTicks(plantedCropId) == 0 ? "周期未配置" :
                             "周期 " + (OutdoorFarmGrowthService.MaturityTicks(plantedCropId) /
-                                XianXia.Core.Domain.Time.WorldTick.TicksPerDay) + " 天");
+                                XianXia.Core.Domain.Time.WorldTick.TicksPerDay) + " 天") +
+                           (IsDailyTendingComplete ? " · 今日照料100%（明天再来）" : " · 今日可照料");
                 case OutdoorFarmCropStage.Mature:
                     return "已成熟 · " + CropName() + " · 可收获";
                 case OutdoorFarmCropStage.Ruined:

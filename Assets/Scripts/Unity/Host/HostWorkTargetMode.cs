@@ -146,7 +146,7 @@ namespace XianXia.Unity.Host
             if (RejectBattleWork()) return true;
             if (!HostRpgControls.SceneRts)
             {
-                HostWorldSiteCoreWarfare.Feedback(bootstrap, "按B装备锄头，走近田格并指向它，按住左键劳动；松手停止。");
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "按B装备锄头，站在田区内按住左键劳动，无需鼠标对准田格；松手停止。");
                 return true;
             }
             var farm = bootstrap.GetComponent<HostFarmFieldLabor>();

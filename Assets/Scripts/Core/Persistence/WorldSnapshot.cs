@@ -257,7 +257,7 @@ namespace XianXia.Core.Persistence
     public sealed class OutdoorDestructibleSnapshotDto
     { public string StableId { get; set; } = string.Empty; public int CurrentHp { get; set; } public bool Destroyed { get; set; } }
     public sealed class OutdoorFarmPlotSnapshotDto
-    { public string StableCellId { get; set; } = string.Empty; public string CropId { get; set; } = string.Empty; public int CropStage { get; set; } public float Growth { get; set; } }
+    { public string StableCellId { get; set; } = string.Empty; public string CropId { get; set; } = string.Empty; public int CropStage { get; set; } public float Growth { get; set; } public ulong LastTendedDayPlusOne { get; set; } }
 
     public sealed class StrategicSnapshotDto
     {

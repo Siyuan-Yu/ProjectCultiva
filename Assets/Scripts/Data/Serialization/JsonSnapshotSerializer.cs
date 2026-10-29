@@ -458,7 +458,8 @@ namespace XianXia.Data.Serialization
                             StableCellId = node.GetString("stableCellId", string.Empty),
                             CropId = node.GetString("cropId", string.Empty),
                             CropStage = (int)node.GetNumber("cropStage"),
-                            Growth = (float)node.GetNumber("growth")
+                            Growth = (float)node.GetNumber("growth"),
+                            LastTendedDayPlusOne = (ulong)System.Math.Max(0, node.GetNumber("lastTendedDayPlusOne"))
                         });
                     }
                 }
@@ -1332,7 +1333,8 @@ namespace XianXia.Data.Serialization
                     ["stableCellId"] = JsonValue.FromString(state.StableCellId ?? string.Empty),
                     ["cropId"] = JsonValue.FromString(state.CropId ?? string.Empty),
                     ["cropStage"] = JsonValue.FromNumber(state.CropStage),
-                    ["growth"] = JsonValue.FromNumber(state.Growth)
+                    ["growth"] = JsonValue.FromNumber(state.Growth),
+                    ["lastTendedDayPlusOne"] = JsonValue.FromNumber(state.LastTendedDayPlusOne)
                 }));
             }
             return list;

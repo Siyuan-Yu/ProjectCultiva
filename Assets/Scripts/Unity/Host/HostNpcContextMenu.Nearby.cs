@@ -84,6 +84,13 @@ namespace XianXia.Unity.Host
                 _targetLabel = chosen.Label; _phase = Phase.Menu; _menuScreen = screen;
                 HostInputGate.AcquireInteraction(InputOwner);
             }
+            else if (chosen.Person.IsNone && chosen.Object.Kind == WorldObjectTargetKind.Bed)
+            {
+                // F performs the bed's primary RPG action; management remains in the explicit menu.
+                _actor = actor; _targetNpc = EntityId.None;
+                SetWorldObjectTarget(chosen.Object);
+                BeginRecoverySpot();
+            }
             else if (chosen.Person.IsNone) OpenObjectMenu(actor, chosen.Object, screen);
             else OpenNpcMenu(actor, chosen.Person, screen);
         }
@@ -299,7 +306,9 @@ namespace XianXia.Unity.Host
                 HostUiHitTest.ContainsScreenPoint(screen)) return;
             if (_hintStyle == null) _hintStyle = new GUIStyle(GUI.skin.label) {
                 alignment = TextAnchor.MiddleCenter, fontSize = 14, normal = { textColor = new Color(1f, .93f, .65f) } };
-            var text = "▼  F 交互 · " + _nearbyTarget.Label;
+            var action = !_nearbyTarget.HasSpot && _nearbyTarget.Person.IsNone &&
+                _nearbyTarget.Object.Kind == WorldObjectTargetKind.Bed ? "睡觉" : "交互";
+            var text = "▼  F " + action + " · " + _nearbyTarget.Label;
             var width = Mathf.Min(320f, _hintStyle.CalcSize(new GUIContent(text)).x + 18f);
             var rect = new Rect(Mathf.Clamp(screen.x - width / 2, 4, Screen.width - width - 4),
                 Mathf.Clamp(Screen.height - screen.y - 28, 4, Screen.height - 32), width, 28);

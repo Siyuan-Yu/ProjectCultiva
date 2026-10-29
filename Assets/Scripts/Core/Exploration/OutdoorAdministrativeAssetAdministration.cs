@@ -142,6 +142,19 @@ namespace XianXia.Core.Exploration
         public const ulong HerbMaturityTicks = (ulong)Domain.Time.WorldTick.TicksPerDay * 10;
         public const float PassiveGrowthPerWorldTick = 1f / GrainMaturityTicks;
 
+        public static bool IsTendedToday(Simulation.SimulationWorld world, string stableCellId) =>
+            world != null && world.OutdoorStatefulObjects.TryGetFarmPlot(stableCellId, out var state) &&
+            state.LastTendedDayPlusOne == world.Tick.Value / (ulong)Domain.Time.WorldTick.TicksPerDay + 1;
+
+        public static bool TryCompleteTending(Simulation.SimulationWorld world, string stableCellId)
+        {
+            if (world == null || !world.OutdoorStatefulObjects.TryGetFarmPlot(stableCellId, out var state) ||
+                state.Stage != OutdoorFarmCropStage.Growing || IsTendedToday(world, stableCellId)) return false;
+            world.OutdoorStatefulObjects.SetFarmPlot(stableCellId, state.CropId, state.Stage, state.Growth,
+                world.Tick.Value / (ulong)Domain.Time.WorldTick.TicksPerDay + 1);
+            return true;
+        }
+
         public static ulong MaturityTicks(string cropId) => cropId == GrainCropId ? GrainMaturityTicks :
             cropId == HerbCropId ? HerbMaturityTicks : 0;
 

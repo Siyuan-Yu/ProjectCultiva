@@ -200,6 +200,46 @@ namespace XianXia.Unity.Host
             return plot != null;
         }
 
+        /// <summary>Manual farming follows the character's feet, not the mouse or padded click radius.</summary>
+        public static bool TryFindPlotAtFeet(Vector3 feet, out HostMapPlotCell plot)
+        {
+            plot = null;
+            var center = PickBucket(feet);
+            var bestDistance = float.MaxValue;
+            var bestOrder = -1;
+            for (var y = center.y - 1; y <= center.y + 1; y++)
+            for (var x = center.x - 1; x <= center.x + 1; x++)
+            {
+                if (!PickBuckets.TryGetValue(new Vector2Int(x, y), out var candidates)) continue;
+                foreach (var candidate in candidates)
+                {
+                    if (candidate == null || !candidate.IsPlantableField || !candidate.gameObject.activeInHierarchy) continue;
+                    Rect bounds;
+                    if (candidate.TryGetComponent<HostMapVisualGeometry>(out var geometry)) bounds = geometry.WorldRect;
+                    else if (candidate.HasInteractionBounds)
+                    {
+                        bounds = candidate.InteractionBounds;
+                        // Interaction bounds include pointer padding; it is not farmland.
+                        var padding = Mathf.Min(HostWorldObjectPickGeometry.ClickPadding,
+                            Mathf.Min(bounds.width, bounds.height) * .25f);
+                        bounds.xMin += padding; bounds.xMax -= padding;
+                        bounds.yMin += padding; bounds.yMax -= padding;
+                    }
+                    else
+                    {
+                        var point = candidate.transform.position;
+                        bounds = new Rect(point.x - .5f, point.y - .5f, 1f, 1f);
+                    }
+                    if (feet.x < bounds.xMin || feet.x > bounds.xMax || feet.y < bounds.yMin || feet.y > bounds.yMax) continue;
+                    var distance = XySqr(feet, candidate.transform.position);
+                    var order = RegistrationOrder[candidate];
+                    if (distance > bestDistance || distance == bestDistance && order < bestOrder) continue;
+                    bestDistance = distance; bestOrder = order; plot = candidate;
+                }
+            }
+            return plot != null;
+        }
+
         static Vector2Int PickBucket(Vector3 point) => new Vector2Int(
             Mathf.FloorToInt(point.x / PickBucketSize), Mathf.FloorToInt(point.y / PickBucketSize));
 
@@ -314,7 +354,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < plots.Count; i++)
             {
                 var p = plots[i];
-                if (p == null || !p.IsPlantableField)
+                if (p == null || !p.IsPlantableField || p.IsDailyTendingComplete)
                     continue;
                 if (authorization != null && !authorization(p))
                     continue;

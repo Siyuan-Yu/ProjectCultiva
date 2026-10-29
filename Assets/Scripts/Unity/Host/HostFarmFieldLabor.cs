@@ -261,7 +261,7 @@ namespace XianXia.Unity.Host
                 var id = _commandWorkers[i];
                 if (HostRpgControls.ManualActor(bootstrap, id))
                 {
-                    Toast(id, "装备锄头后走近田格，指向田格按住左键劳动", new Color(.7f, .95f, .6f));
+                    Toast(id, "装备锄头站在田区内，按住左键劳动，无需鼠标对准田格", new Color(.7f, .95f, .6f));
                     continue;
                 }
                 if (Begin(id, clickedPlot.LocationId, fromNpcSchedule: false))
@@ -414,21 +414,21 @@ namespace XianXia.Unity.Host
                 return;
             }
             if (!Input.GetMouseButton(0)) _manualNeedsRelease = false;
-            if (!HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var pointer) ||
-                !HostFarmFieldRegistry.TryFindPlotAt(pointer, out var cell))
+            if (!HostFarmFieldRegistry.TryFindPlotAtFeet(position, out var cell))
             {
                 StopManual(clearProgress: true);
                 return;
             }
-            _manualClaimsPointer = true;
+            var holdingHoe = WeaponEquipmentService.IsEquippedKind(world, actor, WeaponKind.Hoe);
+            _manualClaimsPointer = holdingHoe;
             if (HostFarmFieldRules.XyDistance(position, cell.transform.position) > ManualWorkReach ||
                 moveController == null || !moveController.HasProjectileSight(position, cell.transform.position))
             {
                 StopManual(clearProgress: true);
-                _manualHint = "先走近田格，再按住左键劳动";
+                _manualHint = "先站到可耕作的田区内，再按住左键劳动";
                 return;
             }
-            if (!WeaponEquipmentService.IsEquippedKind(world, actor, WeaponKind.Hoe))
+            if (!holdingHoe)
             {
                 StopManual(clearProgress: true);
                 _manualHint = "按B打开背包，先装备锄头";
@@ -459,6 +459,12 @@ namespace XianXia.Unity.Host
             }
             if (_manualWorker != null && (_manualWorker.Cell != cell || _manualStage != cell.CropStage))
                 StopManual(clearProgress: true);
+            if (cell.IsDailyTendingComplete)
+            {
+                StopManual(clearProgress: true);
+                _manualHint = "今日照料100% · 明天再来";
+                return;
+            }
             var hasReserve = _manualWorker != null && _manualWorker.ReservedCellId != 0;
             if (!hasReserve && _reserved.Contains(cell.GetInstanceID()))
             {
@@ -466,7 +472,7 @@ namespace XianXia.Unity.Host
                 _manualHint = "此处有人劳动，请换一个田格";
                 return;
             }
-            _manualHint = "左键按住" + HostFarmFieldRules.JobVerb(cell.CropStage) + " · 松手停止";
+            _manualHint = "田区内按住左键" + HostFarmFieldRules.JobVerb(cell.CropStage) + " · 松手停止";
             if (!Input.GetMouseButton(0) || _manualNeedsRelease)
             {
                 StopManual(clearProgress: false);
@@ -507,6 +513,12 @@ namespace XianXia.Unity.Host
             if (worker.WorkLeft <= 0f)
             {
                 if (!ApplyJob(worker)) { StopManual(clearProgress: true); return; }
+                if (cell.IsDailyTendingComplete)
+                {
+                    StopManual(clearProgress: true);
+                    _manualHint = "今日照料100% · 明天再来";
+                    return;
+                }
                 worker.WorkLeft = HostFarmFieldRules.WorkSeconds;
                 _manualStage = cell.CropStage;
                 SetActivity(actor, HostFarmFieldRules.JobVerb(cell.CropStage) + "中");
@@ -539,8 +551,11 @@ namespace XianXia.Unity.Host
             if (!_manualClaimsPointer || string.IsNullOrEmpty(_manualHint) || Event.current.type != EventType.Repaint)
                 return;
             var width = Mathf.Min(330f, Screen.width);
-            var x = Mathf.Clamp(Input.mousePosition.x + 18f, 0f, Screen.width - width);
-            var y = Mathf.Clamp(Screen.height - Input.mousePosition.y + 20f, 0f, Screen.height - 30f);
+            if (Camera.main == null || !TryGetWorldPos(bootstrap.Session.PlayerParty.ActiveCharacterId, out var position)) return;
+            var anchor = Camera.main.WorldToScreenPoint(position);
+            if (anchor.z <= 0f) return;
+            var x = Mathf.Clamp(anchor.x - width * .5f, 0f, Screen.width - width);
+            var y = Mathf.Clamp(Screen.height - anchor.y + 20f, 0f, Screen.height - 30f);
             GUI.Box(new Rect(x, y, width, 27f), _manualHint);
         }
 
@@ -625,6 +640,14 @@ namespace XianXia.Unity.Host
 
         void TickWorker(Worker w, float dt)
         {
+            if (w.Cell != null && w.Cell.IsDailyTendingComplete)
+            {
+                ReleaseFarmMovement(w);
+                ReleaseReserve(w);
+                ClearActivity(w.Id);
+                w.Cell = null;
+                w.Phase = Phase.Idle;
+            }
             if (w.Cell == null)
             {
                 if (!AssignNextCell(w) && w.Phase != Phase.WaitingForStand)
@@ -817,11 +840,16 @@ namespace XianXia.Unity.Host
                 case OutdoorFarmCropStage.Growing:
                     // Tending is labour, not a second growth clock or a percent-growth shortcut.
                     // Pull the authoritative state; never overwrite a WorldTick that just advanced.
+                    if (!OutdoorFarmGrowthService.TryCompleteTending(world, cell.StableCellId))
+                    {
+                        cell.RefreshFromWorldState();
+                        return true;
+                    }
                     cell.RefreshFromWorldState();
                     cell.RefreshCropVisual();
                     if (!isNpc)
                         Toast(w.Id,
-                            verb + " · " + Mathf.FloorToInt(cell.Growth01 * 100f) + "%（成熟随世界时间推进）",
+                            "今日照料100% · 明天再来（成熟随世界时间推进）",
                             new Color(0.7f, 0.9f, 0.5f));
                     break;
                 case OutdoorFarmCropStage.Mature:
